@@ -8,7 +8,6 @@
   <version>1.0.0.BUILD-SNAPSHOT</version>
 
   <modules>
-    <module>collaboration</module>
     <module>uaa</module>
     <module>api</module>
     <module>app</module>
