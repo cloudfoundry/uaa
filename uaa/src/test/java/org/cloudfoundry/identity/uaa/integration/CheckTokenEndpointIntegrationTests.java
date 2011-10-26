@@ -46,7 +46,7 @@ public class CheckTokenEndpointIntegrationTests {
 		headers.set("Authorization", "Basic " + new String(Base64.encode("app:appclientsecret".getBytes("UTF-8"))));
 		response = serverRunning.postForMap("/cloudfoundry-identity-uaa/check_token", formData, headers);
 		assertEquals(HttpStatus.OK, response.getStatusCode());
-		// System.err.println(response.getBody());
+		System.err.println(response.getBody());
 		
 		@SuppressWarnings("unchecked")
 		Map<String,String> map = response.getBody();

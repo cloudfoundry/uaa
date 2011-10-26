@@ -1,7 +1,9 @@
 package org.cloudfoundry.identity.uaa.web;
 
 import java.security.Principal;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
@@ -10,6 +12,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaUser;
 import org.cloudfoundry.identity.uaa.authentication.UaaUserService;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
@@ -19,8 +22,6 @@ import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * Controller which decodes access tokens for resource owners who are not able to do so (or where opaque token
@@ -62,8 +63,17 @@ public class CheckTokenEndpoint implements InitializingBean {
 		response.put("user_name", user.getUsername());
 		response.put("user_email", user.getEmail());
 		response.put("scope", token.getScope());
+		response.put("user_authorities", getAuthorities(authentication.getAuthorities()));
 
 		return response;
+	}
+
+	private Collection<String> getAuthorities(Collection<GrantedAuthority> authorities) {
+		HashSet<String> result = new HashSet<String>();
+		for (GrantedAuthority authority : authorities) {
+			result.add(authority.getAuthority());
+		}
+		return result;
 	}
 
 	@Autowired

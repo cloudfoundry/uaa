@@ -1,9 +1,7 @@
 package org.cloudfoundry.identity.api.oauth;
 
 import java.io.UnsupportedEncodingException;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -67,6 +65,7 @@ public class UaaTokenServices implements OAuth2ProviderTokenServices {
 	}
 
 	public OAuth2Authentication loadAuthentication(String accessToken) throws AuthenticationException {
+
 		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
 		formData.add("token", accessToken);
 		HttpHeaders headers = new HttpHeaders();
@@ -77,14 +76,26 @@ public class UaaTokenServices implements OAuth2ProviderTokenServices {
 			logger.debug("check_token returned error: " + map.get("error"));
 			throw new InvalidTokenException(accessToken);
 		}
+		
 		@SuppressWarnings("unchecked")
 		Set<String> scope = new HashSet<String>((Collection<String>)map.get("scope"));
 		ClientToken clientAuthentication = new ClientToken(clientId, null, clientSecret, scope, null);
 		String username = (String) map.get("user_name");
-		// TODO: get the user authorities from somewhere
-		User user = new User(username, "", Collections.<GrantedAuthority>singleton(new SimpleGrantedAuthority("ROLE_USER")));
+		
+		@SuppressWarnings("unchecked")
+		User user = new User(username, "", getAuthorities((Collection<String>)map.get("user_authorities")));
 		Authentication userAuthentication = new UsernamePasswordAuthenticationToken(user, null, null);
+
 		return new OAuth2Authentication(clientAuthentication, userAuthentication);
+
+	}
+
+	private Set<GrantedAuthority> getAuthorities(Collection<String> authorities) {
+		Set<GrantedAuthority> result = new HashSet<GrantedAuthority>();
+		for (String authority : authorities) {
+			result.add(new SimpleGrantedAuthority(authority));
+		}
+		return result;
 	}
 
 	private String getAuthorizationHeader(String clientId, String clientSecret) {

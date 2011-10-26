@@ -1,5 +1,8 @@
 package org.cloudfoundry.identity.api.web;
 
+import static org.junit.Assert.assertEquals;
+
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
@@ -25,6 +28,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.security.oauth2.common.DefaultOAuth2SerializationService;
+import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RequestCallback;
@@ -70,11 +75,15 @@ public class ServerRunning extends TestWatchman {
 
 	private final boolean assumeOnline;
 
-	private static int DEFAULT_PORT = 8080;
+	private static int DEFAULT_PORT = 9080;
+
+	private static int DEFAULT_UAA_PORT = 8080;
 
 	private static String DEFAULT_HOST = "localhost";
 
 	private int port;
+
+	private int uaaPort;
 
 	private String hostName = DEFAULT_HOST;
 
@@ -97,6 +106,11 @@ public class ServerRunning extends TestWatchman {
 	private ServerRunning(boolean assumeOnline) {
 		this.assumeOnline = assumeOnline;
 		setPort(DEFAULT_PORT);
+		setUaaPort(DEFAULT_UAA_PORT);
+	}
+
+	public void setUaaPort(int uaaPort) {
+		this.uaaPort = uaaPort;
 	}
 
 	/**
@@ -134,8 +148,8 @@ public class ServerRunning extends TestWatchman {
 		RestTemplate client = new RestTemplate();
 		boolean online = false;
 		try {
-			// client.getForEntity(new UriTemplate(getUrl("/cloudfoundry-identity-uaa/login")).toString(),
-			// String.class);
+			client.getForEntity(new UriTemplate(getUrl("/cloudfoundry-identity-uaa/login", uaaPort)).toString(),
+					String.class);
 			client.getForEntity(new UriTemplate(getUrl("/cloudfoundry-identity-api/")).toString(), String.class);
 			online = true;
 			logger.info("Basic connectivity test passed");
@@ -170,13 +184,16 @@ public class ServerRunning extends TestWatchman {
 	}
 
 	public String getUrl(String path) {
+		return getUrl(path, port);
+	}
+
+	public String getUrl(String path, int port) {
 		if (path.startsWith("http:")) {
 			return path;
 		}
 		if (!path.startsWith("/")) {
 			path = "/" + path;
 		}
-		// location.replaceAll(":[0-9]+", ":"+port);
 		return "http://" + hostName + ":" + port + path;
 	}
 
@@ -219,6 +236,25 @@ public class ServerRunning extends TestWatchman {
 
 	public HttpStatus getStatusCode(String path) {
 		return getStatusCode(getUrl(path), null);
+	}
+
+	public OAuth2AccessToken getToken() {
+		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+		formData.add("grant_type", "password");
+		formData.add("client_id", "vmc");
+		formData.add("client_secret", "");
+		formData.add("username", "marissa");
+		formData.add("password", "koala");
+		formData.add("scope", "read");
+
+		ResponseEntity<String> response = postForString(getUrl("/cloudfoundry-identity-uaa/oauth/token", uaaPort), formData);
+		assertEquals(HttpStatus.OK, response.getStatusCode());
+		assertEquals("no-store", response.getHeaders().getFirst("Cache-Control"));
+
+		DefaultOAuth2SerializationService serializationService = new DefaultOAuth2SerializationService();
+		OAuth2AccessToken accessToken = serializationService.deserializeJsonAccessToken(new ByteArrayInputStream(
+				response.getBody().getBytes()));
+		return accessToken;
 	}
 
 	public RestTemplate getRestTemplate() {
