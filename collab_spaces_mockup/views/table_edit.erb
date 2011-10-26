@@ -1,0 +1,45 @@
+<%# 
+uses:
+
+@table_info
+	[:class]
+		.editable_fields
+		.display_fields
+		.display_name
+	[:entries]
+		.name
+		.id
+		.[each editable_field and display_field]
+	[:post_path]
+	[:no_entry_links]
+%>
+
+<table>
+	<tr>
+		<% @table_class, @table_entries, @post_path = @table_info[:class], @table_info[:entries], @table_info[:post_path] %>
+		<%= "<th>#{@table_class.display_name}</th>" %>
+		<%= @table_class.editable_fields.collect{|v|"<th>#{v}</th>"}.join %>
+		<%= @table_class.display_fields.collect{|v|"<th>#{v}</th>"}.join %>
+		<th>action</th></tr>
+		<% if @table_entries then @table_entries.each do |ent| %>
+	  	<tr>
+			<%= @table_info[:no_entry_links]? "<td>#{ent.name}</td>": "<td><a href=\"#{request.path_info}/#{ent.name}\">#{ent.name}</a>" %>
+			<%= @table_class.editable_fields.collect{|v| "<td>#{ent.send(v)}</td>"}.join %>
+			<%= @table_class.display_fields.collect{|v| "<td>#{ent.send(v)}</td>"}.join %>
+			<td>
+				<form action=<%="#{@post_path}"%> method ="post" accept-charset="utf-8">
+				<input type="hidden" name="id" value=<%="#{ent.id}"%>>
+				<input type="submit" name="operation" value=<%="delete"%>>
+				</form>
+			</td>
+		</tr>
+	<% end end %>
+	<form action=<%="#{@post_path}"%> method ="post" accept-charset="utf-8">
+			<tr>
+				<td><input type="text" name="name"></td>
+				<%= @table_class.editable_fields.collect{|v|"<td><input type=\"text\" name=\"#{v}\"/></td>"}.join %>
+				<%= @table_class.display_fields.collect{|v|"<td> </td>"}.join %>
+				<td><input type="submit" name="operation" value="create"></td>
+			</tr>
+	</form>
+</table>

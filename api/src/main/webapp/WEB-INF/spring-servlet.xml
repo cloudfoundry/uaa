@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:mvc="http://www.springframework.org/schema/mvc" xmlns:sec="http://www.springframework.org/schema/security"
+	xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
+	xsi:schemaLocation="http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-3.0.xsd
+		http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-1.0.xsd
+		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.1.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+
+	<http pattern="/index.html" security="none" xmlns="http://www.springframework.org/schema/security" />
+	<http pattern="/denied" security="none" xmlns="http://www.springframework.org/schema/security" />
+
+	<!-- TODO: make an access denied view that tells me something useful -->
+	<http access-denied-page="/denied" entry-point-ref="authenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
+		xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/apps" access="SCOPE_READ" />
+		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+		<custom-filter ref="oauth2ServiceFilter" before="EXCEPTION_TRANSLATION_FILTER" />
+		<custom-filter ref="contentTypeFilter" after="EXCEPTION_TRANSLATION_FILTER" />
+		<anonymous/>
+	</http>
+
+	<bean id="accessDecisionManager" class="org.springframework.security.access.vote.UnanimousBased" xmlns="http://www.springframework.org/schema/beans">
+		<constructor-arg>
+			<list>
+				<bean class="org.springframework.security.oauth2.provider.vote.ScopeVoter" />
+				<bean class="org.springframework.security.access.vote.AuthenticatedVoter" />
+			</list>
+		</constructor-arg>
+	</bean>
+
+	<authentication-manager xmlns="http://www.springframework.org/schema/security"/>
+
+	<bean id="authenticationEntryPoint" class="org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint"
+		xmlns="http://www.springframework.org/schema/beans">
+		<property name="loginFormUrl" value="${auth.url}" />
+	</bean>
+
+	<bean id="propertyPlaceholderConfigurer" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer"
+		xmlns="http://www.springframework.org/schema/beans">
+		<property name="location">
+			<value>#{T(java.lang.System).getenv('VCAP_APPLICATION')==null ? 'classpath:/application.properties' :
+				'classpath:/application-cloud.properties'}</value>
+		</property>
+	</bean>
+
+	<bean id="tokenServices" class="org.cloudfoundry.identity.api.oauth.UaaTokenServices">
+		<property name="checkTokenEndpointUrl" value="${checkTokenEndpointUrl}"/>
+		<property name="clientId" value="app"/>
+		<property name="clientSecret" value="appclientsecret"/>
+	</bean>
+	
+	<bean id="contentTypeFilter" class="org.cloudfoundry.identity.api.web.ContentTypeFilter">
+		<property name="mediaTypes">
+			<map>
+				<entry key="/apps" value="application/json"/>
+			</map>
+		</property>
+	</bean>
+
+	<oauth:provider id="oauth2ServiceFilter" token-services-ref="tokenServices">
+		<oauth:resource-server resource-id="api" />
+	</oauth:provider>
+
+	<mvc:annotation-driven />
+
+	<mvc:default-servlet-handler />
+
+	<bean id="viewResolver" class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
+		<property name="mediaTypes">
+			<map>
+				<entry key="json" value="application/json" />
+				<entry key="xml" value="application/xml" />
+			</map>
+		</property>
+		<property name="defaultViews">
+			<bean class="org.springframework.web.servlet.view.json.MappingJacksonJsonView" />
+		</property>
+	</bean>
+
+</beans>

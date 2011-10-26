@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:sec="http://www.springframework.org/schema/security"
+	xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-1.0.xsd
+		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-3.0.xsd
+		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.1.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+
+	<sec:http pattern="/openid" security="none" />
+	<sec:http pattern="/loggedout.jsp" security="none" />
+	<sec:http pattern="/login_error.jsp" security="none" />
+	<sec:http pattern="/resources/**" security="none" />
+	<sec:http pattern="/favicon.ico" security="none" />
+	
+	<http xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/**" access="ROLE_USER" />
+		<logout logout-success-url="/loggedout.jsp"/>
+		<openid-login login-page="/openid"
+			user-service-ref="registeringUserService" authentication-failure-url="/login_error.jsp">
+			<attribute-exchange identifier-match=".*">
+				<openid-attribute name="email"
+					type="http://schema.openid.net/contact/email" required="true" />
+				<openid-attribute name="fullname"
+					type="http://schema.openid.net/namePerson" required="true" />
+			</attribute-exchange>
+		</openid-login>
+		<custom-filter ref="oauth2ClientFilter" after="EXCEPTION_TRANSLATION_FILTER"/>
+	</http>
+
+	<sec:authentication-manager alias="authenticationManager" />
+
+	<!--apply the oauth client context -->
+	<oauth:client id="oauth2ClientFilter" token-services-ref="oauth2TokenServices" />
+
+  	<bean id="oauth2TokenServices" class="org.springframework.security.oauth2.client.provider.token.InMemoryOAuth2ClientTokenServices"/>
+
+	<bean id="registeringUserService"
+		class="org.cloudfoundry.identity.openid.user.CustomUserDetailsService" />
+
+	<mvc:resources location="/resources/" mapping="/resources/**" />
+
+	<mvc:annotation-driven />
+
+	<mvc:default-servlet-handler />
+
+	<bean id="viewResolver" class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
+		<property name="mediaTypes">
+			<map>
+				<entry key="json" value="application/json" />
+			</map>
+		</property>
+		<property name="defaultViews">
+			<bean class="org.springframework.web.servlet.view.json.MappingJacksonJsonView"/>
+		</property>
+	</bean>
+
+	<bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+		<property name="prefix" value="/" />
+		<property name="suffix" value=".jsp" />
+	</bean>
+
+	<bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer" xmlns="http://www.springframework.org/schema/beans">
+		<property name="location">
+			<value>#{T(java.lang.System).getenv('VCAP_APPLICATION')==null ? 'classpath:/application.properties' :
+				'classpath:/application-cloud.properties'}</value>
+		</property>
+	</bean>
+
+	<bean id="loginController" class="org.cloudfoundry.identity.app.web.LoginController">
+		<property name="openidProviderUrl" value="${openidProviderUrl}" />
+	</bean>
+
+	<bean id="treeController" class="org.cloudfoundry.identity.app.web.TreeController">
+		<property name="restTemplate">
+			<bean class="org.springframework.security.oauth2.client.OAuth2RestTemplate">
+				<constructor-arg ref="api" />
+			</bean>
+		</property>
+		<property name="treeUrlPattern" value="${treeUrlPattern}" />
+	</bean>
+
+	<!--define an oauth 2 resource for api access -->
+	<oauth:resource id="api" type="authorization_code" clientId="app" clientSecret="appclientsecret" accessTokenUri="${accessTokenUri}"
+		userAuthorizationUri="${userAuthorizationUri}" scope="read" />
+
+</beans>

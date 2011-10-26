@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns="http://www.springframework.org/schema/beans" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:sec="http://www.springframework.org/schema/security" xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
+	xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-1.0.xsd
+		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-3.0.xsd
+		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.1.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+
+	<sec:debug />
+
+	<sec:http pattern="/resources/**" security="none" />
+	<sec:http pattern="/favicon.ico" security="none" />
+	<sec:http pattern="/index.html" security="none" />
+	<sec:http pattern="/login_info" security="none" />
+
+	<!-- Version of the /authorize endpoint for stateless clients such as VMC -->
+	<http request-matcher-ref="vmcAuthorize" create-session="stateless" entry-point-ref="http403"
+			xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+		<custom-filter ref="authzAuthenticationFilter" position="FORM_LOGIN_FILTER" />
+		<custom-filter ref="oauth2ServiceFilter" after="EXCEPTION_TRANSLATION_FILTER" />
+	</http>
+
+	<bean id="vmcAuthorize" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
+		<constructor-arg value="/oauth/authorize"/>
+		<constructor-arg value="application/json" />
+	</bean>
+
+	<bean id="authzAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationFilter">
+		<constructor-arg ref="authenticationManager" />
+	</bean>
+
+	<bean id="http403" class="org.springframework.security.web.authentication.Http403ForbiddenEntryPoint" />
+
+	<http pattern="/check_token" create-session="stateless" entry-point-ref="http403"
+			xmlns="http://www.springframework.org/schema/security" >
+		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+		<http-basic />
+	</http>
+
+	<http access-denied-page="/" xmlns="http://www.springframework.org/schema/security">
+		<!-- machine API access to the authorization process itself is allowed -->
+		<intercept-url pattern="/login**" access="IS_AUTHENTICATED_ANONYMOUSLY" />
+		<intercept-url pattern="/oauth/token" access="IS_AUTHENTICATED_ANONYMOUSLY" />
+		<intercept-url pattern="/oauth/**" access="ROLE_USER" />
+		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+		<form-login authentication-failure-url="/login" login-page="/login" login-processing-url="/login.do"
+			username-parameter="username" password-parameter="password" />
+		<logout logout-success-url="/" logout-url="/logout.do" />
+		<custom-filter ref="oauth2ServiceFilter" after="EXCEPTION_TRANSLATION_FILTER" />
+	</http>
+
+	<authentication-manager erase-credentials="false" alias="authenticationManager"
+		xmlns="http://www.springframework.org/schema/security">
+		<!-- Client authentication provider -->
+		<authentication-provider user-service-ref="clientDetailsUserService" />
+		<!-- User authentication provider -->
+		<authentication-provider ref="authzAuthProvider" />
+		<!-- Auth provider (required for browser-based login until we reuse the /authorize endpoint one -->
+		<authentication-provider>
+			<user-service>
+				<user name="marissa" authorities="ROLE_USER" password="koala" />
+			</user-service>
+		</authentication-provider>
+	</authentication-manager>
+
+	<bean id="authzAuthProvider" class="org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationProvider">
+		<constructor-arg ref="cfUserDB" />
+	</bean>
+
+	<bean id="cfUserDB" class="org.cloudfoundry.identity.uaa.authentication.InMemoryUaaUserDatabase">
+		<constructor-arg>
+			<list value-type="org.cloudfoundry.identity.uaa.authentication.UaaUser">
+				<value>dale|password|olds@vmware.com</value>
+				<value>joel|password|jdsa@vmware.com</value>
+				<value>dave|password|dsyer@vmware.com</value>
+				<value>luke|password|ltaylor@vmware.com</value>
+				<value>marissa|koala|marissa@test.org</value>
+			</list>
+		</constructor-arg>
+	</bean>
+
+	<context:property-placeholder location="classpath:/application.properties" />
+
+	<bean id="tokenServices" class="org.springframework.security.oauth2.provider.token.RandomValueOAuth2ProviderTokenServices">
+		<property name="tokenStore" ref="tokenStore" />
+		<property name="supportRefreshToken" value="true" />
+	</bean>
+
+	<bean id="tokenStore" class="org.springframework.security.oauth2.provider.token.InMemoryTokenStore"/>
+
+	<bean id="clientDetailsUserService" class="org.cloudfoundry.identity.uaa.security.ClientDetailsUserService">
+		<property name="clientDetails" ref="clientDetails"/>
+	</bean>
+
+	<oauth:provider id="oauth2ServiceFilter" token-services-ref="tokenServices">
+		<oauth:authorization-server client-details-service-ref="clientDetails">
+			<oauth:authorization-code />
+			<oauth:implicit />
+			<oauth:refresh-token />
+			<oauth:client-credentials />
+			<oauth:password />
+		</oauth:authorization-server>
+	</oauth:provider>
+
+	<oauth:client-details-service id="clientDetails">
+		<oauth:client clientId="app" authorizedGrantTypes="password,authorization_code,refresh_token" scope="read"
+			authorities="ROLE_GUEST" secret="appclientsecret" />
+		<oauth:client clientId="vmc" authorizedGrantTypes="password,authorization_code,refresh_token,implicit"
+			scope="read,write" authorities="ROLE_GUEST" />
+		<oauth:client clientId="oauth_cf_callback" resource-ids="api" authorizedGrantTypes="authorization_code,refresh_token"
+			scope="read_vcap,write_vcap" authorities="ROLE_GUEST"/>
+	</oauth:client-details-service>
+
+	<mvc:resources location="/resources/" mapping="/resources/**" />
+
+	<mvc:annotation-driven />
+
+	<mvc:default-servlet-handler />
+
+	<bean id="viewResolver" class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
+		<property name="mediaTypes">
+			<map>
+				<entry key="html" value="text/html" />
+				<entry key="json" value="application/json" />
+			</map>
+		</property>
+		<property name="viewResolvers">
+			<bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+				<property name="prefix" value="/WEB-INF/jsp/" />
+				<property name="suffix" value=".jsp" />
+			</bean>
+		</property>
+		<property name="defaultViews">
+			<bean class="org.springframework.web.servlet.view.json.MappingJacksonJsonView" />
+		</property>
+	</bean>
+
+	<!--Basic application beans. -->
+	<bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.web.LoginInfoEndpoint"/>
+
+	<bean id="checkTokenEndpoint" class="org.cloudfoundry.identity.uaa.web.CheckTokenEndpoint" >
+		<property name="tokenStore" ref="tokenStore"/>
+		<property name="userService" ref="cfUserDB"/>
+	</bean>
+
+	<bean id="accessConfirmationController" class="org.cloudfoundry.identity.uaa.web.AccessController">
+		<property name="clientDetailsService" ref="clientDetails" />
+	</bean>
+
+</beans>

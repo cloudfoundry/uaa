@@ -1,0 +1,13 @@
+target/
+*/src/main/*/META-INF/
+.access_token
+.result
+.classpath
+.project
+.DS_Store
+.settings/
+*.iml
+*.iws
+*.ipr
+.idea/
+cargo-installs/
