@@ -1,7 +1,0 @@
-*.gem
-.bundle
-.DS_Store
-collab_spaces.db
-Gemfile.lock
-pkg/*
-.rvmrc

@@ -1,8 +1,0 @@
-<h2>Project: <%="#{@instnce.name}"%></h2>
-<p><%= "#{@instnce.description}"%></p>
-
-<%= @table_info = @table_info_rolemap; erb :table_edit, :layout => false %>
-<%= if @table_info_projects then @table_info = @table_info_projects; erb :table_edit, :layout => false end %>
-<%= @table_info = @table_info_groups; erb :table_edit, :layout => false %>
-<%= @table_info = @table_info_apps; erb :table_edit, :layout => false %>
-<%= @table_info = @table_info_services; erb :table_edit, :layout => false %>
