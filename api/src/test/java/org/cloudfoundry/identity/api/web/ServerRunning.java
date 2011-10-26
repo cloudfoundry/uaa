@@ -48,9 +48,9 @@ import org.springframework.web.util.UriUtils;
  * </p>
  * 
  * <pre>
- * &#064;Rule public static BrokerRunning brokerIsRunning = BrokerRunning.isRunning();
+ * &#064;Rule public static ServerRunning brokerIsRunning = ServerRunning.isRunning();
  * 
- * &#064;Test public void testSendAndReceive() throws Exception { // ... test using RabbitTemplate etc. }
+ * &#064;Test public void testSendAndReceive() throws Exception { // ... test using server etc. }
  * </pre>
  * <p>
  * The rule can be declared as static so that it only has to check once for all tests in the enclosing test case, but

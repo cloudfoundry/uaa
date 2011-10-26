@@ -19,6 +19,8 @@ import org.springframework.util.MultiValueMap;
 /**
  * Tests implicit grant using a direct posting of credentials to the /authorize endpoint and
  * also with an intermediate form login.
+ * 
+ * @author Dave Syer
  */
 public class ImplicitTokenGrantIntegrationTests {
 

@@ -15,7 +15,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 
 /**
- * @author Ryan Heaton
  * @author Dave Syer
  */
 public class AppsIntegrationTests {

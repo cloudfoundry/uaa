@@ -34,7 +34,6 @@ public class AuthzAuthenticationProvider implements AuthenticationProvider {
 			UaaUser user = cfusers.getUser(req.getName());
 
 			if (encoder.matches(req.getCredentials(), user.getPassword())) {
-				// TODO: insert OTP check here
 				return new UaaAuthentication(cfusers.getPrincipal(user), user.getAuthorities());
 			}
 			throw new BadCredentialsException("Bad credentials");

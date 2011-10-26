@@ -5,7 +5,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
@@ -40,9 +39,9 @@ import org.springframework.web.util.UriUtils;
  * If the server is not running in the background all the tests here will simply be skipped because of a violated
  * assumption (showing as successful). Usage: </p>
  *
- * <pre> &#064;Rule public static BrokerRunning brokerIsRunning = BrokerRunning.isRunning();
+ * <pre> &#064;Rule public static ServerRunning brokerIsRunning = ServerRunning.isRunning();
  *
- * &#064;Test public void testSendAndReceive() throws Exception { // ... test using RabbitTemplate etc. } </pre> <p> The
+ * &#064;Test public void testSendAndReceive() throws Exception { // ... test using server etc. } </pre> <p> The
  * rule can be declared as static so that it only has to check once for all tests in the enclosing test case, but there
  * isn't a lot of overhead in making it non-static. </p>
  *
@@ -179,6 +178,7 @@ public class ServerRunning extends TestWatchman {
 				headers), String.class);
 	}
 
+	@SuppressWarnings("rawtypes")
 	public ResponseEntity<Map> postForMap(String path, MultiValueMap<String, String> formData) {
 		return postForMap(path, formData, new HttpHeaders());
 	}
