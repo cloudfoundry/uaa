@@ -45,6 +45,7 @@ public class CheckTokenEndpoint implements InitializingBean {
 
 		response.put("user_id", principal.getId());
 		response.put("user_name", principal.getName());
+		response.put("user_email", principal.getEmail());
 
 		return response;
 	}

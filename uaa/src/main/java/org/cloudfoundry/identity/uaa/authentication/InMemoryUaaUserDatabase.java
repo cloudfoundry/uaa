@@ -30,6 +30,6 @@ public class InMemoryUaaUserDatabase implements UaaUserService {
 
 	@Override
 	public UaaPrincipal getPrincipal(UaaUser user) {
-		return new UaaPrincipal(String.valueOf(user.getUsername().hashCode()), user.getUsername());
+		return new UaaPrincipal(String.valueOf(user.getUsername().hashCode()), user.getUsername(), user.getEmail());
 	}
 }
