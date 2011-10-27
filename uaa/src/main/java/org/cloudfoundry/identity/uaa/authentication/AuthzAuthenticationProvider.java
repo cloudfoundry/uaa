@@ -4,6 +4,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -27,13 +28,13 @@ public class AuthzAuthenticationProvider implements AuthenticationProvider {
 	}
 
 	@Override
-	public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-		AuthzAuthenticationRequest req = (AuthzAuthenticationRequest) authentication;
+	public Authentication authenticate(Authentication req) throws AuthenticationException {
+		//AuthzAuthenticationRequest req = (AuthzAuthenticationRequest) authentication;
 
 		try {
 			UaaUser user = cfusers.getUser(req.getName());
 
-			if (encoder.matches(req.getCredentials(), user.getPassword())) {
+			if (encoder.matches((CharSequence) req.getCredentials(), user.getPassword())) {
 				return new UaaAuthentication(cfusers.getPrincipal(user), user.getAuthorities());
 			}
 			throw new BadCredentialsException("Bad credentials");
@@ -46,6 +47,7 @@ public class AuthzAuthenticationProvider implements AuthenticationProvider {
 
 	@Override
 	public boolean supports(Class<?> clazz) {
-		return clazz.isAssignableFrom(AuthzAuthenticationRequest.class);
+		return clazz.isAssignableFrom(AuthzAuthenticationRequest.class) ||
+				clazz.isAssignableFrom(UsernamePasswordAuthenticationToken.class);
 	}
 }

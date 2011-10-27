@@ -52,18 +52,11 @@
 		<custom-filter ref="oauth2ServiceFilter" after="EXCEPTION_TRANSLATION_FILTER" />
 	</http>
 
-	<authentication-manager erase-credentials="false" alias="authenticationManager"
-		xmlns="http://www.springframework.org/schema/security">
+	<authentication-manager alias="authenticationManager" xmlns="http://www.springframework.org/schema/security">
 		<!-- Client authentication provider -->
 		<authentication-provider user-service-ref="clientDetailsUserService" />
 		<!-- User authentication provider -->
 		<authentication-provider ref="authzAuthProvider" />
-		<!-- Auth provider (required for browser-based login until we reuse the /authorize endpoint one -->
-		<authentication-provider>
-			<user-service>
-				<user name="marissa" authorities="ROLE_USER" password="koala" />
-			</user-service>
-		</authentication-provider>
 	</authentication-manager>
 
 	<bean id="authzAuthProvider" class="org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationProvider">
