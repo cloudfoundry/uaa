@@ -76,18 +76,14 @@ public class UaaTokenServices implements OAuth2ProviderTokenServices {
 			logger.debug("check_token returned error: " + map.get("error"));
 			throw new InvalidTokenException(accessToken);
 		}
-		
+
 		@SuppressWarnings("unchecked")
-		Set<String> scope = new HashSet<String>((Collection<String>)map.get("scope"));
+		Set<String> scope = new HashSet<String>((Collection<String>) map.get("scope"));
 		ClientToken clientAuthentication = new ClientToken(clientId, null, clientSecret, scope, null);
 		String username = (String) map.get("user_name");
-		
-		@SuppressWarnings("unchecked")
-		User user = new User(username, "", getAuthorities((Collection<String>)map.get("user_authorities")));
-		Authentication userAuthentication = new UsernamePasswordAuthenticationToken(user, null, null);
+		Authentication userAuthentication = new UsernamePasswordAuthenticationToken(username, null, null);
 
 		return new OAuth2Authentication(clientAuthentication, userAuthentication);
-
 	}
 
 	private Set<GrantedAuthority> getAuthorities(Collection<String> authorities) {

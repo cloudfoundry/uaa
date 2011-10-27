@@ -31,8 +31,8 @@ public class CheckTokenEndpoint implements InitializingBean {
 
 	@RequestMapping (value = "/check_token")
 	@ResponseBody
-	public Map<String,String> checkToken(@RequestParam ("token") String value) {
-		Map<String,String> response = new HashMap<String,String>();
+	public Map<String,Object> checkToken(@RequestParam ("token") String value) {
+		Map<String,Object> response = new HashMap<String,Object>();
 		OAuth2AccessToken token = tokenStore.readAccessToken(value);
 
 		if (token == null) {
@@ -46,6 +46,7 @@ public class CheckTokenEndpoint implements InitializingBean {
 		response.put("user_id", principal.getId());
 		response.put("user_name", principal.getName());
 		response.put("user_email", principal.getEmail());
+		response.put("scope", token.getScope());
 
 		return response;
 	}
