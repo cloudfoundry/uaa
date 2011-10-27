@@ -143,7 +143,6 @@
 
 	<bean id="checkTokenEndpoint" class="org.cloudfoundry.identity.uaa.web.CheckTokenEndpoint" >
 		<property name="tokenStore" ref="tokenStore"/>
-		<property name="userService" ref="cfUserDB"/>
 	</bean>
 
 	<bean id="accessConfirmationController" class="org.cloudfoundry.identity.uaa.web.AccessController">
