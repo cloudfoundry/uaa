@@ -1,95 +1,39 @@
-# Proof of Concept for Bento/LDAP Spring Security OAuth
+# CloudFoundry User Account and Authentication Server
 
 ## Quick Start
 
-Quick demo of command line usage:
+If this works you are in business:
 
-    $ git clone git://github.com/vmware-ac/poc-identity.git
-    $ cd poc-identity
-
-    $ export API=dsyerapi.cloudfoundry.com
-    $ export AUTH=dsyerauth.cloudfoundry.com
-
-    $ ./login.sh $AUTH -scope read_vcap
-
-Enter your `api.cloudfoundry.com` credentials, and you should find
-that you are authenticated.  There is an OAUth2 token stored in a
-local file `.access_token`.  So you can read some resources on the
-server:
-
-    $ ./get.sh $API/services
-
-You should get back a JSON list of your services (or try `/apps` if
-you don't actually have any services).
-
-Note the the local `.access_token` is not the VMC authorization token,
-it is an OAuth2 token with restricted scope (you should get access
-denied if you try and POST to an `$API` resource).  The VMC token is
-stored in a shared database on the backend.
-
-## A VMC Proxy
-
-Now do this:
-
-    $ vmc target dsyerapi.cloudfoundry.com
-    $ vmc login dsyer@vmware.com  # use your own credentials
-
-and you are all set to use `vmc` over OAuth2.  The login command in
-this case gave you `scope=read_vcap,write_vcap`.
+    $ git clone git://github.com/vmware-ac/uaa.git
+    $ cd uaa
+    $ mvn install
+	
+Each module has a `mvn jetty:run` target, or you could import them as
+projects into STS (use 2.8.0 or better if you can).  To work together
+the apps run on different ports (8080=/uaa, 7080=/app, 9080=/api).
 
 ## Inventory
 
 There are actually several projects here:
 
-1. `auth` is an OAuth2 authorization service, and also an OpenID
-provider.
+1. `auth` is an OAuth2 authorization service and authentication source
 
 2. `api` is an OAuth2 resource service
 
 3. `app` is a user application that uses both of the above
-
-4. `collaboration` is a draft implementation of the "Collaboration
-Spaces Model" for CloudFoundry.  Used by the `api` service.
-
-5. `env` is a very basic Ruby webapp used to investigate Ruby idioms
-for webapp security
-
-The three Java webapps are deployed on CloudFoundry:
-
-* `app` = http://dsyerapp.cloudfoundry.com
-* `api` = http://dsyerapi.cloudfoundry.com
-* `auth` = http://dsyerauth.cloudfoundry.com
 
 In CloudFoundry terms
 
 * `auth` is the Auth Service providing single sign on, plus authorized
   delegation for back-end services and apps.
 
-* `api` is `api.cloudfoundry.com` - it's a service that knows about
-  the collaboration spaces.  N.B. *only* this component needs to know
-  about the collaboration spaces.
+* `api` is like `api.cloudfoundry.com` - it's a service that knows
+  about the collaboration spaces.  N.B. *only* this component needs to
+  know about the collaboration spaces.
 
 * `app` is `code.cloudfoundry.com` or `studio.cloudfoundry.com` - a
   webapp that needs single sign on and access to the `api` service on
   behalf of users
-
-## Preconditions
-
-* The OAuth provider apps (`api` and `auth`) in this demo use a
-relational database for sharing OAuth2 tokens.  If you open them up as
-Maven projects in Eclipse (STS) then the `*.launch` files in the `api`
-module can be used to launch a database (`hsql-server.launch`) and a
-UI (`hsql-manager.launch`).  Right click and `Run As...`.  On
-CloudFoundry they can just share a mysql service.
-Alternatively, the database can be run using `mvn -e -P rundb exec:java`.
-
-* While this isn't necessarily relevant to all use cases, clients
-should follow instructions from the server about cookies (in
-particular `JSESSIONID`).  You can use `curl -b ... -c ...` to do this
-automatically.
-
-* Clients should follow redirects where instructed, e.g. using `curl
-  -L` (or a browser).
 
 ## The Auth Application
 
@@ -104,7 +48,7 @@ to get (filename extensions `.json` and `.html` also work partially).
 1. Login: 
 
         GET /login
-        POST /login.do?j_username=marissa@vmware.com&j_password=koala
+        POST /login.do?username=marissa&password=koala
 
 2. Logout:
 
@@ -117,7 +61,7 @@ to get (filename extensions `.json` and `.html` also work partially).
 
 4. Get an access token directly using username/password.  
 
-        GET /auth/oauth/authorize?grant_type=password
+        GET /auth/oauth/token?grant_type=password
 
   Example command line:
 
@@ -155,7 +99,7 @@ service provided in a header:
 
     Authorization: Bearer ...
 
-1. List photos
+1. List apps
 
         GET /api/photos
         Authorization: Bearer ...
@@ -163,37 +107,11 @@ service provided in a header:
 
   Example command line: 
 
-        $ curl -v localhost:8080/api/photos -H "Authorization: Bearer ..."
+        $ curl -v localhost:8080/api/apps -H "Authorization: Bearer ..."
 
-2. Grab specific JPG image (binary data)
+To GET a CloudFoundry resource you need `scope=read` in your
+OAuth2 authorization.
 
-        GET /api/photos/{id}
-        Authorization: Bearer ...
-        Accept: image/jpeg
-
-3. Get VCAP info (no auth header required)
-
-        GET /info
-        Accept: application/json
-
-4. Get other VCAP stuff, e.g.
-
-        GET /apps
-        Authorization: Bearer ...
-        Accept: application/json
-
-  lists the apps.  This service is just a proxy for `vcap` now.
-    
-4. Post other VCAP stuff, e.g.
-
-        POST /apps
-        Authorization: Bearer ...
-        Accept: application/json
-
-To GET a CloudFoundry resource you need `scope=read_vcap` in your
-OAuth2 authorization.  To POST, DELETE, PUT you need
-`scope=write_vcap`.  To do both you need `scope=write_vcap,read_vcap`.
-    
 ## The App Application
 
 This is a user interface (primarily aimed at browser) app that uses
@@ -203,66 +121,15 @@ the API service.
 
 ### Use Cases
 
-1. See all photos
+1. See all apps
 
-        GET /app/photos		
+        GET /app/apps	
 
   browser is redirected through a series of authentication and access
   grant steps (which could be slimmed down to implicit steps not
   requiring user at some point), and then the photos are shown.
 
-2. See an individual photo
-
-        GET /app/photos/{id}
-
-  If the useer is already authenticated goes straight to the image,
-  delegating to the API service to get the actual bytes.  The app is
-  acting as a simple proxy for the API service in this case.
-
-3. See the currently logged in user details, a bag of attributes
+2. See the currently logged in user details, a bag of attributes
 grabbed from the open id provider
 
-    GET /app
-
-### Command line usage:
-
-Local set up:
-
-    $ export APP=localhost:8080/app
-    $ export AUTH=http://localhost:8080/auth
-
-Cloudfoundry set up:
-
-    $ export APP=dsyerapp.cloudfoundry.com
-    $ export AUTH=dsyerauth.cloudfoundry.com
-
-Then
-
-    $ get() { location=$1; shift; curl -b ~/tmp/cookies.txt -c ~/tmp/cookies.txt -v -H "Accept: application/json; */*" $location $*; echo; }
-    $ mkdir ~/tmp
-    $ rm ~/tmp/cookies.txt
-
-There are 4 requests to authenticate and get back to the original
-saved request:
-
-    $ get $APP -L
-    $ get $APP/j_spring_openid_security_check -d action=verify -d openid_identifier=$AUTH/openid/xrds -L
-    $ get $AUTH/login.do -d j_username=marissa@vmware.com -d j_password=koala -L
-    $ get $AUTH/openid/authorize -d approve=true -L
-
-## The Env Application
-
-A simple Ruby (Sinatra) application which is a client of the `api`
-resource service.  Prerequisites: 
-
-    $ gem install sinatra oauth2
-
-`oauth2` needs a newish version of gem, so you might have to `rvm use 1.9.2` to get it to install. Runs from the command line:
-
-    $ (cd env; ruby env.rb)
-
-Make sure the `auth` and `api` applications are running on port 8080 and visit
-[http://localhost:4567/auth](http://localhost:4567/auth) to see the OAuth dance
-produce some output (e.g. list of photos from `api`), after authenticating and
-authorizing at `auth`.  Use a browser to make it automatic, or use curl and
-follow redirects.
+        GET /app
