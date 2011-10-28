@@ -1,4 +1,4 @@
-# CloudFoundry User Account and Authentication Server
+# CloudFoundry User Account and Authentication (UAA) Server
 
 ## Quick Start
 
@@ -12,105 +12,83 @@ Each module has a `mvn jetty:run` target, or you could import them as
 projects into STS (use 2.8.0 or better if you can).  To work together
 the apps run on different ports (8080=/uaa, 7080=/app, 9080=/api).
 
+### Demo of command line usage
+
+First run the uaa server as described above:
+
+    $ cd uaa
+    $ mvn jetty:run
+
+Then start another terminal and from the project base directory, run:
+
+    $ ./login.sh "localhost:8080/cloudfoundry-identity-uaa"
+
+And hit return twice to accept the default username and password.
+
+This authenticates and obtains an access token from the server using the OAuth2 implicit
+grant, similar to the approach intended for a client like VMC. The token is
+stored in the file `.access_token`.
+
+Now run the `api` server:
+
+    $ cd api
+    $ mvn jetty:run
+
+And then (from the base directory) execute:
+
+    $ ./get.sh http://localhost:9080/cloudfoundry-identity-api/apps
+
+which should return a JSON array of (pretend) running applications.
+
 ## Inventory
 
 There are actually several projects here:
 
-1. `auth` is an OAuth2 authorization service and authentication source
+1. `uaa` is the actual UAA server
 
-2. `api` is an OAuth2 resource service
+2. `api` is an OAuth2 resource service which returns a mock list of deployed apps
 
 3. `app` is a user application that uses both of the above
 
 In CloudFoundry terms
 
-* `auth` is the Auth Service providing single sign on, plus authorized
-  delegation for back-end services and apps.
+* `uaa` provides an authentication service plus authorized delegation for
+   back-end services and apps (by issuing OAuth2 access tokens).
 
-* `api` is like `api.cloudfoundry.com` - it's a service that knows
-  about the collaboration spaces.  N.B. *only* this component needs to
-  know about the collaboration spaces.
+* `api` is `api.cloudfoundry.com` - it's a service which provides resources
+   which other applications may wish to access on behalf of the resource
+   owner (the end user).
 
 * `app` is `code.cloudfoundry.com` or `studio.cloudfoundry.com` - a
   webapp that needs single sign on and access to the `api` service on
-  behalf of users
+  behalf of users.
 
-## The Auth Application
+The authentication service is `uaa`. It's a plain Spring MVC webapp.
+Deploy as normal in Tomcat or your container of choice, or execute
+`mvn jetty:run` to run it directly from `uaa` directory in the source tree.
+When running with maven it listen on port 8080.
 
-The authentication service is `auth`.  It's a plain Spring MVC webapp,
-deploy as normal in Tomcat or your container of choice.
+It supports the APIs defined in the UAA-APIs document. To summarise:
 
-### Use Cases / Resources
+1. The OAuth2 /authorize and /token endpoints
 
-Use `Accept: application/json` to get JSON responses, or `text/html`
-to get (filename extensions `.json` and `.html` also work partially).
+2. A /login_info endpoint to allow querying for required login prompts
 
-1. Login: 
+3. A /check_token endpoint, to allow resource servers to obtain information about
+an access token submitted by an OAuth2 client.
 
-        GET /login
-        POST /login.do?username=marissa&password=koala
+4. SCIM user provisioning endpoints (todo)
 
-2. Logout:
-
-        GET /auth/logout.do
-
-3. Home page (for authenticated users):
-
-        GET /auth/
-        GET /auth/home
-
-4. Get an access token directly using username/password.  
-
-        GET /auth/oauth/token?grant_type=password
-
-  Example command line:
-
-        $ curl localhost:8080/auth/oauth/authorize?grant_type=password\&client_id=app\&username=marissa@vmware.com\&password=koala\&response_type=code\&scope=read_photos
-
-  Example response:
-
-        {
-          "access_token": "4e14e7ba-ae73-4932-89cd-07692d3c7bc0",
-          "expires_in": 43199,
-          "refresh_token": "f0d5ccd5-e636-4be3-a35a-32325982723e"
-        }
-
-5. OpenID provider for SSO.  An OpenID consumer (e.g. `app`) can
-authenticate via the XRDS at `/auth/openid/users/{user}`.
+5. OpenID connect endpoints to support authentication (todo). Authentication is currently
+performed by submitting credentials directly to the /authorize endpoint (as described in UAA-API doc).
 
 ## The API Application
 
-An example local resource service and also a proxy for the Cloud
-Controller on `cloudfoundry.com`.  It hosts the photo service from
-Spring Security OAuth (client id `app`) under `/photos` and delegates
-all other requests to `api.cloudfoundry.com`.  You can use it as a raw
-`vmc` target because although `vmc` doesn't know about OAuth2, the app
-proxies all requests and translates an incoming OAuth2 header into a
-native vcap header.
+An example resource server.  It hosts a service which returns
+a list of mock applications under `/apps`.
 
-### Use Cases
-
-All resources are protected by default and client should get a 403 or
-401 if they are not authorized.  (N.B. the current implementation
-redirects to a non-existent login page instead of throwing the
-exception.  Maybe a redirect to the Auth service would be better.)
-Authorization comes through the access token from the authorization
-service provided in a header:
-
-    Authorization: Bearer ...
-
-1. List apps
-
-        GET /api/photos
-        Authorization: Bearer ...
-        Accept: application/json
-
-  Example command line: 
-
-        $ curl -v localhost:8080/api/apps -H "Authorization: Bearer ..."
-
-To GET a CloudFoundry resource you need `scope=read` in your
-OAuth2 authorization.
+Run it using `mvn jetty:run` from the `api` directory. This will start
+the application on port 9080.
 
 ## The App Application
 
@@ -120,6 +98,7 @@ authenticates with the Auth service, and then accesses resources in
 the API service.
 
 ### Use Cases
+
 
 1. See all apps
 

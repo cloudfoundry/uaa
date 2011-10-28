@@ -7,10 +7,10 @@ if [ "$1" = "" ]; then
 	exit 2;
 fi
 
-if (echo $1 | grep -q "\-.*"); then
-	echo "Options for curl come after the server path"
-	exit 3;
-fi
+# if (echo $1 | grep -q "\-.*"); then
+#   echo "Options for curl come after the server path"
+#   exit 3;
+# fi
 
 get() {
   location=$1
