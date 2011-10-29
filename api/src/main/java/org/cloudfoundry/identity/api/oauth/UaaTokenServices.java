@@ -19,17 +19,16 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.crypto.codec.Base64;
-import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.ClientToken;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
-import org.springframework.security.oauth2.provider.token.OAuth2ProviderTokenServices;
+import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
-public class UaaTokenServices implements OAuth2ProviderTokenServices {
+public class UaaTokenServices implements ResourceServerTokenServices {
 	protected final Log logger = LogFactory.getLog(getClass());
 
 	private RestOperations restTemplate = new RestTemplate();
@@ -54,14 +53,6 @@ public class UaaTokenServices implements OAuth2ProviderTokenServices {
 
 	public void setClientSecret(String clientSecret) {
 		this.clientSecret = clientSecret;
-	}
-
-	public OAuth2AccessToken createAccessToken(OAuth2Authentication authentication) throws AuthenticationException {
-		throw new UnsupportedOperationException("Not implemented");
-	}
-
-	public OAuth2AccessToken refreshAccessToken(String refreshToken, Set<String> scope) throws AuthenticationException {
-		throw new UnsupportedOperationException("Not implemented");
 	}
 
 	public OAuth2Authentication loadAuthentication(String accessToken) throws AuthenticationException {

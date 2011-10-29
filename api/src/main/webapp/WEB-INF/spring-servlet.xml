@@ -18,7 +18,7 @@
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<custom-filter ref="oauth2ServiceFilter" before="EXCEPTION_TRANSLATION_FILTER" />
 		<custom-filter ref="contentTypeFilter" after="EXCEPTION_TRANSLATION_FILTER" />
-		<anonymous/>
+		<anonymous />
 	</http>
 
 	<bean id="accessDecisionManager" class="org.springframework.security.access.vote.UnanimousBased" xmlns="http://www.springframework.org/schema/beans">
@@ -30,7 +30,7 @@
 		</constructor-arg>
 	</bean>
 
-	<authentication-manager xmlns="http://www.springframework.org/schema/security"/>
+	<authentication-manager xmlns="http://www.springframework.org/schema/security" />
 
 	<bean id="authenticationEntryPoint" class="org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint"
 		xmlns="http://www.springframework.org/schema/beans">
@@ -40,28 +40,28 @@
 	<bean id="propertyPlaceholderConfigurer" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer"
 		xmlns="http://www.springframework.org/schema/beans">
 		<property name="location">
-			<value>#{T(java.lang.System).getenv('VCAP_APPLICATION')==null ? 'classpath:/application.properties' :
-				'classpath:/application-cloud.properties'}</value>
+			<value>#{T(java.lang.System).getenv('VCAP_APPLICATION')==null ?
+				'classpath:/application.properties' :
+				'classpath:/application-cloud.properties'}
+			</value>
 		</property>
 	</bean>
 
 	<bean id="tokenServices" class="org.cloudfoundry.identity.api.oauth.UaaTokenServices">
-		<property name="checkTokenEndpointUrl" value="${checkTokenEndpointUrl}"/>
-		<property name="clientId" value="app"/>
-		<property name="clientSecret" value="appclientsecret"/>
+		<property name="checkTokenEndpointUrl" value="${checkTokenEndpointUrl}" />
+		<property name="clientId" value="app" />
+		<property name="clientSecret" value="appclientsecret" />
 	</bean>
-	
+
 	<bean id="contentTypeFilter" class="org.cloudfoundry.identity.api.web.ContentTypeFilter">
 		<property name="mediaTypes">
 			<map>
-				<entry key="/apps" value="application/json"/>
+				<entry key="/apps" value="application/json" />
 			</map>
 		</property>
 	</bean>
 
-	<oauth:provider id="oauth2ServiceFilter" token-services-ref="tokenServices">
-		<oauth:resource-server resource-id="api" />
-	</oauth:provider>
+	<oauth:resource-server id="oauth2ServiceFilter" resource-id="api" token-services-ref="tokenServices"/>
 
 	<mvc:annotation-driven />
 

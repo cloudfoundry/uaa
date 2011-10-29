@@ -37,7 +37,7 @@ public class NativeApplicationIntegrationTests {
 		formData.add("client_secret", "appclientsecret");
 		formData.add("username", "marissa");
 		formData.add("password", "koala");
-		formData.add("scope", "read_photos");
+		formData.add("scope", "read");
 		ResponseEntity<String> response = serverRunning.postForString("/cloudfoundry-identity-uaa/oauth/token", formData);
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		assertEquals("no-store", response.getHeaders().getFirst("Cache-Control"));
