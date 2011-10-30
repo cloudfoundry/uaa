@@ -17,7 +17,7 @@
 
 	<!-- Version of the /authorize endpoint for stateless clients such as VMC -->
 	<http request-matcher-ref="vmcAuthorize" create-session="stateless" entry-point-ref="http403"
-		xmlns="http://www.springframework.org/schema/security">
+			authentication-manager-ref="userAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<custom-filter ref="authzAuthenticationFilter" position="FORM_LOGIN_FILTER" />
 	</http>
@@ -28,18 +28,19 @@
 	</bean>
 
 	<bean id="authzAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationFilter">
-		<constructor-arg ref="authenticationManager" />
+		<constructor-arg ref="userAuthenticationMgr" />
 	</bean>
 
 	<bean id="http403" class="org.springframework.security.web.authentication.Http403ForbiddenEntryPoint" />
 
 	<http pattern="/check_token" create-session="stateless" entry-point-ref="http403"
-		xmlns="http://www.springframework.org/schema/security">
+			authentication-manager-ref="clientAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<http-basic />
 	</http>
 
-	<http access-denied-page="/" xmlns="http://www.springframework.org/schema/security">
+	<http access-denied-page="/" authentication-manager-ref="userAuthenticationMgr"
+			xmlns="http://www.springframework.org/schema/security">
 		<!-- machine API access to the authorization process itself is allowed -->
 		<intercept-url pattern="/login**" access="IS_AUTHENTICATED_ANONYMOUSLY" />
 		<intercept-url pattern="/oauth/token" access="IS_AUTHENTICATED_ANONYMOUSLY" />
@@ -51,26 +52,23 @@
 		<logout logout-success-url="/" logout-url="/logout.do" />
 	</http>
 
-	<authentication-manager alias="authenticationManager" xmlns="http://www.springframework.org/schema/security">
-		<!-- Client authentication provider -->
+	<authentication-manager id="clientAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
 		<authentication-provider user-service-ref="clientDetailsUserService" />
-		<!-- User authentication provider -->
-		<authentication-provider ref="authzAuthProvider" />
 	</authentication-manager>
 
-	<bean id="authzAuthProvider" class="org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationProvider">
-		<constructor-arg ref="cfUserDB" />
-	</bean>
-
-	<bean id="cfUserDB" class="org.cloudfoundry.identity.uaa.authentication.InMemoryUaaUserDatabase">
+	<bean id="userAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationMgr">
 		<constructor-arg>
-			<list value-type="org.cloudfoundry.identity.uaa.authentication.UaaUser">
-				<value>dale|password|olds@vmware.com</value>
-				<value>joel|password|jdsa@vmware.com</value>
-				<value>dave|password|dsyer@vmware.com</value>
-				<value>luke|password|ltaylor@vmware.com</value>
-				<value>marissa|koala|marissa@test.org</value>
-			</list>
+			<bean class="org.cloudfoundry.identity.uaa.authentication.InMemoryUaaUserDatabase">
+				<constructor-arg>
+					<list value-type="org.cloudfoundry.identity.uaa.authentication.UaaUser">
+						<value>dale|password|olds@vmware.com</value>
+						<value>joel|password|jdsa@vmware.com</value>
+						<value>dave|password|dsyer@vmware.com</value>
+						<value>luke|password|ltaylor@vmware.com</value>
+						<value>marissa|koala|marissa@test.org</value>
+					</list>
+				</constructor-arg>
+			</bean>
 		</constructor-arg>
 	</bean>
 
@@ -92,7 +90,7 @@
 		<oauth:implicit />
 		<oauth:refresh-token />
 		<oauth:client-credentials />
-		<oauth:password />
+		<oauth:password authentication-manager-ref="userAuthenticationMgr" />
 	</oauth:authorization-server>
 
 	<oauth:client-details-service id="clientDetails">
