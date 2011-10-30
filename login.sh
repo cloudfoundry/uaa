@@ -62,7 +62,7 @@ response=`curl --write-out "Location: %{redirect_url}" -s -S -G --data-urlencode
 
 echo "$response\n"
 
-echo $response | grep access_token | sed -e 's/.*access_token=//' > .access_token
+echo $response | grep access_token | sed -e 's/.*access_token=//' -e 's/&.*//'> .access_token
 
 if [ "`cat .access_token`" != "" ]; then echo "Successfully authenticated"; exit 0; fi
 
