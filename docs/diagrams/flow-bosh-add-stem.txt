@@ -1,0 +1,18 @@
+participant cli
+participant dir
+participant cs
+
+cli->dir: push_stem(token, proj, name)
+dir->cs: create_resrc(token, proj, restype => stem, name)
+
+note over cs:
+    get ACLs for proj
+    check_authorized(token, acls, perm => create, restype)
+    if yes
+        assign_resid(proj, restype, name)
+        add resid to proj
+end note
+
+cs->dir: yes, resid
+note over dir: if yes, add stem cell with resid
+dir->cli:
