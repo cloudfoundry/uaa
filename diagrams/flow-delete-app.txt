@@ -1,0 +1,21 @@
+participant vmc
+participant cc
+participant cs
+
+vmc->cc: delete_app(token, org, proj, name)
+cc->cs: delete_resource(token, org, proj, restype => app, name)
+
+note over cs:
+    get ACLs for org, proj
+    check_authorized(token, acls, perm => d, restype, name)
+    if yes, delete resid from org/proj
+
+cs->cc: yes, resid
+note over cc: delete_app(resid)
+note over cc cs: 
+if deletion of app => resid fails, dangling
+references would be cleaned up by garbage
+collection process, see CC CS Interactions 
+doc.
+end note
+cc->vmc:

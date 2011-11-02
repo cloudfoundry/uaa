@@ -1,0 +1,15 @@
+participant vmc
+participant cc
+participant cs
+
+vmc->cc: create_org(token, name)
+cc->cs: create_org(token, name)
+note over cs:
+    get ACLs for org => all, proj => all
+    check_authorized(token, acls, perm => create, restype => org)
+    if yes, 
+        create_org(token, name), which will add proj => "all" 
+        and role "Owner" => all perms to userid from token
+end note
+cs->cc:
+cc->vmc:

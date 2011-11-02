@@ -1,0 +1,24 @@
+participant vmc
+participant cc
+participant cs
+
+vmc->cc: delete_org(token, name)
+cc->cs: delete_org(token, name)
+note over cs:
+    if name == all, return "denied"
+    get ACLs for org => all, proj => all
+    check_authorized(token, acls, perm => delete, restype => org, name)
+    if yes, 
+        delete_org(orgid), which will delete all 
+        internal resources and return a list of 
+        external resids to be deleted
+end note
+cs->cc: if yes, resids[]
+note over cc: delete all resources for resids[]
+note over cc cs: 
+if deletion of resources fails, orphaned
+resources would be cleaned up by garbage
+collection process, see CC CS Interactions 
+doc.
+end note
+cc->vmc:

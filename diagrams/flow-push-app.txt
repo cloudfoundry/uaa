@@ -1,0 +1,18 @@
+participant vmc
+participant cc
+participant cs
+
+vmc->cc: push_app(token, org, proj, name)
+cc->cs: create_resrc(token, org, proj, restype => app, name)
+
+note over cs:
+    get ACLs for org, proj
+    check_authorized(token, acls, perm => create, restype)
+    if yes
+        assign_resid(org, proj, restype, name)
+        add resid to org and proj
+end note
+
+cs->cc: yes, resid
+note over cc: if yes, create app with resid
+cc->vmc:
