@@ -15,6 +15,13 @@
 	<sec:http pattern="/index.html" security="none" />
 	<sec:http pattern="/login_info" security="none" />
 
+	<!-- Anyone can create or update user accounts for now -->
+	<sec:http request-matcher-ref="userEndPoint" security="none" />
+
+	<bean id="userEndPoint" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
+		<constructor-arg value="/User" />
+	</bean>
+
 	<!-- Version of the /authorize endpoint for stateless clients such as VMC -->
 	<http request-matcher-ref="vmcAuthorize" create-session="stateless" entry-point-ref="http403"
 			authentication-manager-ref="userAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
@@ -57,20 +64,21 @@
 	</authentication-manager>
 
 	<bean id="userAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationMgr">
+		<constructor-arg ref="userDB" />
+	</bean>
+
+	<bean id="userDB" class="org.cloudfoundry.identity.uaa.authentication.InMemoryUaaUserDatabase">
 		<constructor-arg>
-			<bean class="org.cloudfoundry.identity.uaa.authentication.InMemoryUaaUserDatabase">
-				<constructor-arg>
-					<list value-type="org.cloudfoundry.identity.uaa.authentication.UaaUser">
-						<value>dale|password|olds@vmware.com</value>
-						<value>joel|password|jdsa@vmware.com</value>
-						<value>dave|password|dsyer@vmware.com</value>
-						<value>luke|password|ltaylor@vmware.com</value>
-						<value>marissa|koala|marissa@test.org</value>
-					</list>
-				</constructor-arg>
-			</bean>
+			<list value-type="org.cloudfoundry.identity.uaa.authentication.UaaUser">
+				<value>dale|password|olds@vmware.com</value>
+				<value>joel|password|jdsa@vmware.com</value>
+				<value>dave|password|dsyer@vmware.com</value>
+				<value>luke|password|ltaylor@vmware.com</value>
+				<value>marissa|koala|marissa@test.org</value>
+			</list>
 		</constructor-arg>
 	</bean>
+
 
 	<context:property-placeholder location="classpath:/application.properties" />
 
@@ -131,6 +139,10 @@
 
 	<bean id="checkTokenEndpoint" class="org.cloudfoundry.identity.uaa.web.CheckTokenEndpoint" >
 		<property name="tokenStore" ref="tokenStore"/>
+	</bean>
+
+	<bean id="scimEndpoints" class="org.cloudfoundry.identity.uaa.scim.ScimUserEndpoints" >
+		<property name="dao" ref="userDB" />
 	</bean>
 
 	<bean id="accessConfirmationController" class="org.cloudfoundry.identity.uaa.web.AccessController">
