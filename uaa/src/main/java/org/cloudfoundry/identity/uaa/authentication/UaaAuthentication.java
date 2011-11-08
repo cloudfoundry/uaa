@@ -1,11 +1,11 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
+
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 
 /**
  */
@@ -39,12 +39,12 @@ public final class UaaAuthentication implements Authentication, Serializable {
 
 	@Override
 	public Object getCredentials() {
-		throw new UnsupportedOperationException();
+		return null;
 	}
 
 	@Override
 	public Object getDetails() {
-		throw new UnsupportedOperationException();
+		return null;
 	}
 
 	@Override

@@ -24,7 +24,7 @@
 
 	<!-- Version of the /authorize endpoint for stateless clients such as VMC -->
 	<http request-matcher-ref="vmcAuthorize" create-session="stateless" entry-point-ref="http403"
-			authentication-manager-ref="userAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
+		authentication-manager-ref="userAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<custom-filter ref="authzAuthenticationFilter" position="FORM_LOGIN_FILTER" />
 	</http>
@@ -40,14 +40,13 @@
 
 	<bean id="http403" class="org.springframework.security.web.authentication.Http403ForbiddenEntryPoint" />
 
-	<http pattern="/check_token" create-session="stateless" entry-point-ref="http403"
-			authentication-manager-ref="clientAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
+	<http pattern="/check_token" create-session="stateless" entry-point-ref="http403" authentication-manager-ref="clientAuthenticationMgr"
+		xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<http-basic />
 	</http>
 
-	<http access-denied-page="/" authentication-manager-ref="userAuthenticationMgr"
-			xmlns="http://www.springframework.org/schema/security">
+	<http access-denied-page="/" authentication-manager-ref="userAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
 		<!-- machine API access to the authorization process itself is allowed -->
 		<intercept-url pattern="/login**" access="IS_AUTHENTICATED_ANONYMOUSLY" />
 		<intercept-url pattern="/oauth/token" access="IS_AUTHENTICATED_ANONYMOUSLY" />
@@ -57,11 +56,14 @@
 		<form-login authentication-failure-url="/login" login-page="/login" login-processing-url="/login.do"
 			username-parameter="username" password-parameter="password" />
 		<logout logout-success-url="/" logout-url="/logout.do" />
+		<custom-filter ref="oauth2ResourceServerFilter" before="EXCEPTION_TRANSLATION_FILTER" />
 	</http>
 
 	<authentication-manager id="clientAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
 		<authentication-provider user-service-ref="clientDetailsUserService" />
 	</authentication-manager>
+
+	<authentication-manager id="emptyAuthenticationMgr" xmlns="http://www.springframework.org/schema/security" />
 
 	<bean id="userAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationMgr">
 		<constructor-arg ref="userDB" />
@@ -110,6 +112,9 @@
 			scope="read_vcap,write_vcap" authorities="ROLE_GUEST" />
 	</oauth:client-details-service>
 
+	<oauth:resource-server id="oauth2ResourceServerFilter" token-services-ref="tokenServices"
+		resource-id="openid" />
+
 	<mvc:resources location="/resources/" mapping="/resources/**" />
 
 	<mvc:annotation-driven />
@@ -137,11 +142,13 @@
 	<!--Basic application beans. -->
 	<bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.web.LoginInfoEndpoint" />
 
-	<bean id="checkTokenEndpoint" class="org.cloudfoundry.identity.uaa.web.CheckTokenEndpoint" >
-		<property name="tokenStore" ref="tokenStore"/>
+	<bean id="userInfoEndpoint" class="org.cloudfoundry.identity.uaa.web.UserInfoEndpoint" />
+
+	<bean id="checkTokenEndpoint" class="org.cloudfoundry.identity.uaa.web.CheckTokenEndpoint">
+		<property name="tokenStore" ref="tokenStore" />
 	</bean>
 
-	<bean id="scimEndpoints" class="org.cloudfoundry.identity.uaa.scim.ScimUserEndpoints" >
+	<bean id="scimEndpoints" class="org.cloudfoundry.identity.uaa.scim.ScimUserEndpoints">
 		<property name="dao" ref="userDB" />
 	</bean>
 
