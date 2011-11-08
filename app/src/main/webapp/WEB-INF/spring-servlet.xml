@@ -37,7 +37,7 @@
 	<!--apply the oauth client context -->
 	<oauth:client id="oauth2ClientFilter" token-services-ref="oauth2TokenServices" />
 
-  	<bean id="oauth2TokenServices" class="org.springframework.security.oauth2.client.provider.token.InMemoryOAuth2ClientTokenServices"/>
+  	<bean id="oauth2TokenServices" class="org.springframework.security.oauth2.client.token.service.InMemoryOAuth2ClientTokenServices"/>
 
 	<bean id="registeringUserService"
 		class="org.cloudfoundry.identity.openid.user.CustomUserDetailsService" />
@@ -85,7 +85,7 @@
 	</bean>
 
 	<!--define an oauth 2 resource for api access -->
-	<oauth:resource id="api" type="authorization_code" clientId="app" clientSecret="appclientsecret" accessTokenUri="${accessTokenUri}"
-		userAuthorizationUri="${userAuthorizationUri}" scope="read" />
+	<oauth:resource id="api" type="authorization_code" client-id="app" client-secret="appclientsecret" access-token-uri="${accessTokenUri}"
+		user-authorization-uri="${userAuthorizationUri}" scope="read" />
 
 </beans>

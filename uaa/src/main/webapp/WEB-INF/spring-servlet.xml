@@ -102,11 +102,11 @@
 	</oauth:authorization-server>
 
 	<oauth:client-details-service id="clientDetails">
-		<oauth:client clientId="app" authorizedGrantTypes="password,authorization_code,refresh_token" scope="read"
+		<oauth:client client-id="app" authorized-grant-types="password,authorization_code,refresh_token" scope="read"
 			authorities="ROLE_GUEST" secret="appclientsecret" />
-		<oauth:client clientId="vmc" authorizedGrantTypes="password,authorization_code,refresh_token,implicit"
+		<oauth:client client-id="vmc" authorized-grant-types="password,authorization_code,refresh_token,implicit"
 			scope="read,write" authorities="ROLE_GUEST" />
-		<oauth:client clientId="oauth_cf_callback" resource-ids="api" authorizedGrantTypes="authorization_code,refresh_token"
+		<oauth:client client-id="oauth_cf_callback" resource-ids="api" authorized-grant-types="authorization_code,refresh_token"
 			scope="read_vcap,write_vcap" authorities="ROLE_GUEST" />
 	</oauth:client-details-service>
 
