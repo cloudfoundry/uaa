@@ -8,8 +8,8 @@
   <version>1.0.0.BUILD-SNAPSHOT</version>
 
   <modules>
-    <module>uaa</module>
     <module>api</module>
+    <module>uaa</module>
     <module>app</module>
   </modules>
 
@@ -56,6 +56,14 @@
           </execution>
         </executions>
       </plugin>
+	  <plugin>
+		<groupId>org.codehaus.mojo</groupId>
+		<artifactId>tomcat-maven-plugin</artifactId>
+		<configuration>	
+		  <serverXml>server.xml</serverXml>
+		  <ignorePackaging>true</ignorePackaging>
+		</configuration>
+	  </plugin>
     </plugins>
     <pluginManagement>
       <plugins>
@@ -64,6 +72,10 @@
           <artifactId>maven-jetty-plugin</artifactId>
           <version>6.1.25</version>
         </plugin>
+		<plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>tomcat-maven-plugin</artifactId>
+		</plugin>
       </plugins>
     </pluginManagement>
     <extensions>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Licensed to the Apache Software Foundation (ASF) under one or more contributor 
+	license agreements. See the NOTICE file distributed with this work for additional 
+	information regarding copyright ownership. The ASF licenses this file to 
+	You under the Apache License, Version 2.0 (the "License"); you may not use 
+	this file except in compliance with the License. You may obtain a copy of 
+	the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required 
+	by applicable law or agreed to in writing, software distributed under the 
+	License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS 
+	OF ANY KIND, either express or implied. See the License for the specific 
+	language governing permissions and limitations under the License. -->
+<Server port="8005" shutdown="SHUTDOWN">
+
+	<!--APR library loader. Documentation at /docs/apr.html -->
+	<Listener SSLEngine="on"
+		className="org.apache.catalina.core.AprLifecycleListener" />
+	<!--Initialize Jasper prior to webapps are loaded. Documentation at /docs/jasper-howto.html -->
+	<Listener className="org.apache.catalina.core.JasperListener" />
+	<!-- Prevent memory leaks due to use of particular java/javax APIs -->
+	<Listener className="org.apache.catalina.core.JreMemoryLeakPreventionListener" />
+	<!-- JMX Support for the Tomcat server. Documentation at /docs/non-existent.html -->
+	<Listener className="org.apache.catalina.mbeans.ServerLifecycleListener" />
+	<Listener className="org.apache.catalina.mbeans.GlobalResourcesLifecycleListener" />
+
+	<GlobalNamingResources>
+		<Resource auth="Container" description="User database that can be updated and saved"
+			factory="org.apache.catalina.users.MemoryUserDatabaseFactory" name="UserDatabase"
+			pathname="conf/tomcat-users.xml" type="org.apache.catalina.UserDatabase" />
+	</GlobalNamingResources>
+
+	<Service name="Catalina">
+		<Connector port="8080" protocol="HTTP/1.1" 
+				   connectionTimeout="20000" 
+				   redirectPort="8443" />
+		<Engine defaultHost="localhost" name="Catalina">
+		  <Realm className="org.apache.catalina.realm.UserDatabaseRealm"
+				 resourceName="UserDatabase"/>
+			<Host appBase="webapps" autoDeploy="true" name="localhost"
+				unpackWARs="true" xmlNamespaceAware="false" xmlValidation="false">
+				<Context path="/manager" privileged="true"
+					docBase="../../../src/main/tomcatwebapps/manager.war" />
+			</Host>
+		</Engine>
+	</Service>
+</Server>
