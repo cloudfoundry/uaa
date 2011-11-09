@@ -43,8 +43,6 @@
 
 	<bean id="oauth2TokenServices" class="org.springframework.security.oauth2.client.token.service.InMemoryOAuth2ClientTokenServices" />
 
-	<bean id="registeringUserService" class="org.cloudfoundry.identity.openid.user.CustomUserDetailsService" />
-
 	<mvc:resources location="/resources/" mapping="/resources/**" />
 
 	<mvc:annotation-driven />
@@ -75,10 +73,6 @@
 		</property>
 	</bean>
 
-	<bean id="loginController" class="org.cloudfoundry.identity.app.web.LoginController">
-		<property name="openidProviderUrl" value="${openidProviderUrl}" />
-	</bean>
-
 	<bean id="treeController" class="org.cloudfoundry.identity.app.web.TreeController">
 		<property name="restTemplate">
 			<bean class="org.springframework.security.oauth2.client.OAuth2RestTemplate">
@@ -87,6 +81,8 @@
 		</property>
 		<property name="treeUrlPattern" value="${treeUrlPattern}" />
 	</bean>
+
+	<bean id="homeController" class="org.cloudfoundry.identity.app.web.HomeController"/>
 
 	<!--define an oauth 2 resource for api access -->
 	<oauth:resource id="api" type="authorization_code" client-id="app" client-secret="appclientsecret"

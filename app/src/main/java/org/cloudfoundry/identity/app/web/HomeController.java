@@ -19,21 +19,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 @Controller
-public class LoginController {
-
-	private String openidProviderUrl;
-	
-	public void setOpenidProviderUrl(String openidProviderUrl) {
-		this.openidProviderUrl = openidProviderUrl;
-	}
-	
-	@RequestMapping("/openid")
-	public String login(Model model) {
-		model.addAttribute("action", "verify");
-		model.addAttribute("openid_identifier", openidProviderUrl);
-		model.addAttribute("_spring_security_remember_me", "true");
-		return "redirect:j_spring_openid_security_check";
-	}
+public class HomeController {
 
 	@RequestMapping("/home")
 	public String home(Model model, Principal principal) {

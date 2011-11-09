@@ -79,8 +79,14 @@ an access token submitted by an OAuth2 client.
 
 4. SCIM user provisioning endpoints (todo)
 
-5. OpenID connect endpoints to support authentication (todo). Authentication is currently
-performed by submitting credentials directly to the /authorize endpoint (as described in UAA-API doc).
+5. OpenID connect endpoints to support authentication
+(todo). Implemented roughly enough to get it working (so /app
+authenticates here), but not to meet the spec.
+
+Authentication can be performed by command line clients by submitting
+credentials directly to the /authorize endpoint (as described in
+UAA-API doc).  There is an `ImplicitAccessTokenProvider` in Spring
+Security OAuth that can do the heavy lifting.
 
 ## The API Application
 
@@ -93,9 +99,9 @@ the application on port 9080.
 ## The App Application
 
 This is a user interface (primarily aimed at browser) app that uses
-OpenID for authentication (i.e. SSO) and OAuth2 for access grants.  It
-authenticates with the Auth service, and then accesses resources in
-the API service.
+OpenId Connect for authentication (i.e. SSO) and OAuth2 for access
+grants.  It authenticates with the Auth service, and then accesses
+resources in the API service.
 
 ### Use Cases
 
