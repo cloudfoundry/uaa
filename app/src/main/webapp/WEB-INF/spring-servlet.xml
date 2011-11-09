@@ -17,25 +17,29 @@
 	<sec:http pattern="/resources/**" security="none" />
 	<sec:http pattern="/favicon.ico" security="none" />
 	
-	<http xmlns="http://www.springframework.org/schema/security">
+	<http xmlns="http://www.springframework.org/schema/security" entry-point-ref="loginEntryPoint">
 		<intercept-url pattern="/**" access="ROLE_USER" />
 		<logout logout-success-url="/loggedout.jsp"/>
-		<openid-login login-page="/openid"
-			user-service-ref="registeringUserService" authentication-failure-url="/login_error.jsp">
-			<attribute-exchange identifier-match=".*">
-				<openid-attribute name="email"
-					type="http://schema.openid.net/contact/email" required="true" />
-				<openid-attribute name="fullname"
-					type="http://schema.openid.net/namePerson" required="true" />
-			</attribute-exchange>
-		</openid-login>
+		<custom-filter ref="openidClientFilter" after="OPENID_FILTER"/>
 		<custom-filter ref="oauth2ClientFilter" after="EXCEPTION_TRANSLATION_FILTER"/>
 	</http>
+	
+	<bean id="loginEntryPoint" class="org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint">
+		<constructor-arg value="/login"/>
+	</bean>
 
 	<sec:authentication-manager alias="authenticationManager" />
 
 	<!--apply the oauth client context -->
 	<oauth:client id="oauth2ClientFilter" token-services-ref="oauth2TokenServices" />
+
+	<bean id="openidClientFilter" class="org.cloudfoundry.identity.app.web.OpenIdClientFilter">
+		<property name="restTemplate">
+			<bean class="org.springframework.security.oauth2.client.OAuth2RestTemplate">
+				<constructor-arg ref="api" />
+			</bean>
+		</property>
+	</bean>
 
   	<bean id="oauth2TokenServices" class="org.springframework.security.oauth2.client.token.service.InMemoryOAuth2ClientTokenServices"/>
 
@@ -86,6 +90,6 @@
 
 	<!--define an oauth 2 resource for api access -->
 	<oauth:resource id="api" type="authorization_code" client-id="app" client-secret="appclientsecret" access-token-uri="${accessTokenUri}"
-		user-authorization-uri="${userAuthorizationUri}" scope="read" />
+		user-authorization-uri="${userAuthorizationUri}" scope="read,openid" />
 
 </beans>
