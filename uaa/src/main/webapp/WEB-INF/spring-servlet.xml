@@ -121,6 +121,12 @@
 
 	<mvc:default-servlet-handler />
 
+	<bean class="org.cloudfoundry.identity.uaa.web.AnnotationMethodHandlerExceptionResolver"/>
+
+	<bean class="org.springframework.web.servlet.mvc.annotation.ResponseStatusExceptionResolver" />
+
+	<bean class="org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver" />
+
 	<bean id="viewResolver" class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
 		<property name="mediaTypes">
 			<map>
