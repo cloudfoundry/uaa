@@ -148,9 +148,9 @@ public class ServerRunning extends TestWatchman {
 		RestTemplate client = new RestTemplate();
 		boolean online = false;
 		try {
-			client.getForEntity(new UriTemplate(getUrl("/cloudfoundry-identity-uaa/login", uaaPort)).toString(),
+			client.getForEntity(new UriTemplate(getUrl("/uaa/login", uaaPort)).toString(),
 					String.class);
-			client.getForEntity(new UriTemplate(getUrl("/cloudfoundry-identity-api/")).toString(), String.class);
+			client.getForEntity(new UriTemplate(getUrl("/api/")).toString(), String.class);
 			online = true;
 			logger.info("Basic connectivity test passed");
 		}
@@ -247,7 +247,7 @@ public class ServerRunning extends TestWatchman {
 		formData.add("password", "koala");
 		formData.add("scope", "read");
 
-		ResponseEntity<String> response = postForString(getUrl("/cloudfoundry-identity-uaa/oauth/token", uaaPort), formData);
+		ResponseEntity<String> response = postForString(getUrl("/uaa/oauth/token", uaaPort), formData);
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		assertEquals("no-store", response.getHeaders().getFirst("Cache-Control"));
 

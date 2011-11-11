@@ -32,13 +32,13 @@ public class AppsIntegrationTests {
 		// now try and use the token to access a protected resource.
 
 		// first make sure the resource is actually protected.
-		assertNotSame(HttpStatus.OK, serverRunning.getStatusCode("/cloudfoundry-identity-api/apps"));
+		assertNotSame(HttpStatus.OK, serverRunning.getStatusCode("/api/apps"));
 
 		// then make sure an authorized request is valid.
 		HttpHeaders headers = new HttpHeaders();
 		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
 		headers.set("Authorization", String.format("%s %s", OAuth2AccessToken.BEARER_TYPE, accessToken.getValue()));
-		ResponseEntity<String> result = serverRunning.getForString("/cloudfoundry-identity-api/apps", headers);
+		ResponseEntity<String> result = serverRunning.getForString("/api/apps", headers);
 		assertEquals(HttpStatus.OK, result.getStatusCode());
 		String body = result.getBody();
 		assertTrue("Wrong response: "+body, body.contains("dsyerapi.cloudfoundry.com"));

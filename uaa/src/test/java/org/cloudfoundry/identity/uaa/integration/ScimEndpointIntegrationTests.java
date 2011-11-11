@@ -24,7 +24,7 @@ import static org.junit.Assert.assertEquals;
 public class ScimEndpointIntegrationTests {
 	ObjectMapper mapper = new ObjectMapper();
 
-	private final String userEndpoint = "/cloudfoundry-identity-uaa/User";
+	private final String userEndpoint = "/uaa/User";
 
 	@Rule
 	public ServerRunning server = ServerRunning.isRunning();
@@ -40,7 +40,7 @@ public class ScimEndpointIntegrationTests {
 		client.setMessageConverters(list);
 	}
 
-	// curl -v -H "Content-Type: application/json" -H "Accept: application/json" --data  "{\"userName\":\"joe\",\"schemas\":[\"urn:scim:schemas:core:1.0\"]}" http://localhost:8080/cloudfoundry-identity-uaa/User
+	// curl -v -H "Content-Type: application/json" -H "Accept: application/json" --data  "{\"userName\":\"joe\",\"schemas\":[\"urn:scim:schemas:core:1.0\"]}" http://localhost:8080/uaa/User
 	@Test
 	public void createUserSucceeds() throws Exception {
 		ScimUser user = new ScimUser();

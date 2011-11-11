@@ -30,7 +30,7 @@ public class AuthorizationCodeGrantIntegrationTests {
 		HttpHeaders headers = new HttpHeaders();
 		headers.setAccept(Arrays.asList(MediaType.TEXT_HTML));
 
-		URI uri = serverRunning.buildUri("/cloudfoundry-identity-uaa/oauth/authorize").queryParam("response_type", "code")
+		URI uri = serverRunning.buildUri("/uaa/oauth/authorize").queryParam("response_type", "code")
 				.queryParam("state", "mystateid").queryParam("client_id", "app")
 				.queryParam("redirect_uri", "http://anywhere").build();
 		ResponseEntity<Void> result = serverRunning.getForResponse(uri.toString(), headers);
@@ -48,7 +48,7 @@ public class AuthorizationCodeGrantIntegrationTests {
 		formData.add("password", "koala");
 
 		// Should be redirected to the original URL, but now authenticated
-		result = serverRunning.postForResponse("/cloudfoundry-identity-uaa/login.do", headers, formData);
+		result = serverRunning.postForResponse("/uaa/login.do", headers, formData);
 		assertEquals(HttpStatus.FOUND, result.getStatusCode());
 		response = serverRunning.getForString(result.getHeaders().getLocation().toString(), headers);
 		// The grant access page should be returned
@@ -56,7 +56,7 @@ public class AuthorizationCodeGrantIntegrationTests {
 
 		formData.clear();
 		formData.add("user_oauth_approval", "true");
-		result = serverRunning.postForResponse("/cloudfoundry-identity-uaa/oauth/authorize", headers, formData);
+		result = serverRunning.postForResponse("/uaa/oauth/authorize", headers, formData);
 		assertEquals(HttpStatus.FOUND, result.getStatusCode());
 		location =result.getHeaders().getLocation().toString();
 		assertTrue(location.matches("http://anywhere.*code=.+"));

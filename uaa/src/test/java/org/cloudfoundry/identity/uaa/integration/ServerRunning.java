@@ -126,7 +126,7 @@ public class ServerRunning extends TestWatchman {
 		RestTemplate client = new RestTemplate();
 		boolean online = false;
 		try {
-			client.getForEntity(new UriTemplate(getUrl("/cloudfoundry-identity-uaa/login")).toString(), String.class);
+			client.getForEntity(new UriTemplate(getUrl("/uaa/login")).toString(), String.class);
 			online = true;
 			logger.info("Basic connectivity test passed");
 		} catch (RestClientException e) {

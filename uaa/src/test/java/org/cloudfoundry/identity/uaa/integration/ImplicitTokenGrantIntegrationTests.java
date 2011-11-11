@@ -28,7 +28,7 @@ public class ImplicitTokenGrantIntegrationTests {
 	public ServerRunning serverRunning = ServerRunning.isRunning();
 
 	private String implicitUrl() {
-		URI uri = serverRunning.buildUri("/cloudfoundry-identity-uaa/oauth/authorize").queryParam("response_type", "token")
+		URI uri = serverRunning.buildUri("/uaa/oauth/authorize").queryParam("response_type", "token")
 				.queryParam("client_id", "vmc").queryParam("redirect_uri", "http://anywhere")
 				.queryParam("scope", "read").build();
 		return uri.toString();
@@ -72,7 +72,7 @@ public class ImplicitTokenGrantIntegrationTests {
 		assertTrue(response.getBody().contains("username"));
 		assertTrue(response.getBody().contains("password"));
 
-		location = "cloudfoundry-identity-uaa/login.do";
+		location = "/uaa/login.do";
 
 		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
 		formData.add("username", "marissa");

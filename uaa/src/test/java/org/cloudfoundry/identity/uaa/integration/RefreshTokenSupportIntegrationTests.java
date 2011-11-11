@@ -37,7 +37,7 @@ public class RefreshTokenSupportIntegrationTests {
 		formData.add("username", "marissa");
 		formData.add("password", "koala");
 		formData.add("scope", "read");
-		ResponseEntity<String> response = serverRunning.postForString("/cloudfoundry-identity-uaa/oauth/token", formData);
+		ResponseEntity<String> response = serverRunning.postForString("/uaa/oauth/token", formData);
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		assertEquals("no-store", response.getHeaders().getFirst("Cache-Control"));
 
@@ -55,7 +55,7 @@ public class RefreshTokenSupportIntegrationTests {
 		formData.add("client_id", "app");
 		formData.add("client_secret", "appclientsecret");
 		formData.add("refresh_token", accessToken.getRefreshToken().getValue());
-		response = serverRunning.postForString("/cloudfoundry-identity-uaa/oauth/token", formData);
+		response = serverRunning.postForString("/uaa/oauth/token", formData);
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		assertEquals("no-store", response.getHeaders().getFirst("Cache-Control"));
 		OAuth2AccessToken newAccessToken = serializationService.deserializeJsonAccessToken(new ByteArrayInputStream(
