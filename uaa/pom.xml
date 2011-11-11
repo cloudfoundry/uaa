@@ -14,6 +14,10 @@
 	<packaging>war</packaging>
 	<name>User Account and Authentication Service</name>
 
+	<properties>
+		<m2eclipse.wtp.contextRoot>/uaa</m2eclipse.wtp.contextRoot>
+	</properties>
+
 	<build>
 		<plugins>
 			<plugin>
@@ -55,20 +59,17 @@
 				</executions>
 			</plugin>
 			<plugin>
-				<groupId>org.mortbay.jetty</groupId>
-				<artifactId>maven-jetty-plugin</artifactId>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>tomcat-maven-plugin</artifactId>
 				<configuration>
-					<contextPath>/cloudfoundry-identity-uaa</contextPath>
-					<scanIntervalSeconds>10</scanIntervalSeconds>
-					<stopKey>uaa</stopKey>
-					<stopPort>8889</stopPort>
+					<path>/uaa</path>
 				</configuration>
 				<executions>
 					<execution>
-						<id>start-jetty</id>
+						<id>start-tomcat</id>
 						<phase>pre-integration-test</phase>
 						<goals>
-							<goal>run</goal>
+							<goal>deploy</goal>
 						</goals>
 						<configuration>
 							<scanIntervalSeconds>0</scanIntervalSeconds>
@@ -76,10 +77,10 @@
 						</configuration>
 					</execution>
 					<execution>
-						<id>stop-jetty</id>
+						<id>stop-tomcat</id>
 						<phase>post-integration-test</phase>
 						<goals>
-							<goal>stop</goal>
+							<goal>undeploy</goal>
 						</goals>
 					</execution>
 				</executions>
