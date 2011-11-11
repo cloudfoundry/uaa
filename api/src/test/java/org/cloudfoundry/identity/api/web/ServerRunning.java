@@ -75,7 +75,7 @@ public class ServerRunning extends TestWatchman {
 
 	private final boolean assumeOnline;
 
-	private static int DEFAULT_PORT = 9080;
+	private static int DEFAULT_PORT = 8080;
 
 	private static int DEFAULT_UAA_PORT = 8080;
 
