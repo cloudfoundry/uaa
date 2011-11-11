@@ -9,8 +9,9 @@ If this works you are in business:
     $ mvn install
 	
 Each module has a `mvn jetty:run` target, or you could import them as
-projects into STS (use 2.8.0 or better if you can).  To work together
-the apps run on different ports (8080=/uaa, 7080=/app, 9080=/api).
+projects into STS (use 2.8.0 or better if you can).  The apps all work
+together the apps running on the same port (8080) as `/uaa`, `/app`
+and `/api`.
 
 ### Demo of command line usage
 
@@ -21,7 +22,7 @@ First run the uaa server as described above:
 
 Then start another terminal and from the project base directory, run:
 
-    $ ./login.sh "localhost:8080/cloudfoundry-identity-uaa"
+    $ ./login.sh "localhost:8080/uaa"
 
 And hit return twice to accept the default username and password.
 
@@ -36,7 +37,7 @@ Now run the `api` server:
 
 And then (from the base directory) execute:
 
-    $ ./get.sh http://localhost:9080/cloudfoundry-identity-api/apps
+    $ ./get.sh http://localhost:9080/api/apps
 
 which should return a JSON array of (pretend) running applications.
 
