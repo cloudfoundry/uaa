@@ -17,7 +17,9 @@ import java.util.List;
  */
 @JsonSerialize (include = JsonSerialize.Inclusion.NON_NULL)
 public final class ScimUser {
+
 	private static final String[] SCHEMAS = new String[] {"urn:scim:schemas:core:1.0"};
+
 	@JsonSerialize (include = JsonSerialize.Inclusion.NON_NULL)
 	public static final class Name {
 		String formatted;

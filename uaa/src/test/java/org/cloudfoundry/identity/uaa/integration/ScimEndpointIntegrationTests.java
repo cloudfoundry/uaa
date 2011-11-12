@@ -34,6 +34,10 @@ public class ScimEndpointIntegrationTests {
 
 	@Rule
 	public ServerRunning server = ServerRunning.isRunning();
+	
+	{
+		server.setPort(8001);
+	}
 
 	private RestTemplate client;
 

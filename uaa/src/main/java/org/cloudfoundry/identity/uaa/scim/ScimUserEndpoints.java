@@ -12,7 +12,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
@@ -31,49 +30,39 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  */
 @Controller
 public class ScimUserEndpoints implements InitializingBean {
+
 	private final Log logger = LogFactory.getLog(getClass());
 
 	private ScimUserProvisioning dao;
 
-	// private Validator userValidator;
-	//
-	// @Autowired
-	// public ScimUserEndpoints(Validator userValidator) {
-	// this.userValidator = userValidator;
-	// }
-
 	@RequestMapping(value = "/User/{userId}", method = RequestMethod.GET)
-	public ResponseEntity<Object> getUser(@PathVariable String userId) {
-		return new ResponseEntity<Object>(dao.retrieveUser(userId), HttpStatus.OK);
-	}
-
-	Map<String, String> error(String message) {
-		Map<String, String> errors = new HashMap<String, String>();
-		errors.put("error", message);
-		return errors;
+	@ResponseBody
+	public ScimUser getUser(@PathVariable String userId) {
+		return dao.retrieveUser(userId);
 	}
 
 	@RequestMapping(value = "/User", method = RequestMethod.POST)
-	public ResponseEntity<Object> createUser(@RequestBody ScimUser user) {
-		ScimUser newUser = dao.createUser(user);
-		return new ResponseEntity<Object>(newUser, HttpStatus.CREATED);
+	@ResponseStatus(HttpStatus.CREATED)
+	@ResponseBody
+	public ScimUser createUser(@RequestBody ScimUser user) {
+		return dao.createUser(user);
 	}
 
 	@RequestMapping(value = "/User/{userId}", method = RequestMethod.PUT)
-	public ResponseEntity<ScimUser> updateUser(@RequestBody ScimUser user, @PathVariable String userId) {
-		ScimUser updatedUser = dao.updateUser(userId, user);
-		return new ResponseEntity<ScimUser>(updatedUser, HttpStatus.OK);
+	@ResponseBody
+	public ScimUser updateUser(@RequestBody ScimUser user, @PathVariable String userId) {
+		return dao.updateUser(userId, user);
 	}
 
 	@RequestMapping(value = "/User/{userId}", method = RequestMethod.DELETE)
-	public ResponseEntity<ScimUser> deleteUser(@PathVariable String userId) {
-		ScimUser updatedUser = dao.removeUser(userId);
-		return new ResponseEntity<ScimUser>(updatedUser, HttpStatus.OK);
+	@ResponseBody
+	public ScimUser deleteUser(@PathVariable String userId) {
+		return dao.removeUser(userId);
 	}
 
 	@ExceptionHandler
-	@ResponseBody
 	@ResponseStatus(HttpStatus.CONFLICT)
+	@ResponseBody
 	public Map<String, String> handleIllegalArggument(IllegalArgumentException e) {
 		Map<String, String> map = new HashMap<String, String>();
 		map.put("error", "illegal_argument");
