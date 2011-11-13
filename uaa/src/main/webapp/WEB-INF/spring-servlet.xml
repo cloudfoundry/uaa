@@ -121,7 +121,26 @@
 
 	<mvc:default-servlet-handler />
 
-	<bean class="org.cloudfoundry.identity.uaa.web.AnnotationMethodHandlerExceptionResolver"/>
+	<bean class="org.cloudfoundry.identity.uaa.error.GenericExceptionResolver" >
+		<property name="messageConverters">
+			<bean class="org.cloudfoundry.identity.uaa.error.ExceptionHttpMessageConverter"/>
+		</property>
+		<property name="responseGenerator">
+			<bean class="org.cloudfoundry.identity.uaa.error.ScimExceptionResponseGenerator"/>
+		</property>
+		<property name="order" value="0"/>
+	</bean>
+	
+	<bean class="org.cloudfoundry.identity.uaa.error.GenericExceptionResolver" >
+		<property name="messageConverters">
+			<bean class="org.cloudfoundry.identity.uaa.error.ExceptionHttpMessageConverter"/>
+		</property>
+		<property name="order" value="1"/>
+	</bean>
+	
+	<bean class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerExceptionResolver">
+		<property name="order" value="-1"/>
+	</bean>
 
 	<bean class="org.springframework.web.servlet.mvc.annotation.ResponseStatusExceptionResolver" />
 

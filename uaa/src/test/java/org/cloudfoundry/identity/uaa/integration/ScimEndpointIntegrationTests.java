@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.cloudfoundry.identity.uaa.scim.ScimException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Before;
@@ -99,7 +100,7 @@ public class ScimEndpointIntegrationTests {
 		@SuppressWarnings("unchecked")
 		Map<String, String> error = response.getBody();
 		;
-		assertEquals("illegal_argument", error.get("error"));
+		assertEquals(IllegalArgumentException.class.getName(), error.get("error"));
 
 	}
 
@@ -114,7 +115,7 @@ public class ScimEndpointIntegrationTests {
 		@SuppressWarnings("unchecked")
 		Map<String, String> error = response.getBody();
 		System.err.println(error);
-		assertEquals("scim_exception", error.get("error"));
+		assertEquals(ScimException.class.getName(), error.get("error"));
 
 	}
 
