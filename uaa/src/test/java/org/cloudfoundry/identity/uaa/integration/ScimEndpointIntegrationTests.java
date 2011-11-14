@@ -10,7 +10,6 @@ import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.scim.ScimException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.SearchResults;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Before;
 import org.junit.Rule;
@@ -40,10 +39,6 @@ public class ScimEndpointIntegrationTests {
 	@Rule
 	public ServerRunning server = ServerRunning.isRunning();
 	
-	{
-		server.setPort(8001);
-	}
-
 	private RestTemplate client;
 
 	@Before
@@ -132,11 +127,11 @@ public class ScimEndpointIntegrationTests {
 	@Test
 	public void findUsers() throws Exception {
 		@SuppressWarnings("rawtypes")
-		ResponseEntity<SearchResults> response = server.getForObject(usersEndpoint, SearchResults.class);
+		ResponseEntity<Map> response = server.getForObject(usersEndpoint, Map.class);
 		@SuppressWarnings("unchecked")
-		SearchResults<ScimUser> results = response.getBody();
+		Map<String,Object> results = response.getBody();
 		assertEquals(HttpStatus.OK, response.getStatusCode());
-		assertTrue("There should be more than one user", results.getTotalResults()>1);
+		assertTrue("There should be more than one user", (Integer)results.get("totalResults")>1);
 	}
 
 }

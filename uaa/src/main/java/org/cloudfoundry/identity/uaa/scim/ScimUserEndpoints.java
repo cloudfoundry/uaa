@@ -65,10 +65,10 @@ public class ScimUserEndpoints implements InitializingBean {
 		return dao.removeUser(userId);
 	}
 
-	@RequestMapping(value = "/Users/{filter}", method = RequestMethod.GET)
+	@RequestMapping(value = "/Users", method = RequestMethod.GET)
 	@ResponseBody
-	public SearchResults<Map<String, Object>> findUsers(@PathVariable String attributesCommaSeparated,
-			@PathVariable String filter, @RequestParam(required = false, defaultValue = "1") int startIndex,
+	public SearchResults<Map<String, Object>> findUsers(@RequestParam(required = false, defaultValue = "id") String attributesCommaSeparated,
+			@RequestParam(required = false, defaultValue = "id pr") String filter, @RequestParam(required = false, defaultValue = "1") int startIndex,
 			@RequestParam(required = false, defaultValue = "100") int count) {
 
 		Collection<ScimUser> input = dao.retrieveUsers();
