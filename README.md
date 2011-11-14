@@ -46,6 +46,18 @@ And then (from the base directory) execute:
 
 which should return a JSON array of (pretend) running applications.
 
+## Integration tests
+
+With all apps deployed into a running server on port 8080 the tests
+will include integration tests (a check is done before each test that
+the app is running).  You can deploy them in your IDE or using the
+command line with `mvn tomcat:deploy`.
+
+For individual modules you can also run integration tests from the
+command line in one go with
+
+    $ mvn tomcat:run -Dmaven.tomcat.fork=true test
+
 ## Inventory
 
 There are actually several projects here:

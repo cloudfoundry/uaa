@@ -109,6 +109,27 @@
 						</excludes>
 					</configuration>
 				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-install-plugin</artifactId>
+					<executions>
+						<execution>
+							<id></id>
+							<phase>install</phase>
+							<goals>
+								<goal>install-file</goal>
+							</goals>
+							<inherited>false</inherited>
+							<configuration>
+								<file>target/${pom.artifactId}-${pom.version}.war</file>
+								<groupId>${pom.groupId}</groupId>
+								<artifactId>uaa</artifactId>
+								<version>${pom.version}</version>
+								<packaging>war</packaging>
+							</configuration>
+						</execution>
+					</executions>
+				</plugin>
 			</plugins>
 		</pluginManagement>
 	</build>

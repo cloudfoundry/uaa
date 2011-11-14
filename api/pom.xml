@@ -94,6 +94,20 @@
 					<artifactId>tomcat-maven-plugin</artifactId>
 					<configuration>
 						<path>/api</path>
+						<addContextWarDependencies>true</addContextWarDependencies>
+					</configuration>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-surefire-plugin</artifactId>
+					<configuration>
+						<skip>${skipTests}</skip>
+						<includes>
+							<include>**/*Tests.java</include>
+						</includes>
+						<excludes>
+							<exclude>**/Abstract*.java</exclude>
+						</excludes>
 					</configuration>
 				</plugin>
 			</plugins>
@@ -101,6 +115,14 @@
 	</build>
 
 	<dependencies>
+
+		<dependency>
+			<groupId>${pom.groupId}</groupId>
+			<artifactId>uaa</artifactId>
+			<version>${pom.version}</version>
+			<type>war</type>
+			<scope>tomcat</scope>
+		</dependency>
 
 		<dependency>
 			<groupId>org.springframework.security.oauth</groupId>

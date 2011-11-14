@@ -8,8 +8,8 @@
   <version>1.0.0.BUILD-SNAPSHOT</version>
 
   <modules>
-    <module>api</module>
     <module>uaa</module>
+    <module>api</module>
     <module>app</module>
   </modules>
 
