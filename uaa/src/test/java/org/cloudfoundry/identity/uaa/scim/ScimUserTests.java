@@ -34,8 +34,9 @@ public class ScimUserTests {
 		ScimUser user = new ScimUser("123");
 		user.setUserName("joe");
 
-		assertEquals("{\"id\":\"123\",\"userName\":\"joe\",\"schemas\":[\"urn:scim:schemas:core:1.0\"]}",
-				mapper.writeValueAsString(user));
+		String json = mapper.writeValueAsString(user);
+		assertTrue(json.contains("\"userName\":\"joe\""));
+		assertTrue(json.contains("\"id\":\"123\""));
 
 	}
 
