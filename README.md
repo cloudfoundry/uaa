@@ -8,17 +8,22 @@ If this works you are in business:
     $ cd uaa
     $ mvn install
 	
-Each module has a `mvn jetty:run` target, or you could import them as
-projects into STS (use 2.8.0 or better if you can).  The apps all work
-together the apps running on the same port (8080) as `/uaa`, `/app`
-and `/api`.
+Each module has a `mvn tomcat:run` target to run individually (but not
+simulataneously), or you could import them as projects into STS (use
+2.8.0 or better if you can).  The apps all work together the apps
+running on the same port (8080) as `/uaa`, `/app` and `/api`.
 
 ### Demo of command line usage
+
+To run multiple apps we need a Tomcat manager app:
+
+    $ cd uaa
+    $ mvn tomcat:run -N
 
 First run the uaa server as described above:
 
     $ cd uaa
-    $ mvn jetty:run
+    $ mvn tomcat:deploy
 
 Then start another terminal and from the project base directory, run:
 
@@ -31,13 +36,13 @@ grant, similar to the approach intended for a client like VMC. The token is
 stored in the file `.access_token`.
 
 Now run the `api` server:
-
+ 
     $ cd api
-    $ mvn jetty:run
+    $ mvn tomcat:deploy
 
 And then (from the base directory) execute:
 
-    $ ./get.sh http://localhost:9080/api/apps
+    $ ./get.sh http://localhost:8080/api/apps
 
 which should return a JSON array of (pretend) running applications.
 
@@ -66,7 +71,7 @@ In CloudFoundry terms
 
 The authentication service is `uaa`. It's a plain Spring MVC webapp.
 Deploy as normal in Tomcat or your container of choice, or execute
-`mvn jetty:run` to run it directly from `uaa` directory in the source tree.
+`mvn tomcat:run` to run it directly from `uaa` directory in the source tree.
 When running with maven it listen on port 8080.
 
 It supports the APIs defined in the UAA-APIs document. To summarise:
@@ -94,15 +99,16 @@ Security OAuth that can do the heavy lifting.
 An example resource server.  It hosts a service which returns
 a list of mock applications under `/apps`.
 
-Run it using `mvn jetty:run` from the `api` directory. This will start
-the application on port 9080.
+Run it using `mvn tomcat:deploy` from the `api` directory. This will
+deploy the app to a Tomcat manager on port 8080.
 
 ## The App Application
 
 This is a user interface (primarily aimed at browser) app that uses
 OpenId Connect for authentication (i.e. SSO) and OAuth2 for access
 grants.  It authenticates with the Auth service, and then accesses
-resources in the API service.
+resources in the API service.  Run it with `mvn tomcat:deploy` from
+the `app` directory.
 
 ### Use Cases
 
