@@ -1,12 +1,12 @@
 package org.cloudfoundry.identity.uaa.scim;
 
-import org.codehaus.jackson.annotate.JsonIgnore;
-import org.codehaus.jackson.map.annotate.JsonSerialize;
-import org.springframework.util.Assert;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import org.codehaus.jackson.annotate.JsonIgnore;
+import org.codehaus.jackson.map.annotate.JsonSerialize;
+import org.springframework.util.Assert;
 
 /**
  * Object to hold SCIM data for Jackson to map to and from JSON
@@ -18,7 +18,7 @@ import java.util.List;
 @JsonSerialize (include = JsonSerialize.Inclusion.NON_NULL)
 public final class ScimUser {
 
-	private static final String[] SCHEMAS = new String[] {"urn:scim:schemas:core:1.0"};
+	public static final String[] SCHEMAS = new String[] {"urn:scim:schemas:core:1.0"};
 
 	@JsonSerialize (include = JsonSerialize.Inclusion.NON_NULL)
 	public static final class Name {
@@ -28,6 +28,14 @@ public final class ScimUser {
 		String middleName;
 		String honorificPrefix;
 		String honorificSuffix;
+		
+		public Name() {
+		}
+		
+		public Name(String givenName, String familyName) {
+			this.givenName = givenName;
+			this.familyName = familyName;
+		}
 
 		public String getFormatted() {
 			return formatted;
@@ -133,7 +141,12 @@ public final class ScimUser {
 	}
 
 	public ScimUser(String id) {
+		this(id, id);
+	}
+
+	public ScimUser(String id, String userName) {
 		this.id = id;
+		this.userName = userName;
 	}
 
 	public String getId() {

@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.scim;
 
+import java.util.Collection;
+
 /**
  * @author Luke Taylor
  * @author Dave Syer
@@ -7,6 +9,8 @@ package org.cloudfoundry.identity.uaa.scim;
 public interface ScimUserProvisioning {
 
 	public ScimUser retrieveUser(String id);
+
+	public Collection<ScimUser> retrieveUsers();
 
 	public ScimUser createUser(ScimUser user);
 

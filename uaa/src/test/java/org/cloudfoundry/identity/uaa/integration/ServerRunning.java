@@ -196,6 +196,10 @@ public class ServerRunning extends TestWatchman {
 		return client.exchange(getUrl(path), HttpMethod.GET, new HttpEntity<Void>((Void) null), String.class);
 	}
 
+	public <T> ResponseEntity<T> getForObject(String path, Class<T> type) {
+		return client.exchange(getUrl(path), HttpMethod.GET, new HttpEntity<Void>((Void) null), type);
+	}
+
 	public ResponseEntity<String> getForString(String path, final HttpHeaders headers) {
 		HttpEntity<Void> request = new HttpEntity<Void>(null, headers);
 		return client.exchange(getUrl(path), HttpMethod.GET, request, String.class);

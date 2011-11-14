@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +28,9 @@ public class InMemoryUaaUserDatabase implements UaaUserService, ScimUserProvisio
 	private int counter = 1;
 
 	private final Map<String, UaaUser> userDb = new HashMap<String, UaaUser>();
+
+	public InMemoryUaaUserDatabase() {
+	}
 
 	public InMemoryUaaUserDatabase(List<UaaUser> users) {
 		for (UaaUser user : users) {
@@ -65,6 +70,15 @@ public class InMemoryUaaUserDatabase implements UaaUserService, ScimUserProvisio
 			}
 		}
 		throw new ScimException("User " + id + " does not exist", HttpStatus.NOT_FOUND);
+	}
+
+	@Override
+	public Collection<ScimUser> retrieveUsers() {
+		Collection<ScimUser> users = new ArrayList<ScimUser>();
+		for (UaaUser user : userDb.values()) {
+			users.add(user.scimUser());
+		}
+		return users;
 	}
 
 	@Override

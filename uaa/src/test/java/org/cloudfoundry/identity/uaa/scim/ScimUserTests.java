@@ -1,9 +1,15 @@
 package org.cloudfoundry.identity.uaa.scim;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.util.Arrays;
+
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Test;
-
-import static org.junit.Assert.*;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.springframework.expression.spel.support.StandardEvaluationContext;
 
 /**
  * @author Luke Taylor
@@ -50,4 +56,16 @@ public class ScimUserTests {
 		assertFalse(user.getEmails().get(0).isPrimary());
 //		System.out.println(mapper.writeValueAsString(user));
 	}
+	
+	@Test
+	public void testSpelFilter() throws Exception {
+		ScimUser user = new ScimUser("123");
+		user.setUserName("joe");
+		ScimUser.Email email = new ScimUser.Email();
+		email.setValue("foo@bar.com");
+		user.setEmails(Arrays.asList(email));
+		StandardEvaluationContext context = new StandardEvaluationContext(user);
+		assertTrue(new SpelExpressionParser().parseExpression("userName == 'joe' and !(emails.?[value=='foo@bar.com']).empty").getValue(context, Boolean.class));
+	}
+
 }

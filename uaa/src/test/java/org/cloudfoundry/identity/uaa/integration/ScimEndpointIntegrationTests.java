@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.integration;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -9,6 +10,7 @@ import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.scim.ScimException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.SearchResults;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Before;
 import org.junit.Rule;
@@ -32,6 +34,8 @@ public class ScimEndpointIntegrationTests {
 	ObjectMapper mapper = new ObjectMapper();
 
 	private final String userEndpoint = "/uaa/User";
+
+	private final String usersEndpoint = "/uaa/Users";
 
 	@Rule
 	public ServerRunning server = ServerRunning.isRunning();
@@ -124,4 +128,15 @@ public class ScimEndpointIntegrationTests {
 		ResponseEntity<String> response = server.getForString(userEndpoint + "/9999");
 		assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
 	}
+
+	@Test
+	public void findUsers() throws Exception {
+		@SuppressWarnings("rawtypes")
+		ResponseEntity<SearchResults> response = server.getForObject(usersEndpoint, SearchResults.class);
+		@SuppressWarnings("unchecked")
+		SearchResults<ScimUser> results = response.getBody();
+		assertEquals(HttpStatus.OK, response.getStatusCode());
+		assertTrue("There should be more than one user", results.getTotalResults()>1);
+	}
+
 }
