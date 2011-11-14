@@ -76,7 +76,8 @@ public class ScimUserEndpoints implements InitializingBean {
 
 		String spel = filter.replace(" eq ", " == ").replace(" pr", "!=null").replace(" ge ", " >= ")
 				.replace(" le ", " <= ").replace(" gt ", " > ").replace(" lt ", " < ")
-				.replaceAll(" co '(.*?)'", ".contains('$1')").replaceAll(" sw '(.*?)'", ".startsWith('$1')");
+				.replaceAll(" co '(.*?)'", ".contains('$1')").replaceAll(" sw '(.*?)'", ".startsWith('$1')")
+				.replaceAll("emails\\.(.*?)\\.(.*?)\\((.*?)\\)", "emails.^[$1.$2($3)]!=null");
 
 		logger.debug("Filtering users with SpEL: " + spel);
 

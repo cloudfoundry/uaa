@@ -42,9 +42,13 @@ public class ScimUserEndpointsTests {
 
 	private ScimUser dale = new ScimUser("olds");
 
-	private InMemoryUaaUserDatabase dao = new InMemoryUaaUserDatabase();;
+	private InMemoryUaaUserDatabase dao = new InMemoryUaaUserDatabase();
+
+	private ScimUserEndpoints endpoints;;
 
 	public ScimUserEndpointsTests() {
+		endpoints = new ScimUserEndpoints();
+		endpoints.setDao(dao);
 		joel.addEmail("jdsa@vmware.com");
 		dale.addEmail("olds@vmware.com");
 		joel = dao.createUser(joel);
@@ -53,8 +57,6 @@ public class ScimUserEndpointsTests {
 
 	@Test
 	public void testInvalidFilterExpression() {
-		ScimUserEndpoints endpoints = new ScimUserEndpoints();
-		endpoints.setDao(dao);
 		expected.expect(new ScimExceptionStatusCodeMatcher(HttpStatus.BAD_REQUEST));
 		expected.expectMessage(containsString("Invalid filter"));
 		SearchResults<Map<String, Object>> results = endpoints.findUsers("id", "userName qq 'd'", 1, 100);
@@ -63,8 +65,6 @@ public class ScimUserEndpointsTests {
 
 	@Test
 	public void testFindIdsByUserName() {
-		ScimUserEndpoints endpoints = new ScimUserEndpoints();
-		endpoints.setDao(dao);
 		SearchResults<Map<String, Object>> results = endpoints.findUsers("id", "userName eq 'jdsa'", 1, 100);
 		assertEquals(1, results.getTotalResults());
 		assertEquals(1, results.getSchemas().size()); // System.err.println(results.getValues());
@@ -73,8 +73,6 @@ public class ScimUserEndpointsTests {
 
 	@Test
 	public void testFindIdsByUserNameContains() {
-		ScimUserEndpoints endpoints = new ScimUserEndpoints();
-		endpoints.setDao(dao);
 		SearchResults<Map<String, Object>> results = endpoints.findUsers("id", "userName co 'd'", 1, 100);
 		assertEquals(2, results.getTotalResults());
 		assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
@@ -83,16 +81,12 @@ public class ScimUserEndpointsTests {
 
 	@Test
 	public void testFindIdsByNameExists() {
-		ScimUserEndpoints endpoints = new ScimUserEndpoints();
-		endpoints.setDao(dao);
 		SearchResults<Map<String, Object>> results = endpoints.findUsers("id", "name pr", 1, 100);
 		assertEquals(0, results.getTotalResults());
 	}
 
 	@Test
 	public void testFindIdsByUserNameStartWith() {
-		ScimUserEndpoints endpoints = new ScimUserEndpoints();
-		endpoints.setDao(dao);
 		SearchResults<Map<String, Object>> results = endpoints.findUsers("id", "userName sw 'j'", 1, 100);
 		assertEquals(1, results.getTotalResults());
 		assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
@@ -100,10 +94,30 @@ public class ScimUserEndpointsTests {
 	}
 
 	@Test
+	public void testFindIdsByEmailContains() {
+		SearchResults<Map<String, Object>> results = endpoints.findUsers("id", "emails.value sw 'j'", 1, 100);
+		assertEquals(1, results.getTotalResults());
+		assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
+				.contains(joel.getId()));
+	}
+
+	@Test
+	public void testFindIdsByEmailContainsWithEmptyResult() {
+		SearchResults<Map<String, Object>> results = endpoints.findUsers("id", "emails.value sw 'z'", 1, 100);
+		assertEquals(0, results.getTotalResults());
+	}
+
+	@Test
 	public void testFindIdsWithBooleanExpression() {
-		ScimUserEndpoints endpoints = new ScimUserEndpoints();
-		endpoints.setDao(dao);
 		SearchResults<Map<String, Object>> results = endpoints.findUsers("id", "userName co 'd' and id pr", 1, 100);
+		assertEquals(2, results.getTotalResults());
+		assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
+				.contains(joel.getId()));
+	}
+
+	@Test
+	public void testFindIdsWithBooleanExpressionIvolvingEmails() {
+		SearchResults<Map<String, Object>> results = endpoints.findUsers("id", "userName co 'd' and emails.value co 'vmware'", 1, 100);
 		assertEquals(2, results.getTotalResults());
 		assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
 				.contains(joel.getId()));
