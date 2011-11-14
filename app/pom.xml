@@ -17,6 +17,53 @@
 		<m2eclipse.wtp.contextRoot>/app</m2eclipse.wtp.contextRoot>
 	</properties>
 
+	<profiles>
+		<profile>
+			<id>integration</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>tomcat-maven-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>start-tomcat</id>
+								<phase>pre-integration-test</phase>
+								<goals>
+									<goal>deploy</goal>
+								</goals>
+								<configuration>
+									<scanIntervalSeconds>0</scanIntervalSeconds>
+									<daemon>true</daemon>
+								</configuration>
+							</execution>
+							<execution>
+								<id>stop-tomcat</id>
+								<phase>post-integration-test</phase>
+								<goals>
+									<goal>undeploy</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>surefire-it</id>
+								<phase>integration-test</phase>
+								<goals>
+									<goal>test</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+
 	<build>
 		<plugins>
 			<plugin>
@@ -47,42 +94,6 @@
 						<exclude>**/Abstract*.java</exclude>
 					</excludes>
 				</configuration>
-				<executions>
-					<execution>
-						<id>surefire-it</id>
-						<phase>integration-test</phase>
-						<goals>
-							<goal>test</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>tomcat-maven-plugin</artifactId>
-				<configuration>
-					<path>/app</path>
-				</configuration>
-				<executions>
-					<execution>
-						<id>start-tomcat</id>
-						<phase>pre-integration-test</phase>
-						<goals>
-							<goal>deploy</goal>
-						</goals>
-						<configuration>
-							<scanIntervalSeconds>0</scanIntervalSeconds>
-							<daemon>true</daemon>
-						</configuration>
-					</execution>
-					<execution>
-						<id>stop-tomcat</id>
-						<phase>post-integration-test</phase>
-						<goals>
-							<goal>undeploy</goal>
-						</goals>
-					</execution>
-				</executions>
 			</plugin>
 			<plugin>
 				<!--skip deploy (this is just a test module) -->
@@ -92,6 +103,17 @@
 				</configuration>
 			</plugin>
 		</plugins>
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>org.codehaus.mojo</groupId>
+					<artifactId>tomcat-maven-plugin</artifactId>
+					<configuration>
+						<path>/app</path>
+					</configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
 	</build>
 
 	<dependencies>
