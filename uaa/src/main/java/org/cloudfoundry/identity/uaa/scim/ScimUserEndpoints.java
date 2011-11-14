@@ -12,6 +12,7 @@ import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.expression.Expression;
+import org.springframework.expression.spel.SpelParseException;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.http.HttpStatus;
@@ -66,21 +67,28 @@ public class ScimUserEndpoints implements InitializingBean {
 
 	@RequestMapping(value = "/Users/{filter}", method = RequestMethod.GET)
 	@ResponseBody
-	public SearchResults<Map<String, Object>> findUsers(@PathVariable String attributesCommaSeparated, @PathVariable String filter,
-			@RequestParam(required = false, defaultValue = "1") int startIndex,
+	public SearchResults<Map<String, Object>> findUsers(@PathVariable String attributesCommaSeparated,
+			@PathVariable String filter, @RequestParam(required = false, defaultValue = "1") int startIndex,
 			@RequestParam(required = false, defaultValue = "100") int count) {
 
 		Collection<ScimUser> input = dao.retrieveUsers();
 		Collection<Map<String, Object>> users = new ArrayList<Map<String, Object>>();
 
-		filter = filter.replace(" eq ", " == ").replace(" pr", "!=null").replace(" ge ", " >= ")
-				.replace(" le ", " <= ").replace(" gt ", " > ").replace(" lt ", " < ");
+		String spel = filter.replace(" eq ", " == ").replace(" pr", "!=null").replace(" ge ", " >= ")
+				.replace(" le ", " <= ").replace(" gt ", " > ").replace(" lt ", " < ")
+				.replaceAll(" co '(.*?)'", ".contains('$1')").replaceAll(" sw '(.*?)'", ".startsWith('$1')");
 
-		logger.debug("Filtering users with SpEL: " + filter);
+		logger.debug("Filtering users with SpEL: " + spel);
 
 		StandardEvaluationContext context = new StandardEvaluationContext();
-		Expression expression = new SpelExpressionParser().parseExpression(filter);
-		
+		Expression expression;
+		try {
+			expression = new SpelExpressionParser().parseExpression(spel);
+		}
+		catch (SpelParseException e) {
+			throw new ScimException("Invalid filter expression: [" + filter + "]", HttpStatus.BAD_REQUEST);
+		}
+
 		String[] attributes = attributesCommaSeparated.split(",");
 
 		for (ScimUser user : input) {
@@ -94,7 +102,7 @@ public class ScimUserEndpoints implements InitializingBean {
 			}
 		}
 
-		return new SearchResults<Map<String, Object>>(schemas , users, 1, users.size(), users.size());
+		return new SearchResults<Map<String, Object>>(schemas, users, 1, users.size(), users.size());
 
 	}
 
