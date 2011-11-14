@@ -21,24 +21,6 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
   </properties>
 
-  <profiles>
-	<profile>
-	  <id>tomcat</id>
-	  <build>
-		<plugins>
-		  <plugin>
-			<groupId>org.codehaus.mojo</groupId>
-			<artifactId>tomcat-maven-plugin</artifactId>
-			<configuration>	
-			  <serverXml>server.xml</serverXml>
-			  <ignorePackaging>true</ignorePackaging>
-			</configuration>
-		  </plugin>
-		</plugins>
-	  </build>
-	</profile>
-  </profiles>
-
   <build>
     <plugins>
       <plugin>
@@ -74,6 +56,16 @@
           </execution>
         </executions>
       </plugin>
+	  <plugin>
+		<groupId>org.codehaus.mojo</groupId>
+		<artifactId>tomcat-maven-plugin</artifactId>
+		<inherited>false</inherited>
+		<configuration>	
+		  <serverXml>${basedir}/server.xml</serverXml>
+		  <ignorePackaging>true</ignorePackaging>
+		  <configurationDir>${java.io.tmpdir}/uaa/tomcat</configurationDir>
+		</configuration>
+	  </plugin>
     </plugins>
     <extensions>
       <extension>

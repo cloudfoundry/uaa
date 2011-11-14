@@ -32,10 +32,6 @@
 								<goals>
 									<goal>deploy</goal>
 								</goals>
-								<configuration>
-									<scanIntervalSeconds>0</scanIntervalSeconds>
-									<daemon>true</daemon>
-								</configuration>
 							</execution>
 							<execution>
 								<id>stop-tomcat</id>
