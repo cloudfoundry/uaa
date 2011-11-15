@@ -1,4 +1,3 @@
-<%@ page import="org.springframework.security.web.WebAttributes" %>
 <%@ taglib prefix="authz"
 	uri="http://www.springframework.org/security/tags"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
@@ -17,25 +16,10 @@
 
 <body>
 
-	<h1>Authorization</h1>
+	<h1>UAA Login</h1>
 
 	<div id="content">
 
-		<%
-			if (session.getAttribute(WebAttributes.AUTHENTICATION_EXCEPTION) != null) {
-		%>
-		<div class="error">
-			<h2>Woops!</h2>
-
-			<p>
-				Your login attempt was not successful. (<%=((Exception) session
-						.getAttribute(WebAttributes.AUTHENTICATION_EXCEPTION))
-						.getMessage()%>)
-			</p>
-		</div>
-		<%
-			}
-		%>
 		<c:remove scope="session" var="SPRING_SECURITY_LAST_EXCEPTION" />
 
 		<authz:authorize ifNotGranted="ROLE_USER">

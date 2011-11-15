@@ -1,3 +1,4 @@
+<link href="https://raw.github.com/clownfart/Markdown-CSS/master/markdown.css" rel="stylesheet"></link> 
 # CloudFoundry User Account and Authentication (UAA) Server
 
 ## Quick Start
@@ -57,6 +58,9 @@ For individual modules you can also run integration tests from the
 command line in one go with
 
     $ mvn tomcat:run -Dmaven.tomcat.fork=true test
+
+(This might require an initial `mvn install` from the parent directory
+to get the wars in your local repo first.)
 
 ## Inventory
 
