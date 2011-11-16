@@ -455,7 +455,7 @@ Example::
        "type":"app",
        "id":"76ca5cc0-ce6e-4eec-bab2-ae523091adf3",
        "description":"www app for cloudfoundry",
-       "resource-metadata":{
+       "resource_metadata":{
           "metadata-key":"metadata-value"
        },
        "meta":{
