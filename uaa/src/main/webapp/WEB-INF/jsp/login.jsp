@@ -10,7 +10,9 @@
 <link type="text/css" rel="stylesheet"
 	href="<c:url value="/resources/style.css"/>" />
 <style type="text/css">
-	.cf-hidden { display : none }
+.cf-hidden {
+	display: none
+}
 </style>
 </head>
 
@@ -22,28 +24,27 @@
 
 		<c:remove scope="session" var="SPRING_SECURITY_LAST_EXCEPTION" />
 
-		<authz:authorize ifNotGranted="ROLE_USER">
+		<authz:authorize ifNotGranted="ROLE_USER" var="authorized">
 			<h2>Login</h2>
 
-			<p>
-				You need to authenticate.
-			</p>
+			<p>You need to authenticate.</p>
 			<p>Enter your user name and password.</p>
 			<form id="loginForm" name="loginForm"
 				action="<c:url value="/login.do"/>" method="POST">
-				<p>
-					<label>Username: <input type='text' name='username'
-						value="${username}" /> </label>
-				</p>
-				<p>
-					<label>Password: <input type='password' name='password'
-						value="" /> </label>
-				</p>
+				<c:forEach items="${prompts}" var="prompt">
+					<p>
+						<label>${prompt.value[1]}: <input type='${prompt.value[0]}' name='${prompt.key}' />
+						</label>
+					</p>
+				</c:forEach>
 				<p>
 					<input name="login" value="Login" type="submit" />
 				</p>
 			</form>
 		</authz:authorize>
+		<c:if test="authorized">
+			<p>You are already authenticated.</p>
+		</c:if>
 	</div>
 
 	<div id="footer">Demo only</div>

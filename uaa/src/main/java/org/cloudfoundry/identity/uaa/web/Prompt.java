@@ -57,5 +57,24 @@ public class Prompt {
 	public String toString() {
 		return String.format("\"%s\":[\"%s\",\"%s\"]", name, type, text);
 	}
+	
+	@Override
+	public int hashCode() {
+		return 31 + toString().hashCode();
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		Prompt other = (Prompt) obj;
+		return toString().equals(other.toString());
+	}
+	
+	
 
 }

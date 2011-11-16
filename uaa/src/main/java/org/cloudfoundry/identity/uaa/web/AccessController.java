@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.web;
 
-import java.security.Principal;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -13,9 +12,7 @@ import org.springframework.security.oauth2.provider.code.UnconfirmedAuthorizatio
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.SessionAttributes;
-import org.springframework.web.context.request.WebRequest;
 
 /**
  * Controller for retrieving the model for and displaying the confirmation page for access to a protected resource.
@@ -70,45 +67,6 @@ public class AccessController {
 			model.put("options", options);
 		}
 		return "access_confirmation";
-
-	}
-
-	@RequestMapping(value="/login", method=RequestMethod.GET)
-	public String defaultLoginPage(Map<String, Object> model, final WebRequest request) {
-
-		String username = "";
-		if (model.containsKey("claimed_identity")) {
-			String identity = (String) model.get("claimed_identity");
-			username = extractUserName(identity);
-		}
-		model.put("username", username);
-
-		model.put("message",
-				"You are logged out. Please use the /login_info endpoint to discover how to login.");
-
-		return "login";
-
-	}
-
-	private String extractUserName(String identity) {
-		if (identity==null) {
-			return "";
-		}
-		String[] split = identity.split("/");
-		return split.length==1 ? identity : split[split.length-1];
-	}
-
-	@RequestMapping(value = { "/", "/home" })
-	public String homePage(Map<String, Object> model, WebRequest request, Principal principal) {
-
-		Object error = request.getAttribute("SPRING_SECURITY_403_EXCEPTION", WebRequest.SCOPE_REQUEST);
-		if (error != null) {
-			model.put("error", "You don't have access to this resource (" + error + ")");
-		}
-		model.put("message", "You are logged in.  Log out by sending a GET to the location provided.");
-		model.put("location", "http:" + request.getHeader("Host") + request.getContextPath() + "/logout.do");
-		model.put("principal", principal);
-		return "home";
 
 	}
 
