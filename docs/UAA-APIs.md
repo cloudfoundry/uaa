@@ -63,27 +63,19 @@ The `/userinfo`, `/check_id`, and `/token` endpoints are specified in the [OpenI
 
 An [OAuth2][] defined endpoint to provide various tokens and authorization codes.
 
-For the flows in this document, we will probably be using the OAuth2
-Implicit grant type (to avoid a second round trip to `/token` and so vmc does not need to securely store a refresh token). The
-authentication method for the user is undefined by OAuth2 but a POST
-to this endpoint is acceptable, although a GET must also be supported
-([see the spec][OAuth2-3.1]).
+For the flows in this document, we will probably be using the OAuth2 Implicit grant type (to avoid a second round trip to `/token` and so vmc does not need to securely store a refresh token). The authentication method for the user is undefined by OAuth2 but a POST to this endpoint is acceptable, although a GET must also be supported ([see the spec][OAuth2-3.1]).
 
 [OAuth2-3.1]: http://tools.ietf.org/html/draft-ietf-oauth-v2-22#section-3.1
 
-Effectively this means that the endpoint is used to authenticate _and_
-obtain an access token in the same request.  Note the correspondence
-with the UI endpoints (this is similar to the `/login` endpoint with a
-different representation).
+Effectively this means that the endpoint is used to authenticate _and_ obtain an access token in the same request.  Note the correspondence with the UI endpoints (this is similar to the `/login` endpoint with a different representation).
 
-N.B. a GET is used in the [relevant
-section](http://tools.ietf.org/html/draft-ietf-oauth-v2-22#section-4.2.1)
-of the spec that talks about the implicit grant, but a POST is explicitly allowed in the 
-[section on the `/authorize` endpoint, paragraph 5][OAuth2-3.1].
+N.B. a GET is used in the [relevant section](http://tools.ietf.org/html/draft-ietf-oauth-v2-22#section-4.2.1) of the spec that talks about the implicit grant, but a POST is explicitly allowed in the [section on the `/authorize` endpoint, paragraph 5][OAuth2-3.1].
 
 All requests to this endpoint MUST be over SSL. 
 
 For our initial use we will use the OAuth2 `scope` parameter to bind any resulting access\_tokens to a cloud foundry instance. In the future scopes could be further refined such that the user could restrict the authorizations represented by the access\_token to a specific subset of resources (such as within an Org) or to a subset of permissions (such as read-only).
+
+### Implicit Grant
 
 * Request: `POST /authorize`
 * Request Body: some parameters specified by the spec, appended to the query component using the "application/x-www-form-urlencoded" format,
@@ -93,39 +85,78 @@ For our initial use we will use the OAuth2 `scope` parameter to bind any resulti
   * `scope=http://api.cloudfoundry.example.com`
   * `redirect_uri` is optional because it can be pre-registered, but a dummy is still needed where vmc is concerned (it doesn't redirect)
 
-  and some required by us for authentication, submitted as a parameter named "credentials" which contains the 
-  required information in JSON as returned from the [Login Information Endpoint](#login_info) endpoint,
-
-  * e.g. username/password for internal authentication, or for LDAP
-  * ... others as needed for other authentication types
+  and some required by us for authentication:
+  
+  * `credentials={"username":"dale","password":"secret"}`
+  
+  which contains the required information in JSON as returned from the [Login Information Endpoint](#login_info) endpoint, e.g. username/password for internal authentication, or for LDAP, and others as needed for other authentication types
 
 * Response Header: location as defined in the spec includes `access_token` if successful
 
         HTTP/1.1 302 Found
-        Location: https://client.example.com/cb?code=SplxlOBeZQQYbYS6WxSbIA
-        
-        
-        HTTP/1.1 200 OK
-        Content-Type: application/json;charset=UTF-8
-        Cache-Control: no-store
-        Pragma: no-cache
-        {
-        "access_token":"2YotnFZFEjr1zCsicMWpAA",
-        "token_type":"example",
-        "expires_in":3600,
-        "example\_parameter":"example\_value"
-        }        
-        
-
+        Location: oauth:redirecturi#access_token=2YotnFZFEjr1zCsicMWpAA&token_type=bearer
+		
 * Response Codes: 
 
         302 - Found
+
+### Authorization Code Grant
+
+This is a completely vanilla as per the [OAuth2][] spec, but we give a brief outline here for information purposes
+
+### Browser Initiates
+
+* Request: `GET /authorize`
+* Request Body: some parameters specified by the spec, appended to the query component using the "application/x-www-form-urlencoded" format,
+
+  * `response_type=code`
+  * `client_id=www`
+  * `scope=http://www.cloudfoundry.example.com`
+  * `redirect_uri` is optional because it can be pre-registered
+
+* Request Header:
+
+  * `Cookie: JSESSIONID=ADHGFKHDSJGFGF; Path /` - the authentication
+  cookie for the client with UAA.  If there is no cookie user's
+  browser is redirected to the `/login`, and will eventually come back
+  to `/authorize`.
+
+* Response Header: location as defined in the spec includes `access_token` if successful
+
+        HTTP/1.1 302 Found
+        Location: https://www.cloudfoundry.example.com?code=F45jH
+		
+* Response Codes: 
+
+        302 - Found
+
+### Client Obtains Token
+
+See below for a more detailed description of the [token endpoint](#token).
+
+* Request: the authorization code (form encoded), e.g.
+
+        POST /token
+        code=F45jH
+
+* Response Body:
+
+        {
+        "access_token":"2YotnFZFEjr1zCsicMWpAA",
+        "token_type":"bearer",
+        "expires_in":3600,
+        "example_parameter":"example_value"
+        }        
+
+* Response Codes:
+
+  * `200 OK`
 
 ### <a id="check_token"/>OAuth2 Token Validation Service
 
 An endpoint that allows a resource server such as the cloud controller to validate an access token. Interactions between the resource server and the authorization provider are not specified in OAuth2, so we are adding this endpoint. The request should be over SSL and use basic auth with the shared secret between the UAA and the cloud controller. The POST body should be the access\_token and the response should include the userID, user_name, scope in json format.  The client (not the user) is authenticated via basic auth for this call.
 
-OAuth2 access\_tokens could contain all needed information such as userID, scope(s), lifetime, user attributes and be encrypted with the resource server's (e.g. cloud countroller's) secret key. That way the resource server could validate and use the token with no contact with the UAA. However, it may be useful -- at least during development -- for the UAA to specify a short, opaque token and then provide a way for the resource server to return it to the UAA to validate and open. That is what this endpoint does. It does not return general user account information like the /userinfo endpoint, it is specifically to validate and return the information represented by access\_token that the user presented to the resource server. 
+OAuth2 access\_tokens could contain all needed information such as userID, scope(s), lifetime, user attributes and be encrypted with the resource server's (e.g. cloud countroller's) secret key. That way the resource server could validate and use the token with no contact with the UAA. However, it may be useful -- at least during development -- for the UAA to specify a short, opaque token and then provide a way for the resource server to return it to the UAA to validate and open. That is what this endpoint does. It does not return general user account information like the /userinfo endpoint, it is specifically to validate and return the information represented by access\_token that the user presented to the resource server.
 
 This endpoint mirrors the OpenID Connect `/check_id` endpoint, so not very RESTful, but we want to make it look and feel like the others. 
 
@@ -161,7 +192,7 @@ This endpoint mirrors the OpenID Connect `/check_id` endpoint, so not very RESTf
 
 ### <a id="token"/>OAuth2 Token Endpoint
 
-_Not needed for first phase. This endpoint would be used by web flows, not vmc._
+_Not needed for vmc. This endpoint would be used by web flows._
 
 An OAuth2 defined endpoint which accepts authorization code or refresh tokens and provides access\_tokens. The access\_tokens can then be used to gain access to resources within a resource server. 
 
@@ -169,19 +200,31 @@ An OAuth2 defined endpoint which accepts authorization code or refresh tokens an
 
 ### <a id="check_id"/>OpenID Check ID Endpoint
 
-_Not needed for first phase. This endpoint would be used by web flows, not vmc._
+_Not needed for vmc. This endpoint might be used by web flows._
 
 An OpenID Connect defined endpoint. It accepts an id_token, which contains claims about the authentication event. It validates the token and returns information contained in the token in JSON format. Basically makes it so that clients do not need to have full token handling implementations.
 
-* Request: `POST /check_id`
+* Request:
+
+        POST /check_id
+		id_token=LKFJHDSG567TDFHG
 
 ### <a id="userinfo"/>OpenID User Info Endpoint
 
-_Not needed for first phase. This endpoint would be used by web flows, not vmc._
+_Not needed for vmc. This endpoint would be used by web flows._
 
-An OAuth2 protected resource and an OpenID Connect endpoint. Given an appropriate access_token, returns information about a user. Defined fields include various standard user profile fields. The response may include other user information such as group membership.
+An OAuth2 protected resource and an OpenID Connect endpoint. Given an appropriate access\_token, returns information about a user. Defined fields include various standard user profile fields. The response may include other user information such as group membership.
 
-* Request: `GET /userinfo`
+* Request:
+
+        GET /userinfo
+		
+* Response:
+
+        {
+		  "user_id":"olds",
+		  "email":olds@vmare.com
+        }
 
 ### <a id="login_info"/>Login Information Endpoint
 
@@ -240,11 +283,11 @@ See [SCIM - Creating Resources](http://www.simplecloud.info/specs/draft-scim-res
 
         HTTP/1.1 201 Created
         Content-Type: application/json
-        Location: https://example.com/v1/User/uid=bjensen,dc=example,dc=com
+        Location: https://example.com/v1/User/uid=123456
 
         {
           "schemas":["urn:scim:schemas:core:1.0"],
-          "id":"uid=bjensen,dc=example,dc=com",
+          "id":"123456",
           "externalId":"bjensen",
           "meta":{
             "created":"2011-08-01T21:32:44.882Z",
@@ -325,9 +368,9 @@ Get information about a user. This is needed by Collab Spaces to convert names a
         {
           "totalResults":1,
           "schemas":["urn:scim:schemas:core:1.0"],
-          "Resources":[
+          "resources":[
             {
-              "id":"uid=bjensen,dc=example,dc=com"
+              "id":"123456"
             }
           ]
         }
