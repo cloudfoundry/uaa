@@ -12,7 +12,7 @@ public interface ScimUserProvisioning {
 
 	public Collection<ScimUser> retrieveUsers();
 
-	public ScimUser createUser(ScimUser user);
+	public ScimUser createUser(ScimUser user, String password);
 
 	public ScimUser updateUser(String id, ScimUser user);
 

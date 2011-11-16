@@ -6,7 +6,7 @@ import java.security.Principal;
 /**
  * The principal object which should end up as the representation of an authenticated user.
  * <p>
- * Contains the full data for a system user (TODO: or will).
+ * Contains the data required for an authenticated user within the UAA application itself.
  */
 public class UaaPrincipal implements Principal, Serializable {
 	private final String id;

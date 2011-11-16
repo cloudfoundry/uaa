@@ -1,10 +1,7 @@
 package org.cloudfoundry.identity.uaa.scim;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.security.SecureRandom;
+import java.util.*;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -16,6 +13,7 @@ import org.springframework.expression.spel.SpelParseException;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.codec.Hex;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,7 +25,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
- * 
+ *
  * @author Luke Taylor
  * @author Dave Syer
  */
@@ -50,8 +48,17 @@ public class ScimUserEndpoints implements InitializingBean {
 	@ResponseStatus(HttpStatus.CREATED)
 	@ResponseBody
 	public ScimUser createUser(@RequestBody ScimUser user) {
-		return dao.createUser(user);
+		return dao.createUser(user, generatePassword());
 	}
+
+	private static final Random passwordGenerator = new SecureRandom();
+
+	private static String generatePassword() {
+		byte[] bytes = new byte[16];
+		passwordGenerator.nextBytes(bytes);
+		return new String(Hex.encode(bytes));
+	}
+
 
 	@RequestMapping(value = "/User/{userId}", method = RequestMethod.PUT)
 	@ResponseBody

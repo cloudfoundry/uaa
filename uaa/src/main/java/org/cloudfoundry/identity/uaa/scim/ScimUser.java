@@ -28,10 +28,10 @@ public final class ScimUser {
 		String middleName;
 		String honorificPrefix;
 		String honorificSuffix;
-		
+
 		public Name() {
 		}
-		
+
 		public Name(String givenName, String familyName) {
 			this.givenName = givenName;
 			this.familyName = familyName;
@@ -140,13 +140,10 @@ public final class ScimUser {
 	public ScimUser() {
 	}
 
-	public ScimUser(String id) {
-		this(id, id);
-	}
-
-	public ScimUser(String id, String userName) {
+	public ScimUser(String id, String userName, String givenName, String familyName) {
 		this.id = id;
 		this.userName = userName;
+		this.name = new Name(givenName, familyName);
 	}
 
 	public String getId() {
@@ -270,7 +267,11 @@ public final class ScimUser {
 	}
 
 	@JsonIgnore
-	public Email getPrimaryEmail() {
+	public String getPrimaryEmail() {
+		if (getEmails() == null || getEmails().isEmpty()) {
+			return null;
+		}
+
 		Email primaryEmail = null;
 
 		for (Email email : getEmails()) {
@@ -280,12 +281,21 @@ public final class ScimUser {
 			}
 		}
 
-		// Assuming emails can't be empty
 		if (primaryEmail == null) {
 			primaryEmail = getEmails().get(0);
 		}
 
-		return primaryEmail;
+		return primaryEmail.getValue();
+	}
+
+	@JsonIgnore
+	public String getGivenName() {
+		return name == null ? null : name.getGivenName();
+	}
+
+	@JsonIgnore
+	public String getFamilyName() {
+		return name == null ? null : name.getFamilyName();
 	}
 
 	/**

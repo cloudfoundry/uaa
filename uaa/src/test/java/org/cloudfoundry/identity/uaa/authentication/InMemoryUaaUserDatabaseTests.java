@@ -14,10 +14,8 @@ public class InMemoryUaaUserDatabaseTests {
 	@Test
 	public void canCreateUser() throws Exception {
 		InMemoryUaaUserDatabase db =  new InMemoryUaaUserDatabase(Collections.<UaaUser>emptyList());
-		ScimUser user = new ScimUser();
-		user.setUserName("joe");
+		ScimUser user = new ScimUser(null, "joe", "Joe", "User");
 		user.addEmail("joe@blah.com");
-
-		db.createUser(user);
+		db.createUser(user, "password");
 	}
 }

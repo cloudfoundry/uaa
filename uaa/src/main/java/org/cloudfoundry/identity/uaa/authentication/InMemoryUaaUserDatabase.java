@@ -17,7 +17,7 @@ import org.springframework.util.Assert;
 
 /**
  * In-memory user account information storage.
- * 
+ *
  * @author Luke Taylor
  * @author Dave Syer
  */
@@ -91,13 +91,13 @@ public class InMemoryUaaUserDatabase implements UaaUserService, ScimUserProvisio
 	}
 
 	@Override
-	public ScimUser createUser(ScimUser scim) {
+	public ScimUser createUser(ScimUser scim, String password) {
 		Assert.isTrue(!userDb.containsKey(scim.getUserName()), "A user with name '" + scim.getUserName()
 				+ "' already exists");
 		Assert.notEmpty(scim.getEmails(), "At least one email is required");
 
 		try {
-			UaaUser uaaUser = addUser(new UaaUser(scim));
+			UaaUser uaaUser = addUser(new UaaUser(scim, password));
 
 			return uaaUser.scimUser();
 		}

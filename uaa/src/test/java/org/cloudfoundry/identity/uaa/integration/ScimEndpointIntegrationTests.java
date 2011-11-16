@@ -38,7 +38,7 @@ public class ScimEndpointIntegrationTests {
 
 	@Rule
 	public ServerRunning server = ServerRunning.isRunning();
-	
+
 	private RestTemplate client;
 
 	@Before
@@ -68,6 +68,7 @@ public class ScimEndpointIntegrationTests {
 	public void createUserSucceeds() throws Exception {
 		ScimUser user = new ScimUser();
 		user.setUserName("joe");
+		user.setName(new ScimUser.Name("Joe", "User"));
 		user.addEmail("joe@blah.com");
 
 		ResponseEntity<ScimUser> response = client.postForEntity(server.getUrl(userEndpoint), user, ScimUser.class);
@@ -87,6 +88,7 @@ public class ScimEndpointIntegrationTests {
 	public void createUserTwiceFails() throws Exception {
 		ScimUser user = new ScimUser();
 		user.setUserName("joel");
+		user.setName(new ScimUser.Name("Joel", "D'sa"));
 		user.addEmail("joel@blah.com");
 
 		@SuppressWarnings("rawtypes")

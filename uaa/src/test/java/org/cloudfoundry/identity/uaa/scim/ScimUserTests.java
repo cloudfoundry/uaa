@@ -31,7 +31,8 @@ public class ScimUserTests {
 
 	@Test
 	public void minimalUserMapsToJson() throws Exception {
-		ScimUser user = new ScimUser("123");
+		ScimUser user = new ScimUser();
+		user.setId("123");
 		user.setUserName("joe");
 
 		String json = mapper.writeValueAsString(user);
@@ -53,14 +54,15 @@ public class ScimUserTests {
 		assertEquals(3, user.getEmails().size());
 		assertEquals("bjensen@example.com", user.getEmails().get(1).getValue());
 		assertEquals("babs@jensen.org", user.getEmails().get(2).getValue());
-		assertEquals("bjensen@example.com", user.getPrimaryEmail().getValue());
+		assertEquals("bjensen@example.com", user.getPrimaryEmail());
 		assertFalse(user.getEmails().get(0).isPrimary());
 //		System.out.println(mapper.writeValueAsString(user));
 	}
-	
+
 	@Test
 	public void testSpelFilter() throws Exception {
-		ScimUser user = new ScimUser("123");
+		ScimUser user = new ScimUser();
+		user.setId("123");
 		user.setUserName("joe");
 		ScimUser.Email email = new ScimUser.Email();
 		email.setValue("foo@bar.com");

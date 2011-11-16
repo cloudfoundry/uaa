@@ -72,11 +72,11 @@
 	<bean id="userDB" class="org.cloudfoundry.identity.uaa.authentication.InMemoryUaaUserDatabase">
 		<constructor-arg>
 			<list value-type="org.cloudfoundry.identity.uaa.authentication.UaaUser">
-				<value>dale|password|olds@vmware.com</value>
-				<value>joel|password|jdsa@vmware.com</value>
-				<value>dave|password|dsyer@vmware.com</value>
-				<value>luke|password|ltaylor@vmware.com</value>
-				<value>marissa|koala|marissa@test.org</value>
+				<value>dale|password|olds@vmware.com|Dale|Olds</value>
+				<value>joel|password|jdsa@vmware.com|Joel|D'Sa</value>
+				<value>dave|password|dsyer@vmware.com|Dave|Syer</value>
+				<value>luke|password|ltaylor@vmware.com|Luke|Taylor</value>
+				<value>marissa|koala|marissa@test.org|Marissa|Bloggs</value>
 			</list>
 		</constructor-arg>
 	</bean>
@@ -130,14 +130,14 @@
 		</property>
 		<property name="order" value="0"/>
 	</bean>
-	
+
 	<bean class="org.cloudfoundry.identity.uaa.error.GenericExceptionResolver" >
 		<property name="messageConverters">
 			<bean class="org.cloudfoundry.identity.uaa.error.ExceptionHttpMessageConverter"/>
 		</property>
 		<property name="order" value="1"/>
 	</bean>
-	
+
 	<bean class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerExceptionResolver">
 		<property name="order" value="-1"/>
 	</bean>

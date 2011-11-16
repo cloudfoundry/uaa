@@ -31,16 +31,16 @@ import org.springframework.http.HttpStatus;
 
 /**
  * @author Dave Syer
- * 
+ *
  */
 public class ScimUserEndpointsTests {
 
 	@Rule
 	public ExpectedException expected = ExpectedException.none();
 
-	private ScimUser joel = new ScimUser("jdsa");
+	private ScimUser joel = new ScimUser("1", "jdsa", "Joel", "D'sa");
 
-	private ScimUser dale = new ScimUser("olds");
+	private ScimUser dale = new ScimUser("2", "olds", "Dale", "Olds");
 
 	private InMemoryUaaUserDatabase dao = new InMemoryUaaUserDatabase();
 
@@ -51,8 +51,8 @@ public class ScimUserEndpointsTests {
 		endpoints.setDao(dao);
 		joel.addEmail("jdsa@vmware.com");
 		dale.addEmail("olds@vmware.com");
-		joel = dao.createUser(joel);
-		dale = dao.createUser(dale);
+		joel = dao.createUser(joel, "password");
+		dale = dao.createUser(dale, "password");
 	}
 
 	@Test
@@ -82,7 +82,7 @@ public class ScimUserEndpointsTests {
 	@Test
 	public void testFindIdsByNameExists() {
 		SearchResults<Map<String, Object>> results = endpoints.findUsers("id", "name pr", 1, 100);
-		assertEquals(0, results.getTotalResults());
+		assertEquals(2, results.getTotalResults());
 	}
 
 	@Test
