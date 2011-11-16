@@ -17,6 +17,7 @@
 	<http xmlns="http://www.springframework.org/schema/security" entry-point-ref="loginEntryPoint">
 		<intercept-url pattern="/**" access="ROLE_USER" />
 		<logout logout-success-url="/loggedout.jsp" />
+		<anonymous enabled="false"/>
 		<custom-filter ref="oauth2ClientFilter" after="EXCEPTION_TRANSLATION_FILTER" />
 		<custom-filter ref="openidClientFilter" before="FILTER_SECURITY_INTERCEPTOR" />
 	</http>

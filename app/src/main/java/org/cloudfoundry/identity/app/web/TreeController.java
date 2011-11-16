@@ -17,8 +17,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.security.openid.OpenIDAttribute;
-import org.springframework.security.openid.OpenIDAuthenticationToken;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
@@ -50,12 +48,10 @@ public class TreeController {
 	private void addUserInfo(Model model, Principal principal) {
 		model.addAttribute("principal", principal);
 		Map<String,String> attributes = new HashMap<String, String>();
-		if (principal instanceof OpenIDAuthenticationToken) {
-			for (OpenIDAttribute attr : ((OpenIDAuthenticationToken) principal).getAttributes()) {
-				List<String> values = attr.getValues();
-				String value = values.isEmpty() ? "" : values.get(0);
-				attributes.put(attr.getName(), value);
-			}
+		if (principal instanceof CustomUserDetails) {
+			CustomUserDetails user = (CustomUserDetails) principal;
+			model.addAttribute("userName", user.getUsername());
+			model.addAttribute("email", user.getEmail());
 		}
 		model.addAttribute("attributes", attributes);
 	}

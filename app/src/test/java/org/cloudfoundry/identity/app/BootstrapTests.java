@@ -11,7 +11,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package org.cloudfoundry.identity.app.web;
+package org.cloudfoundry.identity.app;
 
 import org.junit.Test;
 import org.springframework.context.support.GenericXmlApplicationContext;
