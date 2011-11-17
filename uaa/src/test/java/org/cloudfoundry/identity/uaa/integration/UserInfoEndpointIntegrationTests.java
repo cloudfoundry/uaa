@@ -53,8 +53,8 @@ public class UserInfoEndpointIntegrationTests {
 		System.err.println(user.getBody());
 
 		String map = user.getBody();
-		assertTrue("marissa", map.contains("user_name"));
-		assertTrue("marissa@test.org", map.contains("user_email"));
+		assertTrue("marissa", map.contains("name"));
+		assertTrue("marissa@test.org", map.contains("email"));
 
 	}
 
