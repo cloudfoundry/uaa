@@ -1,9 +1,10 @@
-package org.cloudfoundry.identity.uaa.authentication;
+package org.cloudfoundry.identity.uaa.user;
 
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.junit.Test;
 
-import java.util.Arrays;
 import java.util.Collections;
 
 /**

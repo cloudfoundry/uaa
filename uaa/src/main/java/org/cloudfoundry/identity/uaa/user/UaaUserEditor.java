@@ -1,4 +1,4 @@
-package org.cloudfoundry.identity.uaa.authentication;
+package org.cloudfoundry.identity.uaa.user;
 
 import java.beans.PropertyEditorSupport;
 

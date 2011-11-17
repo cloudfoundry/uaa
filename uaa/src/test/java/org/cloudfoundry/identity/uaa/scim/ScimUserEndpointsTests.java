@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 
-import org.cloudfoundry.identity.uaa.authentication.InMemoryUaaUserDatabase;
+import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;

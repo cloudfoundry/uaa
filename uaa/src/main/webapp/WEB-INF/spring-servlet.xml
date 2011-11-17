@@ -69,9 +69,9 @@
 		<constructor-arg ref="userDB" />
 	</bean>
 
-	<bean id="userDB" class="org.cloudfoundry.identity.uaa.authentication.InMemoryUaaUserDatabase">
+	<bean id="userDB" class="org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase">
 		<constructor-arg>
-			<list value-type="org.cloudfoundry.identity.uaa.authentication.UaaUser">
+			<list value-type="org.cloudfoundry.identity.uaa.user.UaaUser">
 				<value>dale|password|olds@vmware.com|Dale|Olds</value>
 				<value>joel|password|jdsa@vmware.com|Joel|D'Sa</value>
 				<value>dave|password|dsyer@vmware.com|Dave|Syer</value>

@@ -15,6 +15,11 @@ package org.cloudfoundry.identity.uaa.authentication;
 import java.util.Arrays;
 import java.util.Date;
 
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.user.MockUaaUserDatabase;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserEditor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
@@ -25,7 +30,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 public class UaaTestFactory {
 
 	public static UaaPrincipal getPrincipal(String id, String name, String email) {
-		return new UaaPrincipal(new UaaUser(id, name, "", email, "GivenName", "FamilyName", new Date(), new Date()));
+		return new UaaPrincipal(new MockUaaUserDatabase(id, name, email).retrieveUserByName(name));
 	}
 
 	public static UaaAuthentication getAuthentication(String id, String name, String email) {

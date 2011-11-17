@@ -1,7 +1,9 @@
-package org.cloudfoundry.identity.uaa.authentication;
+package org.cloudfoundry.identity.uaa.user;
 
 import static org.junit.Assert.*;
 
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserEditor;
 import org.junit.Test;
 
 public class UaaUserEditorTests {

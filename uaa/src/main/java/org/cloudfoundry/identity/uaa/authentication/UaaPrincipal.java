@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+
 import java.io.Serializable;
 import java.security.Principal;
 

@@ -1,4 +1,4 @@
-package org.cloudfoundry.identity.uaa.authentication;
+package org.cloudfoundry.identity.uaa.user;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
