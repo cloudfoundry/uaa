@@ -6,7 +6,7 @@
 <h1>OpenID Sample Home Page</h1>
 
 <p>
-Welcome<c:if test="${!principal.principal.newUser}"> back,</c:if> ${principal.name}
+Welcome<c:if test="${!principal.principal.newUser}"> back,</c:if> ${principal.principal.name}
 </p>
 <c:if test="${principal.principal.newUser}">
 <p>

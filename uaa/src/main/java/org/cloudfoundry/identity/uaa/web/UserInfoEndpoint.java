@@ -28,8 +28,8 @@ public class UserInfoEndpoint {
 		UaaPrincipal user = (UaaPrincipal) authentication.getUserAuthentication().getPrincipal();
 
 		response.put("user_id", user.getId());
-		response.put("user_name", user.getName());
-		response.put("user_email", user.getEmail());
+		response.put("name", user.getName());
+		response.put("email", user.getEmail());
 
 		return response;
 

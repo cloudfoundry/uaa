@@ -47,8 +47,23 @@ public class OpenIdClientFilterTests {
 			public <T> T getForObject(String url, Class<T> responseType, Object... urlVariables)
 					throws RestClientException {
 				HashMap<String, String> map = new HashMap<String, String>();
-				map.put("user_name", "foo");
+				map.put("user_id", "foo");
 				map.put("email", "foo@bar.com");
+				return (T) map;
+			}
+		});
+		Authentication authentication = filter.attemptAuthentication(request , response);
+		assertNotNull(authentication);
+	}
+
+	@Test(expected=BadCredentialsException.class)
+	public void testFilterMissingId() throws Exception {
+		filter.setRestTemplate(new RestTemplate() {
+			@SuppressWarnings("unchecked")
+			@Override
+			public <T> T getForObject(String url, Class<T> responseType, Object... urlVariables)
+					throws RestClientException {
+				HashMap<String, String> map = new HashMap<String, String>();
 				return (T) map;
 			}
 		});

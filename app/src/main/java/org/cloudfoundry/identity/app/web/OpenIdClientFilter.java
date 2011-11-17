@@ -21,6 +21,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -69,10 +70,18 @@ public class OpenIdClientFilter extends AbstractAuthenticationProcessingFilter {
 			throws AuthenticationException, IOException, ServletException {
 		@SuppressWarnings("unchecked")
 		Map<String, String> map = restTemplate.getForObject(userInfoUrl, Map.class);
-		String userName = map.get("user_name");
+		if (!map.containsKey("user_id")) {
+			throw new BadCredentialsException("User info does not contain user_id");
+		}
+		String userId = map.get("user_id");
 		List<GrantedAuthority> authorities = Arrays.<GrantedAuthority> asList(new SimpleGrantedAuthority("ROLE_USER"));
-		CustomUserDetails user = new CustomUserDetails(userName, authorities);
-		user.setEmail(map.get("user_email"));
+		CustomUserDetails user = new CustomUserDetails(userId, authorities);
+		if (map.containsKey("email")) {
+			user.setEmail(map.get("email"));
+		}
+		if (map.containsKey("name")) {
+			user.setName(map.get("name"));
+		}
 		return new UsernamePasswordAuthenticationToken(user, null, authorities);
 	}
 

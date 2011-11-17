@@ -21,15 +21,15 @@ import org.springframework.security.core.userdetails.User;
  * Customized {@code UserDetails} implementation.
  *
  * @author Luke Taylor
- * @since 3.1
+ * @author Dave Syer
  */
 public class CustomUserDetails extends User {
     private String email;
     private String name;
     private boolean newUser;
 
-    public CustomUserDetails(String username, Collection<GrantedAuthority> authorities) {
-        super(username, "unused", authorities);
+    public CustomUserDetails(String id, Collection<GrantedAuthority> authorities) {
+        super(id, "unused", authorities);
     }
 
     public String getEmail() {
