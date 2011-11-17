@@ -1,5 +1,9 @@
 package org.cloudfoundry.identity.uaa.web;
 
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,9 +15,6 @@ import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Controller which decodes access tokens for clients who are not able to do so (or where opaque token
@@ -37,6 +38,11 @@ public class CheckTokenEndpoint implements InitializingBean {
 
 		if (token == null) {
 			response.put("error", "invalid_token");
+			return response;
+		}
+
+		if (token.isExpired()) {
+			response.put("error", "expired_token");
 			return response;
 		}
 

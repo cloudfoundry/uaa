@@ -14,7 +14,7 @@
 	<sec:http pattern="/resources/**" security="none" />
 	<sec:http pattern="/favicon.ico" security="none" />
 
-	<http xmlns="http://www.springframework.org/schema/security" entry-point-ref="loginEntryPoint">
+	<http xmlns="http://www.springframework.org/schema/security" entry-point-ref="loginEntryPoint" >
 		<intercept-url pattern="/**" access="ROLE_USER" />
 		<logout logout-success-url="/loggedout.jsp" />
 		<anonymous enabled="false"/>

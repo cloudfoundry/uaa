@@ -26,6 +26,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.client.http.AccessTokenRequiredException;
 import org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter;
 import org.springframework.web.client.RestOperations;
 
@@ -33,7 +34,7 @@ import org.springframework.web.client.RestOperations;
  * A filter that can authenticate with a remote OpenId Connect provider.
  * 
  * @author Dave Syer
- *
+ * 
  */
 public class OpenIdClientFilter extends AbstractAuthenticationProcessingFilter {
 
@@ -70,17 +71,22 @@ public class OpenIdClientFilter extends AbstractAuthenticationProcessingFilter {
 		Map<String, String> map = restTemplate.getForObject(userInfoUrl, Map.class);
 		String userName = map.get("user_name");
 		List<GrantedAuthority> authorities = Arrays.<GrantedAuthority> asList(new SimpleGrantedAuthority("ROLE_USER"));
-		CustomUserDetails user = new CustomUserDetails(userName,authorities);
+		CustomUserDetails user = new CustomUserDetails(userName, authorities);
 		user.setEmail(map.get("user_email"));
-		return new UsernamePasswordAuthenticationToken(user, null,
-				authorities);
+		return new UsernamePasswordAuthenticationToken(user, null, authorities);
 	}
-	
+
 	@Override
 	protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response,
 			AuthenticationException failed) throws IOException, ServletException {
-		// Need to force a redirect via the OAuth2 client filter, so rethrow here
-		throw failed;
+		if (failed instanceof AccessTokenRequiredException) {
+			// Need to force a redirect via the OAuth2 client filter, so rethrow here
+			throw failed;
+		}
+		else {
+			// If the exception is not a Spring Security exception this will result in a default error page
+			super.unsuccessfulAuthentication(request, response, failed);
+		}
 	}
 
 }

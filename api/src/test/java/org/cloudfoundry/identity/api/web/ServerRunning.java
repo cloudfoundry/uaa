@@ -150,7 +150,7 @@ public class ServerRunning extends TestWatchman {
 		try {
 			client.getForEntity(new UriTemplate(getUrl("/uaa/login", uaaPort)).toString(),
 					String.class);
-			client.getForEntity(new UriTemplate(getUrl("/api/")).toString(), String.class);
+			client.getForEntity(new UriTemplate(getUrl("/api/index.html")).toString(), String.class);
 			online = true;
 			logger.info("Basic connectivity test passed");
 		}
