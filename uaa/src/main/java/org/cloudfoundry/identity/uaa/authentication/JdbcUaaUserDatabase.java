@@ -99,18 +99,13 @@ public class JdbcUaaUserDatabase implements UaaUserService, ScimUserProvisioning
 	}
 
 	@Override
-	public UaaUser getUser(String username) throws UsernameNotFoundException {
+	public UaaUser retrieveUserByName(String username) throws UsernameNotFoundException {
 		try {
 			return jdbcTemplate.queryForObject(USER_BY_USERNAME_QUERY, mapper, username);
 		}
 		catch (EmptyResultDataAccessException e) {
 			throw new UsernameNotFoundException(username);
 		}
-	}
-
-	@Override
-	public UaaPrincipal getPrincipal(UaaUser user) {
-		return new UaaPrincipal(user.getId(), user.getUsername(), user.getEmail());
 	}
 
 	private static final class UaaUserRowMapper implements RowMapper<UaaUser> {

@@ -13,10 +13,10 @@ public class UaaPrincipal implements Principal, Serializable {
 	private final String name;
 	private final String email;
 
-	UaaPrincipal(String id, String name, String email) {
-		this.id = id;
-		this.name = name;
-		this.email = email;
+	UaaPrincipal(UaaUser user) {
+		this.id = user.getId();
+		this.name = user.getUsername();
+		this.email = user.getEmail();
 	}
 
 	public String getId() {

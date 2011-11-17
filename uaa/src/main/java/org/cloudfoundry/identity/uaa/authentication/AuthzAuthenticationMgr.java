@@ -29,10 +29,10 @@ public class AuthzAuthenticationMgr implements AuthenticationManager {
 	@Override
 	public Authentication authenticate(Authentication req) throws AuthenticationException {
 		try {
-			UaaUser user = cfusers.getUser(req.getName());
+			UaaUser user = cfusers.retrieveUserByName(req.getName());
 
 			if (encoder.matches((CharSequence) req.getCredentials(), user.getPassword())) {
-				return new UaaAuthentication(cfusers.getPrincipal(user), user.getAuthorities());
+				return new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities());
 			}
 			throw new BadCredentialsException("Bad credentials");
 		}

@@ -45,7 +45,7 @@ public class InMemoryUaaUserDatabase implements UaaUserService, ScimUserProvisio
 	}
 
 	@Override
-	public UaaUser getUser(String username) throws UsernameNotFoundException {
+	public UaaUser retrieveUserByName(String username) throws UsernameNotFoundException {
 		UaaUser u = userDb.get(username);
 
 		if (u == null) {
@@ -53,11 +53,6 @@ public class InMemoryUaaUserDatabase implements UaaUserService, ScimUserProvisio
 		}
 
 		return u;
-	}
-
-	@Override
-	public UaaPrincipal getPrincipal(UaaUser user) {
-		return new UaaPrincipal(String.valueOf(user.getUsername().hashCode()), user.getUsername(), user.getEmail());
 	}
 
 	// Scim interface

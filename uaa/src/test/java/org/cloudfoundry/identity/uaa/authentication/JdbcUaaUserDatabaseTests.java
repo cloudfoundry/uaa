@@ -96,21 +96,17 @@ public class JdbcUaaUserDatabaseTests {
 
 	@Test
 	public void getValidUserSucceeds() {
-		UaaUser joe = db.getUser("joe");
+		UaaUser joe = db.retrieveUserByName("joe");
 		assertNotNull(joe);
 		assertEquals(JOE_ID, joe.getId());
 		assertEquals("joe", joe.getUsername());
 		assertEquals("joe@joe.com", joe.getEmail());
 		assertEquals("joespassword", joe.getPassword());
-		UaaPrincipal p = db.getPrincipal(joe);
-		assertEquals(JOE_ID, p.getId());
-		assertEquals("joe", p.getName());
-		assertEquals("joe@joe.com", joe.getEmail());
 	}
 
 	@Test(expected = UsernameNotFoundException.class)
 	public void getNonExistentUserRaisedNotFoundException() {
-		db.getUser("jo");
+		db.retrieveUserByName("jo");
 	}
 
 	@Test
