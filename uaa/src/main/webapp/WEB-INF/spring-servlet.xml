@@ -66,10 +66,10 @@
 	<authentication-manager id="emptyAuthenticationMgr" xmlns="http://www.springframework.org/schema/security" />
 
 	<bean id="userAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationMgr">
-		<constructor-arg ref="userDB" />
+		<constructor-arg ref="userDatabase" />
 	</bean>
 
-	<bean id="userDB" class="org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase">
+	<bean id="userDatabase" class="org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase">
 		<constructor-arg>
 			<list value-type="org.cloudfoundry.identity.uaa.user.UaaUser">
 				<value>dale|password|olds@vmware.com|Dale|Olds</value>
@@ -164,14 +164,16 @@
 	<!--Basic application beans. -->
 	<bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.web.LoginInfoEndpoint" />
 
-	<bean id="userInfoEndpoint" class="org.cloudfoundry.identity.uaa.web.UserInfoEndpoint" />
+	<bean id="userInfoEndpoint" class="org.cloudfoundry.identity.uaa.web.UserInfoEndpoint">
+		<property name="userDatabase" ref="userDatabase"/>
+	</bean>
 
 	<bean id="checkTokenEndpoint" class="org.cloudfoundry.identity.uaa.web.CheckTokenEndpoint">
 		<property name="tokenStore" ref="tokenStore" />
 	</bean>
 
 	<bean id="scimEndpoints" class="org.cloudfoundry.identity.uaa.scim.ScimUserEndpoints">
-		<property name="dao" ref="userDB" />
+		<property name="dao" ref="userDatabase" />
 	</bean>
 
 	<bean id="accessController" class="org.cloudfoundry.identity.uaa.web.AccessController">

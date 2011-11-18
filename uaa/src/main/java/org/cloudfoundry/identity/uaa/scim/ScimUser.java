@@ -35,6 +35,7 @@ public final class ScimUser {
 		public Name(String givenName, String familyName) {
 			this.givenName = givenName;
 			this.familyName = familyName;
+			this.formatted = givenName + " " + familyName;
 		}
 
 		public String getFormatted() {

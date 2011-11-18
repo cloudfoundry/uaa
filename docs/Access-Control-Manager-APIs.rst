@@ -33,16 +33,26 @@ ACM Entities
 An object is an entity to which permissions are tied to and upon which access decisions are made. 
 Objects typically contain an id, a name, type and a set of acls that determine permissions for a user.
 
-acls
+**Principal**
+A Principal is an entity to which permission can be granted.  It can be a User or a Group.
 
-The object acl is of the form
+**ACL**
 
-"permission": ["user/group id 1", "user/group id 2", "user/group id 3"]
+The object acl is of the form (where PUID is a GUID for a Principal)
 
-The permissions are determined by the object type.
+"permission_name": ["PUID1", "PUID2", "PUID3"]
 
-owner permission - The "owner" permission on an object gives it's users/groups the ability to modify
-any part of the object including deleting the object itself.
+The business meaning of the permission is determined by the object type and is to be interpreted by the client of the ACM.
+
+.. DS: I don't get this section at all.  I think I tidied it up so the
+.. terminology is clearer, but I still don't know why there are 3
+.. PUIDs
+
+**Special Permissions**
+
+- owner permission - The "owner" permission on an object gives it's
+  users/groups the ability to modify any part of the object including
+  deleting the object itself.
 
 .. grant permission - The "grant" permission on an object gives it's users/groups ability to assign the
 .. same or lower rights to another user/group on that object
@@ -50,16 +60,16 @@ any part of the object including deleting the object itself.
 **Object Type**
 An object type is an entity that defines a set of applicable permissions for an object.
 
-owner and grant are permissions that are assigned to an object type by default.
+Owner and grant are permissions that are assigned to an object type by default.
 
-**User Group**
-A user group is an entity that contains a group of users.
+**Group**
+A Group is an entity that contains a set of users.
 
 
 API Overview
 ============
 
-The ACM will have API to support the following high level operations.
+The ACM will have an API to support the following high level operations.
 
 - CRUD operations for object types
 - CRUD operations for objects
@@ -68,17 +78,19 @@ The ACM will have API to support the following high level operations.
 
 Let's take the cloud controller enabling collab spaces as an example of an ACM client.
  
-Prior to using the ACM API for the first time, the cloud controller will make calls to the ACM to 
-provision object types along with a permission set. For example, an object type 
-"AppSpace" can be provisioned with the permission set ["create_app", "create_service", "delete_app", 
-"delete_service", "view_app_logs", "restart_app"].
+Prior to using the ACM API for the first time, the cloud controller
+will make calls to the ACM to provision object types along with a
+permission set. For example, an object type "AppSpace" might be
+required by the cloud controller.  "AppSpace" can be provisioned with
+the permission set ["create_app", "create_service", "delete_app",
+"delete_service", "view_app_logs", "restart_app"].  As part of the
+process of creating an AppSpace, it will call the ACM to assign a
+user/group with a subset of the supported permissions for the
+"AppSpace" object type. The ACM will return a GUID for the object that
+will be stored by the cloud controller to be used for subsequent
+operations.
 
 The cloud controller will create a container for apps known as the app space within it's own database.
-
-As part of the process of creating an AppSpace, it will call the ACM to create an object with 
-type "AppSpace" and assign a user/group with a subset of the supported permissions for that object 
-type. The ACM will return a GUID for the object that will be stored by the cloud controller to be 
-used for subsequent operations.
 
 At the access decision point for the AppSpace, the cloud controller will call the ACM and pass
 the GUID of the AppSpace, the user's id and the permission required. The ACM will return a true/false

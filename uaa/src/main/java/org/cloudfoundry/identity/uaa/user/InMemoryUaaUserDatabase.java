@@ -21,7 +21,7 @@ import org.springframework.util.Assert;
  * @author Luke Taylor
  * @author Dave Syer
  */
-public class InMemoryUaaUserDatabase implements UaaUserService, ScimUserProvisioning {
+public class InMemoryUaaUserDatabase implements UaaUserDatabase, ScimUserProvisioning {
 
 	private final Log logger = LogFactory.getLog(getClass());
 

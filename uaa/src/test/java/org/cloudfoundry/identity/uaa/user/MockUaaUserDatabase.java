@@ -7,7 +7,7 @@ import java.util.Date;
 /**
  * @author Luke Taylor
  */
-public class MockUaaUserDatabase implements UaaUserService {
+public class MockUaaUserDatabase implements UaaUserDatabase {
 	UaaUser user;
 
 	public MockUaaUserDatabase(String id, String name, String email) {

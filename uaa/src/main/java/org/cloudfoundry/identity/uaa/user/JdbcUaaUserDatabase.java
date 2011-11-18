@@ -20,7 +20,7 @@ import java.util.UUID;
 /**
  * @author Luke Taylor
  */
-public class JdbcUaaUserDatabase implements UaaUserService, ScimUserProvisioning {
+public class JdbcUaaUserDatabase implements UaaUserDatabase, ScimUserProvisioning {
 	private final Log logger = LogFactory.getLog(getClass());
 
 	public static final String USER_FIELDS = "id,username,password,email,givenName,familyName,created,lastModified ";
