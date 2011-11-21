@@ -117,4 +117,14 @@ public class JdbcUaaUserDatabaseTests {
 		assertJoe(joe);
 		template.queryForList("select * from users").isEmpty();
 	}
+
+	@Test
+	public void canRetrieveUsers() {
+		assertEquals(1, db.retrieveUsers().size());
+	}
+
+	@Test
+	public void canRetrieveUsersWithFilter() {
+		assertEquals(1, db.retrieveUsers("userName eq 'joe'").size());
+	}
 }

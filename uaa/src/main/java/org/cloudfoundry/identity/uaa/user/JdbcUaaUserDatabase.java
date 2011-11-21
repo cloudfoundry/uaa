@@ -1,21 +1,29 @@
 package org.cloudfoundry.identity.uaa.user;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.UUID;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.scim.ScimException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.expression.Expression;
+import org.springframework.expression.spel.SpelParseException;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.springframework.expression.spel.support.StandardEvaluationContext;
+import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.util.Assert;
-
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.Collection;
-import java.util.UUID;
 
 /**
  * @author Luke Taylor
@@ -35,6 +43,9 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase, ScimUserProvisionin
 			"select " + USER_FIELDS +
 			"from users " +
 			"where id = ?";
+	public static final String ALL_USERS =
+			"select " + USER_FIELDS +
+			"from users";
 	public static final String USER_BY_USERNAME_QUERY =
 			"select " + USER_FIELDS +
 			"from users " +
@@ -58,8 +69,46 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase, ScimUserProvisionin
 
 	@Override
 	public Collection<ScimUser> retrieveUsers() {
-		// TODO: Need to be able to build a filter in this method
-		throw new UnsupportedOperationException();
+		// TODO: Need to be able to build a cursor into the result
+		List<UaaUser> input = jdbcTemplate.query(ALL_USERS, mapper);
+		Collection<ScimUser> users = new ArrayList<ScimUser>();
+		for (UaaUser user : input) {
+			users .add(user.scimUser());
+		}
+		return users;
+	}
+
+	@Override
+	public Collection<ScimUser> retrieveUsers(String filter) {
+		
+		// TODO: use SQL instead of SpEL
+
+		Collection<ScimUser> users = new ArrayList<ScimUser>();
+
+		String spel = filter.replace(" eq ", " == ").replace(" pr", "!=null").replace(" ge ", " >= ")
+				.replace(" le ", " <= ").replace(" gt ", " > ").replace(" lt ", " < ")
+				.replaceAll(" co '(.*?)'", ".contains('$1')").replaceAll(" sw '(.*?)'", ".startsWith('$1')")
+				.replaceAll("emails\\.(.*?)\\.(.*?)\\((.*?)\\)", "emails.^[$1.$2($3)]!=null");
+
+		logger.debug("Filtering users with SpEL: " + spel);
+
+		StandardEvaluationContext context = new StandardEvaluationContext();
+		Expression expression;
+		try {
+			expression = new SpelExpressionParser().parseExpression(spel);
+		}
+		catch (SpelParseException e) {
+			throw new ScimException("Invalid filter expression: [" + filter + "]", HttpStatus.BAD_REQUEST);
+		}
+
+		for (ScimUser user : retrieveUsers()) {
+			if (expression.getValue(context, user, Boolean.class)) {
+				users.add(user);
+			}
+		}
+
+		return users;
+
 	}
 
 	@Override

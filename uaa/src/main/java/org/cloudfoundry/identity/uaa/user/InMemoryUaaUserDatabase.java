@@ -11,6 +11,10 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.springframework.expression.Expression;
+import org.springframework.expression.spel.SpelParseException;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.util.Assert;
@@ -74,6 +78,37 @@ public class InMemoryUaaUserDatabase implements UaaUserDatabase, ScimUserProvisi
 			users.add(user.scimUser());
 		}
 		return users;
+	}
+	
+	@Override
+	public Collection<ScimUser> retrieveUsers(String filter) {
+
+		Collection<ScimUser> users = new ArrayList<ScimUser>();
+
+		String spel = filter.replace(" eq ", " == ").replace(" pr", "!=null").replace(" ge ", " >= ")
+				.replace(" le ", " <= ").replace(" gt ", " > ").replace(" lt ", " < ")
+				.replaceAll(" co '(.*?)'", ".contains('$1')").replaceAll(" sw '(.*?)'", ".startsWith('$1')")
+				.replaceAll("emails\\.(.*?)\\.(.*?)\\((.*?)\\)", "emails.^[$1.$2($3)]!=null");
+
+		logger.debug("Filtering users with SpEL: " + spel);
+
+		StandardEvaluationContext context = new StandardEvaluationContext();
+		Expression expression;
+		try {
+			expression = new SpelExpressionParser().parseExpression(spel);
+		}
+		catch (SpelParseException e) {
+			throw new ScimException("Invalid filter expression: [" + filter + "]", HttpStatus.BAD_REQUEST);
+		}
+
+		for (ScimUser user : retrieveUsers()) {
+			if (expression.getValue(context, user, Boolean.class)) {
+				users.add(user);
+			}
+		}
+
+		return users;
+
 	}
 
 	@Override

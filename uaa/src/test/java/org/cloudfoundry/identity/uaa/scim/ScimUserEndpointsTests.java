@@ -20,6 +20,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.internal.matchers.StringContains.containsString;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 
@@ -53,6 +54,26 @@ public class ScimUserEndpointsTests {
 		dale.addEmail("olds@vmware.com");
 		joel = dao.createUser(joel, "password");
 		dale = dao.createUser(dale, "password");
+	}
+
+	@Test
+	public void testFindAllIds() {
+		SearchResults<Map<String, Object>> results = endpoints.findUsers("id", "id pr", 1, 100);
+		assertEquals(2, results.getTotalResults());
+	}
+
+	@Test
+	public void testFindAllNames() {
+		SearchResults<Map<String, Object>> results = endpoints.findUsers("userName", "id pr", 1, 100);
+		Collection<Object> values = getSetFromMaps(results.getResources(), "userName");
+		assertTrue(values.contains("olds"));
+	}
+
+	@Test
+	public void testFindAllEmails() {
+		SearchResults<Map<String, Object>> results = endpoints.findUsers("emails.value", "id pr", 1, 100);
+		Collection<Object> values = getSetFromMaps(results.getResources(), "emails.value");
+		assertTrue(values.contains(Arrays.asList("olds@vmware.com")));
 	}
 
 	@Test

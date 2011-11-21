@@ -12,6 +12,8 @@ public interface ScimUserProvisioning {
 
 	public Collection<ScimUser> retrieveUsers();
 
+	public Collection<ScimUser> retrieveUsers(String filter);
+
 	public ScimUser createUser(ScimUser user, String password);
 
 	public ScimUser updateUser(String id, ScimUser user);
