@@ -11,7 +11,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package org.cloudfoundry.identity.uaa.web;
+package org.cloudfoundry.identity.uaa.authentication;
 
 import java.beans.PropertyEditorSupport;
 

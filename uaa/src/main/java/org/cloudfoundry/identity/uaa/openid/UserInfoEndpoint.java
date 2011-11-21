@@ -1,4 +1,4 @@
-package org.cloudfoundry.identity.uaa.web;
+package org.cloudfoundry.identity.uaa.openid;
 
 import java.security.Principal;
 import java.util.LinkedHashMap;

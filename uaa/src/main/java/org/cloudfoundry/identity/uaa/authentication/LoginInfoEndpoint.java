@@ -1,4 +1,4 @@
-package org.cloudfoundry.identity.uaa.web;
+package org.cloudfoundry.identity.uaa.authentication;
 
 import java.util.Arrays;
 import java.util.LinkedHashMap;

@@ -10,7 +10,7 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package org.cloudfoundry.identity.uaa.web;
+package org.cloudfoundry.identity.uaa.openid;
 
 import static org.junit.Assert.assertEquals;
 
@@ -18,6 +18,7 @@ import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaTestFactory;
+import org.cloudfoundry.identity.uaa.openid.UserInfoEndpoint;
 import org.cloudfoundry.identity.uaa.scim.ScimException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;

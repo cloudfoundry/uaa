@@ -1,4 +1,4 @@
-package org.cloudfoundry.identity.uaa.web;
+package org.cloudfoundry.identity.uaa.oauth;
 
 import java.util.HashMap;
 import java.util.Map;

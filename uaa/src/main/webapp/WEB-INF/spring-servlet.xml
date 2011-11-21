@@ -162,13 +162,13 @@
 	</bean>
 
 	<!--Basic application beans. -->
-	<bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.web.LoginInfoEndpoint" />
+	<bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.authentication.LoginInfoEndpoint" />
 
-	<bean id="userInfoEndpoint" class="org.cloudfoundry.identity.uaa.web.UserInfoEndpoint">
+	<bean id="userInfoEndpoint" class="org.cloudfoundry.identity.uaa.openid.UserInfoEndpoint">
 		<property name="userDatabase" ref="userDatabase"/>
 	</bean>
 
-	<bean id="checkTokenEndpoint" class="org.cloudfoundry.identity.uaa.web.CheckTokenEndpoint">
+	<bean id="checkTokenEndpoint" class="org.cloudfoundry.identity.uaa.oauth.CheckTokenEndpoint">
 		<property name="tokenStore" ref="tokenStore" />
 	</bean>
 
@@ -176,7 +176,7 @@
 		<property name="dao" ref="userDatabase" />
 	</bean>
 
-	<bean id="accessController" class="org.cloudfoundry.identity.uaa.web.AccessController">
+	<bean id="accessController" class="org.cloudfoundry.identity.uaa.oauth.AccessController">
 		<property name="clientDetailsService" ref="clientDetails" />
 	</bean>
 
