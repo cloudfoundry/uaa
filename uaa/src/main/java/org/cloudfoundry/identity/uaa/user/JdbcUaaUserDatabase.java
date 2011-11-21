@@ -21,6 +21,7 @@ import org.springframework.util.Assert;
 
 /**
  * @author Luke Taylor
+ * @author Dave Syer
  */
 public class JdbcUaaUserDatabase implements UaaUserDatabase, ScimUserProvisioning {
 	private final Log logger = LogFactory.getLog(getClass());

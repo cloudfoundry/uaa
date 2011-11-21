@@ -17,6 +17,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 /**
  * @author Luke Taylor
+ * @author Dave Syer
  */
 public class JdbcUaaUserDatabaseTests {
 
@@ -134,22 +135,28 @@ public class JdbcUaaUserDatabaseTests {
 
 	@Test
 	public void canRetrieveUsersWithFilterExists() {
-		assertEquals(2, db.retrieveUsers("userName pr").size());
+		assertEquals(2, db.retrieveUsers("username pr").size());
 	}
 
 	@Test
 	public void canRetrieveUsersWithFilterEquals() {
-		assertEquals(1, db.retrieveUsers("userName eq 'joe'").size());
+		assertEquals(1, db.retrieveUsers("username eq 'joe'").size());
+	}
+
+	@Test
+	public void canRetrieveUsersWithFilterCaseSensitivity() {
+		// This actually depends on the RDBMS.
+		assertEquals(1, db.retrieveUsers("USERNAME eq 'joe'").size());
 	}
 
 	@Test
 	public void canRetrieveUsersWithFilterContains() {
-		assertEquals(2, db.retrieveUsers("userName co 'e'").size());
+		assertEquals(2, db.retrieveUsers("username co 'e'").size());
 	}
 
 	@Test
 	public void canRetrieveUsersWithFilterStartsWith() {
-		assertEquals(1, db.retrieveUsers("userName sw 'j'").size());
+		assertEquals(1, db.retrieveUsers("username sw 'j'").size());
 	}
 
 	@Test
@@ -159,12 +166,12 @@ public class JdbcUaaUserDatabaseTests {
 
 	@Test
 	public void canRetrieveUsersWithFilterBooleanAnd() {
-		assertEquals(2, db.retrieveUsers("userName pr and emails.value co '.com'").size());
+		assertEquals(2, db.retrieveUsers("username pr and emails.value co '.com'").size());
 	}
 
 	@Test
 	public void canRetrieveUsersWithFilterBooleanOr() {
-		assertEquals(2, db.retrieveUsers("userName eq 'joe' or emails.value co '.com'").size());
+		assertEquals(2, db.retrieveUsers("username eq 'joe' or emails.value co '.com'").size());
 	}
 
 	@Test(expected=UnsupportedOperationException.class)
