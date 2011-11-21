@@ -1,3 +1,15 @@
+/*
+ * Copyright 2006-2011 the original author or authors.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 package org.cloudfoundry.identity.api.oauth;
 
 import java.io.UnsupportedEncodingException;
@@ -22,11 +34,16 @@ import org.springframework.security.oauth2.common.exceptions.InvalidTokenExcepti
 import org.springframework.security.oauth2.provider.ClientToken;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
+import org.springframework.util.Assert;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
+/**
+ * @author Dave Syer
+ * 
+ */
 public class UaaTokenServices implements ResourceServerTokenServices {
 
 	protected final Log logger = LogFactory.getLog(getClass());
@@ -68,11 +85,40 @@ public class UaaTokenServices implements ResourceServerTokenServices {
 			throw new InvalidTokenException(accessToken);
 		}
 
-		@SuppressWarnings("unchecked")
-		Set<String> scope = new HashSet<String>((Collection<String>) map.get("scope"));
-		ClientToken clientAuthentication = new ClientToken(clientId, null, clientSecret, scope, null);
+		Assert.state(map.containsKey("client_id"), "Client id must be present in response from auth server");
+
+		Set<String> scope = new HashSet<String>();
+		if (map.containsKey("scope")) {
+			@SuppressWarnings("unchecked")
+			Collection<String> values = (Collection<String>) map.get("scope");
+			scope.addAll(values);
+		}
+		Set<String> resourceIds = new HashSet<String>();
+		if (map.containsKey("resource_ids")) {
+			@SuppressWarnings("unchecked")
+			Collection<String> values = (Collection<String>) map.get("resource_ids");
+			resourceIds.addAll(values);
+		}
+		Set<GrantedAuthority> clientAuthorities = new HashSet<GrantedAuthority>();
+		if (map.containsKey("client_authorities")) {
+			@SuppressWarnings("unchecked")
+			Collection<String> values = (Collection<String>) map.get("client_authorities");
+			clientAuthorities.addAll(getAuthorities(values));
+		}
+		Set<GrantedAuthority> userAuthorities = new HashSet<GrantedAuthority>();
+		if (map.containsKey("user_authorities")) {
+			@SuppressWarnings("unchecked")
+			Collection<String> values = (Collection<String>) map.get("user_authorities");
+			userAuthorities.addAll(getAuthorities(values));
+		}
+		String remoteClientId = (String) map.get("client_id");
+		String remoteClientSecret = null;
+		if (map.containsKey("clilent_secret")) {
+			remoteClientSecret = (String) map.get("client_secret");
+		}
+		ClientToken clientAuthentication = new ClientToken(remoteClientId, resourceIds, remoteClientSecret, scope, clientAuthorities);
 		String username = (String) map.get("user_name");
-		Authentication userAuthentication = new UsernamePasswordAuthenticationToken(username, null, null);
+		Authentication userAuthentication = new UsernamePasswordAuthenticationToken(username, null, userAuthorities);
 
 		return new OAuth2Authentication(clientAuthentication, userAuthentication);
 	}
@@ -103,7 +149,7 @@ public class UaaTokenServices implements ResourceServerTokenServices {
 		Map map = restTemplate.exchange(path, HttpMethod.POST,
 				new HttpEntity<MultiValueMap<String, String>>(formData, headers), Map.class).getBody();
 		@SuppressWarnings("unchecked")
-		Map<String, Object> result = (Map<String, Object>)map;
+		Map<String, Object> result = (Map<String, Object>) map;
 		return result;
 	}
 
