@@ -1,14 +1,19 @@
 package org.cloudfoundry.identity.uaa.user;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
+import java.util.UUID;
+
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
-import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.junit.*;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-
-import static org.junit.Assert.*;
 
 /**
  * @author Luke Taylor
@@ -19,6 +24,8 @@ public class JdbcUaaUserDatabaseTests {
 	private JdbcUaaUserDatabase db;
 
 	private static final String JOE_ID = "550e8400-e29b-41d4-a716-446655440000";
+
+	private static final String MABEL_ID = UUID.randomUUID().toString();
 
 	@BeforeClass
 	public static void createDatasource() throws Exception {
@@ -46,7 +53,9 @@ public class JdbcUaaUserDatabaseTests {
 				"constraint unique_uk_1 unique(username)" +
 			")");
 		template.execute("insert into users (id, username, password, email, givenName, familyName) " +
-								 "values ('"+ JOE_ID + "', 'joe','joespassword','joe@joe.com','Joe','User')");
+				 "values ('"+ JOE_ID + "', 'joe','joespassword','joe@joe.com','Joe','User')");
+		template.execute("insert into users (id, username, password, email, givenName, familyName) " +
+				 "values ('"+ MABEL_ID + "', 'mabel','mabelspassword','mabel@mabel.com','Mabel','User')");
 	}
 
 	@After
@@ -120,7 +129,7 @@ public class JdbcUaaUserDatabaseTests {
 
 	@Test
 	public void canRetrieveUsers() {
-		assertEquals(1, db.retrieveUsers().size());
+		assertEquals(2, db.retrieveUsers().size());
 	}
 
 	@Test
