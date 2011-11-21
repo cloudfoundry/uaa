@@ -54,8 +54,8 @@ public class CheckTokenEndpointIntegrationTests {
 
 		@SuppressWarnings("unchecked")
 		Map<String,String> map = response.getBody();
-		assertEquals("marissa", map.get("user_name"));
-		assertEquals("marissa@test.org", map.get("user_email"));
+		assertEquals("marissa", map.get("user_id"));
+		assertEquals("marissa@test.org", map.get("email"));
 
 	}
 

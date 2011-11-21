@@ -29,7 +29,7 @@ public class CheckTokenEndpoint implements InitializingBean {
 	private TokenStore tokenStore;
 
 	public void afterPropertiesSet() throws Exception {
-		Assert.notNull(tokenStore, "tokenServices must be set");
+		Assert.notNull(tokenStore, "tokenStore must be set");
 	}
 
 	@RequestMapping(value = "/check_token")
@@ -52,9 +52,9 @@ public class CheckTokenEndpoint implements InitializingBean {
 		UaaPrincipal principal = (UaaPrincipal) authentication.getUserAuthentication().getPrincipal();
 		ClientToken clientToken = authentication.getClientAuthentication();
 
-		response.put("user_id", principal.getId());
-		response.put("user_name", principal.getName());
-		response.put("user_email", principal.getEmail());
+		response.put("id", principal.getId());
+		response.put("user_id", principal.getName());
+		response.put("email", principal.getEmail());
 		Collection<? extends GrantedAuthority> authorities = authentication.getUserAuthentication().getAuthorities();
 		if (authorities != null) {
 			response.put("user_authorities", getAuthorities(authorities));

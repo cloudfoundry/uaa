@@ -39,7 +39,7 @@ public class CheckTokenEndpointTests {
 
 	public CheckTokenEndpointTests() {
 		authentication = new OAuth2Authentication(new ClientToken("client", "secret", Collections.singleton("read")),
-				UaaTestFactory.getAuthentication("olds", "Dale Olds", "olds@vmware.com"));
+				UaaTestFactory.getAuthentication("12345", "olds", "olds@vmware.com"));
 		endpoint.setTokenStore(tokenStore);
 		OAuth2AccessToken token = new OAuth2AccessToken("FOO");
 		tokenStore.storeAccessToken(token, authentication);
@@ -49,6 +49,12 @@ public class CheckTokenEndpointTests {
 	public void testUserIdInResult() {
 		Map<String, Object> result = endpoint.checkToken("FOO");
 		assertEquals("olds", result.get("user_id"));
+	}
+
+	@Test
+	public void testEmailInResult() {
+		Map<String, Object> result = endpoint.checkToken("FOO");
+		assertEquals("olds@vmware.com", result.get("email"));
 	}
 
 	@Test
