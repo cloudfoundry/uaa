@@ -10,15 +10,9 @@ import java.util.UUID;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.scim.ScimException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.expression.Expression;
-import org.springframework.expression.spel.SpelParseException;
-import org.springframework.expression.spel.standard.SpelExpressionParser;
-import org.springframework.expression.spel.support.StandardEvaluationContext;
-import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
@@ -80,31 +74,23 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase, ScimUserProvisionin
 
 	@Override
 	public Collection<ScimUser> retrieveUsers(String filter) {
-		
-		// TODO: use SQL instead of SpEL
 
-		Collection<ScimUser> users = new ArrayList<ScimUser>();
-
-		String spel = filter.replace(" eq ", " == ").replace(" pr", "!=null").replace(" ge ", " >= ")
+		String where = filter.replace(" eq ", " = ").replace(" pr", " is not null ").replace(" ge ", " >= ")
 				.replace(" le ", " <= ").replace(" gt ", " > ").replace(" lt ", " < ")
-				.replaceAll(" co '(.*?)'", ".contains('$1')").replaceAll(" sw '(.*?)'", ".startsWith('$1')")
-				.replaceAll("emails\\.(.*?)\\.(.*?)\\((.*?)\\)", "emails.^[$1.$2($3)]!=null");
+				.replaceAll(" co '(.*?)'", " like '%$1%'").replaceAll(" sw '(.*?)'", " like '$1%'")
+				// There is only one email address for now...
+				.replace("emails.value", "email");
 
-		logger.debug("Filtering users with SpEL: " + spel);
-
-		StandardEvaluationContext context = new StandardEvaluationContext();
-		Expression expression;
-		try {
-			expression = new SpelExpressionParser().parseExpression(spel);
-		}
-		catch (SpelParseException e) {
-			throw new ScimException("Invalid filter expression: [" + filter + "]", HttpStatus.BAD_REQUEST);
+		logger.debug("Filtering users with SQL: " + where);
+		
+		if (where.contains("emails.")) {
+			throw new UnsupportedOperationException("Filters on email adress fields other than 'value' not supported");
 		}
 
-		for (ScimUser user : retrieveUsers()) {
-			if (expression.getValue(context, user, Boolean.class)) {
-				users.add(user);
-			}
+		List<UaaUser> input = jdbcTemplate.query(ALL_USERS + " WHERE " + where, mapper);
+		Collection<ScimUser> users = new ArrayList<ScimUser>();
+		for (UaaUser user : input) {
+			users.add(user.scimUser());
 		}
 
 		return users;
