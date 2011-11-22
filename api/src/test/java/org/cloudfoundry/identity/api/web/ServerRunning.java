@@ -5,6 +5,7 @@ import static org.junit.Assert.assertEquals;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
@@ -13,8 +14,6 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.client.params.ClientPNames;
 import org.junit.Assume;
 import org.junit.internal.AssumptionViolatedException;
 import org.junit.rules.TestWatchman;
@@ -28,6 +27,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.security.oauth2.common.DefaultOAuth2SerializationService;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.util.LinkedMultiValueMap;
@@ -148,8 +148,7 @@ public class ServerRunning extends TestWatchman {
 		RestTemplate client = new RestTemplate();
 		boolean online = false;
 		try {
-			client.getForEntity(new UriTemplate(getUrl("/uaa/login", uaaPort)).toString(),
-					String.class);
+			client.getForEntity(new UriTemplate(getUrl("/uaa/login", uaaPort)).toString(), String.class);
 			client.getForEntity(new UriTemplate(getUrl("/api/index.html")).toString(), String.class);
 			online = true;
 			logger.info("Basic connectivity test passed");
@@ -204,8 +203,8 @@ public class ServerRunning extends TestWatchman {
 	public ResponseEntity<String> postForString(String path, MultiValueMap<String, String> formData) {
 		HttpHeaders headers = new HttpHeaders();
 		headers.setAccept(Arrays.asList(MediaType.APPLICATION_FORM_URLENCODED));
-		return client.exchange(getUrl(path), HttpMethod.POST, new HttpEntity<MultiValueMap<String, String>>(formData,
-				headers), String.class);
+		return client.exchange(getUrl(path), HttpMethod.POST,
+				new HttpEntity<MultiValueMap<String, String>>(formData, headers), String.class);
 	}
 
 	public ResponseEntity<String> getForString(String path) {
@@ -254,20 +253,19 @@ public class ServerRunning extends TestWatchman {
 		DefaultOAuth2SerializationService serializationService = new DefaultOAuth2SerializationService();
 		OAuth2AccessToken accessToken = serializationService.deserializeJsonAccessToken(new ByteArrayInputStream(
 				response.getBody().getBytes()));
+		logger.debug("Obtained access token: " + accessToken.getValue());
 		return accessToken;
 	}
 
 	public RestTemplate getRestTemplate() {
 		RestTemplate client = new RestTemplate();
-		HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory() {
+		client.setRequestFactory(new SimpleClientHttpRequestFactory() {
 			@Override
-			protected void postProcessHttpRequest(HttpUriRequest request) {
-				request.getParams().setBooleanParameter(ClientPNames.HANDLE_REDIRECTS, false);
-				// We need to ignore cookies to avoid Spring Security saving a request for us
-				request.getParams().setParameter(ClientPNames.COOKIE_POLICY, "ignorecookies");
+			protected void prepareConnection(HttpURLConnection connection, String httpMethod) throws IOException {
+				super.prepareConnection(connection, httpMethod);
+				connection.setInstanceFollowRedirects(false);
 			}
-		};
-		client.setRequestFactory(requestFactory);
+		});
 		client.setErrorHandler(new ResponseErrorHandler() {
 			// Pass errors through in response entity for status code analysis
 			public boolean hasError(ClientHttpResponse response) throws IOException {

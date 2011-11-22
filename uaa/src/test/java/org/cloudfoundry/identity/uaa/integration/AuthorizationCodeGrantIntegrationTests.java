@@ -37,6 +37,11 @@ public class AuthorizationCodeGrantIntegrationTests {
 		assertEquals(HttpStatus.FOUND, result.getStatusCode());
 		String location = result.getHeaders().getLocation().toString();
 
+		if (result.getHeaders().containsKey("Set-Cookie")) {
+			String cookie = result.getHeaders().getFirst("Set-Cookie");
+			headers.set("Cookie", cookie);
+		}
+
 		ResponseEntity<String> response = serverRunning.getForString(location, headers);
 		// should be directed to the login screen...
 		assertTrue(response.getBody().contains("uaa/login.do"));
@@ -50,6 +55,12 @@ public class AuthorizationCodeGrantIntegrationTests {
 		// Should be redirected to the original URL, but now authenticated
 		result = serverRunning.postForResponse("/uaa/login.do", headers, formData);
 		assertEquals(HttpStatus.FOUND, result.getStatusCode());
+
+		if (result.getHeaders().containsKey("Set-Cookie")) {
+			String cookie = result.getHeaders().getFirst("Set-Cookie");
+			headers.set("Cookie", cookie);
+		}
+
 		response = serverRunning.getForString(result.getHeaders().getLocation().toString(), headers);
 		// The grant access page should be returned
 		assertTrue(response.getBody().contains("Do you authorize"));

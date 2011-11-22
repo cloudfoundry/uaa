@@ -47,7 +47,7 @@
 		</property>
 	</bean>
 
-	<bean id="tokenServices" class="org.cloudfoundry.identity.api.oauth.UaaTokenServices">
+	<bean id="tokenServices" class="org.cloudfoundry.identity.api.oauth.RemoteTokenServices">
 		<property name="checkTokenEndpointUrl" value="${checkTokenEndpointUrl}" />
 		<property name="clientId" value="app" />
 		<property name="clientSecret" value="appclientsecret" />

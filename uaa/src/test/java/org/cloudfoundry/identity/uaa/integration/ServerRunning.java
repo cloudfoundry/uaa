@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.integration;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
@@ -9,8 +10,6 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.client.params.ClientPNames;
 import org.junit.Assume;
 import org.junit.internal.AssumptionViolatedException;
 import org.junit.rules.TestWatchman;
@@ -24,6 +23,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RequestCallback;
@@ -35,21 +35,27 @@ import org.springframework.web.util.UriTemplate;
 import org.springframework.web.util.UriUtils;
 
 /**
- * <p> A rule that prevents integration tests from failing if the server application is not running or not accessible.
- * If the server is not running in the background all the tests here will simply be skipped because of a violated
- * assumption (showing as successful). Usage: </p>
- *
- * <pre> &#064;Rule public static ServerRunning brokerIsRunning = ServerRunning.isRunning();
- *
- * &#064;Test public void testSendAndReceive() throws Exception { // ... test using server etc. } </pre> <p> The
- * rule can be declared as static so that it only has to check once for all tests in the enclosing test case, but there
- * isn't a lot of overhead in making it non-static. </p>
- *
+ * <p>
+ * A rule that prevents integration tests from failing if the server application is not running or not accessible. If
+ * the server is not running in the background all the tests here will simply be skipped because of a violated
+ * assumption (showing as successful). Usage:
+ * </p>
+ * 
+ * <pre>
+ * &#064;Rule public static ServerRunning brokerIsRunning = ServerRunning.isRunning();
+ * 
+ * &#064;Test public void testSendAndReceive() throws Exception { // ... test using server etc. }
+ * </pre>
+ * <p>
+ * The rule can be declared as static so that it only has to check once for all tests in the enclosing test case, but
+ * there isn't a lot of overhead in making it non-static.
+ * </p>
+ * 
  * @see Assume
  * @see AssumptionViolatedException
- *
+ * 
  * @author Dave Syer
- *
+ * 
  */
 public class ServerRunning extends TestWatchman {
 
@@ -119,7 +125,8 @@ public class ServerRunning extends TestWatchman {
 		// Check at the beginning, so this can be used as a static field
 		if (assumeOnline) {
 			Assume.assumeTrue(serverOnline.get(port));
-		} else {
+		}
+		else {
 			Assume.assumeTrue(serverOffline.get(port));
 		}
 
@@ -129,21 +136,24 @@ public class ServerRunning extends TestWatchman {
 			client.getForEntity(new UriTemplate(getUrl("/uaa/login")).toString(), String.class);
 			online = true;
 			logger.info("Basic connectivity test passed");
-		} catch (RestClientException e) {
+		}
+		catch (RestClientException e) {
 			logger.warn(String.format(
 					"Not executing tests because basic connectivity test failed for hostName=%s, port=%d", hostName,
 					port), e);
 			if (assumeOnline) {
 				Assume.assumeNoException(e);
 			}
-		} finally {
+		}
+		finally {
 			if (online) {
 				serverOffline.put(port, false);
 				if (!assumeOnline) {
 					Assume.assumeTrue(serverOffline.get(port));
 				}
 
-			} else {
+			}
+			else {
 				serverOnline.put(port, false);
 			}
 		}
@@ -171,7 +181,7 @@ public class ServerRunning extends TestWatchman {
 	}
 
 	public ResponseEntity<String> postForString(String path, MultiValueMap<String, String> formData, HttpHeaders headers) {
-		if (headers.getContentType()==null) {
+		if (headers.getContentType() == null) {
 			headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 		}
 		return client.exchange(getUrl(path), HttpMethod.POST, new HttpEntity<MultiValueMap<String, String>>(formData,
@@ -185,7 +195,7 @@ public class ServerRunning extends TestWatchman {
 
 	@SuppressWarnings("rawtypes")
 	public ResponseEntity<Map> postForMap(String path, MultiValueMap<String, String> formData, HttpHeaders headers) {
-		if (headers.getContentType()==null) {
+		if (headers.getContentType() == null) {
 			headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 		}
 		return client.exchange(getUrl(path), HttpMethod.POST, new HttpEntity<MultiValueMap<String, String>>(formData,
@@ -215,8 +225,8 @@ public class ServerRunning extends TestWatchman {
 		actualHeaders.putAll(headers);
 		actualHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-		return client.exchange(getUrl(path), HttpMethod.POST,
-				new HttpEntity<MultiValueMap<String, String>>(params, actualHeaders), null);
+		return client.exchange(getUrl(path), HttpMethod.POST, new HttpEntity<MultiValueMap<String, String>>(params,
+				actualHeaders), null);
 	}
 
 	public ResponseEntity<Void> postForRedirect(String path, HttpHeaders headers, MultiValueMap<String, String> params) {
@@ -225,6 +235,12 @@ public class ServerRunning extends TestWatchman {
 		if (exchange.getStatusCode() != HttpStatus.FOUND) {
 			throw new IllegalStateException("Expected 302 but server returned status code " + exchange.getStatusCode());
 		}
+
+		if (exchange.getHeaders().containsKey("Set-Cookie")) {
+			String cookie = exchange.getHeaders().getFirst("Set-Cookie");
+			headers.set("Cookie", cookie);
+		}
+
 		String location = exchange.getHeaders().getLocation().toString();
 
 		return client.exchange(location, HttpMethod.GET, new HttpEntity<Void>(null, headers), null);
@@ -253,13 +269,13 @@ public class ServerRunning extends TestWatchman {
 
 	public RestTemplate getRestTemplate() {
 		RestTemplate client = new RestTemplate();
-		HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory() {
+		client.setRequestFactory(new SimpleClientHttpRequestFactory() {
 			@Override
-			protected void postProcessHttpRequest(HttpUriRequest request) {
-				request.getParams().setBooleanParameter(ClientPNames.HANDLE_REDIRECTS, false);
+			protected void prepareConnection(HttpURLConnection connection, String httpMethod) throws IOException {
+				super.prepareConnection(connection, httpMethod);
+				connection.setInstanceFollowRedirects(false);
 			}
-		};
-		client.setRequestFactory(requestFactory);
+		});
 		client.setErrorHandler(new ResponseErrorHandler() {
 			// Pass errors through in response entity for status code analysis
 			public boolean hasError(ClientHttpResponse response) throws IOException {
@@ -284,6 +300,7 @@ public class ServerRunning extends TestWatchman {
 	public static class UriBuilder {
 
 		private final String url;
+
 		private MultiValueMap<String, String> params = new LinkedMultiValueMap<String, String>();
 
 		public UriBuilder(String url) {
@@ -308,7 +325,8 @@ public class ServerRunning extends TestWatchman {
 					for (String key : params.keySet()) {
 						if (!first) {
 							builder.append("&");
-						} else {
+						}
+						else {
 							first = false;
 						}
 						for (String value : params.get(key)) {
@@ -317,10 +335,12 @@ public class ServerRunning extends TestWatchman {
 					}
 				}
 				return new URI(builder.toString());
-			} catch (UnsupportedEncodingException ex) {
+			}
+			catch (UnsupportedEncodingException ex) {
 				// should not happen, UTF-8 is always supported
 				throw new IllegalStateException(ex);
-			} catch (URISyntaxException ex) {
+			}
+			catch (URISyntaxException ex) {
 				throw new IllegalArgumentException("Could not create URI from [" + builder + "]: " + ex, ex);
 			}
 		}

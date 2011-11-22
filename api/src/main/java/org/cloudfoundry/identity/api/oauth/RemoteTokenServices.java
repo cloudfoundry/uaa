@@ -44,7 +44,7 @@ import org.springframework.web.client.RestTemplate;
  * @author Dave Syer
  * 
  */
-public class UaaTokenServices implements ResourceServerTokenServices {
+public class RemoteTokenServices implements ResourceServerTokenServices {
 
 	protected final Log logger = LogFactory.getLog(getClass());
 

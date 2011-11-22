@@ -32,9 +32,9 @@ import org.springframework.web.client.RestTemplate;
  * @author Dave Syer
  * 
  */
-public class UaaTokenServicesTests {
+public class RemoteTokenServicesTests {
 
-	private UaaTokenServices services = new UaaTokenServices();
+	private RemoteTokenServices services = new RemoteTokenServices();
 
 	private Map<String, Object> body = new HashMap<String, Object>();
 
@@ -42,7 +42,7 @@ public class UaaTokenServicesTests {
 
 	private HttpStatus status = HttpStatus.OK;
 
-	public UaaTokenServicesTests() {
+	public RemoteTokenServicesTests() {
 		services.setClientId("client");
 		services.setClientSecret("secret");
 		body.put("client_id", "remote");

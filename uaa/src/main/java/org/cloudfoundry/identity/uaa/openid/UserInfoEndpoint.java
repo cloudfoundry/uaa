@@ -52,10 +52,12 @@ public class UserInfoEndpoint implements InitializingBean {
 				return null;
 			}
 		};
-		response.put("user_id", user.getUsername());
-		response.put("name", (user.getGivenName() != null ? user.getGivenName() : "")
+		response.put(UserInfo.USER_ID, user.getUsername());
+		response.put(UserInfo.GIVEN_NAME, user.getGivenName());
+		response.put(UserInfo.FAMILY_NAME, user.getFamilyName());
+		response.put(UserInfo.NAME, (user.getGivenName() != null ? user.getGivenName() : "")
 				+ (user.getFamilyName() != null ? " " + user.getFamilyName() : ""));
-		response.put("email", user.getEmail());
+		response.put(UserInfo.EMAIL, user.getEmail());
 		// TODO: other attributes
 		return response;
 	}

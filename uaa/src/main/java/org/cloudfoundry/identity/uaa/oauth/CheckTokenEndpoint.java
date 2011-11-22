@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.openid.UserInfo;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
@@ -53,8 +54,8 @@ public class CheckTokenEndpoint implements InitializingBean {
 		ClientToken clientToken = authentication.getClientAuthentication();
 
 		response.put("id", principal.getId());
-		response.put("user_id", principal.getName());
-		response.put("email", principal.getEmail());
+		response.put(UserInfo.USER_ID, principal.getName());
+		response.put(UserInfo.EMAIL, principal.getEmail());
 		Collection<? extends GrantedAuthority> authorities = authentication.getUserAuthentication().getAuthorities();
 		if (authorities != null) {
 			response.put("user_authorities", getAuthorities(authorities));
