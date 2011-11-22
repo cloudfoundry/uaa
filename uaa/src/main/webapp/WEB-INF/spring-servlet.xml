@@ -70,6 +70,14 @@
 	</bean>
 
 	<bean id="userDatabase" class="org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase">
+		<constructor-arg ref="userData"/>
+	</bean>
+
+	<bean id="scimUserProvisioning" class="org.cloudfoundry.identity.uaa.scim.InMemoryScimUserProvisioning">
+		<constructor-arg ref="userData"/>
+	</bean>
+
+	<bean id="userData" class="org.cloudfoundry.identity.uaa.config.UaaUserMapFactory">
 		<constructor-arg>
 			<list value-type="org.cloudfoundry.identity.uaa.user.UaaUser">
 				<value>dale|password|olds@vmware.com|Dale|Olds</value>
@@ -173,7 +181,7 @@
 	</bean>
 
 	<bean id="scimEndpoints" class="org.cloudfoundry.identity.uaa.scim.ScimUserEndpoints">
-		<property name="dao" ref="userDatabase" />
+		<property name="scimUserProvisioning" ref="scimUserProvisioning" />
 	</bean>
 
 	<bean id="accessController" class="org.cloudfoundry.identity.uaa.oauth.AccessController">

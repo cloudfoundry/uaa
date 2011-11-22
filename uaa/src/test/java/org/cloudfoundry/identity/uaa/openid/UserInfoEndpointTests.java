@@ -14,41 +14,43 @@ package org.cloudfoundry.identity.uaa.openid;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.Collections;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaTestFactory;
-import org.cloudfoundry.identity.uaa.openid.UserInfoEndpoint;
-import org.cloudfoundry.identity.uaa.scim.ScimException;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.junit.Test;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 
 /**
  * @author Dave Syer
- *
+ * 
  */
 public class UserInfoEndpointTests {
 
 	private UserInfoEndpoint endpoint = new UserInfoEndpoint();
-	private InMemoryUaaUserDatabase userDatabase = new InMemoryUaaUserDatabase();
-	
+
+	private InMemoryUaaUserDatabase userDatabase = new InMemoryUaaUserDatabase(Collections.singletonMap("olds",
+			UaaTestFactory.getUser("12345", "olds", "olds@vmware.com", "Dale", "Olds")));
+
 	public UserInfoEndpointTests() {
 		endpoint.setUserDatabase(userDatabase);
 	}
 
 	@Test
 	public void testSunnyDay() {
-		ScimUser user = userDatabase.createUser(UaaTestFactory.getScimUser("olds", "olds@vmware.com", "Dale", "Olds"), "password");
-		UaaAuthentication authentication = UaaTestFactory.getAuthentication(user.getId(), "Dale", "olds@vmware.com");
+		UaaUser user = userDatabase.retrieveUserByName("olds");
+		UaaAuthentication authentication = UaaTestFactory.getAuthentication(user.getId(), "olds", "olds@vmware.com");
 		Map<String, String> map = endpoint.loginInfo(new OAuth2Authentication(null, authentication));
 		assertEquals("olds", map.get("user_id"));
 		assertEquals("Dale Olds", map.get("name"));
 		assertEquals("olds@vmware.com", map.get("email"));
 	}
 
-	@Test(expected=ScimException.class)
+	@Test(expected = UsernameNotFoundException.class)
 	public void testMissingUser() {
 		UaaAuthentication authentication = UaaTestFactory.getAuthentication("12345", "Dale", "olds@vmware.com");
 		Map<String, String> map = endpoint.loginInfo(new OAuth2Authentication(null, authentication));

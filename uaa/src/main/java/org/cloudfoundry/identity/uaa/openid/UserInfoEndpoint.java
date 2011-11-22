@@ -5,8 +5,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.stereotype.Controller;
@@ -23,15 +23,15 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @Controller
 public class UserInfoEndpoint implements InitializingBean {
 
-	private ScimUserProvisioning userDatabase;
+	private UaaUserDatabase userDatabase;
 
-	public void setUserDatabase(ScimUserProvisioning userDatabase) {
+	public void setUserDatabase(UaaUserDatabase userDatabase) {
 		this.userDatabase = userDatabase;
 	}
-	
+
 	@Override
 	public void afterPropertiesSet() throws Exception {
-		Assert.state(userDatabase!=null, "A user database must be provided");
+		Assert.state(userDatabase != null, "A user database must be provided");
 	}
 
 	@RequestMapping(value = "/userinfo")
@@ -43,8 +43,7 @@ public class UserInfoEndpoint implements InitializingBean {
 	}
 
 	protected Map<String, String> getResponse(UaaPrincipal principal) {
-		String id = principal.getId();
-		ScimUser user = userDatabase.retrieveUser(id);
+		UaaUser user = userDatabase.retrieveUserByName(principal.getName());
 		Map<String, String> response = new LinkedHashMap<String, String>() {
 			public String put(String key, String value) {
 				if (StringUtils.hasText(value)) {
@@ -53,11 +52,11 @@ public class UserInfoEndpoint implements InitializingBean {
 				return null;
 			}
 		};
-		response.put("user_id", user.getUserName());
-		response.put("name", user.getName().getFormatted());
-		response.put("email", user.getPrimaryEmail());
+		response.put("user_id", user.getUsername());
+		response.put("name", (user.getGivenName() != null ? user.getGivenName() : "")
+				+ (user.getFamilyName() != null ? " " + user.getFamilyName() : ""));
+		response.put("email", user.getEmail());
 		// TODO: other attributes
 		return response;
 	}
-
 }

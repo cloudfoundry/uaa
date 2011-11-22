@@ -1,12 +1,11 @@
 package org.cloudfoundry.identity.uaa.user;
 
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import java.util.Date;
+import java.util.List;
+
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.util.Assert;
-
-import java.util.Date;
-import java.util.List;
 
 /**
  * User data for authentication against UAA's internal authentication provider.
@@ -15,6 +14,7 @@ import java.util.List;
  * @author Dave Syer
  */
 public class UaaUser {
+
 	private final String id;
 	private final String username;
 	private final String password;
@@ -26,8 +26,8 @@ public class UaaUser {
 
 	private List<GrantedAuthority> authorities = AuthorityUtils.createAuthorityList("ROLE_USER");
 
-	UaaUser(String username, String password, String email, String givenName, String familyName) {
-		this("NaN", username, password, email, givenName, familyName, null, null);
+	public UaaUser(String username, String password, String email, String givenName, String familyName) {
+		this("NaN", username, password, email, givenName, familyName, new Date(), new Date());
 	}
 
 	UaaUser(String id, String username, String password, String email, String givenName, String familyName, Date created, Date modified) {
@@ -45,13 +45,6 @@ public class UaaUser {
 		this.givenName = givenName;
 		this.created = created;
 		this.modified = modified;
-	}
-
-	/**
-	 * Create a new user from Scim data.
-	 */
-	UaaUser(ScimUser scim, String password) {
-		this(scim.getUserName(), password, scim.getPrimaryEmail(), scim.getGivenName(), scim.getFamilyName());
 	}
 
 	public String getId() {
@@ -89,13 +82,4 @@ public class UaaUser {
 		return new UaaUser(Integer.toString(id), username, password, email, givenName, familyName, created, modified);
 	}
 
-	/**
-	 * Convert to SCIM data for use in JSON responses.
-	 */
-	ScimUser scimUser() {
-		ScimUser scim = new ScimUser(id, username, givenName, familyName);
-		scim.addEmail(getEmail());
-		scim.setUserName(getUsername());
-		return scim;
-	}
 }

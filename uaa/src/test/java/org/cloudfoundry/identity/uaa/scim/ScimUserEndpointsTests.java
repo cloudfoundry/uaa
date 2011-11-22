@@ -22,9 +22,10 @@ import static org.junit.internal.matchers.StringContains.containsString;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 
-import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -43,13 +44,13 @@ public class ScimUserEndpointsTests {
 
 	private ScimUser dale = new ScimUser("2", "olds", "Dale", "Olds");
 
-	private InMemoryUaaUserDatabase dao = new InMemoryUaaUserDatabase();
+	private InMemoryScimUserProvisioning dao = new InMemoryScimUserProvisioning(new HashMap<String, UaaUser>());
 
 	private ScimUserEndpoints endpoints;;
 
 	public ScimUserEndpointsTests() {
 		endpoints = new ScimUserEndpoints();
-		endpoints.setDao(dao);
+		endpoints.setScimUserProvisioning(dao);
 		joel.addEmail("jdsa@vmware.com");
 		dale.addEmail("olds@vmware.com");
 		joel = dao.createUser(joel, "password");

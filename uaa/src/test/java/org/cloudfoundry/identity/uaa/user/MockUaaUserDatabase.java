@@ -10,8 +10,8 @@ import java.util.Date;
 public class MockUaaUserDatabase implements UaaUserDatabase {
 	UaaUser user;
 
-	public MockUaaUserDatabase(String id, String name, String email) {
-		user = new UaaUser(id, name, "", email, "GivenName", "FamilyName", new Date(), new Date());
+	public MockUaaUserDatabase(String id, String name, String email, String givenName, String familyName) {
+		user = new UaaUser(id, name, "", email, givenName, familyName, new Date(), new Date());
 	}
 
 

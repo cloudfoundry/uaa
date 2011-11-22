@@ -5,7 +5,6 @@ import static org.junit.Assert.assertNotNull;
 
 import java.util.UUID;
 
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -69,43 +68,6 @@ public class JdbcUaaUserDatabaseTests {
 		template.execute("SHUTDOWN");
 		template = null;
 	}
-
-	@Test
-	public void canCreateUser() {
-		ScimUser user = new ScimUser(null, "josephine", "Jo", "User");
-		user.addEmail("jo@blah.com");
-		db.createUser(user, "password");
-	}
-
-	@Test
-	public void updateModifiesExpectedData() {
-		ScimUser jo = new ScimUser(null, "josephine", "Jo", "NewUser");
-		jo.addEmail("jo@blah.com");
-
-		ScimUser joe = db.updateUser(JOE_ID, jo);
-
-		// Can't change username (yet)
-		assertEquals("joe", joe.getUserName());
-		assertEquals("jo@blah.com", joe.getPrimaryEmail());
-		assertEquals("Jo", joe.getGivenName());
-		assertEquals("NewUser", joe.getFamilyName());
-	}
-
-	@Test
-	public void canRetrieveExistingUser() {
-		ScimUser joe = db.retrieveUser(JOE_ID);
-		assertJoe(joe);
-	}
-
-	private void assertJoe(ScimUser joe) {
-		assertNotNull(joe);
-		assertEquals(JOE_ID, joe.getId());
-		assertEquals("Joe", joe.getGivenName());
-		assertEquals("User", joe.getFamilyName());
-		assertEquals("joe@joe.com", joe.getPrimaryEmail());
-		assertEquals("joe", joe.getUserName());
-	}
-
 	@Test
 	public void getValidUserSucceeds() {
 		UaaUser joe = db.retrieveUserByName("joe");
@@ -119,64 +81,6 @@ public class JdbcUaaUserDatabaseTests {
 	@Test(expected = UsernameNotFoundException.class)
 	public void getNonExistentUserRaisedNotFoundException() {
 		db.retrieveUserByName("jo");
-	}
-
-	@Test
-	public void canRemoveExistingUser() {
-		ScimUser joe = db.removeUser(JOE_ID);
-		assertJoe(joe);
-		template.queryForList("select * from users").isEmpty();
-	}
-
-	@Test
-	public void canRetrieveUsers() {
-		assertEquals(2, db.retrieveUsers().size());
-	}
-
-	@Test
-	public void canRetrieveUsersWithFilterExists() {
-		assertEquals(2, db.retrieveUsers("username pr").size());
-	}
-
-	@Test
-	public void canRetrieveUsersWithFilterEquals() {
-		assertEquals(1, db.retrieveUsers("username eq 'joe'").size());
-	}
-
-	@Test
-	public void canRetrieveUsersWithFilterCaseSensitivity() {
-		// This actually depends on the RDBMS.
-		assertEquals(1, db.retrieveUsers("USERNAME eq 'joe'").size());
-	}
-
-	@Test
-	public void canRetrieveUsersWithFilterContains() {
-		assertEquals(2, db.retrieveUsers("username co 'e'").size());
-	}
-
-	@Test
-	public void canRetrieveUsersWithFilterStartsWith() {
-		assertEquals(1, db.retrieveUsers("username sw 'j'").size());
-	}
-
-	@Test
-	public void canRetrieveUsersWithEmailFilter() {
-		assertEquals(1, db.retrieveUsers("emails.value sw 'j'").size());
-	}
-
-	@Test
-	public void canRetrieveUsersWithFilterBooleanAnd() {
-		assertEquals(2, db.retrieveUsers("username pr and emails.value co '.com'").size());
-	}
-
-	@Test
-	public void canRetrieveUsersWithFilterBooleanOr() {
-		assertEquals(2, db.retrieveUsers("username eq 'joe' or emails.value co '.com'").size());
-	}
-
-	@Test(expected=UnsupportedOperationException.class)
-	public void canRetrieveUsersWithIllegalFilter() {
-		assertEquals(2, db.retrieveUsers("emails.type eq 'bar'").size());
 	}
 
 }

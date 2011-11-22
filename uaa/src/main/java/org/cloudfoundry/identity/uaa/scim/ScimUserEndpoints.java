@@ -117,7 +117,7 @@ public class ScimUserEndpoints implements InitializingBean {
 
 	}
 
-	public void setDao(ScimUserProvisioning dao) {
+	public void setScimUserProvisioning(ScimUserProvisioning dao) {
 		this.dao = dao;
 	}
 

@@ -1,10 +1,10 @@
-package org.cloudfoundry.identity.uaa.user;
+package org.cloudfoundry.identity.uaa.scim;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.Collections;
+import java.util.HashMap;
 
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -14,9 +14,9 @@ import org.springframework.expression.spel.SpelEvaluationException;
  * @author Luke Taylor
  * @author Dave Syer
  */
-public class InMemoryUaaUserDatabaseTests {
+public class InMemoryScimUserProvisioningTests {
 
-	private InMemoryUaaUserDatabase db =  new InMemoryUaaUserDatabase(Collections.<UaaUser>emptyList());
+	private InMemoryScimUserProvisioning db =  new InMemoryScimUserProvisioning(new HashMap<String, UaaUser>());
 	
 	@Before
 	public void seed() {
