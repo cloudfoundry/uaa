@@ -11,7 +11,7 @@
 
 	<artifactId>cloudfoundry-identity-app</artifactId>
 	<packaging>war</packaging>
-	<name>User app for Bento</name>
+	<name>Sample user webapp for Cloudfoundry Identity Services</name>
 
 	<properties>
 		<m2eclipse.wtp.contextRoot>/app</m2eclipse.wtp.contextRoot>
@@ -30,15 +30,11 @@
 								<id>start-tomcat</id>
 								<phase>pre-integration-test</phase>
 								<goals>
-									<goal>deploy</goal>
+									<goal>run</goal>
 								</goals>
-							</execution>
-							<execution>
-								<id>stop-tomcat</id>
-								<phase>post-integration-test</phase>
-								<goals>
-									<goal>undeploy</goal>
-								</goals>
+								<configuration>
+									<fork>true</fork>
+								</configuration>
 							</execution>
 						</executions>
 					</plugin>
@@ -63,40 +59,27 @@
 	<build>
 		<plugins>
 			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-war-plugin</artifactId>
-				<configuration>
-					<warSourceDirectory>src/main/webapp</warSourceDirectory>
-					<webResources>
-						<resource>
-							<directory>src/main/webapp</directory>
-							<filtering>true</filtering>
-							<includes>
-								<include>**/*.xml</include>
-							</includes>
-						</resource>
-					</webResources>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-surefire-plugin</artifactId>
-				<configuration>
-					<skip>${skipTests}</skip>
-					<includes>
-						<include>**/*Tests.java</include>
-					</includes>
-					<excludes>
-						<exclude>**/Abstract*.java</exclude>
-					</excludes>
-				</configuration>
-			</plugin>
-			<plugin>
 				<!--skip deploy (this is just a test module) -->
 				<artifactId>maven-deploy-plugin</artifactId>
 				<configuration>
 					<skip>true</skip>
 				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>tomcat-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>start-tomcat</id>
+						<phase>pre-integration-test</phase>
+						<goals>
+							<goal>run</goal>
+						</goals>
+						<configuration>
+							<fork>true</fork>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 		<pluginManagement>
@@ -106,6 +89,28 @@
 					<artifactId>tomcat-maven-plugin</artifactId>
 					<configuration>
 						<path>/app</path>
+					</configuration>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-surefire-plugin</artifactId>
+					<executions>
+						<execution>
+							<id>surefire-it</id>
+							<phase>integration-test</phase>
+							<goals>
+								<goal>test</goal>
+							</goals>
+						</execution>
+					</executions>
+					<configuration>
+						<skip>${skipTests}</skip>
+						<includes>
+							<include>**/*Tests.java</include>
+						</includes>
+						<excludes>
+							<exclude>**/Abstract*.java</exclude>
+						</excludes>
 					</configuration>
 				</plugin>
 			</plugins>
@@ -131,18 +136,12 @@
 			<artifactId>spring-core</artifactId>
 			<version>${spring.version}</version>
 			<scope>compile</scope>
-			<exclusions>
-				<exclusion>
-					<artifactId>commons-logging</artifactId>
-					<groupId>commons-logging</groupId>
-				</exclusion>
-			</exclusions>
 		</dependency>
 		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>jcl-over-slf4j</artifactId>
-			<version>1.5.8</version>
-			<scope>runtime</scope>
+			<groupId>commons-logging</groupId>
+			<artifactId>commons-logging</artifactId>
+			<version>1.1.1</version>
+			<scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>log4j</groupId>
@@ -186,7 +185,7 @@
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
-			<version>4.7</version>
+			<version>4.8.2</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>

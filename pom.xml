@@ -39,7 +39,7 @@
         <configuration>
           <downloadSources>true</downloadSources>
           <downloadJavadocs>true</downloadJavadocs>
-          <exclude>cargo-installs,target/tomcat5x,target/war</exclude>
+          <exclude>target/tomcat,target/war</exclude>
         </configuration>
       </plugin>
       <plugin>

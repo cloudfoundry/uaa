@@ -9,22 +9,17 @@ If this works you are in business:
     $ cd uaa
     $ mvn install
 	
-Each module has a `mvn tomcat:run` target to run individually (but not
-simulataneously), or you could import them as projects into STS (use
-2.8.0 or better if you can).  The apps all work together the apps
-running on the same port (8080) as `/uaa`, `/app` and `/api`.
+Each module has a `mvn tomcat:run` target to run individually, or you
+could import them as projects into STS (use 2.8.0 or better if you
+can).  The apps all work together the apps running on the same port
+(8080) as `/uaa`, `/app` and `/api`.
 
 ### Demo of command line usage
-
-To run multiple apps we need a Tomcat manager app:
-
-    $ cd uaa
-    $ mvn tomcat:run -N
 
 First run the uaa server as described above:
 
     $ cd uaa
-    $ mvn tomcat:deploy
+    $ mvn tomcat:run
 
 Then start another terminal and from the project base directory, run:
 
@@ -36,10 +31,11 @@ This authenticates and obtains an access token from the server using the OAuth2 
 grant, similar to the approach intended for a client like VMC. The token is
 stored in the file `.access_token`.
 
-Now run the `api` server:
+Now kill the `uaa` server and run the `api` server (which starts the
+`uaa` server as well):
  
     $ cd api
-    $ mvn tomcat:deploy
+    $ mvn tomcat:run
 
 And then (from the base directory) execute:
 
@@ -52,12 +48,12 @@ which should return a JSON array of (pretend) running applications.
 With all apps deployed into a running server on port 8080 the tests
 will include integration tests (a check is done before each test that
 the app is running).  You can deploy them in your IDE or using the
-command line with `mvn tomcat:deploy`.
+command line with `mvn tomcat:run`.
 
-For individual modules you can also run integration tests from the
-command line in one go with
+For individual modules, or for the whole project, you can also run
+integration tests from the command line in one go with
 
-    $ mvn tomcat:run -Dmaven.tomcat.fork=true test
+    $ mvn integration-test
 
 (This might require an initial `mvn install` from the parent directory
 to get the wars in your local repo first.)
@@ -115,19 +111,19 @@ Security OAuth that can do the heavy lifting.
 An example resource server.  It hosts a service which returns
 a list of mock applications under `/apps`.
 
-Run it using `mvn tomcat:deploy` from the `api` directory. This will
-deploy the app to a Tomcat manager on port 8080.
+Run it using `mvn tomcat:run` from the `api` directory (once all other
+tomcat processes have been shutdown). This will deploy the app to a
+Tomcat manager on port 8080.
 
 ## The App Application
 
 This is a user interface (primarily aimed at browser) app that uses
 OpenId Connect for authentication (i.e. SSO) and OAuth2 for access
 grants.  It authenticates with the Auth service, and then accesses
-resources in the API service.  Run it with `mvn tomcat:deploy` from
-the `app` directory.
+resources in the API service.  Run it with `mvn tomcat:run` from the
+`app` directory (once all other tomcat processes have been shutdown).
 
 ### Use Cases
-
 
 1. See all apps
 

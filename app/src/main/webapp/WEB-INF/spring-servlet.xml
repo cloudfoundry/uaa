@@ -14,10 +14,10 @@
 	<sec:http pattern="/resources/**" security="none" />
 	<sec:http pattern="/favicon.ico" security="none" />
 
-	<http xmlns="http://www.springframework.org/schema/security" entry-point-ref="loginEntryPoint" >
+	<http xmlns="http://www.springframework.org/schema/security" entry-point-ref="loginEntryPoint">
 		<intercept-url pattern="/**" access="ROLE_USER" />
 		<logout logout-success-url="/loggedout.jsp" />
-		<anonymous enabled="false"/>
+		<anonymous enabled="false" />
 		<custom-filter ref="oauth2ClientFilter" after="EXCEPTION_TRANSLATION_FILTER" />
 		<custom-filter ref="openidClientFilter" before="FILTER_SECURITY_INTERCEPTOR" />
 	</http>
@@ -39,10 +39,8 @@
 				<constructor-arg ref="api" />
 			</bean>
 		</property>
-		<property name="userInfoUrl" value="${userInfoUri}"/>
+		<property name="userInfoUrl" value="${userInfoUri}" />
 	</bean>
-
-	<bean id="oauth2TokenServices" class="org.springframework.security.oauth2.client.token.service.InMemoryOAuth2ClientTokenServices" />
 
 	<mvc:resources location="/resources/" mapping="/resources/**" />
 
@@ -83,7 +81,7 @@
 		<property name="treeUrlPattern" value="${treeUrlPattern}" />
 	</bean>
 
-	<bean id="homeController" class="org.cloudfoundry.identity.app.web.HomeController"/>
+	<bean id="homeController" class="org.cloudfoundry.identity.app.web.HomeController" />
 
 	<!--define an oauth 2 resource for api access -->
 	<oauth:resource id="api" type="authorization_code" client-id="app" client-secret="appclientsecret"
