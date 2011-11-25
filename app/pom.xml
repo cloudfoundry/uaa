@@ -15,6 +15,7 @@
 
 	<properties>
 		<m2eclipse.wtp.contextRoot>/app</m2eclipse.wtp.contextRoot>
+		<maven.test.failure.ignore>true</maven.test.failure.ignore>
 	</properties>
 
 	<profiles>
