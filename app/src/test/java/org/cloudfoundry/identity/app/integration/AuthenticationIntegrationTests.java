@@ -109,13 +109,6 @@ public class AuthenticationIntegrationTests {
 		assertEquals(HttpStatus.FOUND, result.getStatusCode());
 		location = result.getHeaders().getLocation().toString();
 		
-		assertTrue("Wrong location: "+ location, location.contains("app/login"));
-		// *** GET /app/login
-		result = serverRunning.getForResponse(location, appHeaders);
-
-		assertEquals(HttpStatus.FOUND, result.getStatusCode());
-		location = result.getHeaders().getLocation().toString();
-		
 		// SUCCESS
 		assertTrue("Wrong location: "+ location, location.endsWith("/app/"));
 

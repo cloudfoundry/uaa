@@ -29,7 +29,7 @@
 	<sec:authentication-manager alias="authenticationManager" />
 
 	<!--apply the oauth client context -->
-	<oauth:client id="oauth2ClientFilter" />
+	<oauth:client id="oauth2ClientFilter" redirect-on-error="true"/>
 
 	<bean id="openidClientFilter" class="org.cloudfoundry.identity.app.web.OpenIdClientFilter">
 		<constructor-arg value="/login" />
