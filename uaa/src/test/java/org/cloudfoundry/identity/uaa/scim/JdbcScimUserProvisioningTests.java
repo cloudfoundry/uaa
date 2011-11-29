@@ -43,14 +43,14 @@ public class JdbcScimUserProvisioningTests {
 		db = new JdbcScimUserProvisioning(template);
 		template.execute("create table users(" +
 				"id char(36) not null primary key," +
+				"created timestamp default current_timestamp," +
+				"lastModified timestamp default current_timestamp," +
 				"version integer default 0," +
 				"username varchar(20) not null," +
 				"password varchar(20) not null," +
 				"email varchar(20) not null," +
 				"givenName varchar(20) not null," +
 				"familyName varchar(20) not null," +
-				"created timestamp default current_timestamp," +
-				"lastModified timestamp default current_timestamp," +
 				"constraint unique_uk_1 unique(username)" +
 			")");
 		template.execute("insert into users (id, username, password, email, givenName, familyName) " +
