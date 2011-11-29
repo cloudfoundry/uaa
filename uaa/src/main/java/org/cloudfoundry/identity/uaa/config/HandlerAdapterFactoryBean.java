@@ -67,7 +67,7 @@ public class HandlerAdapterFactoryBean implements FactoryBean<HandlerAdapter> {
 				Object returnValue, ExtendedModelMap implicitModel, NativeWebRequest webRequest) {
 			if (returnValue instanceof ScimUser) {
 				HttpServletResponse response = webRequest.getNativeResponse(HttpServletResponse.class);
-				response.addHeader("ETag", "" + ((ScimUser) returnValue).getVersion());
+				response.addHeader("ETag", "\"" + ((ScimUser) returnValue).getVersion() + "\"");
 			}
 			return ModelAndViewResolver.UNRESOLVED;
 		}

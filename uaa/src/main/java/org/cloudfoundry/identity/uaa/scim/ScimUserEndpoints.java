@@ -66,10 +66,11 @@ public class ScimUserEndpoints implements InitializingBean {
 	@RequestMapping(value = "/User/{userId}", method = RequestMethod.PUT)
 	@ResponseBody
 	public ScimUser updateUser(@RequestBody ScimUser user, @PathVariable String userId,
-			@RequestHeader(value = "ETag", required = false, defaultValue = "-1") int version) {
-		if (version<0) {
-			throw new ScimException("Missing ETag for PUT", HttpStatus.BAD_REQUEST);			
+			@RequestHeader(value = "If-Match", required = false, defaultValue = "NaN") String etag) {
+		if (etag.equals("NaN")) {
+			throw new ScimException("Missing If-Match for PUT", HttpStatus.BAD_REQUEST);			
 		}
+		int version = getVersion(userId, etag);
 		user.setVersion(version);
 		return dao.updateUser(userId, user);
 	}
@@ -77,11 +78,30 @@ public class ScimUserEndpoints implements InitializingBean {
 	@RequestMapping(value = "/User/{userId}", method = RequestMethod.DELETE)
 	@ResponseBody
 	public ScimUser deleteUser(@PathVariable String userId,
-			@RequestHeader(value = "ETag", required = false, defaultValue = "-1") int version) {
-		if (version<0) {
-			throw new ScimException("Missing ETag for DELETE", HttpStatus.BAD_REQUEST);
+			@RequestHeader(value = "If-Match", required = false, defaultValue = "NaN") String etag) {
+		if (etag.equals("NaN")) {
+			throw new ScimException("Missing If-Match for DELETE", HttpStatus.BAD_REQUEST);
 		}
+		int version = getVersion(userId, etag);
 		return dao.removeUser(userId, version);
+	}
+
+	private int getVersion(String userId, String etag) {
+		String value = etag.trim();
+		if (value.equals("*")) {
+			return dao.retrieveUser(userId).getVersion();
+		}
+		while (value.startsWith("\"")) {
+			value = value.substring(1);
+		}
+		while (value.endsWith("\"")) {
+			value = value.substring(0, value.length()-1);
+		}
+		try {
+			return Integer.valueOf(value);
+		} catch (NumberFormatException e) {
+			throw new ScimException("Invalid version match header (should be a version number): " + etag, HttpStatus.BAD_REQUEST);
+		}
 	}
 
 	@RequestMapping(value = "/Users", method = RequestMethod.GET)

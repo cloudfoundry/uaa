@@ -78,14 +78,16 @@ public class ScimUserEndpointIntegrationTests {
 
 	@SuppressWarnings("rawtypes")
 	private ResponseEntity<Map> deleteUser(String id) {
-		ScimUser user = client.getForObject(server.getUrl(userEndpoint + "/{id}"), ScimUser.class, id);
-		return deleteUser(id, user.getVersion());
+		HttpHeaders headers = new HttpHeaders();
+		headers.add("If-Match", "*");
+		return client.exchange(server.getUrl(userEndpoint + "/{id}"), HttpMethod.DELETE, new HttpEntity<Void>(headers),
+				Map.class, id);
 	}
 
 	@SuppressWarnings("rawtypes")
 	private ResponseEntity<Map> deleteUser(String id, int version) {
 		HttpHeaders headers = new HttpHeaders();
-		headers.add("ETag", "" + version);
+		headers.add("If-Match", "\"" + version + "\"");
 		return client.exchange(server.getUrl(userEndpoint + "/{id}"), HttpMethod.DELETE, new HttpEntity<Void>(headers),
 				Map.class, id);
 	}
@@ -122,7 +124,7 @@ public class ScimUserEndpointIntegrationTests {
 
 		// Check we can GET the user
 		ResponseEntity<ScimUser> result = client.getForEntity(server.getUrl(userEndpoint + "/{id}"), ScimUser.class, joe.getId());
-		assertEquals(""+joe.getVersion(), result.getHeaders().getFirst("ETag"));
+		assertEquals("\""+joe.getVersion() + "\"", result.getHeaders().getFirst("ETag"));
 	}
 
 
@@ -144,7 +146,7 @@ public class ScimUserEndpointIntegrationTests {
 		joe.setName(new ScimUser.Name("Joe", "Bloggs"));
 
 		HttpHeaders headers = new HttpHeaders();
-		headers.add("ETag", "" + joe.getVersion());
+		headers.add("If-Match", "\"" + joe.getVersion() + "\"");
 		response = client.exchange(server.getUrl(userEndpoint) + "/{id}", HttpMethod.PUT, new HttpEntity<ScimUser>(joe,
 				headers), ScimUser.class, joe.getId());
 		ScimUser joe1 = response.getBody();
@@ -154,7 +156,7 @@ public class ScimUserEndpointIntegrationTests {
 
 	}
 
-	// curl -v -H "Content-Type: application/json" -H "Accept: application/json" -H "ETag: 0" --data
+	// curl -v -H "Content-Type: application/json" -H "Accept: application/json" -H 'If-Match: "0"' --data
 	// "{\"userName\":\"joe\",\"schemas\":[\"urn:scim:schemas:core:1.0\"]}" http://localhost:8080/uaa/User
 	@Test
 	public void createUserTwiceFails() throws Exception {
@@ -178,7 +180,7 @@ public class ScimUserEndpointIntegrationTests {
 	}
 
 	// curl -v -H "Content-Type: application/json" -H "Accept: application/json" -X DELETE
-	// -H "ETag: 0" http://localhost:8080/uaa/User/joel
+	// -H "If-Match: 0" http://localhost:8080/uaa/User/joel
 	@Test
 	public void deleteUserWithWrongIdFails() throws Exception {
 		@SuppressWarnings("rawtypes")
@@ -192,7 +194,7 @@ public class ScimUserEndpointIntegrationTests {
 	}
 
 	// curl -v -H "Content-Type: application/json" -H "Accept: application/json" -X DELETE
-	// -H "ETag: 0" http://localhost:8080/uaa/User/joel
+	// -H "If-Match: 0" http://localhost:8080/uaa/User/joel
 	@Test
 	public void deleteUserWithNoEtagFails() throws Exception {
 		@SuppressWarnings("rawtypes")
@@ -202,7 +204,7 @@ public class ScimUserEndpointIntegrationTests {
 		Map<String, String> error = response.getBody();
 		// System.err.println(error);
 		assertEquals(ScimException.class.getName(), error.get("error"));
-		assertEquals("Missing ETag for DELETE", error.get("message"));
+		assertEquals("Missing If-Match for DELETE", error.get("message"));
 
 	}
 
