@@ -26,6 +26,7 @@ import org.springframework.beans.factory.FactoryBean;
 public class UaaUserMapFactory implements FactoryBean<Map<String, UaaUser>> {
 
 	private final Collection<UaaUser> users;
+	private int count = 0;
 
 	public UaaUserMapFactory(Collection<UaaUser> users) {
 		this.users = users;
@@ -35,7 +36,8 @@ public class UaaUserMapFactory implements FactoryBean<Map<String, UaaUser>> {
 	public Map<String, UaaUser> getObject() throws Exception {
 		Map<String, UaaUser> map = new HashMap<String, UaaUser>();
 		for (UaaUser user : users) {
-			map.put(user.getUsername(), user);
+			UaaUser value = user.id(count++);
+			map.put(value.getUsername(), value);
 		}
 		return map ;
 	}

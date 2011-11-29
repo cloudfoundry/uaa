@@ -1,7 +1,9 @@
 package org.cloudfoundry.identity.uaa.scim;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
+import java.util.Collection;
 import java.util.HashMap;
 
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -31,6 +33,35 @@ public class InMemoryScimUserProvisioningTests {
 
 	@Test
 	public void canCreateUser() throws Exception {
+	}
+
+	@Test
+	public void canDeleteUser() throws Exception {
+		ScimUser user = db.removeUser("1", 0);
+		assertEquals(1, db.retrieveUsers().size());		
+		assertNotNull(user);
+		db.createUser(user, "password");		
+		assertEquals(2, db.retrieveUsers().size());		
+	}
+
+	@Test
+	public void canUpdateUser() throws Exception {
+		ScimUser user;
+		user = new ScimUser("1", "joe", "Joe", "User");
+		user.addEmail("joe@unblah.com");
+		ScimUser result = db.updateUser("1", user);
+		assertEquals(result.getId(), user.getId());
+		Collection<ScimUser> users = db.retrieveUsers();
+		assertEquals(2, users.size());
+		ScimUser joe = null;
+		// Check that the value retreived from a GET is what we just PUT
+		for (ScimUser scim : users) {
+			if (scim.getUserName().equals("joe")) {
+				joe = scim;
+			}
+		}
+		assertNotNull(joe);
+		assertEquals("1", joe.getId());
 	}
 
 	@Test

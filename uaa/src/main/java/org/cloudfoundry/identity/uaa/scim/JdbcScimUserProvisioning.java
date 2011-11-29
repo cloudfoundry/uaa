@@ -31,7 +31,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	public static final String UPDATE_USER_SQL =
             "update users set version=?, email=?, givenName=?, familyName=? where id = ? and version = ?";
 	// TODO: We should probably look into flagging the account rather than removing the user
-	public static final String DELETE_USER_SQL = "delete from users where id = ?";
+	public static final String DELETE_USER_SQL = "delete from users where id = ? and version = ?";
 	public static final String USER_BY_ID_QUERY =
 			"select " + USER_FIELDS +
 			" from users " +
@@ -122,9 +122,15 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	}
 
 	@Override
-	public ScimUser removeUser(String id) {
+	public ScimUser removeUser(String id, int version) {
 		ScimUser user = retrieveUser(id);
-		jdbcTemplate.update(DELETE_USER_SQL, id);
+		int updated = jdbcTemplate.update(DELETE_USER_SQL, id, version);
+		if (updated==0) {
+			throw new OptimisticLockingFailureException(String.format("Attempt to update a user (%s) with wrong version: expected=%d but found=%d", id, user.getVersion(), version));
+		}
+		if (updated>1) {
+			throw new IncorrectResultSizeDataAccessException(1);
+		}
 		return user;
 	}
 

@@ -3,6 +3,8 @@ package org.cloudfoundry.identity.uaa.scim;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -26,21 +28,29 @@ public class InMemoryScimUserProvisioning implements ScimUserProvisioning {
 
 	private int counter = 1;
 
-	private final Map<String, UaaUser> users;
+	private final ConcurrentMap<String, UaaUser> users = new ConcurrentHashMap<String, UaaUser>();
+
+	private final ConcurrentMap<String, String> ids = new ConcurrentHashMap<String, String>();
 
 	public InMemoryScimUserProvisioning(Map<String, UaaUser> users) {
-		this.users = users;
+		for (UaaUser user : users.values()) {
+			addUser(user);
+		}
 	}
 
 	private UaaUser addUser(UaaUser user) {
-		users.put(user.getUsername(), user.id(counter++));
+		if (user.getId().equals("NaN")) {
+			user = user.id(counter++);
+		}
+		users.put(user.getUsername(), user);
+		ids.put(user.getId(), user.getUsername());
 		return users.get(user.getUsername());
 	}
 
 	/**
 	 * Convert to SCIM data for use in JSON responses.
 	 */
-	private ScimUser scimUser(UaaUser user) {
+	private ScimUser getScimUser(UaaUser user) {
 		ScimUser scim = new ScimUser(user.getId(), user.getUsername(), user.getGivenName(), user.getFamilyName());
 		scim.addEmail(user.getEmail());
 		return scim;
@@ -52,19 +62,17 @@ public class InMemoryScimUserProvisioning implements ScimUserProvisioning {
 
 	@Override
 	public ScimUser retrieveUser(String id) {
-		for (UaaUser user : users.values()) {
-			if (user.getId().equals(id)) {
-				return scimUser(user);
-			}
+		if (!ids.containsKey(id)) {
+			throw new ScimException("User " + id + " does not exist", HttpStatus.NOT_FOUND);
 		}
-		throw new ScimException("User " + id + " does not exist", HttpStatus.NOT_FOUND);
+		return getScimUser(users.get(ids.get(id)));
 	}
 
 	@Override
 	public Collection<ScimUser> retrieveUsers() {
 		Collection<ScimUser> result = new ArrayList<ScimUser>();
 		for (UaaUser user : users.values()) {
-			result.add(scimUser(user));
+			result.add(getScimUser(user));
 		}
 		return result;
 	}
@@ -101,12 +109,13 @@ public class InMemoryScimUserProvisioning implements ScimUserProvisioning {
 	}
 
 	@Override
-	public ScimUser removeUser(String id) {
-		UaaUser removed = users.remove(id);
-		if (removed == null) {
+	public ScimUser removeUser(String id, int version) {
+		String name = ids.remove(id);
+		if (name == null) {
 			throw new ScimException("User " + id + " does not exist", HttpStatus.NOT_FOUND);
 		}
-		return scimUser(removed);
+		UaaUser removed = users.remove(name);
+		return getScimUser(removed);
 	}
 
 	@Override
@@ -117,8 +126,7 @@ public class InMemoryScimUserProvisioning implements ScimUserProvisioning {
 
 		try {
 			UaaUser user = addUser(getUaaUser(scim, password));
-
-			return scimUser(user);
+			return getScimUser(user);
 		}
 		catch (IllegalArgumentException e) {
 			throw new ScimException(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -127,6 +135,13 @@ public class InMemoryScimUserProvisioning implements ScimUserProvisioning {
 
 	@Override
 	public ScimUser updateUser(String id, ScimUser user) {
-		return null;
+		if (!ids.containsKey(id)) {
+			throw new ScimException("User " + id + " does not exist", HttpStatus.NOT_FOUND);
+		}
+		UaaUser uaa = users.get(ids.get(id));
+		String name = uaa.getUsername();
+		users.put(name, getUaaUser(user, uaa.getPassword()).id(Integer.valueOf(id)));
+		ids.replace(id, name);
+		return user;
 	}
 }

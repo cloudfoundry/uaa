@@ -90,6 +90,7 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals("Jo", joe.getGivenName());
 		assertEquals("NewUser", joe.getFamilyName());
 		assertEquals(1, joe.getVersion());
+		assertEquals(JOE_ID, joe.getId());
 	}
 
 	@Test(expected=OptimisticLockingFailureException.class)
@@ -118,9 +119,15 @@ public class JdbcScimUserProvisioningTests {
 
 	@Test
 	public void canRemoveExistingUser() {
-		ScimUser joe = db.removeUser(JOE_ID);
+		ScimUser joe = db.removeUser(JOE_ID, 0);
 		assertJoe(joe);
 		template.queryForList("select * from users").isEmpty();
+	}
+
+	@Test(expected=OptimisticLockingFailureException.class)
+	public void removeWithWrongVersionIsError() {
+		ScimUser joe = db.removeUser(JOE_ID, 1);
+		assertJoe(joe);
 	}
 
 	@Test

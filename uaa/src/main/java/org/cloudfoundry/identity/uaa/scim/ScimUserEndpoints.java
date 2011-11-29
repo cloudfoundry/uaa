@@ -21,6 +21,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -64,14 +65,23 @@ public class ScimUserEndpoints implements InitializingBean {
 
 	@RequestMapping(value = "/User/{userId}", method = RequestMethod.PUT)
 	@ResponseBody
-	public ScimUser updateUser(@RequestBody ScimUser user, @PathVariable String userId) {
+	public ScimUser updateUser(@RequestBody ScimUser user, @PathVariable String userId,
+			@RequestHeader(value = "ETag", required = false, defaultValue = "-1") int version) {
+		if (version<0) {
+			throw new ScimException("Missing ETag for PUT", HttpStatus.BAD_REQUEST);			
+		}
+		user.setVersion(version);
 		return dao.updateUser(userId, user);
 	}
 
 	@RequestMapping(value = "/User/{userId}", method = RequestMethod.DELETE)
 	@ResponseBody
-	public ScimUser deleteUser(@PathVariable String userId) {
-		return dao.removeUser(userId);
+	public ScimUser deleteUser(@PathVariable String userId,
+			@RequestHeader(value = "ETag", required = false, defaultValue = "-1") int version) {
+		if (version<0) {
+			throw new ScimException("Missing ETag for DELETE", HttpStatus.BAD_REQUEST);
+		}
+		return dao.removeUser(userId, version);
 	}
 
 	@RequestMapping(value = "/Users", method = RequestMethod.GET)

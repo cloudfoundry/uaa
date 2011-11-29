@@ -85,6 +85,7 @@ public final class ScimUser {
 		public void setHonorificSuffix(String honorificSuffix) {
 			this.honorificSuffix = honorificSuffix;
 		}
+		
 	}
 
 	@JsonSerialize (include = JsonSerialize.Inclusion.NON_NULL)

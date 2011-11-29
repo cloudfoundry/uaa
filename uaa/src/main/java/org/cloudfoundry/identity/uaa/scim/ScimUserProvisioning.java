@@ -18,6 +18,6 @@ public interface ScimUserProvisioning {
 
 	public ScimUser updateUser(String id, ScimUser user);
 
-	public ScimUser removeUser(String id);
+	public ScimUser removeUser(String id, int version);
 
 }
