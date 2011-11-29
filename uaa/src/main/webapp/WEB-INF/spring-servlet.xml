@@ -70,11 +70,11 @@
 	</bean>
 
 	<bean id="userDatabase" class="org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase">
-		<constructor-arg ref="userData"/>
+		<constructor-arg ref="userData" />
 	</bean>
 
 	<bean id="scimUserProvisioning" class="org.cloudfoundry.identity.uaa.scim.InMemoryScimUserProvisioning">
-		<constructor-arg ref="userData"/>
+		<constructor-arg ref="userData" />
 	</bean>
 
 	<bean id="userData" class="org.cloudfoundry.identity.uaa.config.UaaUserMapFactory">
@@ -126,25 +126,28 @@
 
 	<mvc:default-servlet-handler />
 
-	<bean class="org.cloudfoundry.identity.uaa.error.GenericExceptionResolver" >
+	<!-- Add a handler adapter with special knowledge of the ScimUser endpoints -->
+	<bean class="org.cloudfoundry.identity.uaa.config.HandlerAdapterFactoryBean" />
+	
+	<bean class="org.cloudfoundry.identity.uaa.error.GenericExceptionResolver">
 		<property name="messageConverters">
-			<bean class="org.cloudfoundry.identity.uaa.error.ExceptionHttpMessageConverter"/>
+			<bean class="org.cloudfoundry.identity.uaa.error.ExceptionHttpMessageConverter" />
 		</property>
 		<property name="responseGenerator">
-			<bean class="org.cloudfoundry.identity.uaa.error.ScimExceptionResponseGenerator"/>
+			<bean class="org.cloudfoundry.identity.uaa.error.ScimExceptionResponseGenerator" />
 		</property>
-		<property name="order" value="0"/>
+		<property name="order" value="0" />
 	</bean>
 
-	<bean class="org.cloudfoundry.identity.uaa.error.GenericExceptionResolver" >
+	<bean class="org.cloudfoundry.identity.uaa.error.GenericExceptionResolver">
 		<property name="messageConverters">
-			<bean class="org.cloudfoundry.identity.uaa.error.ExceptionHttpMessageConverter"/>
+			<bean class="org.cloudfoundry.identity.uaa.error.ExceptionHttpMessageConverter" />
 		</property>
-		<property name="order" value="1"/>
+		<property name="order" value="1" />
 	</bean>
 
 	<bean class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerExceptionResolver">
-		<property name="order" value="-1"/>
+		<property name="order" value="-1" />
 	</bean>
 
 	<bean class="org.springframework.web.servlet.mvc.annotation.ResponseStatusExceptionResolver" />
@@ -173,7 +176,7 @@
 	<bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.authentication.LoginInfoEndpoint" />
 
 	<bean id="userInfoEndpoint" class="org.cloudfoundry.identity.uaa.openid.UserInfoEndpoint">
-		<property name="userDatabase" ref="userDatabase"/>
+		<property name="userDatabase" ref="userDatabase" />
 	</bean>
 
 	<bean id="checkTokenEndpoint" class="org.cloudfoundry.identity.uaa.oauth.CheckTokenEndpoint">
@@ -188,6 +191,6 @@
 		<property name="clientDetailsService" ref="clientDetails" />
 	</bean>
 
-	<bean id="homeController" class="org.cloudfoundry.identity.uaa.web.HomeController"/>
+	<bean id="homeController" class="org.cloudfoundry.identity.uaa.web.HomeController" />
 
 </beans>

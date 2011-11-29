@@ -30,7 +30,7 @@ import org.springframework.web.client.RestTemplate;
  * @author Luke Taylor
  * @author Dave Syer
  */
-public class ScimEndpointIntegrationTests {
+public class ScimUserEndpointIntegrationTests {
 	ObjectMapper mapper = new ObjectMapper();
 
 	private final String userEndpoint = "/uaa/User";
@@ -39,6 +39,10 @@ public class ScimEndpointIntegrationTests {
 
 	@Rule
 	public ServerRunning server = ServerRunning.isRunning();
+	
+	{
+		server.setPort(8001);
+	}
 
 	private RestTemplate client;
 
@@ -105,7 +109,24 @@ public class ScimEndpointIntegrationTests {
 		assertEquals(joe1.getId(), joe2.getId());
 	}
 
-	// curl -v -H "Content-Type: application/json" -H "Accept: application/json" --data
+	@Test
+	public void getUserHasEtag() throws Exception {
+		ScimUser user = new ScimUser();
+		user.setUserName("joe");
+		user.setName(new ScimUser.Name("Joe", "User"));
+		user.addEmail("joe@blah.com");
+
+		ResponseEntity<ScimUser> response = client.postForEntity(server.getUrl(userEndpoint), user, ScimUser.class);
+		ScimUser joe = response.getBody();
+		assertEquals("joe", joe.getUserName());
+
+		// Check we can GET the user
+		ResponseEntity<ScimUser> result = client.getForEntity(server.getUrl(userEndpoint + "/{id}"), ScimUser.class, joe.getId());
+		assertEquals(""+joe.getVersion(), result.getHeaders().getFirst("ETag"));
+	}
+
+
+	// curl -v -H "Content-Type: application/json" -X PUT -H "Accept: application/json" --data
 	// "{\"userName\":\"joe\",\"schemas\":[\"urn:scim:schemas:core:1.0\"]}" http://localhost:8080/uaa/User
 	@Test
 	public void updateUserSucceeds() throws Exception {
