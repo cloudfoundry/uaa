@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.scim;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 import org.codehaus.jackson.annotate.JsonIgnore;
@@ -124,6 +125,47 @@ public final class ScimUser {
 			return primary != null && primary;
 		}
 	}
+
+	@JsonSerialize (include = JsonSerialize.Inclusion.NON_NULL)
+	public static final class Meta {
+		private int version = 0;
+		private Date created = new Date();
+		private Date lastModified = null;
+		
+		public Meta() {
+		}
+
+		public Meta(Date created, Date lastModified, int version) {
+			this.created = created;
+			this.lastModified = lastModified;
+			this.version = version;
+		}
+
+		public Date getCreated() {
+			return created;
+		}
+
+		public void setCreated(Date created) {
+			this.created = created;
+		}
+
+		public Date getLastModified() {
+			return lastModified;
+		}
+
+		public void setLastModified(Date lastModified) {
+			this.lastModified = lastModified;
+		}
+
+		public void setVersion(int version) {
+			this.version = version;
+		}
+
+		public int getVersion() {
+			return version;
+		}
+	}
+	
 	private String id;
 	private String externalId;
 	private String userName;
@@ -138,7 +180,7 @@ public final class ScimUser {
 	private String locale;
 	private String timezone;
 	private Boolean active;
-	private int version = 0;
+	private Meta meta = new Meta();
 
 	public ScimUser() {
 	}
@@ -261,6 +303,24 @@ public final class ScimUser {
 		this.active = active;
 	}
 
+	public Meta getMeta() {
+		return meta;
+	}
+
+	public void setMeta(Meta meta) {
+		this.meta = meta;
+	}
+	
+	@JsonIgnore
+	public void setVersion(int version) {
+		meta.setVersion(version);
+	}
+	
+	@JsonIgnore
+	public int getVersion() {
+		return meta.getVersion();
+	}
+
 	public void setSchemas(String[] schemas) {
 		Assert.isTrue(Arrays.equals(SCHEMAS, schemas), "Only schema '" + SCHEMAS[0] + "' is currently supported");
 	}
@@ -299,14 +359,6 @@ public final class ScimUser {
 	@JsonIgnore
 	public String getFamilyName() {
 		return name == null ? null : name.getFamilyName();
-	}
-	
-	public void setVersion(int version) {
-		this.version = version;
-	}
-
-	public int getVersion() {
-		return version;
 	}
 	
 	/**

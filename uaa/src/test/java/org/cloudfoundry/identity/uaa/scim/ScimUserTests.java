@@ -38,6 +38,7 @@ public class ScimUserTests {
 		String json = mapper.writeValueAsString(user);
 		assertTrue(json.contains("\"userName\":\"joe\""));
 		assertTrue(json.contains("\"id\":\"123\""));
+		assertTrue(json.contains("\"meta\":"));
 
 	}
 
