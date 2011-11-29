@@ -75,9 +75,9 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 				.replace("emails.value", "email");
 
 		logger.debug("Filtering users with SQL: " + where);
-		
+
 		if (where.contains("emails.")) {
-			throw new UnsupportedOperationException("Filters on email adress fields other than 'value' not supported");
+			throw new UnsupportedOperationException("Filters on email address fields other than 'value' not supported");
 		}
 
 		List<ScimUser> input = jdbcTemplate.query(ALL_USERS + " WHERE " + where, mapper);
