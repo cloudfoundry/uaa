@@ -10,6 +10,8 @@ import java.util.UUID;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Name;
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
@@ -22,12 +24,12 @@ import org.springframework.util.Assert;
 public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	private final Log logger = LogFactory.getLog(getClass());
 
-	public static final String USER_FIELDS = "id,username,email,givenName,familyName";
+	public static final String USER_FIELDS = "id,version,username,email,givenName,familyName";
 
 	public static final String CREATE_USER_SQL =
-			"insert into users (id, username, password, email, givenName, familyName) values (?,?,?,?,?,?)";
+			"insert into users (id, version, username, password, email, givenName, familyName) values (?,?,?,?,?,?,?)";
 	public static final String UPDATE_USER_SQL =
-            "update users set email=?, givenName=?, familyName=? where id = ?";
+            "update users set version=?, email=?, givenName=?, familyName=? where id = ? and version = ?";
 	// TODO: We should probably look into flagging the account rather than removing the user
 	public static final String DELETE_USER_SQL = "delete from users where id = ?";
 	public static final String USER_BY_ID_QUERY =
@@ -86,11 +88,12 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		jdbcTemplate.update(CREATE_USER_SQL, new PreparedStatementSetter() {
 			public void setValues(PreparedStatement ps) throws SQLException {
 				ps.setString(1, id);
-				ps.setString(2, user.getUserName());
-				ps.setString(3, password);
-				ps.setString(4, user.getPrimaryEmail());
-				ps.setString(5, user.getName().getGivenName());
-				ps.setString(6, user.getName().getFamilyName());
+				ps.setInt(2, user.getVersion());
+				ps.setString(3, user.getUserName());
+				ps.setString(4, password);
+				ps.setString(5, user.getPrimaryEmail());
+				ps.setString(6, user.getName().getGivenName());
+				ps.setString(7, user.getName().getFamilyName());
 			}
 		});
 		return retrieveUser(id);
@@ -98,15 +101,24 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	@Override
 	public ScimUser updateUser(final String id, final ScimUser user) {
-		jdbcTemplate.update(UPDATE_USER_SQL, new PreparedStatementSetter() {
+		int updated = jdbcTemplate.update(UPDATE_USER_SQL, new PreparedStatementSetter() {
 			public void setValues(PreparedStatement ps) throws SQLException {
-				ps.setString(1, user.getPrimaryEmail());
-				ps.setString(2, user.getName().getGivenName());
-				ps.setString(3, user.getName().getFamilyName());
-				ps.setString(4, id);
+				ps.setInt(1, user.getVersion()+1);
+				ps.setString(2, user.getPrimaryEmail());
+				ps.setString(3, user.getName().getGivenName());
+				ps.setString(4, user.getName().getFamilyName());
+				ps.setString(5, id);
+				ps.setInt(6, user.getVersion());
 			}
 		});
-		return retrieveUser(id);
+		ScimUser result = retrieveUser(id);
+		if (updated==0) {
+			throw new OptimisticLockingFailureException(String.format("Attempt to update a user (%s) with wrong version: expected=%d but found=%d", id, result.getVersion(), user.getVersion()));
+		}
+		if (updated>1) {
+			throw new IncorrectResultSizeDataAccessException(1);
+		}
+		return result;
 	}
 
 	@Override
@@ -120,12 +132,14 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		@Override
 		public ScimUser mapRow(ResultSet rs, int rowNum) throws SQLException {
 			String id = rs.getString(1);
-			String userName = rs.getString(2);
-			String email = rs.getString(3);
-			String givenName = rs.getString(4);
-			String familyName = rs.getString(5);
+			int version = rs.getInt(2);
+			String userName = rs.getString(3);
+			String email = rs.getString(4);
+			String givenName = rs.getString(5);
+			String familyName = rs.getString(6);
 			ScimUser user = new ScimUser();
 			user.setId(id);
+			user.setVersion(version);
 			user.setUserName(userName);
 			user.addEmail(email);
 			Name name = new Name();

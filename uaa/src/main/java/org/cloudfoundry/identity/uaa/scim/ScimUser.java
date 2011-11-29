@@ -137,6 +137,7 @@ public final class ScimUser {
 	private String locale;
 	private String timezone;
 	private Boolean active;
+	private int version = 0;
 
 	public ScimUser() {
 	}
@@ -298,7 +299,15 @@ public final class ScimUser {
 	public String getFamilyName() {
 		return name == null ? null : name.getFamilyName();
 	}
+	
+	public void setVersion(int version) {
+		this.version = version;
+	}
 
+	public int getVersion() {
+		return version;
+	}
+	
 	/**
 	 * Adds a new email address, ignoring "type" and "primary" fields, which we don't need yet
 	 */

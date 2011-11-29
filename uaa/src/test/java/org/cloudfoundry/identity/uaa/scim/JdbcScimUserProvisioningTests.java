@@ -10,6 +10,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
@@ -42,6 +43,7 @@ public class JdbcScimUserProvisioningTests {
 		db = new JdbcScimUserProvisioning(template);
 		template.execute("create table users(" +
 				"id char(36) not null primary key," +
+				"version integer default 0," +
 				"username varchar(20) not null," +
 				"password varchar(20) not null," +
 				"email varchar(20) not null," +
@@ -87,6 +89,16 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals("jo@blah.com", joe.getPrimaryEmail());
 		assertEquals("Jo", joe.getGivenName());
 		assertEquals("NewUser", joe.getFamilyName());
+		assertEquals(1, joe.getVersion());
+	}
+
+	@Test(expected=OptimisticLockingFailureException.class)
+	public void updateWithWrongVersionIsError() {
+		ScimUser jo = new ScimUser(null, "josephine", "Jo", "NewUser");
+		jo.addEmail("jo@blah.com");
+		jo.setVersion(1);	
+		ScimUser joe = db.updateUser(JOE_ID, jo);
+		assertEquals("joe", joe.getUserName());
 	}
 
 	@Test
