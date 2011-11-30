@@ -1,15 +1,22 @@
 participant vmc
 participant cc
-participant cs
+participant acm
 
-vmc->cc: create_org(token, name)
-cc->cs: create_org(token, name)
-note over cs:
-    get ACLs for org => all, proj => all
-    check_authorized(token, acls, perm => create, restype => org)
-    if yes, 
-        create_org(token, name), which will add proj => "all" 
-        and role "Owner" => all perms to userid from token
+vmc->cc: create_org(token, context, info)
+note over cc:
+    The CC must validate the token and extract
+    the userID, then it translates the context
+    into an objectID. The CC also defined what
+    permission is required to create an Org
+    e.g. 'create_org'.
 end note
-cs->cc:
+cc->acm: check_permissions(objectID, userID, 'create_org')
+note over acm:
+    read user's groups, check ACL on object
+    for 'create_org' for userID or any groupID
+end note
+acm->cc: yes/no
+note over cc:
+    if yes, create org(context, info)
+end note
 cc->vmc:

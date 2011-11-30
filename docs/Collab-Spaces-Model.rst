@@ -2,6 +2,10 @@
 Collaboration Spaces Model
 ============================
 
+.. attention:: This document was current as of Sept 2011 and has been superseded by the Access Control Manager documentation 
+   referred to in the UAA-CC-ACM-VMC-Interactions document as of Nov 2011. However, many of the requirements, principles and 
+   goals of this document are still valid and are left here until this document is refactored into a new form. 
+
 .. contents:: Table of Contents
 
 Introduction

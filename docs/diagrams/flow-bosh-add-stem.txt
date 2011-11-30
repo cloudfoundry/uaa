@@ -1,18 +1,20 @@
 participant cli
 participant dir
-participant cs
+participant acm
 
-cli->dir: push_stem(token, proj, name)
-dir->cs: create_resrc(token, proj, restype => stem, name)
-
-note over cs:
-    get ACLs for proj
-    check_authorized(token, acls, perm => create, restype)
-    if yes
-        assign_resid(proj, restype, name)
-        add resid to proj
+cli->dir: push_stem(token, context, name)
+note over dir:
+    The dir must validate the token and extract
+    the userID, then it translates the context
+    into an objectID. The dir also defined what
+    permission is required to push a stem
+    cell, e.g. 'push_stem'.
 end note
-
-cs->dir: yes, resid
-note over dir: if yes, add stem cell with resid
+dir->acm: check_permissions(objectID, userID, 'push_stem')
+note over acm:
+    read user's groups, check ACL on object
+    for 'push_stem' for userID or any groupID
+end note
+acm->dir: yes/no
+note over dir: if yes, add stem cell
 dir->cli:

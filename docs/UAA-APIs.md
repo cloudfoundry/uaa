@@ -58,6 +58,15 @@ The `/userinfo`, `/check_id`, and `/token` endpoints are specified in the [OpenI
 [OAuth2]: http://tools.ietf.org/html/draft-ietf-oauth-v2-22 "OAuth2, draft 22"
 [OpenID Connect]: http://openid.net/openid-connect "OpenID Connect Spec Suite"
 
+## A Note on OAuth Scope
+
+The OAuth2 spec includes a `scope` parameter as part of the token granting request (actually it is a set of scope values).  The spec leaves the business content of the scope up to the participants in the protocol - i.e. the scope values are completely arbitrary and can in principle be chosen by any Resource Server using the tokens.  Clients of the Resource Server have to ask for a valid scope to get a token, but the Authorization Server itself attaches no meaning to the scope - it just passes the value through to the Resource Server.  The UAA implementation of the Authorization Server has a couple of extra scope-related features (by virtue of being implemented in Spring Security where the features originate).
+
+1. There is an optional step in client registration, where a client declares which scopes it will ask for, or alternatively where the Authorization Server can limit the scopes it can ask for. The Authorization Server can then check that token requests contain a valid scope (i.e. one of the set provided on registration).
+
+2. The Resource Servers can each have a unique ID (e.g. a URI). And aother optional part of a client registration is to provide a set of allowed resource ids for the client in question.  The Authorization Server binds the allowed resource ids to the token and then provides the information via the `/check_token` endpoint, so that a Resource Server can check that its own ID is on the allowed list for the token before serving a resource.
+
+Resource IDs have some of the character of a scope, except that the clients themselves don't need to know about them - it is information exchanged between the Authorization and Resource Servers.  The examples in this document use a `scope` parameter that is obvisouly itself a URI, e.g. for a Cloud Controller instance. This is a suggested usage, but whether it is adopted by the real Cloud Controller is not crucial to the system.  Similarly any Resource Server that wants to can check the allowed resource IDs if there are any, but it is not mandatory to do so.
 
 ### <a id="authorize"/>OAuth2 Authorization Approval
 
@@ -72,8 +81,6 @@ Effectively this means that the endpoint is used to authenticate _and_ obtain an
 N.B. a GET is used in the [relevant section](http://tools.ietf.org/html/draft-ietf-oauth-v2-22#section-4.2.1) of the spec that talks about the implicit grant, but a POST is explicitly allowed in the [section on the `/authorize` endpoint, paragraph 5][OAuth2-3.1].
 
 All requests to this endpoint MUST be over SSL. 
-
-For our initial use we will use the OAuth2 `scope` parameter to bind any resulting access\_tokens to a cloud foundry instance. In the future scopes could be further refined such that the user could restrict the authorizations represented by the access\_token to a specific subset of resources (such as within an Org) or to a subset of permissions (such as read-only).
 
 ### Implicit Grant
 
@@ -158,9 +165,9 @@ An endpoint that allows a resource server such as the cloud controller to valida
 
 OAuth2 access\_tokens could contain all needed information such as userID, scope(s), lifetime, user attributes and be encrypted with the resource server's (e.g. cloud countroller's) secret key. That way the resource server could validate and use the token with no contact with the UAA. However, it may be useful -- at least during development -- for the UAA to specify a short, opaque token and then provide a way for the resource server to return it to the UAA to validate and open. That is what this endpoint does. It does not return general user account information like the /userinfo endpoint, it is specifically to validate and return the information represented by access\_token that the user presented to the resource server.
 
-This endpoint mirrors the OpenID Connect `/check_id` endpoint, so not very RESTful, but we want to make it look and feel like the others. 
+This endpoint mirrors the OpenID Connect `/check_id` endpoint, so not very RESTful, but we want to make it look and feel like the others. The endpoint is not part of any spec, but it is a useful took to have for anyone implementing an OAuth2 Resource Server.
 
-* Request: the basic authorization is as per OAuth2 spec, assuming the resource server is a registered client: `base64(resource_server:shared_secret)`
+* Request: the basic authorization is as per OAuth2 spec, assuming the caller (a resource server) is a registered client: `base64(resource_server:shared_secret)`
 
         POST /check_token HTTP/1.1
         Host: server.example.com
@@ -175,11 +182,25 @@ This endpoint mirrors the OpenID Connect `/check_id` endpoint, so not very RESTf
         Content-Type: application/json
 
         {
-            "user_id":"9017092310y301qhe",
-            "user_name":"bjensen",
+            "user_id":"bjensen",
+			"id":9017092310y301qhe",
             "scope": "https://api.cloudfoundry.example.com",
-            "expiration": "231231231231"
+            "expiration": "231231231231",
+			"email":"bjensen@example.com",
+			"user_authorities":["ROLE_USER"],
+			"resource_ids":["https://api.cloudfoundry.example.com", "https://www.cloudfoundry.example.com"],
+			"client_id":"vmc",
+			"client_secret":"KHfdsfjahsdgfkj=",
+			"client_authorities":["ROLE_CLIENT"]
         }
+		
+    Notes:
+  
+    * The `user_id` is the same as you get from the (OpenID Connect) `/userinfo` endpoint.  The `id` field is the same as you would use to get the full user profile from `/User`.
+  
+    * Many of the fields in the response are a courtesy allow the caller to avoid further round trip queries to pick up the same information (e.g. via the `/User` endpoint).  
+  
+    * The `client_*` data represent the client that the token was granted for, not the caller.  They can be used by the caller, for example, to verify that the client has been granted permission to access a resource.
 
 * Error Responses: see [OAuth2 Error reponses](http://tools.ietf.org/html/draft-ietf-oauth-v2-22#section-5.2) and this addition:
 
@@ -223,7 +244,7 @@ An OAuth2 protected resource and an OpenID Connect endpoint. Given an appropriat
 
         {
 		  "user_id":"olds",
-		  "email":olds@vmare.com
+		  "email":"olds@vmare.com"
         }
 
 ### <a id="login_info"/>Login Information Endpoint
@@ -241,8 +262,8 @@ This call will be unauthenticated.
 
         "prompt": {
             "email":["text", "validated email address"],
-            "password": ["hidden", "your UAA password" ]
-            "otp":["hidden", "security code"],
+            "password": ["password", "your UAA password" ]
+            "otp":["password", "security code"],
         }
 
 
@@ -322,7 +343,7 @@ See [SCIM - Modifying with PUT](http://www.simplecloud.info/specs/draft-scim-res
 
         {
           "schemas":["urn:scim:schemas:core:1.0"],
-          "id":"uid=bjensen,dc=example,dc=com",
+          "id":"123456",
           "userName":"bjensen",
           "externalId":"bjensen",
           "name":{
@@ -344,6 +365,7 @@ See [SCIM - Modifying with PUT](http://www.simplecloud.info/specs/draft-scim-res
 
 * Response Body:
         As for create operation, returns the entire, updated record, with the Location header pointing to the resource.
+
 * Response Codes:
 
         200 - Updated successfully

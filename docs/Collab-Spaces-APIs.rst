@@ -2,6 +2,9 @@
 Collaboration Spaces APIs
 ===========================
 
+.. attention:: This document has been superseded by the Access Control Manager documentation referred to in the
+   UAA-CC-ACM-VMC-Interactions document.
+
 .. contents:: Table of Contents
 
 .. .. sectnum::

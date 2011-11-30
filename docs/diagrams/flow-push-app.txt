@@ -1,18 +1,21 @@
 participant vmc
 participant cc
-participant cs
+participant acm
 
-vmc->cc: push_app(token, org, proj, name)
-cc->cs: create_resrc(token, org, proj, restype => app, name)
+vmc->cc: push_app(token, context, appname)
 
-note over cs:
-    get ACLs for org, proj
-    check_authorized(token, acls, perm => create, restype)
-    if yes
-        assign_resid(org, proj, restype, name)
-        add resid to org and proj
+note over cc:
+    The CC must validate the token and extract
+    the userID, then it translates the context
+    into an objectID. The CC also defined what
+    permission is required to push an app,
+    e.g. 'push_app'.
 end note
-
-cs->cc: yes, resid
-note over cc: if yes, create app with resid
+cc->acm: check_permissions(objectID, userID, 'push_app')
+note over acm:
+    read user's groups, check ACL on object
+    for 'push_app' for userID or any groupID
+end note
+acm->cc: yes/no
+note over cc: if yes, push app
 cc->vmc:

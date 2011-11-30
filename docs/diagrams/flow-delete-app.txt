@@ -1,21 +1,20 @@
 participant vmc
 participant cc
-participant cs
+participant acm
 
-vmc->cc: delete_app(token, org, proj, name)
-cc->cs: delete_resource(token, org, proj, restype => app, name)
-
-note over cs:
-    get ACLs for org, proj
-    check_authorized(token, acls, perm => d, restype, name)
-    if yes, delete resid from org/proj
-
-cs->cc: yes, resid
-note over cc: delete_app(resid)
-note over cc cs: 
-if deletion of app => resid fails, dangling
-references would be cleaned up by garbage
-collection process, see CC CS Interactions 
-doc.
+vmc->cc: delete_app(token, context, name)
+note over cc:
+    The CC must validate the token and extract
+    the userID, then it translates the context
+    into an objectID. The CC also defined what
+    permission is required to delete an app,
+    e.g. 'delete_app'.
 end note
+cc->acm: check_permissions(objectID, userID, 'delete_app')
+note over acm:
+    read user's groups, check ACL on object
+    for 'delete_app' for userID or any groupID
+end note
+acm->cc: yes/no
+note over cc: if yes, delete app(name)
 cc->vmc:

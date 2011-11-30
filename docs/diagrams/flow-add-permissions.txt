@@ -1,0 +1,27 @@
+participant vmc
+participant cc
+participant acm
+
+vmc->cc: add_permissions(token, context, subject, permissions)
+note over vmc: 
+    a subject can be a user or a group.
+end note
+note over cc:
+    The CC must validate the token and extract
+    the userID, then it translates the context
+    into an objectID. The CC also defined what
+    permission is required to modify an ACL,
+    e.g. 'admin'.
+end note
+cc->acm: check_permissions(objectID, userID, 'admin')
+note over acm:
+    read user's groups, check ACL on object
+    for 'admin' for userID or any groupID
+end note
+acm->cc: yes 
+cc->acm: add_permissions(objectID, subject, permissions)
+note over acm:
+    add permissions for subject to ACL
+end note
+acm->cc: 
+cc->vmc:

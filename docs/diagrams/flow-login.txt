@@ -1,15 +1,15 @@
 participant vmc
 participant cc
-participant cs
 participant uaa
 
-vmc->cc: get_info(token || nil, org)
-cc->cs: get_orgs(token, org)
-note over cs: if token valid, return already authorized
-cs->cc: not authorized, uaa_url
-cc->vmc: not authorized, uaa_url
+vmc->cc: get_info(token || nil, context=>org)
+note over cc:
+  if token valid, return already authorized
+  else return uaa_url for org
+end note
+cc->vmc: if not authorized, uaa_url
 vmc->uaa: get login_info
-note over uaa: look up\nauthn details
+note over uaa: look up authn details
 uaa->vmc: return prompts, other info
 note over vmc: collect user credentials
 vmc->uaa: authorize(credentials, scope => cc_url)
