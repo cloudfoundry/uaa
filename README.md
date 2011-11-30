@@ -5,7 +5,7 @@
 
 If this works you are in business:
 
-    $ git clone git://github.com/vmware-ac/uaa.git
+    $ git clone git@github.com:vmware-ac/uaa.git
     $ cd uaa
     $ mvn install
 	
