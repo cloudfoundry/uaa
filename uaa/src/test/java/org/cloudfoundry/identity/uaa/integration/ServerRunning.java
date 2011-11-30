@@ -73,9 +73,13 @@ public class ServerRunning extends TestWatchman {
 
 	private static String DEFAULT_HOST = "localhost";
 
+	private static String DEFAULT_ROOT_PATH = "/uaa";
+
 	private int port;
 
 	private String hostName = DEFAULT_HOST;
+	
+	private String rootPath = DEFAULT_ROOT_PATH;
 
 	private RestTemplate client;
 
@@ -95,7 +99,9 @@ public class ServerRunning extends TestWatchman {
 
 	private ServerRunning(boolean assumeOnline) {
 		this.assumeOnline = assumeOnline;
-		setPort(DEFAULT_PORT);
+		setPort(Integer.valueOf(System.getProperty("UAA_PORT", DEFAULT_PORT+"")));
+		setRootPath(System.getProperty("UAA_ROOT_PATH", DEFAULT_ROOT_PATH));
+		setHostName(System.getProperty("UAA_HOST", DEFAULT_HOST));
 	}
 
 	/**
@@ -118,6 +124,22 @@ public class ServerRunning extends TestWatchman {
 	public void setHostName(String hostName) {
 		this.hostName = hostName;
 	}
+	
+	/**
+	 * The context root in the application, e.g. "/uaa" for a local deployment.
+	 * 
+	 * @param rootPath the rootPath to set
+	 */
+	public void setRootPath(String rootPath) {
+		if (rootPath.equals("/")) {
+			rootPath = "";
+		} else {
+			if (!rootPath.startsWith("/")) {
+				rootPath = "/" + rootPath;
+			}
+		}
+		this.rootPath = rootPath;
+	}
 
 	@Override
 	public Statement apply(Statement base, FrameworkMethod method, Object target) {
@@ -133,7 +155,7 @@ public class ServerRunning extends TestWatchman {
 		RestTemplate client = new RestTemplate();
 		boolean online = false;
 		try {
-			client.getForEntity(new UriTemplate(getUrl("/uaa/login")).toString(), String.class);
+			client.getForEntity(new UriTemplate(getUrlFromRoot("/login")).toString(), String.class);
 			online = true;
 			logger.info("Basic connectivity test passed");
 		}
@@ -163,17 +185,17 @@ public class ServerRunning extends TestWatchman {
 	}
 
 	public String getBaseUrl() {
-		return "http://" + hostName + ":" + port;
+		return "http://" + hostName + (port==80 ? "" : ":" + port) +  rootPath;
 	}
 
-	public String getUrl(String path) {
+	public String getUrlFromRoot(String path) {
 		if (path.startsWith("http:")) {
 			return path;
 		}
 		if (!path.startsWith("/")) {
 			path = "/" + path;
 		}
-		return "http://" + hostName + ":" + port + path;
+		return getBaseUrl() + path;
 	}
 
 	public ResponseEntity<String> postForString(String path, MultiValueMap<String, String> formData) {
@@ -184,7 +206,7 @@ public class ServerRunning extends TestWatchman {
 		if (headers.getContentType() == null) {
 			headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 		}
-		return client.exchange(getUrl(path), HttpMethod.POST, new HttpEntity<MultiValueMap<String, String>>(formData,
+		return client.exchange(getUrlFromRoot(path), HttpMethod.POST, new HttpEntity<MultiValueMap<String, String>>(formData,
 				headers), String.class);
 	}
 
@@ -198,26 +220,26 @@ public class ServerRunning extends TestWatchman {
 		if (headers.getContentType() == null) {
 			headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 		}
-		return client.exchange(getUrl(path), HttpMethod.POST, new HttpEntity<MultiValueMap<String, String>>(formData,
+		return client.exchange(getUrlFromRoot(path), HttpMethod.POST, new HttpEntity<MultiValueMap<String, String>>(formData,
 				headers), Map.class);
 	}
 
 	public ResponseEntity<String> getForString(String path) {
-		return client.exchange(getUrl(path), HttpMethod.GET, new HttpEntity<Void>((Void) null), String.class);
+		return client.exchange(getUrlFromRoot(path), HttpMethod.GET, new HttpEntity<Void>((Void) null), String.class);
 	}
 
 	public <T> ResponseEntity<T> getForObject(String path, Class<T> type) {
-		return client.exchange(getUrl(path), HttpMethod.GET, new HttpEntity<Void>((Void) null), type);
+		return client.exchange(getUrlFromRoot(path), HttpMethod.GET, new HttpEntity<Void>((Void) null), type);
 	}
 
 	public ResponseEntity<String> getForString(String path, final HttpHeaders headers) {
 		HttpEntity<Void> request = new HttpEntity<Void>(null, headers);
-		return client.exchange(getUrl(path), HttpMethod.GET, request, String.class);
+		return client.exchange(getUrlFromRoot(path), HttpMethod.GET, request, String.class);
 	}
 
 	public ResponseEntity<Void> getForResponse(String path, final HttpHeaders headers, Object... uriVariables) {
 		HttpEntity<Void> request = new HttpEntity<Void>(null, headers);
-		return client.exchange(getUrl(path), HttpMethod.GET, request, null, uriVariables);
+		return client.exchange(getUrlFromRoot(path), HttpMethod.GET, request, null, uriVariables);
 	}
 
 	public ResponseEntity<Void> postForResponse(String path, HttpHeaders headers, MultiValueMap<String, String> params) {
@@ -225,7 +247,7 @@ public class ServerRunning extends TestWatchman {
 		actualHeaders.putAll(headers);
 		actualHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-		return client.exchange(getUrl(path), HttpMethod.POST, new HttpEntity<MultiValueMap<String, String>>(params,
+		return client.exchange(getUrlFromRoot(path), HttpMethod.POST, new HttpEntity<MultiValueMap<String, String>>(params,
 				actualHeaders), null);
 	}
 
@@ -255,7 +277,7 @@ public class ServerRunning extends TestWatchman {
 				}
 			};
 		}
-		return client.execute(getUrl(path), HttpMethod.GET, requestCallback,
+		return client.execute(getUrlFromRoot(path), HttpMethod.GET, requestCallback,
 				new ResponseExtractor<ResponseEntity<String>>() {
 					public ResponseEntity<String> extractData(ClientHttpResponse response) throws IOException {
 						return new ResponseEntity<String>(response.getStatusCode());
@@ -264,7 +286,7 @@ public class ServerRunning extends TestWatchman {
 	}
 
 	public HttpStatus getStatusCode(String path) {
-		return getStatusCode(getUrl(path), null);
+		return getStatusCode(getUrlFromRoot(path), null);
 	}
 
 	public RestTemplate getRestTemplate() {
@@ -289,7 +311,7 @@ public class ServerRunning extends TestWatchman {
 	}
 
 	public UriBuilder buildUri(String url) {
-		return UriBuilder.fromUri(url.startsWith("http:") ? url : getUrl(url));
+		return UriBuilder.fromUri(url.startsWith("http:") ? url : getUrlFromRoot(url));
 	}
 
 	private static final class NullRequestCallback implements RequestCallback {

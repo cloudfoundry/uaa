@@ -38,7 +38,7 @@ public class NativeApplicationIntegrationTests {
 		formData.add("username", "marissa");
 		formData.add("password", "koala");
 		formData.add("scope", "read");
-		ResponseEntity<String> response = serverRunning.postForString("/uaa/oauth/token", formData);
+		ResponseEntity<String> response = serverRunning.postForString("/oauth/token", formData);
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		assertEquals("no-store", response.getHeaders().getFirst("Cache-Control"));
 	}
@@ -53,7 +53,7 @@ public class NativeApplicationIntegrationTests {
 		formData.add("client_id", "my-trusted-client");
 		formData.add("username", "marissa");
 		formData.add("password", "koala");
-		ResponseEntity<String> response = serverRunning.postForString("/uaa/oauth/token", formData);
+		ResponseEntity<String> response = serverRunning.postForString("/oauth/token", formData);
 		assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
 		List<String> newCookies = response.getHeaders().get("Set-Cookie");
 		if (newCookies != null && !newCookies.isEmpty()) {

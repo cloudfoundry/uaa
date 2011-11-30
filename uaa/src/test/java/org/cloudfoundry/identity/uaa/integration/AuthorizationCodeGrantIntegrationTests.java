@@ -30,7 +30,7 @@ public class AuthorizationCodeGrantIntegrationTests {
 		HttpHeaders headers = new HttpHeaders();
 		headers.setAccept(Arrays.asList(MediaType.TEXT_HTML));
 
-		URI uri = serverRunning.buildUri("/uaa/oauth/authorize").queryParam("response_type", "code")
+		URI uri = serverRunning.buildUri("/oauth/authorize").queryParam("response_type", "code")
 				.queryParam("state", "mystateid").queryParam("client_id", "app")
 				.queryParam("redirect_uri", "http://anywhere").build();
 		ResponseEntity<Void> result = serverRunning.getForResponse(uri.toString(), headers);
@@ -44,7 +44,7 @@ public class AuthorizationCodeGrantIntegrationTests {
 
 		ResponseEntity<String> response = serverRunning.getForString(location, headers);
 		// should be directed to the login screen...
-		assertTrue(response.getBody().contains("uaa/login.do"));
+		assertTrue(response.getBody().contains("/login.do"));
 		assertTrue(response.getBody().contains("username"));
 		assertTrue(response.getBody().contains("password"));
 
@@ -53,7 +53,7 @@ public class AuthorizationCodeGrantIntegrationTests {
 		formData.add("password", "koala");
 
 		// Should be redirected to the original URL, but now authenticated
-		result = serverRunning.postForResponse("/uaa/login.do", headers, formData);
+		result = serverRunning.postForResponse("/login.do", headers, formData);
 		assertEquals(HttpStatus.FOUND, result.getStatusCode());
 
 		if (result.getHeaders().containsKey("Set-Cookie")) {
@@ -67,7 +67,7 @@ public class AuthorizationCodeGrantIntegrationTests {
 
 		formData.clear();
 		formData.add("user_oauth_approval", "true");
-		result = serverRunning.postForResponse("/uaa/oauth/authorize", headers, formData);
+		result = serverRunning.postForResponse("/oauth/authorize", headers, formData);
 		assertEquals(HttpStatus.FOUND, result.getStatusCode());
 		location =result.getHeaders().getLocation().toString();
 		assertTrue(location.matches("http://anywhere.*code=.+"));

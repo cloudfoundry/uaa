@@ -38,7 +38,7 @@ public class UserInfoEndpointIntegrationTests {
 		formData.add("scope", "read");
 
 		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = serverRunning.postForMap("/uaa/oauth/token", formData);
+		ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData);
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		String token = (String) response.getBody().get("access_token");
 
@@ -48,7 +48,7 @@ public class UserInfoEndpointIntegrationTests {
 		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
 
 		headers.set("Authorization", "Bearer " + token);
-		ResponseEntity<String> user = serverRunning.getForString("/uaa/userinfo", headers);
+		ResponseEntity<String> user = serverRunning.getForString("/userinfo", headers);
 		assertEquals(HttpStatus.OK, user.getStatusCode());
 		System.err.println(user.getBody());
 

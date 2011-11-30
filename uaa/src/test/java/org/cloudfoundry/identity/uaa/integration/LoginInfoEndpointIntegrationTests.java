@@ -29,7 +29,7 @@ public class LoginInfoEndpointIntegrationTests {
 	public void testHappyDay() throws Exception {
 
 		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = serverRunning.getForObject("/uaa/login", Map.class);
+		ResponseEntity<Map> response = serverRunning.getForObject("/login", Map.class);
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		@SuppressWarnings("unchecked")
 		Map<String, String[]> prompts = (Map<String, String[]>) response.getBody().get("prompts");
@@ -45,7 +45,7 @@ public class LoginInfoEndpointIntegrationTests {
 
 		HttpHeaders headers = new HttpHeaders();
 		headers.setAccept(Arrays.asList(MediaType.TEXT_HTML));
-		ResponseEntity<String> response = serverRunning.getForString("/uaa/login", headers );
+		ResponseEntity<String> response = serverRunning.getForString("/login", headers );
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		String body = response.getBody();
 		// System.err.println(body);

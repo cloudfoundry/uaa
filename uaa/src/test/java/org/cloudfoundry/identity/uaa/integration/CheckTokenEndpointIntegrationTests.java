@@ -38,7 +38,7 @@ public class CheckTokenEndpointIntegrationTests {
 		formData.add("scope", "read");
 
 		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = serverRunning.postForMap("/uaa/oauth/token", formData);
+		ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData);
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		String token = (String) response.getBody().get("access_token");
 
@@ -48,7 +48,7 @@ public class CheckTokenEndpointIntegrationTests {
 		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
 
 		headers.set("Authorization", "Basic " + new String(Base64.encode("app:appclientsecret".getBytes("UTF-8"))));
-		response = serverRunning.postForMap("/uaa/check_token", formData, headers);
+		response = serverRunning.postForMap("/check_token", formData, headers);
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		System.err.println(response.getBody());
 

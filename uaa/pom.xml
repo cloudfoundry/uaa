@@ -16,7 +16,21 @@
 
 	<properties>
 		<m2eclipse.wtp.contextRoot>/uaa</m2eclipse.wtp.contextRoot>
+				<uaa.host>localhost</uaa.host>
+				<uaa.port>8080</uaa.port>
+				<uaa.path>/uaa</uaa.path>
 	</properties>
+
+	<profiles>
+		<profile>
+			<id>cloud</id>
+			<properties>
+				<uaa.host>devuaa.cloudfoundry.com</uaa.host>
+				<uaa.port>80</uaa.port>
+				<uaa.path>/</uaa.path>
+			</properties>
+		</profile>
+	</profiles>
 
 	<build>
 		<plugins>
@@ -73,6 +87,20 @@
 						<excludes>
 							<exclude>**/Abstract*.java</exclude>
 						</excludes>
+						<systemProperties>
+							<property>
+								<name>UAA_PORT</name>
+								<value>${uaa.port}</value>
+							</property>
+							<property>
+								<name>UAA_HOST</name>
+								<value>${uaa.host}</value>
+							</property>
+							<property>
+								<name>UAA_ROOT_PATH</name>
+								<value>${uaa.path}</value>
+							</property>
+						</systemProperties>
 					</configuration>
 				</plugin>
 				<plugin>
