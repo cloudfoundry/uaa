@@ -76,6 +76,14 @@ public class ScimUserTests {
 //		System.out.println(mapper.writeValueAsString(user));
 	}
 
+	public void basicNamesAreMappedCorrectly() {
+		ScimUser roz = new ScimUser("1234", "roz", "Roslyn", "MacRae");
+		assertEquals("1234", roz.getId());
+		assertEquals("roz", roz.getUserName());
+		assertEquals("Roslyn", roz.getGivenName());
+		assertEquals("MacRae", roz.getFamilyName());
+	}
+
 	@Test
 	public void testSpelFilter() throws Exception {
 		ScimUser user = new ScimUser();

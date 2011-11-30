@@ -19,16 +19,16 @@ import org.springframework.expression.spel.SpelEvaluationException;
 public class InMemoryScimUserProvisioningTests {
 
 	private InMemoryScimUserProvisioning db =  new InMemoryScimUserProvisioning(new HashMap<String, UaaUser>());
-	
+
 	@Before
 	public void seed() {
 		ScimUser user;
 		user = new ScimUser(null, "joe", "Joe", "User");
 		user.addEmail("joe@blah.com");
-		db.createUser(user, "password");		
+		db.createUser(user, "password");
 		user = new ScimUser(null, "mabel", "Mabel", "User");
 		user.addEmail("mabel@blah.com");
-		db.createUser(user, "password");		
+		db.createUser(user, "password");
 	}
 
 	@Test
@@ -38,10 +38,10 @@ public class InMemoryScimUserProvisioningTests {
 	@Test
 	public void canDeleteUser() throws Exception {
 		ScimUser user = db.removeUser("1", 0);
-		assertEquals(1, db.retrieveUsers().size());		
+		assertEquals(1, db.retrieveUsers().size());
 		assertNotNull(user);
-		db.createUser(user, "password");		
-		assertEquals(2, db.retrieveUsers().size());		
+		db.createUser(user, "password");
+		assertEquals(2, db.retrieveUsers().size());
 	}
 
 	@Test

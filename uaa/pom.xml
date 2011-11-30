@@ -253,6 +253,12 @@
 		</dependency>
 
 		<dependency>
+			<groupId>edu.vt.middleware</groupId>
+			<artifactId>vt-password</artifactId>
+			<version>3.1.1</version>
+		</dependency>
+
+		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<version>4.8.2</version>

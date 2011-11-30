@@ -89,7 +89,7 @@ public final class ScimUser {
 		public void setHonorificSuffix(String honorificSuffix) {
 			this.honorificSuffix = honorificSuffix;
 		}
-		
+
 	}
 
 	@JsonSerialize (include = JsonSerialize.Inclusion.NON_NULL)
@@ -134,7 +134,7 @@ public final class ScimUser {
 		private int version = 0;
 		private Date created = new Date();
 		private Date lastModified = null;
-		
+
 		public Meta() {
 		}
 
@@ -172,7 +172,7 @@ public final class ScimUser {
 			return version;
 		}
 	}
-	
+
 	private String id;
 	private String externalId;
 	private String userName;
@@ -317,12 +317,12 @@ public final class ScimUser {
 	public void setMeta(Meta meta) {
 		this.meta = meta;
 	}
-	
+
 	@JsonIgnore
 	public void setVersion(int version) {
 		meta.setVersion(version);
 	}
-	
+
 	@JsonIgnore
 	public int getVersion() {
 		return meta.getVersion();
@@ -367,13 +367,15 @@ public final class ScimUser {
 	public String getFamilyName() {
 		return name == null ? null : name.getFamilyName();
 	}
-	
+
 	/**
 	 * Adds a new email address, ignoring "type" and "primary" fields, which we don't need yet
 	 */
 	public void addEmail(String newEmail) {
+		Assert.hasText(newEmail);
+
 		if (emails == null) {
-			emails = new ArrayList<Email>();
+			emails = new ArrayList<Email>(1);
 		}
 		for (Email email : emails) {
 			if (email.value.equals(newEmail)) {
@@ -384,6 +386,37 @@ public final class ScimUser {
 		Email e = new Email();
 		e.setValue(newEmail);
 		emails.add(e);
+	}
+
+	/**
+	 * Creates a word list from the user data for use in password checking implementations
+	 */
+	public List<String> wordList() {
+		List<String> words = new ArrayList<String>();
+
+		if (userName != null) {
+			words.add(userName);
+		}
+
+		if (name != null) {
+			if (name.givenName != null) {
+				words.add(name.givenName);
+			}
+			if (name.familyName != null) {
+				words.add(name.familyName);
+			}
+			if (nickName != null) {
+				words.add(nickName);
+			}
+		}
+
+		if (emails != null) {
+			for (Email email : emails) {
+				words.add(email.getValue());
+			}
+		}
+
+		return words;
 	}
 
 }

@@ -47,7 +47,7 @@ public class JdbcScimUserProvisioningTests {
 				"lastModified timestamp default current_timestamp," +
 				"version integer default 0," +
 				"username varchar(20) not null," +
-				"password varchar(20) not null," +
+				"password varchar(50) not null," +
 				"email varchar(20) not null," +
 				"givenName varchar(20) not null," +
 				"familyName varchar(20) not null," +
@@ -74,7 +74,7 @@ public class JdbcScimUserProvisioningTests {
 	public void canCreateUser() {
 		ScimUser user = new ScimUser(null, "josephine", "Jo", "User");
 		user.addEmail("jo@blah.com");
-		db.createUser(user, "password");
+		db.createUser(user, "j7hyqpassX");
 	}
 
 	@Test
@@ -97,7 +97,7 @@ public class JdbcScimUserProvisioningTests {
 	public void updateWithWrongVersionIsError() {
 		ScimUser jo = new ScimUser(null, "josephine", "Jo", "NewUser");
 		jo.addEmail("jo@blah.com");
-		jo.setVersion(1);	
+		jo.setVersion(1);
 		ScimUser joe = db.updateUser(JOE_ID, jo);
 		assertEquals("joe", joe.getUserName());
 	}

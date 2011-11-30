@@ -45,6 +45,8 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	private JdbcTemplate jdbcTemplate;
 
+	private PasswordValidator passwordValidator = new DefaultPasswordValidator();
+
 	private final RowMapper<ScimUser> mapper = new ScimUserRowMapper();
 
 	public JdbcScimUserProvisioning(JdbcTemplate jdbcTemplate) {
@@ -87,6 +89,8 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	@Override
 	public ScimUser createUser(final ScimUser user, final String password) {
+		passwordValidator.validate(password, user);
+
 		final String id = UUID.randomUUID().toString();
 		jdbcTemplate.update(CREATE_USER_SQL, new PreparedStatementSetter() {
 			public void setValues(PreparedStatement ps) throws SQLException {
@@ -138,6 +142,11 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 			throw new IncorrectResultSizeDataAccessException(1);
 		}
 		return user;
+	}
+
+	public void setPasswordValidator(PasswordValidator passwordValidator) {
+		Assert.notNull(passwordValidator, "passwordValidator cannot be null");
+		this.passwordValidator = passwordValidator;
 	}
 
 	private static final class ScimUserRowMapper implements RowMapper<ScimUser> {
