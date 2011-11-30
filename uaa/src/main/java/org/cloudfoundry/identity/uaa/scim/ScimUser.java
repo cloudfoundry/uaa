@@ -5,7 +5,10 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
+import org.cloudfoundry.identity.uaa.config.JsonDateDeserializer;
+import org.cloudfoundry.identity.uaa.config.JsonDateSerializer;
 import org.codehaus.jackson.annotate.JsonIgnore;
+import org.codehaus.jackson.map.annotate.JsonDeserialize;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 import org.springframework.util.Assert;
 
@@ -141,18 +144,22 @@ public final class ScimUser {
 			this.version = version;
 		}
 
+		@JsonSerialize(using=JsonDateSerializer.class, include = JsonSerialize.Inclusion.NON_NULL)
 		public Date getCreated() {
 			return created;
 		}
 
+		@JsonDeserialize(using=JsonDateDeserializer.class)
 		public void setCreated(Date created) {
 			this.created = created;
 		}
 
+		@JsonSerialize(using=JsonDateSerializer.class, include = JsonSerialize.Inclusion.NON_NULL)
 		public Date getLastModified() {
 			return lastModified;
 		}
 
+		@JsonDeserialize(using=JsonDateDeserializer.class)
 		public void setLastModified(Date lastModified) {
 			this.lastModified = lastModified;
 		}

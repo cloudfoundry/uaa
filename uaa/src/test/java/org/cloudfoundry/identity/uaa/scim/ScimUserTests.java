@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 
 import org.codehaus.jackson.map.ObjectMapper;
@@ -34,11 +35,16 @@ public class ScimUserTests {
 		ScimUser user = new ScimUser();
 		user.setId("123");
 		user.setUserName("joe");
+		user.getMeta().setCreated(new SimpleDateFormat("yyyy-MM-dd").parse("2011-11-30"));
 
 		String json = mapper.writeValueAsString(user);
+		// System.err.println(json);
 		assertTrue(json.contains("\"userName\":\"joe\""));
 		assertTrue(json.contains("\"id\":\"123\""));
 		assertTrue(json.contains("\"meta\":"));
+		assertTrue(json.contains("\"created\":\"2011-11-30"));
+		assertTrue(json.matches(".*\\\"created\\\":\\\"([0-9-]*-?)T([0-9:.]*)Z\\\".*"));
+		assertFalse(json.contains("\"lastModified\":"));
 
 	}
 
@@ -57,6 +63,16 @@ public class ScimUserTests {
 		assertEquals("babs@jensen.org", user.getEmails().get(2).getValue());
 		assertEquals("bjensen@example.com", user.getPrimaryEmail());
 		assertFalse(user.getEmails().get(0).isPrimary());
+//		System.out.println(mapper.writeValueAsString(user));
+	}
+
+	@Test
+	public void datesAreMappedCorrectly() throws Exception {
+		String json = "{ \"userName\":\"bjensen\"," +
+				"\"meta\":{\"version\":10,\"created\":\"2011-11-30T10:46:16.475Z\"}}";
+		ScimUser user = mapper.readValue(json, ScimUser.class);
+		assertEquals(10, user.getVersion());
+		assertEquals("2011-11-30", new SimpleDateFormat("yyyy-MM-dd").format(user.getMeta().getCreated()));
 //		System.out.println(mapper.writeValueAsString(user));
 	}
 
