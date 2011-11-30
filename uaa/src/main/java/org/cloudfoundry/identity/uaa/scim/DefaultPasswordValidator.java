@@ -22,6 +22,7 @@ public class DefaultPasswordValidator implements PasswordValidator {
 		List<Rule> rules = new ArrayList<Rule>(6);
 		rules.add(new LengthRule(10, 50));
 		rules.add(new DigitCharacterRule());
+		rules.add(new AlphabeticalCharacterRule());
 		rules.add(new UsernameRule(true, true));
 		// Try and catch variations on "password" as a password
 		rules.add(new RegexRule("[pP]+[aA@&]*[sSzZ$]+[wW]+[oO0]*[rR]*[dD]*"));
