@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.scim;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 
 import java.util.UUID;
 
@@ -90,7 +91,17 @@ public class JdbcScimUserProvisioningTests {
 
 	@Test
 	public void canCreateUser() {
-		ScimUser user = new ScimUser(null, "josephine", "Jo", "User");
+		ScimUser user = new ScimUser(null, "Josephine", "Jo", "User");
+		user.addEmail("jo@blah.com");
+		ScimUser created = db.createUser(user, "j7hyqpassX");
+		assertEquals("josephine", created.getUserName());
+		assertNotNull(created.getId());
+		assertNotSame(user.getId(), created.getId());
+	}
+
+	@Test(expected=ScimException.class)
+	public void cannotCreateUserWithNonAsciiUsername() {
+		ScimUser user = new ScimUser(null, "joe$eph", "Jo", "User");
 		user.addEmail("jo@blah.com");
 		db.createUser(user, "j7hyqpassX");
 	}

@@ -194,7 +194,7 @@ public final class ScimUser {
 
 	public ScimUser(String id, String userName, String givenName, String familyName) {
 		this.id = id;
-		this.userName = userName;
+		setUserName(userName);
 		this.name = new Name(givenName, familyName);
 	}
 
@@ -219,7 +219,7 @@ public final class ScimUser {
 	}
 
 	public void setUserName(String userName) {
-		this.userName = userName;
+		this.userName = userName.toLowerCase();
 	}
 
 	public Name getName() {

@@ -17,6 +17,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser.Meta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Name;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
@@ -127,7 +128,11 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	@Override
 	public ScimUser createUser(final ScimUser user, final String password) {
+
 		passwordValidator.validate(password, user);
+		if (!user.getUserName().matches("[a-z0-9]+")) {
+			throw new ScimException("Username must be lower case alphanumeric.", HttpStatus.BAD_REQUEST);
+		}
 
 		final String id = UUID.randomUUID().toString();
 		jdbcTemplate.update(CREATE_USER_SQL, new PreparedStatementSetter() {
@@ -144,6 +149,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 			}
 		});
 		return retrieveUser(id);
+
 	}
 
 	@Override
