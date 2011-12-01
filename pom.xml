@@ -9,8 +9,7 @@
 
   <modules>
     <module>uaa</module>
-    <module>api</module>
-    <module>app</module>
+    <module>samples</module>
   </modules>
 
   <properties>
