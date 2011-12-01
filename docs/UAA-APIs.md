@@ -305,12 +305,14 @@ See [SCIM - Creating Resources](http://www.simplecloud.info/specs/draft-scim-res
         HTTP/1.1 201 Created
         Content-Type: application/json
         Location: https://example.com/v1/User/uid=123456
+        ETag: "0"
 
         {
           "schemas":["urn:scim:schemas:core:1.0"],
           "id":"123456",
           "externalId":"bjensen",
           "meta":{
+			"version":0,
             "created":"2011-08-01T21:32:44.882Z",
             "lastModified":"2011-08-01T21:32:44.882Z"
           },
@@ -339,7 +341,7 @@ See [SCIM - Modifying with PUT](http://www.simplecloud.info/specs/draft-scim-res
         Host: example.com
         Accept: application/json
         Authorization: Bearer h480djs93hd8
-        ETag: "a330bc54f0671c9"
+        If-Match: "2"
 
         {
           "schemas":["urn:scim:schemas:core:1.0"],
@@ -360,7 +362,12 @@ See [SCIM - Modifying with PUT](http://www.simplecloud.info/specs/draft-scim-res
             {
                 "value":"babs@jensen.org"
             }
-          ]
+          ],
+          "meta":{
+		    "version":2,
+            "created":"2011-11-30T21:11:30.000Z",
+            "lastModified":"2011-12-30T21:11:30.000Z"
+          }
         }
 
 * Response Body:
@@ -408,7 +415,8 @@ Get information about a user. This is needed by Collab Spaces to convert names a
 
 See [SCIM - Deleting Resources](http://www.simplecloud.info/specs/draft-scim-rest-api-01.html#delete-resource)
 
-* Request: `DELETE /User/:id
+* Request: `DELETE /User/:id`
+* Request Headers: `If-Match` the `ETag` (version id) for the value to delete
 * Request Body: Empty
 * Response Body: Empty
 * Response Codes: 
