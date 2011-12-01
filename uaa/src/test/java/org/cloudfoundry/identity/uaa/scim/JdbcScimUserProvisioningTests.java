@@ -91,10 +91,10 @@ public class JdbcScimUserProvisioningTests {
 
 	@Test
 	public void canCreateUser() {
-		ScimUser user = new ScimUser(null, "Josephine", "Jo", "User");
+		ScimUser user = new ScimUser(null, "JO@FOO.COM", "Jo", "User");
 		user.addEmail("jo@blah.com");
 		ScimUser created = db.createUser(user, "j7hyqpassX");
-		assertEquals("josephine", created.getUserName());
+		assertEquals("jo@foo.com", created.getUserName());
 		assertNotNull(created.getId());
 		assertNotSame(user.getId(), created.getId());
 	}

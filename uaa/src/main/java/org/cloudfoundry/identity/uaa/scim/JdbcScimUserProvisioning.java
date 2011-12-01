@@ -130,8 +130,8 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	public ScimUser createUser(final ScimUser user, final String password) {
 
 		passwordValidator.validate(password, user);
-		if (!user.getUserName().matches("[a-z0-9]+")) {
-			throw new ScimException("Username must be lower case alphanumeric.", HttpStatus.BAD_REQUEST);
+		if (!user.getUserName().matches("[a-z0-9_.@]+")) {
+			throw new ScimException("Username must be lower case alphanumeric with optional chatacters '._@'.", HttpStatus.BAD_REQUEST);
 		}
 
 		final String id = UUID.randomUUID().toString();
