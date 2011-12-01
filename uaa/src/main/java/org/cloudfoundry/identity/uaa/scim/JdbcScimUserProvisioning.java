@@ -130,9 +130,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	public ScimUser createUser(final ScimUser user, final String password) {
 
 		passwordValidator.validate(password, user);
-		if (!user.getUserName().matches("[a-z0-9_.@]+")) {
-			throw new ScimException("Username must be lower case alphanumeric with optional chatacters '._@'.", HttpStatus.BAD_REQUEST);
-		}
+		validateUsername(user);
 
 		final String id = UUID.randomUUID().toString();
 		jdbcTemplate.update(CREATE_USER_SQL, new PreparedStatementSetter() {
@@ -152,8 +150,15 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	}
 
+	private void validateUsername(final ScimUser user) {
+		if (!user.getUserName().matches("[a-z0-9_.@]+")) {
+			throw new ScimException("Username must be lower case alphanumeric with optional chatacters '._@'.", HttpStatus.BAD_REQUEST);
+		}
+	}
+
 	@Override
 	public ScimUser updateUser(final String id, final ScimUser user) {
+		validateUsername(user);
 		int updated = jdbcTemplate.update(UPDATE_USER_SQL, new PreparedStatementSetter() {
 			public void setValues(PreparedStatement ps) throws SQLException {
 				ps.setInt(1, user.getVersion()+1);

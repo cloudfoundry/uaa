@@ -131,6 +131,15 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals("joe", joe.getUserName());
 	}
 
+	@Test(expected = ScimException.class)
+	public void updateWithBadUsernameIsError() {
+		ScimUser jo = new ScimUser(null, "jo$ephine", "Jo", "NewUser");
+		jo.addEmail("jo@blah.com");
+		jo.setVersion(1);
+		ScimUser joe = db.updateUser(JOE_ID, jo);
+		assertEquals("joe", joe.getUserName());
+	}
+
 	@Test
 	public void canRetrieveExistingUser() {
 		ScimUser joe = db.retrieveUser(JOE_ID);
