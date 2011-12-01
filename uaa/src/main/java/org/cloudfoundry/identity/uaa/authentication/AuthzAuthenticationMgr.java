@@ -16,8 +16,11 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.event.AuthenticationSuccessEvent;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -29,11 +32,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
  * @author Dave Syer
  *
  */
-public class AuthzAuthenticationMgr implements AuthenticationManager {
+public class AuthzAuthenticationMgr implements AuthenticationManager, ApplicationEventPublisherAware {
 
 	private final Log logger = LogFactory.getLog(getClass());
 	private final PasswordEncoder encoder;
 	private final UaaUserDatabase userDatabase;
+	private ApplicationEventPublisher eventPublisher;
 
 	public AuthzAuthenticationMgr(UaaUserDatabase cfusers) {
 		this(cfusers, NoOpPasswordEncoder.getInstance());
@@ -50,14 +54,24 @@ public class AuthzAuthenticationMgr implements AuthenticationManager {
 			UaaUser user = userDatabase.retrieveUserByName(req.getName());
 
 			if (encoder.matches((CharSequence) req.getCredentials(), user.getPassword())) {
-				return new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities());
+				Authentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities());
+				eventPublisher.publishEvent(new AuthenticationSuccessEvent(success));
+
+				return success;
 			}
+			eventPublisher.publishEvent(new UaaAuthenticationFailureEvent(req, user));
+
 			throw new BadCredentialsException("Bad credentials");
 		}
 		catch (UsernameNotFoundException e) {
+			eventPublisher.publishEvent(new UserNotFoundEvent(req));
 			logger.debug("No user named '" + req.getName() + "' was found");
 			throw new BadCredentialsException("Bad credentials");
 		}
 	}
 
+	@Override
+	public void setApplicationEventPublisher(ApplicationEventPublisher eventPublisher) {
+		this.eventPublisher = eventPublisher;
+	}
 }
