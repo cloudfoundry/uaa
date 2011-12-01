@@ -142,6 +142,7 @@
 				<property name="statuses">
 					<map key-type="java.lang.Class" value-type="org.springframework.http.HttpStatus">
 						<entry key="java.lang.IllegalArgumentException" value="BAD_REQUEST"/>
+						<entry key="java.lang.UnsupportedOperationException" value="BAD_REQUEST"/>
 						<entry key="org.cloudfoundry.identity.uaa.scim.InvalidPasswordException" value="BAD_REQUEST"/>
 						<entry key="org.cloudfoundry.identity.uaa.scim.InvalidUserException" value="BAD_REQUEST"/>
 						<entry key="org.cloudfoundry.identity.uaa.scim.UserNotFoundException" value="NOT_FOUND"/>

@@ -104,6 +104,10 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	@Override
 	public Collection<ScimUser> retrieveUsers(String filter) {
 
+		if (StringUtils.countOccurrencesOf(filter, "'") % 2 != 0) {
+			throw new IllegalArgumentException("Invalid query contains unescaped quote: " + filter);
+		}
+
 		String where = filter;
 
 		// There is only one email address for now...
@@ -122,6 +126,16 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 		if (where.contains("emails.")) {
 			throw new UnsupportedOperationException("Filters on email address fields other than 'value' not supported");
+		}
+		
+		String[] fragments = where.split(";");
+		if (fragments.length>1) {
+			for (String fragment : fragments) {
+				if (StringUtils.countOccurrencesOf(fragment, "'") % 2 == 0) {
+					// No quote to escape the semicolon so looks like a SQL injection attack
+					throw new IllegalArgumentException("Invalid query contains unescaped semicolon: " + filter);
+				}
+			}
 		}
 
 		List<ScimUser> input = jdbcTemplate.query(ALL_USERS + " WHERE " + where, mapper);

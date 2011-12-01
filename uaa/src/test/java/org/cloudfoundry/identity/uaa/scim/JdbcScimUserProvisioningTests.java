@@ -16,6 +16,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 
+import java.util.Collection;
 import java.util.UUID;
 
 import org.junit.After;
@@ -42,6 +43,8 @@ public class JdbcScimUserProvisioningTests {
 	private static final String JOE_ID = "550e8400-e29b-41d4-a716-446655440000";
 
 	private static final String MABEL_ID = UUID.randomUUID().toString();
+
+	private static final String SQL_INJECTION_FIELDS = "password,version,created,lastModified,username,email,givenName,familyName";
 
 	private static String platform = System.getProperty("PLATFORM", "hsqldb");
 
@@ -111,7 +114,7 @@ public class JdbcScimUserProvisioningTests {
 		assertNotSame(user.getId(), created.getId());
 	}
 
-	@Test(expected=InvalidUserException.class)
+	@Test(expected = InvalidUserException.class)
 	public void cannotCreateUserWithNonAsciiUsername() {
 		ScimUser user = new ScimUser(null, "joe$eph", "Jo", "User");
 		user.addEmail("jo@blah.com");
@@ -239,8 +242,43 @@ public class JdbcScimUserProvisioningTests {
 	}
 
 	@Test(expected = UnsupportedOperationException.class)
-	public void canRetrieveUsersWithIllegalFilter() {
+	public void cannotRetrieveUsersWithIllegalFilterField() {
 		assertEquals(2, db.retrieveUsers("emails.type eq 'bar'").size());
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void cannotRetrieveUsersWithIllegalFilterQuotes() {
+		assertEquals(2, db.retrieveUsers("username eq 'bar").size());
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void cannotRetrieveUsersWithSqlInjectionAttack() {
+		String password = template.queryForObject("select password from users where username='joe'", String.class);
+		assertNotNull(password);
+		Collection<ScimUser> users = db
+				.retrieveUsers("username eq 'joe'; select " +
+						SQL_INJECTION_FIELDS + " from users where username='joe'");
+		assertEquals(password, users.iterator().next().getId());
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void cannotRetrieveUsersWithAnotherSqlInjectionAttack() {
+		String password = template.queryForObject("select password from users where username='joe'", String.class);
+		assertNotNull(password);
+		Collection<ScimUser> users = db
+				.retrieveUsers("username eq 'joe''; select id from users where id='''; select " +
+						SQL_INJECTION_FIELDS + " from users where username='joe'");
+		assertEquals(password, users.iterator().next().getId());
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void cannotRetrieveUsersWithYetAnotherSqlInjectionAttack() {
+		String password = template.queryForObject("select password from users where username='joe'", String.class);
+		assertNotNull(password);
+		Collection<ScimUser> users = db
+				.retrieveUsers("username eq 'joe''; select " +
+						SQL_INJECTION_FIELDS + " from users where username='joe''");
+		assertEquals(password, users.iterator().next().getId());
 	}
 
 }
