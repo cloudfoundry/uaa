@@ -1,14 +1,30 @@
 package org.cloudfoundry.identity.uaa.scim;
 
-import edu.vt.middleware.dictionary.ArrayWordList;
-import edu.vt.middleware.dictionary.WordList;
-import edu.vt.middleware.dictionary.WordListDictionary;
-import edu.vt.middleware.dictionary.WordLists;
-import edu.vt.middleware.password.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.util.StringUtils;
 
-import java.util.*;
+import edu.vt.middleware.dictionary.ArrayWordList;
+import edu.vt.middleware.dictionary.WordListDictionary;
+import edu.vt.middleware.dictionary.WordLists;
+import edu.vt.middleware.password.AlphabeticalCharacterRule;
+import edu.vt.middleware.password.AlphabeticalSequenceRule;
+import edu.vt.middleware.password.DictionarySubstringRule;
+import edu.vt.middleware.password.DigitCharacterRule;
+import edu.vt.middleware.password.LengthRule;
+import edu.vt.middleware.password.NumericalSequenceRule;
+import edu.vt.middleware.password.Password;
+import edu.vt.middleware.password.PasswordData;
+import edu.vt.middleware.password.QwertySequenceRule;
+import edu.vt.middleware.password.RegexRule;
+import edu.vt.middleware.password.RepeatCharacterRegexRule;
+import edu.vt.middleware.password.Rule;
+import edu.vt.middleware.password.RuleResult;
+import edu.vt.middleware.password.UsernameRule;
 
 /**
  * A standard password validator built using vt-password rules.

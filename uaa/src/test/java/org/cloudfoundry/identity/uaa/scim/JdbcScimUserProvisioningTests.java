@@ -10,9 +10,11 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 
 /**
  * @author Luke Taylor
@@ -21,52 +23,66 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 public class JdbcScimUserProvisioningTests {
 
 	private static JdbcTemplate template;
+
 	private JdbcScimUserProvisioning db;
 
 	private static final String JOE_ID = "550e8400-e29b-41d4-a716-446655440000";
 
 	private static final String MABEL_ID = UUID.randomUUID().toString();
 
+	private static String platform = System.getProperty("PLATFORM", "hsqldb");
+
 	@BeforeClass
 	public static void createDatasource() throws Exception {
+
 		DriverManagerDataSource dataSource = new DriverManagerDataSource();
-		dataSource.setDriverClassName("org.hsqldb.jdbcDriver");
-		dataSource.setUrl("jdbc:hsqldb:mem:jdbcUaaTests");
-		dataSource.setUsername("sa");
-		dataSource.setPassword("");
+
+		if (platform.equals("hsqldb")) {
+			dataSource.setDriverClassName("org.hsqldb.jdbcDriver");
+			dataSource.setUrl("jdbc:hsqldb:mem:jdbcUaaTests");
+			dataSource.setUsername("sa");
+			dataSource.setPassword("");
+		}
+		else if (platform.equals("postgresql")) {
+			dataSource.setDriverClassName("org.postgresql.Driver");
+			dataSource.setUrl("jdbc:postgresql:uaa");
+			dataSource.setUsername("uaa");
+			dataSource.setPassword("uaa1324");
+		}
+		else {
+			throw new UnsupportedOperationException("Unsupported platform: (" + platform + ")");
+		}
 
 		template = new JdbcTemplate(dataSource);
+
 	}
 
 	@Before
 	public void initializeDb() throws Exception {
+
 		db = new JdbcScimUserProvisioning(template);
-		template.execute("create table users(" +
-				"id char(36) not null primary key," +
-				"created timestamp default current_timestamp," +
-				"lastModified timestamp default current_timestamp," +
-				"version integer default 0," +
-				"username varchar(20) not null," +
-				"password varchar(50) not null," +
-				"email varchar(20) not null," +
-				"givenName varchar(20) not null," +
-				"familyName varchar(20) not null," +
-				"constraint unique_uk_1 unique(username)" +
-			")");
-		template.execute("insert into users (id, username, password, email, givenName, familyName) " +
-				 "values ('"+ JOE_ID + "', 'joe','joespassword','joe@joe.com','Joe','User')");
-		template.execute("insert into users (id, username, password, email, givenName, familyName) " +
-				 "values ('"+ MABEL_ID + "', 'mabel','mabelspassword','mabel@mabel.com','Mabel','User')");
+
+		ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
+		populator.addScript(new ClassPathResource("schema-" + platform + ".sql", JdbcScimUserProvisioning.class));
+		populator.populate(template.getDataSource().getConnection());
+
+		template.execute("insert into users (id, username, password, email, givenName, familyName) " + "values ('"
+				+ JOE_ID + "', 'joe','joespassword','joe@joe.com','Joe','User')");
+		template.execute("insert into users (id, username, password, email, givenName, familyName) " + "values ('"
+				+ MABEL_ID + "', 'mabel','mabelspassword','mabel@mabel.com','Mabel','User')");
+
 	}
 
 	@After
-	public void clearDb() throws Exception {
+	public void clear() throws Exception {
 		template.execute("drop table users");
 	}
 
 	@AfterClass
 	public static void shutDownDb() {
-		template.execute("SHUTDOWN");
+		if (platform.equals("hsqldb")) {
+			template.execute("SHUTDOWN");
+		}
 		template = null;
 	}
 
@@ -93,7 +109,7 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals(JOE_ID, joe.getId());
 	}
 
-	@Test(expected=OptimisticLockingFailureException.class)
+	@Test(expected = OptimisticLockingFailureException.class)
 	public void updateWithWrongVersionIsError() {
 		ScimUser jo = new ScimUser(null, "josephine", "Jo", "NewUser");
 		jo.addEmail("jo@blah.com");
@@ -124,7 +140,7 @@ public class JdbcScimUserProvisioningTests {
 		template.queryForList("select * from users").isEmpty();
 	}
 
-	@Test(expected=OptimisticLockingFailureException.class)
+	@Test(expected = OptimisticLockingFailureException.class)
 	public void removeWithWrongVersionIsError() {
 		ScimUser joe = db.removeUser(JOE_ID, 1);
 		assertJoe(joe);
@@ -188,7 +204,7 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals(2, db.retrieveUsers("username eq 'joe' or emails.value co '.com'").size());
 	}
 
-	@Test(expected=UnsupportedOperationException.class)
+	@Test(expected = UnsupportedOperationException.class)
 	public void canRetrieveUsersWithIllegalFilter() {
 		assertEquals(2, db.retrieveUsers("emails.type eq 'bar'").size());
 	}

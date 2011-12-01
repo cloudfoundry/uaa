@@ -57,6 +57,51 @@
 					</execution>
 				</executions>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>generate-sql</id>
+						<phase>generate-sources</phase>
+						<configuration>
+							<tasks>
+								<typedef resource="foundrylogic/vpp/typedef.properties" />
+								<taskdef resource="foundrylogic/vpp/taskdef.properties" />
+								<vppcopy todir="${basedir}/target/generated-resources" overwrite="true">
+									<config>
+										<context>
+											<property key="includes" value="src/main/sql" />
+											<property file="${basedir}/src/main/sql/hsqldb.properties" />
+										</context>
+										<engine>
+											<property key="velocimacro.library" value="src/main/sql/hsqldb.vpp" />
+										</engine>
+									</config>
+									<fileset dir="${basedir}/src/main/sql" includes="schema*.sql.vpp" />
+									<mapper type="glob" from="*.sql.vpp" to="*-hsqldb.sql" />
+								</vppcopy>
+								<vppcopy todir="${basedir}/target/generated-resources" overwrite="true">
+									<config>
+										<context>
+											<property key="includes" value="src/main/sql" />
+											<property file="${basedir}/src/main/sql/postgresql.properties" />
+										</context>
+										<engine>
+											<property key="velocimacro.library" value="src/main/sql/postgresql.vpp" />
+										</engine>
+									</config>
+									<fileset dir="${basedir}/src/main/sql" includes="schema*.sql.vpp" />
+									<mapper type="glob" from="*.sql.vpp" to="*-postgresql.sql" />
+								</vppcopy>
+							</tasks>
+						</configuration>
+						<goals>
+							<goal>run</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 		<pluginManagement>
 			<plugins>
@@ -269,6 +314,15 @@
 			<groupId>org.hsqldb</groupId>
 			<artifactId>hsqldb-j5</artifactId>
 			<version>2.0.0</version>
+			<optional>true</optional>
+			<scope>runtime</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+			<version>9.1-901.jdbc3</version>
+			<optional>true</optional>
 			<scope>runtime</scope>
 		</dependency>
 

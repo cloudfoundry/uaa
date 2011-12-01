@@ -67,17 +67,76 @@
           </execution>
         </executions>
       </plugin>
-	  <plugin>
-		<groupId>org.codehaus.mojo</groupId>
-		<artifactId>tomcat-maven-plugin</artifactId>
-		<inherited>false</inherited>
-		<configuration>	
-		  <serverXml>${basedir}/server.xml</serverXml>
-		  <ignorePackaging>true</ignorePackaging>
-		  <configurationDir>${java.io.tmpdir}/uaa/tomcat</configurationDir>
-		</configuration>
-	  </plugin>
     </plugins>
+	<pluginManagement>
+	  <plugins>
+		<plugin>
+		  <groupId>org.apache.maven.plugins</groupId>
+		  <artifactId>maven-antrun-plugin</artifactId>
+		  <dependencies>
+			<dependency>
+			  <groupId>org.apache.ant</groupId>
+			  <artifactId>ant</artifactId>
+			  <version>1.7.0</version>
+			</dependency>
+			<dependency>
+			  <groupId>org.apache.ant</groupId>
+			  <artifactId>ant-trax</artifactId>
+			  <version>1.7.0</version>
+			</dependency>
+			<dependency>
+			  <groupId>org.apache.ant</groupId>
+			  <artifactId>ant-apache-regexp</artifactId>
+			  <version>1.7.0</version>
+			</dependency>
+			<dependency>
+			  <groupId>foundrylogic.vpp</groupId>
+			  <artifactId>vpp</artifactId>
+			  <version>2.2.1</version>
+			</dependency>
+		  </dependencies>
+		</plugin>
+		<!--This plugin's configuration is used to store Eclipse m2e settings 
+			only. It has no influence on the Maven build itself. -->
+		<plugin>
+		  <groupId>org.eclipse.m2e</groupId>
+		  <artifactId>lifecycle-mapping</artifactId>
+		  <version>1.0.0</version>
+		  <configuration>
+			<lifecycleMappingMetadata>
+			  <pluginExecutions>
+				<pluginExecution>
+				  <pluginExecutionFilter>
+					<groupId>com.springsource.bundlor</groupId>
+					<artifactId>com.springsource.bundlor.maven</artifactId>
+					<versionRange>[1.0,)</versionRange>
+					<goals>
+					  <goal>bundlor</goal>
+					</goals>
+				  </pluginExecutionFilter>
+				  <action>
+					<ignore />
+				  </action>
+				</pluginExecution>
+				<pluginExecution>
+				  <pluginExecutionFilter>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-antrun-plugin</artifactId>
+					<versionRange>[1.0,)</versionRange>
+					<goals>
+					  <goal>run</goal>
+					</goals>
+				  </pluginExecutionFilter>
+				  <action>
+					<ignore />
+				  </action>
+				</pluginExecution>
+			  </pluginExecutions>
+			</lifecycleMappingMetadata>
+		  </configuration>
+		</plugin>
+	  </plugins>
+	</pluginManagement>
     <extensions>
       <extension>
         <groupId>org.springframework.build.aws</groupId>
