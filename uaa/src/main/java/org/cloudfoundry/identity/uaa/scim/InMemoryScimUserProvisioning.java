@@ -13,7 +13,6 @@ import org.springframework.expression.Expression;
 import org.springframework.expression.spel.SpelParseException;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
-import org.springframework.http.HttpStatus;
 import org.springframework.util.Assert;
 
 /**
@@ -57,13 +56,14 @@ public class InMemoryScimUserProvisioning implements ScimUserProvisioning {
 	}
 
 	private UaaUser getUaaUser(ScimUser scim, String password) {
-		return new UaaUser(scim.getUserName(), password, scim.getPrimaryEmail(), scim.getGivenName(), scim.getFamilyName());
+		return new UaaUser(scim.getUserName(), password, scim.getPrimaryEmail(), scim.getGivenName(),
+				scim.getFamilyName());
 	}
 
 	@Override
-	public ScimUser retrieveUser(String id) {
+	public ScimUser retrieveUser(String id) throws UserNotFoundException {
 		if (!ids.containsKey(id)) {
-			throw new ScimException("User " + id + " does not exist", HttpStatus.NOT_FOUND);
+			throw new UserNotFoundException("User " + id + " does not exist");
 		}
 		return getScimUser(users.get(ids.get(id)));
 	}
@@ -95,7 +95,7 @@ public class InMemoryScimUserProvisioning implements ScimUserProvisioning {
 			expression = new SpelExpressionParser().parseExpression(spel);
 		}
 		catch (SpelParseException e) {
-			throw new ScimException("Invalid filter expression: [" + filter + "]", HttpStatus.BAD_REQUEST);
+			throw new IllegalArgumentException("Invalid filter expression: [" + filter + "]");
 		}
 
 		for (ScimUser user : retrieveUsers()) {
@@ -109,10 +109,10 @@ public class InMemoryScimUserProvisioning implements ScimUserProvisioning {
 	}
 
 	@Override
-	public ScimUser removeUser(String id, int version) {
+	public ScimUser removeUser(String id, int version) throws UserNotFoundException {
 		String name = ids.remove(id);
 		if (name == null) {
-			throw new ScimException("User " + id + " does not exist", HttpStatus.NOT_FOUND);
+			throw new UserNotFoundException("User " + id + " does not exist");
 		}
 		UaaUser removed = users.remove(name);
 		return getScimUser(removed);
@@ -124,19 +124,14 @@ public class InMemoryScimUserProvisioning implements ScimUserProvisioning {
 				+ "' already exists");
 		Assert.notEmpty(scim.getEmails(), "At least one email is required");
 
-		try {
-			UaaUser user = addUser(getUaaUser(scim, password));
-			return getScimUser(user);
-		}
-		catch (IllegalArgumentException e) {
-			throw new ScimException(e.getMessage(), HttpStatus.BAD_REQUEST);
-		}
+		UaaUser user = addUser(getUaaUser(scim, password));
+		return getScimUser(user);
 	}
 
 	@Override
-	public ScimUser updateUser(String id, ScimUser user) {
+	public ScimUser updateUser(String id, ScimUser user) throws UserNotFoundException {
 		if (!ids.containsKey(id)) {
-			throw new ScimException("User " + id + " does not exist", HttpStatus.NOT_FOUND);
+			throw new UserNotFoundException("User " + id + " does not exist");
 		}
 		UaaUser uaa = users.get(ids.get(id));
 		String name = uaa.getUsername();

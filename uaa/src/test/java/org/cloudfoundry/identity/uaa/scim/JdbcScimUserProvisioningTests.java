@@ -99,7 +99,7 @@ public class JdbcScimUserProvisioningTests {
 		assertNotSame(user.getId(), created.getId());
 	}
 
-	@Test(expected=ScimException.class)
+	@Test(expected=InvalidUserException.class)
 	public void cannotCreateUserWithNonAsciiUsername() {
 		ScimUser user = new ScimUser(null, "joe$eph", "Jo", "User");
 		user.addEmail("jo@blah.com");
@@ -131,7 +131,7 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals("joe", joe.getUserName());
 	}
 
-	@Test(expected = ScimException.class)
+	@Test(expected = InvalidUserException.class)
 	public void updateWithBadUsernameIsError() {
 		ScimUser jo = new ScimUser(null, "jo$ephine", "Jo", "NewUser");
 		jo.addEmail("jo@blah.com");

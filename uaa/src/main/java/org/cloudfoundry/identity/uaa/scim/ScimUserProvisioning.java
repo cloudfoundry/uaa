@@ -8,16 +8,16 @@ import java.util.Collection;
  */
 public interface ScimUserProvisioning {
 
-	public ScimUser retrieveUser(String id);
+	public ScimUser retrieveUser(String id) throws UserNotFoundException;
 
 	public Collection<ScimUser> retrieveUsers();
 
 	public Collection<ScimUser> retrieveUsers(String filter);
 
-	public ScimUser createUser(ScimUser user, String password);
+	public ScimUser createUser(ScimUser user, String password) throws InvalidPasswordException, InvalidUserException;
 
-	public ScimUser updateUser(String id, ScimUser user);
+	public ScimUser updateUser(String id, ScimUser user) throws InvalidUserException, UserNotFoundException;
 
-	public ScimUser removeUser(String id, int version);
+	public ScimUser removeUser(String id, int version) throws UserNotFoundException;
 
 }

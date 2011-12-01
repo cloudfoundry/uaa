@@ -17,7 +17,6 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser.Meta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Name;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.dao.OptimisticLockingFailureException;
-import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
@@ -127,7 +126,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	}
 
 	@Override
-	public ScimUser createUser(final ScimUser user, final String password) {
+	public ScimUser createUser(final ScimUser user, final String password) throws InvalidPasswordException, InvalidUserException {
 
 		passwordValidator.validate(password, user);
 		validateUsername(user);
@@ -150,14 +149,14 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	}
 
-	private void validateUsername(final ScimUser user) {
+	private void validateUsername(final ScimUser user) throws InvalidUserException {
 		if (!user.getUserName().matches("[a-z0-9_.@]+")) {
-			throw new ScimException("Username must be lower case alphanumeric with optional chatacters '._@'.", HttpStatus.BAD_REQUEST);
+			throw new InvalidUserException("Username must be lower case alphanumeric with optional chatacters '._@'.");
 		}
 	}
 
 	@Override
-	public ScimUser updateUser(final String id, final ScimUser user) {
+	public ScimUser updateUser(final String id, final ScimUser user) throws InvalidUserException {
 		validateUsername(user);
 		int updated = jdbcTemplate.update(UPDATE_USER_SQL, new PreparedStatementSetter() {
 			public void setValues(PreparedStatement ps) throws SQLException {

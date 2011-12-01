@@ -171,7 +171,7 @@ public class ScimUserEndpointIntegrationTests {
 		@SuppressWarnings("unchecked")
 		Map<String, String> error = response.getBody();
 
-		assertEquals(IllegalArgumentException.class.getName(), error.get("error"));
+		assertEquals(ScimException.class.getName(), error.get("error"));
 
 	}
 

@@ -68,7 +68,7 @@ public class ScimUserEndpoints implements InitializingBean {
 	public ScimUser updateUser(@RequestBody ScimUser user, @PathVariable String userId,
 			@RequestHeader(value = "If-Match", required = false, defaultValue = "NaN") String etag) {
 		if (etag.equals("NaN")) {
-			throw new ScimException("Missing If-Match for PUT", HttpStatus.BAD_REQUEST);			
+			throw new ScimException("Missing If-Match for PUT", HttpStatus.BAD_REQUEST);
 		}
 		int version = getVersion(userId, etag);
 		user.setVersion(version);
@@ -95,12 +95,14 @@ public class ScimUserEndpoints implements InitializingBean {
 			value = value.substring(1);
 		}
 		while (value.endsWith("\"")) {
-			value = value.substring(0, value.length()-1);
+			value = value.substring(0, value.length() - 1);
 		}
 		try {
 			return Integer.valueOf(value);
-		} catch (NumberFormatException e) {
-			throw new ScimException("Invalid version match header (should be a version number): " + etag, HttpStatus.BAD_REQUEST);
+		}
+		catch (NumberFormatException e) {
+			throw new ScimException("Invalid version match header (should be a version number): " + etag,
+					HttpStatus.BAD_REQUEST);
 		}
 	}
 

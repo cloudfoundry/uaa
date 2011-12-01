@@ -79,7 +79,7 @@ public class ScimUserEndpointsTests {
 
 	@Test
 	public void testInvalidFilterExpression() {
-		expected.expect(new ScimExceptionStatusCodeMatcher(HttpStatus.BAD_REQUEST));
+		expected.expect(IllegalArgumentException.class);
 		expected.expectMessage(containsString("Invalid filter"));
 		SearchResults<Map<String, Object>> results = endpoints.findUsers("id", "userName qq 'd'", 1, 100);
 		assertEquals(0, results.getTotalResults());

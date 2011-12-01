@@ -15,5 +15,5 @@ public interface PasswordValidator {
 	 * @param password the trial password
 	 * @param user the user data to whom the password applies
 	 */
-	void validate(String password, ScimUser user) throws ScimException;
+	void validate(String password, ScimUser user) throws InvalidPasswordException;
 }

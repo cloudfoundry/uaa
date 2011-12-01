@@ -5,7 +5,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.util.StringUtils;
 
 import edu.vt.middleware.dictionary.ArrayWordList;
@@ -51,7 +50,7 @@ public class DefaultPasswordValidator implements PasswordValidator {
 	}
 
 	@Override
-	public void validate(String password, ScimUser user) {
+	public void validate(String password, ScimUser user) throws InvalidPasswordException {
 		List<Rule> rules;
 
 		PasswordData passwordData = new PasswordData(new Password(password));
@@ -72,7 +71,7 @@ public class DefaultPasswordValidator implements PasswordValidator {
 		if (!result.isValid()) {
 			String errors = StringUtils.collectionToDelimitedString(validator.getMessages(result), ",");
 
-			throw new ScimException(errors, HttpStatus.BAD_REQUEST);
+			throw new InvalidPasswordException(errors);
 		}
 	}
 
