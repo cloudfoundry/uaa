@@ -61,11 +61,7 @@ public class JdbcScimUserProvisioningTests {
 	public void initializeDb() throws Exception {
 
 		db = new JdbcScimUserProvisioning(template);
-
-		ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
-		populator.addScript(new ClassPathResource("schema-" + platform + ".sql", JdbcScimUserProvisioning.class));
-		populator.populate(template.getDataSource().getConnection());
-
+		runScript("schema");
 		template.execute("insert into users (id, username, password, email, givenName, familyName) " + "values ('"
 				+ JOE_ID + "', 'joe','joespassword','joe@joe.com','Joe','User')");
 		template.execute("insert into users (id, username, password, email, givenName, familyName) " + "values ('"
@@ -75,7 +71,7 @@ public class JdbcScimUserProvisioningTests {
 
 	@After
 	public void clear() throws Exception {
-		template.execute("drop table users");
+		runScript("schema-drop");
 	}
 
 	@AfterClass
@@ -84,6 +80,12 @@ public class JdbcScimUserProvisioningTests {
 			template.execute("SHUTDOWN");
 		}
 		template = null;
+	}
+
+	private void runScript(String stem) throws Exception {
+		ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
+		populator.addScript(new ClassPathResource(stem + "-" + platform + ".sql", JdbcScimUserProvisioning.class));
+		populator.populate(template.getDataSource().getConnection());
 	}
 
 	@Test

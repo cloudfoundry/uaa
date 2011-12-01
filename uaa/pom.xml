@@ -16,9 +16,9 @@
 
 	<properties>
 		<m2eclipse.wtp.contextRoot>/uaa</m2eclipse.wtp.contextRoot>
-				<uaa.host>localhost</uaa.host>
-				<uaa.port>8080</uaa.port>
-				<uaa.path>/uaa</uaa.path>
+		<uaa.host>localhost</uaa.host>
+		<uaa.port>8080</uaa.port>
+		<uaa.path>/uaa</uaa.path>
 	</properties>
 
 	<profiles>
@@ -173,6 +173,17 @@
 		</pluginManagement>
 	</build>
 
+	<pluginRepositories>
+		<pluginRepository>
+			<id>objectstyle</id>
+			<name>ObjectStyle.org Repository</name>
+			<url>http://objectstyle.org/maven2/</url>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</pluginRepository>
+	</pluginRepositories>
+
 	<dependencies>
 
 		<dependency>
@@ -258,24 +269,28 @@
 			<groupId>org.springframework.security</groupId>
 			<artifactId>spring-security-taglibs</artifactId>
 			<version>${spring.security.version}</version>
+			<scope>runtime</scope>
 		</dependency>
 
 		<dependency>
 			<groupId>org.springframework.security</groupId>
 			<artifactId>spring-security-config</artifactId>
 			<version>${spring.security.version}</version>
+			<scope>runtime</scope>
 		</dependency>
 
 		<dependency>
 			<groupId>commons-dbcp</groupId>
 			<artifactId>commons-dbcp</artifactId>
 			<version>1.4</version>
+			<scope>runtime</scope>
 		</dependency>
 
 		<dependency>
 			<groupId>log4j</groupId>
 			<artifactId>log4j</artifactId>
 			<version>1.2.14</version>
+			<scope>runtime</scope>
 		</dependency>
 
 		<dependency>
@@ -289,6 +304,7 @@
 			<groupId>javax.servlet</groupId>
 			<artifactId>jstl</artifactId>
 			<version>1.2</version>
+			<scope>runtime</scope>
 		</dependency>
 
 		<dependency>
@@ -330,13 +346,6 @@
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-all</artifactId>
 			<version>1.8.5</version>
-			<scope>test</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>org.apache.httpcomponents</groupId>
-			<artifactId>httpclient</artifactId>
-			<version>4.1.1</version>
 			<scope>test</scope>
 		</dependency>
 
