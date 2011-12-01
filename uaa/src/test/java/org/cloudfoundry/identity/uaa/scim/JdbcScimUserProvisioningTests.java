@@ -146,9 +146,21 @@ public class JdbcScimUserProvisioningTests {
 	}
 
 	@Test
-	public void canRetrieveUsersWithFilterCaseSensitivity() {
+	public void canRetrieveUsersWithFilterKeyCaseSensitivity() {
 		// This actually depends on the RDBMS.
 		assertEquals(1, db.retrieveUsers("USERNAME eq 'joe'").size());
+	}
+
+	@Test
+	public void canRetrieveUsersWithFilterOperatorCaseSensitivity() {
+		// This actually depends on the RDBMS.
+		assertEquals(1, db.retrieveUsers("username EQ 'joe'").size());
+	}
+
+	@Test
+	public void canRetrieveUsersWithFilterValueCaseSensitivity() {
+		// This actually depends on the RDBMS.
+		assertEquals(1, db.retrieveUsers("username eq 'Joe'").size());
 	}
 
 	@Test

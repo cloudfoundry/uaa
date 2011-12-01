@@ -8,6 +8,8 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -19,13 +21,33 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
 
 /**
  * @author Luke Taylor
  * @author Dave Syer
  */
 public class JdbcScimUserProvisioning implements ScimUserProvisioning {
+
 	private final Log logger = LogFactory.getLog(getClass());
+
+	static final Pattern emailsValuePattern = Pattern.compile("emails\\.value", Pattern.CASE_INSENSITIVE);
+	
+	static final Pattern coPattern = Pattern.compile("(.*?)([a-z0-9]*) co '(.*?)'(.*?)", Pattern.CASE_INSENSITIVE);
+
+	static final Pattern swPattern = Pattern.compile("(.*?)([a-z0-9]*) sw '(.*?)'(.*?)", Pattern.CASE_INSENSITIVE);
+
+	static final Pattern eqPattern = Pattern.compile("(.*?)([a-z0-9]*) eq '(.*?)'(.*?)", Pattern.CASE_INSENSITIVE);
+
+	static final Pattern prPattern = Pattern.compile(" pr([\\s]*)", Pattern.CASE_INSENSITIVE);
+
+	static final Pattern gtPattern = Pattern.compile(" gt ", Pattern.CASE_INSENSITIVE);
+
+	static final Pattern gePattern = Pattern.compile(" ge ", Pattern.CASE_INSENSITIVE);
+
+	static final Pattern ltPattern = Pattern.compile(" lt ", Pattern.CASE_INSENSITIVE);
+
+	static final Pattern lePattern = Pattern.compile(" le ", Pattern.CASE_INSENSITIVE);
 
 	public static final String USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName";
 
@@ -70,11 +92,19 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	@Override
 	public Collection<ScimUser> retrieveUsers(String filter) {
 
-		String where = filter.replace(" eq ", " = ").replace(" pr", " is not null ").replace(" ge ", " >= ")
-				.replace(" le ", " <= ").replace(" gt ", " > ").replace(" lt ", " < ")
-				.replaceAll(" co '(.*?)'", " like '%$1%'").replaceAll(" sw '(.*?)'", " like '$1%'")
-				// There is only one email address for now...
-				.replace("emails.value", "email");
+		String where = filter;
+
+		// There is only one email address for now...
+		where = StringUtils.arrayToDelimitedString(emailsValuePattern.split(where), "email");
+		
+		where = makeCaseInsensitive(where, coPattern, "%slower(%s) like '%%%s%%'%s");
+		where = makeCaseInsensitive(where, swPattern, "%slower(%s) like '%s%%'%s");
+		where = makeCaseInsensitive(where, eqPattern, "%slower(%s) = '%s'%s");
+		where = prPattern.matcher(where).replaceAll(" is not null$1");
+		where = gtPattern.matcher(where).replaceAll(" > ");
+		where = gePattern.matcher(where).replaceAll(" >= ");
+		where = ltPattern.matcher(where).replaceAll(" < ");
+		where = lePattern.matcher(where).replaceAll(" <= ");
 
 		logger.debug("Filtering users with SQL: " + where);
 
@@ -85,6 +115,14 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		List<ScimUser> input = jdbcTemplate.query(ALL_USERS + " WHERE " + where, mapper);
 		return input;
 
+	}
+
+	private String makeCaseInsensitive(String where, Pattern pattern, String template) {
+		Matcher matcher = pattern.matcher(where);
+		if (!matcher.matches()) {
+			return where;
+		}
+		return matcher.replaceAll(String.format(template, matcher.group(1), matcher.group(2), matcher.group(3).toLowerCase(), matcher.group(4)));
 	}
 
 	@Override
