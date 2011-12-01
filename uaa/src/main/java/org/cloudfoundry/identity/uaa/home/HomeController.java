@@ -1,4 +1,4 @@
-package org.cloudfoundry.identity.uaa.web;
+package org.cloudfoundry.identity.uaa.home;
 
 import java.security.Principal;
 import java.util.Map;

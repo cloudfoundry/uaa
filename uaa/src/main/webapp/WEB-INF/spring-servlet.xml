@@ -204,6 +204,6 @@
 		<property name="clientDetailsService" ref="clientDetails" />
 	</bean>
 
-	<bean id="homeController" class="org.cloudfoundry.identity.uaa.web.HomeController" />
+	<bean id="homeController" class="org.cloudfoundry.identity.uaa.home.HomeController" />
 
 </beans>

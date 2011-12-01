@@ -29,7 +29,6 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.springframework.http.HttpStatus;
 
 /**
  * @author Dave Syer
