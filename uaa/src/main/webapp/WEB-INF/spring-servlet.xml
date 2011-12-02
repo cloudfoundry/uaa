@@ -15,21 +15,44 @@
 	<sec:http pattern="/index.html" security="none" />
 	<sec:http pattern="/login_info" security="none" />
 
-	<!-- Anyone can create or update user accounts for now -->
-	<sec:http request-matcher-ref="userEndPointRequestMatcher" security="none" />
+	<http request-matcher-ref="userEndPointRequestMatcher" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
+		entry-point-ref="http403" access-decision-manager-ref="accessDecisionManager"
+		xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/User/*/password" access="SCOPE_PASSWORD" />
+		<intercept-url pattern="/Users*" access="SCOPE_READ" method="GET" />
+		<intercept-url pattern="/User/**" access="SCOPE_READ" method="GET" />
+		<intercept-url pattern="/User/**" access="SCOPE_WRITE" method="DELETE" />
+		<intercept-url pattern="/User*" access="SCOPE_WRITE" method="POST" />
+		<intercept-url pattern="/User/**" access="SCOPE_WRITE" method="PUT" />
+		<intercept-url pattern="/User/**" access="SCOPE_READ" method="GET" />
+		<anonymous />
+		<custom-filter ref="oauth2ResourceServerFilter" after="EXCEPTION_TRANSLATION_FILTER" />
+	</http>
+	
+	<authentication-manager id="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security"/>
 
 	<bean id="userEndPointRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
 		<constructor-arg value="/User" />
 	</bean>
 
+	<bean id="accessDecisionManager" class="org.springframework.security.access.vote.UnanimousBased" xmlns="http://www.springframework.org/schema/beans">
+		<constructor-arg>
+			<list>
+				<bean class="org.springframework.security.oauth2.provider.vote.ScopeVoter" />
+				<bean class="org.springframework.security.access.vote.RoleVoter" />
+				<bean class="org.springframework.security.access.vote.AuthenticatedVoter" />
+			</list>
+		</constructor-arg>
+	</bean>
+
 	<!-- Version of the /authorize endpoint for stateless clients such as VMC -->
-	<http request-matcher-ref="vmcRequestMatcher" create-session="stateless" entry-point-ref="http403"
+	<http request-matcher-ref="oauthAuthorizeRequestMatcher" create-session="stateless" entry-point-ref="http403"
 		authentication-manager-ref="userAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<custom-filter ref="authzAuthenticationFilter" position="FORM_LOGIN_FILTER" />
 	</http>
 
-	<bean id="vmcRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
+	<bean id="oauthAuthorizeRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
 		<constructor-arg value="/oauth/authorize" />
 		<constructor-arg value="application/json" />
 	</bean>
@@ -46,7 +69,16 @@
 		<http-basic />
 	</http>
 
-	<http access-denied-page="/" authentication-manager-ref="userAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
+	<http pattern="/userinfo" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
+		entry-point-ref="http403" access-decision-manager-ref="accessDecisionManager"
+		xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/**" access="SCOPE_OPENID" />
+		<anonymous />
+		<custom-filter ref="oauth2ResourceServerFilter" after="EXCEPTION_TRANSLATION_FILTER" />
+	</http>
+
+	<http access-denied-page="/" authentication-manager-ref="userAuthenticationMgr" access-decision-manager-ref="accessDecisionManager"
+		xmlns="http://www.springframework.org/schema/security">
 		<!-- machine API access to the authorization process itself is allowed -->
 		<intercept-url pattern="/login**" access="IS_AUTHENTICATED_ANONYMOUSLY" />
 		<intercept-url pattern="/oauth/token" access="IS_AUTHENTICATED_ANONYMOUSLY" />
@@ -56,7 +88,7 @@
 		<form-login authentication-failure-url="/login" login-page="/login" login-processing-url="/login.do"
 			username-parameter="username" password-parameter="password" />
 		<logout logout-success-url="/" logout-url="/logout.do" />
-		<custom-filter ref="oauth2ResourceServerFilter" before="EXCEPTION_TRANSLATION_FILTER" />
+		<custom-filter ref="oauth2ResourceServerFilter" after="EXCEPTION_TRANSLATION_FILTER" />
 	</http>
 
 	<authentication-manager id="clientAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
@@ -113,8 +145,8 @@
 	<oauth:client-details-service id="clientDetails">
 		<oauth:client client-id="app" authorized-grant-types="password,authorization_code,refresh_token" scope="read,openid"
 			authorities="ROLE_GUEST" secret="appclientsecret" />
-		<oauth:client client-id="www" authorized-grant-types="client_credentials" scope="read,openid"
-			authorities="ROLE_CLIENT" secret="wwwclientsecret" />
+		<oauth:client client-id="my" authorized-grant-types="authorization_code,refresh_token,implicit,client_credentials"
+			scope="openid,read,write,password" authorities="ROLE_CLIENT" secret="myclientsecret" />
 		<oauth:client client-id="vmc" authorized-grant-types="password,authorization_code,refresh_token,implicit"
 			scope="read,write" authorities="ROLE_GUEST" />
 	</oauth:client-details-service>
@@ -130,7 +162,7 @@
 
 	<!-- Add a handler adapter with special knowledge of the ScimUser endpoints -->
 	<bean class="org.cloudfoundry.identity.uaa.config.HandlerAdapterFactoryBean" />
-	
+
 	<bean class="org.cloudfoundry.identity.uaa.error.GenericExceptionResolver" parent="genericExceptionResolver">
 		<property name="responseGenerator">
 			<bean class="org.cloudfoundry.identity.uaa.error.ScimExceptionResponseGenerator" />
@@ -143,11 +175,11 @@
 			<bean class="org.cloudfoundry.identity.uaa.error.ConvertingExceptionResponseGenerator">
 				<property name="statuses">
 					<map key-type="java.lang.Class" value-type="org.springframework.http.HttpStatus">
-						<entry key="java.lang.IllegalArgumentException" value="BAD_REQUEST"/>
-						<entry key="java.lang.UnsupportedOperationException" value="BAD_REQUEST"/>
-						<entry key="org.cloudfoundry.identity.uaa.scim.InvalidPasswordException" value="BAD_REQUEST"/>
-						<entry key="org.cloudfoundry.identity.uaa.scim.InvalidUserException" value="BAD_REQUEST"/>
-						<entry key="org.cloudfoundry.identity.uaa.scim.UserNotFoundException" value="NOT_FOUND"/>
+						<entry key="java.lang.IllegalArgumentException" value="BAD_REQUEST" />
+						<entry key="java.lang.UnsupportedOperationException" value="BAD_REQUEST" />
+						<entry key="org.cloudfoundry.identity.uaa.scim.InvalidPasswordException" value="BAD_REQUEST" />
+						<entry key="org.cloudfoundry.identity.uaa.scim.InvalidUserException" value="BAD_REQUEST" />
+						<entry key="org.cloudfoundry.identity.uaa.scim.UserNotFoundException" value="NOT_FOUND" />
 					</map>
 				</property>
 			</bean>

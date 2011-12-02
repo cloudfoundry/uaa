@@ -95,8 +95,6 @@ public class ServerRunning extends TestWatchman {
 
 	private RestTemplate client;
 
-	private RestTemplate restTemplate;
-
 	/**
 	 * @return a new rule that assumes an existing running broker
 	 */
@@ -304,14 +302,14 @@ public class ServerRunning extends TestWatchman {
 	}
 
 	public RestTemplate getRestTemplate() {
-		if (restTemplate==null) {
-			restTemplate = createRestTemplate();
+		if (client==null) {
+			client = createRestTemplate();
 		}
-		return restTemplate;
+		return client;
 	}
 	
 	public void setRestTemplate(RestTemplate restTemplate) {
-		this.restTemplate = restTemplate;
+		this.client = restTemplate;
 	}
 	
 	public RestTemplate createRestTemplate() {

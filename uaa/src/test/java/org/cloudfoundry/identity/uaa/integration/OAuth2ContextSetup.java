@@ -12,19 +12,29 @@
  */
 package org.cloudfoundry.identity.uaa.integration;
 
+import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.util.Arrays;
+import java.util.List;
 
 import org.junit.rules.TestWatchman;
 import org.junit.runners.model.FrameworkMethod;
+import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
 import org.springframework.security.oauth2.client.UserRedirectRequiredException;
 import org.springframework.security.oauth2.client.context.OAuth2ClientContext;
 import org.springframework.security.oauth2.client.context.OAuth2ClientContextHolder;
 import org.springframework.security.oauth2.client.resource.OAuth2ProtectedResourceDetails;
+import org.springframework.security.oauth2.client.token.AccessTokenProvider;
+import org.springframework.security.oauth2.client.token.AccessTokenProviderChain;
 import org.springframework.security.oauth2.client.token.AccessTokenRequest;
 import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsAccessTokenProvider;
 import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
+import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordAccessTokenProvider;
+import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordResourceDetails;
 import org.springframework.security.oauth2.common.AuthenticationScheme;
+import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestTemplate;
 
 /**
@@ -39,16 +49,65 @@ public class OAuth2ContextSetup extends TestWatchman {
 
 	private OAuth2ProtectedResourceDetails resource;
 
-	public OAuth2ContextSetup(ServerRunning server) {
+	private OAuth2RestTemplate client;
+
+	private AccessTokenProviderChain accessTokenProvider;
+
+	public static OAuth2ContextSetup defaultClientCredentials(ServerRunning server) {
+		return clientCredentials(server, Arrays.asList("read,write,password"));
+	}
+
+	public static OAuth2ContextSetup clientCredentials(ServerRunning server, List<String> scopes) {
 		ClientCredentialsResourceDetails resource = new ClientCredentialsResourceDetails();
-		resource.setClientId("www");
-		resource.setClientSecret("wwwclientsecret");
-		resource.setId("openid");
-		resource.setScope(Arrays.asList("read"));
+		resource.setClientId("my");
+		resource.setClientSecret("myclientsecret");
+		resource.setId("my");
+		resource.setScope(scopes);
 		resource.setClientAuthenticationScheme(AuthenticationScheme.header);
 		resource.setAccessTokenUri(server.getUrlFromRoot("/oauth/token"));
-		server.setRestTemplate(new OAuth2RestTemplate(resource));
+		return new OAuth2ContextSetup(server, resource);
+	}
+
+	public static OAuth2ContextSetup resourceOwner(ServerRunning server, String username, String password) {
+		return resourceOwner(server, username, password, Arrays.asList("read", "openid"));
+	}
+
+	public static OAuth2ContextSetup resourceOwner(ServerRunning server, String username, String password, List<String> scopes) {
+		ResourceOwnerPasswordResourceDetails resource = new ResourceOwnerPasswordResourceDetails();
+		resource.setClientId("app");
+		resource.setClientSecret("appclientsecret");
+		resource.setId("app");
+		resource.setScope(scopes);
+		resource.setUsername(username);
+		resource.setPassword(password);
+		resource.setClientAuthenticationScheme(AuthenticationScheme.header);
+		resource.setAccessTokenUri(server.getUrlFromRoot("/oauth/token"));
+		return new OAuth2ContextSetup(server, resource);
+	}
+
+	public OAuth2ContextSetup(ServerRunning server, OAuth2ProtectedResourceDetails resource) {
 		this.resource = resource;
+		client = new OAuth2RestTemplate(resource);
+		client.setRequestFactory(new SimpleClientHttpRequestFactory() {
+			@Override
+			protected void prepareConnection(HttpURLConnection connection, String httpMethod) throws IOException {
+				super.prepareConnection(connection, httpMethod);
+				connection.setInstanceFollowRedirects(false);
+			}
+		});
+		client.setErrorHandler(new ResponseErrorHandler() {
+			// Pass errors through in response entity for status code analysis
+			public boolean hasError(ClientHttpResponse response) throws IOException {
+				return false;
+			}
+
+			public void handleError(ClientHttpResponse response) throws IOException {
+			}
+		});
+		server.setRestTemplate(client);
+		this.resource = resource;
+		this.accessTokenProvider = new AccessTokenProviderChain(Arrays.<AccessTokenProvider> asList(
+				new ClientCredentialsAccessTokenProvider(), new ResourceOwnerPasswordAccessTokenProvider()));
 	}
 
 	@Override
@@ -57,8 +116,7 @@ public class OAuth2ContextSetup extends TestWatchman {
 		OAuth2ClientContextHolder.setContext(context);
 		AccessTokenRequest request = new AccessTokenRequest();
 		try {
-			context.addAccessToken(resource,
-					new ClientCredentialsAccessTokenProvider().obtainAccessToken(resource, request));
+			context.addAccessToken(resource, accessTokenProvider.obtainAccessToken(resource, request));
 		}
 		catch (UserRedirectRequiredException e) {
 			throw new IllegalStateException("Client credentials not supported?", e);
@@ -75,7 +133,7 @@ public class OAuth2ContextSetup extends TestWatchman {
 	}
 
 	public RestTemplate getRestTemplate() {
-		return new OAuth2RestTemplate(resource);
+		return client;
 	}
 
 }

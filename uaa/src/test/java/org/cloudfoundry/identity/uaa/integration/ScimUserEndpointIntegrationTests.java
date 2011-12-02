@@ -23,7 +23,6 @@ import java.util.Map;
 import org.cloudfoundry.identity.uaa.scim.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -44,8 +43,7 @@ import org.springframework.web.client.RestTemplate;
  * @author Dave Syer
  */
 public class ScimUserEndpointIntegrationTests {
-	ObjectMapper mapper = new ObjectMapper();
-
+	
 	private final String userEndpoint = "/User";
 
 	private final String usersEndpoint = "/Users";
@@ -53,10 +51,8 @@ public class ScimUserEndpointIntegrationTests {
 	@Rule
 	public ServerRunning server = ServerRunning.isRunning();
 
-	// The SCIM endpoints aren't secure yet, but when they are they should require an access token, so let's set
-	// that up.
 	@Rule
-	public OAuth2ContextSetup context = new OAuth2ContextSetup(server);
+	public OAuth2ContextSetup context = OAuth2ContextSetup.defaultClientCredentials(server);
 
 	private RestTemplate client;
 
@@ -258,8 +254,14 @@ public class ScimUserEndpointIntegrationTests {
 
 	@Test
 	public void getReturnsNotFoundForNonExistentUser() throws Exception {
-		ResponseEntity<String> response = server.getForString(userEndpoint + "/9999");
+		@SuppressWarnings("rawtypes")
+		ResponseEntity<Map> response = client.exchange(server.getUrlFromRoot(userEndpoint + "/{id}"),
+				HttpMethod.GET, new HttpEntity<Void>((Void) null), Map.class, "9999");
+		@SuppressWarnings("unchecked")
+		Map<String, String> error = response.getBody();
 		assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+		assertEquals(ScimException.class.getName(), error.get("error"));
+		assertEquals("User 9999 does not exist", error.get("message"));
 	}
 
 	@Test
