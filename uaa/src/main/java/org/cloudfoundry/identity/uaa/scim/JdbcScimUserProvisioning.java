@@ -43,8 +43,26 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	private final Log logger = LogFactory.getLog(getClass());
 
+	public static final String USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName";
+
+	public static final String CREATE_USER_SQL = "insert into users (" + USER_FIELDS
+			+ ",password) values (?,?,?,?,?,?,?,?,?)";
+
+	public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, email=?, givenName=?, familyName=? where id = ? and version = ?";
+
+	// TODO: We should probably look into flagging the account rather than removing the user
+	public static final String DELETE_USER_SQL = "delete from users where id = ? and version = ?";
+
+	public static final String USER_BY_ID_QUERY = "select " + USER_FIELDS + " from users " + "where id = ?";
+
+	public static final String ALL_USERS = "select " + USER_FIELDS + " from users";
+
+	/*
+	 * Filter regexes for turning SCIM filters into SQL:
+	 */
+
 	static final Pattern emailsValuePattern = Pattern.compile("emails\\.value", Pattern.CASE_INSENSITIVE);
-	
+
 	static final Pattern coPattern = Pattern.compile("(.*?)([a-z0-9]*) co '(.*?)'(.*?)", Pattern.CASE_INSENSITIVE);
 
 	static final Pattern swPattern = Pattern.compile("(.*?)([a-z0-9]*) sw '(.*?)'(.*?)", Pattern.CASE_INSENSITIVE);
@@ -60,22 +78,6 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	static final Pattern ltPattern = Pattern.compile(" lt ", Pattern.CASE_INSENSITIVE);
 
 	static final Pattern lePattern = Pattern.compile(" le ", Pattern.CASE_INSENSITIVE);
-
-	public static final String USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName";
-
-	public static final String CREATE_USER_SQL =
-			"insert into users ("+USER_FIELDS+",password) values (?,?,?,?,?,?,?,?,?)";
-	public static final String UPDATE_USER_SQL =
-            "update users set version=?, lastModified=?, email=?, givenName=?, familyName=? where id = ? and version = ?";
-	// TODO: We should probably look into flagging the account rather than removing the user
-	public static final String DELETE_USER_SQL = "delete from users where id = ? and version = ?";
-	public static final String USER_BY_ID_QUERY =
-			"select " + USER_FIELDS +
-			" from users " +
-			"where id = ?";
-	public static final String ALL_USERS =
-			"select " + USER_FIELDS +
-			" from users";
 
 	private JdbcTemplate jdbcTemplate;
 
@@ -112,7 +114,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 		// There is only one email address for now...
 		where = StringUtils.arrayToDelimitedString(emailsValuePattern.split(where), "email");
-		
+
 		where = makeCaseInsensitive(where, coPattern, "%slower(%s) like '%%%s%%'%s");
 		where = makeCaseInsensitive(where, swPattern, "%slower(%s) like '%s%%'%s");
 		where = makeCaseInsensitive(where, eqPattern, "%slower(%s) = '%s'%s");
@@ -127,9 +129,9 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		if (where.contains("emails.")) {
 			throw new UnsupportedOperationException("Filters on email address fields other than 'value' not supported");
 		}
-		
+
 		String[] fragments = where.split(";");
-		if (fragments.length>1) {
+		if (fragments.length > 1) {
 			for (String fragment : fragments) {
 				if (StringUtils.countOccurrencesOf(fragment, "'") % 2 == 0) {
 					// No quote to escape the semicolon so looks like a SQL injection attack
@@ -148,11 +150,13 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		if (!matcher.matches()) {
 			return where;
 		}
-		return matcher.replaceAll(String.format(template, matcher.group(1), matcher.group(2), matcher.group(3).toLowerCase(), matcher.group(4)));
+		return matcher.replaceAll(String.format(template, matcher.group(1), matcher.group(2), matcher.group(3)
+				.toLowerCase(), matcher.group(4)));
 	}
 
 	@Override
-	public ScimUser createUser(final ScimUser user, final String password) throws InvalidPasswordException, InvalidUserException {
+	public ScimUser createUser(final ScimUser user, final String password) throws InvalidPasswordException,
+			InvalidUserException {
 
 		passwordValidator.validate(password, user);
 		validateUsername(user);
@@ -177,7 +181,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	private void validateUsername(final ScimUser user) throws InvalidUserException {
 		if (!user.getUserName().matches("[a-z0-9_.@]+")) {
-			throw new InvalidUserException("Username must be lower case alphanumeric with optional chatacters '._@'.");
+			throw new InvalidUserException("Username must be lower case alphanumeric with optional characters '._@'.");
 		}
 	}
 
@@ -186,7 +190,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		validateUsername(user);
 		int updated = jdbcTemplate.update(UPDATE_USER_SQL, new PreparedStatementSetter() {
 			public void setValues(PreparedStatement ps) throws SQLException {
-				ps.setInt(1, user.getVersion()+1);
+				ps.setInt(1, user.getVersion() + 1);
 				ps.setTimestamp(2, new Timestamp(new Date().getTime()));
 				ps.setString(3, user.getPrimaryEmail());
 				ps.setString(4, user.getName().getGivenName());
@@ -196,10 +200,12 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 			}
 		});
 		ScimUser result = retrieveUser(id);
-		if (updated==0) {
-			throw new OptimisticLockingFailureException(String.format("Attempt to update a user (%s) with wrong version: expected=%d but found=%d", id, result.getVersion(), user.getVersion()));
+		if (updated == 0) {
+			throw new OptimisticLockingFailureException(String.format(
+					"Attempt to update a user (%s) with wrong version: expected=%d but found=%d", id,
+					result.getVersion(), user.getVersion()));
 		}
-		if (updated>1) {
+		if (updated > 1) {
 			throw new IncorrectResultSizeDataAccessException(1);
 		}
 		return result;
@@ -209,10 +215,12 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	public ScimUser removeUser(String id, int version) {
 		ScimUser user = retrieveUser(id);
 		int updated = jdbcTemplate.update(DELETE_USER_SQL, id, version);
-		if (updated==0) {
-			throw new OptimisticLockingFailureException(String.format("Attempt to update a user (%s) with wrong version: expected=%d but found=%d", id, user.getVersion(), version));
+		if (updated == 0) {
+			throw new OptimisticLockingFailureException(String.format(
+					"Attempt to update a user (%s) with wrong version: expected=%d but found=%d", id,
+					user.getVersion(), version));
 		}
-		if (updated>1) {
+		if (updated > 1) {
 			throw new IncorrectResultSizeDataAccessException(1);
 		}
 		return user;
