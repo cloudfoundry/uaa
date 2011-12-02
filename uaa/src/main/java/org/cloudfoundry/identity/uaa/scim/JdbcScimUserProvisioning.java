@@ -27,6 +27,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Meta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Name;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -52,6 +53,9 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	// TODO: We should probably look into flagging the account rather than removing the user
 	public static final String DELETE_USER_SQL = "delete from users where id = ? and version = ?";
+
+	// TODO: We should probably look into flagging the account rather than removing the user
+	public static final String CHANGE_PASSWORD_SQL = "update users set lastModified=?, password=? where id = ?";
 
 	public static final String USER_BY_ID_QUERY = "select " + USER_FIELDS + " from users " + "where id = ?";
 
@@ -92,8 +96,13 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	@Override
 	public ScimUser retrieveUser(String id) {
-		ScimUser u = jdbcTemplate.queryForObject(USER_BY_ID_QUERY, mapper, id);
-		return u;
+		try {
+			ScimUser u = jdbcTemplate.queryForObject(USER_BY_ID_QUERY, mapper, id);
+			return u;
+		}
+		catch (EmptyResultDataAccessException e) {
+			throw new UserNotFoundException("User " + id + " does not exist");
+		}
 	}
 
 	@Override
@@ -209,6 +218,24 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 			throw new IncorrectResultSizeDataAccessException(1);
 		}
 		return result;
+	}
+
+	@Override
+	public boolean changePassword(final String id, final String password) throws UserNotFoundException {
+		int updated = jdbcTemplate.update(CHANGE_PASSWORD_SQL, new PreparedStatementSetter() {
+			public void setValues(PreparedStatement ps) throws SQLException {
+				ps.setTimestamp(1, new Timestamp(new Date().getTime()));
+				ps.setString(2, password);
+				ps.setString(3, id);
+			}
+		});
+		if (updated == 0) {
+			throw new UserNotFoundException("User " + id + " does not exist");
+		}
+		if (updated != 1) {
+			throw new IncorrectResultSizeDataAccessException(1);
+		}
+		return true;
 	}
 
 	@Override

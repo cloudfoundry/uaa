@@ -113,6 +113,8 @@
 	<oauth:client-details-service id="clientDetails">
 		<oauth:client client-id="app" authorized-grant-types="password,authorization_code,refresh_token" scope="read,openid"
 			authorities="ROLE_GUEST" secret="appclientsecret" />
+		<oauth:client client-id="www" authorized-grant-types="client_credentials" scope="read,openid"
+			authorities="ROLE_CLIENT" secret="wwwclientsecret" />
 		<oauth:client client-id="vmc" authorized-grant-types="password,authorization_code,refresh_token,implicit"
 			scope="read,write" authorities="ROLE_GUEST" />
 	</oauth:client-details-service>

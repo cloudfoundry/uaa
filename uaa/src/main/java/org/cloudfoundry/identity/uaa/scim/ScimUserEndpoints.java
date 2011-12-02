@@ -54,6 +54,14 @@ public class ScimUserEndpoints implements InitializingBean {
 
 	private Collection<String> schemas = Arrays.asList(ScimUser.SCHEMAS);
 
+	private static final Random passwordGenerator = new SecureRandom();
+
+	private static String generatePassword() {
+		byte[] bytes = new byte[16];
+		passwordGenerator.nextBytes(bytes);
+		return new String(Hex.encode(bytes));
+	}
+
 	@RequestMapping(value = "/User/{userId}", method = RequestMethod.GET)
 	@ResponseBody
 	public ScimUser getUser(@PathVariable String userId) {
@@ -67,14 +75,6 @@ public class ScimUserEndpoints implements InitializingBean {
 		return dao.createUser(user, generatePassword());
 	}
 
-	private static final Random passwordGenerator = new SecureRandom();
-
-	private static String generatePassword() {
-		byte[] bytes = new byte[16];
-		passwordGenerator.nextBytes(bytes);
-		return new String(Hex.encode(bytes));
-	}
-
 	@RequestMapping(value = "/User/{userId}", method = RequestMethod.PUT)
 	@ResponseBody
 	public ScimUser updateUser(@RequestBody ScimUser user, @PathVariable String userId,
@@ -85,6 +85,14 @@ public class ScimUserEndpoints implements InitializingBean {
 		int version = getVersion(userId, etag);
 		user.setVersion(version);
 		return dao.updateUser(userId, user);
+	}
+
+	@RequestMapping(value = "/User/{userId}/password", method = RequestMethod.PUT)
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void changePassword(@PathVariable String userId, @RequestBody PasswordChangeRequest change) {
+		if (!dao.changePassword(userId, change.getPassword())) {
+			throw new ScimException("Password not changed for user: " + userId, HttpStatus.BAD_REQUEST);
+		} 
 	}
 
 	@RequestMapping(value = "/User/{userId}", method = RequestMethod.DELETE)

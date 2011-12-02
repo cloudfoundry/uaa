@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.scim;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Collection;
 import java.util.UUID;
@@ -156,8 +157,25 @@ public class JdbcScimUserProvisioningTests {
 	}
 
 	@Test
+	public void canChangePassword() throws Exception {
+		assertTrue(db.changePassword(JOE_ID, "newpassword"));
+		assertEquals("newpassword", template.queryForObject("SELECT password from USERS where ID=?", String.class, JOE_ID));
+	}
+
+	@Test(expected=UserNotFoundException.class)
+	public void cannotChangePasswordNonexistentUser() {
+		assertTrue(db.changePassword("9999", "newpassword"));
+	}
+
+	@Test
 	public void canRetrieveExistingUser() {
 		ScimUser joe = db.retrieveUser(JOE_ID);
+		assertJoe(joe);
+	}
+
+	@Test(expected=UserNotFoundException.class)
+	public void cannotRetrieveNonexistentUser() {
+		ScimUser joe = db.retrieveUser("9999");
 		assertJoe(joe);
 	}
 
@@ -175,6 +193,12 @@ public class JdbcScimUserProvisioningTests {
 		ScimUser joe = db.removeUser(JOE_ID, 0);
 		assertJoe(joe);
 		template.queryForList("select * from users").isEmpty();
+	}
+
+	@Test(expected=UserNotFoundException.class)
+	public void cannotRemoveNonexistentUser() {
+		ScimUser joe = db.removeUser("9999", 0);
+		assertJoe(joe);
 	}
 
 	@Test(expected = OptimisticLockingFailureException.class)

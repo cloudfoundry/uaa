@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.cloudfoundry.identity.uaa.scim.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -51,12 +52,19 @@ public class ScimUserEndpointIntegrationTests {
 
 	@Rule
 	public ServerRunning server = ServerRunning.isRunning();
-	
+
+	// The SCIM endpoints aren't secure yet, but when they are they should require an access token, so let's set
+	// that up.
+	@Rule
+	public OAuth2ContextSetup context = new OAuth2ContextSetup(server);
+
 	private RestTemplate client;
 
 	@Before
-	public void createRestTemplate() {
-		client = server.getRestTemplate();
+	public void createRestTemplate() throws Exception {
+
+		client = context.getRestTemplate();
+
 		List<HttpMessageConverter<?>> list = new ArrayList<HttpMessageConverter<?>>();
 		list.add(new MappingJacksonHttpMessageConverter());
 		list.add(new StringHttpMessageConverter());
@@ -71,6 +79,7 @@ public class ScimUserEndpointIntegrationTests {
 			}
 		});
 		client.setMessageConverters(list);
+
 		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> response = server.getForObject(usersEndpoint
 				+ "?filter=userName eq 'joe' or userName eq 'joel'", Map.class);
@@ -88,16 +97,16 @@ public class ScimUserEndpointIntegrationTests {
 	private ResponseEntity<Map> deleteUser(String id) {
 		HttpHeaders headers = new HttpHeaders();
 		headers.add("If-Match", "*");
-		return client.exchange(server.getUrlFromRoot(userEndpoint + "/{id}"), HttpMethod.DELETE, new HttpEntity<Void>(headers),
-				Map.class, id);
+		return client.exchange(server.getUrlFromRoot(userEndpoint + "/{id}"), HttpMethod.DELETE, new HttpEntity<Void>(
+				headers), Map.class, id);
 	}
 
 	@SuppressWarnings("rawtypes")
 	private ResponseEntity<Map> deleteUser(String id, int version) {
 		HttpHeaders headers = new HttpHeaders();
 		headers.add("If-Match", "\"" + version + "\"");
-		return client.exchange(server.getUrlFromRoot(userEndpoint + "/{id}"), HttpMethod.DELETE, new HttpEntity<Void>(headers),
-				Map.class, id);
+		return client.exchange(server.getUrlFromRoot(userEndpoint + "/{id}"), HttpMethod.DELETE, new HttpEntity<Void>(
+				headers), Map.class, id);
 	}
 
 	// curl -v -H "Content-Type: application/json" -H "Accept: application/json" --data
@@ -109,12 +118,14 @@ public class ScimUserEndpointIntegrationTests {
 		user.setName(new ScimUser.Name("Joe", "User"));
 		user.addEmail("joe@blah.com");
 
-		ResponseEntity<ScimUser> response = client.postForEntity(server.getUrlFromRoot(userEndpoint), user, ScimUser.class);
+		ResponseEntity<ScimUser> response = client.postForEntity(server.getUrlFromRoot(userEndpoint), user,
+				ScimUser.class);
 		ScimUser joe1 = response.getBody();
 		assertEquals("joe", joe1.getUserName());
 
 		// Check we can GET the user
-		ScimUser joe2 = client.getForObject(server.getUrlFromRoot(userEndpoint + "/{id}"), ScimUser.class, joe1.getId());
+		ScimUser joe2 = client
+				.getForObject(server.getUrlFromRoot(userEndpoint + "/{id}"), ScimUser.class, joe1.getId());
 
 		assertEquals(joe1.getId(), joe2.getId());
 	}
@@ -126,15 +137,16 @@ public class ScimUserEndpointIntegrationTests {
 		user.setName(new ScimUser.Name("Joe", "User"));
 		user.addEmail("joe@blah.com");
 
-		ResponseEntity<ScimUser> response = client.postForEntity(server.getUrlFromRoot(userEndpoint), user, ScimUser.class);
+		ResponseEntity<ScimUser> response = client.postForEntity(server.getUrlFromRoot(userEndpoint), user,
+				ScimUser.class);
 		ScimUser joe = response.getBody();
 		assertEquals("joe", joe.getUserName());
 
 		// Check we can GET the user
-		ResponseEntity<ScimUser> result = client.getForEntity(server.getUrlFromRoot(userEndpoint + "/{id}"), ScimUser.class, joe.getId());
-		assertEquals("\""+joe.getVersion() + "\"", result.getHeaders().getFirst("ETag"));
+		ResponseEntity<ScimUser> result = client.getForEntity(server.getUrlFromRoot(userEndpoint + "/{id}"),
+				ScimUser.class, joe.getId());
+		assertEquals("\"" + joe.getVersion() + "\"", result.getHeaders().getFirst("ETag"));
 	}
-
 
 	// curl -v -H "Content-Type: application/json" -X PUT -H "Accept: application/json" --data
 	// "{\"userName\":\"joe\",\"schemas\":[\"urn:scim:schemas:core:1.0\"]}" http://localhost:8080/uaa/User
@@ -146,7 +158,8 @@ public class ScimUserEndpointIntegrationTests {
 		user.setName(new ScimUser.Name("Joe", "User"));
 		user.addEmail("joe@blah.com");
 
-		ResponseEntity<ScimUser> response = client.postForEntity(server.getUrlFromRoot(userEndpoint), user, ScimUser.class);
+		ResponseEntity<ScimUser> response = client.postForEntity(server.getUrlFromRoot(userEndpoint), user,
+				ScimUser.class);
 
 		ScimUser joe = response.getBody();
 		assertEquals("joe", joe.getUserName());
@@ -155,12 +168,39 @@ public class ScimUserEndpointIntegrationTests {
 
 		HttpHeaders headers = new HttpHeaders();
 		headers.add("If-Match", "\"" + joe.getVersion() + "\"");
-		response = client.exchange(server.getUrlFromRoot(userEndpoint) + "/{id}", HttpMethod.PUT, new HttpEntity<ScimUser>(joe,
-				headers), ScimUser.class, joe.getId());
+		response = client.exchange(server.getUrlFromRoot(userEndpoint) + "/{id}", HttpMethod.PUT,
+				new HttpEntity<ScimUser>(joe, headers), ScimUser.class, joe.getId());
 		ScimUser joe1 = response.getBody();
 		assertEquals("joe", joe1.getUserName());
 
 		assertEquals(joe.getId(), joe1.getId());
+
+	}
+
+	// curl -v -H "Content-Type: application/json" -X PUT -H "Accept: application/json" --data
+	// "{\"password\":\"newpassword\",\"schemas\":[\"urn:scim:schemas:core:1.0\"]}"
+	// http://localhost:8080/uaa/User/{id}/password
+	@Test
+	public void changePasswordSucceeds() throws Exception {
+
+		ScimUser user = new ScimUser();
+		user.setUserName("joe");
+		user.setName(new ScimUser.Name("Joe", "User"));
+		user.addEmail("joe@blah.com");
+
+		ResponseEntity<ScimUser> response = client.postForEntity(server.getUrlFromRoot(userEndpoint), user,
+				ScimUser.class);
+
+		ScimUser joe = response.getBody();
+		assertEquals("joe", joe.getUserName());
+
+		PasswordChangeRequest change = new PasswordChangeRequest();
+		change.setPassword("newpassword");
+
+		HttpHeaders headers = new HttpHeaders();
+		ResponseEntity<Void> result = client.exchange(server.getUrlFromRoot(userEndpoint) + "/{id}/password",
+				HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers), null, joe.getId());
+		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
 
 	}
 
@@ -206,8 +246,8 @@ public class ScimUserEndpointIntegrationTests {
 	@Test
 	public void deleteUserWithNoEtagFails() throws Exception {
 		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = client.exchange(server.getUrlFromRoot(userEndpoint + "/{id}"), HttpMethod.DELETE,
-				new HttpEntity<Void>((Void) null), Map.class, "joe");
+		ResponseEntity<Map> response = client.exchange(server.getUrlFromRoot(userEndpoint + "/{id}"),
+				HttpMethod.DELETE, new HttpEntity<Void>((Void) null), Map.class, "joe");
 		@SuppressWarnings("unchecked")
 		Map<String, String> error = response.getBody();
 		// System.err.println(error);

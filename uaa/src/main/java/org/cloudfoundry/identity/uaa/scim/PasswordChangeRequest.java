@@ -12,26 +12,34 @@
  */
 package org.cloudfoundry.identity.uaa.scim;
 
-import java.util.Collection;
+import java.util.Arrays;
+
+import org.codehaus.jackson.map.annotate.JsonSerialize;
+import org.springframework.util.Assert;
 
 /**
- * @author Luke Taylor
  * @author Dave Syer
+ *
  */
-public interface ScimUserProvisioning {
-
-	public ScimUser retrieveUser(String id) throws UserNotFoundException;
-
-	public Collection<ScimUser> retrieveUsers();
-
-	public Collection<ScimUser> retrieveUsers(String filter);
-
-	public ScimUser createUser(ScimUser user, String password) throws InvalidPasswordException, InvalidUserException;
-
-	public ScimUser updateUser(String id, ScimUser user) throws InvalidUserException, UserNotFoundException;
+@JsonSerialize (include = JsonSerialize.Inclusion.NON_NULL)
+public class PasswordChangeRequest {
 	
-	public boolean changePassword(String id, String password) throws UserNotFoundException;
+	private String password;
 
-	public ScimUser removeUser(String id, int version) throws UserNotFoundException;
+	public String getPassword() {
+		return password;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
+	}
+
+	public void setSchemas(String[] schemas) {
+		Assert.isTrue(Arrays.equals(ScimUser.SCHEMAS, schemas), "Only schema '" + ScimUser.SCHEMAS[0] + "' is currently supported");
+	}
+
+	public String[] getSchemas() {
+		return ScimUser.SCHEMAS;
+	}
 
 }

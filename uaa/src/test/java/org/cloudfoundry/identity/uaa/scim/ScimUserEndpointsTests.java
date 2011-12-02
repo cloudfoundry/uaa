@@ -43,7 +43,9 @@ public class ScimUserEndpointsTests {
 
 	private ScimUser dale = new ScimUser("2", "olds", "Dale", "Olds");
 
-	private InMemoryScimUserProvisioning dao = new InMemoryScimUserProvisioning(new HashMap<String, UaaUser>());
+	private Map<String, UaaUser> users = new HashMap<String, UaaUser>();
+
+	private InMemoryScimUserProvisioning dao = new InMemoryScimUserProvisioning(users );
 
 	private ScimUserEndpoints endpoints;;
 
@@ -54,6 +56,15 @@ public class ScimUserEndpointsTests {
 		dale.addEmail("olds@vmware.com");
 		joel = dao.createUser(joel, "password");
 		dale = dao.createUser(dale, "password");
+	}
+
+	@Test
+	public void testChangePassword() {
+		String id = users.get("jdsa").getId();
+		PasswordChangeRequest change = new PasswordChangeRequest();
+		change.setPassword("newpassword");
+		endpoints.changePassword(id, change );
+		assertEquals("newpassword", users.get("jdsa").getPassword());
 	}
 
 	@Test

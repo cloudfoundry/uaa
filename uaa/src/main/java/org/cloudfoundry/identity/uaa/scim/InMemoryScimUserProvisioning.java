@@ -39,11 +39,12 @@ public class InMemoryScimUserProvisioning implements ScimUserProvisioning {
 
 	private int counter = 1;
 
-	private final ConcurrentMap<String, UaaUser> users = new ConcurrentHashMap<String, UaaUser>();
+	private final Map<String, UaaUser> users;
 
 	private final ConcurrentMap<String, String> ids = new ConcurrentHashMap<String, String>();
 
 	public InMemoryScimUserProvisioning(Map<String, UaaUser> users) {
+		this.users = users; // so we can share the storage with a UaaDatabase
 		for (UaaUser user : users.values()) {
 			addUser(user);
 		}
@@ -145,10 +146,22 @@ public class InMemoryScimUserProvisioning implements ScimUserProvisioning {
 		if (!ids.containsKey(id)) {
 			throw new UserNotFoundException("User " + id + " does not exist");
 		}
-		UaaUser uaa = users.get(ids.get(id));
+		UaaUser uaa = users.remove(ids.get(id));
 		String name = uaa.getUsername();
 		users.put(name, getUaaUser(user, uaa.getPassword()).id(Integer.valueOf(id)));
 		ids.replace(id, name);
 		return user;
+	}
+
+	@Override
+	public boolean changePassword(String id, String password) throws UserNotFoundException {
+		if (!ids.containsKey(id)) {
+			throw new UserNotFoundException("User " + id + " does not exist");
+		}
+		UaaUser uaa = users.remove(ids.get(id));
+		String name = uaa.getUsername();
+		users.put(name, new UaaUser(name, password, uaa.getEmail(), uaa.getGivenName(), uaa.getFamilyName()).id(Integer.valueOf(id)));
+		ids.replace(id, name);
+		return true;
 	}
 }

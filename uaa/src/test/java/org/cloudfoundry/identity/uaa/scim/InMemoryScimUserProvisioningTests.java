@@ -14,9 +14,11 @@ package org.cloudfoundry.identity.uaa.scim;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.junit.Before;
@@ -30,7 +32,8 @@ import org.springframework.expression.spel.SpelEvaluationException;
  */
 public class InMemoryScimUserProvisioningTests {
 
-	private InMemoryScimUserProvisioning db =  new InMemoryScimUserProvisioning(new HashMap<String, UaaUser>());
+	private Map<String, UaaUser> users = new HashMap<String, UaaUser>();
+	private InMemoryScimUserProvisioning db =  new InMemoryScimUserProvisioning(users);
 
 	@Before
 	public void seed() {
@@ -74,6 +77,12 @@ public class InMemoryScimUserProvisioningTests {
 		}
 		assertNotNull(joe);
 		assertEquals("1", joe.getId());
+	}
+
+	@Test
+	public void canChangePassword() throws Exception {
+		assertTrue(db.changePassword("1", "newpassword"));
+		assertEquals("newpassword", users.get("joe").getPassword());
 	}
 
 	@Test
