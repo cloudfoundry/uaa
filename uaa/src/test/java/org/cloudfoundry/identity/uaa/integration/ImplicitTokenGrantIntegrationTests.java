@@ -79,7 +79,7 @@ public class ImplicitTokenGrantIntegrationTests {
 
 		ResponseEntity<String> response = serverRunning.getForString(location, headers);
 		// should be directed to the login screen...
-		assertTrue(response.getBody().contains("uaa/login.do"));
+		assertTrue(response.getBody().contains("/login.do"));
 		assertTrue(response.getBody().contains("username"));
 		assertTrue(response.getBody().contains("password"));
 
