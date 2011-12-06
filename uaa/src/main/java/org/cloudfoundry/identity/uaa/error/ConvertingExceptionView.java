@@ -16,10 +16,13 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.MediaType;
@@ -29,64 +32,40 @@ import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.http.server.ServletServerHttpRequest;
 import org.springframework.http.server.ServletServerHttpResponse;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.servlet.ModelAndView;
-import org.springframework.web.servlet.handler.AbstractHandlerExceptionResolver;
+import org.springframework.web.servlet.View;
 
 /**
  * @author Dave Syer
+ * 
  */
-public class GenericExceptionResolver extends AbstractHandlerExceptionResolver {
+public class ConvertingExceptionView implements View {
 
-	private HttpMessageConverter<?>[] messageConverters = new RestTemplate().getMessageConverters().toArray(
-			new HttpMessageConverter<?>[0]);
+	private static final Log logger = LogFactory.getLog(ConvertingExceptionView.class);
 
-	private ResponseGenerator<Exception> responseGenerator = new DefaultExceptionResponseGenerator();
+	private ResponseEntity<? extends Exception> responseEntity;
 
-	/**
-	 * @param responseGenerator the responseGenerator to set
-	 */
-	public void setResponseGenerator(ResponseGenerator<Exception> responseGenerator) {
-		this.responseGenerator = responseGenerator;
-	}
+	private final HttpMessageConverter<?>[] messageConverters;
 
-	/**
-	 * Set the message body converters to use.
-	 * <p>
-	 * These converters are used to convert from and to HTTP requests and responses.
-	 */
-	public void setMessageConverters(HttpMessageConverter<?>[] messageConverters) {
+	public ConvertingExceptionView(ResponseEntity<? extends Exception> responseEntity, HttpMessageConverter<?>[] messageConverters) {
+		this.responseEntity = responseEntity;
 		this.messageConverters = messageConverters;
 	}
 
-	public HttpMessageConverter<?>[] getMessageConverters() {
-		return messageConverters;
+	@Override
+	public String getContentType() {
+		return null;
 	}
 
 	@Override
-	protected ModelAndView doResolveException(HttpServletRequest request, HttpServletResponse response, Object handler,
-			Exception ex) {
-		if (!responseGenerator.supports(ex.getClass())) {
-			return null;
-		}
-		ResponseEntity<? extends Exception> responseEntity = responseGenerator.generateResponseEntity(handler, ex);
-		if (responseEntity == null) {
-			return null;
-		}
+	public void render(Map<String, ?> model, HttpServletRequest request, HttpServletResponse response) throws Exception {
 		try {
 			HttpInputMessage inputMessage = createHttpInputMessage(request);
 			HttpOutputMessage outputMessage = createHttpOutputMessage(response);
-			for (MediaType mediaType : inputMessage.getHeaders().getAccept()) {
-				if (MediaType.APPLICATION_JSON.isCompatibleWith(mediaType)) {
-					handleHttpEntityResponse(responseEntity, inputMessage, outputMessage);
-					return new ModelAndView();
-				}
-			}
+			handleHttpEntityResponse(responseEntity, inputMessage, outputMessage);
 		}
 		catch (Exception invocationEx) {
 			logger.error("Invoking request method resulted in exception", invocationEx);
 		}
-		return null;
 	}
 
 	/**
@@ -139,10 +118,10 @@ public class GenericExceptionResolver extends AbstractHandlerExceptionResolver {
 		MediaType.sortByQualityValue(acceptedMediaTypes);
 		Class<?> returnValueType = returnValue.getClass();
 		List<MediaType> allSupportedMediaTypes = new ArrayList<MediaType>();
-		if (getMessageConverters() != null) {
+		if (messageConverters != null) {
 			for (MediaType acceptedMediaType : acceptedMediaTypes) {
 				for (@SuppressWarnings("rawtypes")
-				HttpMessageConverter messageConverter : getMessageConverters()) {
+				HttpMessageConverter messageConverter : messageConverters) {
 					if (messageConverter.canWrite(returnValueType, acceptedMediaType)) {
 						messageConverter.write(returnValue, acceptedMediaType, outputMessage);
 						if (logger.isDebugEnabled()) {

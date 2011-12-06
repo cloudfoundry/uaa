@@ -219,6 +219,7 @@ public class ScimUserEndpointIntegrationTests {
 		@SuppressWarnings("unchecked")
 		Map<String, String> error = response.getBody();
 
+		// System.err.println(error);
 		assertEquals(ScimException.class.getName(), error.get("error"));
 
 	}

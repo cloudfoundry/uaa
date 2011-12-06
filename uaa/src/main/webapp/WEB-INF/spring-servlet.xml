@@ -16,8 +16,7 @@
 	<sec:http pattern="/login_info" security="none" />
 
 	<http request-matcher-ref="userEndPointRequestMatcher" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
-		entry-point-ref="http403" access-decision-manager-ref="accessDecisionManager"
-		xmlns="http://www.springframework.org/schema/security">
+		entry-point-ref="http403" access-decision-manager-ref="accessDecisionManager" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/User/*/password" access="SCOPE_PASSWORD" />
 		<intercept-url pattern="/Users*" access="SCOPE_READ" method="GET" />
 		<intercept-url pattern="/User/**" access="SCOPE_READ" method="GET" />
@@ -28,8 +27,8 @@
 		<anonymous />
 		<custom-filter ref="oauth2ResourceServerFilter" after="EXCEPTION_TRANSLATION_FILTER" />
 	</http>
-	
-	<authentication-manager id="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security"/>
+
+	<authentication-manager id="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security" />
 
 	<bean id="userEndPointRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
 		<constructor-arg value="/User" />
@@ -70,8 +69,7 @@
 	</http>
 
 	<http pattern="/userinfo" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
-		entry-point-ref="http403" access-decision-manager-ref="accessDecisionManager"
-		xmlns="http://www.springframework.org/schema/security">
+		entry-point-ref="http403" access-decision-manager-ref="accessDecisionManager" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="SCOPE_OPENID" />
 		<anonymous />
 		<custom-filter ref="oauth2ResourceServerFilter" after="EXCEPTION_TRANSLATION_FILTER" />
@@ -163,46 +161,6 @@
 	<!-- Add a handler adapter with special knowledge of the ScimUser endpoints -->
 	<bean class="org.cloudfoundry.identity.uaa.config.HandlerAdapterFactoryBean" />
 
-	<bean class="org.cloudfoundry.identity.uaa.error.GenericExceptionResolver" parent="genericExceptionResolver">
-		<property name="responseGenerator">
-			<bean class="org.cloudfoundry.identity.uaa.error.ScimExceptionResponseGenerator" />
-		</property>
-		<property name="order" value="0" />
-	</bean>
-
-	<bean class="org.cloudfoundry.identity.uaa.error.GenericExceptionResolver" parent="genericExceptionResolver">
-		<property name="responseGenerator">
-			<bean class="org.cloudfoundry.identity.uaa.error.ConvertingExceptionResponseGenerator">
-				<property name="statuses">
-					<map key-type="java.lang.Class" value-type="org.springframework.http.HttpStatus">
-						<entry key="java.lang.IllegalArgumentException" value="BAD_REQUEST" />
-						<entry key="java.lang.UnsupportedOperationException" value="BAD_REQUEST" />
-						<entry key="org.cloudfoundry.identity.uaa.scim.InvalidPasswordException" value="BAD_REQUEST" />
-						<entry key="org.cloudfoundry.identity.uaa.scim.InvalidUserException" value="BAD_REQUEST" />
-						<entry key="org.cloudfoundry.identity.uaa.scim.UserNotFoundException" value="NOT_FOUND" />
-						<entry key="org.springframework.jdbc.BadSqlGrammarException" value="BAD_REQUEST"/>
-					</map>
-				</property>
-			</bean>
-		</property>
-		<property name="order" value="1" />
-	</bean>
-
-	<bean id="genericExceptionResolver" class="org.cloudfoundry.identity.uaa.error.GenericExceptionResolver">
-		<property name="messageConverters">
-			<bean class="org.cloudfoundry.identity.uaa.error.ExceptionHttpMessageConverter" />
-		</property>
-		<property name="order" value="2" />
-	</bean>
-
-	<bean class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerExceptionResolver">
-		<property name="order" value="-1" />
-	</bean>
-
-	<bean class="org.springframework.web.servlet.mvc.annotation.ResponseStatusExceptionResolver" />
-
-	<bean class="org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver" />
-
 	<bean id="viewResolver" class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
 		<property name="mediaTypes">
 			<map>
@@ -234,6 +192,19 @@
 
 	<bean id="scimEndpoints" class="org.cloudfoundry.identity.uaa.scim.ScimUserEndpoints">
 		<property name="scimUserProvisioning" ref="scimUserProvisioning" />
+		<property name="statuses">
+			<map key-type="java.lang.Class" value-type="org.springframework.http.HttpStatus">
+				<entry key="java.lang.IllegalArgumentException" value="BAD_REQUEST" />
+				<entry key="java.lang.UnsupportedOperationException" value="BAD_REQUEST" />
+				<entry key="org.cloudfoundry.identity.uaa.scim.InvalidPasswordException" value="BAD_REQUEST" />
+				<entry key="org.cloudfoundry.identity.uaa.scim.InvalidUserException" value="BAD_REQUEST" />
+				<entry key="org.cloudfoundry.identity.uaa.scim.UserNotFoundException" value="NOT_FOUND" />
+				<entry key="org.springframework.jdbc.BadSqlGrammarException" value="BAD_REQUEST" />
+			</map>
+		</property>
+		<property name="messageConverters">
+			<bean class="org.cloudfoundry.identity.uaa.error.ExceptionHttpMessageConverter" />
+		</property>
 	</bean>
 
 	<bean id="accessController" class="org.cloudfoundry.identity.uaa.oauth.AccessController">

@@ -16,21 +16,26 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Random;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.expression.Expression;
 import org.springframework.expression.spel.SpelParseException;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.security.crypto.codec.Hex;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -39,6 +44,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.servlet.View;
 
 /**
  * 
@@ -55,6 +62,29 @@ public class ScimUserEndpoints implements InitializingBean {
 	private Collection<String> schemas = Arrays.asList(ScimUser.SCHEMAS);
 
 	private static final Random passwordGenerator = new SecureRandom();
+
+	private Map<Class<? extends Exception>, HttpStatus> statuses = new HashMap<Class<? extends Exception>, HttpStatus>();
+
+	private HttpMessageConverter<?>[] messageConverters = new RestTemplate().getMessageConverters().toArray(
+			new HttpMessageConverter<?>[0]);
+
+	/**
+	 * Set the message body converters to use.
+	 * <p>
+	 * These converters are used to convert from and to HTTP requests and responses.
+	 */
+	public void setMessageConverters(HttpMessageConverter<?>[] messageConverters) {
+		this.messageConverters = messageConverters;
+	}
+
+	/**
+	 * Map from exception type to Http status.
+	 * 
+	 * @param statuses the statuses to set
+	 */
+	public void setStatuses(Map<Class<? extends Exception>, HttpStatus> statuses) {
+		this.statuses = statuses;
+	}
 
 	private static String generatePassword() {
 		byte[] bytes = new byte[16];
@@ -92,7 +122,7 @@ public class ScimUserEndpoints implements InitializingBean {
 	public void changePassword(@PathVariable String userId, @RequestBody PasswordChangeRequest change) {
 		if (!dao.changePassword(userId, change.getPassword())) {
 			throw new ScimException("Password not changed for user: " + userId, HttpStatus.BAD_REQUEST);
-		} 
+		}
 	}
 
 	@RequestMapping(value = "/User/{userId}", method = RequestMethod.DELETE)
@@ -167,6 +197,24 @@ public class ScimUserEndpoints implements InitializingBean {
 
 		return new SearchResults<Map<String, Object>>(schemas, users, 1, users.size(), users.size());
 
+	}
+
+	@ExceptionHandler
+	public View handleException(Exception t) throws ScimException {
+		ScimException e = new ScimException("Unexpected error", t, HttpStatus.INTERNAL_SERVER_ERROR);
+		if (t instanceof ScimException) {
+			e = (ScimException) t;
+		}
+		else {
+			Class<?> clazz = t.getClass();
+			for (Class<?> key : statuses.keySet()) {
+				if (key.isAssignableFrom(clazz)) {
+					e = new ScimException(t.getMessage(), t, statuses.get(key));
+					break;
+				}
+			}
+		}
+		return new ConvertingExceptionView(new ResponseEntity<Exception>(e, e.getStatus()),  messageConverters);
 	}
 
 	public void setScimUserProvisioning(ScimUserProvisioning dao) {
