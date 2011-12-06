@@ -18,7 +18,9 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -33,6 +35,7 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
@@ -67,11 +70,11 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	static final Pattern emailsValuePattern = Pattern.compile("emails\\.value", Pattern.CASE_INSENSITIVE);
 
-	static final Pattern coPattern = Pattern.compile("(.*?)([a-z0-9]*) co '(.*?)'(.*?)", Pattern.CASE_INSENSITIVE);
+	static final Pattern coPattern = Pattern.compile("(.*?)([a-z0-9]*) co '(.*?)'([\\s]*.*)", Pattern.CASE_INSENSITIVE);
 
-	static final Pattern swPattern = Pattern.compile("(.*?)([a-z0-9]*) sw '(.*?)'(.*?)", Pattern.CASE_INSENSITIVE);
+	static final Pattern swPattern = Pattern.compile("(.*?)([a-z0-9]*) sw '(.*?)'([\\s]*.*)", Pattern.CASE_INSENSITIVE);
 
-	static final Pattern eqPattern = Pattern.compile("(.*?)([a-z0-9]*) eq '(.*?)'(.*?)", Pattern.CASE_INSENSITIVE);
+	static final Pattern eqPattern = Pattern.compile("(.*?)([a-z0-9]*) eq '(.*?)'([\\s]*.*)", Pattern.CASE_INSENSITIVE);
 
 	static final Pattern prPattern = Pattern.compile(" pr([\\s]*)", Pattern.CASE_INSENSITIVE);
 
@@ -85,6 +88,8 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	private JdbcTemplate jdbcTemplate;
 
+	private NamedParameterJdbcTemplate parameterJdbcTemplate;
+
 	private PasswordValidator passwordValidator = new DefaultPasswordValidator();
 
 	private final RowMapper<ScimUser> mapper = new ScimUserRowMapper();
@@ -92,6 +97,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	public JdbcScimUserProvisioning(JdbcTemplate jdbcTemplate) {
 		Assert.notNull(jdbcTemplate);
 		this.jdbcTemplate = jdbcTemplate;
+		this.parameterJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
 	}
 
 	@Override
@@ -115,52 +121,46 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	@Override
 	public Collection<ScimUser> retrieveUsers(String filter) {
 
-		if (StringUtils.countOccurrencesOf(filter, "'") % 2 != 0) {
-			throw new IllegalArgumentException("Invalid query contains unescaped quote: " + filter);
-		}
-
 		String where = filter;
 
 		// There is only one email address for now...
 		where = StringUtils.arrayToDelimitedString(emailsValuePattern.split(where), "email");
 
-		where = makeCaseInsensitive(where, coPattern, "%slower(%s) like '%%%s%%'%s");
-		where = makeCaseInsensitive(where, swPattern, "%slower(%s) like '%s%%'%s");
-		where = makeCaseInsensitive(where, eqPattern, "%slower(%s) = '%s'%s");
+		Map<String, String> values = new HashMap<String, String>();
+
+		where = makeCaseInsensitive(where, coPattern, "%slower(%s) like :?%s", "%%%s%%", values);
+		where = makeCaseInsensitive(where, swPattern, "%slower(%s) like :?%s", "%s%%", values);
+		where = makeCaseInsensitive(where, eqPattern, "%slower(%s) = :?%s", "%s", values);
 		where = prPattern.matcher(where).replaceAll(" is not null$1");
 		where = gtPattern.matcher(where).replaceAll(" > ");
 		where = gePattern.matcher(where).replaceAll(" >= ");
 		where = ltPattern.matcher(where).replaceAll(" < ");
 		where = lePattern.matcher(where).replaceAll(" <= ");
 
-		logger.debug("Filtering users with SQL: " + where);
+		logger.debug("Filtering users with SQL: " + where + " " + values);
 
 		if (where.contains("emails.")) {
 			throw new UnsupportedOperationException("Filters on email address fields other than 'value' not supported");
 		}
 
-		String[] fragments = where.split(";");
-		if (fragments.length > 1) {
-			for (String fragment : fragments) {
-				if (StringUtils.countOccurrencesOf(fragment, "'") % 2 == 0) {
-					// No quote to escape the semicolon so looks like a SQL injection attack
-					throw new IllegalArgumentException("Invalid query contains unescaped semicolon: " + filter);
-				}
-			}
-		}
-
-		List<ScimUser> input = jdbcTemplate.query(ALL_USERS + " WHERE " + where, mapper);
+		List<ScimUser> input = parameterJdbcTemplate.query(ALL_USERS + " WHERE " + where, values, mapper);
 		return input;
 
 	}
 
-	private String makeCaseInsensitive(String where, Pattern pattern, String template) {
-		Matcher matcher = pattern.matcher(where);
-		if (!matcher.matches()) {
-			return where;
+	private String makeCaseInsensitive(String where, Pattern pattern, String template, String valueTemplate,
+			Map<String, String> values) {
+		String output = where;
+		Matcher matcher = pattern.matcher(output);
+		while (matcher.matches()) {
+			int count = values.size();
+			values.put("value" + count, String.format(valueTemplate, matcher.group(3).toLowerCase()));
+			template = template.replace("?", "value" + count);
+			output = matcher
+					.replaceFirst(String.format(template, matcher.group(1), matcher.group(2), matcher.group(4)));
+			matcher = pattern.matcher(output);
 		}
-		return matcher.replaceAll(String.format(template, matcher.group(1), matcher.group(2), matcher.group(3)
-				.toLowerCase(), matcher.group(4)));
+		return output;
 	}
 
 	@Override

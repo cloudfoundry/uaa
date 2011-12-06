@@ -27,6 +27,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
@@ -270,12 +271,32 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals(2, db.retrieveUsers("emails.type eq 'bar'").size());
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test(expected = BadSqlGrammarException.class)
 	public void cannotRetrieveUsersWithIllegalFilterQuotes() {
 		assertEquals(2, db.retrieveUsers("username eq 'bar").size());
 	}
 
-	@Test(expected=IllegalArgumentException.class)
+	@Test(expected=BadSqlGrammarException.class)
+	public void cannotRetrieveUsersWithNativeSqlInjectionAttack() {
+		String password = template.queryForObject("select password from users where username='joe'", String.class);
+		assertNotNull(password);
+		Collection<ScimUser> users = db
+				.retrieveUsers("username='joe'; select " +
+						SQL_INJECTION_FIELDS + " from users where username='joe'");
+		assertEquals(password, users.iterator().next().getId());
+	}
+
+	@Test(expected=BadSqlGrammarException.class)
+	public void cannotRetrieveUsersWithSqlInjectionAttackOnGt() {
+		String password = template.queryForObject("select password from users where username='joe'", String.class);
+		assertNotNull(password);
+		Collection<ScimUser> users = db
+				.retrieveUsers("username gt 'h'; select " +
+						SQL_INJECTION_FIELDS + " from users where username='joe'");
+		assertEquals(password, users.iterator().next().getId());
+	}
+
+	@Test(expected=BadSqlGrammarException.class)
 	public void cannotRetrieveUsersWithSqlInjectionAttack() {
 		String password = template.queryForObject("select password from users where username='joe'", String.class);
 		assertNotNull(password);
@@ -285,7 +306,7 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals(password, users.iterator().next().getId());
 	}
 
-	@Test(expected=IllegalArgumentException.class)
+	@Test(expected=BadSqlGrammarException.class)
 	public void cannotRetrieveUsersWithAnotherSqlInjectionAttack() {
 		String password = template.queryForObject("select password from users where username='joe'", String.class);
 		assertNotNull(password);
@@ -295,7 +316,7 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals(password, users.iterator().next().getId());
 	}
 
-	@Test(expected=IllegalArgumentException.class)
+	@Test(expected=BadSqlGrammarException.class)
 	public void cannotRetrieveUsersWithYetAnotherSqlInjectionAttack() {
 		String password = template.queryForObject("select password from users where username='joe'", String.class);
 		assertNotNull(password);
