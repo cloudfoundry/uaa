@@ -1,4 +1,4 @@
-<link href="https://raw.github.com/clownfart/Markdown-CSS/master/markdown.css" rel="stylesheet"></link> 
+<link href="https://raw.github.com/clownfart/Markdown-CSS/master/markdown.css" rel="stylesheet"></link>
 # CloudFoundry User Account and Authentication (UAA) Server
 
 ## Quick Start
@@ -8,7 +8,7 @@ If this works you are in business:
     $ git clone git@github.com:vmware-ac/uaa.git
     $ cd uaa
     $ mvn install
-	
+
 Each module has a `mvn tomcat:run` target to run individually, or you
 could import them as projects into STS (use 2.8.0 or better if you
 can).  The apps all work together the apps running on the same port
@@ -33,7 +33,7 @@ stored in the file `.access_token`.
 
 Now kill the `uaa` server and run the `api` server (which starts the
 `uaa` server as well):
- 
+
     $ cd samples/api
     $ mvn tomcat:run
 
@@ -117,7 +117,7 @@ Tomcat manager on port 8080.
 
 ## The App Application
 
-This is a user interface (primarily aimed at browser) app that uses
+This is a user interface app (primarily aimed at browsers) that uses
 OpenId Connect for authentication (i.e. SSO) and OAuth2 for access
 grants.  It authenticates with the Auth service, and then accesses
 resources in the API service.  Run it with `mvn tomcat:run` from the
@@ -127,7 +127,7 @@ resources in the API service.  Run it with `mvn tomcat:run` from the
 
 1. See all apps
 
-        GET /app/apps	
+        GET /app/apps
 
   browser is redirected through a series of authentication and access
   grant steps (which could be slimmed down to implicit steps not
