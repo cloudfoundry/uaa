@@ -17,7 +17,7 @@ public class AuthzAuthenticationRequest implements Authentication {
 
 	AuthzAuthenticationRequest(Map<String,String> loginInfo) {
 		// Currently only support username/password authentication
-		username = loginInfo.get("username");
+		username = loginInfo.get("username").trim();
 		password = loginInfo.get("password");
 		Assert.hasText("username", "username cannot be empty");
 		Assert.hasText("password", "password cannot be empty");

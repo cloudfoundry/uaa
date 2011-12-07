@@ -27,6 +27,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.Locale;
+
 /**
  * @author Luke Taylor
  * @author Dave Syer
@@ -51,7 +53,7 @@ public class AuthzAuthenticationMgr implements AuthenticationManager, Applicatio
 	@Override
 	public Authentication authenticate(Authentication req) throws AuthenticationException {
 		try {
-			UaaUser user = userDatabase.retrieveUserByName(req.getName());
+			UaaUser user = userDatabase.retrieveUserByName(req.getName().toLowerCase(Locale.US));
 
 			if (encoder.matches((CharSequence) req.getCredentials(), user.getPassword())) {
 				Authentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities());
