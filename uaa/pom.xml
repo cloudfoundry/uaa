@@ -18,7 +18,7 @@
 		<m2eclipse.wtp.contextRoot>/uaa</m2eclipse.wtp.contextRoot>
 		<uaa.host>localhost</uaa.host>
 		<uaa.port>8080</uaa.port>
-		<uaa.path>/uaa</uaa.path>
+		<uaa.path>${m2eclipse.wtp.contextRoot}</uaa.path>
 	</properties>
 
 	<profiles>
@@ -26,6 +26,14 @@
 			<id>cloud</id>
 			<properties>
 				<uaa.host>devuaa.cloudfoundry.com</uaa.host>
+				<uaa.port>80</uaa.port>
+				<uaa.path>/</uaa.path>
+			</properties>
+		</profile>
+		<profile>
+			<id>vcap</id>
+			<properties>
+				<uaa.host>uaa.vcap.me</uaa.host>
 				<uaa.port>80</uaa.port>
 				<uaa.path>/</uaa.path>
 			</properties>
@@ -109,7 +117,7 @@
 					<groupId>org.codehaus.mojo</groupId>
 					<artifactId>tomcat-maven-plugin</artifactId>
 					<configuration>
-						<path>/uaa</path>
+						<path>${uaa.path}</path>
 					</configuration>
 				</plugin>
 				<plugin>
