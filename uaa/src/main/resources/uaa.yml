@@ -1,0 +1,11 @@
+databases:
+  hsqldb:
+    driverClassName: org.hsqldb.jdbcDriver
+    url: jdbc:hsqldb:mem:jdbcUaaTests
+    username: sa
+    password:
+  postgresql:
+    driverClassName: org.postgresql.Driver
+    url: jdbc:postgresql:uaa
+    username: uaa
+    password: uaa1324

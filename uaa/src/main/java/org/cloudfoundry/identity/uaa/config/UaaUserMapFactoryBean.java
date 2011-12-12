@@ -23,12 +23,12 @@ import org.springframework.beans.factory.FactoryBean;
  * @author Dave Syer
  * 
  */
-public class UaaUserMapFactory implements FactoryBean<Map<String, UaaUser>> {
+public class UaaUserMapFactoryBean implements FactoryBean<Map<String, UaaUser>> {
 
 	private final Collection<UaaUser> users;
 	private int count = 0;
 
-	public UaaUserMapFactory(Collection<UaaUser> users) {
+	public UaaUserMapFactoryBean(Collection<UaaUser> users) {
 		this.users = users;
 	}
 
