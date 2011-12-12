@@ -17,41 +17,40 @@ import static org.junit.Assert.assertNotNull;
 
 import java.util.UUID;
 
+import javax.sql.DataSource;
+
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 /**
  * @author Luke Taylor
  * @author Dave Syer
  */
+@ContextConfiguration("file:./src/main/webapp/WEB-INF/spring-data-source.xml")
+@RunWith(SpringJUnit4ClassRunner.class)
 public class JdbcUaaUserDatabaseTests {
 
-	private static JdbcTemplate template;
+	@Autowired
+	private DataSource dataSource;
+	
+	private JdbcTemplate template;
+
 	private JdbcUaaUserDatabase db;
 
 	private static final String JOE_ID = "550e8400-e29b-41d4-a716-446655440000";
 
 	private static final String MABEL_ID = UUID.randomUUID().toString();
 
-	@BeforeClass
-	public static void createDatasource() throws Exception {
-		DriverManagerDataSource dataSource = new DriverManagerDataSource();
-		dataSource.setDriverClassName("org.hsqldb.jdbcDriver");
-		dataSource.setUrl("jdbc:hsqldb:mem:jdbcUaaTests");
-		dataSource.setUsername("sa");
-		dataSource.setPassword("");
-
-		template = new JdbcTemplate(dataSource);
-	}
-
 	@Before
 	public void initializeDb() throws Exception {
+		template = new JdbcTemplate(dataSource);
 		db = new JdbcUaaUserDatabase(template);
 		template.execute("create table users(" +
 				"id char(36) not null primary key," +
@@ -75,11 +74,6 @@ public class JdbcUaaUserDatabaseTests {
 		template.execute("drop table users");
 	}
 
-	@AfterClass
-	public static void shutDownDb() {
-		template.execute("SHUTDOWN");
-		template = null;
-	}
 	@Test
 	public void getValidUserSucceeds() {
 		UaaUser joe = db.retrieveUserByName("joe");

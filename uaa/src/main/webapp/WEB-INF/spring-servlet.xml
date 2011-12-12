@@ -8,6 +8,8 @@
 		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
 		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd">
 
+	<import resource="spring-data-source.xml"/>
+
 	<sec:debug />
 
 	<sec:http pattern="/resources/**" security="none" />
@@ -107,7 +109,7 @@
 		<constructor-arg ref="userData" />
 	</bean>
 
-	<bean id="userData" class="org.cloudfoundry.identity.uaa.config.UaaUserMapFactory">
+	<bean id="userData" class="org.cloudfoundry.identity.uaa.config.UaaUserMapFactoryBean">
 		<constructor-arg>
 			<list value-type="org.cloudfoundry.identity.uaa.user.UaaUser">
 				<value>dale|password|olds@vmware.com|Dale|Olds</value>
@@ -118,8 +120,6 @@
 			</list>
 		</constructor-arg>
 	</bean>
-
-	<context:property-placeholder location="classpath:/application.properties" />
 
 	<bean id="tokenServices" class="org.springframework.security.oauth2.provider.token.RandomValueTokenServices">
 		<property name="tokenStore" ref="tokenStore" />

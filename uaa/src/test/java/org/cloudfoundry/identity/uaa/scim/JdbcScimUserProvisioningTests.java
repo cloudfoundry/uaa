@@ -17,28 +17,39 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
 
+import java.sql.Connection;
 import java.util.Collection;
 import java.util.UUID;
 
+import javax.sql.DataSource;
+
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 /**
  * @author Luke Taylor
  * @author Dave Syer
  */
+@ContextConfiguration("file:./src/main/webapp/WEB-INF/spring-data-source.xml")
+@RunWith(SpringJUnit4ClassRunner.class)
 public class JdbcScimUserProvisioningTests {
 
-	private static JdbcTemplate template;
+	@Autowired
+	private DataSource dataSource;
+	
+	private JdbcTemplate template;
 
 	private JdbcScimUserProvisioning db;
 
@@ -50,34 +61,10 @@ public class JdbcScimUserProvisioningTests {
 
 	private static String platform = System.getProperty("PLATFORM", "hsqldb");
 
-	@BeforeClass
-	public static void createDatasource() throws Exception {
-
-		DriverManagerDataSource dataSource = new DriverManagerDataSource();
-
-		if (platform.equals("hsqldb")) {
-			dataSource.setDriverClassName("org.hsqldb.jdbcDriver");
-			dataSource.setUrl("jdbc:hsqldb:mem:jdbcUaaTests");
-			dataSource.setUsername("sa");
-			dataSource.setPassword("");
-		}
-		else if (platform.equals("postgresql")) {
-			dataSource.setDriverClassName("org.postgresql.Driver");
-			dataSource.setUrl("jdbc:postgresql:uaa");
-			dataSource.setUsername("uaa");
-			dataSource.setPassword("uaa1324");
-		}
-		else {
-			throw new UnsupportedOperationException("Unsupported platform: (" + platform + ")");
-		}
+	@Before
+	public void createDatasource() throws Exception {
 
 		template = new JdbcTemplate(dataSource);
-
-	}
-
-	@Before
-	public void initializeDb() throws Exception {
-
 		db = new JdbcScimUserProvisioning(template);
 		runScript("schema");
 		template.execute("insert into users (id, username, password, email, givenName, familyName) " + "values ('"
@@ -92,18 +79,15 @@ public class JdbcScimUserProvisioningTests {
 		runScript("schema-drop");
 	}
 
-	@AfterClass
-	public static void shutDownDb() {
-		if (platform.equals("hsqldb")) {
-			template.execute("SHUTDOWN");
-		}
-		template = null;
-	}
-
 	private void runScript(String stem) throws Exception {
 		ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
 		populator.addScript(new ClassPathResource(stem + "-" + platform + ".sql", JdbcScimUserProvisioning.class));
-		populator.populate(template.getDataSource().getConnection());
+		Connection connection = dataSource.getConnection();
+		try {
+			populator.populate(connection);
+		} finally {
+			DataSourceUtils.releaseConnection(connection, dataSource);
+		}
 	}
 
 	@Test
@@ -276,7 +260,7 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals(2, db.retrieveUsers("username eq 'bar").size());
 	}
 
-	@Test(expected=BadSqlGrammarException.class)
+	@Test(expected=DataAccessException.class)
 	public void cannotRetrieveUsersWithNativeSqlInjectionAttack() {
 		String password = template.queryForObject("select password from users where username='joe'", String.class);
 		assertNotNull(password);
@@ -286,7 +270,7 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals(password, users.iterator().next().getId());
 	}
 
-	@Test(expected=BadSqlGrammarException.class)
+	@Test(expected=DataAccessException.class)
 	public void cannotRetrieveUsersWithSqlInjectionAttackOnGt() {
 		String password = template.queryForObject("select password from users where username='joe'", String.class);
 		assertNotNull(password);
@@ -296,7 +280,7 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals(password, users.iterator().next().getId());
 	}
 
-	@Test(expected=BadSqlGrammarException.class)
+	@Test(expected=DataAccessException.class)
 	public void cannotRetrieveUsersWithSqlInjectionAttack() {
 		String password = template.queryForObject("select password from users where username='joe'", String.class);
 		assertNotNull(password);
@@ -306,7 +290,7 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals(password, users.iterator().next().getId());
 	}
 
-	@Test(expected=BadSqlGrammarException.class)
+	@Test(expected=DataAccessException.class)
 	public void cannotRetrieveUsersWithAnotherSqlInjectionAttack() {
 		String password = template.queryForObject("select password from users where username='joe'", String.class);
 		assertNotNull(password);
