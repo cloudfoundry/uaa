@@ -24,6 +24,7 @@ import org.springframework.security.authentication.event.AuthenticationSuccessEv
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -42,7 +43,7 @@ public class AuthzAuthenticationMgr implements AuthenticationManager, Applicatio
 	private ApplicationEventPublisher eventPublisher;
 
 	public AuthzAuthenticationMgr(UaaUserDatabase cfusers) {
-		this(cfusers, NoOpPasswordEncoder.getInstance());
+		this(cfusers, new BCryptPasswordEncoder());
 	}
 
 	public AuthzAuthenticationMgr(UaaUserDatabase userDatabase, PasswordEncoder encoder) {

@@ -112,11 +112,11 @@
 	<bean id="userData" class="org.cloudfoundry.identity.uaa.config.UaaUserMapFactoryBean">
 		<constructor-arg>
 			<list value-type="org.cloudfoundry.identity.uaa.user.UaaUser">
-				<value>dale|password|olds@vmware.com|Dale|Olds</value>
-				<value>joel|password|jdsa@vmware.com|Joel|D'Sa</value>
-				<value>dave|password|dsyer@vmware.com|Dave|Syer</value>
-				<value>luke|password|ltaylor@vmware.com|Luke|Taylor</value>
-				<value>marissa|koala|marissa@test.org|Marissa|Bloggs</value>
+				<value>dale|$2a$10$HoWPAUn9zqmmb0b.2TBZWe6cjQcxyo8TDwTX.5G46PBL347N3/0zO|olds@vmware.com|Dale|Olds</value>
+				<value>joel|$2a$10$HoWPAUn9zqmmb0b.2TBZWe6cjQcxyo8TDwTX.5G46PBL347N3/0zO|jdsa@vmware.com|Joel|D'Sa</value>
+				<value>dave|$2a$10$HoWPAUn9zqmmb0b.2TBZWe6cjQcxyo8TDwTX.5G46PBL347N3/0zO|dsyer@vmware.com|Dave|Syer</value>
+				<value>luke|$2a$10$HoWPAUn9zqmmb0b.2TBZWe6cjQcxyo8TDwTX.5G46PBL347N3/0zO|ltaylor@vmware.com|Luke|Taylor</value>
+				<value>marissa|$2a$10$ikFXo9IFG6zbMbhGcssySOhjDsGPpqzKwsdVOeCvJ7JoWjSQxyfs6|marissa@test.org|Marissa|Bloggs</value>
 			</list>
 		</constructor-arg>
 	</bean>
