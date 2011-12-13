@@ -1,11 +1,11 @@
 /*
  * Copyright 2006-2011 the original author or authors.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
@@ -36,6 +36,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
@@ -57,7 +59,6 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	// TODO: We should probably look into flagging the account rather than removing the user
 	public static final String DELETE_USER_SQL = "delete from users where id = ? and version = ?";
 
-	// TODO: We should probably look into flagging the account rather than removing the user
 	public static final String CHANGE_PASSWORD_SQL = "update users set lastModified=?, password=? where id = ?";
 
 	public static final String USER_BY_ID_QUERY = "select " + USER_FIELDS + " from users " + "where id = ?";
@@ -91,6 +92,8 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	private NamedParameterJdbcTemplate parameterJdbcTemplate;
 
 	private PasswordValidator passwordValidator = new DefaultPasswordValidator();
+
+	private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
 	private final RowMapper<ScimUser> mapper = new ScimUserRowMapper();
 
@@ -181,7 +184,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 				ps.setString(6, user.getPrimaryEmail());
 				ps.setString(7, user.getName().getGivenName());
 				ps.setString(8, user.getName().getFamilyName());
-				ps.setString(9, password);
+				ps.setString(9, passwordEncoder.encode(password));
 			}
 		});
 		return retrieveUser(id);
@@ -225,7 +228,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		int updated = jdbcTemplate.update(CHANGE_PASSWORD_SQL, new PreparedStatementSetter() {
 			public void setValues(PreparedStatement ps) throws SQLException {
 				ps.setTimestamp(1, new Timestamp(new Date().getTime()));
-				ps.setString(2, password);
+				ps.setString(2, passwordEncoder.encode(password));
 				ps.setString(3, id);
 			}
 		});
@@ -256,6 +259,16 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	public void setPasswordValidator(PasswordValidator passwordValidator) {
 		Assert.notNull(passwordValidator, "passwordValidator cannot be null");
 		this.passwordValidator = passwordValidator;
+	}
+
+	/**
+	 * The encoder used to hash passwords before storing them in the database.
+	 *
+	 * Defaults to a {@link BCryptPasswordEncoder}.
+	 */
+	public void setPasswordEncoder(PasswordEncoder passwordEncoder) {
+		Assert.notNull(passwordEncoder, "passwordEncoder cannot be null");
+		this.passwordEncoder = passwordEncoder;
 	}
 
 	private static final class ScimUserRowMapper implements RowMapper<ScimUser> {
