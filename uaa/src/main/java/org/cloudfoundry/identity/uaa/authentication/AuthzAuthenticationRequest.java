@@ -17,10 +17,14 @@ public class AuthzAuthenticationRequest implements Authentication {
 
 	AuthzAuthenticationRequest(Map<String,String> loginInfo) {
 		// Currently only support username/password authentication
-		username = loginInfo.get("username").trim();
-		password = loginInfo.get("password");
+		this(loginInfo.get("username"), loginInfo.get("password"));
+	}
+
+	public AuthzAuthenticationRequest(String username, String password) {
 		Assert.hasText("username", "username cannot be empty");
 		Assert.hasText("password", "password cannot be empty");
+		this.username = username.trim();
+		this.password = password.trim();
 	}
 
 	public Collection<? extends GrantedAuthority> getAuthorities() {
