@@ -10,6 +10,8 @@
 
 	<sec:debug />
 
+	<bean class="org.cloudfoundry.identity.uaa.event.AuditListener" />
+
 	<sec:http pattern="/resources/**" security="none" />
 	<sec:http pattern="/favicon.ico" security="none" />
 	<sec:http pattern="/index.html" security="none" />
