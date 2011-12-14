@@ -16,13 +16,15 @@ import java.util.Locale;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.event.UserAuthenticationFailureEvent;
+import org.cloudfoundry.identity.uaa.event.UserAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.event.UserNotFoundEvent;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.event.AuthenticationSuccessEvent;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -57,11 +59,11 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
 
 			if (encoder.matches((CharSequence) req.getCredentials(), user.getPassword())) {
 				Authentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities());
-				eventPublisher.publishEvent(new AuthenticationSuccessEvent(success));
+				eventPublisher.publishEvent(new UserAuthenticationSuccessEvent(user, success));
 
 				return success;
 			}
-			eventPublisher.publishEvent(new UaaAuthenticationFailureEvent(req, user));
+			eventPublisher.publishEvent(new UserAuthenticationFailureEvent(user, req));
 
 			throw new BadCredentialsException("Bad credentials");
 		}
