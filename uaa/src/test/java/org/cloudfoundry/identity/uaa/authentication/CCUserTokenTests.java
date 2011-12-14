@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -10,8 +12,6 @@ import java.util.Arrays;
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-
-import static org.junit.Assert.*;
 
 import org.jruby.Ruby;
 import org.jruby.RubyArray;
@@ -26,7 +26,6 @@ import org.junit.Test;
 import org.springframework.security.crypto.codec.Hex;
 import org.springframework.security.crypto.codec.Utf8;
 import org.springframework.util.Assert;
-import sun.misc.HexDumpEncoder;
 
 public class CCUserTokenTests {
 	SecretKey macKey;

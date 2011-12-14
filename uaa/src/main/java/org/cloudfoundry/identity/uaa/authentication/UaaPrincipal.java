@@ -1,9 +1,9 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
-import org.cloudfoundry.identity.uaa.user.UaaUser;
-
 import java.io.Serializable;
 import java.security.Principal;
+
+import org.cloudfoundry.identity.uaa.user.UaaUser;
 
 /**
  * The principal object which should end up as the representation of an authenticated user.

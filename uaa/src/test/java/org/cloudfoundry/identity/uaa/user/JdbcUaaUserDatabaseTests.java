@@ -15,16 +15,22 @@ package org.cloudfoundry.identity.uaa.user;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.sql.Connection;
 import java.util.UUID;
 
 import javax.sql.DataSource;
 
+import org.cloudfoundry.identity.uaa.scim.JdbcScimUserProvisioning;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DataSourceUtils;
+import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
+import org.springframework.jdbc.datasource.init.ScriptStatementFailedException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -48,21 +54,13 @@ public class JdbcUaaUserDatabaseTests {
 
 	private static final String MABEL_ID = UUID.randomUUID().toString();
 
+	private static String platform = System.getProperty("PLATFORM", "hsqldb");
+
 	@Before
 	public void initializeDb() throws Exception {
 		template = new JdbcTemplate(dataSource);
 		db = new JdbcUaaUserDatabase(template);
-		template.execute("create table users(" +
-				"id char(36) not null primary key," +
-				"username varchar(20) not null," +
-				"password varchar(20) not null," +
-				"email varchar(20) not null," +
-				"givenName varchar(20) not null," +
-				"familyName varchar(20) not null," +
-				"created timestamp default current_timestamp," +
-				"lastModified timestamp default current_timestamp," +
-				"constraint unique_uk_1 unique(username)" +
-			")");
+		runScript("schema");
 		template.execute("insert into users (id, username, password, email, givenName, familyName) " +
 				 "values ('"+ JOE_ID + "', 'joe','joespassword','joe@joe.com','Joe','User')");
 		template.execute("insert into users (id, username, password, email, givenName, familyName) " +
@@ -71,7 +69,20 @@ public class JdbcUaaUserDatabaseTests {
 
 	@After
 	public void clearDb() throws Exception {
-		template.execute("drop table users");
+		runScript("schema-drop");
+	}
+
+	private void runScript(String stem) throws Exception {
+		ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
+		populator.addScript(new ClassPathResource(stem + "-" + platform + ".sql", JdbcScimUserProvisioning.class));
+		Connection connection = dataSource.getConnection();
+		try {
+			populator.populate(connection);
+		} catch (ScriptStatementFailedException e) {
+			// ignore
+		} finally {
+			DataSourceUtils.releaseConnection(connection, dataSource);
+		}
 	}
 
 	@Test

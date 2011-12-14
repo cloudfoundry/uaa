@@ -35,6 +35,7 @@ import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
+import org.springframework.jdbc.datasource.init.ScriptStatementFailedException;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -86,6 +87,8 @@ public class JdbcScimUserProvisioningTests {
 		Connection connection = dataSource.getConnection();
 		try {
 			populator.populate(connection);
+		} catch (ScriptStatementFailedException e) {
+			// ignore
 		} finally {
 			DataSourceUtils.releaseConnection(connection, dataSource);
 		}

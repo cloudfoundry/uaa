@@ -14,7 +14,6 @@ package org.cloudfoundry.identity.uaa.authentication;
 
 import static org.junit.Assert.assertEquals;
 
-import org.cloudfoundry.identity.uaa.authentication.Prompt;
 import org.junit.Test;
 
 /**
