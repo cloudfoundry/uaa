@@ -12,27 +12,25 @@
  */
 package org.cloudfoundry.identity.uaa.authentication;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
-import java.util.HashMap;
-import java.util.Map;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 
+
+import org.cloudfoundry.identity.uaa.event.UserAuthenticationFailureEvent;
+import org.cloudfoundry.identity.uaa.event.UserAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.event.UserNotFoundEvent;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.event.AuthenticationSuccessEvent;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author Luke Taylor
@@ -62,7 +60,7 @@ public class AuthzAuthenticationManagerTests {
 		assertEquals("auser", result.getName());
 		assertEquals("auser", ((UaaPrincipal)result.getPrincipal()).getName());
 
-		verify(publisher).publishEvent(any(AuthenticationSuccessEvent.class));
+		verify(publisher).publishEvent(isA(UserAuthenticationSuccessEvent.class) );
 	}
 
 	@Test
@@ -75,7 +73,7 @@ public class AuthzAuthenticationManagerTests {
 		catch (BadCredentialsException expected) {
 		}
 
-		verify(publisher).publishEvent(any(UaaAuthenticationFailureEvent.class));
+		verify(publisher).publishEvent(isA(UserAuthenticationFailureEvent.class));
 	}
 
 	@Test
@@ -88,7 +86,7 @@ public class AuthzAuthenticationManagerTests {
 		catch (BadCredentialsException expected) {
 		}
 
-		verify(publisher).publishEvent(any(UserNotFoundEvent.class));
+		verify(publisher).publishEvent(isA(UserNotFoundEvent.class));
 	}
 
 	AuthzAuthenticationRequest createAuthRequest(String username, String password) {
