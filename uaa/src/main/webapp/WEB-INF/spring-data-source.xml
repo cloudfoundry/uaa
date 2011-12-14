@@ -1,21 +1,28 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
-	xmlns:context="http://www.springframework.org/schema/context"
-	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+	xmlns:context="http://www.springframework.org/schema/context" xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+	xsi:schemaLocation="http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc-3.0.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
 		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd">
 
 	<context:property-placeholder properties-ref="applicationProperties" />
 
 	<bean id="applicationProperties" class="org.springframework.beans.factory.config.PropertiesFactoryBean">
 		<property name="propertiesArray">
-			<bean class="org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean">
-				<property name="resource" value="classpath:/uaa.yml" />
-				<property name="keyReplacements">
-					<map>
-						<entry key="databases.#{systemProperties['PLATFORM']?:'hsqldb'}" value="database" />
-					</map>
-				</property>
-			</bean>
+			<list>
+				<bean class="org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean">
+					<property name="resource" value="classpath:/uaa.yml" />
+					<property name="keyReplacements">
+						<map>
+							<entry key="databases.#{systemProperties['PLATFORM']?:'hsqldb'}" value="database" />
+						</map>
+					</property>
+				</bean>
+				<bean class="org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean">
+					<property name="resource" value="${CLOUD_FOUNDRY_CONFIG_PATH:config}/uaa.yml" />
+					<property name="ignoreResourceNotFound" value="true"/>
+				</bean>
+			</list>
 		</property>
 	</bean>
 
@@ -25,5 +32,9 @@
 		<property name="username" value="${database.username}" />
 		<property name="password" value="${database.password}" />
 	</bean>
+	
+	<jdbc:initialize-database ignore-failures="ALL">
+		<jdbc:script location="classpath:org/cloudfoundry/identity/uaa/scim/schema-${PLATFORM:hsqldb}.sql"/>
+	</jdbc:initialize-database>
 
 </beans>
