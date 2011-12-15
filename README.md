@@ -81,6 +81,8 @@ In CloudFoundry terms
   webapp that needs single sign on and access to the `api` service on
   behalf of users.
 
+## UAA Server
+
 The authentication service is `uaa`. It's a plain Spring MVC webapp.
 Deploy as normal in Tomcat or your container of choice, or execute
 `mvn tomcat:run` to run it directly from `uaa` directory in the source tree.
@@ -95,16 +97,30 @@ It supports the APIs defined in the UAA-APIs document. To summarise:
 3. A /check_token endpoint, to allow resource servers to obtain information about
 an access token submitted by an OAuth2 client.
 
-4. SCIM user provisioning endpoints (todo)
+4. SCIM user provisioning endpoint
 
-5. OpenID connect endpoints to support authentication /userinfo and /check_id
-(todo). Implemented roughly enough to get it working (so /app authenticates
-here), but not to meet the spec.
+5. OpenID connect endpoints to support authentication /userinfo and
+/check_id (todo). Implemented roughly enough to get it working (so
+/app authenticates here), but not to meet the spec.
 
 Authentication can be performed by command line clients by submitting
 credentials directly to the `/authorize` endpoint (as described in
 UAA-API doc).  There is an `ImplicitAccessTokenProvider` in Spring
-Security OAuth that can do the heavy lifting.
+Security OAuth that can do the heavy lifting if your client is Java.
+
+By default `uaa` will launch with a context root `/uaa`. There is a
+Maven profile `vcap` to launch with context root `/`.
+
+### User Account Data
+
+The default is to use an in-memory, hash-based user store that is
+pre-populated with some test users: e.g. `dale` has password
+`password` and `marissa` has password `koala`.
+
+To use a RDBMS for user data activate the Spring profiles `jdbc` and
+one of `hsqldb` or `postgresql`.  The `hsqldb` profile will start up
+with an in-memory RDBMS by default.  Warning: the database will start
+empty, so no users can log in until the first account is created.
 
 ## The API Application
 

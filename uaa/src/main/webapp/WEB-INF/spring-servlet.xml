@@ -3,12 +3,10 @@
 	xmlns="http://www.springframework.org/schema/beans" xmlns:context="http://www.springframework.org/schema/context"
 	xmlns:sec="http://www.springframework.org/schema/security" xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
 	xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-1.0.xsd
-		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-3.0.xsd
+		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-3.1.xsd
 		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.1.xsd
-		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
-		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd">
-
-	<import resource="spring-data-source.xml"/>
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
 
 	<sec:debug />
 
@@ -99,26 +97,6 @@
 
 	<bean id="userAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationMgr">
 		<constructor-arg ref="userDatabase" />
-	</bean>
-
-	<bean id="userDatabase" class="org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase">
-		<constructor-arg ref="userData" />
-	</bean>
-
-	<bean id="scimUserProvisioning" class="org.cloudfoundry.identity.uaa.scim.InMemoryScimUserProvisioning">
-		<constructor-arg ref="userData" />
-	</bean>
-
-	<bean id="userData" class="org.cloudfoundry.identity.uaa.config.UaaUserMapFactoryBean">
-		<constructor-arg>
-			<list value-type="org.cloudfoundry.identity.uaa.user.UaaUser">
-				<value>dale|$2a$10$HoWPAUn9zqmmb0b.2TBZWe6cjQcxyo8TDwTX.5G46PBL347N3/0zO|olds@vmware.com|Dale|Olds</value>
-				<value>joel|$2a$10$HoWPAUn9zqmmb0b.2TBZWe6cjQcxyo8TDwTX.5G46PBL347N3/0zO|jdsa@vmware.com|Joel|D'Sa</value>
-				<value>dave|$2a$10$HoWPAUn9zqmmb0b.2TBZWe6cjQcxyo8TDwTX.5G46PBL347N3/0zO|dsyer@vmware.com|Dave|Syer</value>
-				<value>luke|$2a$10$HoWPAUn9zqmmb0b.2TBZWe6cjQcxyo8TDwTX.5G46PBL347N3/0zO|ltaylor@vmware.com|Luke|Taylor</value>
-				<value>marissa|$2a$10$ikFXo9IFG6zbMbhGcssySOhjDsGPpqzKwsdVOeCvJ7JoWjSQxyfs6|marissa@test.org|Marissa|Bloggs</value>
-			</list>
-		</constructor-arg>
 	</bean>
 
 	<bean id="tokenServices" class="org.springframework.security.oauth2.provider.token.RandomValueTokenServices">
@@ -212,5 +190,47 @@
 	</bean>
 
 	<bean id="homeController" class="org.cloudfoundry.identity.uaa.home.HomeController" />
+
+	<beans profile="default,dev">
+
+		<bean id="userDatabase" class="org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase">
+			<constructor-arg ref="userData" />
+		</bean>
+
+		<bean id="scimUserProvisioning" class="org.cloudfoundry.identity.uaa.scim.InMemoryScimUserProvisioning">
+			<constructor-arg ref="userData" />
+		</bean>
+
+		<bean id="userData" class="org.cloudfoundry.identity.uaa.config.UaaUserMapFactoryBean">
+			<constructor-arg>
+				<list value-type="org.cloudfoundry.identity.uaa.user.UaaUser">
+					<value>dale|$2a$10$HoWPAUn9zqmmb0b.2TBZWe6cjQcxyo8TDwTX.5G46PBL347N3/0zO|olds@vmware.com|Dale|Olds</value>
+					<value>joel|$2a$10$HoWPAUn9zqmmb0b.2TBZWe6cjQcxyo8TDwTX.5G46PBL347N3/0zO|jdsa@vmware.com|Joel|D'Sa</value>
+					<value>dave|$2a$10$HoWPAUn9zqmmb0b.2TBZWe6cjQcxyo8TDwTX.5G46PBL347N3/0zO|dsyer@vmware.com|Dave|Syer</value>
+					<value>luke|$2a$10$HoWPAUn9zqmmb0b.2TBZWe6cjQcxyo8TDwTX.5G46PBL347N3/0zO|ltaylor@vmware.com|Luke|Taylor</value>
+					<value>marissa|$2a$10$ikFXo9IFG6zbMbhGcssySOhjDsGPpqzKwsdVOeCvJ7JoWjSQxyfs6|marissa@test.org|Marissa|Bloggs</value>
+				</list>
+			</constructor-arg>
+		</bean>
+
+	</beans>
+
+	<beans profile="jdbc">
+
+		<import resource="spring-data-source.xml" />
+
+		<bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+			<property name="dataSource" ref="dataSource" />
+		</bean>
+
+		<bean id="userDatabase" class="org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase">
+			<constructor-arg ref="jdbcTemplate" />
+		</bean>
+
+		<bean id="scimUserProvisioning" class="org.cloudfoundry.identity.uaa.scim.JdbcScimUserProvisioning">
+			<constructor-arg ref="jdbcTemplate" />
+		</bean>
+
+	</beans>
 
 </beans>

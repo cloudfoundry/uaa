@@ -13,6 +13,11 @@
 
 package org.cloudfoundry.identity.uaa;
 
+import static org.junit.Assert.assertNotNull;
+
+import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
+import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
+import org.junit.After;
 import org.junit.Test;
 import org.springframework.context.support.GenericXmlApplicationContext;
 import org.springframework.core.io.FileSystemResource;
@@ -22,10 +27,25 @@ import org.springframework.core.io.FileSystemResource;
  *
  */
 public class BootstrapTests {
+	
+	
+	@After
+	public void cleanup() {
+		System.clearProperty("spring.profiles.active");		
+	}
 
 	@Test
-	public void testRootContext() throws Exception {
+	public void testRootContextWithJdbcUsers() throws Exception {
+		System.setProperty("spring.profiles.active", "jdbc,hsqldb");
 		GenericXmlApplicationContext context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/spring-servlet.xml"));
+		assertNotNull(context.getBean("userDatabase", JdbcUaaUserDatabase.class));
+		context.close();
+	}
+
+	@Test
+	public void testRootContextWithDevUsers() throws Exception {
+		GenericXmlApplicationContext context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/spring-servlet.xml"));
+		assertNotNull(context.getBean("userDatabase", InMemoryUaaUserDatabase.class));
 		context.close();
 	}
 

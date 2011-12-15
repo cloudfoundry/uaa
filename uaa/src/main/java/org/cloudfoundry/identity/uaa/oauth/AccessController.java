@@ -31,7 +31,7 @@ public class AccessController {
 	}
 
 	@RequestMapping("/oauth/confirm_access")
-	public String confirm(UnconfirmedAuthorizationCodeClientToken clientAuth, Map<String, Object> model, final HttpServletRequest request)
+	public String confirm(@ModelAttribute UnconfirmedAuthorizationCodeClientToken clientAuth, Map<String, Object> model, final HttpServletRequest request)
 			throws Exception {
 
 		if (clientAuth == null) {

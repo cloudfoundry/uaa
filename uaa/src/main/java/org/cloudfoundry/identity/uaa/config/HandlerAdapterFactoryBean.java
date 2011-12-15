@@ -12,21 +12,29 @@
  */
 package org.cloudfoundry.identity.uaa.config;
 
-import java.lang.reflect.Method;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 import javax.servlet.http.HttpServletResponse;
 
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.FactoryBean;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
+import org.springframework.core.MethodParameter;
 import org.springframework.http.converter.HttpMessageConverter;
-import org.springframework.ui.ExtendedModelMap;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.NativeWebRequest;
+import org.springframework.web.method.support.HandlerMethodReturnValueHandler;
+import org.springframework.web.method.support.ModelAndViewContainer;
 import org.springframework.web.servlet.HandlerAdapter;
-import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter;
-import org.springframework.web.servlet.mvc.annotation.ModelAndViewResolver;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
+import org.springframework.web.servlet.mvc.method.annotation.RequestResponseBodyMethodProcessor;
 
 /**
  * Factory for a handler adapter that sniffs the results from {@link RequestMapping} method executions and adds an ETag
@@ -35,19 +43,24 @@ import org.springframework.web.servlet.mvc.annotation.ModelAndViewResolver;
  * @author Dave Syer
  * 
  */
-public class HandlerAdapterFactoryBean implements FactoryBean<HandlerAdapter> {
+public class HandlerAdapterFactoryBean implements FactoryBean<HandlerAdapter>, ApplicationContextAware {
+
+	private ApplicationContext applicationContext;
 
 	@Override
 	public HandlerAdapter getObject() throws Exception {
-		AnnotationMethodHandlerAdapter adapter = new AnnotationMethodHandlerAdapter();
+		RequestMappingHandlerAdapter adapter = new RequestMappingHandlerAdapter();
+		adapter.setApplicationContext(applicationContext);
 		adapter.setMessageConverters(getMessageConverters());
 		adapter.setOrder(0);
-		adapter.setCustomModelAndViewResolver(new ScimEtagModelAndViewResolver());
+		adapter.setReturnValueHandlers(Arrays
+				.<HandlerMethodReturnValueHandler> asList(new ScimEtagHandlerMethodReturnValueHandler(getMessageConverters())));
+		adapter.afterPropertiesSet();
 		return adapter;
 	}
 
-	private HttpMessageConverter<?>[] getMessageConverters() {
-		return new RestTemplate().getMessageConverters().toArray(new HttpMessageConverter[0]);
+	private List<HttpMessageConverter<?>> getMessageConverters() {
+		return new RestTemplate().getMessageConverters();
 	}
 
 	@Override
@@ -60,17 +73,32 @@ public class HandlerAdapterFactoryBean implements FactoryBean<HandlerAdapter> {
 		return true;
 	}
 
-	private static class ScimEtagModelAndViewResolver implements ModelAndViewResolver {
+	private static class ScimEtagHandlerMethodReturnValueHandler extends RequestResponseBodyMethodProcessor {
+
+		public ScimEtagHandlerMethodReturnValueHandler(List<HttpMessageConverter<?>> messageConverters) {
+			super(messageConverters);
+		}
 
 		@Override
-		public ModelAndView resolveModelAndView(Method handlerMethod, @SuppressWarnings("rawtypes") Class handlerType,
-				Object returnValue, ExtendedModelMap implicitModel, NativeWebRequest webRequest) {
+		public boolean supportsReturnType(MethodParameter returnType) {
+			return ScimUser.class.isAssignableFrom(returnType.getMethod().getReturnType());
+		}
+
+		@Override
+		public void handleReturnValue(Object returnValue, MethodParameter returnType,
+				ModelAndViewContainer mavContainer, NativeWebRequest webRequest) throws IOException,
+				HttpMediaTypeNotAcceptableException {
 			if (returnValue instanceof ScimUser) {
 				HttpServletResponse response = webRequest.getNativeResponse(HttpServletResponse.class);
 				response.addHeader("ETag", "\"" + ((ScimUser) returnValue).getVersion() + "\"");
 			}
-			return ModelAndViewResolver.UNRESOLVED;
+			super.handleReturnValue(returnValue, returnType, mavContainer, webRequest);
 		}
 
+	}
+
+	@Override
+	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+		this.applicationContext = applicationContext;
 	}
 }
