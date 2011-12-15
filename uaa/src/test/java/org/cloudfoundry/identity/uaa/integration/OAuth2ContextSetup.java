@@ -59,9 +59,9 @@ public class OAuth2ContextSetup extends TestWatchman {
 
 	public static OAuth2ContextSetup clientCredentials(ServerRunning server, List<String> scopes) {
 		ClientCredentialsResourceDetails resource = new ClientCredentialsResourceDetails();
-		resource.setClientId("my");
-		resource.setClientSecret("myclientsecret");
-		resource.setId("my");
+		resource.setClientId("scim");
+		resource.setClientSecret("scimsecret");
+		resource.setId("scim");
 		resource.setScope(scopes);
 		resource.setClientAuthenticationScheme(AuthenticationScheme.header);
 		resource.setAccessTokenUri(server.getUrlFromRoot("/oauth/token"));

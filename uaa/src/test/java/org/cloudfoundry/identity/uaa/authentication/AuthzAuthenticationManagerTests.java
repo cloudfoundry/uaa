@@ -38,7 +38,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
  * @author Luke Taylor
  */
 public class AuthzAuthenticationManagerTests {
-	private AuthzAuthenticationMgr mgr;
+	private AuthzAuthenticationManager mgr;
 	private UaaUserDatabase db;
 	private ApplicationEventPublisher publisher;
 	// "password"
@@ -49,7 +49,7 @@ public class AuthzAuthenticationManagerTests {
 	public void setUp() throws Exception {
 		db = mock(UaaUserDatabase.class);
 		publisher = mock(ApplicationEventPublisher.class);
-		mgr = new AuthzAuthenticationMgr(db);
+		mgr = new AuthzAuthenticationManager(db);
 		mgr.setApplicationEventPublisher(publisher);
 	}
 

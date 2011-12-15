@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="http://www.springframework.org/schema/beans"
+	xmlns:sec="http://www.springframework.org/schema/security"
+	xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.1.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd">
+
+	<!-- Add a handler adapter with special knowledge of the ScimUser endpoints -->
+	<bean class="org.cloudfoundry.identity.uaa.config.HandlerAdapterFactoryBean" />
+
+	<bean id="scimEndpoints" class="org.cloudfoundry.identity.uaa.scim.ScimUserEndpoints">
+		<property name="scimUserProvisioning" ref="scimUserProvisioning" />
+		<property name="statuses">
+			<map key-type="java.lang.Class" value-type="org.springframework.http.HttpStatus">
+				<entry key="java.lang.IllegalArgumentException" value="BAD_REQUEST" />
+				<entry key="java.lang.UnsupportedOperationException" value="BAD_REQUEST" />
+				<entry key="org.cloudfoundry.identity.uaa.scim.InvalidPasswordException" value="BAD_REQUEST" />
+				<entry key="org.cloudfoundry.identity.uaa.scim.InvalidUserException" value="BAD_REQUEST" />
+				<entry key="org.cloudfoundry.identity.uaa.scim.UserNotFoundException" value="NOT_FOUND" />
+				<entry key="org.springframework.jdbc.BadSqlGrammarException" value="BAD_REQUEST" />
+			</map>
+		</property>
+		<property name="messageConverters">
+			<bean class="org.cloudfoundry.identity.uaa.error.ExceptionHttpMessageConverter" />
+		</property>
+	</bean>
+
+	<beans profile="default,shared">
+
+		<http request-matcher-ref="userEndPointRequestMatcher" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
+			entry-point-ref="http403" access-decision-manager-ref="accessDecisionManager" xmlns="http://www.springframework.org/schema/security">
+			<intercept-url pattern="/User/*/password" access="ROLE_CLIENT,SCOPE_PASSWORD" />
+			<intercept-url pattern="/Users*" access="ROLE_CLIENT,SCOPE_READ" method="GET" />
+			<intercept-url pattern="/User/**" access="ROLE_CLIENT,SCOPE_READ" method="GET" />
+			<intercept-url pattern="/User/**" access="ROLE_CLIENT,SCOPE_WRITE" method="DELETE" />
+			<intercept-url pattern="/User*" access="ROLE_CLIENT,SCOPE_WRITE" method="POST" />
+			<intercept-url pattern="/User/**" access="ROLE_CLIENT,SCOPE_WRITE" method="PUT" />
+			<intercept-url pattern="/User/**" access="ROLE_CLIENT,SCOPE_READ" method="GET" />
+			<anonymous />
+			<custom-filter ref="oauth2ResourceServerFilter" after="EXCEPTION_TRANSLATION_FILTER" />
+		</http>
+
+	</beans>
+
+	<beans profile="private">
+
+		<!-- Use this profile for a private deployment like a micro cloud. The SCIM endpoints are deliberately not secure, so you 
+			can add users and change passwords to bootstrap the system -->
+		<http request-matcher-ref="userEndPointRequestMatcher" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
+			entry-point-ref="http403" xmlns="http://www.springframework.org/schema/security" security="none" />
+
+	</beans>
+
+</beans>

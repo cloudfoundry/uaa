@@ -34,18 +34,18 @@ import org.springframework.security.crypto.password.PasswordEncoder;
  * @author Dave Syer
  *
  */
-public class AuthzAuthenticationMgr implements AuthenticationManager, ApplicationEventPublisherAware {
+public class AuthzAuthenticationManager implements AuthenticationManager, ApplicationEventPublisherAware {
 
 	private final Log logger = LogFactory.getLog(getClass());
 	private final PasswordEncoder encoder;
 	private final UaaUserDatabase userDatabase;
 	private ApplicationEventPublisher eventPublisher;
 
-	public AuthzAuthenticationMgr(UaaUserDatabase cfusers) {
+	public AuthzAuthenticationManager(UaaUserDatabase cfusers) {
 		this(cfusers, new BCryptPasswordEncoder());
 	}
 
-	public AuthzAuthenticationMgr(UaaUserDatabase userDatabase, PasswordEncoder encoder) {
+	public AuthzAuthenticationManager(UaaUserDatabase userDatabase, PasswordEncoder encoder) {
 		this.userDatabase = userDatabase;
 		this.encoder = encoder;
 	}

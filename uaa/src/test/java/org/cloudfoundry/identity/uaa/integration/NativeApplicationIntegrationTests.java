@@ -18,6 +18,7 @@ import static org.junit.Assert.fail;
 import java.io.ByteArrayInputStream;
 import java.util.List;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
@@ -35,7 +36,7 @@ public class NativeApplicationIntegrationTests {
 
 	@Rule
 	public ServerRunning serverRunning = ServerRunning.isRunning();
-
+	
 	/**
 	 * tests a happy-day flow of the Resource Owner Password Credentials grant type.
 	 * (formerly native application profile).
@@ -58,13 +59,15 @@ public class NativeApplicationIntegrationTests {
 	/**
 	 * tests that an error occurs if you attempt to use username/password creds for a non-password grant type.
 	 */
-	public void testInvalidGrantType() throws Exception {
+	@Test
+	public void testInvalidClient() throws Exception {
 
 		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
-		formData.add("grant_type", "authorization_code");
-		formData.add("client_id", "my-trusted-client");
+		formData.add("grant_type", "password");
+		formData.add("client_id", "no-such-client");
 		formData.add("username", "marissa");
 		formData.add("password", "koala");
+		formData.add("scope", "read");
 		ResponseEntity<String> response = serverRunning.postForString("/oauth/token", formData);
 		assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
 		List<String> newCookies = response.getHeaders().get("Set-Cookie");
@@ -77,7 +80,24 @@ public class NativeApplicationIntegrationTests {
 		try {
 			throw serializationService.deserializeJsonError(new ByteArrayInputStream(response.getBody().getBytes()));
 		} catch (OAuth2Exception e) {
-			assertEquals("invalid_request", e.getOAuth2ErrorCode());
+			assertEquals("invalid_client", e.getOAuth2ErrorCode());
 		}
 	}
+
+	/**
+	 * tests a happy-day flow of the native application profile.
+	 */
+	@Test
+	@Ignore // can't use SimpleClientHttpRequestFactory for this?
+	public void testSecretRequired() throws Exception {
+		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+		formData.add("grant_type", "password");
+		formData.add("client_id", "app");
+		formData.add("username", "marissa");
+		formData.add("password", "koala");
+		formData.add("scope", "read");
+		ResponseEntity<String> response = serverRunning.postForString("/oauth/token", formData);
+		assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+	}
+
 }
