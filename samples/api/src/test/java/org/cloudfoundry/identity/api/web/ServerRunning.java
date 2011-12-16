@@ -240,8 +240,8 @@ public class ServerRunning extends TestWatchman {
 	public OAuth2AccessToken getToken() {
 		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
 		formData.add("grant_type", "password");
-		formData.add("client_id", "vmc");
-		formData.add("client_secret", "");
+		formData.add("client_id", "app");
+		formData.add("client_secret", "appclientsecret");
 		formData.add("username", "marissa");
 		formData.add("password", "koala");
 		formData.add("scope", "read");

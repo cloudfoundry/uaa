@@ -135,6 +135,11 @@
 			</lifecycleMappingMetadata>
 		  </configuration>
 		</plugin>
+		<plugin>
+		  <groupId>org.codehaus.mojo</groupId>
+		  <artifactId>tomcat-maven-plugin</artifactId>
+		  <version>1.0</version>
+		</plugin>
 	  </plugins>
 	</pluginManagement>
     <extensions>

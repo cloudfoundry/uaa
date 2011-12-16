@@ -19,7 +19,7 @@
 					</property>
 				</bean>
 				<bean class="org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean">
-					<property name="resource" value="${CLOUD_FOUNDRY_CONFIG_PATH:config}/uaa.yml" />
+					<property name="resource" value="file:${CLOUD_FOUNDRY_CONFIG_PATH:config}/uaa.yml" />
 					<property name="ignoreResourceNotFound" value="true" />
 				</bean>
 			</list>
