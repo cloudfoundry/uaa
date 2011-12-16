@@ -7,5 +7,5 @@ databases:
   postgresql:
     driverClassName: org.postgresql.Driver
     url: jdbc:postgresql:uaa
-    username: uaa
-    password: uaa1324
+    username: root
+    password: changeme

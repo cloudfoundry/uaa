@@ -1,4 +1,5 @@
 target/
+*~
 */src/main/*/META-INF/
 */src/main/*/WEB-INF/lib/
 .access_token
