@@ -13,7 +13,10 @@
 
 package org.cloudfoundry.identity.uaa;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+
+import java.util.Properties;
 
 import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
@@ -32,6 +35,7 @@ public class BootstrapTests {
 	@After
 	public void cleanup() {
 		System.clearProperty("spring.profiles.active");		
+		System.clearProperty("CLOUD_FOUNDRY_CONFIG_PATH");
 	}
 
 	@Test
@@ -46,6 +50,16 @@ public class BootstrapTests {
 	public void testRootContextWithDevUsers() throws Exception {
 		GenericXmlApplicationContext context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/spring-servlet.xml"));
 		assertNotNull(context.getBean("userDatabase", InMemoryUaaUserDatabase.class));
+		context.close();
+	}
+
+	@Test
+	public void testOverrideYmlConfig() throws Exception {
+		System.setProperty("CLOUD_FOUNDRY_CONFIG_PATH", "src/test/resources/test/config");
+		System.setProperty("spring.profiles.active", "jdbc,postgresql");
+		GenericXmlApplicationContext context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/spring-servlet.xml"));
+		Properties properties = context.getBean("applicationProperties", Properties.class);
+		assertEquals("bar", properties.get("foo"));
 		context.close();
 	}
 
