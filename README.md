@@ -122,6 +122,16 @@ one of `hsqldb` or `postgresql`.  The `hsqldb` profile will start up
 with an in-memory RDBMS by default.  Warning: the database will start
 empty, so no users can log in until the first account is created.
 
+The active profiles can be configured by passing the
+`spring.profiles.active` parameter to the JVM. For, example to run
+with an embedded HSQL database:
+
+     mvn -Dspring.profiles.active=default,jdbc tomcat:run
+
+Or to use PostgreSQL instead of HSQL:
+
+     mvn -Dspring.profiles.active=default,jdbc,postgresql tomcat:run
+
 ## The API Application
 
 An example resource server.  It hosts a service which returns
