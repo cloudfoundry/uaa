@@ -58,7 +58,8 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
 			UaaUser user = userDatabase.retrieveUserByName(req.getName().toLowerCase(Locale.US));
 
 			if (encoder.matches((CharSequence) req.getCredentials(), user.getPassword())) {
-				Authentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities());
+				Authentication success = new UaaAuthentication(new UaaPrincipal(user),
+							user.getAuthorities(), req.getDetails());
 				eventPublisher.publishEvent(new UserAuthenticationSuccessEvent(user, success));
 
 				return success;

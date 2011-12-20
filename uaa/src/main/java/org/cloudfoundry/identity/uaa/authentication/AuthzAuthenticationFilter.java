@@ -40,7 +40,6 @@ public class AuthzAuthenticationFilter implements Filter {
 	private AuthenticationManager authenticationManager;
 	private ObjectMapper mapper = new ObjectMapper();
 
-
 	public AuthzAuthenticationFilter(AuthenticationManager authenticationManager) {
 		Assert.notNull(authenticationManager);
 		this.authenticationManager = authenticationManager;
@@ -60,7 +59,8 @@ public class AuthzAuthenticationFilter implements Filter {
 			logger.debug("Located credentials in request, with keys: " + loginInfo.keySet());
 
 			try {
-				Authentication result = authenticationManager.authenticate(new AuthzAuthenticationRequest(loginInfo));
+				Authentication result =
+						authenticationManager.authenticate(new AuthzAuthenticationRequest(loginInfo, new UaaAuthenticationDetails(req)));
 				SecurityContextHolder.getContext().setAuthentication(result);
 			}
 			catch (AuthenticationException e) {

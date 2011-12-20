@@ -14,17 +14,20 @@ import org.springframework.util.Assert;
 public class AuthzAuthenticationRequest implements Authentication {
 	private final String username;
 	private final String password;
+	private final UaaAuthenticationDetails details;
 
-	AuthzAuthenticationRequest(Map<String,String> loginInfo) {
+	AuthzAuthenticationRequest(Map<String,String> loginInfo, UaaAuthenticationDetails details) {
 		// Currently only support username/password authentication
-		this(loginInfo.get("username"), loginInfo.get("password"));
+		this(loginInfo.get("username"), loginInfo.get("password"), details);
+		Assert.notNull(details);
 	}
 
-	public AuthzAuthenticationRequest(String username, String password) {
+	public AuthzAuthenticationRequest(String username, String password, UaaAuthenticationDetails details) {
 		Assert.hasText("username", "username cannot be empty");
 		Assert.hasText("password", "password cannot be empty");
 		this.username = username.trim();
 		this.password = password.trim();
+		this.details = details;
 	}
 
 	public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -40,7 +43,7 @@ public class AuthzAuthenticationRequest implements Authentication {
 	}
 
 	public Object getDetails() {
-		return null;
+		return details;
 	}
 
 	public boolean isAuthenticated() {

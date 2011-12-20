@@ -22,7 +22,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 /**
  * @author Dave Syer
- * 
+ *
  */
 public class UaaTestFactory {
 
@@ -37,7 +37,7 @@ public class UaaTestFactory {
 
 	public static UaaAuthentication getAuthentication(String id, String name, String email) {
 		return new UaaAuthentication(getPrincipal(id, name, email),
-				Arrays.<GrantedAuthority> asList(new SimpleGrantedAuthority("ROLE_USER")));
+				Arrays.<GrantedAuthority> asList(new SimpleGrantedAuthority("ROLE_USER")), null);
 	}
 
 	public static ScimUser getScimUser(String name, String email, String givenName, String familyName) {

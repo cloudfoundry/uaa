@@ -12,18 +12,20 @@ import org.springframework.security.core.GrantedAuthority;
 public final class UaaAuthentication implements Authentication, Serializable {
 	private List<GrantedAuthority> authorities;
 	private final UaaPrincipal principal;
+	private final Object details;
 	/**
 	 * Creates a token with the supplied array of authorities.
 	 *
 	 * @param authorities the collection of <tt>GrantedAuthority</tt>s for the
 	 *                    principal represented by this authentication object.
 	 */
-	UaaAuthentication(UaaPrincipal principal, List<GrantedAuthority> authorities) {
+	UaaAuthentication(UaaPrincipal principal, List<GrantedAuthority> authorities, Object details) {
 		if (principal == null || authorities == null) {
 			throw new IllegalArgumentException("principal and authorities must not be null");
 		}
 		this.principal = principal;
 		this.authorities = authorities;
+		this.details = details;
 	}
 
 	@Override
@@ -44,7 +46,7 @@ public final class UaaAuthentication implements Authentication, Serializable {
 
 	@Override
 	public Object getDetails() {
-		return null;
+		return details;
 	}
 
 	@Override

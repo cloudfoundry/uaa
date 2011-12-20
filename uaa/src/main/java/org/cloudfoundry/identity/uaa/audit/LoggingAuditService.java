@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.audit;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 
 /**
@@ -26,17 +27,17 @@ public class LoggingAuditService implements UaaAuditService {
 	private final Log logger = LogFactory.getLog("UAA Audit Logger");
 
 	@Override
-	public void userAuthenticationSuccess(UaaUser user) {
+	public void userAuthenticationSuccess(UaaUser user, UaaAuthenticationDetails details) {
 		log("User authenticated: " + user.getId() + ", " + user.getUsername());
 	}
 
 	@Override
-	public void userAuthenticationFailure(UaaUser user) {
+	public void userAuthenticationFailure(UaaUser user, UaaAuthenticationDetails details) {
 		log("Authentication failed, user: " + user.getId() + ", " + user.getUsername());
 	}
 
 	@Override
-	public void userNotFound(String name) {
+	public void userNotFound(String name, UaaAuthenticationDetails details) {
 		log("Attempt to login as non-existent user: " + name);
 	}
 

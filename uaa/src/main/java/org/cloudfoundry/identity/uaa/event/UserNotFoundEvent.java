@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.event;
 
 import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.springframework.security.core.Authentication;
 
 /**
@@ -17,6 +18,6 @@ public class UserNotFoundEvent extends AbstractUaaAuthenticationEvent {
 
 	@Override
 	void process(UaaAuditService auditor) {
-		auditor.userNotFound(getAuthentication().getName());
+		auditor.userNotFound(getAuthentication().getName(), (UaaAuthenticationDetails) getAuthentication().getDetails());
 	}
 }
