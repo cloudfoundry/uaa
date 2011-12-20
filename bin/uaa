@@ -1,0 +1,71 @@
+#!/usr/bin/env ruby
+
+require 'yaml'
+require 'nats/client'
+require 'vcap/logging'
+
+VCAP::Logging.setup_from_config()
+logger = VCAP::Logging.logger('uaa')
+
+root=File.absolute_path(File.join(File.dirname(__FILE__), ".."))
+if File.exist?(root) then
+  logger.info("Using root=#{root}")
+else
+  abort("#{root} is not a directory.  Do you need to init submodules?") 
+end
+
+cfg_path = ENV['CLOUD_FOUNDRY_CONFIG_PATH'] ? ENV['CLOUD_FOUNDRY_CONFIG_PATH'] : File.join(root, "config")
+
+logger.info ("Config path: #{cfg_path}")
+
+cfg_file = File.join(cfg_path, "uaa.yml")
+
+config = {"uaa"=>{}}
+File.exist?(cfg_file) && File.open(cfg_file) do |f|
+  logger.info ("Loading config file from #{cfg_file}")
+  config.update(YAML.load(f))
+end
+
+logger.info("Launching tomcat from PID=#{Process.pid}")
+
+maven_opts = "-DPID=$$"
+config["jvm_args"] && maven_opts += " " + config["jvm_args"]
+config["spring_profiles"] && maven_opts += " -Dspring.profiles.active=" + config["spring_profiles"]
+logger.info("Tomcat JVM args: #{maven_opts}")
+
+# The form of this next bit is very sensitive.  We need the PID for
+# logging so we need to exec from the shell to stay in the same
+# process...
+pid = spawn("export MAVEN_OPTS=\"#{maven_opts}\" && exec mvn tomcat:run -P vcap", {:chdir=>root})
+
+logger.info("Tomcat PID = #{pid}")
+
+pidfile = config["pid"]
+if !pidfile then
+  Process.kill("ABRT", pid)
+  abort("No 'pid' file path defined in #{cfg_file}")
+end
+File.open(pidfile, 'w') {|f| f.write(pid) }
+
+logger.info("Preparing to launch NATS from #{pid}")
+Thread.new do
+
+  register_msg = { :host => config["uaa"]["host"]||"localhost", :port => config["uaa"]["port"]||8080, :uris => config["uaa"]["uris"]||["uaa.vcap.me"], :tags => {:component => "UAA"} }
+  json = Yajl::Encoder.encode(register_msg)
+  logger.info("Sending to NATS: json="+json)
+  mbus = config["mbus"] || "nats://localhost:4222/"
+
+  # NATS will block and we want to wait for the tomcat process so this
+  # has to go in a new thread
+
+  logger.info("Launching NATS from uaa")
+  NATS.start(:uri => mbus) do
+    # Tell all current routers where to find us.
+    NATS.publish('router.register', json)
+    # Listen for router starts/restarts
+    NATS.subscribe('router.start') { NATS.publish('router.register', json) }
+  end
+
+end
+
+Process.wait(pid)
