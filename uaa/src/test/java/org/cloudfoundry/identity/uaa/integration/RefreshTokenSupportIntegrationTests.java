@@ -12,7 +12,9 @@
  */
 package org.cloudfoundry.identity.uaa.integration;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 
 import java.io.ByteArrayInputStream;
 import java.util.Arrays;
@@ -23,6 +25,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.common.DefaultOAuth2SerializationService;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.util.LinkedMultiValueMap;
@@ -44,12 +47,13 @@ public class RefreshTokenSupportIntegrationTests {
 
 		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
 		formData.add("grant_type", "password");
-		formData.add("client_id", "app");
-		formData.add("client_secret", "appclientsecret");
 		formData.add("username", "marissa");
 		formData.add("password", "koala");
 		formData.add("scope", "read");
-		ResponseEntity<String> response = serverRunning.postForString("/oauth/token", formData);
+		HttpHeaders headers = new HttpHeaders();
+		headers.set("Authorization", "Basic " + new String(Base64.encode("app:appclientsecret".getBytes("UTF-8"))));
+		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+		ResponseEntity<String> response = serverRunning.postForString("/oauth/token", formData, headers );
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		assertEquals("no-store", response.getHeaders().getFirst("Cache-Control"));
 
@@ -57,17 +61,12 @@ public class RefreshTokenSupportIntegrationTests {
 		OAuth2AccessToken accessToken = serializationService.deserializeJsonAccessToken(new ByteArrayInputStream(
 				response.getBody().getBytes()));
 
-		HttpHeaders headers = new HttpHeaders();
-		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
-
 		// now use the refresh token to get a new access token.
 		assertNotNull(accessToken.getRefreshToken());
 		formData = new LinkedMultiValueMap<String, String>();
 		formData.add("grant_type", "refresh_token");
-		formData.add("client_id", "app");
-		formData.add("client_secret", "appclientsecret");
 		formData.add("refresh_token", accessToken.getRefreshToken().getValue());
-		response = serverRunning.postForString("/oauth/token", formData);
+		response = serverRunning.postForString("/oauth/token", formData, headers);
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		assertEquals("no-store", response.getHeaders().getFirst("Cache-Control"));
 		OAuth2AccessToken newAccessToken = serializationService.deserializeJsonAccessToken(new ByteArrayInputStream(
