@@ -28,6 +28,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.common.DefaultOAuth2SerializationService;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.util.LinkedMultiValueMap;
@@ -200,11 +201,16 @@ public class ServerRunning extends TestWatchman {
 		return hostName + ":" + port;
 	}
 
+	public ResponseEntity<String> postForString(String path, MultiValueMap<String, String> formData, HttpHeaders headers) {
+		if (headers.getContentType() == null) {
+			headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+		}
+		return client.exchange(getUrl(path), HttpMethod.POST, new HttpEntity<MultiValueMap<String, String>>(formData,
+				headers), String.class);
+	}
+
 	public ResponseEntity<String> postForString(String path, MultiValueMap<String, String> formData) {
-		HttpHeaders headers = new HttpHeaders();
-		headers.setAccept(Arrays.asList(MediaType.APPLICATION_FORM_URLENCODED));
-		return client.exchange(getUrl(path), HttpMethod.POST,
-				new HttpEntity<MultiValueMap<String, String>>(formData, headers), String.class);
+		return postForString(path, formData, new HttpHeaders());
 	}
 
 	public ResponseEntity<String> getForString(String path) {
@@ -240,13 +246,20 @@ public class ServerRunning extends TestWatchman {
 	public OAuth2AccessToken getToken() {
 		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
 		formData.add("grant_type", "password");
-		formData.add("client_id", "app");
-		formData.add("client_secret", "appclientsecret");
 		formData.add("username", "marissa");
 		formData.add("password", "koala");
 		formData.add("scope", "read");
 
-		ResponseEntity<String> response = postForString(getUrl("/uaa/oauth/token", uaaPort), formData);
+		HttpHeaders headers = new HttpHeaders();
+		try {
+			headers.set("Authorization", "Basic " + new String(Base64.encode("app:appclientsecret".getBytes("UTF-8"))));
+		}
+		catch (UnsupportedEncodingException e) {
+			throw new IllegalStateException("Could not decode basic auth string", e);
+		}
+		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+
+		ResponseEntity<String> response = postForString(getUrl("/uaa/oauth/token", uaaPort), formData, headers);
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		assertEquals("no-store", response.getHeaders().getFirst("Cache-Control"));
 
