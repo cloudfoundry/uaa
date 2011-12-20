@@ -43,23 +43,22 @@ public class CheckTokenEndpointIntegrationTests {
 
 		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
 		formData.add("grant_type", "password");
-		formData.add("client_id", "app");
-		formData.add("client_secret", "appclientsecret");
 		formData.add("username", "marissa");
 		formData.add("password", "koala");
 		formData.add("scope", "read");
 
+		HttpHeaders headers = new HttpHeaders();
+		headers.set("Authorization", "Basic " + new String(Base64.encode("app:appclientsecret".getBytes("UTF-8"))));
+		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+
 		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData);
+		ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, headers);
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		String token = (String) response.getBody().get("access_token");
 
 		formData = new LinkedMultiValueMap<String, String>();
 		formData.add("token", token);
-		HttpHeaders headers = new HttpHeaders();
-		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
 
-		headers.set("Authorization", "Basic " + new String(Base64.encode("app:appclientsecret".getBytes("UTF-8"))));
 		response = serverRunning.postForMap("/check_token", formData, headers);
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		System.err.println(response.getBody());
