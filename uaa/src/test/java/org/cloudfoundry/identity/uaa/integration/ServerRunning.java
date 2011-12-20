@@ -14,7 +14,6 @@ package org.cloudfoundry.identity.uaa.integration;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
@@ -22,6 +21,8 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.params.ClientPNames;
 import org.junit.Assume;
 import org.junit.internal.AssumptionViolatedException;
 import org.junit.rules.TestWatchman;
@@ -35,7 +36,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpResponse;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RequestCallback;
@@ -314,11 +315,12 @@ public class ServerRunning extends TestWatchman {
 	
 	public RestTemplate createRestTemplate() {
 		RestTemplate client = new RestTemplate();
-		client.setRequestFactory(new SimpleClientHttpRequestFactory() {
+		client.setRequestFactory(new HttpComponentsClientHttpRequestFactory() {
 			@Override
-			protected void prepareConnection(HttpURLConnection connection, String httpMethod) throws IOException {
-				super.prepareConnection(connection, httpMethod);
-				connection.setInstanceFollowRedirects(false);
+			public HttpClient getHttpClient() {
+				HttpClient client = super.getHttpClient();
+				client.getParams().setBooleanParameter(ClientPNames.HANDLE_REDIRECTS, false);
+				return client;
 			}
 		});
 		client.setErrorHandler(new ResponseErrorHandler() {

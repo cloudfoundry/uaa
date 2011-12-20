@@ -53,9 +53,10 @@
 
 	<bean id="http403" class="org.springframework.security.web.authentication.Http403ForbiddenEntryPoint" />
 
-	<http pattern="/check_token" create-session="stateless" entry-point-ref="http403" authentication-manager-ref="clientAuthenticationMgr"
+	<http pattern="/check_token" create-session="stateless" entry-point-ref="http403" authentication-manager-ref="clientAuthenticationManager"
 		xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+		<anonymous enabled="false" />
 		<http-basic />
 	</http>
 
@@ -66,10 +67,16 @@
 		<custom-filter ref="oauth2ResourceServerFilter" after="EXCEPTION_TRANSLATION_FILTER" />
 	</http>
 
+	<http pattern="/oauth/token" create-session="never" authentication-manager-ref="clientAuthenticationManager"
+		xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/oauth/token" access="IS_AUTHENTICATED_FULLY" />
+		<anonymous enabled="false" />
+		<http-basic />
+	</http>
+
 	<http access-denied-page="/" authentication-manager-ref="authzAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
 		<!-- machine API access to the authorization process itself is allowed -->
 		<intercept-url pattern="/login**" access="IS_AUTHENTICATED_ANONYMOUSLY" />
-		<intercept-url pattern="/oauth/token" access="IS_AUTHENTICATED_ANONYMOUSLY" />
 		<intercept-url pattern="/oauth/authorize" access="IS_AUTHENTICATED_ANONYMOUSLY" />
 		<intercept-url pattern="/oauth/**" access="ROLE_USER" />
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
@@ -79,12 +86,12 @@
 		<custom-filter ref="oauth2ResourceServerFilter" after="EXCEPTION_TRANSLATION_FILTER" />
 	</http>
 
-	<authentication-manager id="clientAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
+	<authentication-manager id="clientAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
 		<authentication-provider user-service-ref="clientDetailsUserService" />
 	</authentication-manager>
 
 	<authentication-manager id="emptyAuthenticationMgr" xmlns="http://www.springframework.org/schema/security" />
-
+	
 	<bean id="authzAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationManager">
 		<constructor-arg ref="userDatabase" />
 	</bean>
@@ -96,8 +103,8 @@
 
 	<bean id="tokenStore" class="org.springframework.security.oauth2.provider.token.InMemoryTokenStore" />
 
-	<bean id="clientDetailsUserService" class="org.cloudfoundry.identity.uaa.security.ClientDetailsUserService">
-		<property name="clientDetails" ref="clientDetails" />
+	<bean id="clientDetailsUserService" class="org.springframework.security.oauth2.provider.client.ClientDetailsUserDetailsService">
+		<constructor-arg ref="clientDetails" />
 	</bean>
 
 	<oauth:authorization-server client-details-service-ref="clientDetails" token-services-ref="tokenServices">
