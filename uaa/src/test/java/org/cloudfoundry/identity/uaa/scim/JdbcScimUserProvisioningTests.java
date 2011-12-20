@@ -23,6 +23,7 @@ import java.util.UUID;
 
 import javax.sql.DataSource;
 
+import org.cloudfoundry.identity.uaa.TestUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -61,14 +62,12 @@ public class JdbcScimUserProvisioningTests {
 
 	private static final String SQL_INJECTION_FIELDS = "password,version,created,lastModified,username,email,givenName,familyName";
 
-	private static String platform = System.getProperty("PLATFORM", "hsqldb");
-
 	@Before
 	public void createDatasource() throws Exception {
 
 		template = new JdbcTemplate(dataSource);
 		db = new JdbcScimUserProvisioning(template);
-		runScript("schema");
+		TestUtils.createSchema(dataSource);
 		template.execute("insert into users (id, username, password, email, givenName, familyName) " + "values ('"
 				+ JOE_ID + "', 'joe','joespassword','joe@joe.com','Joe','User')");
 		template.execute("insert into users (id, username, password, email, givenName, familyName) " + "values ('"
@@ -78,20 +77,7 @@ public class JdbcScimUserProvisioningTests {
 
 	@After
 	public void clear() throws Exception {
-		runScript("schema-drop");
-	}
-
-	private void runScript(String stem) throws Exception {
-		ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
-		populator.addScript(new ClassPathResource(stem + "-" + platform + ".sql", JdbcScimUserProvisioning.class));
-		Connection connection = dataSource.getConnection();
-		try {
-			populator.populate(connection);
-		} catch (ScriptStatementFailedException e) {
-			// ignore
-		} finally {
-			DataSourceUtils.releaseConnection(connection, dataSource);
-		}
+		TestUtils.dropSchema(dataSource);
 	}
 
 	@Test

@@ -74,10 +74,12 @@
 		<intercept-url pattern="/oauth/**" access="ROLE_USER" />
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<form-login authentication-failure-url="/login" login-page="/login" login-processing-url="/login.do"
-			username-parameter="username" password-parameter="password" />
+			username-parameter="username" password-parameter="password"  authentication-details-source-ref="authenticationDetailsSource"/>
 		<logout logout-success-url="/" logout-url="/logout.do" />
 		<custom-filter ref="oauth2ResourceServerFilter" after="EXCEPTION_TRANSLATION_FILTER" />
 	</http>
+
+	<bean id="authenticationDetailsSource" class="org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetailsSource" />
 
 	<authentication-manager id="clientAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
 		<authentication-provider user-service-ref="clientDetailsUserService" />
@@ -200,6 +202,14 @@
 
 		<bean id="scimUserProvisioning" class="org.cloudfoundry.identity.uaa.scim.JdbcScimUserProvisioning">
 			<constructor-arg ref="jdbcTemplate" />
+		</bean>
+
+		<bean class="org.cloudfoundry.identity.uaa.event.AuditListener">
+			<constructor-arg>
+				<bean class="org.cloudfoundry.identity.uaa.audit.JdbcAuditService">
+					<constructor-arg ref="dataSource" />
+				</bean>
+			</constructor-arg>
 		</bean>
 
 	</beans>

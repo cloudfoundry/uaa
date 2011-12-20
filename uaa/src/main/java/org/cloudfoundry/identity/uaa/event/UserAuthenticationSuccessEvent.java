@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.event;
 
 import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.springframework.security.core.Authentication;
 
@@ -29,6 +30,6 @@ public class UserAuthenticationSuccessEvent extends AbstractUaaAuthenticationEve
 
 	@Override
 	void process(UaaAuditService auditor) {
-		auditor.userAuthenticationSuccess(user);
+		auditor.userAuthenticationSuccess(user, (UaaAuthenticationDetails) getAuthentication().getDetails());
 	}
 }

@@ -1,11 +1,11 @@
 /*
  * Copyright 2006-2011 the original author or authors.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
@@ -20,6 +20,7 @@ import java.util.UUID;
 
 import javax.sql.DataSource;
 
+import org.cloudfoundry.identity.uaa.TestUtils;
 import org.cloudfoundry.identity.uaa.scim.JdbcScimUserProvisioning;
 import org.junit.After;
 import org.junit.Before;
@@ -45,8 +46,6 @@ public class JdbcUaaUserDatabaseTests {
 
 	@Autowired
 	private DataSource dataSource;
-	
-	private JdbcTemplate template;
 
 	private JdbcUaaUserDatabase db;
 
@@ -54,35 +53,20 @@ public class JdbcUaaUserDatabaseTests {
 
 	private static final String MABEL_ID = UUID.randomUUID().toString();
 
-	private static String platform = System.getProperty("PLATFORM", "hsqldb");
-
 	@Before
 	public void initializeDb() throws Exception {
-		template = new JdbcTemplate(dataSource);
+		JdbcTemplate template = new JdbcTemplate(dataSource);
 		db = new JdbcUaaUserDatabase(template);
-		runScript("schema");
+		TestUtils.createSchema(dataSource);
 		template.execute("insert into users (id, username, password, email, givenName, familyName) " +
-				 "values ('"+ JOE_ID + "', 'joe','joespassword','joe@joe.com','Joe','User')");
+								 "values ('" + JOE_ID + "', 'joe','joespassword','joe@joe.com','Joe','User')");
 		template.execute("insert into users (id, username, password, email, givenName, familyName) " +
-				 "values ('"+ MABEL_ID + "', 'mabel','mabelspassword','mabel@mabel.com','Mabel','User')");
+								 "values ('" + MABEL_ID + "', 'mabel','mabelspassword','mabel@mabel.com','Mabel','User')");
 	}
 
 	@After
 	public void clearDb() throws Exception {
-		runScript("schema-drop");
-	}
-
-	private void runScript(String stem) throws Exception {
-		ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
-		populator.addScript(new ClassPathResource(stem + "-" + platform + ".sql", JdbcScimUserProvisioning.class));
-		Connection connection = dataSource.getConnection();
-		try {
-			populator.populate(connection);
-		} catch (ScriptStatementFailedException e) {
-			// ignore
-		} finally {
-			DataSourceUtils.releaseConnection(connection, dataSource);
-		}
+		TestUtils.dropSchema(dataSource);
 	}
 
 	@Test

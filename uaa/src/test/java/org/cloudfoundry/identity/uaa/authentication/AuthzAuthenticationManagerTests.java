@@ -31,6 +31,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import java.util.HashMap;
 import java.util.Map;
+import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Luke Taylor
@@ -93,6 +94,6 @@ public class AuthzAuthenticationManagerTests {
 		Map<String,String> userdata = new HashMap<String,String>();
 		userdata.put("username", username);
 		userdata.put("password", password);
-		return new AuthzAuthenticationRequest(userdata);
+		return new AuthzAuthenticationRequest(userdata, new UaaAuthenticationDetails(mock(HttpServletRequest.class)));
 	}
 }

@@ -12,6 +12,7 @@
  */
 package org.cloudfoundry.identity.uaa.audit;
 
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 
 /**
@@ -21,11 +22,11 @@ public interface UaaAuditService {
 	/**
 	 * Authentication of a specific user, i.e. a person
 	 */
-	void userAuthenticationSuccess(UaaUser user);
+	void userAuthenticationSuccess(UaaUser user, UaaAuthenticationDetails details);
 
-	void userAuthenticationFailure(UaaUser user);
+	void userAuthenticationFailure(UaaUser user, UaaAuthenticationDetails details);
 
-	void userNotFound(String name);
+	void userNotFound(String name, UaaAuthenticationDetails details);
 
 	/**
 	 * Authentication of any other (non-user) principal.
