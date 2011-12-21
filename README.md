@@ -131,6 +131,12 @@ with an embedded HSQL database:
 Or to use PostgreSQL instead of HSQL:
 
      mvn -Dspring.profiles.active=default,jdbc,postgresql tomcat:run
+	
+To launch in a microcloud type environment you need the SCIM user
+endpoints to be unsecure so that a user can create an account and set
+its password to bootstrap the system.  For this use the Spring profile
+`private`.  The opposite is `!private` which needs to be specified
+excplicitly if the any other profiles are active.
 
 ## The API Application
 

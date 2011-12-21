@@ -24,6 +24,10 @@ import org.junit.After;
 import org.junit.Test;
 import org.springframework.context.support.GenericXmlApplicationContext;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.mock.web.MockFilterChain;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.web.FilterChainProxy;
 
 /**
  * @author Dave Syer
@@ -31,36 +35,59 @@ import org.springframework.core.io.FileSystemResource;
  */
 public class BootstrapTests {
 	
+	private GenericXmlApplicationContext context;
 	
 	@After
 	public void cleanup() {
 		System.clearProperty("spring.profiles.active");		
 		System.clearProperty("CLOUD_FOUNDRY_CONFIG_PATH");
+		if (context!=null) {
+			context.close();
+		}
 	}
 
 	@Test
 	public void testRootContextWithJdbcUsers() throws Exception {
 		System.setProperty("spring.profiles.active", "jdbc,hsqldb");
-		GenericXmlApplicationContext context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/spring-servlet.xml"));
+		context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/spring-servlet.xml"));
 		assertNotNull(context.getBean("userDatabase", JdbcUaaUserDatabase.class));
-		context.close();
 	}
 
 	@Test
 	public void testRootContextWithDevUsers() throws Exception {
-		GenericXmlApplicationContext context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/spring-servlet.xml"));
+		context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/spring-servlet.xml"));
 		assertNotNull(context.getBean("userDatabase", InMemoryUaaUserDatabase.class));
-		context.close();
+	}
+
+	@Test
+	public void testRootContextWithJdbcSecureUsers() throws Exception {
+		System.setProperty("spring.profiles.active", "jdbc,hsqldb,!private");
+		context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/spring-servlet.xml"));
+		assertNotNull(context.getBean("userDatabase", JdbcUaaUserDatabase.class));
+		FilterChainProxy filterChain = context.getBean(FilterChainProxy.class);
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		filterChain.doFilter(new MockHttpServletRequest("GET", "/Users"), response, new MockFilterChain());
+		assertEquals("http://localhost/login", response.getRedirectedUrl());
+	}
+
+	@Test
+	public void testRootContextWithJdbcUnsecureUsers() throws Exception {
+		System.setProperty("spring.profiles.active", "jdbc,hsqldb,private");
+		context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/spring-servlet.xml"));
+		assertNotNull(context.getBean("userDatabase", JdbcUaaUserDatabase.class));
+		FilterChainProxy filterChain = context.getBean(FilterChainProxy.class);
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		filterChain.doFilter(new MockHttpServletRequest("GET", "/Users"), response, new MockFilterChain());
+		assertEquals(null, response.getRedirectedUrl());
 	}
 
 	@Test
 	public void testOverrideYmlConfig() throws Exception {
 		System.setProperty("CLOUD_FOUNDRY_CONFIG_PATH", "src/test/resources/test/config");
 		System.setProperty("spring.profiles.active", "jdbc,hsqldb");
-		GenericXmlApplicationContext context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/spring-servlet.xml"));
+		context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/spring-servlet.xml"));
 		Properties properties = context.getBean("applicationProperties", Properties.class);
 		assertEquals("bar", properties.get("foo"));
-		context.close();
 	}
 
 }
