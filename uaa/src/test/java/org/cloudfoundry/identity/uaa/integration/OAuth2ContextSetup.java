@@ -64,7 +64,7 @@ public class OAuth2ContextSetup extends TestWatchman {
 		resource.setId("scim");
 		resource.setScope(scopes);
 		resource.setClientAuthenticationScheme(AuthenticationScheme.header);
-		resource.setAccessTokenUri(server.getUrlFromRoot("/oauth/token"));
+		resource.setAccessTokenUri(server.getUrl("/oauth/token"));
 		return new OAuth2ContextSetup(server, resource);
 	}
 
@@ -81,7 +81,7 @@ public class OAuth2ContextSetup extends TestWatchman {
 		resource.setUsername(username);
 		resource.setPassword(password);
 		resource.setClientAuthenticationScheme(AuthenticationScheme.header);
-		resource.setAccessTokenUri(server.getUrlFromRoot("/oauth/token"));
+		resource.setAccessTokenUri(server.getUrl("/oauth/token"));
 		return new OAuth2ContextSetup(server, resource);
 	}
 

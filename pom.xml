@@ -163,19 +163,15 @@
       <url>http://maven.springframework.org/release</url>
     </repository>
     <repository>
-      <!-- necessary for Spring Security 3.1.0.CI-SNAPSHOT dependency -->
-      <id>repository.springframework.maven.snapshot</id>
-      <name>Spring Framework Maven Release Repository</name>
+      <!-- necessary for Spring Security OAuth SNAPSHOT dependency -->
+      <id>spring-snapshost</id>
+      <name>Spring Framework Maven Snapshot Repository</name>
       <url>http://maven.springframework.org/snapshot</url>
     </repository>
     <repository>
       <id>oauth.googlecode.net</id>
       <url>http://oauth.googlecode.com/svn/code/maven/</url>
     </repository>
-<!--	<repository>
-	  <id>java.net</id>
-	  <url>http://download.java.net/maven/2</url>
-	</repository>-->
   </repositories>
 
   <pluginRepositories>

@@ -15,9 +15,9 @@ package org.cloudfoundry.identity.uaa.integration;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import java.io.ByteArrayInputStream;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -27,7 +27,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.codec.Base64;
-import org.springframework.security.oauth2.common.DefaultOAuth2SerializationService;
 import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -39,10 +38,10 @@ public class NativeApplicationIntegrationTests {
 
 	@Rule
 	public ServerRunning serverRunning = ServerRunning.isRunning();
-	
+
 	/**
-	 * tests a happy-day flow of the Resource Owner Password Credentials grant type.
-	 * (formerly native application profile).
+	 * tests a happy-day flow of the Resource Owner Password Credentials grant type. (formerly native application
+	 * profile).
 	 */
 	@Test
 	public void testHappyDay() throws Exception {
@@ -64,7 +63,8 @@ public class NativeApplicationIntegrationTests {
 	 * tests that an error occurs if you attempt to use bad client credentials.
 	 */
 	@Test
-	@Ignore // Need a custom auth entry point to get the correct JSON response here.
+	@Ignore
+	// Need a custom auth entry point to get the correct JSON response here.
 	public void testInvalidClient() throws Exception {
 
 		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
@@ -75,7 +75,8 @@ public class NativeApplicationIntegrationTests {
 		HttpHeaders headers = new HttpHeaders();
 		headers.set("Authorization", "Basic " + new String(Base64.encode("no-such-client:".getBytes("UTF-8"))));
 		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
-		ResponseEntity<String> response = serverRunning.postForString("/oauth/token", formData, headers);
+		@SuppressWarnings("rawtypes")
+		ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, headers);
 		assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
 		List<String> newCookies = response.getHeaders().get("Set-Cookie");
 		if (newCookies != null && !newCookies.isEmpty()) {
@@ -83,12 +84,9 @@ public class NativeApplicationIntegrationTests {
 		}
 		assertEquals("no-store", response.getHeaders().getFirst("Cache-Control"));
 
-		DefaultOAuth2SerializationService serializationService = new DefaultOAuth2SerializationService();
-		try {
-			throw serializationService.deserializeJsonError(new ByteArrayInputStream(response.getBody().getBytes()));
-		} catch (OAuth2Exception e) {
-			assertEquals("invalid_client", e.getOAuth2ErrorCode());
-		}
+		@SuppressWarnings("unchecked")
+		OAuth2Exception error = OAuth2Exception.valueOf(response.getBody());
+		assertEquals("invalid_client", error.getOAuth2ErrorCode());
 	}
 
 	/**

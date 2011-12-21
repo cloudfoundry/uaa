@@ -16,8 +16,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 
-import java.io.ByteArrayInputStream;
 import java.util.Arrays;
+import java.util.Map;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -26,7 +26,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.codec.Base64;
-import org.springframework.security.oauth2.common.DefaultOAuth2SerializationService;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -53,24 +52,24 @@ public class RefreshTokenSupportIntegrationTests {
 		HttpHeaders headers = new HttpHeaders();
 		headers.set("Authorization", "Basic " + new String(Base64.encode("app:appclientsecret".getBytes("UTF-8"))));
 		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
-		ResponseEntity<String> response = serverRunning.postForString("/oauth/token", formData, headers );
+		@SuppressWarnings("rawtypes")
+		ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, headers );
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		assertEquals("no-store", response.getHeaders().getFirst("Cache-Control"));
 
-		DefaultOAuth2SerializationService serializationService = new DefaultOAuth2SerializationService();
-		OAuth2AccessToken accessToken = serializationService.deserializeJsonAccessToken(new ByteArrayInputStream(
-				response.getBody().getBytes()));
+		@SuppressWarnings("unchecked")
+		OAuth2AccessToken accessToken =OAuth2AccessToken.valueOf(response.getBody());
 
 		// now use the refresh token to get a new access token.
 		assertNotNull(accessToken.getRefreshToken());
 		formData = new LinkedMultiValueMap<String, String>();
 		formData.add("grant_type", "refresh_token");
 		formData.add("refresh_token", accessToken.getRefreshToken().getValue());
-		response = serverRunning.postForString("/oauth/token", formData, headers);
+		response = serverRunning.postForMap("/oauth/token", formData, headers);
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		assertEquals("no-store", response.getHeaders().getFirst("Cache-Control"));
-		OAuth2AccessToken newAccessToken = serializationService.deserializeJsonAccessToken(new ByteArrayInputStream(
-				response.getBody().getBytes()));
+		@SuppressWarnings("unchecked")
+		OAuth2AccessToken newAccessToken = OAuth2AccessToken.valueOf(response.getBody());
 		assertFalse(newAccessToken.getValue().equals(accessToken.getValue()));
 
 	}
