@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.api.web;
 
 import static org.junit.Assert.assertEquals;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
@@ -29,7 +28,6 @@ import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.security.crypto.codec.Base64;
-import org.springframework.security.oauth2.common.DefaultOAuth2SerializationService;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -201,6 +199,15 @@ public class ServerRunning extends TestWatchman {
 		return hostName + ":" + port;
 	}
 
+	@SuppressWarnings("rawtypes")
+	public ResponseEntity<Map> postForMap(String path, MultiValueMap<String, String> formData, HttpHeaders headers) {
+		if (headers.getContentType() == null) {
+			headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+		}
+		return client.exchange(getUrl(path), HttpMethod.POST, new HttpEntity<MultiValueMap<String, String>>(formData,
+				headers), Map.class);
+	}
+
 	public ResponseEntity<String> postForString(String path, MultiValueMap<String, String> formData, HttpHeaders headers) {
 		if (headers.getContentType() == null) {
 			headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
@@ -259,13 +266,13 @@ public class ServerRunning extends TestWatchman {
 		}
 		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
 
-		ResponseEntity<String> response = postForString(getUrl("/uaa/oauth/token", uaaPort), formData, headers);
+		@SuppressWarnings("rawtypes")
+		ResponseEntity<Map> response = postForMap(getUrl("/uaa/oauth/token", uaaPort), formData, headers);
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		assertEquals("no-store", response.getHeaders().getFirst("Cache-Control"));
 
-		DefaultOAuth2SerializationService serializationService = new DefaultOAuth2SerializationService();
-		OAuth2AccessToken accessToken = serializationService.deserializeJsonAccessToken(new ByteArrayInputStream(
-				response.getBody().getBytes()));
+		@SuppressWarnings("unchecked")
+		OAuth2AccessToken accessToken = OAuth2AccessToken.valueOf(response.getBody());
 		logger.debug("Obtained access token: " + accessToken.getValue());
 		return accessToken;
 	}

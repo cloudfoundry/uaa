@@ -93,7 +93,7 @@ public class ScimUserEndpointIntegrationTests {
 	private ResponseEntity<Map> deleteUser(String id) {
 		HttpHeaders headers = new HttpHeaders();
 		headers.add("If-Match", "*");
-		return client.exchange(server.getUrlFromRoot(userEndpoint + "/{id}"), HttpMethod.DELETE, new HttpEntity<Void>(
+		return client.exchange(server.getUrl(userEndpoint + "/{id}"), HttpMethod.DELETE, new HttpEntity<Void>(
 				headers), Map.class, id);
 	}
 
@@ -101,7 +101,7 @@ public class ScimUserEndpointIntegrationTests {
 	private ResponseEntity<Map> deleteUser(String id, int version) {
 		HttpHeaders headers = new HttpHeaders();
 		headers.add("If-Match", "\"" + version + "\"");
-		return client.exchange(server.getUrlFromRoot(userEndpoint + "/{id}"), HttpMethod.DELETE, new HttpEntity<Void>(
+		return client.exchange(server.getUrl(userEndpoint + "/{id}"), HttpMethod.DELETE, new HttpEntity<Void>(
 				headers), Map.class, id);
 	}
 
@@ -114,14 +114,14 @@ public class ScimUserEndpointIntegrationTests {
 		user.setName(new ScimUser.Name("Joe", "User"));
 		user.addEmail("joe@blah.com");
 
-		ResponseEntity<ScimUser> response = client.postForEntity(server.getUrlFromRoot(userEndpoint), user,
+		ResponseEntity<ScimUser> response = client.postForEntity(server.getUrl(userEndpoint), user,
 				ScimUser.class);
 		ScimUser joe1 = response.getBody();
 		assertEquals("joe", joe1.getUserName());
 
 		// Check we can GET the user
 		ScimUser joe2 = client
-				.getForObject(server.getUrlFromRoot(userEndpoint + "/{id}"), ScimUser.class, joe1.getId());
+				.getForObject(server.getUrl(userEndpoint + "/{id}"), ScimUser.class, joe1.getId());
 
 		assertEquals(joe1.getId(), joe2.getId());
 	}
@@ -133,13 +133,13 @@ public class ScimUserEndpointIntegrationTests {
 		user.setName(new ScimUser.Name("Joe", "User"));
 		user.addEmail("joe@blah.com");
 
-		ResponseEntity<ScimUser> response = client.postForEntity(server.getUrlFromRoot(userEndpoint), user,
+		ResponseEntity<ScimUser> response = client.postForEntity(server.getUrl(userEndpoint), user,
 				ScimUser.class);
 		ScimUser joe = response.getBody();
 		assertEquals("joe", joe.getUserName());
 
 		// Check we can GET the user
-		ResponseEntity<ScimUser> result = client.getForEntity(server.getUrlFromRoot(userEndpoint + "/{id}"),
+		ResponseEntity<ScimUser> result = client.getForEntity(server.getUrl(userEndpoint + "/{id}"),
 				ScimUser.class, joe.getId());
 		assertEquals("\"" + joe.getVersion() + "\"", result.getHeaders().getFirst("ETag"));
 	}
@@ -154,7 +154,7 @@ public class ScimUserEndpointIntegrationTests {
 		user.setName(new ScimUser.Name("Joe", "User"));
 		user.addEmail("joe@blah.com");
 
-		ResponseEntity<ScimUser> response = client.postForEntity(server.getUrlFromRoot(userEndpoint), user,
+		ResponseEntity<ScimUser> response = client.postForEntity(server.getUrl(userEndpoint), user,
 				ScimUser.class);
 
 		ScimUser joe = response.getBody();
@@ -164,7 +164,7 @@ public class ScimUserEndpointIntegrationTests {
 
 		HttpHeaders headers = new HttpHeaders();
 		headers.add("If-Match", "\"" + joe.getVersion() + "\"");
-		response = client.exchange(server.getUrlFromRoot(userEndpoint) + "/{id}", HttpMethod.PUT,
+		response = client.exchange(server.getUrl(userEndpoint) + "/{id}", HttpMethod.PUT,
 				new HttpEntity<ScimUser>(joe, headers), ScimUser.class, joe.getId());
 		ScimUser joe1 = response.getBody();
 		assertEquals("joe", joe1.getUserName());
@@ -184,7 +184,7 @@ public class ScimUserEndpointIntegrationTests {
 		user.setName(new ScimUser.Name("Joe", "User"));
 		user.addEmail("joe@blah.com");
 
-		ResponseEntity<ScimUser> response = client.postForEntity(server.getUrlFromRoot(userEndpoint), user,
+		ResponseEntity<ScimUser> response = client.postForEntity(server.getUrl(userEndpoint), user,
 				ScimUser.class);
 
 		ScimUser joe = response.getBody();
@@ -194,7 +194,7 @@ public class ScimUserEndpointIntegrationTests {
 		change.setPassword("newpassword");
 
 		HttpHeaders headers = new HttpHeaders();
-		ResponseEntity<Void> result = client.exchange(server.getUrlFromRoot(userEndpoint) + "/{id}/password",
+		ResponseEntity<Void> result = client.exchange(server.getUrl(userEndpoint) + "/{id}/password",
 				HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers), null, joe.getId());
 		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
 
@@ -210,12 +210,12 @@ public class ScimUserEndpointIntegrationTests {
 		user.addEmail("joel@blah.com");
 
 		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = client.postForEntity(server.getUrlFromRoot(userEndpoint), user, Map.class);
+		ResponseEntity<Map> response = client.postForEntity(server.getUrl(userEndpoint), user, Map.class);
 		@SuppressWarnings("unchecked")
 		Map<String, String> joe1 = response.getBody();
 		assertEquals("joel", joe1.get("userName"));
 
-		response = client.postForEntity(server.getUrlFromRoot(userEndpoint), user, Map.class);
+		response = client.postForEntity(server.getUrl(userEndpoint), user, Map.class);
 		@SuppressWarnings("unchecked")
 		Map<String, String> error = response.getBody();
 
@@ -243,7 +243,7 @@ public class ScimUserEndpointIntegrationTests {
 	@Test
 	public void deleteUserWithNoEtagFails() throws Exception {
 		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = client.exchange(server.getUrlFromRoot(userEndpoint + "/{id}"),
+		ResponseEntity<Map> response = client.exchange(server.getUrl(userEndpoint + "/{id}"),
 				HttpMethod.DELETE, new HttpEntity<Void>((Void) null), Map.class, "joe");
 		@SuppressWarnings("unchecked")
 		Map<String, String> error = response.getBody();
@@ -256,7 +256,7 @@ public class ScimUserEndpointIntegrationTests {
 	@Test
 	public void getReturnsNotFoundForNonExistentUser() throws Exception {
 		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = client.exchange(server.getUrlFromRoot(userEndpoint + "/{id}"),
+		ResponseEntity<Map> response = client.exchange(server.getUrl(userEndpoint + "/{id}"),
 				HttpMethod.GET, new HttpEntity<Void>((Void) null), Map.class, "9999");
 		@SuppressWarnings("unchecked")
 		Map<String, String> error = response.getBody();

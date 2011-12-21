@@ -168,7 +168,7 @@ public class ServerRunning extends TestWatchman {
 		RestTemplate client = new RestTemplate();
 		boolean online = false;
 		try {
-			client.getForEntity(new UriTemplate(getUrlFromRoot("/login")).toString(), String.class);
+			client.getForEntity(new UriTemplate(getUrl("/login")).toString(), String.class);
 			online = true;
 			logger.info("Basic connectivity test passed");
 		}
@@ -201,7 +201,7 @@ public class ServerRunning extends TestWatchman {
 		return "http://" + hostName + (port==80 ? "" : ":" + port) +  rootPath;
 	}
 
-	public String getUrlFromRoot(String path) {
+	public String getUrl(String path) {
 		if (path.startsWith("http:")) {
 			return path;
 		}
@@ -219,7 +219,7 @@ public class ServerRunning extends TestWatchman {
 		if (headers.getContentType() == null) {
 			headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 		}
-		return client.exchange(getUrlFromRoot(path), HttpMethod.POST, new HttpEntity<MultiValueMap<String, String>>(formData,
+		return client.exchange(getUrl(path), HttpMethod.POST, new HttpEntity<MultiValueMap<String, String>>(formData,
 				headers), String.class);
 	}
 
@@ -233,26 +233,26 @@ public class ServerRunning extends TestWatchman {
 		if (headers.getContentType() == null) {
 			headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 		}
-		return client.exchange(getUrlFromRoot(path), HttpMethod.POST, new HttpEntity<MultiValueMap<String, String>>(formData,
+		return client.exchange(getUrl(path), HttpMethod.POST, new HttpEntity<MultiValueMap<String, String>>(formData,
 				headers), Map.class);
 	}
 
 	public ResponseEntity<String> getForString(String path) {
-		return client.exchange(getUrlFromRoot(path), HttpMethod.GET, new HttpEntity<Void>((Void) null), String.class);
+		return client.exchange(getUrl(path), HttpMethod.GET, new HttpEntity<Void>((Void) null), String.class);
 	}
 
 	public <T> ResponseEntity<T> getForObject(String path, Class<T> type) {
-		return client.exchange(getUrlFromRoot(path), HttpMethod.GET, new HttpEntity<Void>((Void) null), type);
+		return client.exchange(getUrl(path), HttpMethod.GET, new HttpEntity<Void>((Void) null), type);
 	}
 
 	public ResponseEntity<String> getForString(String path, final HttpHeaders headers) {
 		HttpEntity<Void> request = new HttpEntity<Void>(null, headers);
-		return client.exchange(getUrlFromRoot(path), HttpMethod.GET, request, String.class);
+		return client.exchange(getUrl(path), HttpMethod.GET, request, String.class);
 	}
 
 	public ResponseEntity<Void> getForResponse(String path, final HttpHeaders headers, Object... uriVariables) {
 		HttpEntity<Void> request = new HttpEntity<Void>(null, headers);
-		return client.exchange(getUrlFromRoot(path), HttpMethod.GET, request, null, uriVariables);
+		return client.exchange(getUrl(path), HttpMethod.GET, request, null, uriVariables);
 	}
 
 	public ResponseEntity<Void> postForResponse(String path, HttpHeaders headers, MultiValueMap<String, String> params) {
@@ -260,7 +260,7 @@ public class ServerRunning extends TestWatchman {
 		actualHeaders.putAll(headers);
 		actualHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-		return client.exchange(getUrlFromRoot(path), HttpMethod.POST, new HttpEntity<MultiValueMap<String, String>>(params,
+		return client.exchange(getUrl(path), HttpMethod.POST, new HttpEntity<MultiValueMap<String, String>>(params,
 				actualHeaders), null);
 	}
 
@@ -290,7 +290,7 @@ public class ServerRunning extends TestWatchman {
 				}
 			};
 		}
-		return client.execute(getUrlFromRoot(path), HttpMethod.GET, requestCallback,
+		return client.execute(getUrl(path), HttpMethod.GET, requestCallback,
 				new ResponseExtractor<ResponseEntity<String>>() {
 					public ResponseEntity<String> extractData(ClientHttpResponse response) throws IOException {
 						return new ResponseEntity<String>(response.getStatusCode());
@@ -299,7 +299,7 @@ public class ServerRunning extends TestWatchman {
 	}
 
 	public HttpStatus getStatusCode(String path) {
-		return getStatusCode(getUrlFromRoot(path), null);
+		return getStatusCode(getUrl(path), null);
 	}
 
 	public RestTemplate getRestTemplate() {
@@ -336,7 +336,7 @@ public class ServerRunning extends TestWatchman {
 	}
 
 	public UriBuilder buildUri(String url) {
-		return UriBuilder.fromUri(url.startsWith("http:") ? url : getUrlFromRoot(url));
+		return UriBuilder.fromUri(url.startsWith("http:") ? url : getUrl(url));
 	}
 
 	private static final class NullRequestCallback implements RequestCallback {

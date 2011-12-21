@@ -16,7 +16,6 @@ import java.sql.Connection;
 
 import javax.sql.DataSource;
 
-import org.cloudfoundry.identity.uaa.scim.JdbcScimUserProvisioning;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
