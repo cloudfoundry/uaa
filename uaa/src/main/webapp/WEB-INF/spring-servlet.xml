@@ -127,6 +127,8 @@
 	</oauth:authorization-server>
 
 	<oauth:client-details-service id="clientDetails">
+		<oauth:client client-id="varz" authorized-grant-types="client_credentials" scope="varz"
+			authorities="ROLE_CLIENT" secret="varzclientsecret" />
 		<oauth:client client-id="app" authorized-grant-types="password,authorization_code,refresh_token" scope="read,openid"
 			authorities="ROLE_GUEST" secret="appclientsecret" />
 		<oauth:client client-id="my" authorized-grant-types="authorization_code,refresh_token,implicit,client_credentials"

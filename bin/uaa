@@ -2,6 +2,8 @@
 
 require 'yaml'
 require 'nats/client'
+require 'vcap/common'
+require 'vcap/component'
 require 'vcap/logging'
 
 VCAP::Logging.setup_from_config()
@@ -20,7 +22,7 @@ logger.info ("Config path: #{cfg_path}")
 
 cfg_file = File.join(cfg_path, "uaa.yml")
 
-config = {"uaa"=>{}}
+config = {"uaa"=>{}, "varz"=>{}}
 File.exist?(cfg_file) && File.open(cfg_file) do |f|
   logger.info ("Loading config file from #{cfg_file}")
   config.update(YAML.load(f))
@@ -60,6 +62,12 @@ Thread.new do
 
   logger.info("Launching NATS from uaa")
   NATS.start(:uri => mbus) do
+    VCAP::Component.register(:type => 'UAA',
+                             :host => config["uaa"]["host"] || "localhost",
+                             :config => config,
+                             :port => config["uaa"]["port"] || 8080,
+                             :user => config["varz"]["user"] || "varz",
+                             :password => config["varz"]["password"] || "varzclientsecret")
     # Tell all current routers where to find us.
     NATS.publish('router.register', json)
     # Listen for router starts/restarts
