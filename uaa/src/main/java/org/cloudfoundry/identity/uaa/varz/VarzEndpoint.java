@@ -35,6 +35,7 @@ public class VarzEndpoint {
 			throws Exception {
 		Map<String, Object> result = new LinkedHashMap<String, Object>(statix);
 		result.putAll(getMBeans("java.lang:*"));
+		result.putAll(getMBeans("Catalina:type=GlobalRequestProcessor,*"));
 		return result;
 	}
 
@@ -71,6 +72,8 @@ public class VarzEndpoint {
 				}
 				key = MBeanMap.prettify(property);
 				objects = getMap(objects, key);
+				String value = name.getKeyProperty(property);
+				objects = getMap(objects, value);
 			}
 
 			if (key == null) {

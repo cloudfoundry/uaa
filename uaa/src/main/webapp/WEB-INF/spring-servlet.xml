@@ -76,7 +76,7 @@
 		<http-basic />
 	</http>
 
-	<http pattern="/varz" create-session="never" authentication-manager-ref="clientAuthenticationManager"
+	<http pattern="/varz/**" create-session="never" authentication-manager-ref="clientAuthenticationManager"
 		xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<anonymous enabled="false" />
