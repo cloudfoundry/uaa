@@ -2,10 +2,12 @@
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mvc="http://www.springframework.org/schema/mvc"
 	xmlns="http://www.springframework.org/schema/beans" xmlns:context="http://www.springframework.org/schema/context"
 	xmlns:sec="http://www.springframework.org/schema/security" xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
+	xmlns:util="http://www.springframework.org/schema/util"
 	xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-1.0.xsd
 		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-3.1.xsd
 		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.1.xsd
 		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.1.xsd
 		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
 
 	<import resource="spring-scim.xml" />
@@ -69,7 +71,14 @@
 
 	<http pattern="/oauth/token" create-session="never" authentication-manager-ref="clientAuthenticationManager"
 		xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/oauth/token" access="IS_AUTHENTICATED_FULLY" />
+		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+		<anonymous enabled="false" />
+		<http-basic />
+	</http>
+
+	<http pattern="/varz" create-session="never" authentication-manager-ref="clientAuthenticationManager"
+		xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<anonymous enabled="false" />
 		<http-basic />
 	</http>
@@ -81,7 +90,7 @@
 		<intercept-url pattern="/oauth/**" access="ROLE_USER" />
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<form-login authentication-failure-url="/login" login-page="/login" login-processing-url="/login.do"
-			username-parameter="username" password-parameter="password"  authentication-details-source-ref="authenticationDetailsSource"/>
+			username-parameter="username" password-parameter="password" authentication-details-source-ref="authenticationDetailsSource" />
 		<logout logout-success-url="/" logout-url="/logout.do" />
 		<custom-filter ref="oauth2ResourceServerFilter" after="EXCEPTION_TRANSLATION_FILTER" />
 	</http>
@@ -154,7 +163,29 @@
 		</property>
 	</bean>
 
+	<context:mbean-server id="mbeanServer" />
+
 	<!--Basic application beans. -->
+	<bean id="varzEndpoint" class="org.cloudfoundry.identity.uaa.varz.VarzEndpoint">
+		<property name="server" ref="mbeanServer" />
+		<property name="staticValues">
+			<map>
+				<entry key="type" value="UAA" />
+				<entry key="config">
+					<bean class="org.cloudfoundry.identity.uaa.config.YamlMapFactoryBean">
+						<property name="ignoreResourceNotFound" value="true" />
+						<property name="resources">
+							<list>
+								<value>classpath:/uaa.yml</value>
+								<value>file:${CLOUD_FOUNDRY_CONFIG_PATH:config}/uaa.yml</value>
+							</list>
+						</property>
+					</bean>
+				</entry>
+			</map>
+		</property>
+	</bean>
+
 	<bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.authentication.LoginInfoEndpoint" />
 
 	<bean id="userInfoEndpoint" class="org.cloudfoundry.identity.uaa.openid.UserInfoEndpoint">
