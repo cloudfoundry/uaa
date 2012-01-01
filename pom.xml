@@ -10,6 +10,7 @@
   <modules>
     <module>uaa</module>
     <module>samples</module>
+    <module>jwt</module>
   </modules>
 
   <properties>
