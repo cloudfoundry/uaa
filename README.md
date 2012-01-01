@@ -136,7 +136,12 @@ To launch in a microcloud type environment you need the SCIM user
 endpoints to be unsecure so that a user can create an account and set
 its password to bootstrap the system.  For this use the Spring profile
 `private`.  The opposite is `!private` which needs to be specified
-excplicitly if the any other profiles are active.
+explicitly if the any other profiles are active.
+
+To launch in legacy mode with the CF.com cloud controller as the
+authentication and token source use profile `legacy`.  The opposite is
+`!legacy` which needs to be specified explicitly if the any other
+profiles are active.
 
 ## The API Application
 

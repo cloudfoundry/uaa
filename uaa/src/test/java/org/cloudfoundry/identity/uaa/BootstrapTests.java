@@ -48,7 +48,7 @@ public class BootstrapTests {
 
 	@Test
 	public void testRootContextWithJdbcUsers() throws Exception {
-		System.setProperty("spring.profiles.active", "jdbc,hsqldb");
+		System.setProperty("spring.profiles.active", "jdbc,hsqldb,!legacy");
 		context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/spring-servlet.xml"));
 		assertNotNull(context.getBean("userDatabase", JdbcUaaUserDatabase.class));
 	}
@@ -61,7 +61,7 @@ public class BootstrapTests {
 
 	@Test
 	public void testRootContextWithJdbcSecureUsers() throws Exception {
-		System.setProperty("spring.profiles.active", "jdbc,hsqldb,!private");
+		System.setProperty("spring.profiles.active", "jdbc,hsqldb,!private,!legacy");
 		context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/spring-servlet.xml"));
 		assertNotNull(context.getBean("userDatabase", JdbcUaaUserDatabase.class));
 		FilterChainProxy filterChain = context.getBean(FilterChainProxy.class);
@@ -72,7 +72,7 @@ public class BootstrapTests {
 
 	@Test
 	public void testRootContextWithJdbcUnsecureUsers() throws Exception {
-		System.setProperty("spring.profiles.active", "jdbc,hsqldb,private");
+		System.setProperty("spring.profiles.active", "jdbc,hsqldb,private,!legacy");
 		context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/spring-servlet.xml"));
 		assertNotNull(context.getBean("userDatabase", JdbcUaaUserDatabase.class));
 		FilterChainProxy filterChain = context.getBean(FilterChainProxy.class);
@@ -84,7 +84,7 @@ public class BootstrapTests {
 	@Test
 	public void testOverrideYmlConfig() throws Exception {
 		System.setProperty("CLOUD_FOUNDRY_CONFIG_PATH", "src/test/resources/test/config");
-		System.setProperty("spring.profiles.active", "jdbc,hsqldb");
+		System.setProperty("spring.profiles.active", "jdbc,hsqldb,legacy");
 		context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/spring-servlet.xml"));
 		Properties properties = context.getBean("applicationProperties", Properties.class);
 		assertEquals("bar", properties.get("foo"));

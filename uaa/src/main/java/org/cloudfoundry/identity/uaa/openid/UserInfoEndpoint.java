@@ -38,8 +38,16 @@ public class UserInfoEndpoint implements InitializingBean {
 	@ResponseBody
 	public Map<String, String> loginInfo(Principal principal) {
 		OAuth2Authentication authentication = (OAuth2Authentication) principal;
-		UaaPrincipal uaaPrincipal = (UaaPrincipal) authentication.getUserAuthentication().getPrincipal();
+		UaaPrincipal uaaPrincipal = extractUaaPrincipal(authentication);
 		return getResponse(uaaPrincipal);
+	}
+
+	protected UaaPrincipal extractUaaPrincipal(OAuth2Authentication authentication) {
+		Object object = authentication.getUserAuthentication().getPrincipal();
+		if (object instanceof UaaPrincipal) {
+			return (UaaPrincipal) object;
+		}
+		throw new IllegalStateException("User authentication could not be converted to UaaPrincipal");
 	}
 
 	protected Map<String, String> getResponse(UaaPrincipal principal) {

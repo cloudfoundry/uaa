@@ -33,4 +33,5 @@ public class UaaPrincipal implements Principal, Serializable {
 	public String getEmail() {
 		return email;
 	}
+
 }
