@@ -23,9 +23,10 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.params.ClientPNames;
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.internal.AssumptionViolatedException;
-import org.junit.rules.TestWatchman;
+import org.junit.rules.MethodRule;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
 import org.springframework.http.HttpEntity;
@@ -39,6 +40,7 @@ import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RequestCallback;
 import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.ResponseExtractor;
@@ -70,7 +72,7 @@ import org.springframework.web.util.UriUtils;
  * @author Dave Syer
  * 
  */
-public class ServerRunning extends TestWatchman {
+public class ServerRunning implements MethodRule {
 
 	private static Log logger = LogFactory.getLog(ServerRunning.class);
 
@@ -91,10 +93,12 @@ public class ServerRunning extends TestWatchman {
 	private int port;
 
 	private String hostName = DEFAULT_HOST;
-	
+
 	private String rootPath = DEFAULT_ROOT_PATH;
 
 	private RestTemplate client;
+
+	private LegacyTokenServer tokenServer;
 
 	/**
 	 * @return a new rule that assumes an existing running broker
@@ -112,9 +116,9 @@ public class ServerRunning extends TestWatchman {
 
 	private ServerRunning(boolean assumeOnline) {
 		this.assumeOnline = assumeOnline;
-		setPort(Integer.valueOf(System.getProperty("UAA_PORT", DEFAULT_PORT+"")));
-		setRootPath(System.getProperty("UAA_ROOT_PATH", DEFAULT_ROOT_PATH));
-		setHostName(System.getProperty("UAA_HOST", DEFAULT_HOST));
+		setPort(Integer.valueOf(System.getProperty("uaa.port", DEFAULT_PORT + "")));
+		setRootPath(System.getProperty("uaa.path", DEFAULT_ROOT_PATH));
+		setHostName(System.getProperty("uaa.host", DEFAULT_HOST));
 	}
 
 	/**
@@ -137,7 +141,7 @@ public class ServerRunning extends TestWatchman {
 	public void setHostName(String hostName) {
 		this.hostName = hostName;
 	}
-	
+
 	/**
 	 * The context root in the application, e.g. "/uaa" for a local deployment.
 	 * 
@@ -146,7 +150,8 @@ public class ServerRunning extends TestWatchman {
 	public void setRootPath(String rootPath) {
 		if (rootPath.equals("/")) {
 			rootPath = "";
-		} else {
+		}
+		else {
 			if (!rootPath.startsWith("/")) {
 				rootPath = "/" + rootPath;
 			}
@@ -154,8 +159,17 @@ public class ServerRunning extends TestWatchman {
 		this.rootPath = rootPath;
 	}
 
+	/**
+	 * @return true if the legacy Spring profile is enabled
+	 */
+	public boolean isLegacy() {
+		String profiles = System.getProperty("spring.profiles.active");
+		logger.debug("Checking for legacy profile in: [" + profiles + "]");
+		return StringUtils.hasText(profiles) && profiles.contains("legacy") && !profiles.contains("!legacy");
+	}
+
 	@Override
-	public Statement apply(Statement base, FrameworkMethod method, Object target) {
+	public Statement apply(final Statement base, final FrameworkMethod method, final Object target) {
 
 		// Check at the beginning, so this can be used as a static field
 		if (assumeOnline) {
@@ -193,12 +207,45 @@ public class ServerRunning extends TestWatchman {
 			}
 		}
 
-		return super.apply(base, method, target);
+		tokenServer = null;
+		if (isLegacy()) {
+			tokenServer = new LegacyTokenServer();
+			try {
+				logger.debug("Starting legacy token server");
+				tokenServer.init();
+			}
+			catch (Exception e) {
+				logger.error("Could not start legacy token server", e);
+				Assert.fail("Could not start legacy token server");
+			}
+		}
+
+		return new Statement() {
+
+			@Override
+			public void evaluate() throws Throwable {
+
+				try {
+					base.evaluate();
+				}
+				finally {
+					if (tokenServer != null) {
+						try {
+							tokenServer.close();
+						}
+						catch (Exception e) {
+							logger.error("Could not stop legacy token server", e);
+						}
+					}
+				}
+			}
+
+		};
 
 	}
 
 	public String getBaseUrl() {
-		return "http://" + hostName + (port==80 ? "" : ":" + port) +  rootPath;
+		return "http://" + hostName + (port == 80 ? "" : ":" + port) + rootPath;
 	}
 
 	public String getUrl(String path) {
@@ -303,16 +350,16 @@ public class ServerRunning extends TestWatchman {
 	}
 
 	public RestTemplate getRestTemplate() {
-		if (client==null) {
+		if (client == null) {
 			client = createRestTemplate();
 		}
 		return client;
 	}
-	
+
 	public void setRestTemplate(RestTemplate restTemplate) {
 		this.client = restTemplate;
 	}
-	
+
 	public RestTemplate createRestTemplate() {
 		RestTemplate client = new RestTemplate();
 		client.setRequestFactory(new HttpComponentsClientHttpRequestFactory() {

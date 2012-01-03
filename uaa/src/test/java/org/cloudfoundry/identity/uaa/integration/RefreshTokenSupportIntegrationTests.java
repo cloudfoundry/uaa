@@ -19,6 +19,7 @@ import static org.junit.Assert.assertNotNull;
 import java.util.Arrays;
 import java.util.Map;
 
+import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.http.HttpHeaders;
@@ -60,6 +61,7 @@ public class RefreshTokenSupportIntegrationTests {
 		@SuppressWarnings("unchecked")
 		OAuth2AccessToken accessToken =OAuth2AccessToken.valueOf(response.getBody());
 
+		Assume.assumeTrue(!serverRunning.isLegacy());
 		// now use the refresh token to get a new access token.
 		assertNotNull(accessToken.getRefreshToken());
 		formData = new LinkedMultiValueMap<String, String>();

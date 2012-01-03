@@ -9,6 +9,7 @@
 	<configs>
 		<config>src/main/webapp/WEB-INF/spring-servlet.xml</config>
 		<config>src/main/webapp/WEB-INF/spring-scim.xml</config>
+		<config>src/test/resources/test-data-source.xml</config>
 	</configs>
 	<configSets>
 	</configSets>

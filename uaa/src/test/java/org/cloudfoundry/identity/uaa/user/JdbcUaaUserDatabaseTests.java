@@ -19,6 +19,7 @@ import java.util.UUID;
 
 import javax.sql.DataSource;
 
+import org.cloudfoundry.identity.uaa.NullSafeSystemProfileValueSource;
 import org.cloudfoundry.identity.uaa.TestUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -27,6 +28,8 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.test.annotation.IfProfileValue;
+import org.springframework.test.annotation.ProfileValueSourceConfiguration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -34,10 +37,12 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  * @author Luke Taylor
  * @author Dave Syer
  */
-@ContextConfiguration("file:./src/main/webapp/WEB-INF/spring-data-source.xml")
+@ContextConfiguration("classpath:/test-data-source.xml")
 @RunWith(SpringJUnit4ClassRunner.class)
+@IfProfileValue(name = "spring.profiles.active", values = { "" , "jdbc" })
+@ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class JdbcUaaUserDatabaseTests {
-
+	
 	@Autowired
 	private DataSource dataSource;
 
@@ -52,10 +57,10 @@ public class JdbcUaaUserDatabaseTests {
 		JdbcTemplate template = new JdbcTemplate(dataSource);
 		db = new JdbcUaaUserDatabase(template);
 		TestUtils.createSchema(dataSource);
-		template.execute("insert into users (id, username, password, email, givenName, familyName) " +
-								 "values ('" + JOE_ID + "', 'joe','joespassword','joe@joe.com','Joe','User')");
-		template.execute("insert into users (id, username, password, email, givenName, familyName) " +
-								 "values ('" + MABEL_ID + "', 'mabel','mabelspassword','mabel@mabel.com','Mabel','User')");
+		template.execute("insert into users (id, username, password, email, givenName, familyName) " + "values ('"
+				+ JOE_ID + "', 'joe','joespassword','joe@joe.com','Joe','User')");
+		template.execute("insert into users (id, username, password, email, givenName, familyName) " + "values ('"
+				+ MABEL_ID + "', 'mabel','mabelspassword','mabel@mabel.com','Mabel','User')");
 	}
 
 	@After

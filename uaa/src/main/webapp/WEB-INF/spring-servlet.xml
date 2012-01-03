@@ -12,6 +12,24 @@
 
 	<import resource="spring-scim.xml" />
 
+	<context:property-placeholder properties-ref="applicationProperties" system-properties-mode="OVERRIDE" />
+
+	<bean id="applicationPropertiesParent" class="org.springframework.beans.factory.config.PropertiesFactoryBean">
+		<property name="propertiesArray">
+			<list>
+				<bean class="org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean">
+					<property name="resource" value="classpath:/uaa.yml" />
+				</bean>
+				<bean class="org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean">
+					<property name="resource" value="file:${CLOUD_FOUNDRY_CONFIG_PATH:config}/uaa.yml" />
+					<property name="ignoreResourceNotFound" value="true" />
+				</bean>
+			</list>
+		</property>
+	</bean>
+
+	<bean id="applicationProperties" parent="applicationPropertiesParent"/>
+
 	<sec:debug />
 
 	<bean class="org.cloudfoundry.identity.uaa.event.AuditListener" />
@@ -266,7 +284,9 @@
 			<authentication-provider ref="legacyAuthenticationProvider" />
 		</authentication-manager>
 
-		<bean id="legacyAuthenticationProvider" class="org.cloudfoundry.identity.uaa.authentication.LegacyAuthenticationProvider" />
+		<bean id="legacyAuthenticationProvider" class="org.cloudfoundry.identity.uaa.authentication.LegacyAuthenticationProvider" >
+			<property name="cloudControllerUrl" value="${cloud.controller.url:http://api.cloudfoundry.com/users/{username}/tokens}"/>
+		</bean>
 
 		<bean id="tokenServices" class="org.cloudfoundry.identity.uaa.authentication.LegacyTokenServices">
 			<property name="tokenStore" ref="tokenStore" />

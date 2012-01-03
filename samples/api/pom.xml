@@ -35,20 +35,8 @@
 								</goals>
 								<configuration>
 									<fork>true</fork>
+									<addContextWarDependencies>true</addContextWarDependencies>
 								</configuration>
-							</execution>
-						</executions>
-					</plugin>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-surefire-plugin</artifactId>
-						<executions>
-							<execution>
-								<id>surefire-it</id>
-								<phase>integration-test</phase>
-								<goals>
-									<goal>test</goal>
-								</goals>
 							</execution>
 						</executions>
 					</plugin>
@@ -66,22 +54,6 @@
 					<skip>true</skip>
 				</configuration>
 			</plugin>
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>tomcat-maven-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>start-tomcat</id>
-						<phase>pre-integration-test</phase>
-						<goals>
-							<goal>run</goal>
-						</goals>
-						<configuration>
-							<fork>true</fork>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
 		</plugins>
 		<pluginManagement>
 			<plugins>
@@ -90,7 +62,6 @@
 					<artifactId>tomcat-maven-plugin</artifactId>
 					<configuration>
 						<path>/api</path>
-						<addContextWarDependencies>true</addContextWarDependencies>
 					</configuration>
 				</plugin>
 				<plugin>

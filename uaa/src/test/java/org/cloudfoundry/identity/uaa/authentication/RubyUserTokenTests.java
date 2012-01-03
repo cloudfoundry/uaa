@@ -27,7 +27,7 @@ import org.springframework.security.crypto.codec.Hex;
 import org.springframework.security.crypto.codec.Utf8;
 import org.springframework.util.Assert;
 
-public class CCUserTokenTests {
+public class RubyUserTokenTests {
 	SecretKey macKey;
 	// Token generated from ruby script.
 	// @user_name="joe", @valid_until=10001323447076

@@ -28,7 +28,11 @@ public class LegacyUaaUserDatabase implements UaaUserDatabase {
 
 	@Override
 	public UaaUser retrieveUserByName(String username) throws UsernameNotFoundException {
-		return new UaaUser(username, "", username, "Legacy", "User");
+		String email = username;
+		if (!email.contains("@")) {
+			email = email + "@test.org";
+		}
+		return new UaaUser(username, "", email , "Legacy", "User");
 	}
 
 }

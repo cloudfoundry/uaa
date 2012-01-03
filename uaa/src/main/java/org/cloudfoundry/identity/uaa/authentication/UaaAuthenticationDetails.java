@@ -14,20 +14,31 @@ package org.cloudfoundry.identity.uaa.authentication;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.springframework.security.web.authentication.WebAuthenticationDetails;
+
 /**
- * Contains additional information about the authentication request which
- * may be of use in auditing etc.
- *
+ * Contains additional information about the authentication request which may be of use in auditing etc.
+ * 
  * @author Luke Taylor
+ * @author Dave Syer
  */
 public class UaaAuthenticationDetails {
+
 	private final String origin;
 
+	private String sessionId;
+
 	public UaaAuthenticationDetails(HttpServletRequest request) {
-		this.origin = request.getRemoteAddr();
+		WebAuthenticationDetails webAuthenticationDetails = new WebAuthenticationDetails(request);
+		this.origin = webAuthenticationDetails.getRemoteAddress();
+		this.sessionId = webAuthenticationDetails.getSessionId();
 	}
 
 	public String getOrigin() {
 		return origin;
+	}
+
+	public String getSessionId() {
+		return sessionId;
 	}
 }

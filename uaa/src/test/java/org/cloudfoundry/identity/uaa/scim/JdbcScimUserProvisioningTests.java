@@ -22,6 +22,7 @@ import java.util.UUID;
 
 import javax.sql.DataSource;
 
+import org.cloudfoundry.identity.uaa.NullSafeSystemProfileValueSource;
 import org.cloudfoundry.identity.uaa.TestUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -33,6 +34,8 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.bcrypt.BCrypt;
+import org.springframework.test.annotation.IfProfileValue;
+import org.springframework.test.annotation.ProfileValueSourceConfiguration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -40,8 +43,10 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  * @author Luke Taylor
  * @author Dave Syer
  */
-@ContextConfiguration("file:./src/main/webapp/WEB-INF/spring-data-source.xml")
+@ContextConfiguration("classpath:/test-data-source.xml")
 @RunWith(SpringJUnit4ClassRunner.class)
+@IfProfileValue(name = "spring.profiles.active", values = { "" , "jdbc" })
+@ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class JdbcScimUserProvisioningTests {
 
 	@Autowired
