@@ -17,38 +17,43 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.cloudfoundry.identity.uaa.event.UserAuthenticationFailureEvent;
+import org.cloudfoundry.identity.uaa.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.springframework.context.support.MessageSourceAccessor;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.SpringSecurityMessageSource;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 /**
- * Provider which delegates authentication to an existing api for user accounts. By default the
- * {@link #setCloudControllerUrl(String) url} points to the cloud controller on cloudfoundry.com. The remote api is a
- * cloud controller, so it accepts <code>(email, password)</code> form inputs and returns a token as a JSON property
- * "token". The token is added to the successful {@link Authentication#getDetails() authentication details} as a map
- * entry (i.e. the details are a map).
- * 
+ * Provider which delegates authentication to an existing api for user accounts.
+ *
+ * By default the {@link #setCloudControllerUrl(String) url} points to the cloud controller on
+ * cloudfoundry.com. The remote api is a cloud controller, so it accepts <code>(email, password)</code>
+ * form inputs and returns a token as a JSON property "token". The token is added to the successful
+ * <tt>LegacyAuthentication</tt> instance.
+ *
  * @author Dave Syer
+ * @author Luke Taylor
  */
-public class LegacyAuthenticationProvider implements AuthenticationProvider {
+public class LegacyAuthenticationManager implements AuthenticationManager, ApplicationEventPublisherAware {
 
 	private String url = "http://api.cloudfoundry.com/users/{username}/tokens";
 
-	private MessageSourceAccessor messages = SpringSecurityMessageSource.getAccessor();
-
 	private UaaUserDatabase userDatabase = new LegacyUaaUserDatabase();
+
+	private ApplicationEventPublisher eventPublisher;
 
 	public void setCloudControllerUrl(String url) {
 		this.url = url;
@@ -59,17 +64,21 @@ public class LegacyAuthenticationProvider implements AuthenticationProvider {
 		String username = authentication.getName();
 		String password = authentication.getCredentials().toString();
 
-		Map<String, String> result = doAuthentication(username, password);
+		Map<String, String> result = null;
+		try {
+			result = doAuthentication(username, password);
+		}
+		catch (AuthenticationException e) {
+			eventPublisher.publishEvent(new UserAuthenticationFailureEvent(
+					userDatabase.retrieveUserByName(username), authentication));
+			throw e;
+		}
 		UaaUser user = userDatabase.retrieveUserByName(username);
-		Authentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(), result);
+		Authentication success = new LegacyAuthentication(new UaaPrincipal(user),
+					user.getAuthorities(), (UaaAuthenticationDetails) authentication.getDetails(), result);
+		eventPublisher.publishEvent(new UserAuthenticationSuccessEvent(user, success));
 
 		return success;
-
-	}
-
-	public boolean supports(Class<?> authentication) {
-		return UsernamePasswordAuthenticationToken.class.isAssignableFrom(authentication)
-				|| AuthzAuthenticationRequest.class.isAssignableFrom(authentication);
 	}
 
 	private Map<String, String> doAuthentication(String username, String password) {
@@ -91,14 +100,18 @@ public class LegacyAuthenticationProvider implements AuthenticationProvider {
 			result = new HashMap<String, String>(object);
 		}
 		catch (HttpClientErrorException e) {
-			throw new BadCredentialsException(messages.getMessage(
-					"AbstractUserDetailsAuthenticationProvider.badCredentials", "Bad credentials"));
+			throw new BadCredentialsException("Bad credentials");
 		}
 
 		if (StringUtils.hasLength(result.get("token"))) {
 			result.put("tokenized", "true");
 		}
 		return result;
+	}
+
+	@Override
+	public void setApplicationEventPublisher(ApplicationEventPublisher eventPublisher) {
+		this.eventPublisher = eventPublisher;
 	}
 
 }

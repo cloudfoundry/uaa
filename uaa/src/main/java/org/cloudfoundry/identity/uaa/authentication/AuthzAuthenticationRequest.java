@@ -10,6 +10,10 @@ import org.springframework.util.Assert;
 
 /**
  * Authentication request object which contains the JSON data submitted to the /authorize endpoint.
+ *
+ * This token is not used to represent an authenticated user.
+ *
+ * @author Luke Taylor
  */
 public class AuthzAuthenticationRequest implements Authentication {
 	private final String username;

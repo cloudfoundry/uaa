@@ -59,7 +59,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
 
 			if (encoder.matches((CharSequence) req.getCredentials(), user.getPassword())) {
 				Authentication success = new UaaAuthentication(new UaaPrincipal(user),
-							user.getAuthorities(), req.getDetails());
+							user.getAuthorities(), (UaaAuthenticationDetails) req.getDetails());
 				eventPublisher.publishEvent(new UserAuthenticationSuccessEvent(user, success));
 
 				return success;
