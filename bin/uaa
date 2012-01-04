@@ -2,8 +2,6 @@
 
 require 'yaml'
 require 'nats/client'
-require 'vcap/common'
-require 'vcap/component'
 require 'vcap/logging'
 
 VCAP::Logging.setup_from_config()
@@ -18,13 +16,13 @@ end
 
 cfg_path = ENV['CLOUD_FOUNDRY_CONFIG_PATH'] ? ENV['CLOUD_FOUNDRY_CONFIG_PATH'] : File.join(root, "config")
 
-logger.info ("Config path: #{cfg_path}")
+logger.info("Config path: #{cfg_path}")
 
 cfg_file = File.join(cfg_path, "uaa.yml")
 
-config = {"uaa"=>{}, "varz"=>{}}
+config = {"uaa"=>{}, "varz"=>{"client"=>{}}}
 File.exist?(cfg_file) && File.open(cfg_file) do |f|
-  logger.info ("Loading config file from #{cfg_file}")
+  logger.info("Loading config file from #{cfg_file}")
   config.update(YAML.load(f))
 end
 
@@ -52,8 +50,15 @@ File.open(pidfile, 'w') {|f| f.write(pid) }
 logger.info("Preparing to launch NATS from #{pid}")
 Thread.new do
 
-  register_msg = { :host => config["uaa"]["host"]||"localhost", :port => config["uaa"]["port"]||8080, :uris => config["uaa"]["uris"]||["uaa.vcap.me"], :tags => {:component => "UAA"} }
-  json = Yajl::Encoder.encode(register_msg)
+  router_msg = { :host => config["uaa"]["host"]||"localhost", :port => config["uaa"]["port"]||8080, :uris => config["uaa"]["uris"]||["uaa.vcap.me"], :tags => {:component => "UAA"} }
+  router_json = Yajl::Encoder.encode(register_msg)
+  discover_msg = { :type => 'UAA', 
+    :host => config["uaa"]["host"]||"localhost",
+    :config => config,
+    :port => config["uaa"]["port"]||8080, 
+    :user => config["varz"]["client"]["username"] || "varz",
+    :password => config["varz"]["client"]["password"] || "varzclientsecret"}
+  discover_json = Yajl::Encoder.encode(register_msg)
   logger.info("Sending to NATS: json="+json)
   mbus = config["mbus"] || "nats://localhost:4222/"
 
@@ -62,12 +67,14 @@ Thread.new do
 
   logger.info("Launching NATS from uaa")
   NATS.start(:uri => mbus) do
-    VCAP::Component.register(:type => 'UAA',
-                             :host => config["uaa"]["host"] || "localhost",
-                             :config => config,
-                             :port => config["uaa"]["port"] || 8080,
-                             :user => config["varz"]["user"] || "varz",
-                             :password => config["varz"]["password"] || "varzclientsecret")
+
+    nats.subscribe('vcap.component.discover') do |msg, reply|
+      nats.publish(reply, discover_json)
+    end
+
+    # Also announce ourselves on startup..
+    nats.publish('vcap.component.announce', discover_json)
+
     # Tell all current routers where to find us.
     NATS.publish('router.register', json)
     # Listen for router starts/restarts
