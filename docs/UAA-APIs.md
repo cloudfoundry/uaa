@@ -9,7 +9,7 @@ The User Account and Authentication Service (UAA) is:
 * Called via JSON APIs
 * support for standard protocols to provide single sign-on and delegated authorization to web applications
 in addition to JSON APIs to support the Cloud Controller and Collaboration Spaces
-* Will also eventually support APIs for a Web UI for user account management
+* Will also eventually support APIs for a Web UI for user account management _(dale: via the portal exposed interfaces? or are you saying a new standalone UI?)_
 
 (Rather than trigger arguments about how RESTful these APIs are we'll just refer to them as JSON APIs. Most of them are defined by the specs for the OAuth2, OpenID Connect, and SCIM standards.)
 
@@ -28,6 +28,7 @@ User Account APIs
 
 * [Create a user: /User](#createuser)
 * [Update a user: /User/{id}](#updateuser)
+* [Change password: /User/{id}/password](#changepassword)
 * [Query for information about users: /Users](#queryuser)
 * [Delete a user: /User/{id}](#deleteuser)
 
@@ -300,6 +301,8 @@ See [SCIM - Creating Resources](http://www.simplecloud.info/specs/draft-scim-res
           }
         }
 
+_(dale: what is the unique key in this scheme? is it the externalId property? The userName property? Instead of cutting and pasting the equally terse SCIM spec, you guys should put in a paragraph or two on how we plan to implement /User. I think we want the flexibility to authenticate using an email address as a key, but be able to change the email address as needed. I'm not sure what position you are taking on this from reading the spec. Please address as this is not well defined in this doc)_
+
 * Response Body:
 
         HTTP/1.1 201 Created
@@ -381,6 +384,33 @@ See [SCIM - Modifying with PUT](http://www.simplecloud.info/specs/draft-scim-res
         404 - Not found
 
   Note: SCIM also optionally supports partial update using PATCH.
+
+### <a id="changepassword"/>Change Password
+
+See [SCIM - Changing Password](http://www.simplecloud.info/specs/draft-scim-rest-api-01.html#change-password)
+
+* Request: `PUT /User/:id/password`
+* Request Body:
+
+        Host: example.com
+        Accept: application/json
+        Authorization: Bearer h480djs93hd8
+
+        {
+          "schemas":["urn:scim:schemas:core:1.0"],
+          "password": "newpassword"
+        }
+
+* Response Body: Empty
+
+* Response Codes:
+
+        204 -Updated successfully
+        400 - Bad Request
+        401 - Unauthorized
+        404 - Not found
+
+  Note: SCIM specifies that a password change is a PATCH, but since this isn't supported by many clients, we have used PUT.  SCIM offers the option to use POST with a header override - if clients want to send `X-HTTP-Method-Override` they can ask us to add support for that.
 
 ### <a id="queryuser"/>Query for Information about a User
 
