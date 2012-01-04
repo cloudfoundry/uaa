@@ -61,7 +61,18 @@ img.gsc-branding-img,img.gsc-branding-img-noclear,img.gcsc-branding-img,img.gcsc
 	color: #0094d4;
 }
 </style>
+<link href='${baseUrl}/stylesheets/micro.css' media='screen'
+	rel='stylesheet' type='text/css' />
 <script type="text/javascript" src="${baseUrl}/javascripts/jquery.js"></script>
+<script type="text/javascript">
+  (function(){
+    // force ssl if cf.com
+    var loc = window.location;
+    if (loc.hostname.indexOf('cloudfoundry.com') >= 0 && loc.protocol == "http:") {
+      window.location = "https://" + loc.host + loc.pathname + loc.search + loc.hash;
+    }
+  })();
+</script>
 </head>
 <body id="body">
 	<div class='wrapper'>
@@ -112,31 +123,55 @@ img.gsc-branding-img,img.gsc-branding-img-noclear,img.gcsc-branding-img,img.gcsc
 					<div class='container content'>
 						<div class='span-15 prepend-top'>
 
-							<sec:authorize ifNotGranted="ROLE_USER" var="authorized">
-								<form id="loginForm" name="loginForm"
-									action="<c:url value="/login.do"/>" method="POST" novalidate>
-									<div>
-										<h2>Login</h2>
-										<c:if
-											test="${not empty sessionScope['SPRING_SECURITY_LAST_EXCEPTION']}">
+							<article class="container" style="position: relative;">
+								<div style="float: left; width: 40%;">
+									<sec:authorize ifNotGranted="ROLE_USER" var="authorized">
+										<form id="loginForm" name="loginForm"
+											action="<c:url value="/login.do"/>" method="POST" novalidate>
 											<div>
-												<span class="flash">${fn:escapeXml(sessionScope['SPRING_SECURITY_LAST_EXCEPTION'].message)}</span>
-												<a href="${hostName}/passwd">Forgot password?</a>
+												<h2>Login</h2>
+												<c:if
+													test="${not empty sessionScope['SPRING_SECURITY_LAST_EXCEPTION']}">
+													<div>
+														<span class="flash">${fn:escapeXml(sessionScope['SPRING_SECURITY_LAST_EXCEPTION'].message)}</span>
+														<a href="http://${hostName}/passwd">Forgot password?</a>
+													</div>
+												</c:if>
+												<c:forEach items="${prompts}" var="prompt">
+													<label for="${prompt.key}">${prompt.value[1]}</label>
+													<input id='${prompt.key}' type='${prompt.value[0]}' name='${prompt.key}' />
+
+												</c:forEach>
 											</div>
-										</c:if>
-										<c:forEach items="${prompts}" var="prompt">
-											<label>${prompt.value[1]}:</label>
-											<input type='${prompt.value[0]}' name='${prompt.key}' />
-										</c:forEach>
-									</div>
-									<div class="buttons">
-										<button type="submit">Login</button>
-									</div>
-								</form>
-							</sec:authorize>
-							<c:if test="authorized">
-								<p>You are already authenticated.</p>
-							</c:if>
+											<div class="buttons">
+												<button type="submit">Login</button>
+												<span class="button-alt">or <a
+													href="http://${hostName}/signup">sign up</a> for
+													CloudFoundry.com
+												</span>
+											</div>
+										</form>
+									</sec:authorize>
+									<c:if test="authorized">
+										<p>You are already authenticated.</p>
+									</c:if>
+
+									<hr />
+									<section class="learnmore">
+										<h2>Learn more</h2>
+										<ul>
+											<li><a href="http://www.youtube.com/cloudfoundry">Watch
+													the Screencast</a></li>
+											<li><a
+												href="http://support.cloudfoundry.com/entries/20316811-micro-cloud-foundry-installation-setup">Read
+													the Getting Started Guide</a></li>
+											<li><a
+												href="http://support.cloudfoundry.com/forums/20180298-micro-cloud-foundry-documents">Find
+													Answers in the Knowledge Base</a></li>
+										</ul>
+									</section>
+								</div>
+							</article>
 
 						</div>
 					</div>

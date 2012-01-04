@@ -61,7 +61,18 @@ img.gsc-branding-img,img.gsc-branding-img-noclear,img.gcsc-branding-img,img.gcsc
 	color: #0094d4;
 }
 </style>
+<link href='${baseUrl}/stylesheets/micro.css' media='screen'
+	rel='stylesheet' type='text/css' />
 <script type="text/javascript" src="${baseUrl}/javascripts/jquery.js"></script>
+<script type="text/javascript">
+  (function(){
+    // force ssl if cf.com
+    var loc = window.location;
+    if (loc.hostname.indexOf('cloudfoundry.com') >= 0 && loc.protocol == "http:") {
+      window.location = "https://" + loc.host + loc.pathname + loc.search + loc.hash;
+    }
+  })();
+</script>
 </head>
 <body id="body">
 	<div class='wrapper'>
