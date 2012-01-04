@@ -74,7 +74,7 @@ img.gsc-branding-img,img.gsc-branding-img-noclear,img.gcsc-branding-img,img.gcsc
   })();
 </script>
 </head>
-<body id="body">
+<body id="micro">
 	<div class='wrapper'>
 		<div class='container' id='header'>
 			<div class='site-wrap'>

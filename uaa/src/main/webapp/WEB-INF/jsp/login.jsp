@@ -1,4 +1,4 @@
-<%@ page session="false"%>
+<%@ page session="true"%>
 
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt"%>
@@ -8,6 +8,7 @@
 	uri="http://www.springframework.org/security/tags"%>
 
 <c:url var="baseUrl" value="/resources" />
+<c:url var="faviconUrl" value="/favicon.ico" />
 <c:set value="www.cloudfoundry.com" var="hostName" />
 
 <!DOCTYPE html>
@@ -26,7 +27,7 @@
 <meta content='VMware' name='author' />
 <meta content='Copyright VMware 2011. All Rights Reserved.'
 	name='copyright' />
-<link href='${baseUrl}/favicon.ico' rel='shortcut icon' />
+<link href='${faviconUrl}' rel='shortcut icon' />
 <meta content='all' name='robots' />
 <link href='${baseUrl}/stylesheets/print.css' media='print'
 	rel='stylesheet' type='text/css' />
@@ -65,16 +66,18 @@ img.gsc-branding-img,img.gsc-branding-img-noclear,img.gcsc-branding-img,img.gcsc
 	rel='stylesheet' type='text/css' />
 <script type="text/javascript" src="${baseUrl}/javascripts/jquery.js"></script>
 <script type="text/javascript">
-  (function(){
-    // force ssl if cf.com
-    var loc = window.location;
-    if (loc.hostname.indexOf('cloudfoundry.com') >= 0 && loc.protocol == "http:") {
-      window.location = "https://" + loc.host + loc.pathname + loc.search + loc.hash;
-    }
-  })();
+	(function() {
+		// force ssl if cf.com
+		var loc = window.location;
+		if (loc.hostname.indexOf('cloudfoundry.com') >= 0
+				&& loc.protocol == "http:") {
+			window.location = "https://" + loc.host + loc.pathname + loc.search
+					+ loc.hash;
+		}
+	})();
 </script>
 </head>
-<body id="body">
+<body id="micro">
 	<div class='wrapper'>
 		<div class='container' id='header'>
 			<div class='site-wrap'>
@@ -139,8 +142,8 @@ img.gsc-branding-img,img.gsc-branding-img-noclear,img.gcsc-branding-img,img.gcsc
 												</c:if>
 												<c:forEach items="${prompts}" var="prompt">
 													<label for="${prompt.key}">${prompt.value[1]}</label>
-													<input id='${prompt.key}' type='${prompt.value[0]}' name='${prompt.key}' />
-
+													<input id='${prompt.key}' type='${prompt.value[0]}'
+														name='${prompt.key}' />
 												</c:forEach>
 											</div>
 											<div class="buttons">
@@ -172,6 +175,40 @@ img.gsc-branding-img,img.gsc-branding-img-noclear,img.gcsc-branding-img,img.gcsc
 									</section>
 								</div>
 							</article>
+
+							<%-- Clear out session scoped attributes, don't leak info --%>
+							<c:if
+								test="${not empty sessionScope['SPRING_SECURITY_LAST_EXCEPTION']}">
+								<c:set scope="session" var="SPRING_SECURITY_LAST_EXCEPTION"
+									value="${null}" />
+							</c:if>
+							<c:if
+								test="${not empty sessionScope['SPRING_SECURITY_LAST_USERNAME']}">
+								<c:set scope="session" var="SPRING_SECURITY_LAST_USERNAME"
+									value="${null}" />
+							</c:if>
+
+							<!--
+								Start of DoubleClick Floodlight Tag: Please do not remove
+								Activity name of this tag: Micro Cloud Foundry - Landing Page Arrival
+								URL of the webpage where the tag is expected to be placed: https://www.cloudfoundry.com/micro
+								This tag must be placed between the <body> and </body> tags, as close as possible to the opening tag.
+								Creation Date: 08/18/2011
+								-->
+							<script type="text/javascript">
+								var axel = Math.random() + "";
+								var a = axel * 10000000000000;
+								document
+										.write('<iframe src="https://fls.doubleclick.net/activityi;src=2645750;type=cloud806;cat=micro467;ord='
+												+ a
+												+ '?" width="1" height="1" frameborder="0" style="display:none"></iframe>');
+							</script>
+							<noscript>
+								<iframe
+									src="https://fls.doubleclick.net/activityi;src=2645750;type=cloud806;cat=micro467;ord=1?"
+									width="1" height="1" frameborder="0" style="display: none"></iframe>
+							</noscript>
+							<!-- End of DoubleClick Floodlight Tag: Please do not remove -->
 
 						</div>
 					</div>
