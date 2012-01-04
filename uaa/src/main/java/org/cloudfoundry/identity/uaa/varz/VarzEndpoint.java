@@ -36,6 +36,7 @@ public class VarzEndpoint {
 		Map<String, Object> result = new LinkedHashMap<String, Object>(statix);
 		result.putAll(getMBeans("java.lang:*"));
 		result.putAll(getMBeans("Catalina:type=GlobalRequestProcessor,*"));
+		result.putAll(getMBeans("spring.application:*"));
 		return result;
 	}
 

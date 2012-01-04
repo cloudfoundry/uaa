@@ -18,8 +18,6 @@ import java.security.NoSuchAlgorithmException;
 import javax.sql.DataSource;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
-import org.cloudfoundry.identity.uaa.scim.DefaultPasswordValidator;
-import org.cloudfoundry.identity.uaa.scim.PasswordValidator;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.codec.Base64;
@@ -31,8 +29,8 @@ import org.springframework.util.Assert;
  * @author Luke Taylor
  */
 public class JdbcAuditService implements UaaAuditService {
+
 	private final JdbcTemplate template;
-	private PasswordValidator passwordValidator = new DefaultPasswordValidator();
 
 	public JdbcAuditService(DataSource dataSource) {
 		this.template = new JdbcTemplate(dataSource);

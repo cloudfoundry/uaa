@@ -12,7 +12,8 @@
 
 	<import resource="spring-scim.xml" />
 
-	<context:property-placeholder properties-ref="applicationProperties" system-properties-mode="OVERRIDE" />
+	<context:property-placeholder properties-ref="applicationProperties"
+		system-properties-mode="OVERRIDE" />
 
 	<bean id="applicationPropertiesParent" class="org.springframework.beans.factory.config.PropertiesFactoryBean">
 		<property name="propertiesArray">
@@ -28,11 +29,16 @@
 		</property>
 	</bean>
 
-	<bean id="applicationProperties" parent="applicationPropertiesParent"/>
+	<bean id="applicationProperties" parent="applicationPropertiesParent" />
 
 	<sec:debug />
 
-	<bean class="org.cloudfoundry.identity.uaa.event.AuditListener" />
+	<bean class="org.cloudfoundry.identity.uaa.event.AuditListener">
+		<constructor-arg ref="loggingAuditService"/>
+	</bean>
+
+	<!-- Keep this as a top-level bean to ensure it is exposed as a @ManagedResource -->
+	<bean id="loggingAuditService" class="org.cloudfoundry.identity.uaa.audit.LoggingAuditService" />
 
 	<sec:http pattern="/resources/**" security="none" />
 	<sec:http pattern="/favicon.ico" security="none" />
@@ -88,7 +94,7 @@
 	</http>
 
 	<http pattern="/oauth/token" create-session="never" authentication-manager-ref="clientAuthenticationManager"
-		xmlns="http://www.springframework.org/schema/security" >
+		xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<anonymous enabled="false" />
 		<http-basic />
@@ -117,11 +123,11 @@
 
 	<authentication-manager id="clientAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
 		<authentication-provider user-service-ref="clientDetailsUserService">
-			<password-encoder ref="bcryptPasswordEncoder"/>
+			<password-encoder ref="bcryptPasswordEncoder" />
 		</authentication-provider>
 	</authentication-manager>
-	
-	<bean id="bcryptPasswordEncoder" class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder"/>
+
+	<bean id="bcryptPasswordEncoder" class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder" />
 
 	<authentication-manager id="emptyAuthenticationMgr" xmlns="http://www.springframework.org/schema/security" />
 
@@ -131,7 +137,7 @@
 		<constructor-arg ref="clientDetails" />
 	</bean>
 
-	<oauth:authorization-server client-details-service-ref="clientDetails" token-services-ref="tokenServices" >
+	<oauth:authorization-server client-details-service-ref="clientDetails" token-services-ref="tokenServices">
 		<oauth:authorization-code />
 		<oauth:implicit />
 		<oauth:refresh-token />
@@ -179,6 +185,8 @@
 	</bean>
 
 	<context:mbean-server id="mbeanServer" />
+
+	<context:mbean-export server="mbeanServer" default-domain="spring.application" />
 
 	<!--Basic application beans. -->
 	<bean id="varzEndpoint" class="org.cloudfoundry.identity.uaa.varz.VarzEndpoint">
@@ -282,10 +290,10 @@
 
 	<beans profile="legacy">
 
-		<bean id="userDatabase" class="org.cloudfoundry.identity.uaa.authentication.LegacyUaaUserDatabase"/>
+		<bean id="userDatabase" class="org.cloudfoundry.identity.uaa.authentication.LegacyUaaUserDatabase" />
 
-		<bean id="authzAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.LegacyAuthenticationManager" >
-			<property name="cloudControllerUrl" value="${cloud.controller.url:http://api.cloudfoundry.com/users/{username}/tokens}"/>
+		<bean id="authzAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.LegacyAuthenticationManager">
+			<property name="cloudControllerUrl" value="${cloud.controller.url:http://api.cloudfoundry.com/users/{username}/tokens}" />
 		</bean>
 
 		<bean id="tokenServices" class="org.cloudfoundry.identity.uaa.authentication.LegacyTokenServices">

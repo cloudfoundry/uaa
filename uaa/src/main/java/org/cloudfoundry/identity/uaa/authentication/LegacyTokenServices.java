@@ -12,10 +12,6 @@
  */
 package org.cloudfoundry.identity.uaa.authentication;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2RefreshToken;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
