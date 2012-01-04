@@ -36,7 +36,7 @@ logger.info("Tomcat JVM args: #{maven_opts}")
 # The form of this next bit is very sensitive.  We need the PID for
 # logging so we need to exec from the shell to stay in the same
 # process...
-pid = spawn("export MAVEN_OPTS=\"#{maven_opts}\" && exec mvn tomcat:run -P vcap", {:chdir=>root})
+pid = spawn("export MAVEN_OPTS=\"#{maven_opts}\" && exec ls", {:chdir=>root})
 
 logger.info("Tomcat PID = #{pid}")
 
@@ -48,19 +48,20 @@ end
 File.open(pidfile, 'w') {|f| f.write(pid) }
 
 logger.info("Preparing to launch NATS from #{pid}")
-Thread.new do
 
-  router_msg = { :host => config["uaa"]["host"]||"localhost", :port => config["uaa"]["port"]||8080, :uris => config["uaa"]["uris"]||["uaa.vcap.me"], :tags => {:component => "UAA"} }
-  router_json = Yajl::Encoder.encode(register_msg)
-  discover_msg = { :type => 'UAA', 
-    :host => config["uaa"]["host"]||"localhost",
-    :config => config,
-    :port => config["uaa"]["port"]||8080, 
-    :user => config["varz"]["client"]["username"] || "varz",
-    :password => config["varz"]["client"]["password"] || "varzclientsecret"}
-  discover_json = Yajl::Encoder.encode(register_msg)
-  logger.info("Sending to NATS: json="+json)
-  mbus = config["mbus"] || "nats://localhost:4222/"
+router_msg = { :host => config["uaa"]["host"]||"localhost", :port => config["uaa"]["port"]||8080, :uris => config["uaa"]["uris"]||["uaa.vcap.me"], :tags => {:component => "UAA"} }
+router_json = Yajl::Encoder.encode(router_msg)
+discover_msg = { :type => 'UAA', 
+  :host => config["uaa"]["host"]||"localhost",
+  :config => config,
+  :port => config["uaa"]["port"]||8080, 
+  :user => config["varz"]["client"]["username"] || "varz",
+  :password => config["varz"]["client"]["password"] || "varzclientsecret"}
+discover_json = Yajl::Encoder.encode(discover_msg)
+logger.info("Sending Router info to NATS: json="+router_json)
+mbus = config["mbus"] || "nats://localhost:4222/"
+
+Thread.new do
 
   # NATS will block and we want to wait for the tomcat process so this
   # has to go in a new thread
