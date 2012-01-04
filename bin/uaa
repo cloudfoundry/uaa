@@ -77,9 +77,9 @@ Thread.new do
     nats.publish('vcap.component.announce', discover_json)
 
     # Tell all current routers where to find us.
-    NATS.publish('router.register', json)
+    NATS.publish('router.register', router_json)
     # Listen for router starts/restarts
-    NATS.subscribe('router.start') { NATS.publish('router.register', json) }
+    NATS.subscribe('router.start') { NATS.publish('router.register', router_json) }
   end
 
 end
