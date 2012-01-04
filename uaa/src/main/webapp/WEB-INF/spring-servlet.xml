@@ -284,11 +284,7 @@
 
 		<bean id="userDatabase" class="org.cloudfoundry.identity.uaa.authentication.LegacyUaaUserDatabase"/>
 
-		<authentication-manager id="authzAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
-			<authentication-provider ref="legacyAuthenticationProvider" />
-		</authentication-manager>
-
-		<bean id="legacyAuthenticationProvider" class="org.cloudfoundry.identity.uaa.authentication.LegacyAuthenticationProvider" >
+		<bean id="authzAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.LegacyAuthenticationManager" >
 			<property name="cloudControllerUrl" value="${cloud.controller.url:http://api.cloudfoundry.com/users/{username}/tokens}"/>
 		</bean>
 

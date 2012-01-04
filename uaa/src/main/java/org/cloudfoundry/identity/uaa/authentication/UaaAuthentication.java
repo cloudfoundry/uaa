@@ -6,20 +6,24 @@ import java.util.List;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.util.Assert;
 
 /**
+ * Authentication token which represents a successfully authenticated user.
+ *
+ * @author Luke Taylor
  */
-public final class UaaAuthentication implements Authentication, Serializable {
+public class UaaAuthentication implements Authentication, Serializable {
 	private List<GrantedAuthority> authorities;
 	private final UaaPrincipal principal;
-	private final Object details;
+	private final UaaAuthenticationDetails details;
 	/**
 	 * Creates a token with the supplied array of authorities.
 	 *
 	 * @param authorities the collection of <tt>GrantedAuthority</tt>s for the
 	 *                    principal represented by this authentication object.
 	 */
-	UaaAuthentication(UaaPrincipal principal, List<GrantedAuthority> authorities, Object details) {
+	UaaAuthentication(UaaPrincipal principal, List<GrantedAuthority> authorities, UaaAuthenticationDetails details) {
 		if (principal == null || authorities == null) {
 			throw new IllegalArgumentException("principal and authorities must not be null");
 		}
