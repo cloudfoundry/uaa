@@ -36,7 +36,7 @@ logger.info("Tomcat JVM args: #{maven_opts}")
 # The form of this next bit is very sensitive.  We need the PID for
 # logging so we need to exec from the shell to stay in the same
 # process...
-pid = spawn("export MAVEN_OPTS=\"#{maven_opts}\" && exec ls", {:chdir=>root})
+pid = spawn("export MAVEN_OPTS=\"#{maven_opts}\" && exec mvn tomcat:run -P vcap", {:chdir=>root})
 
 logger.info("Tomcat PID = #{pid}")
 
@@ -69,12 +69,12 @@ Thread.new do
   logger.info("Launching NATS from uaa")
   NATS.start(:uri => mbus) do
 
-    nats.subscribe('vcap.component.discover') do |msg, reply|
-      nats.publish(reply, discover_json)
+    NATS.subscribe('vcap.component.discover') do |msg, reply|
+      NATS.publish(reply, discover_json)
     end
 
     # Also announce ourselves on startup..
-    nats.publish('vcap.component.announce', discover_json)
+    NATS.publish('vcap.component.announce', discover_json)
 
     # Tell all current routers where to find us.
     NATS.publish('router.register', router_json)
