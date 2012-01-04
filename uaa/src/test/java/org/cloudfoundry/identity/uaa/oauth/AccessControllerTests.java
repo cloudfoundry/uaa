@@ -25,10 +25,10 @@ import org.springframework.ui.ModelMap;
 
 /**
  * @author Dave Syer
- *
+ * 
  */
 public class AccessControllerTests {
-	
+
 	private AccessController controller = new AccessController();
 
 	@Test
@@ -36,7 +36,8 @@ public class AccessControllerTests {
 		InMemoryClientDetailsService clientDetailsService = new InMemoryClientDetailsService();
 		clientDetailsService.setClientDetailsStore(Collections.singletonMap("client", new BaseClientDetails()));
 		controller.setClientDetailsService(clientDetailsService);
-		String result = controller.confirm(new UnconfirmedAuthorizationCodeClientToken("client", null, null, null, "http://foo.com"), new ModelMap(), new MockHttpServletRequest());
+		String result = controller.confirm(new UnconfirmedAuthorizationCodeClientToken("client", null, null, null,
+				"http://foo.com"), new ModelMap(), new MockHttpServletRequest());
 		assertEquals("access_confirmation", result);
 	}
 
