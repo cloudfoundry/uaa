@@ -52,11 +52,10 @@ logger.info("Preparing to launch NATS from #{pid}")
 router_msg = { :host => config["uaa"]["host"]||"localhost", :port => config["uaa"]["port"]||8080, :uris => config["uaa"]["uris"]||["uaa.vcap.me"], :tags => {:component => "UAA"} }
 router_json = Yajl::Encoder.encode(router_msg)
 discover_msg = { :type => 'UAA', 
-  :host => config["uaa"]["host"]||"localhost",
-  :config => config,
-  :port => config["uaa"]["port"]||8080, 
-  :user => config["varz"]["client"]["username"] || "varz",
-  :password => config["varz"]["client"]["password"] || "varzclientsecret"}
+  :host => "%s:%s" % [config["uaa"]["host"]||"localhost",  config["uaa"]["port"]||8080],
+  :index => 0,
+  :credentials => [config["varz"]["client"]["username"] || "varz", config["varz"]["client"]["password"] || "varzclientsecret"]
+}
 discover_json = Yajl::Encoder.encode(discover_msg)
 logger.info("Sending Router info to NATS: json="+router_json)
 mbus = config["mbus"] || "nats://localhost:4222/"
