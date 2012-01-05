@@ -33,58 +33,57 @@ public class JwtTests {
 	static final String JOE_HMAC_TOKEN = "eyJ0eXAiOiJKV1QiLA0KICJhbGciOiJIUzI1NiJ9." + "eyJpc3MiOiJqb2UiLA0KICJleHAiOjEzMDA4MTkzODAsDQogImh0dHA6Ly9leGFtcGxlLmNvbS9pc19yb290Ijp0cnVlfQ." + "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
 	static final String JOE_RSA_TOKEN = "eyJhbGciOiJSUzI1NiJ9." + "eyJpc3MiOiJqb2UiLA0KICJleHAiOjEzMDA4MTkzODAsDQogImh0dHA6Ly9leGFtcGxlLmNvbS9pc19yb290Ijp0cnVlfQ." + "cC4hiUPoj9Eetdgtv3hF80EGrhuB__dzERat0XF9g2VtQgr9PJbu3XOiZj5RZmh7AAuHIm4Bh-0Qc_lF5YKt_O8W2Fp5jujGbds" + "9uJdbF9CUAr7t1dnZcAcQjbKBYNX4BAynRFdiuB--f_nZLgrnbyTyWzO75vRK5h6xBArLIARNPvkSjtQBMHlb1L07Qe7K0GarZR" + "mB_eSN9383LcOLn6_dO--xi12jzDwusC-eOkHWEsqtFZESc6BfI7noOPqvhJ1phCnvWh6IeYI2w9QOYEUipUTI8np6LbgGY9Fs9" + "8rqVt5AXLIhWkWywlVmtVrBp0igcN_IoypGlUPQGe77Rw";
 	static final String JOE_HEADER_RSA = "{\"alg\":\"RS256\"}";
-	MacSigner hmac = new MacSigner(JwtSpecData.HMAC_KEY);
+	static final MacSigner hmac = new MacSigner(JwtSpecData.HMAC_KEY);
 
 	@Test
 	public void tokenBytesCreateSameToken() throws Exception {
-		Jwt token = JwtHelper.create(JOE_HMAC_TOKEN);
+		Jwt token = JwtHelper.decode(JOE_HMAC_TOKEN);
 		assertEquals(JOE_HMAC_TOKEN, new String(token.bytes(), "UTF-8"));
 		assertEquals(JOE_HMAC_TOKEN, token.getEncoded());
 	}
 
 	@Test
 	public void expectedClaimsValueIsReturned() {
-		assertEquals(JOE_CLAIM_SEGMENT, JwtHelper.create(JOE_HMAC_TOKEN).getClaims());
+		assertEquals(JOE_CLAIM_SEGMENT, JwtHelper.decode(JOE_HMAC_TOKEN).getClaims());
 	}
 
 	@Test
 	public void hmacSignedTokenParsesAndVerifies() {
-		JwtHelper.create(JOE_HMAC_TOKEN).verifySignature(hmac);
+		JwtHelper.decode(JOE_HMAC_TOKEN).verifySignature(hmac);
 	}
 
 	@Test(expected=InvalidSignatureException.class)
 	public void invalidHmacSignatureRaisesException() {
-		JwtHelper.create(JOE_HMAC_TOKEN).verifySignature(new MacSigner("differentkey".getBytes()));
+		JwtHelper.decode(JOE_HMAC_TOKEN).verifySignature(new MacSigner("differentkey".getBytes()));
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void tokenMissingSignatureIsRejected() {
-		JwtHelper.create(JOE_HMAC_TOKEN.substring(0, JOE_HMAC_TOKEN.lastIndexOf('.') + 1));
+		JwtHelper.decode(JOE_HMAC_TOKEN.substring(0, JOE_HMAC_TOKEN.lastIndexOf('.') + 1));
 	}
 
 	@Test
 	public void hmacVerificationIsInverseOfSigning() {
-		Jwt jwt = JwtHelper.create(JOE_CLAIM_SEGMENT, hmac);
+		Jwt jwt = JwtHelper.encode(JOE_CLAIM_SEGMENT, hmac);
 		jwt.verifySignature(hmac);
 		assertEquals (JOE_CLAIM_SEGMENT, jwt.getClaims());
 	}
 
 	@Test
 	public void rsaSignedTokenParsesAndVerifies() {
-		Jwt jwt = JwtHelper.create(JOE_RSA_TOKEN);
+		Jwt jwt = JwtHelper.decode(JOE_RSA_TOKEN);
 		jwt.verifySignature(new RsaVerifier(N, E));
 		assertEquals(JOE_CLAIM_SEGMENT, jwt.getClaims());
 	}
 
 	@Test(expected = InvalidSignatureException.class)
 	public void invalidRsaSignatureRaisesException() {
-		Jwt jwt = JwtHelper.create(JOE_RSA_TOKEN);
-		jwt.verifySignature(new RsaVerifier(N, D));
+		JwtHelper.decodeAndVerify(JOE_RSA_TOKEN, new RsaVerifier(N, D));
 	}
 
 	@Test
 	public void rsaVerificationIsInverseOfSigning() {
-		Jwt jwt = JwtHelper.create(JOE_CLAIM_SEGMENT, new RsaSigner(N, E));
+		Jwt jwt = JwtHelper.encode(JOE_CLAIM_SEGMENT, new RsaSigner(N, E));
 		jwt.verifySignature(new RsaVerifier(N, D));
 	}
 }

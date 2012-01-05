@@ -37,7 +37,7 @@ public class JwtHelper {
 	 *
 	 * @param token the (non-null) encoded token (three Base-64 encoded strings separated by "." characters)
 	 */
-	public static Jwt create(String token) {
+	public static Jwt decode(String token) {
 		int firstPeriod = token.indexOf('.');
 		int lastPeriod = token.lastIndexOf('.');
 
@@ -63,9 +63,17 @@ public class JwtHelper {
 			buffer.limit(token.length()).position(lastPeriod + 1);
 			crypto = b64UrlDecode(buffer);
 		}
-  		return new JwtImpl(header, claims, crypto);
+		return new JwtImpl(header, claims, crypto);
 	}
-	public static Jwt create(CharSequence content, Signer signer) {
+
+	public static Jwt decodeAndVerify(String token, SignatureVerifier verifier) {
+		Jwt jwt = decode(token);
+		jwt.verifySignature(verifier);
+
+		return jwt;
+	}
+
+	public static Jwt encode(CharSequence content, Signer signer) {
 		JwtHeader header = JwtHeaderHelper.create(signer);
 		byte[] claims = utf8Encode(content);
 		byte[] crypto = signer.sign(concat(b64UrlEncode(header.bytes()), PERIOD, b64UrlEncode(claims)));
