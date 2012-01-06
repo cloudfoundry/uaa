@@ -3,7 +3,7 @@ package org.cloudfoundry.identity.uaa.home;
 import java.security.Principal;
 import java.util.Map;
 
-import org.springframework.security.oauth2.provider.code.UnconfirmedAuthorizationCodeClientToken;
+import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.SessionAttributes;
@@ -15,7 +15,7 @@ import org.springframework.web.context.request.WebRequest;
  * @author Dave Syer
  */
 @Controller
-@SessionAttributes(types = UnconfirmedAuthorizationCodeClientToken.class)
+@SessionAttributes(types = AuthorizationRequest.class)
 public class HomeController {
 
 	@RequestMapping(value = { "/", "/home" })

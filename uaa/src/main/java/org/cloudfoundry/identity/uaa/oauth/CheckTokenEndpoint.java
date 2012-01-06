@@ -11,7 +11,7 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
-import org.springframework.security.oauth2.provider.ClientToken;
+import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.token.TokenStore;
 import org.springframework.stereotype.Controller;
@@ -51,7 +51,7 @@ public class CheckTokenEndpoint implements InitializingBean {
 
 		OAuth2Authentication authentication = tokenStore.readAuthentication(token);
 		UaaPrincipal principal = (UaaPrincipal) authentication.getUserAuthentication().getPrincipal();
-		ClientToken clientToken = authentication.getClientAuthentication();
+		AuthorizationRequest clientToken = authentication.getAuthorizationRequest();
 
 		response.put("id", principal.getId());
 		response.put(UserInfo.USER_ID, principal.getName());
@@ -63,9 +63,6 @@ public class CheckTokenEndpoint implements InitializingBean {
 		response.put("scope", token.getScope());
 
 		response.put("client_id", clientToken.getClientId());
-		if (clientToken.getClientSecret() != null) {
-			response.put("client_secret", clientToken.getClientSecret());
-		}
 		if (clientToken.getAuthorities() != null) {
 			response.put("client_authorities", getAuthorities(clientToken.getAuthorities()));
 		}

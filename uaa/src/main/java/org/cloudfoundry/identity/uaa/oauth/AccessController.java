@@ -6,9 +6,9 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
+import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
-import org.springframework.security.oauth2.provider.code.UnconfirmedAuthorizationCodeClientToken;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.SessionAttributes;
  * @author Dave Syer
  */
 @Controller
-@SessionAttributes(types = UnconfirmedAuthorizationCodeClientToken.class)
+@SessionAttributes(types = AuthorizationRequest.class)
 public class AccessController {
 
 	private ClientDetailsService clientDetailsService;
@@ -31,7 +31,7 @@ public class AccessController {
 	}
 
 	@RequestMapping("/oauth/confirm_access")
-	public String confirm(@ModelAttribute UnconfirmedAuthorizationCodeClientToken clientAuth, Map<String, Object> model, final HttpServletRequest request)
+	public String confirm(@ModelAttribute AuthorizationRequest clientAuth, Map<String, Object> model, final HttpServletRequest request)
 			throws Exception {
 
 		if (clientAuth == null) {

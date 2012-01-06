@@ -21,7 +21,7 @@ import java.util.Map;
 import org.cloudfoundry.identity.uaa.authentication.UaaTestFactory;
 import org.junit.Test;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
-import org.springframework.security.oauth2.provider.ClientToken;
+import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.token.InMemoryTokenStore;
 
@@ -38,7 +38,7 @@ public class CheckTokenEndpointTests {
 	private OAuth2Authentication authentication;
 
 	public CheckTokenEndpointTests() {
-		authentication = new OAuth2Authentication(new ClientToken("client", "secret", Collections.singleton("read")),
+		authentication = new OAuth2Authentication(new AuthorizationRequest("client", Collections.singleton("read"), null, null),
 				UaaTestFactory.getAuthentication("12345", "olds", "olds@vmware.com"));
 		endpoint.setTokenStore(tokenStore);
 		OAuth2AccessToken token = new OAuth2AccessToken("FOO");

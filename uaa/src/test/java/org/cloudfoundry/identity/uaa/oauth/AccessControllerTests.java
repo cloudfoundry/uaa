@@ -18,9 +18,9 @@ import java.util.Collections;
 
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.security.oauth2.provider.InMemoryClientDetailsService;
-import org.springframework.security.oauth2.provider.code.UnconfirmedAuthorizationCodeClientToken;
 import org.springframework.ui.ModelMap;
 
 /**
@@ -36,8 +36,8 @@ public class AccessControllerTests {
 		InMemoryClientDetailsService clientDetailsService = new InMemoryClientDetailsService();
 		clientDetailsService.setClientDetailsStore(Collections.singletonMap("client", new BaseClientDetails()));
 		controller.setClientDetailsService(clientDetailsService);
-		String result = controller.confirm(new UnconfirmedAuthorizationCodeClientToken("client", null, null, null,
-				"http://foo.com"), new ModelMap(), new MockHttpServletRequest());
+		String result = controller.confirm(new AuthorizationRequest("client", null, null, null), new ModelMap(),
+				new MockHttpServletRequest());
 		assertEquals("access_confirmation", result);
 	}
 

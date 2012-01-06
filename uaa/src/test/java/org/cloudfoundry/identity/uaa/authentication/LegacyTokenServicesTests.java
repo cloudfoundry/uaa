@@ -24,7 +24,7 @@ import org.junit.Test;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
-import org.springframework.security.oauth2.provider.ClientToken;
+import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.token.InMemoryTokenStore;
 
@@ -51,7 +51,7 @@ public class LegacyTokenServicesTests {
 	@Test
 	public void testCreateAccessToken() {
 		authData.put("token", "FOO");
-		OAuth2Authentication authentication = new OAuth2Authentication(new ClientToken("foo", "bar", null), userAuthentication);
+		OAuth2Authentication authentication = new OAuth2Authentication(new AuthorizationRequest("foo", null, null, null), userAuthentication);
 		OAuth2AccessToken token = tokenServices.createAccessToken(authentication , null);
 		assertEquals("FOO", token.getValue());
 	}

@@ -61,7 +61,7 @@ public class RemoteTokenServicesTests {
 	public void testTokenRetrieval() throws Exception {
 		OAuth2Authentication result = services.loadAuthentication("FOO");
 		assertNotNull(result);
-		assertEquals("remote", result.getClientAuthentication().getClientId());
+		assertEquals("remote", result.getAuthorizationRequest().getClientId());
 		assertEquals("olds", result.getUserAuthentication().getName());
 	}
 
@@ -70,7 +70,7 @@ public class RemoteTokenServicesTests {
 		body.put("client_authorities", Collections.singleton("ROLE_CLIENT"));
 		OAuth2Authentication result = services.loadAuthentication("FOO");
 		assertNotNull(result);
-		assertEquals("[ROLE_CLIENT]", result.getClientAuthentication().getAuthorities().toString());
+		assertEquals("[ROLE_CLIENT]", result.getAuthorizationRequest().getAuthorities().toString());
 	}
 
 	@Test

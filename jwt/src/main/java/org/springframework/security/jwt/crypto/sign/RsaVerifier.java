@@ -16,12 +16,8 @@ import java.math.BigInteger;
 import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
 import java.security.Signature;
-import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
-import java.security.spec.RSAPrivateKeySpec;
 import java.security.spec.RSAPublicKeySpec;
-
-import sun.security.util.BigInt;
 
 public class RsaVerifier implements SignatureVerifier {
 	private final RSAPublicKey key;
