@@ -32,8 +32,8 @@ public interface UaaAuditService {
 	 * Authentication of any other (non-user) principal.
 	 */
 //	void principalAuthenticationSuccess(String name);
-//
-//	void principalAuthenticationFailure(String name);
-//
-//	void principalNotFound(String name);
+
+	void principalAuthenticationFailure(String name, UaaAuthenticationDetails details);
+
+	void principalNotFound(String name, UaaAuthenticationDetails details);
 }

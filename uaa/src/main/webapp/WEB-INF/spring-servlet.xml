@@ -80,32 +80,41 @@
 	<bean id="http403" class="org.springframework.security.web.authentication.Http403ForbiddenEntryPoint" />
 
 	<http pattern="/check_token" create-session="stateless" entry-point-ref="http403" authentication-manager-ref="clientAuthenticationManager"
-		xmlns="http://www.springframework.org/schema/security">
+			xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<anonymous enabled="false" />
-		<http-basic />
+		<custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
 	</http>
 
 	<http pattern="/userinfo" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
 		entry-point-ref="http403" access-decision-manager-ref="accessDecisionManager" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="SCOPE_OPENID" />
-		<anonymous />
 		<custom-filter ref="oauth2ResourceServerFilter" after="EXCEPTION_TRANSLATION_FILTER" />
 	</http>
 
 	<http pattern="/oauth/token" create-session="never" authentication-manager-ref="clientAuthenticationManager"
-		xmlns="http://www.springframework.org/schema/security">
+		  entry-point-ref="basicAuthenticationEntryPoint" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<anonymous enabled="false" />
-		<http-basic />
+		<custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
 	</http>
 
 	<http pattern="/varz/**" create-session="never" authentication-manager-ref="clientAuthenticationManager"
-		xmlns="http://www.springframework.org/schema/security">
+			entry-point-ref="basicAuthenticationEntryPoint" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<anonymous enabled="false" />
-		<http-basic />
+		<custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
 	</http>
+
+	<bean id="clientAuthenticationFilter" class="org.springframework.security.web.authentication.www.BasicAuthenticationFilter">
+		<constructor-arg ref="clientAuthenticationManager" />
+		<constructor-arg ref="basicAuthenticationEntryPoint" />
+		<property name="authenticationDetailsSource" ref="authenticationDetailsSource" />
+	</bean>
+
+	<bean id="basicAuthenticationEntryPoint" class="org.springframework.security.web.authentication.www.BasicAuthenticationEntryPoint">
+		<property name="realmName" value="UAA Realm" />
+	</bean>
 
 	<http access-denied-page="/" authentication-manager-ref="authzAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
 		<!-- machine API access to the authorization process itself is allowed -->

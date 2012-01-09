@@ -69,6 +69,16 @@ public class LoggingAuditService implements UaaAuditService {
 		log("Attempt to login as non-existent user: " + name);
 	}
 
+	@Override
+	public void principalAuthenticationFailure(String name, UaaAuthenticationDetails details) {
+		log("Authentication failed, principal: " + name);
+	}
+
+	@Override
+	public void principalNotFound(String name, UaaAuthenticationDetails details) {
+		log("Authentication failed, principal not found: " + name);
+	}
+
 	private void log(String msg) {
 		StringBuilder output = new StringBuilder(256);
   		output.append("\n\n************************************************************\n\n");

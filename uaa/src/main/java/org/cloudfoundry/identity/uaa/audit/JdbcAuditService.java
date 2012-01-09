@@ -65,8 +65,23 @@ public class JdbcAuditService implements UaaAuditService {
 		createAuditRecord(name, AuditEventType.UserNotFound, details.getOrigin(), "");
 	}
 
+	@Override
+	public void principalAuthenticationFailure(String name, UaaAuthenticationDetails details) {
+		createAuditRecord(name, AuditEventType.PrincipalAuthenticationFailure, details.getOrigin());
+	}
+
+	@Override
+	public void principalNotFound(String name, UaaAuthenticationDetails details) {
+		createAuditRecord(name, AuditEventType.PrincipalNotFound, details.getOrigin());
+	}
+
+	private void createAuditRecord(String principal_id, AuditEventType type, String origin) {
+		template.update("insert into sec_audit (principal_id, event_type, origin, event_data) values (?,?,?)",
+						principal_id, type.getCode(), origin);
+	}
+
 	private void createAuditRecord(String principal_id, AuditEventType type, String origin, String data) {
 		template.update("insert into sec_audit (principal_id, event_type, origin, event_data) values (?,?,?,?)",
-						principal_id, type.ordinal(), origin, data);
+						principal_id, type.getCode(), origin, data);
 	}
 }
