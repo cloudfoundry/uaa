@@ -25,6 +25,8 @@ import org.springframework.expression.Expression;
 import org.springframework.expression.spel.SpelParseException;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.Assert;
 
 /**
@@ -42,6 +44,8 @@ public class InMemoryScimUserProvisioning implements ScimUserProvisioning {
 	private final Map<String, UaaUser> users;
 
 	private final ConcurrentMap<String, String> ids = new ConcurrentHashMap<String, String>();
+
+	private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
 	public InMemoryScimUserProvisioning(Map<String, UaaUser> users) {
 		this.users = users; // so we can share the storage with a UaaDatabase
@@ -160,7 +164,7 @@ public class InMemoryScimUserProvisioning implements ScimUserProvisioning {
 		}
 		UaaUser uaa = users.remove(ids.get(id));
 		String name = uaa.getUsername();
-		users.put(name, new UaaUser(name, password, uaa.getEmail(), uaa.getGivenName(), uaa.getFamilyName()).id(Integer.valueOf(id)));
+		users.put(name, new UaaUser(name, passwordEncoder.encode(password), uaa.getEmail(), uaa.getGivenName(), uaa.getFamilyName()).id(Integer.valueOf(id)));
 		ids.replace(id, name);
 		return true;
 	}
