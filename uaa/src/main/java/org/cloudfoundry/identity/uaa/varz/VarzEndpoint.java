@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-
 @Controller
 public class VarzEndpoint implements EnvironmentAware {
 
@@ -45,12 +44,20 @@ public class VarzEndpoint implements EnvironmentAware {
 
 	@RequestMapping("/varz")
 	@ResponseBody
-	public Map<String, ?> getVarz()
-			throws Exception {
+	public Map<String, ?> getVarz() throws Exception {
 		Map<String, Object> result = new LinkedHashMap<String, Object>(statix);
 		result.putAll(getMBeans("java.lang:*"));
 		result.put("env", getHostProperties());
 		result.putAll(getMBeans("Catalina:type=GlobalRequestProcessor,*"));
+		Map<String, ?> tomcat = getMBeans("*:type=GlobalRequestProcessor,*");
+		if (!tomcat.isEmpty()) {
+			if (tomcat.size() == 1) {
+				// tomcat 6.0.23, 6.0.35 have different default domains so normalize...
+				result.put("tomcat", tomcat.values().iterator().next());
+			} else {
+				result.putAll(tomcat);
+			}
+		}
 		result.putAll(getMBeans("spring.application:*"));
 		if (environment!=null) {
 			result.put("spring.profiles.active", environment.getActiveProfiles());
