@@ -25,6 +25,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.expression.spel.SpelEvaluationException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 /**
  * @author Luke Taylor
@@ -82,7 +83,7 @@ public class InMemoryScimUserProvisioningTests {
 	@Test
 	public void canChangePassword() throws Exception {
 		assertTrue(db.changePassword("1", "newpassword"));
-		assertEquals("newpassword", users.get("joe").getPassword());
+		assertTrue(new BCryptPasswordEncoder().matches("newpassword", users.get("joe").getPassword()));
 	}
 
 	@Test
