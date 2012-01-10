@@ -29,6 +29,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 /**
  * @author Dave Syer
@@ -64,7 +65,7 @@ public class ScimUserEndpointsTests {
 		PasswordChangeRequest change = new PasswordChangeRequest();
 		change.setPassword("newpassword");
 		endpoints.changePassword(id, change );
-		assertEquals("newpassword", users.get("jdsa").getPassword());
+		assertTrue(new BCryptPasswordEncoder().matches("newpassword", users.get("jdsa").getPassword()));
 	}
 
 	@Test
