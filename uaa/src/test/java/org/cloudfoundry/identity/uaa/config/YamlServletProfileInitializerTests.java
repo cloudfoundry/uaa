@@ -15,8 +15,10 @@ package org.cloudfoundry.identity.uaa.config;
 import static org.junit.Assert.assertEquals;
 
 import javax.servlet.ServletConfig;
+import javax.servlet.ServletContext;
 
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Matchers;
 import org.mockito.Mockito;
@@ -26,29 +28,39 @@ import org.springframework.web.context.ConfigurableWebApplicationContext;
 
 /**
  * @author Dave Syer
- *
+ * 
  */
 public class YamlServletProfileInitializerTests {
-	
+
 	private YamlServletProfileInitializer initializer = new YamlServletProfileInitializer();
-	
+
 	private ConfigurableWebApplicationContext context = Mockito.mock(ConfigurableWebApplicationContext.class);
 
 	private StandardEnvironment environment = new StandardEnvironment();
-	
+
+	private ServletConfig servletConfig = Mockito.mock(ServletConfig.class);
+
+	@Before
+	public void setup() {
+		Mockito.when(context.getServletConfig()).thenReturn(servletConfig);
+		ServletContext servletContext = Mockito.mock(ServletContext.class);
+		Mockito.when(context.getServletContext()).thenReturn(servletContext);
+		Mockito.when(context.getEnvironment()).thenReturn(environment);
+	}
+
 	@After
 	public void cleanup() {
 		System.clearProperty("CLOUD_FOUNDRY_CONFIG_PATH");
+		System.clearProperty("LOG_FILE");
+		System.clearProperty("LOG_PATH");
 	}
-	
+
 	@Test
 	public void testLoadDefaultResource() throws Exception {
-		
-		ServletConfig servletConfig = Mockito.mock(ServletConfig.class);
-		Mockito.when(context.getServletConfig()).thenReturn(servletConfig);
-		Mockito.when(context.getResource(Matchers.eq("file:${CLOUD_FOUNDRY_CONFIG_PATH}/uaa.yml"))).thenReturn(new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
-		Mockito.when(context.getEnvironment()).thenReturn(environment);
-		
+
+		Mockito.when(context.getResource(Matchers.eq("file:${CLOUD_FOUNDRY_CONFIG_PATH}/uaa.yml"))).thenReturn(
+				new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
+
 		initializer.initialize(context);
 
 		assertEquals("bar", environment.getProperty("foo"));
@@ -58,12 +70,10 @@ public class YamlServletProfileInitializerTests {
 
 	@Test
 	public void testActiveProfiles() throws Exception {
-		
-		ServletConfig servletConfig = Mockito.mock(ServletConfig.class);
-		Mockito.when(context.getServletConfig()).thenReturn(servletConfig);
-		Mockito.when(context.getResource(Matchers.anyString())).thenReturn(new ByteArrayResource("spring.profiles.active: bar".getBytes()));
-		Mockito.when(context.getEnvironment()).thenReturn(environment);
-		
+
+		Mockito.when(context.getResource(Matchers.anyString())).thenReturn(
+				new ByteArrayResource("spring.profiles.active: bar".getBytes()));
+
 		initializer.initialize(context);
 
 		assertEquals("bar", environment.getActiveProfiles()[0]);
@@ -72,12 +82,10 @@ public class YamlServletProfileInitializerTests {
 
 	@Test
 	public void testActiveProfilesFromYaml() throws Exception {
-		
-		ServletConfig servletConfig = Mockito.mock(ServletConfig.class);
-		Mockito.when(context.getServletConfig()).thenReturn(servletConfig);
-		Mockito.when(context.getResource(Matchers.anyString())).thenReturn(new ByteArrayResource("spring_profiles: bar".getBytes()));
-		Mockito.when(context.getEnvironment()).thenReturn(environment);
-		
+
+		Mockito.when(context.getResource(Matchers.anyString())).thenReturn(
+				new ByteArrayResource("spring_profiles: bar".getBytes()));
+
 		initializer.initialize(context);
 
 		assertEquals("bar", environment.getActiveProfiles()[0]);
@@ -85,14 +93,35 @@ public class YamlServletProfileInitializerTests {
 	}
 
 	@Test
+	public void testLog4jFileFromYaml() throws Exception {
+		Mockito.when(context.getResource(Matchers.anyString())).thenReturn(
+				new ByteArrayResource("logging:\n  file: bar".getBytes()));
+		initializer.initialize(context);
+		assertEquals("bar", System.getProperty("LOG_FILE"));
+	}
+
+	@Test
+	public void testLog4jPathFromYaml() throws Exception {
+		Mockito.when(context.getResource(Matchers.anyString())).thenReturn(
+				new ByteArrayResource("logging:\n  path: bar".getBytes()));
+		initializer.initialize(context);
+		assertEquals("bar", System.getProperty("LOG_PATH"));
+	}
+
+	@Test
+	public void testLog4jConfigurationFromYaml() throws Exception {
+		Mockito.when(context.getResource(Matchers.anyString())).thenReturn(
+				new ByteArrayResource("logging:\n  config: bar".getBytes()));
+		initializer.initialize(context);
+	}
+
+	@Test
 	public void testLoadConfiguredResource() throws Exception {
-		
-		ServletConfig servletConfig = Mockito.mock(ServletConfig.class);
-		Mockito.when(context.getServletConfig()).thenReturn(servletConfig);
+
 		Mockito.when(servletConfig.getInitParameter("environmentConfigFile")).thenReturn("foo.yml");
-		Mockito.when(context.getResource(Matchers.eq("foo.yml"))).thenReturn(new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
-		Mockito.when(context.getEnvironment()).thenReturn(environment);
-		
+		Mockito.when(context.getResource(Matchers.eq("foo.yml"))).thenReturn(
+				new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
+
 		initializer.initialize(context);
 
 		assertEquals("bar", environment.getProperty("foo"));
@@ -105,11 +134,9 @@ public class YamlServletProfileInitializerTests {
 
 		System.setProperty("CLOUD_FOUNDRY_CONFIG_PATH", "foo");
 
-		ServletConfig servletConfig = Mockito.mock(ServletConfig.class);
-		Mockito.when(context.getServletConfig()).thenReturn(servletConfig);
-		Mockito.when(context.getResource(Matchers.eq("file:foo/uaa.yml"))).thenReturn(new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
-		Mockito.when(context.getEnvironment()).thenReturn(environment);
-		
+		Mockito.when(context.getResource(Matchers.eq("file:foo/uaa.yml"))).thenReturn(
+				new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
+
 		initializer.initialize(context);
 
 		assertEquals("bar", environment.getProperty("foo"));
