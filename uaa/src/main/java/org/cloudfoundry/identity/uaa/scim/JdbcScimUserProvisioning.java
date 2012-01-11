@@ -16,6 +16,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -36,6 +37,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.Assert;
@@ -60,6 +62,8 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	public static final String DELETE_USER_SQL = "delete from users where id = ? and version = ?";
 
 	public static final String CHANGE_PASSWORD_SQL = "update users set lastModified=?, password=? where id = ?";
+
+	public static final String READ_PASSWORD_SQL = "select password from users where id = ?";
 
 	public static final String USER_BY_ID_QUERY = "select " + USER_FIELDS + " from users " + "where id = ?";
 
@@ -224,11 +228,15 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	}
 
 	@Override
-	public boolean changePassword(final String id, final String password) throws UserNotFoundException {
+	public boolean changePassword(final String id, String oldPassword, final String newPassword) throws UserNotFoundException {
+		if (oldPassword != null) {
+			checkPasswordMatches(id, oldPassword);
+		}
+
 		int updated = jdbcTemplate.update(CHANGE_PASSWORD_SQL, new PreparedStatementSetter() {
 			public void setValues(PreparedStatement ps) throws SQLException {
 				ps.setTimestamp(1, new Timestamp(new Date().getTime()));
-				ps.setString(2, passwordEncoder.encode(password));
+				ps.setString(2, passwordEncoder.encode(newPassword));
 				ps.setString(3, id);
 			}
 		});
@@ -239,6 +247,21 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 			throw new IncorrectResultSizeDataAccessException(1);
 		}
 		return true;
+	}
+
+	// Checks the existing password for a user
+	private void checkPasswordMatches(String id, String oldPassword) {
+		String currentPassword = null;
+		try {
+			currentPassword = jdbcTemplate.queryForObject(READ_PASSWORD_SQL, new Object[] {id},new int[] {Types.VARCHAR},  String.class);
+		}
+		catch (IncorrectResultSizeDataAccessException e) {
+			throw new UserNotFoundException("User " + id + " does not exist");
+		}
+
+		if (!passwordEncoder.matches(oldPassword, currentPassword)) {
+			throw new BadCredentialsException("Old password is incorrect");
+		}
 	}
 
 	@Override

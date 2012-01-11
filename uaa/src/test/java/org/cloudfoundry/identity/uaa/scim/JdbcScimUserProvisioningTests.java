@@ -33,7 +33,9 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.bcrypt.BCrypt;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.annotation.IfProfileValue;
 import org.springframework.test.annotation.ProfileValueSourceConfiguration;
 import org.springframework.test.context.ContextConfiguration;
@@ -67,12 +69,13 @@ public class JdbcScimUserProvisioningTests {
 
 		template = new JdbcTemplate(dataSource);
 		db = new JdbcScimUserProvisioning(template);
+		BCryptPasswordEncoder pe = new BCryptPasswordEncoder(4);
+
 		TestUtils.createSchema(dataSource);
 		template.execute("insert into users (id, username, password, email, givenName, familyName) " + "values ('"
-				+ JOE_ID + "', 'joe','joespassword','joe@joe.com','Joe','User')");
+				+ JOE_ID + "', 'joe','"+ pe.encode("joespassword")  +"','joe@joe.com','Joe','User')");
 		template.execute("insert into users (id, username, password, email, givenName, familyName) " + "values ('"
-				+ MABEL_ID + "', 'mabel','mabelspassword','mabel@mabel.com','Mabel','User')");
-
+				+ MABEL_ID + "', 'mabel','"+ pe.encode("mabelspassword") +"','mabel@mabel.com','Mabel','User')");
 	}
 
 	@After
@@ -132,15 +135,27 @@ public class JdbcScimUserProvisioningTests {
 	}
 
 	@Test
-	public void canChangePassword() throws Exception {
-		assertTrue(db.changePassword(JOE_ID, "newpassword"));
+	public void canChangePasswordWithouOldPassword() throws Exception {
+		assertTrue(db.changePassword(JOE_ID, null, "newpassword"));
 		String storedPassword = template.queryForObject("SELECT password from USERS where ID=?", String.class, JOE_ID);
 		assertTrue(BCrypt.checkpw("newpassword", storedPassword));
 	}
 
-	@Test(expected=UserNotFoundException.class)
+	@Test
+	public void canChangePasswordWithCorrectOldPassword() throws Exception {
+		assertTrue(db.changePassword(JOE_ID, "joespassword", "newpassword"));
+		String storedPassword = template.queryForObject("SELECT password from USERS where ID=?", String.class, JOE_ID);
+		assertTrue(BCrypt.checkpw("newpassword", storedPassword));
+	}
+
+	@Test(expected=BadCredentialsException.class)
 	public void cannotChangePasswordNonexistentUser() {
-		assertTrue(db.changePassword("9999", "newpassword"));
+		db.changePassword(JOE_ID, "notjoespassword", "newpassword");
+	}
+
+	@Test(expected=UserNotFoundException.class)
+	public void cannotChangePasswordIfOldPasswordDoesntMatch() {
+		assertTrue(db.changePassword("9999", null, "newpassword"));
 	}
 
 	@Test

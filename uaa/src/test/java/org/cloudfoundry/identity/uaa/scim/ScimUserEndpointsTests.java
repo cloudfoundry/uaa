@@ -18,6 +18,8 @@ package org.cloudfoundry.identity.uaa.scim;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.internal.matchers.StringContains.containsString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,14 +27,18 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 /**
  * @author Dave Syer
+ * @author Luke Taylor
  *
  */
 public class ScimUserEndpointsTests {
@@ -46,11 +52,12 @@ public class ScimUserEndpointsTests {
 
 	private Map<String, UaaUser> users = new HashMap<String, UaaUser>();
 
-	private InMemoryScimUserProvisioning dao = new InMemoryScimUserProvisioning(users );
+	private InMemoryScimUserProvisioning dao = new InMemoryScimUserProvisioning(users);
 
-	private ScimUserEndpoints endpoints;;
+	private ScimUserEndpoints endpoints;
 
-	public ScimUserEndpointsTests() {
+	@Before
+	public void setUp() {
 		endpoints = new ScimUserEndpoints();
 		endpoints.setScimUserProvisioning(dao);
 		joel.addEmail("jdsa@vmware.com");
@@ -64,9 +71,45 @@ public class ScimUserEndpointsTests {
 		String id = users.get("jdsa").getId();
 		PasswordChangeRequest change = new PasswordChangeRequest();
 		change.setPassword("newpassword");
-		endpoints.changePassword(id, change );
+		endpoints.changePassword(id, change);
 		assertTrue(new BCryptPasswordEncoder().matches("newpassword", users.get("jdsa").getPassword()));
 	}
+
+	@Test
+	public void changePasswordSucceedsForUserIfTheySupplyCorrectCurrentPassword() {
+		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
+		String id = users.get("jdsa").getId();
+		when(sca.currentUserHasId(id)).thenReturn(true);
+		endpoints.setSecurityContextAccessor(sca);
+		PasswordChangeRequest change = new PasswordChangeRequest();
+		change.setOldPassword("password");
+		change.setPassword("newpassword");
+		endpoints.changePassword(id, change);
+	}
+
+	@Test(expected = ScimException.class)
+	public void changePasswordFailsForUserIfTheyDontSupplyCurrentPassword() {
+		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
+		String id = users.get("jdsa").getId();
+		when(sca.currentUserHasId(id)).thenReturn(true);
+		endpoints.setSecurityContextAccessor(sca);
+		PasswordChangeRequest change = new PasswordChangeRequest();
+		change.setPassword("newpassword");
+		endpoints.changePassword(id, change);
+	}
+
+	@Test(expected = BadCredentialsException.class)
+	public void changePasswordFailsForUserIfTheySupplyWrongCurrentPassword() {
+		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
+		String id = users.get("jdsa").getId();
+		when(sca.currentUserHasId(id)).thenReturn(true);
+		endpoints.setSecurityContextAccessor(sca);
+		PasswordChangeRequest change = new PasswordChangeRequest();
+		change.setPassword("newpassword");
+		change.setOldPassword("wrongpassword");
+		endpoints.changePassword(id, change);
+	}
+
 
 	@Test
 	public void testFindAllIds() {
