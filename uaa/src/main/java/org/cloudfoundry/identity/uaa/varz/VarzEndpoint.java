@@ -1,13 +1,16 @@
 package org.cloudfoundry.identity.uaa.varz;
 
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
-import javax.management.MBeanServer;
+import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -17,7 +20,9 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @Controller
 public class VarzEndpoint {
 
-	private MBeanServer server;
+	private static Log logger = LogFactory.getLog(VarzEndpoint.class);
+
+	private MBeanServerConnection server;
 	
 	private Map<String,Object> statix = new LinkedHashMap<String, Object>();
 	
@@ -25,7 +30,7 @@ public class VarzEndpoint {
 		this.statix = new LinkedHashMap<String, Object>(statics);
 	}
 
-	public void setServer(MBeanServer server) {
+	public void setServer(MBeanServerConnection server) {
 		this.server = server;
 	}
 
@@ -35,6 +40,7 @@ public class VarzEndpoint {
 			throws Exception {
 		Map<String, Object> result = new LinkedHashMap<String, Object>(statix);
 		result.putAll(getMBeans("java.lang:*"));
+		result.put("env", getHostProperties());
 		result.putAll(getMBeans("Catalina:type=GlobalRequestProcessor,*"));
 		result.putAll(getMBeans("spring.application:*"));
 		return result;
@@ -92,7 +98,7 @@ public class VarzEndpoint {
 
 	@RequestMapping("/varz/mbeans/domains")
 	@ResponseBody
-	public Set<String> getMBeanDomains() {
+	public Set<String> getMBeanDomains() throws IOException {
 		Set<String> result = new HashSet<String>();
 		Set<ObjectName> names = server.queryNames(null, null);
 		for (ObjectName name : names) {
@@ -108,6 +114,20 @@ public class VarzEndpoint {
 		@SuppressWarnings("unchecked")
 		Map<String, Object> objects = (Map<String, Object>) result.get(key);
 		return objects;
+	}
+
+	private Map<String, String> getHostProperties() {
+		Map<String, String> env = new LinkedHashMap<String, String>();
+		try {
+			Map<String, String> values = System.getenv();
+			for (String key : values.keySet()) {
+				env.put(key, values.get(key));
+			}
+		}
+		catch (Exception e) {
+			logger.warn("Could not obtain OS environment", e);
+		}
+		return env;
 	}
 
 }
