@@ -11,6 +11,8 @@ import javax.management.ObjectName;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.context.EnvironmentAware;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -18,13 +20,20 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 
 @Controller
-public class VarzEndpoint {
+public class VarzEndpoint implements EnvironmentAware {
 
 	private static Log logger = LogFactory.getLog(VarzEndpoint.class);
 
 	private MBeanServerConnection server;
 	
 	private Map<String,Object> statix = new LinkedHashMap<String, Object>();
+
+	private Environment environment;
+	
+	@Override
+	public void setEnvironment(Environment environment) {
+		this.environment = environment;	
+	}
 	
 	public void setStaticValues(Map<String, Object> statics) {
 		this.statix = new LinkedHashMap<String, Object>(statics);
@@ -43,6 +52,9 @@ public class VarzEndpoint {
 		result.put("env", getHostProperties());
 		result.putAll(getMBeans("Catalina:type=GlobalRequestProcessor,*"));
 		result.putAll(getMBeans("spring.application:*"));
+		if (environment!=null) {
+			result.put("spring.profiles.active", environment.getActiveProfiles());
+		}
 		return result;
 	}
 

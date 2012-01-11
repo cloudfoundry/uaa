@@ -25,7 +25,7 @@
 		</property>
 	</bean>
 
-	<beans profile="default,shared">
+	<beans profile="default,!private">
 
 		<http request-matcher-ref="userEndPointRequestMatcher" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
 			entry-point-ref="http403" access-decision-manager-ref="accessDecisionManager" xmlns="http://www.springframework.org/schema/security">

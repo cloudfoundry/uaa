@@ -27,7 +27,7 @@ import org.springframework.util.Assert;
  *
  * @author Luke Taylor
  */
-public class AuditListener implements ApplicationListener {
+public class AuditListener implements ApplicationListener<ApplicationEvent> {
 	private final UaaAuditService auditor;
 
 	public AuditListener() {

@@ -126,7 +126,7 @@ public class YamlPropertiesFactoryBean implements FactoryBean<Properties> {
 	}
 
 	@Override
-	public Properties getObject() throws Exception {
+	public Properties getObject() {
 		Yaml yaml = new Yaml();
 		Properties properties = new Properties();
 		try {
@@ -141,7 +141,7 @@ public class YamlPropertiesFactoryBean implements FactoryBean<Properties> {
 				}
 			}
 			else {
-				throw e;
+				throw new IllegalStateException(e);
 			}
 		}
 		return properties;
