@@ -1,17 +1,18 @@
 /*
  * Copyright 2006-2011 the original author or authors.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
 package org.cloudfoundry.identity.uaa.scim;
 
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
@@ -25,13 +26,14 @@ import org.springframework.expression.Expression;
 import org.springframework.expression.spel.SpelParseException;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.Assert;
 
 /**
  * In-memory user account information storage.
- * 
+ *
  * @author Luke Taylor
  * @author Dave Syer
  */
@@ -141,7 +143,7 @@ public class InMemoryScimUserProvisioning implements ScimUserProvisioning {
 				+ "' already exists");
 		Assert.notEmpty(scim.getEmails(), "At least one email is required");
 
-		UaaUser user = addUser(getUaaUser(scim, password));
+		UaaUser user = addUser(getUaaUser(scim, passwordEncoder.encode(password)));
 		return getScimUser(user);
 	}
 
@@ -158,11 +160,19 @@ public class InMemoryScimUserProvisioning implements ScimUserProvisioning {
 	}
 
 	@Override
-	public boolean changePassword(String id, String password) throws UserNotFoundException {
+	public boolean changePassword(String id, String oldPassword, String password) throws UserNotFoundException {
 		if (!ids.containsKey(id)) {
 			throw new UserNotFoundException("User " + id + " does not exist");
 		}
+
 		UaaUser uaa = users.remove(ids.get(id));
+
+		if (oldPassword != null) {
+			if (!passwordEncoder.matches(oldPassword, uaa.getPassword())) {
+				throw new BadCredentialsException("Old password is incorrect");
+			}
+		}
+
 		String name = uaa.getUsername();
 		users.put(name, new UaaUser(name, passwordEncoder.encode(password), uaa.getEmail(), uaa.getGivenName(), uaa.getFamilyName()).id(Integer.valueOf(id)));
 		ids.replace(id, name);

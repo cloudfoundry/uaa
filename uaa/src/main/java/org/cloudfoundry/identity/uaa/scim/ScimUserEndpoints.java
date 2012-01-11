@@ -1,11 +1,11 @@
 /*
  * Copyright 2006-2011 the original author or authors.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
@@ -24,6 +24,8 @@ import java.util.Random;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
+import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.expression.Expression;
 import org.springframework.expression.spel.SpelParseException;
@@ -35,6 +37,7 @@ import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.security.crypto.codec.Hex;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -48,7 +51,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
 
 /**
- * 
+ *
  * @author Luke Taylor
  * @author Dave Syer
  */
@@ -68,6 +71,8 @@ public class ScimUserEndpoints implements InitializingBean {
 	private HttpMessageConverter<?>[] messageConverters = new RestTemplate().getMessageConverters().toArray(
 			new HttpMessageConverter<?>[0]);
 
+	private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
+
 	/**
 	 * Set the message body converters to use.
 	 * <p>
@@ -79,7 +84,7 @@ public class ScimUserEndpoints implements InitializingBean {
 
 	/**
 	 * Map from exception type to Http status.
-	 * 
+	 *
 	 * @param statuses the statuses to set
 	 */
 	public void setStatuses(Map<Class<? extends Exception>, HttpStatus> statuses) {
@@ -120,7 +125,14 @@ public class ScimUserEndpoints implements InitializingBean {
 	@RequestMapping(value = "/User/{userId}/password", method = RequestMethod.PUT)
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void changePassword(@PathVariable String userId, @RequestBody PasswordChangeRequest change) {
-		if (!dao.changePassword(userId, change.getPassword())) {
+		if (securityContextAccessor.currentUserHasId(userId)) {
+			// User is changing their own password, old password is required
+			if (!StringUtils.hasText(change.getOldPassword())) {
+				throw new ScimException("Previous password is required", HttpStatus.BAD_REQUEST);
+			}
+		}
+
+		if (!dao.changePassword(userId, change.getOldPassword(), change.getPassword())) {
 			throw new ScimException("Password not changed for user: " + userId, HttpStatus.BAD_REQUEST);
 		}
 	}
@@ -219,6 +231,10 @@ public class ScimUserEndpoints implements InitializingBean {
 
 	public void setScimUserProvisioning(ScimUserProvisioning dao) {
 		this.dao = dao;
+	}
+
+	void setSecurityContextAccessor(SecurityContextAccessor securityContextAccessor) {
+		this.securityContextAccessor = securityContextAccessor;
 	}
 
 	@Override
