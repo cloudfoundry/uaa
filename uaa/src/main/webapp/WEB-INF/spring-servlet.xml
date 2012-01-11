@@ -234,7 +234,7 @@
 
 	<bean id="homeController" class="org.cloudfoundry.identity.uaa.home.HomeController" />
 
-	<beans profile="default,dev">
+	<beans profile="default,!jdbc">
 
 		<bean id="userDatabase" class="org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase">
 			<constructor-arg ref="userData" />

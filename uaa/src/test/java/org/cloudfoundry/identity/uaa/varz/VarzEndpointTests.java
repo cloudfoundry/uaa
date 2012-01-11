@@ -6,6 +6,7 @@ import javax.management.MBeanServerConnection;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.core.env.StandardEnvironment;
 import org.springframework.jmx.support.MBeanServerFactoryBean;
 
 public class VarzEndpointTests {
@@ -36,6 +37,12 @@ public class VarzEndpointTests {
 	@Test
 	public void testDefaultVarz() throws Exception {
 		assertNotNull(endpoint.getVarz());
+	}
+
+	@Test
+	public void testActiveProfiles() throws Exception {
+		endpoint.setEnvironment(new StandardEnvironment());
+		assertNotNull(endpoint.getVarz().get("spring.profiles.active"));
 	}
 
 }

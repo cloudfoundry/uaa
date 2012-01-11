@@ -48,7 +48,7 @@ public class BootstrapTests {
 
 	@Test
 	public void testRootContextWithJdbcUsers() throws Exception {
-		System.setProperty("spring.profiles.active", "jdbc,hsqldb,!private,!legacy");
+		System.setProperty("spring.profiles.active", "jdbc,hsqldb,private,!legacy");
 		context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/spring-servlet.xml"));
 		assertNotNull(context.getBean("userDatabase", JdbcUaaUserDatabase.class));
 	}
@@ -66,8 +66,11 @@ public class BootstrapTests {
 		assertNotNull(context.getBean("userDatabase", JdbcUaaUserDatabase.class));
 		FilterChainProxy filterChain = context.getBean(FilterChainProxy.class);
 		MockHttpServletResponse response = new MockHttpServletResponse();
-		filterChain.doFilter(new MockHttpServletRequest("GET", "/Users"), response, new MockFilterChain());
-		assertEquals("http://localhost/login", response.getRedirectedUrl());
+		MockHttpServletRequest request = new MockHttpServletRequest("GET", "/Users");
+		request.setServletPath("");
+		request.setPathInfo("/Users");
+		filterChain.doFilter(request, response, new MockFilterChain());
+		assertEquals(403, response.getStatus());
 	}
 
 	@Test
@@ -78,7 +81,7 @@ public class BootstrapTests {
 		FilterChainProxy filterChain = context.getBean(FilterChainProxy.class);
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		filterChain.doFilter(new MockHttpServletRequest("GET", "/Users"), response, new MockFilterChain());
-		assertEquals(null, response.getRedirectedUrl());
+		assertEquals(200, response.getStatus());
 	}
 
 	@Test
