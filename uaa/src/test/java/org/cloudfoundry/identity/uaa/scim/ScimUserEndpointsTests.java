@@ -67,19 +67,23 @@ public class ScimUserEndpointsTests {
 	}
 
 	@Test
-	public void testChangePassword() {
+	public void userCanChangeTheirOwnPasswordIfTheySupplyCorrectCurrentPassword() {
+		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
 		String id = users.get("jdsa").getId();
+		when(sca.getCurrentUserId()).thenReturn(id);
+		endpoints.setSecurityContextAccessor(sca);
 		PasswordChangeRequest change = new PasswordChangeRequest();
+		change.setOldPassword("password");
 		change.setPassword("newpassword");
 		endpoints.changePassword(id, change);
 		assertTrue(new BCryptPasswordEncoder().matches("newpassword", users.get("jdsa").getPassword()));
 	}
 
-	@Test
-	public void changePasswordSucceedsForUserIfTheySupplyCorrectCurrentPassword() {
+	@Test(expected = ScimException.class)
+	public void userCantChangeAnotherUsersPassword() {
 		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
 		String id = users.get("jdsa").getId();
-		when(sca.currentUserHasId(id)).thenReturn(true);
+		when(sca.getCurrentUserId()).thenReturn(id + "1");
 		endpoints.setSecurityContextAccessor(sca);
 		PasswordChangeRequest change = new PasswordChangeRequest();
 		change.setOldPassword("password");
@@ -88,10 +92,21 @@ public class ScimUserEndpointsTests {
 	}
 
 	@Test(expected = ScimException.class)
-	public void changePasswordFailsForUserIfTheyDontSupplyCurrentPassword() {
+	public void changePasswordRequestFailsForUserWithoutCurrentPassword() {
 		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
 		String id = users.get("jdsa").getId();
-		when(sca.currentUserHasId(id)).thenReturn(true);
+		when(sca.getCurrentUserId()).thenReturn(id);
+		endpoints.setSecurityContextAccessor(sca);
+		PasswordChangeRequest change = new PasswordChangeRequest();
+		change.setPassword("newpassword");
+		endpoints.changePassword(id, change);
+	}
+
+	@Test
+	public void clientCanChangeUserPasswordWithoutCurrentPassword() {
+		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
+		String id = users.get("jdsa").getId();
+		when(sca.currentUserIsClient()).thenReturn(true);
 		endpoints.setSecurityContextAccessor(sca);
 		PasswordChangeRequest change = new PasswordChangeRequest();
 		change.setPassword("newpassword");
@@ -102,7 +117,7 @@ public class ScimUserEndpointsTests {
 	public void changePasswordFailsForUserIfTheySupplyWrongCurrentPassword() {
 		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
 		String id = users.get("jdsa").getId();
-		when(sca.currentUserHasId(id)).thenReturn(true);
+		when(sca.getCurrentUserId()).thenReturn(id);
 		endpoints.setSecurityContextAccessor(sca);
 		PasswordChangeRequest change = new PasswordChangeRequest();
 		change.setPassword("newpassword");

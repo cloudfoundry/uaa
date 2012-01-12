@@ -15,15 +15,27 @@ package org.cloudfoundry.identity.uaa.security;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.provider.OAuth2Authentication;
 
 /**
  * @author Luke Taylor
  */
 public class DefaultSecurityContextAccessor implements SecurityContextAccessor {
 	@Override
-	public boolean currentUserHasId(String id) {
+	public boolean currentUserIsClient() {
 		Authentication a = SecurityContextHolder.getContext().getAuthentication();
 
-		return a != null && id.equals(((UaaPrincipal)a.getPrincipal()).getId());
+		if (!(a instanceof OAuth2Authentication)) {
+			throw new IllegalStateException("Must be an OAuth2Authentication to check if user is a client");
+		}
+
+		return ((OAuth2Authentication) a).getUserAuthentication() == null;
+	}
+
+	@Override
+	public String getCurrentUserId() {
+		Authentication a = SecurityContextHolder.getContext().getAuthentication();
+
+		return ((UaaPrincipal)a.getPrincipal()).getId();
 	}
 }

@@ -21,5 +21,11 @@ package org.cloudfoundry.identity.uaa.security;
  */
 public interface SecurityContextAccessor {
 
-	boolean currentUserHasId(String id);
+	/**
+	 * Returns true if the current invocation is being made by
+	 * a client, not by or on behalf of (in the oauth sense) an end user.
+	 */
+	boolean currentUserIsClient();
+
+	String getCurrentUserId();
 }

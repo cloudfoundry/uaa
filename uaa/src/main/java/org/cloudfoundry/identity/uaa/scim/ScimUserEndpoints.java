@@ -125,15 +125,30 @@ public class ScimUserEndpoints implements InitializingBean {
 	@RequestMapping(value = "/User/{userId}/password", method = RequestMethod.PUT)
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void changePassword(@PathVariable String userId, @RequestBody PasswordChangeRequest change) {
-		if (securityContextAccessor.currentUserHasId(userId)) {
-			// User is changing their own password, old password is required
-			if (!StringUtils.hasText(change.getOldPassword())) {
-				throw new ScimException("Previous password is required", HttpStatus.BAD_REQUEST);
-			}
-		}
+		checkPasswordChangeIsAllowed(userId, change.getOldPassword(), change.getPassword());
 
 		if (!dao.changePassword(userId, change.getOldPassword(), change.getPassword())) {
 			throw new ScimException("Password not changed for user: " + userId, HttpStatus.BAD_REQUEST);
+		}
+	}
+
+	private void checkPasswordChangeIsAllowed(String userId, String oldPassword, String newPassword) {
+		if (securityContextAccessor.currentUserIsClient()) {
+			// Trusted client
+			return;
+		}
+
+		// Call is by or on behalf of an end user
+		String currentUser = securityContextAccessor.getCurrentUserId();
+		if (!userId.equals(currentUser)) {
+			logger.warn("User with id " + currentUser + " attempting to invoke password change for " + userId);
+			// TODO: This should be audited when we have non-authentication events in the log
+			throw new ScimException("Bad request", HttpStatus.BAD_REQUEST);
+		}
+
+		// User is changing their own password, old password is required
+		if (!StringUtils.hasText(oldPassword)) {
+			throw new ScimException("Previous password is required", HttpStatus.BAD_REQUEST);
 		}
 	}
 
