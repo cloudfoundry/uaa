@@ -25,7 +25,12 @@ public interface SecurityContextAccessor {
 	 * Returns true if the current invocation is being made by
 	 * a client, not by or on behalf of (in the oauth sense) an end user.
 	 */
-	boolean currentUserIsClient();
+	boolean isClient();
 
-	String getCurrentUserId();
+	/**
+	 * @return true if the user has the "admin" role
+	 */
+	boolean isAdmin();
+
+	String getUserId();
 }

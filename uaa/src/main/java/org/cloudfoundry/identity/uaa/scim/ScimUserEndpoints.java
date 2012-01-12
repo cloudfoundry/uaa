@@ -125,23 +125,23 @@ public class ScimUserEndpoints implements InitializingBean {
 	@RequestMapping(value = "/User/{userId}/password", method = RequestMethod.PUT)
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void changePassword(@PathVariable String userId, @RequestBody PasswordChangeRequest change) {
-		checkPasswordChangeIsAllowed(userId, change.getOldPassword(), change.getPassword());
+		checkPasswordChangeIsAllowed(userId, change.getOldPassword());
 
 		if (!dao.changePassword(userId, change.getOldPassword(), change.getPassword())) {
 			throw new ScimException("Password not changed for user: " + userId, HttpStatus.BAD_REQUEST);
 		}
 	}
 
-	private void checkPasswordChangeIsAllowed(String userId, String oldPassword, String newPassword) {
-		if (securityContextAccessor.currentUserIsClient()) {
-			// Trusted client
+	private void checkPasswordChangeIsAllowed(String userId, String oldPassword) {
+		if (securityContextAccessor.isClient() || securityContextAccessor.isAdmin()) {
+			// Trusted client or admin user
 			return;
 		}
 
-		// Call is by or on behalf of an end user
-		String currentUser = securityContextAccessor.getCurrentUserId();
+		// Call is by or on behalf of a non-admin end user
+		String currentUser = securityContextAccessor.getUserId();
 		if (!userId.equals(currentUser)) {
-			logger.warn("User with id " + currentUser + " attempting to invoke password change for " + userId);
+			logger.warn("User with id " + currentUser + " attempting to change password for user " + userId);
 			// TODO: This should be audited when we have non-authentication events in the log
 			throw new ScimException("Bad request", HttpStatus.BAD_REQUEST);
 		}

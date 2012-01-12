@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.security;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
@@ -22,7 +23,7 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
  */
 public class DefaultSecurityContextAccessor implements SecurityContextAccessor {
 	@Override
-	public boolean currentUserIsClient() {
+	public boolean isClient() {
 		Authentication a = SecurityContextHolder.getContext().getAuthentication();
 
 		if (!(a instanceof OAuth2Authentication)) {
@@ -33,7 +34,14 @@ public class DefaultSecurityContextAccessor implements SecurityContextAccessor {
 	}
 
 	@Override
-	public String getCurrentUserId() {
+	public boolean isAdmin() {
+		Authentication a = SecurityContextHolder.getContext().getAuthentication();
+
+		return a.getAuthorities().contains(UaaAuthority.ROLE_ADMIN);
+	}
+
+	@Override
+	public String getUserId() {
 		Authentication a = SecurityContextHolder.getContext().getAuthentication();
 
 		return ((UaaPrincipal)a.getPrincipal()).getId();

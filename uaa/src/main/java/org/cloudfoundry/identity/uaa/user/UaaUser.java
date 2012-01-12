@@ -16,7 +16,6 @@ import java.util.Date;
 import java.util.List;
 
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.util.Assert;
 
 /**
@@ -84,7 +83,7 @@ public class UaaUser {
 	}
 
 	public List<? extends GrantedAuthority> getAuthorities() {
-		return authority == 1 ? UaaAuthority.ADMIN : UaaAuthority.USER;
+		return authority == 1 ? UaaAuthority.ADMIN_AUTHORITIES : UaaAuthority.USER_AUTHORITIES;
 	}
 
 	public UaaUser id(int id) {

@@ -70,7 +70,7 @@ public class ScimUserEndpointsTests {
 	public void userCanChangeTheirOwnPasswordIfTheySupplyCorrectCurrentPassword() {
 		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
 		String id = users.get("jdsa").getId();
-		when(sca.getCurrentUserId()).thenReturn(id);
+		when(sca.getUserId()).thenReturn(id);
 		endpoints.setSecurityContextAccessor(sca);
 		PasswordChangeRequest change = new PasswordChangeRequest();
 		change.setOldPassword("password");
@@ -83,7 +83,7 @@ public class ScimUserEndpointsTests {
 	public void userCantChangeAnotherUsersPassword() {
 		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
 		String id = users.get("jdsa").getId();
-		when(sca.getCurrentUserId()).thenReturn(id + "1");
+		when(sca.getUserId()).thenReturn(id + "1");
 		endpoints.setSecurityContextAccessor(sca);
 		PasswordChangeRequest change = new PasswordChangeRequest();
 		change.setOldPassword("password");
@@ -95,7 +95,7 @@ public class ScimUserEndpointsTests {
 	public void changePasswordRequestFailsForUserWithoutCurrentPassword() {
 		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
 		String id = users.get("jdsa").getId();
-		when(sca.getCurrentUserId()).thenReturn(id);
+		when(sca.getUserId()).thenReturn(id);
 		endpoints.setSecurityContextAccessor(sca);
 		PasswordChangeRequest change = new PasswordChangeRequest();
 		change.setPassword("newpassword");
@@ -106,7 +106,7 @@ public class ScimUserEndpointsTests {
 	public void clientCanChangeUserPasswordWithoutCurrentPassword() {
 		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
 		String id = users.get("jdsa").getId();
-		when(sca.currentUserIsClient()).thenReturn(true);
+		when(sca.isClient()).thenReturn(true);
 		endpoints.setSecurityContextAccessor(sca);
 		PasswordChangeRequest change = new PasswordChangeRequest();
 		change.setPassword("newpassword");
@@ -117,7 +117,7 @@ public class ScimUserEndpointsTests {
 	public void changePasswordFailsForUserIfTheySupplyWrongCurrentPassword() {
 		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
 		String id = users.get("jdsa").getId();
-		when(sca.getCurrentUserId()).thenReturn(id);
+		when(sca.getUserId()).thenReturn(id);
 		endpoints.setSecurityContextAccessor(sca);
 		PasswordChangeRequest change = new PasswordChangeRequest();
 		change.setPassword("newpassword");
