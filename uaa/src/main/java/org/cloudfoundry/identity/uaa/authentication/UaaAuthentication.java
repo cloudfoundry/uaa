@@ -13,7 +13,7 @@ import org.springframework.security.core.GrantedAuthority;
  * @author Luke Taylor
  */
 public class UaaAuthentication implements Authentication, Serializable {
-	private List<GrantedAuthority> authorities;
+	private List<? extends GrantedAuthority> authorities;
 	private final UaaPrincipal principal;
 	private final UaaAuthenticationDetails details;
 	/**
@@ -22,7 +22,7 @@ public class UaaAuthentication implements Authentication, Serializable {
 	 * @param authorities the collection of <tt>GrantedAuthority</tt>s for the
 	 *                    principal represented by this authentication object.
 	 */
-	UaaAuthentication(UaaPrincipal principal, List<GrantedAuthority> authorities, UaaAuthenticationDetails details) {
+	UaaAuthentication(UaaPrincipal principal, List<? extends GrantedAuthority> authorities, UaaAuthenticationDetails details) {
 		if (principal == null || authorities == null) {
 			throw new IllegalArgumentException("principal and authorities must not be null");
 		}

@@ -10,28 +10,26 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package org.cloudfoundry.identity.uaa.authentication;
+package org.cloudfoundry.identity.uaa.user;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 import org.springframework.security.core.GrantedAuthority;
 
 /**
- * Extended authentication which contains the legacy token value
- *
  * @author Luke Taylor
  */
-public class LegacyAuthentication extends UaaAuthentication {
-	private final Map<String, String> legacyAuthData;
+enum UaaAuthority implements GrantedAuthority {
+	ROLE_ADMIN,
+	ROLE_USER;
 
-	LegacyAuthentication(UaaPrincipal principal, List<? extends GrantedAuthority> authorities,
-						 UaaAuthenticationDetails details, Map<String, String> legacyAuthData) {
-		super(principal, authorities, details);
-		this.legacyAuthData = legacyAuthData;
-	}
+	static final List<UaaAuthority> ADMIN = Collections.unmodifiableList(Arrays.asList(ROLE_ADMIN));
+	static final List<UaaAuthority> USER = Collections.unmodifiableList(Arrays.asList(ROLE_USER));
 
-	public String getToken() {
-		return legacyAuthData.get("token");
+	@Override
+	public String getAuthority() {
+		return name();
 	}
 }
