@@ -8,6 +8,7 @@ CREATE TABLE USERS (
    username VARCHAR(255) not null,
    password VARCHAR(255) not null,
    email VARCHAR(255) not null,
+   authority BIGINT default 0,
    givenName VARCHAR(255) not null,
    familyName VARCHAR(255) not null,
    constraint unique_uk_1 unique(username)
@@ -18,5 +19,5 @@ CREATE TABLE SEC_AUDIT (
    event_type INTEGER not null,
    origin VARCHAR(255) not null,
    event_data VARCHAR(255),
-   created TIMESTAMP default current_timestamp,
+   created TIMESTAMP default current_timestamp
 ) ;

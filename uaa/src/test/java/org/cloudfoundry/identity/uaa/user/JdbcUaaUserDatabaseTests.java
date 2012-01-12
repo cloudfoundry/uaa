@@ -42,7 +42,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @IfProfileValue(name = "spring.profiles.active", values = { "" , "jdbc" })
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class JdbcUaaUserDatabaseTests {
-	
+
 	@Autowired
 	private DataSource dataSource;
 

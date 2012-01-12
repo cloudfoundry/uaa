@@ -1,11 +1,11 @@
 /*
  * Copyright 2006-2011 the original author or authors.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
@@ -27,12 +27,8 @@ import org.springframework.util.Assert;
  */
 public class JdbcUaaUserDatabase implements UaaUserDatabase {
 
-	public static final String USER_FIELDS = "id,username,password,email,givenName,familyName,created,lastModified ";
+	public static final String USER_FIELDS = "id,username,password,email,authority,givenName,familyName,created,lastModified ";
 
-	public static final String USER_BY_ID_QUERY =
-			"select " + USER_FIELDS +
-			"from users " +
-			"where id = ?";
 	public static final String USER_BY_USERNAME_QUERY =
 			"select " + USER_FIELDS +
 			"from users " +
@@ -61,8 +57,8 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
 	private static final class UaaUserRowMapper implements RowMapper<UaaUser> {
 		@Override
 		public UaaUser mapRow(ResultSet rs, int rowNum) throws SQLException {
-			return new UaaUser(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5),
-					rs.getString(6), rs.getTimestamp(7), rs.getTimestamp(8));
+			return new UaaUser(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getLong(5),
+							rs.getString(6), rs.getString(7), rs.getTimestamp(8), rs.getTimestamp(9));
 		}
 	}
 }
