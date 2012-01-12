@@ -30,7 +30,7 @@ public class DefaultSecurityContextAccessor implements SecurityContextAccessor {
 			throw new IllegalStateException("Must be an OAuth2Authentication to check if user is a client");
 		}
 
-		return ((OAuth2Authentication) a).getUserAuthentication() == null;
+		return ((OAuth2Authentication) a).isClientOnly();
 	}
 
 	@Override

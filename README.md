@@ -130,30 +130,32 @@ pre-populated with some test users: e.g. `dale` has password
 `password` and `marissa` has password `koala`.
 
 To use a RDBMS for user data activate the Spring profiles `jdbc` and
-one of `hsqldb` or `postgresql`.  The `hsqldb` profile will start up
-with an in-memory RDBMS by default.  Warning: the database will start
-empty, so no users can log in until the first account is created.
+one of `hsqldb` or `postgresql`.  The opposite is `!jdbc` which needs
+to be specified explicitly if any other profiles are active.  The
+`hsqldb` profile will start up with an in-memory RDBMS by default.
+Warning: the database will start empty, so no users can log in until
+the first account is created.
 
 The active profiles can be configured by passing the
 `spring.profiles.active` parameter to the JVM. For, example to run
 with an embedded HSQL database:
 
-     mvn -Dspring.profiles.active=default,jdbc tomcat:run
+     mvn -Dspring.profiles.active=jdbc,hsqldb,!private,!legacy tomcat:run
 
 Or to use PostgreSQL instead of HSQL:
 
-     mvn -Dspring.profiles.active=default,jdbc,postgresql tomcat:run
+     mvn -Dspring.profiles.active=jdbc,postgresql,!private,!legacy tomcat:run
 	
-To launch in a microcloud type environment you need the SCIM user
+To bootstrap a microcloud type environment you need the SCIM user
 endpoints to be unsecure so that a user can create an account and set
 its password to bootstrap the system.  For this use the Spring profile
 `private`.  The opposite is `!private` which needs to be specified
-explicitly if the any other profiles are active.
+explicitly if any other profiles are active.
 
 To launch in legacy mode with the CF.com cloud controller as the
 authentication and token source use profile `legacy`.  The opposite is
-`!legacy` which needs to be specified explicitly if the any other
-profiles are active.
+`!legacy` which needs to be specified explicitly if any other profiles
+are active.
 
 ## The API Application
 

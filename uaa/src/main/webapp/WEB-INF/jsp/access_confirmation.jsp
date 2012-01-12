@@ -65,13 +65,15 @@ img.gsc-branding-img,img.gsc-branding-img-noclear,img.gcsc-branding-img,img.gcsc
 	rel='stylesheet' type='text/css' />
 <script type="text/javascript" src="${baseUrl}/javascripts/jquery.js"></script>
 <script type="text/javascript">
-  (function(){
-    // force ssl if cf.com
-    var loc = window.location;
-    if (loc.hostname.indexOf('cloudfoundry.com') >= 0 && loc.protocol == "http:") {
-      window.location = "https://" + loc.host + loc.pathname + loc.search + loc.hash;
-    }
-  })();
+	(function() {
+		// force ssl if cf.com
+		var loc = window.location;
+		if (loc.hostname.indexOf('cloudfoundry.com') >= 0
+				&& loc.protocol == "http:") {
+			window.location = "https://" + loc.host + loc.pathname + loc.search
+					+ loc.hash;
+		}
+	})();
 </script>
 </head>
 <body id="micro">
@@ -129,29 +131,28 @@ img.gsc-branding-img,img.gsc-branding-img-noclear,img.gcsc-branding-img,img.gcsc
 								</div>
 							</c:if>
 
-							<sec:authorize ifAllGranted="ROLE_USER">
-								<h2>Please Confirm</h2>
+							<h2>Please Confirm</h2>
 
-								<p>Do you authorize ${client.clientId} to access your
-									protected resources in scope ${auth_request.scope}.</p>
+							<p>Do you authorize ${client.clientId} to access your
+								protected resources in scope ${auth_request.scope}.</p>
 
-								<form id="confirmationForm" name="confirmationForm"
-									action="${options.confirm.location}" method="POST">
-									<input name="${options.confirm.key}"
-										value="${options.confirm.value}" type="hidden" />
-									<div class="buttons">
-										<button type="submit">Authorize</button>
-									</div>
-								</form>
-								<form id="denialForm" name="denialForm"
-									action="${options.deny.location}" method="POST">
-									<input name="${options.deny.key}" value="${options.deny.value}"
-										type="hidden" />
-									<div class="buttons">
-										<button type="submit">Deny</button>
-									</div>
-								</form>
-							</sec:authorize>
+							<form id="confirmationForm" name="confirmationForm"
+								action="${options.confirm.location}" method="POST">
+								<input name="${options.confirm.key}"
+									value="${options.confirm.value}" type="hidden" />
+								<div class="buttons">
+									<button type="submit">Authorize</button>
+								</div>
+							</form>
+							<form id="denialForm" name="denialForm"
+								action="${options.deny.location}" method="POST">
+								<input name="${options.deny.key}" value="${options.deny.value}"
+									type="hidden" />
+								<div class="buttons">
+									<button type="submit">Deny</button>
+								</div>
+							</form>
+
 						</div>
 					</div>
 				</div>

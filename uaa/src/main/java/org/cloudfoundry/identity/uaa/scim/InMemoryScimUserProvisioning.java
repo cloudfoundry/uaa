@@ -12,7 +12,6 @@
  */
 package org.cloudfoundry.identity.uaa.scim;
 
-import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;

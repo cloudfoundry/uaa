@@ -112,10 +112,6 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
 			userAuthorities.addAll(getAuthorities(values));
 		}
 		String remoteClientId = (String) map.get("client_id");
-		String remoteClientSecret = null;
-		if (map.containsKey("clilent_secret")) {
-			remoteClientSecret = (String) map.get("client_secret");
-		}
 		AuthorizationRequest clientAuthentication = new AuthorizationRequest(remoteClientId, scope, clientAuthorities, resourceIds);
 		String username = (String) map.get("user_name");
 		Authentication userAuthentication = new UsernamePasswordAuthenticationToken(username, null, userAuthorities);

@@ -23,6 +23,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.params.ClientPNames;
+import org.apache.http.client.params.CookiePolicy;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.internal.AssumptionViolatedException;
@@ -35,15 +36,12 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
-import org.springframework.web.client.RequestCallback;
 import org.springframework.web.client.ResponseErrorHandler;
-import org.springframework.web.client.ResponseExtractor;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriTemplate;
@@ -328,27 +326,6 @@ public class ServerRunning implements MethodRule {
 		return client.exchange(location, HttpMethod.GET, new HttpEntity<Void>(null, headers), null);
 	}
 
-	public HttpStatus getStatusCode(String path, final HttpHeaders headers) {
-		RequestCallback requestCallback = new NullRequestCallback();
-		if (headers != null) {
-			requestCallback = new RequestCallback() {
-				public void doWithRequest(ClientHttpRequest request) throws IOException {
-					request.getHeaders().putAll(headers);
-				}
-			};
-		}
-		return client.execute(getUrl(path), HttpMethod.GET, requestCallback,
-				new ResponseExtractor<ResponseEntity<String>>() {
-					public ResponseEntity<String> extractData(ClientHttpResponse response) throws IOException {
-						return new ResponseEntity<String>(response.getStatusCode());
-					}
-				}).getStatusCode();
-	}
-
-	public HttpStatus getStatusCode(String path) {
-		return getStatusCode(getUrl(path), null);
-	}
-
 	public RestTemplate getRestTemplate() {
 		if (client == null) {
 			client = createRestTemplate();
@@ -367,6 +344,7 @@ public class ServerRunning implements MethodRule {
 			public HttpClient getHttpClient() {
 				HttpClient client = super.getHttpClient();
 				client.getParams().setBooleanParameter(ClientPNames.HANDLE_REDIRECTS, false);
+				client.getParams().setParameter(ClientPNames.COOKIE_POLICY, CookiePolicy.IGNORE_COOKIES);
 				return client;
 			}
 		});
@@ -384,11 +362,6 @@ public class ServerRunning implements MethodRule {
 
 	public UriBuilder buildUri(String url) {
 		return UriBuilder.fromUri(url.startsWith("http:") ? url : getUrl(url));
-	}
-
-	private static final class NullRequestCallback implements RequestCallback {
-		public void doWithRequest(ClientHttpRequest request) throws IOException {
-		}
 	}
 
 	public static class UriBuilder {
