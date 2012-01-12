@@ -13,6 +13,7 @@
 	<artifactId>cloudfoundry-identity-uaa</artifactId>
 	<packaging>war</packaging>
 	<name>User Account and Authentication Service</name>
+	<description>User Account and Authentication Service</description>
 
 	<properties>
 		<m2eclipse.wtp.contextRoot>/uaa</m2eclipse.wtp.contextRoot>
@@ -97,7 +98,7 @@
 						<id>generate-sql</id>
 						<phase>generate-sources</phase>
 						<configuration>
-							<tasks>
+							<target>
 								<typedef resource="foundrylogic/vpp/typedef.properties" />
 								<taskdef resource="foundrylogic/vpp/taskdef.properties" />
 								<vppcopy todir="${basedir}/target/generated-resources" overwrite="true">
@@ -126,7 +127,7 @@
 									<fileset dir="${basedir}/src/main/sql" includes="schema*.sql.vpp" />
 									<mapper type="glob" from="*.sql.vpp" to="*-postgresql.sql" />
 								</vppcopy>
-							</tasks>
+							</target>
 						</configuration>
 						<goals>
 							<goal>run</goal>
