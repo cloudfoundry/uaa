@@ -91,11 +91,36 @@ public class ScimUserEndpointsTests {
 		endpoints.changePassword(id, change);
 	}
 
+	@Test
+	public void adminCanChangeAnotherUsersPassword() {
+		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
+		String id = users.get("jdsa").getId();
+		when(sca.getUserId()).thenReturn(id + "1");
+		when(sca.isAdmin()).thenReturn(true);
+		endpoints.setSecurityContextAccessor(sca);
+		PasswordChangeRequest change = new PasswordChangeRequest();
+		change.setOldPassword("password");
+		change.setPassword("newpassword");
+		endpoints.changePassword(id, change);
+	}
+
 	@Test(expected = ScimException.class)
 	public void changePasswordRequestFailsForUserWithoutCurrentPassword() {
 		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
 		String id = users.get("jdsa").getId();
 		when(sca.getUserId()).thenReturn(id);
+		endpoints.setSecurityContextAccessor(sca);
+		PasswordChangeRequest change = new PasswordChangeRequest();
+		change.setPassword("newpassword");
+		endpoints.changePassword(id, change);
+	}
+
+	@Test(expected = ScimException.class)
+	public void changePasswordRequestFailsForAdminWithoutOwnCurrentPassword() {
+		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
+		String id = users.get("jdsa").getId();
+		when(sca.getUserId()).thenReturn(id);
+		when(sca.isAdmin()).thenReturn(true);
 		endpoints.setSecurityContextAccessor(sca);
 		PasswordChangeRequest change = new PasswordChangeRequest();
 		change.setPassword("newpassword");

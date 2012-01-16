@@ -18,9 +18,10 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
-import org.cloudfoundry.identity.uaa.authentication.UaaTestFactory;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
 import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserTestFactory;
 import org.junit.Test;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
@@ -34,7 +35,7 @@ public class UserInfoEndpointTests {
 	private UserInfoEndpoint endpoint = new UserInfoEndpoint();
 
 	private InMemoryUaaUserDatabase userDatabase = new InMemoryUaaUserDatabase(Collections.singletonMap("olds",
-			UaaTestFactory.getUser("12345", "olds", "olds@vmware.com", "Dale", "Olds")));
+			UaaUserTestFactory.getUser("12345", "olds", "olds@vmware.com", "Dale", "Olds")));
 
 	public UserInfoEndpointTests() {
 		endpoint.setUserDatabase(userDatabase);
@@ -43,7 +44,7 @@ public class UserInfoEndpointTests {
 	@Test
 	public void testSunnyDay() {
 		UaaUser user = userDatabase.retrieveUserByName("olds");
-		UaaAuthentication authentication = UaaTestFactory.getAuthentication(user.getId(), "olds", "olds@vmware.com");
+		UaaAuthentication authentication = UaaAuthenticationTestFactory.getAuthentication(user.getId(), "olds", "olds@vmware.com");
 		Map<String, String> map = endpoint.loginInfo(new OAuth2Authentication(null, authentication));
 		assertEquals("olds", map.get("user_id"));
 		assertEquals("Dale Olds", map.get("name"));
@@ -52,7 +53,7 @@ public class UserInfoEndpointTests {
 
 	@Test(expected = UsernameNotFoundException.class)
 	public void testMissingUser() {
-		UaaAuthentication authentication = UaaTestFactory.getAuthentication("12345", "Dale", "olds@vmware.com");
+		UaaAuthentication authentication = UaaAuthenticationTestFactory.getAuthentication("12345", "Dale", "olds@vmware.com");
 		Map<String, String> map = endpoint.loginInfo(new OAuth2Authentication(null, authentication));
 		assertEquals("olds", map.get("user_id"));
 		assertEquals("Dale Olds", map.get("name"));

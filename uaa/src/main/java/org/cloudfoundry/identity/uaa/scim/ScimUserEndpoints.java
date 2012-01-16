@@ -133,23 +133,37 @@ public class ScimUserEndpoints implements InitializingBean {
 	}
 
 	private void checkPasswordChangeIsAllowed(String userId, String oldPassword) {
-		if (securityContextAccessor.isClient() || securityContextAccessor.isAdmin()) {
-			// Trusted client or admin user
+		if (securityContextAccessor.isClient()) {
+			// Trusted client (not acting on behalf of user)
 			return;
 		}
-
-		// Call is by or on behalf of a non-admin end user
+		
+		// Call is by or on behalf of end user
 		String currentUser = securityContextAccessor.getUserId();
-		if (!userId.equals(currentUser)) {
-			logger.warn("User with id " + currentUser + " attempting to change password for user " + userId);
-			// TODO: This should be audited when we have non-authentication events in the log
-			throw new ScimException("Bad request", HttpStatus.BAD_REQUEST);
+
+		if (securityContextAccessor.isAdmin()) {
+			
+			// even an admin needs to provide the old value to change his password
+			if (userId.equals(currentUser) && !StringUtils.hasText(oldPassword)) {
+				throw new ScimException("Previous password is required even for admin", HttpStatus.BAD_REQUEST);
+			}
+
+		} else {
+
+			if (!userId.equals(currentUser)) {
+				logger.warn("User with id " + currentUser + " attempting to change password for user " + userId);
+				// TODO: This should be audited when we have non-authentication events in the log
+				throw new ScimException("Bad request. Not permitted to change another user's password", HttpStatus.BAD_REQUEST);
+			}			
+
+			// User is changing their own password, old password is required
+			if (!StringUtils.hasText(oldPassword)) {
+				throw new ScimException("Previous password is required", HttpStatus.BAD_REQUEST);
+			}
+
 		}
 
-		// User is changing their own password, old password is required
-		if (!StringUtils.hasText(oldPassword)) {
-			throw new ScimException("Previous password is required", HttpStatus.BAD_REQUEST);
-		}
+
 	}
 
 	@RequestMapping(value = "/User/{userId}", method = RequestMethod.DELETE)

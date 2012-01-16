@@ -16,7 +16,6 @@ import java.util.Arrays;
 
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.user.MockUaaUserDatabase;
-import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
@@ -24,15 +23,11 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
  * @author Dave Syer
  *
  */
-public class UaaTestFactory {
+public class UaaAuthenticationTestFactory {
 
 	public static UaaPrincipal getPrincipal(String id, String name, String email) {
 		return new UaaPrincipal(
 				new MockUaaUserDatabase(id, name, email, name, "unknown").retrieveUserByName(name));
-	}
-
-	public static UaaUser getUser(String id, String name, String email, String givenName, String familyName) {
-		return new MockUaaUserDatabase(id, name, email, givenName, familyName).retrieveUserByName(name);
 	}
 
 	public static UaaAuthentication getAuthentication(String id, String name, String email) {

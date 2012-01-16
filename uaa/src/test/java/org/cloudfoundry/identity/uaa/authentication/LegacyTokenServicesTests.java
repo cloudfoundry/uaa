@@ -43,7 +43,7 @@ public class LegacyTokenServicesTests {
 		tokenServices = new LegacyTokenServices();
 		tokenServices.setTokenStore(new InMemoryTokenStore());
 		authData = new HashMap<String, String>();
-		userAuthentication = new LegacyAuthentication(UaaTestFactory.getPrincipal("NaN", "foo@bar.com", "foo@bar.com"),
+		userAuthentication = new LegacyAuthentication(UaaAuthenticationTestFactory.getPrincipal("NaN", "foo@bar.com", "foo@bar.com"),
 				Arrays.<GrantedAuthority> asList(new SimpleGrantedAuthority("ROLE_USER")), mock(UaaAuthenticationDetails.class), authData);
 
 	}
