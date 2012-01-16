@@ -10,7 +10,7 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package org.cloudfoundry.identity.uaa.authentication;
+package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -19,6 +19,9 @@ import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import org.cloudfoundry.identity.uaa.authentication.LegacyAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.authentication.manager.LegacyAuthenticationManager;
 import org.cloudfoundry.identity.uaa.event.UserAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.integration.LegacyTokenServer;

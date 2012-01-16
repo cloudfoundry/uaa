@@ -15,7 +15,7 @@ public class UaaPrincipal implements Principal, Serializable {
 	private final String name;
 	private final String email;
 
-	UaaPrincipal(UaaUser user) {
+	public UaaPrincipal(UaaUser user) {
 		this.id = user.getId();
 		this.name = user.getUsername();
 		this.email = user.getEmail();

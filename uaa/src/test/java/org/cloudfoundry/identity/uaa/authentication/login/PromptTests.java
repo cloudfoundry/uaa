@@ -10,23 +10,32 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package org.cloudfoundry.identity.uaa.authentication;
+package org.cloudfoundry.identity.uaa.authentication.login;
 
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertEquals;
 
-import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.authentication.login.Prompt;
 import org.junit.Test;
 
 /**
  * @author Dave Syer
  *
  */
-public class LegacyUaaUserDatabaseTests {
+public class PromptTests {
 
 	@Test
-	public void testRetrieveUserByName() {
-		UaaUser user = new LegacyUaaUserDatabase().retrieveUserByName("foo@bar.com");
-		assertNotNull(user);
+	public void testSerialization() throws Exception {
+		Prompt prompt = new Prompt("username", "text", "Username");
+		String[] values = prompt.getDetails();
+		assertEquals("text", values[0]);
+		assertEquals("Username", values[1]);
+	}
+
+	@Test
+	public void testDeserialization() throws Exception {
+		Prompt prompt = new Prompt("username", "text", "Username");
+		Prompt value = Prompt.valueOf("username:[text,Username]");
+		assertEquals(prompt, value);
 	}
 
 }

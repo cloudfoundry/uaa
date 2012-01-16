@@ -33,7 +33,7 @@
 
 	<sec:debug />
 
-	<bean class="org.cloudfoundry.identity.uaa.event.AuditListener">
+	<bean class="org.cloudfoundry.identity.uaa.event.listener.AuditListener">
 		<constructor-arg ref="loggingAuditService"/>
 	</bean>
 
@@ -218,7 +218,7 @@
 		</property>
 	</bean>
 
-	<bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.authentication.LoginInfoEndpoint" />
+	<bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.authentication.login.LoginInfoEndpoint" />
 
 	<bean id="userInfoEndpoint" class="org.cloudfoundry.identity.uaa.openid.UserInfoEndpoint">
 		<property name="userDatabase" ref="userDatabase" />
@@ -274,7 +274,7 @@
 			<constructor-arg ref="jdbcTemplate" />
 		</bean>
 
-		<bean class="org.cloudfoundry.identity.uaa.event.AuditListener">
+		<bean class="org.cloudfoundry.identity.uaa.event.listener.AuditListener">
 			<constructor-arg>
 				<bean class="org.cloudfoundry.identity.uaa.audit.JdbcAuditService">
 					<constructor-arg ref="dataSource" />
@@ -286,7 +286,7 @@
 
 	<beans profile="default,!legacy">
 
-		<bean id="authzAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationManager">
+		<bean id="authzAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager">
 			<constructor-arg ref="userDatabase" />
 		</bean>
 
@@ -299,13 +299,13 @@
 
 	<beans profile="legacy">
 
-		<bean id="userDatabase" class="org.cloudfoundry.identity.uaa.authentication.LegacyUaaUserDatabase" />
+		<bean id="userDatabase" class="org.cloudfoundry.identity.uaa.user.LegacyUaaUserDatabase" />
 
-		<bean id="authzAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.LegacyAuthenticationManager">
+		<bean id="authzAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LegacyAuthenticationManager">
 			<property name="cloudControllerUrl" value="${cloud.controller.url:http://api.cloudfoundry.com/users/{username}/tokens}" />
 		</bean>
 
-		<bean id="tokenServices" class="org.cloudfoundry.identity.uaa.authentication.LegacyTokenServices">
+		<bean id="tokenServices" class="org.cloudfoundry.identity.uaa.oauth.LegacyTokenServices">
 			<property name="tokenStore" ref="tokenStore" />
 			<property name="supportRefreshToken" value="false" />
 		</bean>

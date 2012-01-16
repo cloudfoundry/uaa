@@ -20,7 +20,7 @@ public class AuthzAuthenticationRequest implements Authentication {
 	private final String password;
 	private final UaaAuthenticationDetails details;
 
-	AuthzAuthenticationRequest(Map<String,String> loginInfo, UaaAuthenticationDetails details) {
+	public AuthzAuthenticationRequest(Map<String,String> loginInfo, UaaAuthenticationDetails details) {
 		// Currently only support username/password authentication
 		this(loginInfo.get("username"), loginInfo.get("password"), details);
 		Assert.notNull(details);

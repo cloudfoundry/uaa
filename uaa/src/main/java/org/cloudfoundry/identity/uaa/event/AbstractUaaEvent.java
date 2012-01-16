@@ -20,11 +20,11 @@ import org.springframework.context.ApplicationEvent;
  *
  * @author Luke Taylor
  */
-abstract class AbstractUaaEvent extends ApplicationEvent {
+public abstract class AbstractUaaEvent extends ApplicationEvent {
 
 	AbstractUaaEvent(Object source) {
 		super(source);
 	}
 
-	abstract void process(UaaAuditService auditor);
+	public abstract void process(UaaAuditService auditor);
 }

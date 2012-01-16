@@ -17,8 +17,8 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
-import org.cloudfoundry.identity.uaa.config.JsonDateDeserializer;
-import org.cloudfoundry.identity.uaa.config.JsonDateSerializer;
+import org.cloudfoundry.identity.uaa.scim.json.JsonDateDeserializer;
+import org.cloudfoundry.identity.uaa.scim.json.JsonDateSerializer;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.map.annotate.JsonDeserialize;
 import org.codehaus.jackson.map.annotate.JsonSerialize;

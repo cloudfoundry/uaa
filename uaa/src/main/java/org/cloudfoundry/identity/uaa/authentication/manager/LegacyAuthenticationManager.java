@@ -11,14 +11,18 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package org.cloudfoundry.identity.uaa.authentication;
+package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.cloudfoundry.identity.uaa.authentication.LegacyAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.event.UserAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.event.UserAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.user.LegacyUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.springframework.context.ApplicationEventPublisher;

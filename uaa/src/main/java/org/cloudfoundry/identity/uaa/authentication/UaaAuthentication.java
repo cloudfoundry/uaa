@@ -16,13 +16,14 @@ public class UaaAuthentication implements Authentication, Serializable {
 	private List<? extends GrantedAuthority> authorities;
 	private final UaaPrincipal principal;
 	private final UaaAuthenticationDetails details;
+
 	/**
 	 * Creates a token with the supplied array of authorities.
 	 *
 	 * @param authorities the collection of <tt>GrantedAuthority</tt>s for the
 	 *                    principal represented by this authentication object.
 	 */
-	UaaAuthentication(UaaPrincipal principal, List<? extends GrantedAuthority> authorities, UaaAuthenticationDetails details) {
+	public UaaAuthentication(UaaPrincipal principal, List<? extends GrantedAuthority> authorities, UaaAuthenticationDetails details) {
 		if (principal == null || authorities == null) {
 			throw new IllegalArgumentException("principal and authorities must not be null");
 		}

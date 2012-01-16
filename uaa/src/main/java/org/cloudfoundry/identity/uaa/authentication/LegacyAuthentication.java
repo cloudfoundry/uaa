@@ -25,7 +25,7 @@ import org.springframework.security.core.GrantedAuthority;
 public class LegacyAuthentication extends UaaAuthentication {
 	private final Map<String, String> legacyAuthData;
 
-	LegacyAuthentication(UaaPrincipal principal, List<? extends GrantedAuthority> authorities,
+	public LegacyAuthentication(UaaPrincipal principal, List<? extends GrantedAuthority> authorities,
 						 UaaAuthenticationDetails details, Map<String, String> legacyAuthData) {
 		super(principal, authorities, details);
 		this.legacyAuthData = legacyAuthData;

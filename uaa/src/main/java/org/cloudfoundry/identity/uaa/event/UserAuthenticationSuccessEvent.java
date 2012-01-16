@@ -29,7 +29,7 @@ public class UserAuthenticationSuccessEvent extends AbstractUaaAuthenticationEve
 	}
 
 	@Override
-	void process(UaaAuditService auditor) {
+	public void process(UaaAuditService auditor) {
 		auditor.userAuthenticationSuccess(user, (UaaAuthenticationDetails) getAuthentication().getDetails());
 	}
 }

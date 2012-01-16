@@ -10,11 +10,12 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package org.cloudfoundry.identity.uaa.event;
+package org.cloudfoundry.identity.uaa.event.listener;
 
 import org.cloudfoundry.identity.uaa.audit.LoggingAuditService;
 import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
+import org.cloudfoundry.identity.uaa.event.AbstractUaaEvent;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.security.authentication.event.AuthenticationFailureBadCredentialsEvent;
@@ -28,30 +29,30 @@ import org.springframework.util.Assert;
  * @author Luke Taylor
  */
 public class AuditListener implements ApplicationListener<ApplicationEvent> {
-	private final UaaAuditService auditor;
+	private final UaaAuditService uaaAuditService;
 
 	public AuditListener() {
-		auditor = new LoggingAuditService();
+		uaaAuditService = new LoggingAuditService();
 	}
 
 	public AuditListener(UaaAuditService auditor) {
 		Assert.notNull(auditor);
-		this.auditor = auditor;
+		this.uaaAuditService = auditor;
 	}
-
+	
 	@Override
 	public void onApplicationEvent(ApplicationEvent event) {
 		if (event instanceof AbstractUaaEvent) {
-			((AbstractUaaEvent)event).process(auditor);
+			((AbstractUaaEvent)event).process(uaaAuditService);
 		} else if (event instanceof AuthenticationFailureBadCredentialsEvent) {
 			AuthenticationFailureBadCredentialsEvent bce = (AuthenticationFailureBadCredentialsEvent)event;
 			String principal = bce.getAuthentication().getName();
 			UaaAuthenticationDetails details = (UaaAuthenticationDetails) bce.getAuthentication().getDetails();
 
 			if (bce.getException() instanceof UsernameNotFoundException) {
-				auditor.principalNotFound(principal, details);
+				uaaAuditService.principalNotFound(principal, details);
 			} else {
-				auditor.principalAuthenticationFailure(principal, details);
+				uaaAuditService.principalAuthenticationFailure(principal, details);
 			}
 		}
 	}

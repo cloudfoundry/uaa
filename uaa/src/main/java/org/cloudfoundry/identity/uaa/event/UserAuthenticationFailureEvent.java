@@ -8,9 +8,9 @@ import org.springframework.util.Assert;
 
 /**
  * Event which indicates that a user authentication failed.
- *
+ * 
  * This implies that the wrong credentials were supplied for a valid username.
- *
+ * 
  * @author Luke Taylor
  */
 public class UserAuthenticationFailureEvent extends AbstractUaaAuthenticationEvent {
@@ -23,7 +23,7 @@ public class UserAuthenticationFailureEvent extends AbstractUaaAuthenticationEve
 	}
 
 	@Override
-	void process(UaaAuditService auditor) {
+	public void process(UaaAuditService auditor) {
 		auditor.userAuthenticationFailure(user, (UaaAuthenticationDetails) getAuthentication().getDetails());
 	}
 }
