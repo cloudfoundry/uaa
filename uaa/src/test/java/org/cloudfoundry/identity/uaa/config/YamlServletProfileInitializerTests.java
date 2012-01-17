@@ -22,8 +22,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Matchers;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.util.Log4jConfigurer;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 
 /**
@@ -46,13 +49,21 @@ public class YamlServletProfileInitializerTests {
 		ServletContext servletContext = Mockito.mock(ServletContext.class);
 		Mockito.when(context.getServletContext()).thenReturn(servletContext);
 		Mockito.when(context.getEnvironment()).thenReturn(environment);
+		Mockito.doAnswer(new Answer<Void>() {
+			@Override
+			public Void answer(InvocationOnMock invocation) throws Throwable {
+				System.err.println(invocation.getArguments()[0]);
+				return null;
+			}
+		}).when(servletContext).log(Mockito.anyString());
 	}
 
 	@After
-	public void cleanup() {
+	public void cleanup() throws Exception {
 		System.clearProperty("CLOUD_FOUNDRY_CONFIG_PATH");
 		System.clearProperty("LOG_FILE");
 		System.clearProperty("LOG_PATH");
+		Log4jConfigurer.initLogging("classpath:log4j.properties");
 	}
 
 	@Test
@@ -95,17 +106,17 @@ public class YamlServletProfileInitializerTests {
 	@Test
 	public void testLog4jFileFromYaml() throws Exception {
 		Mockito.when(context.getResource(Matchers.anyString())).thenReturn(
-				new ByteArrayResource("logging:\n  file: bar".getBytes()));
+				new ByteArrayResource("logging:\n  file: /tmp/bar".getBytes()));
 		initializer.initialize(context);
-		assertEquals("bar", System.getProperty("LOG_FILE"));
+		assertEquals("/tmp/bar", System.getProperty("LOG_FILE"));
 	}
 
 	@Test
 	public void testLog4jPathFromYaml() throws Exception {
 		Mockito.when(context.getResource(Matchers.anyString())).thenReturn(
-				new ByteArrayResource("logging:\n  path: bar".getBytes()));
+				new ByteArrayResource("logging:\n  path: /tmp/bar".getBytes()));
 		initializer.initialize(context);
-		assertEquals("bar", System.getProperty("LOG_PATH"));
+		assertEquals("/tmp/bar", System.getProperty("LOG_PATH"));
 	}
 
 	@Test

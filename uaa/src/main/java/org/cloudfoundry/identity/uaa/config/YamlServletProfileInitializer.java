@@ -76,6 +76,8 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 
 	private void applyLog4jConfiguration(Properties properties, ConfigurableEnvironment environment, ServletContext servletContext) {
 
+		String log4jConfigLocation = "classpath:log4j.properties";
+
 		if (properties.containsKey("logging.file")) {
 			String location = properties.getProperty("logging.file");
 			servletContext.log("Setting LOG_FILE: " + location);
@@ -89,14 +91,15 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 		}
 		
 		else if (properties.containsKey("logging.config")) {
-			String location = properties.getProperty("logging.config");
-			servletContext.log("Loading log4j config from location: " + location);
-			try {
-				Log4jConfigurer.initLogging(location);
-			}
-			catch (FileNotFoundException e) {
-				servletContext.log("Error loading log4j config from location: " + location, e);
-			}
+			log4jConfigLocation = properties.getProperty("logging.config");
+		}
+
+		try {
+			servletContext.log("Loading log4j config from location: " + log4jConfigLocation);
+			Log4jConfigurer.initLogging(log4jConfigLocation);
+		}
+		catch (FileNotFoundException e) {
+			servletContext.log("Error loading log4j config from location: " + log4jConfigLocation, e);
 		}
 
 	}
