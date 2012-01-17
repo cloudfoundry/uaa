@@ -15,7 +15,7 @@
 	<context:property-placeholder properties-ref="applicationProperties"
 		system-properties-mode="OVERRIDE" />
 
-	<bean id="applicationPropertiesParent" class="org.springframework.beans.factory.config.PropertiesFactoryBean">
+	<bean id="applicationProperties" class="org.springframework.beans.factory.config.PropertiesFactoryBean">
 		<property name="propertiesArray">
 			<list>
 				<bean class="org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean">
@@ -28,8 +28,6 @@
 			</list>
 		</property>
 	</bean>
-
-	<bean id="applicationProperties" parent="applicationPropertiesParent" />
 
 	<sec:debug />
 

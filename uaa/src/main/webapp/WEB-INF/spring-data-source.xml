@@ -10,11 +10,18 @@
 			<list merge="true">
 				<bean class="org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean">
 					<property name="resource" value="classpath:/uaa.yml" />
+				</bean>
+				<bean class="org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean">
+					<property name="resource" value="classpath:/uaa.yml" />
 					<property name="keyReplacements">
 						<map>
 							<entry key="databases.#{@platform}" value="database" />
 						</map>
 					</property>
+				</bean>
+				<bean class="org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean">
+					<property name="resource" value="file:${CLOUD_FOUNDRY_CONFIG_PATH:config}/uaa.yml" />
+					<property name="ignoreResourceNotFound" value="true" />
 				</bean>
 			</list>
 		</property>
