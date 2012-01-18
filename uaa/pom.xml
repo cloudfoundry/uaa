@@ -67,7 +67,7 @@
 			<!-- Use this profile in conjunction with 'integration' profile to run tests against a legacy mode server -->
 			<id>legacy</id>
 			<properties>
-				<spring.profiles.active>!jdbc,!private,legacy</spring.profiles.active>
+				<spring.profiles.active>!jdbc,legacy</spring.profiles.active>
 			</properties>
 			<build>
 				<pluginManagement>

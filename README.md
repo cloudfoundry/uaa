@@ -123,39 +123,75 @@ Security OAuth that can do the heavy lifting if your client is Java.
 By default `uaa` will launch with a context root `/uaa`. There is a
 Maven profile `vcap` to launch with context root `/`.
 
+### Configuration
+
+There is a `uaa.yml` in the application which provides defaults to the
+placeholders in the Spring XML.  Wherever you see
+`${placeholder.name}` in the XML there is an opportunity to override
+it either by providing a System property (`-D` to JVM) with the same
+name, or an environment-specific `uaa.yml` under
+`env['CLOUD_FOUNDRY_CONFIG_PATH']/uaa.yml`.  When vcap is deployed the
+`CLOUD_FOUNDRY_CONFIG_PATH` is defined according to the way it was
+installed.
+
+All passwords and client secrets in the config files must be encypted
+using BCrypt.  In Java you can do it like this (with
+`spring-securty-crypto` on the classpath):
+
+    String password = BCrypt.hashpw("plaintext");
+
+In ruby you can do it like this:
+
+    require 'bcrypt'
+    password = BCrypt::Password.create('plaintext')
+
 ### User Account Data
 
 The default is to use an in-memory, hash-based user store that is
 pre-populated with some test users: e.g. `dale` has password
 `password` and `marissa` has password `koala`.
 
-To use a RDBMS for user data activate the Spring profiles `jdbc` and
+To use a RDBMS for user data, activate the Spring profiles `jdbc` and
 one of `hsqldb` or `postgresql`.  The opposite is `!jdbc` which needs
 to be specified explicitly if any other profiles are active.  The
 `hsqldb` profile will start up with an in-memory RDBMS by default.
-Warning: the database will start empty, so no users can log in until
-the first account is created.
 
 The active profiles can be configured by passing the
 `spring.profiles.active` parameter to the JVM. For, example to run
 with an embedded HSQL database:
 
-     mvn -Dspring.profiles.active=jdbc,hsqldb,!private,!legacy tomcat:run
+     mvn -Dspring.profiles.active=jdbc,hsqldb,!legacy tomcat:run
 
 Or to use PostgreSQL instead of HSQL:
 
-     mvn -Dspring.profiles.active=jdbc,postgresql,!private,!legacy tomcat:run
+     mvn -Dspring.profiles.active=jdbc,postgresql,!legacy tomcat:run
 	
-To bootstrap a microcloud type environment you need the SCIM user
-endpoints to be unsecure so that a user can create an account and set
-its password to bootstrap the system.  For this use the Spring profile
-`private`.  The opposite is `!private` which needs to be specified
-explicitly if any other profiles are active.
+To bootstrap a microcloud type environment you need an admin user.
+For this there is a database initializer component that inserts an
+admin user if it finds an empty database on startup.  Override the
+default settings (username/password=admin/admin) in `uaa.yml`:
 
-To launch in legacy mode with the CF.com cloud controller as the
-authentication and token source use profile `legacy`.  The opposite is
-`!legacy` which needs to be specified explicitly if any other profiles
-are active.
+    bootstrap:
+      admin:
+        username: foo
+        password: $2a$10$yHj...
+        email: admin@test.com
+        family_name: Piper
+        given_name: Peter
+
+(the password has to be bcrypted).
+
+### Legacy Mode
+
+There is a legacy mode where the CF.com cloud controller is used for
+the authentication and token generation.  To use this, launch the app
+with Spring profile `legacy` (a Maven profile with the same name is
+provided for convenience as well).  The opposite is `!legacy` which
+needs to be specified explicitly if any other profiles are active.
+The cloud controller login URL defaults to
+`http://api.cloudfoundry.com/users/{username}/tokens` - to override it
+provide a System property or `uaa.yml` entry for
+`cloud.controller.login_url`.
 
 ## The API Application
 

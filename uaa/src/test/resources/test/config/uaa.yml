@@ -1,4 +1,4 @@
 foo: bar
-spring_profiles: legacy,!jdbc,!private
+spring_profiles: legacy,!jdbc
 logging:
   path: /tmp/uaa/logs
