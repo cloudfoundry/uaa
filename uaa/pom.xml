@@ -371,6 +371,18 @@
 			<artifactId>snakeyaml</artifactId>
 			<version>1.9</version>
 		</dependency>
+		
+		<dependency>
+			<groupId>org.syslog4j</groupId>
+			<artifactId>syslog4j</artifactId>
+			<version>0.9.30</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>net.java.dev.jna</groupId>
+			<artifactId>jna</artifactId>
+			<version>3.4.0</version>
+		</dependency>
 
 		<dependency>
 			<groupId>org.hsqldb</groupId>
