@@ -34,11 +34,13 @@
 									<goal>run</goal>
 								</goals>
 								<configuration>
-									<addContextWarDependencies>true</addContextWarDependencies>
 									<fork>true</fork>
 								</configuration>
 							</execution>
 						</executions>
+                        <configuration>
+                          <addContextWarDependencies>true</addContextWarDependencies>
+                        </configuration>
 					</plugin>
 				</plugins>
 			</build>

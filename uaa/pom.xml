@@ -191,6 +191,7 @@
 								<artifactId>uaa</artifactId>
 								<version>${pom.version}</version>
 								<packaging>war</packaging>
+                                <generatePom>true</generatePom>
 							</configuration>
 						</execution>
 					</executions>

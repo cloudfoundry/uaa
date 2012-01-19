@@ -35,10 +35,12 @@
 								</goals>
 								<configuration>
 									<fork>true</fork>
-									<addContextWarDependencies>true</addContextWarDependencies>
 								</configuration>
 							</execution>
 						</executions>
+                       <configuration>
+                          <addContextWarDependencies>true</addContextWarDependencies>
+                        </configuration>
 					</plugin>
 				</plugins>
 			</build>
