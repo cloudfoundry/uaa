@@ -27,8 +27,10 @@ public class JdbcUaaAdminUserBootstrapTests {
 	 */
 	@Test
 	public void testStart() {
-		JdbcUaaAdminUserBootstrap bootstrap = new JdbcUaaAdminUserBootstrap(Mockito.mock(JdbcOperations.class));
+		JdbcOperations jdbcTemplate = Mockito.mock(JdbcOperations.class);
+		JdbcUaaAdminUserBootstrap bootstrap = new JdbcUaaAdminUserBootstrap(jdbcTemplate);
 		bootstrap.start();
+		Mockito.verify(jdbcTemplate).update(Mockito.anyString());
 	}
 
 }
