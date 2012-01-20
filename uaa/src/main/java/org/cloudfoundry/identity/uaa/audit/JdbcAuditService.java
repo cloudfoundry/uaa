@@ -38,7 +38,7 @@ public class JdbcAuditService implements UaaAuditService {
 
 	@Override
 	public void userAuthenticationSuccess(UaaUser user, UaaAuthenticationDetails details) {
-		Assert.notNull(user, "UaaUSer cannot be null");
+		Assert.notNull(user, "UaaUser cannot be null");
 		createAuditRecord(user.getId(), AuditEventType.UserAuthenticationSuccess, getOrigin(details), user.getUsername());
 	}
 
@@ -76,7 +76,7 @@ public class JdbcAuditService implements UaaAuditService {
 	}
 
 	private void createAuditRecord(String principal_id, AuditEventType type, String origin) {
-		template.update("insert into sec_audit (principal_id, event_type, origin, event_data) values (?,?,?)",
+		template.update("insert into sec_audit (principal_id, event_type, origin) values (?,?,?)",
 						principal_id, type.getCode(), origin);
 	}
 
