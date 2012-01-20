@@ -12,7 +12,6 @@
  */
 package org.cloudfoundry.identity.uaa.audit;
 
-import java.util.List;
 import javax.sql.DataSource;
 
 import static org.junit.Assert.assertEquals;
@@ -20,14 +19,12 @@ import static org.junit.Assert.assertEquals;
 import org.cloudfoundry.identity.uaa.NullSafeSystemProfileValueSource;
 import org.cloudfoundry.identity.uaa.TestUtils;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
-import org.cloudfoundry.identity.uaa.scim.JdbcScimUserProvisioning;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.annotation.IfProfileValue;
 import org.springframework.test.annotation.ProfileValueSourceConfiguration;
 import org.springframework.test.context.ContextConfiguration;
