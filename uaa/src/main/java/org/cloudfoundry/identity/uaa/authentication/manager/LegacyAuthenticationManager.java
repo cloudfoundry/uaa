@@ -30,6 +30,7 @@ import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
@@ -56,6 +57,8 @@ public class LegacyAuthenticationManager implements AuthenticationManager, Appli
 	private UaaUserDatabase userDatabase = new LegacyUaaUserDatabase();
 
 	private ApplicationEventPublisher eventPublisher;
+
+	private RestTemplate restTemplate = new RestTemplate(new HttpComponentsClientHttpRequestFactory());
 
 	public void setCloudControllerUrl(String url) {
 		this.url = url;
@@ -98,7 +101,7 @@ public class LegacyAuthenticationManager implements AuthenticationManager, Appli
 		Map<String, String> result;
 		try {
 			@SuppressWarnings("unchecked")
-			Map<String, String> object = new RestTemplate().postForObject(url, request, Map.class, username);
+			Map<String, String> object = restTemplate.postForObject(url, request, Map.class, username);
 			result = new HashMap<String, String>(object);
 		}
 		catch (HttpClientErrorException e) {
@@ -109,6 +112,10 @@ public class LegacyAuthenticationManager implements AuthenticationManager, Appli
 			result.put("tokenized", "true");
 		}
 		return result;
+	}
+
+	public void setRestTemplate(RestTemplate restTemplate) {
+		this.restTemplate = restTemplate;
 	}
 
 	@Override

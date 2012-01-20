@@ -3,7 +3,7 @@
 
 ## Co-ordinates
 
-* Team: 
+* Team:
   * Dale Olds (`olds@vmware.com`)
   * Dave Syer (`dsyer@vmware.com`)
   * Luke Taylor (`ltaylor@vmware.com`)
@@ -165,7 +165,7 @@ with an embedded HSQL database:
 Or to use PostgreSQL instead of HSQL:
 
      mvn -Dspring.profiles.active=jdbc,postgresql,!legacy tomcat:run
-	
+
 To bootstrap a microcloud type environment you need an admin user.
 For this there is a database initializer component that inserts an
 admin user if it finds an empty database on startup.  Override the
@@ -191,7 +191,7 @@ needs to be specified explicitly if any other profiles are active.
 The cloud controller login URL defaults to
 `http://api.cloudfoundry.com/users/{username}/tokens` - to override it
 provide a System property or `uaa.yml` entry for
-`cloud.controller.login_url`.
+`cloud_controller.login_url`.
 
 ## The API Application
 
