@@ -51,8 +51,6 @@ public class AuthzAuthenticationFilter implements Filter {
 
 		String credentials = req.getParameter("credentials");
 
-		logger.debug("Credentials " + credentials);
-
 		if (credentials != null) {
 			// Keep it simple for now and just use a map of JSON fields to create the authentication request.
 			Map<String,String> loginInfo = mapper.readValue(credentials, new TypeReference<Map<String, String>>() {});
@@ -70,6 +68,8 @@ public class AuthzAuthenticationFilter implements Filter {
 				res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 				return;
 			}
+		} else {
+			logger.debug("Request does not contain 'credentials' parameter. Ignoring.");
 		}
 
 		chain.doFilter(request, response);

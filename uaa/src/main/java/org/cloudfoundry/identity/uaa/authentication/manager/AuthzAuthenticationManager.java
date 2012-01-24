@@ -58,15 +58,18 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
 	@Override
 	public Authentication authenticate(Authentication req) throws AuthenticationException {
 		try {
+			logger.debug("Processing authentication request for " + req.getName());
 			UaaUser user = userDatabase.retrieveUserByName(req.getName().toLowerCase(Locale.US));
 
 			if (encoder.matches((CharSequence) req.getCredentials(), user.getPassword())) {
+				logger.debug("Password successfully matched");
 				Authentication success = new UaaAuthentication(new UaaPrincipal(user),
 							user.getAuthorities(), (UaaAuthenticationDetails) req.getDetails());
 				eventPublisher.publishEvent(new UserAuthenticationSuccessEvent(user, success));
 
 				return success;
 			}
+			logger.debug("Password did not match");
 			eventPublisher.publishEvent(new UserAuthenticationFailureEvent(user, req));
 
 			throw new BadCredentialsException("Bad credentials");
