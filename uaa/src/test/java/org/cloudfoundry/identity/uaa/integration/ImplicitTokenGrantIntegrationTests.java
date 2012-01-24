@@ -39,6 +39,8 @@ public class ImplicitTokenGrantIntegrationTests {
 	@Rule
 	public ServerRunning serverRunning = ServerRunning.isRunning();
 
+	private TestAccountSetup testAccounts = new TestAccountSetup();
+
 	private String implicitUrl() {
 		URI uri = serverRunning.buildUri("/oauth/authorize").queryParam("response_type", "token")
 				.queryParam("client_id", "vmc").queryParam("redirect_uri", "http://anywhere")
@@ -52,7 +54,7 @@ public class ImplicitTokenGrantIntegrationTests {
 		HttpHeaders headers = new HttpHeaders();
 		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
 
-		String credentials = "{ \"username\":\"marissa\", \"password\":\"koala\" }";
+		String credentials = String.format("{ \"username\":\"%s\", \"password\":\"%s\" }", testAccounts.getUserName(), testAccounts.getPassword());
 
 		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
 		formData.add("credentials", credentials);
@@ -86,8 +88,8 @@ public class ImplicitTokenGrantIntegrationTests {
 		location = "/login.do";
 
 		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
-		formData.add("username", "marissa");
-		formData.add("password", "koala");
+		formData.add("username", testAccounts.getUserName());
+		formData.add("password", testAccounts.getPassword());
 
 		result = serverRunning.postForRedirect(location, headers, formData);
 

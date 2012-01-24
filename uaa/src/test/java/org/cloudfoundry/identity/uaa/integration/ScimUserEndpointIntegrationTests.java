@@ -272,7 +272,7 @@ public class ScimUserEndpointIntegrationTests {
 		@SuppressWarnings("unchecked")
 		Map<String, Object> results = response.getBody();
 		assertEquals(HttpStatus.OK, response.getStatusCode());
-		assertTrue("There should be more than one user", (Integer) results.get("totalResults") > 1);
+		assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
 	}
 
 }

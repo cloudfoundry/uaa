@@ -35,6 +35,8 @@ public class AuthorizationCodeGrantIntegrationTests {
 
 	@Rule
 	public ServerRunning serverRunning = ServerRunning.isRunning();
+	
+	private TestAccountSetup testAccounts = new TestAccountSetup();
 
 	@Test
 	public void testSuccessfulAuthorizationCodeFlow() throws Exception {
@@ -61,8 +63,8 @@ public class AuthorizationCodeGrantIntegrationTests {
 		assertTrue(response.getBody().contains("password"));
 
 		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
-		formData.add("username", "marissa");
-		formData.add("password", "koala");
+		formData.add("username", testAccounts.getUserName());
+		formData.add("password", testAccounts.getPassword());
 
 		// Should be redirected to the original URL, but now authenticated
 		result = serverRunning.postForResponse("/login.do", headers, formData);

@@ -39,6 +39,8 @@ public class NativeApplicationIntegrationTests {
 	@Rule
 	public ServerRunning serverRunning = ServerRunning.isRunning();
 
+	private TestAccountSetup testAccounts = new TestAccountSetup();
+
 	/**
 	 * tests a happy-day flow of the Resource Owner Password Credentials grant type. (formerly native application
 	 * profile).
@@ -48,8 +50,8 @@ public class NativeApplicationIntegrationTests {
 
 		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
 		formData.add("grant_type", "password");
-		formData.add("username", "marissa");
-		formData.add("password", "koala");
+		formData.add("username", testAccounts.getUserName());
+		formData.add("password", testAccounts.getPassword());
 		formData.add("scope", "read");
 		HttpHeaders headers = new HttpHeaders();
 		headers.set("Authorization", "Basic " + new String(Base64.encode("app:appclientsecret".getBytes("UTF-8"))));
@@ -69,8 +71,8 @@ public class NativeApplicationIntegrationTests {
 
 		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
 		formData.add("grant_type", "password");
-		formData.add("username", "marissa");
-		formData.add("password", "koala");
+		formData.add("username", testAccounts.getUserName());
+		formData.add("password", testAccounts.getPassword());
 		formData.add("scope", "read");
 		HttpHeaders headers = new HttpHeaders();
 		headers.set("Authorization", "Basic " + new String(Base64.encode("no-such-client:".getBytes("UTF-8"))));
@@ -96,8 +98,8 @@ public class NativeApplicationIntegrationTests {
 	public void testSecretRequired() throws Exception {
 		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
 		formData.add("grant_type", "password");
-		formData.add("username", "marissa");
-		formData.add("password", "koala");
+		formData.add("username", testAccounts.getUserName());
+		formData.add("password", testAccounts.getPassword());
 		formData.add("scope", "read");
 		HttpHeaders headers = new HttpHeaders();
 		headers.set("Authorization", "Basic " + new String(Base64.encode("no-such-client:".getBytes("UTF-8"))));

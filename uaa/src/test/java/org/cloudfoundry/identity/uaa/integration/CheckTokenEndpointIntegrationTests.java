@@ -35,6 +35,8 @@ public class CheckTokenEndpointIntegrationTests {
 	@Rule
 	public ServerRunning serverRunning = ServerRunning.isRunning();
 
+	private TestAccountSetup testAccounts = new TestAccountSetup();
+
 	/**
 	 * tests a happy-day flow of the <code>/check_token</code> endpoint
 	 */
@@ -43,8 +45,8 @@ public class CheckTokenEndpointIntegrationTests {
 
 		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
 		formData.add("grant_type", "password");
-		formData.add("username", "marissa");
-		formData.add("password", "koala");
+		formData.add("username", testAccounts.getUserName());
+		formData.add("password", testAccounts.getPassword());
 		formData.add("scope", "read");
 
 		HttpHeaders headers = new HttpHeaders();
@@ -65,8 +67,8 @@ public class CheckTokenEndpointIntegrationTests {
 
 		@SuppressWarnings("unchecked")
 		Map<String,String> map = response.getBody();
-		assertEquals("marissa", map.get("user_id"));
-		assertEquals("marissa@test.org", map.get("email"));
+		assertEquals(testAccounts.getUserName(), map.get("user_id"));
+		assertEquals(testAccounts.getEmail(), map.get("email"));
 
 	}
 

@@ -39,16 +39,21 @@ public class RefreshTokenSupportIntegrationTests {
 	@Rule
 	public ServerRunning serverRunning = ServerRunning.isRunning();
 
+	private TestAccountSetup testAccounts = new TestAccountSetup();
+
 	/**
 	 * tests a happy-day flow of the native application profile.
 	 */
 	@Test
 	public void testHappyDay() throws Exception {
+		
+		// Quick and dirty way of switching this test off if running against vcap in legacy mode (no refresh tokens)
+		Assume.assumeTrue(testAccounts.getUserName().equals("marissa"));
 
 		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
 		formData.add("grant_type", "password");
-		formData.add("username", "marissa");
-		formData.add("password", "koala");
+		formData.add("username", testAccounts.getUserName());
+		formData.add("password", testAccounts.getPassword());
 		formData.add("scope", "read");
 		HttpHeaders headers = new HttpHeaders();
 		headers.set("Authorization", "Basic " + new String(Base64.encode("app:appclientsecret".getBytes("UTF-8"))));

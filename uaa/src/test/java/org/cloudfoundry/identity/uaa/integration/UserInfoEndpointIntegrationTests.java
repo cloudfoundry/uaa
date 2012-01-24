@@ -14,11 +14,13 @@ import org.springframework.http.ResponseEntity;
  */
 public class UserInfoEndpointIntegrationTests {
 
+	private TestAccountSetup testAccounts = new TestAccountSetup();
+
 	@Rule
 	public ServerRunning server = ServerRunning.isRunning();
 
 	@Rule
-	public OAuth2ContextSetup context = OAuth2ContextSetup.resourceOwner(server, "marissa", "koala");
+	public OAuth2ContextSetup context = OAuth2ContextSetup.resourceOwner(server, testAccounts.getUserName(), testAccounts.getPassword());
 
 	/**
 	 * tests a happy-day flow of the <code>/userinfo</code> endpoint
@@ -29,11 +31,10 @@ public class UserInfoEndpointIntegrationTests {
 		HttpHeaders headers = new HttpHeaders();
 		ResponseEntity<String> user = server.getForString("/userinfo", headers);
 		assertEquals(HttpStatus.OK, user.getStatusCode());
-		System.err.println(user.getBody());
 
 		String map = user.getBody();
-		assertTrue("marissa", map.contains("user_id"));
-		assertTrue("marissa@test.org", map.contains("email"));
+		assertTrue(testAccounts.getUserName(), map.contains("user_id"));
+		assertTrue(testAccounts.getEmail(), map.contains("email"));
 
 	}
 
