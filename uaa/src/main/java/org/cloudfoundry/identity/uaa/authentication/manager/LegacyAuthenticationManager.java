@@ -13,6 +13,7 @@
 
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
+import java.net.ProxySelector;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -24,6 +25,7 @@ import org.apache.http.client.CookieStore;
 import org.apache.http.cookie.Cookie;
 import org.apache.http.impl.client.DefaultConnectionKeepAliveStrategy;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.conn.ProxySelectorRoutePlanner;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.http.protocol.HttpContext;
 import org.cloudfoundry.identity.uaa.authentication.LegacyAuthentication;
@@ -77,6 +79,10 @@ public class LegacyAuthenticationManager implements AuthenticationManager, Appli
 		httpClient = new DefaultHttpClient(connectionManager);
 		httpClient.setCookieStore(new NullCookieStore());
 		httpClient.setKeepAliveStrategy(new KeepAliveStrategy());
+
+		// Use standard JRE proxy configuration.
+		httpClient.setRoutePlanner(new ProxySelectorRoutePlanner(connectionManager.getSchemeRegistry(),
+					ProxySelector.getDefault()));
 
 		HttpComponentsClientHttpRequestFactory rf = new HttpComponentsClientHttpRequestFactory(httpClient);
 
