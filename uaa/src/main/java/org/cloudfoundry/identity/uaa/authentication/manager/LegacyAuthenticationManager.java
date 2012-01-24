@@ -14,9 +14,18 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import org.apache.http.HttpResponse;
+import org.apache.http.client.CookieStore;
+import org.apache.http.cookie.Cookie;
+import org.apache.http.impl.client.DefaultConnectionKeepAliveStrategy;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
+import org.apache.http.protocol.HttpContext;
 import org.cloudfoundry.identity.uaa.authentication.LegacyAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -58,7 +67,25 @@ public class LegacyAuthenticationManager implements AuthenticationManager, Appli
 
 	private ApplicationEventPublisher eventPublisher;
 
-	private RestTemplate restTemplate = new RestTemplate(new HttpComponentsClientHttpRequestFactory());
+	private final RestTemplate restTemplate;
+
+	private final DefaultHttpClient httpClient;
+
+	public LegacyAuthenticationManager() {
+		ThreadSafeClientConnManager connectionManager = new ThreadSafeClientConnManager();
+
+		httpClient = new DefaultHttpClient(connectionManager);
+		httpClient.setCookieStore(new NullCookieStore());
+		httpClient.setKeepAliveStrategy(new KeepAliveStrategy());
+
+		HttpComponentsClientHttpRequestFactory rf = new HttpComponentsClientHttpRequestFactory(httpClient);
+
+		// Set timeout to the default value used by HttpComponentsClientHttpRequestFactory
+		rf.setReadTimeout(60*1000);
+		setMaxConnections(100);
+
+		restTemplate = new RestTemplate(rf);
+	}
 
 	public void setCloudControllerUrl(String url) {
 		this.url = url;
@@ -69,7 +96,7 @@ public class LegacyAuthenticationManager implements AuthenticationManager, Appli
 		String username = authentication.getName();
 		String password = authentication.getCredentials().toString();
 
-		Map<String, String> result = null;
+		Map<String, String> result;
 		try {
 			result = doAuthentication(username, password);
 		}
@@ -114,13 +141,46 @@ public class LegacyAuthenticationManager implements AuthenticationManager, Appli
 		return result;
 	}
 
-	public void setRestTemplate(RestTemplate restTemplate) {
-		this.restTemplate = restTemplate;
-	}
-
 	@Override
 	public void setApplicationEventPublisher(ApplicationEventPublisher eventPublisher) {
 		this.eventPublisher = eventPublisher;
 	}
 
+	/**
+	 * The maximum number of pooled connections which the UAA should use to call the CC.
+	 */
+	public void setMaxConnections(int maxConnections) {
+		((ThreadSafeClientConnManager)httpClient.getConnectionManager()).setMaxTotal(maxConnections);
+		((ThreadSafeClientConnManager)httpClient.getConnectionManager()).setDefaultMaxPerRoute(maxConnections);
+	}
+
+	private static class NullCookieStore implements CookieStore {
+		public void addCookie(Cookie cookie) {
+		}
+
+		public List<Cookie> getCookies() {
+			return Collections.emptyList();
+		}
+
+		public boolean clearExpired(Date date) {
+			return false;
+		}
+
+		public void clear() {
+		}
+	}
+
+	/**
+	 * Conservative keep-alive strategy that replaces the default (infinite) timeout when
+	 * no value is supplied
+	 * by the server with a 30s value.
+	 */
+	private static class KeepAliveStrategy extends DefaultConnectionKeepAliveStrategy {
+		@Override
+		public long getKeepAliveDuration(HttpResponse response, HttpContext context) {
+			long value = super.getKeepAliveDuration(response, context);
+
+			return value < 0 ? 30000 : value;
+		}
+	}
 }
