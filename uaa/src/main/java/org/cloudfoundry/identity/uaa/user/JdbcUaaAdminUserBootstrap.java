@@ -120,7 +120,7 @@ public class JdbcUaaAdminUserBootstrap implements SmartLifecycle {
 		email = email == null ? (username.contains("@") ? username : username + "@vcap.me") : email;
 		int count = jdbcTemplate.queryForInt(COUNT_USER_QUERY);
 		if (count == 0) {
-			logger.info(String.format("Inserting admin user with  username=%s, id=%s", id, username));
+			logger.info(String.format("Inserting admin user with  username=%s, id=%s", username, id));
 			jdbcTemplate.update(INSERT_ADMIN_USER_QUERY, id, username, password, email, givenName, familyName);
 		}
 	}

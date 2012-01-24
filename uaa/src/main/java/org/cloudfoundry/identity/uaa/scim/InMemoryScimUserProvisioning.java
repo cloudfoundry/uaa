@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.scim;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -40,8 +41,6 @@ public class InMemoryScimUserProvisioning implements ScimUserProvisioning {
 
 	private final Log logger = LogFactory.getLog(getClass());
 
-	private int counter = 1;
-
 	private final Map<String, UaaUser> users;
 
 	private final ConcurrentMap<String, String> ids = new ConcurrentHashMap<String, String>();
@@ -57,7 +56,7 @@ public class InMemoryScimUserProvisioning implements ScimUserProvisioning {
 
 	private UaaUser addUser(UaaUser user) {
 		if (user.getId().equals("NaN")) {
-			user = user.id(counter++);
+			user = user.id(UUID.randomUUID().toString());
 		}
 		users.put(user.getUsername(), user);
 		ids.put(user.getId(), user.getUsername());
@@ -153,7 +152,7 @@ public class InMemoryScimUserProvisioning implements ScimUserProvisioning {
 		}
 		UaaUser uaa = users.remove(ids.get(id));
 		String name = uaa.getUsername();
-		users.put(name, getUaaUser(user, uaa.getPassword()).id(Integer.valueOf(id)));
+		users.put(name, getUaaUser(user, uaa.getPassword()).id(id));
 		ids.replace(id, name);
 		return user;
 	}
@@ -173,7 +172,7 @@ public class InMemoryScimUserProvisioning implements ScimUserProvisioning {
 		}
 
 		String name = uaa.getUsername();
-		users.put(name, new UaaUser(name, passwordEncoder.encode(password), uaa.getEmail(), uaa.getGivenName(), uaa.getFamilyName()).id(Integer.valueOf(id)));
+		users.put(name, new UaaUser(name, passwordEncoder.encode(password), uaa.getEmail(), uaa.getGivenName(), uaa.getFamilyName()).id(id));
 		ids.replace(id, name);
 		return true;
 	}

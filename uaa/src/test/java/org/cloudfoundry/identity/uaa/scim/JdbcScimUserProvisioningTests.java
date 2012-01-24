@@ -256,6 +256,11 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals(2, db.retrieveUsers("username eq 'joe' or emails.value co '.com'").size());
 	}
 
+	@Test
+	public void canRetrieveUsersWithFilterBooleanOrMatchesSecond() {
+		assertEquals(1, db.retrieveUsers("username eq 'foo' or username eq 'joe'").size());
+	}
+
 	@Test(expected = UnsupportedOperationException.class)
 	public void cannotRetrieveUsersWithIllegalFilterField() {
 		assertEquals(2, db.retrieveUsers("emails.type eq 'bar'").size());

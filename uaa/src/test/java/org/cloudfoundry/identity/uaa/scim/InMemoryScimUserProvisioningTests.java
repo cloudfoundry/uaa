@@ -53,7 +53,7 @@ public class InMemoryScimUserProvisioningTests {
 
 	@Test
 	public void canDeleteUser() throws Exception {
-		ScimUser user = db.removeUser("1", 0);
+		ScimUser user = db.removeUser(users.get("joe").getId(), 0);
 		assertEquals(1, db.retrieveUsers().size());
 		assertNotNull(user);
 		db.createUser(user, "password");
@@ -63,9 +63,10 @@ public class InMemoryScimUserProvisioningTests {
 	@Test
 	public void canUpdateUser() throws Exception {
 		ScimUser user;
-		user = new ScimUser("1", "joe", "Joe", "User");
+		String id = users.get("joe").getId();
+		user = new ScimUser(id, "joe", "Joe", "User");
 		user.addEmail("joe@unblah.com");
-		ScimUser result = db.updateUser("1", user);
+		ScimUser result = db.updateUser(id, user);
 		assertEquals(result.getId(), user.getId());
 		Collection<ScimUser> users = db.retrieveUsers();
 		assertEquals(2, users.size());
@@ -77,12 +78,12 @@ public class InMemoryScimUserProvisioningTests {
 			}
 		}
 		assertNotNull(joe);
-		assertEquals("1", joe.getId());
+		assertEquals(id, joe.getId());
 	}
 
 	@Test
 	public void canChangePassword() throws Exception {
-		assertTrue(db.changePassword("1", null, "newpassword"));
+		assertTrue(db.changePassword(users.get("joe").getId(), null, "newpassword"));
 		assertTrue(new BCryptPasswordEncoder().matches("newpassword", users.get("joe").getPassword()));
 	}
 

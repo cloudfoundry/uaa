@@ -20,12 +20,13 @@ import org.springframework.security.core.GrantedAuthority;
 
 /**
  * @author Luke Taylor
+ * @author Dave Syer
  */
 public enum UaaAuthority implements GrantedAuthority {
 	ROLE_ADMIN,
 	ROLE_USER;
 
-	public static final List<UaaAuthority> ADMIN_AUTHORITIES = Collections.unmodifiableList(Arrays.asList(ROLE_ADMIN));
+	public static final List<UaaAuthority> ADMIN_AUTHORITIES = Collections.unmodifiableList(Arrays.asList(ROLE_ADMIN, ROLE_USER));
 	public static final List<UaaAuthority> USER_AUTHORITIES = Collections.unmodifiableList(Arrays.asList(ROLE_USER));
 
 	@Override

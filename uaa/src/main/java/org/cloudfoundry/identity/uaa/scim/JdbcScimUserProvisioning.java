@@ -159,13 +159,14 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 			Map<String, String> values) {
 		String output = where;
 		Matcher matcher = pattern.matcher(output);
+		int count = values.size();
 		while (matcher.matches()) {
-			int count = values.size();
 			values.put("value" + count, String.format(valueTemplate, matcher.group(3).toLowerCase()));
-			template = template.replace("?", "value" + count);
+			String query = template.replace("?", "value" + count);
 			output = matcher
-					.replaceFirst(String.format(template, matcher.group(1), matcher.group(2), matcher.group(4)));
+					.replaceFirst(String.format(query, matcher.group(1), matcher.group(2), matcher.group(4)));
 			matcher = pattern.matcher(output);
+			count++;
 		}
 		return output;
 	}

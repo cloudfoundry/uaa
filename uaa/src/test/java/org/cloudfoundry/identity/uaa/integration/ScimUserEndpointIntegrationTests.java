@@ -212,8 +212,8 @@ public class ScimUserEndpointIntegrationTests {
 		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> response = client.postForEntity(server.getUrl(userEndpoint), user, Map.class);
 		@SuppressWarnings("unchecked")
-		Map<String, String> joe1 = response.getBody();
-		assertEquals("joel", joe1.get("userName"));
+		Map<String, String> joel = response.getBody();
+		assertEquals("joel", joel.get("userName"));
 
 		response = client.postForEntity(server.getUrl(userEndpoint), user, Map.class);
 		@SuppressWarnings("unchecked")

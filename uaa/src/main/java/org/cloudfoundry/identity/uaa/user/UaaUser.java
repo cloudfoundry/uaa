@@ -86,11 +86,11 @@ public class UaaUser {
 		return authority == 1 ? UaaAuthority.ADMIN_AUTHORITIES : UaaAuthority.USER_AUTHORITIES;
 	}
 
-	public UaaUser id(int id) {
+	public UaaUser id(String id) {
 		if (!"NaN".equals(this.id)) {
 			throw new IllegalStateException("Id already set");
 		}
-		return new UaaUser(Integer.toString(id), username, password, email, authority, givenName, familyName, created, modified);
+		return new UaaUser(id, username, password, email, authority, givenName, familyName, created, modified);
 	}
 
 }
