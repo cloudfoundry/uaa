@@ -38,6 +38,9 @@
 				<uaa.host>uaa.vcap.me</uaa.host>
 				<uaa.port>80</uaa.port>
 				<uaa.path>/</uaa.path>
+				<uaa.test.username>vcap_tester@vmware.com</uaa.test.username>
+				<uaa.test.password>tester</uaa.test.password>
+				<uaa.test.email>vcap_tester@vmware.com</uaa.test.email>
 			</properties>
 		</profile>
 		<profile>
@@ -170,6 +173,9 @@
 							<uaa.port>${uaa.port}</uaa.port>
 							<uaa.host>${uaa.host}</uaa.host>
 							<uaa.path>${uaa.path}</uaa.path>
+							<uaa.test.username>${uaa.test.username}</uaa.test.username>
+							<uaa.test.password>${uaa.test.password}</uaa.test.password>
+							<uaa.test.email>${uaa.test.email}</uaa.test.email>
 							<spring.profiles.active>${spring.profiles.active}</spring.profiles.active>
 						</systemPropertyVariables>
 					</configuration>
@@ -191,7 +197,7 @@
 								<artifactId>uaa</artifactId>
 								<version>${pom.version}</version>
 								<packaging>war</packaging>
-                                <generatePom>true</generatePom>
+								<generatePom>true</generatePom>
 							</configuration>
 						</execution>
 					</executions>
