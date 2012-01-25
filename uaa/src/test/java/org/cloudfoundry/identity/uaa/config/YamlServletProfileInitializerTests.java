@@ -43,6 +43,8 @@ public class YamlServletProfileInitializerTests {
 
 	private ServletConfig servletConfig = Mockito.mock(ServletConfig.class);
 
+	private String activeProfiles;
+
 	@Before
 	public void setup() {
 		Mockito.when(context.getServletConfig()).thenReturn(servletConfig);
@@ -56,6 +58,7 @@ public class YamlServletProfileInitializerTests {
 				return null;
 			}
 		}).when(servletContext).log(Mockito.anyString());
+		activeProfiles = System.getProperty("spring.profiles.active");
 	}
 
 	@After
@@ -64,6 +67,9 @@ public class YamlServletProfileInitializerTests {
 		System.clearProperty("LOG_FILE");
 		System.clearProperty("LOG_PATH");
 		Log4jConfigurer.initLogging("classpath:log4j.properties");
+		if (activeProfiles!=null) {
+			System.setProperty("spring.profiles.active", activeProfiles);
+		}
 	}
 
 	@Test
@@ -81,9 +87,11 @@ public class YamlServletProfileInitializerTests {
 
 	@Test
 	public void testActiveProfiles() throws Exception {
+		
+		System.setProperty("spring.profiles.active", "foo");
 
 		Mockito.when(context.getResource(Matchers.anyString())).thenReturn(
-				new ByteArrayResource("spring.profiles.active: bar".getBytes()));
+				new ByteArrayResource("spring_profiles: bar".getBytes()));
 
 		initializer.initialize(context);
 
