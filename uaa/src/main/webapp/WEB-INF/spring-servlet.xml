@@ -32,7 +32,7 @@
 	<sec:debug />
 
 	<bean class="org.cloudfoundry.identity.uaa.event.listener.AuditListener">
-		<constructor-arg ref="loggingAuditService"/>
+		<constructor-arg ref="loggingAuditService" />
 	</bean>
 
 	<!-- Keep this as a top-level bean to ensure it is exposed as a @ManagedResource -->
@@ -68,7 +68,13 @@
 
 	<bean id="oauthAuthorizeRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
 		<constructor-arg value="/oauth/authorize" />
-		<constructor-arg value="application/json" />
+		<property name="accept" value="application/json" />
+		<property name="parameters">
+			<map>
+				<entry key="response_type" value="token" />
+				<entry key="credentials" value="{" />
+			</map>
+		</property>
 	</bean>
 
 	<bean id="authzAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationFilter">
@@ -78,7 +84,7 @@
 	<bean id="http403" class="org.springframework.security.web.authentication.Http403ForbiddenEntryPoint" />
 
 	<http pattern="/check_token" create-session="stateless" entry-point-ref="http403" authentication-manager-ref="clientAuthenticationManager"
-			xmlns="http://www.springframework.org/schema/security">
+		xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<anonymous enabled="false" />
 		<custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
@@ -91,14 +97,14 @@
 	</http>
 
 	<http pattern="/oauth/token" create-session="never" authentication-manager-ref="clientAuthenticationManager"
-		  entry-point-ref="basicAuthenticationEntryPoint" xmlns="http://www.springframework.org/schema/security">
+		entry-point-ref="basicAuthenticationEntryPoint" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<anonymous enabled="false" />
 		<custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
 	</http>
 
 	<http pattern="/varz/**" create-session="never" authentication-manager-ref="clientAuthenticationManager"
-			entry-point-ref="basicAuthenticationEntryPoint" xmlns="http://www.springframework.org/schema/security">
+		entry-point-ref="basicAuthenticationEntryPoint" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<anonymous enabled="false" />
 		<custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
@@ -270,11 +276,11 @@
 
 		<bean id="userBootstrap" class="org.cloudfoundry.identity.uaa.user.JdbcUaaAdminUserBootstrap">
 			<constructor-arg ref="jdbcTemplate" />
-			<property name="username" value="${bootstrap.admin.username:admin}"/>
-			<property name="password" value="${bootstrap.admin.password:$2a$10$yHj1jr2NYpGC3wu/BTeFDOnD4Jz3K6ALd6XghGXPTCU4WMxKZuRHu}"/>
-			<property name="email" value="${bootstrap.admin.email:admin@localhost}"/>
-			<property name="familyName" value="${bootstrap.admin.family_name:User}"/>
-			<property name="givenName" value="${bootstrap.admin.given_name:Admin}"/>
+			<property name="username" value="${bootstrap.admin.username:admin}" />
+			<property name="password" value="${bootstrap.admin.password:$2a$10$yHj1jr2NYpGC3wu/BTeFDOnD4Jz3K6ALd6XghGXPTCU4WMxKZuRHu}" />
+			<property name="email" value="${bootstrap.admin.email:admin@localhost}" />
+			<property name="familyName" value="${bootstrap.admin.family_name:User}" />
+			<property name="givenName" value="${bootstrap.admin.given_name:Admin}" />
 		</bean>
 
 		<bean id="scimUserProvisioning" class="org.cloudfoundry.identity.uaa.scim.JdbcScimUserProvisioning">

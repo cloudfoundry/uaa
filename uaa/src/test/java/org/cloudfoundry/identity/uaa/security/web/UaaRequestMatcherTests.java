@@ -12,7 +12,10 @@
  */
 package org.cloudfoundry.identity.uaa.security.web;
 
+import java.util.Collections;
+
 import org.junit.Test;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletRequest;
 
 import static org.junit.Assert.*;
@@ -21,32 +24,50 @@ import static org.junit.Assert.*;
  */
 public class UaaRequestMatcherTests {
 
-	private MockHttpServletRequest request(String path, String accept) {
+	private MockHttpServletRequest request(String path, String accept, String... parameters) {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setContextPath("/ctx");
 		request.setRequestURI("/ctx" + path);
 		if (accept != null) {
 			request.addHeader("Accept", accept);
 		}
-
+		for (int i = 0; i < parameters.length; i += 2) {
+			String key = parameters[i];
+			String value = parameters[i + 1];
+			request.addParameter(key, value);
+		}
 		return request;
 	}
 
 	@Test
-	public void pathMatcherMatchesExpectedPathsAndAcceptHeaderValues() throws Exception {
+	public void pathMatcherMatchesExpectedPaths() throws Exception {
 		UaaRequestMatcher matcher = new UaaRequestMatcher("/somePath");
 		assertTrue(matcher.matches(request("/somePath", null)));
 		assertTrue(matcher.matches(request("/somePath", "application/json")));
 		assertTrue(matcher.matches(request("/somePath", "application/html")));
 		assertTrue(matcher.matches(request("/somePath/aak", null)));
 		assertTrue(matcher.matches(request("/somePath?blah=x", null)));
-		// We don't actually want this  for anything but it's a consequence of using substring matching
+		// We don't actually want this for anything but it's a consequence of using substring matching
 		assertTrue(matcher.matches(request("/somePathOrOther", null)));
+	}
 
+	@Test
+	public void pathMatcherMatchesExpectedPathsAndAcceptHeaderValues() throws Exception {
 		// Accept only JSON
-		matcher = new UaaRequestMatcher("/somePath", "application/json");
+		UaaRequestMatcher matcher = new UaaRequestMatcher("/somePath");
+		matcher.setAccept(MediaType.APPLICATION_JSON);
 		assertTrue(matcher.matches(request("/somePath", null)));
 		assertTrue(matcher.matches(request("/somePath", "application/json")));
 		assertFalse(matcher.matches(request("/somePath", "application/html")));
 	}
+
+	@Test
+	public void pathMatcherMatchesExpectedPathsAndRequestParameters() throws Exception {
+		// Accept only JSON
+		UaaRequestMatcher matcher = new UaaRequestMatcher("/somePath");
+		matcher.setAccept(MediaType.APPLICATION_JSON);
+		matcher.setParameters(Collections.singletonMap("response_type", "token"));
+		assertTrue(matcher.matches(request("/somePath", null, "response_type", "token")));
+	}
+
 }

@@ -66,6 +66,23 @@ public class ImplicitTokenGrantIntegrationTests {
 	}
 
 	@Test
+	public void authzViaJsonEndpointSucceedsWithAcceptForm() throws Exception {
+
+		HttpHeaders headers = new HttpHeaders();
+		headers.setAccept(Arrays.asList(MediaType.APPLICATION_FORM_URLENCODED));
+
+		String credentials = String.format("{ \"username\":\"%s\", \"password\":\"%s\" }", testAccounts.getUserName(), testAccounts.getPassword());
+
+		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+		formData.add("credentials", credentials);
+		ResponseEntity<Void> result = serverRunning.postForResponse(implicitUrl(), headers, formData);
+
+		assertNotNull(result.getHeaders().getLocation());
+		assertTrue(result.getHeaders().getLocation().toString().matches("http://anywhere#access_token=.+"));
+
+	}
+
+	@Test
 	public void authzWithIntermediateFormLoginSucceeds() throws Exception {
 
 		HttpHeaders headers = new HttpHeaders();
