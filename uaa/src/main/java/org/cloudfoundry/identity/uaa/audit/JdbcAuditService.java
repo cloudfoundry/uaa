@@ -50,7 +50,11 @@ public class JdbcAuditService implements UaaAuditService {
 
 	@Override
 	public void userAuthenticationFailure(UaaUser user, UaaAuthenticationDetails details) {
-		createAuditRecord(user.getId(), AuditEventType.UserAuthenticationFailure, details.getOrigin(), user.getUsername());
+		if (user==null) {
+			userNotFound("<UNKNOWN>", details);
+			return;
+		}
+		createAuditRecord(user.getId(), AuditEventType.UserAuthenticationFailure, getOrigin(details), user.getUsername());
 	}
 
 	@Override
@@ -62,17 +66,17 @@ public class JdbcAuditService implements UaaAuditService {
 		catch (NoSuchAlgorithmException shouldNeverHappen) {
 			name = "NOSHA";
 		}
-		createAuditRecord(name, AuditEventType.UserNotFound, details.getOrigin(), "");
+		createAuditRecord(name, AuditEventType.UserNotFound, getOrigin(details), "");
 	}
 
 	@Override
 	public void principalAuthenticationFailure(String name, UaaAuthenticationDetails details) {
-		createAuditRecord(name, AuditEventType.PrincipalAuthenticationFailure, details.getOrigin());
+		createAuditRecord(name, AuditEventType.PrincipalAuthenticationFailure, getOrigin(details));
 	}
 
 	@Override
 	public void principalNotFound(String name, UaaAuthenticationDetails details) {
-		createAuditRecord(name, AuditEventType.PrincipalNotFound, details.getOrigin());
+		createAuditRecord(name, AuditEventType.PrincipalNotFound, getOrigin(details));
 	}
 
 	private void createAuditRecord(String principal_id, AuditEventType type, String origin) {
