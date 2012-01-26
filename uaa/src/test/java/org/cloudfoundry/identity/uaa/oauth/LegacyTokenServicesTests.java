@@ -13,9 +13,10 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -23,7 +24,6 @@ import org.cloudfoundry.identity.uaa.authentication.LegacyAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
-import org.cloudfoundry.identity.uaa.oauth.LegacyTokenServices;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.core.GrantedAuthority;
@@ -35,30 +35,46 @@ import org.springframework.security.oauth2.provider.token.InMemoryTokenStore;
 
 /**
  * @author Dave Syer
- *
+ * 
  */
 public class LegacyTokenServicesTests {
 
 	private LegacyTokenServices tokenServices;
+
 	private UaaAuthentication userAuthentication;
-	private Map<String,String> authData;
+
+	private Map<String, String> authData;
 
 	@Before
 	public void setUp() throws Exception {
 		tokenServices = new LegacyTokenServices();
 		tokenServices.setTokenStore(new InMemoryTokenStore());
 		authData = new HashMap<String, String>();
-		userAuthentication = new LegacyAuthentication(UaaAuthenticationTestFactory.getPrincipal("NaN", "foo@bar.com", "foo@bar.com"),
-				Arrays.<GrantedAuthority> asList(new SimpleGrantedAuthority("ROLE_USER")), mock(UaaAuthenticationDetails.class), authData);
+		userAuthentication = new LegacyAuthentication(UaaAuthenticationTestFactory.getPrincipal("NaN", "foo@bar.com",
+				"foo@bar.com"), Arrays.<GrantedAuthority> asList(new SimpleGrantedAuthority("ROLE_USER")),
+				mock(UaaAuthenticationDetails.class), authData);
 
 	}
 
 	@Test
 	public void testCreateAccessToken() {
 		authData.put("token", "FOO");
-		OAuth2Authentication authentication = new OAuth2Authentication(new AuthorizationRequest("foo", null, null, null), userAuthentication);
-		OAuth2AccessToken token = tokenServices.createAccessToken(authentication , null);
+		OAuth2Authentication authentication = new OAuth2Authentication(
+				new AuthorizationRequest("foo", null, null, null), userAuthentication);
+		OAuth2AccessToken token = tokenServices.createAccessToken(authentication, null);
 		assertEquals("FOO", token.getValue());
+	}
+
+	@Test(expected=IllegalStateException.class)
+	public void testDuplicateTokens() {
+		authData.put("token", "FOO");
+		OAuth2Authentication authentication1 = new OAuth2Authentication(
+				new AuthorizationRequest("id", null, null, null), userAuthentication);
+		OAuth2AccessToken token1 = tokenServices.createAccessToken(authentication1);
+		OAuth2Authentication authentication2 = new OAuth2Authentication(new AuthorizationRequest("id",
+				Collections.singleton("read"), null, null), userAuthentication);
+		OAuth2AccessToken token2 = tokenServices.createAccessToken(authentication2);
+		assertEquals(token1, token2);
 	}
 
 }
