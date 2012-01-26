@@ -47,14 +47,6 @@ public class TestAccountSetup extends TestWatchman {
 		tokenServer = null;
 		if (isLegacy()) {
 			tokenServer = new LegacyTokenServer();
-			try {
-				logger.debug("Starting legacy token server");
-				tokenServer.init();
-			}
-			catch (Exception e) {
-				logger.error("Could not start legacy token server", e);
-				Assert.fail("Could not start legacy token server");
-			}
 		}
 	}
 
@@ -77,6 +69,20 @@ public class TestAccountSetup extends TestWatchman {
 
 	public String getEmail() {
 		return environment.getProperty("uaa.test.email", "marissa@test.org");
+	}
+
+	@Override
+	public void starting(FrameworkMethod method) {
+		if (tokenServer != null) {
+			try {
+				logger.debug("Starting legacy token server");
+				tokenServer.init();
+			}
+			catch (Exception e) {
+				logger.error("Could not start legacy token server", e);
+				Assert.fail("Could not start legacy token server");
+			}
+		}
 	}
 
 	@Override
