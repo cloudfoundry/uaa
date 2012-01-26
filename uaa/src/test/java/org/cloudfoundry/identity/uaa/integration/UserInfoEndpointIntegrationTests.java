@@ -14,20 +14,22 @@ import org.springframework.http.ResponseEntity;
  */
 public class UserInfoEndpointIntegrationTests {
 
-	private TestAccountSetup testAccounts = new TestAccountSetup();
-
 	@Rule
 	public ServerRunning server = ServerRunning.isRunning();
 
 	@Rule
-	public OAuth2ContextSetup context = OAuth2ContextSetup.resourceOwner(server, testAccounts.getUserName(), testAccounts.getPassword());
-
+	public TestAccountSetup testAccounts = TestAccountSetup.withLegacyTokenServerForProfile("mocklegacy");
+	
+	@Rule
+	public OAuth2ContextSetup context = OAuth2ContextSetup.resourceOwner(server, testAccounts.getUserName(),
+			testAccounts.getPassword());
+	
 	/**
 	 * tests a happy-day flow of the <code>/userinfo</code> endpoint
 	 */
 	@Test
 	public void testHappyDay() throws Exception {
-		
+
 		HttpHeaders headers = new HttpHeaders();
 		ResponseEntity<String> user = server.getForString("/userinfo", headers);
 		assertEquals(HttpStatus.OK, user.getStatusCode());

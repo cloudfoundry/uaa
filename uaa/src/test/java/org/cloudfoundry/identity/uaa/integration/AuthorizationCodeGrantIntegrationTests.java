@@ -35,8 +35,9 @@ public class AuthorizationCodeGrantIntegrationTests {
 
 	@Rule
 	public ServerRunning serverRunning = ServerRunning.isRunning();
-	
-	private TestAccountSetup testAccounts = new TestAccountSetup();
+
+	@Rule
+	public TestAccountSetup testAccounts = TestAccountSetup.withLegacyTokenServerForProfile("mocklegacy");
 
 	@Test
 	public void testSuccessfulAuthorizationCodeFlow() throws Exception {
@@ -83,9 +84,8 @@ public class AuthorizationCodeGrantIntegrationTests {
 		formData.add("user_oauth_approval", "true");
 		result = serverRunning.postForResponse("/oauth/authorize", headers, formData);
 		assertEquals(HttpStatus.FOUND, result.getStatusCode());
-		location =result.getHeaders().getLocation().toString();
+		location = result.getHeaders().getLocation().toString();
 		assertTrue(location.matches("http://anywhere.*code=.+"));
 	}
-
 
 }

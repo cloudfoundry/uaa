@@ -29,8 +29,8 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 /**
- * Tests implicit grant using a direct posting of credentials to the /authorize endpoint and
- * also with an intermediate form login.
+ * Tests implicit grant using a direct posting of credentials to the /authorize endpoint and also with an intermediate
+ * form login.
  * 
  * @author Dave Syer
  */
@@ -39,7 +39,8 @@ public class ImplicitTokenGrantIntegrationTests {
 	@Rule
 	public ServerRunning serverRunning = ServerRunning.isRunning();
 
-	private TestAccountSetup testAccounts = new TestAccountSetup();
+	@Rule
+	public TestAccountSetup testAccounts = TestAccountSetup.withLegacyTokenServerForProfile("mocklegacy");
 
 	private String implicitUrl() {
 		URI uri = serverRunning.buildUri("/oauth/authorize").queryParam("response_type", "token")
@@ -54,7 +55,8 @@ public class ImplicitTokenGrantIntegrationTests {
 		HttpHeaders headers = new HttpHeaders();
 		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
 
-		String credentials = String.format("{ \"username\":\"%s\", \"password\":\"%s\" }", testAccounts.getUserName(), testAccounts.getPassword());
+		String credentials = String.format("{ \"username\":\"%s\", \"password\":\"%s\" }", testAccounts.getUserName(),
+				testAccounts.getPassword());
 
 		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
 		formData.add("credentials", credentials);
@@ -71,7 +73,8 @@ public class ImplicitTokenGrantIntegrationTests {
 		HttpHeaders headers = new HttpHeaders();
 		headers.setAccept(Arrays.asList(MediaType.APPLICATION_FORM_URLENCODED));
 
-		String credentials = String.format("{ \"username\":\"%s\", \"password\":\"%s\" }", testAccounts.getUserName(), testAccounts.getPassword());
+		String credentials = String.format("{ \"username\":\"%s\", \"password\":\"%s\" }", testAccounts.getUserName(),
+				testAccounts.getPassword());
 
 		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
 		formData.add("credentials", credentials);

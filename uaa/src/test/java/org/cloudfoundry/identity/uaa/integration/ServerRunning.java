@@ -24,12 +24,12 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.params.ClientPNames;
 import org.apache.http.client.params.CookiePolicy;
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.internal.AssumptionViolatedException;
 import org.junit.rules.MethodRule;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -40,7 +40,6 @@ import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.util.StringUtils;
 import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -74,6 +73,8 @@ public class ServerRunning implements MethodRule {
 
 	private static Log logger = LogFactory.getLog(ServerRunning.class);
 
+	private Environment environment;
+
 	// Static so that we only test once on failure: speeds up test suite
 	private static Map<Integer, Boolean> serverOnline = new HashMap<Integer, Boolean>();
 
@@ -96,8 +97,6 @@ public class ServerRunning implements MethodRule {
 
 	private RestTemplate client;
 
-	private LegacyTokenServer tokenServer;
-
 	/**
 	 * @return a new rule that assumes an existing running broker
 	 */
@@ -113,10 +112,11 @@ public class ServerRunning implements MethodRule {
 	}
 
 	private ServerRunning(boolean assumeOnline) {
+		this.environment = TestProfileEnvironment.getEnvironment();
 		this.assumeOnline = assumeOnline;
-		setPort(Integer.valueOf(System.getProperty("uaa.port", DEFAULT_PORT + "")));
-		setRootPath(System.getProperty("uaa.path", DEFAULT_ROOT_PATH));
-		setHostName(System.getProperty("uaa.host", DEFAULT_HOST));
+		setPort(environment.getProperty("uaa.port", Integer.class, DEFAULT_PORT));
+		setRootPath(environment.getProperty("uaa.path", DEFAULT_ROOT_PATH));
+		setHostName(environment.getProperty("uaa.host", DEFAULT_HOST));
 	}
 
 	/**
@@ -155,15 +155,6 @@ public class ServerRunning implements MethodRule {
 			}
 		}
 		this.rootPath = rootPath;
-	}
-
-	/**
-	 * @return true if the legacy Spring profile is enabled
-	 */
-	public boolean isLegacy() {
-		String profiles = System.getProperty("spring.profiles.active");
-		logger.debug("Checking for legacy profile in: [" + profiles + "]");
-		return StringUtils.hasText(profiles) && profiles.contains("legacy") && !profiles.contains("!legacy");
 	}
 
 	@Override
@@ -205,37 +196,11 @@ public class ServerRunning implements MethodRule {
 			}
 		}
 
-		tokenServer = null;
-		if (isLegacy()) {
-			tokenServer = new LegacyTokenServer();
-			try {
-				logger.debug("Starting legacy token server");
-				tokenServer.init();
-			}
-			catch (Exception e) {
-				logger.error("Could not start legacy token server", e);
-				Assert.fail("Could not start legacy token server");
-			}
-		}
-
 		return new Statement() {
 
 			@Override
 			public void evaluate() throws Throwable {
-
-				try {
-					base.evaluate();
-				}
-				finally {
-					if (tokenServer != null) {
-						try {
-							tokenServer.close();
-						}
-						catch (Exception e) {
-							logger.error("Could not stop legacy token server", e);
-						}
-					}
-				}
+				base.evaluate();
 			}
 
 		};

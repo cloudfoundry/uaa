@@ -1,0 +1,15 @@
+spring_profiles: legacy,jdbc,hsqldb
+cloud_controller.login_url: http://api.vcap.me/users/{username}/tokens
+bootstrap:
+  admin:
+    username: vcap_tester@vmware.com
+    email: vcap_tester@vmware.com
+    password: $2a$10$CQVggCwiHCVFwMu8jKQRnuQnN7KwClUym3YDm56AtLyUgLfKtFn1G
+uaa:
+  test:
+    username: vcap_tester@vmware.com
+    email: vcap_tester@vmware.com
+    password: tester
+  host: uaa.vcap.me
+  port: 80
+  path: /

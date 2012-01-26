@@ -17,7 +17,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Collections;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.remoting.support.SimpleHttpServerFactoryBean;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -30,15 +33,27 @@ import com.sun.net.httpserver.HttpHandler;
  */
 @SuppressWarnings("restriction")
 public class LegacyTokenServer {
+
+	private static final Log logger = LogFactory.getLog(LegacyTokenServer.class);
+	
+	private RandomValueStringGenerator generator = new RandomValueStringGenerator();
+
 	private SimpleHttpServerFactoryBean factory;
 	private int port;
 
+	private final String expectedpassword;
+
 	public LegacyTokenServer() {
-		this(8888);
+		this(8888, null);
 	}
 
 	public LegacyTokenServer(int port) {
+		this(port, null);
+	}
+	
+	public LegacyTokenServer(int port, String expectedpassword) {
 		this.port = port;
+		this.expectedpassword = expectedpassword;
 	}
 
 	public void init() throws Exception {
@@ -56,12 +71,21 @@ public class LegacyTokenServer {
 				int code;
 				byte[] content;
 
-				if (body.contains("{\"password\":\"password\"}")) {
+				boolean authenticated = false;
+				if (expectedpassword!=null) {
+					authenticated = body.equals("{\"password\":\""+expectedpassword+"\"}");
+				} else {
+					authenticated = body.contains("{\"password\":\"");
+				}
+				if (authenticated) {
 					code = 200;
-					content = "{\"token\":\"FOO\"}".getBytes("UTF-8");
+					String token = generator.generate();
+					content = String.format("{\"token\":\"%s\"}", token).getBytes("UTF-8");
+					logger.debug("Successful authentication with token=" + token);
 				} else {
 					code = 403;
-					content = "{\"token\":\"FOO\"}".getBytes("UTF-8");
+					content = "".getBytes("UTF-8");
+					logger.debug("Forbidden");
 				}
 				exchange.sendResponseHeaders(code, content.length);
 				OutputStream stream = exchange.getResponseBody();

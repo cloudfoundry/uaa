@@ -39,14 +39,15 @@ public class RefreshTokenSupportIntegrationTests {
 	@Rule
 	public ServerRunning serverRunning = ServerRunning.isRunning();
 
-	private TestAccountSetup testAccounts = new TestAccountSetup();
+	@Rule
+	public TestAccountSetup testAccounts = TestAccountSetup.withLegacyTokenServerForProfile("mocklegacy");
 
 	/**
 	 * tests a happy-day flow of the native application profile.
 	 */
 	@Test
 	public void testHappyDay() throws Exception {
-		
+
 		// Quick and dirty way of switching this test off if running against vcap in legacy mode (no refresh tokens)
 		Assume.assumeTrue(testAccounts.getUserName().equals("marissa"));
 
@@ -59,14 +60,14 @@ public class RefreshTokenSupportIntegrationTests {
 		headers.set("Authorization", "Basic " + new String(Base64.encode("app:appclientsecret".getBytes("UTF-8"))));
 		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
 		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, headers );
+		ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, headers);
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		assertEquals("no-store", response.getHeaders().getFirst("Cache-Control"));
 
 		@SuppressWarnings("unchecked")
-		OAuth2AccessToken accessToken =OAuth2AccessToken.valueOf(response.getBody());
+		OAuth2AccessToken accessToken = OAuth2AccessToken.valueOf(response.getBody());
 
-		Assume.assumeTrue(!serverRunning.isLegacy());
+		Assume.assumeTrue(!testAccounts.isLegacy());
 		// now use the refresh token to get a new access token.
 		assertNotNull(accessToken.getRefreshToken());
 		formData = new LinkedMultiValueMap<String, String>();

@@ -35,7 +35,7 @@ public class CheckTokenEndpointIntegrationTests {
 	@Rule
 	public ServerRunning serverRunning = ServerRunning.isRunning();
 
-	private TestAccountSetup testAccounts = new TestAccountSetup();
+	@Rule public TestAccountSetup testAccounts = TestAccountSetup.withLegacyTokenServerForProfile("mocklegacy");
 
 	/**
 	 * tests a happy-day flow of the <code>/check_token</code> endpoint

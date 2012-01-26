@@ -38,10 +38,10 @@ import org.springframework.security.core.Authentication;
  * @author Dave Syer
  * @author Luke Taylor
  */
-public class LegacyAuthenticationProviderTests {
+public class LegacyAuthenticationManagerTests {
 
 	private LegacyAuthenticationManager am;
-	private static LegacyTokenServer tokenServer = new LegacyTokenServer(8887);
+	private static LegacyTokenServer tokenServer = new LegacyTokenServer(8887, "password");
 
 	@Before
 	public void setUp() throws Exception {
@@ -68,7 +68,7 @@ public class LegacyAuthenticationProviderTests {
 		Authentication result = am.authenticate(new UsernamePasswordAuthenticationToken("foo@bar.com", "password"));
 
 		assertNotNull(result);
-		assertEquals("FOO", ((LegacyAuthentication)result).getToken());
+		assertNotNull(((LegacyAuthentication)result).getToken());
 
 		assertEquals("foo@bar.com", result.getName());
 		assertEquals("foo@bar.com", ((UaaPrincipal)result.getPrincipal()).getName());
