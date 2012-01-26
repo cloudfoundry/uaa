@@ -78,10 +78,7 @@ public class ServerRunning implements MethodRule {
 	// Static so that we only test once on failure: speeds up test suite
 	private static Map<Integer, Boolean> serverOnline = new HashMap<Integer, Boolean>();
 
-	// Static so that we only test once on failure
-	private static Map<Integer, Boolean> serverOffline = new HashMap<Integer, Boolean>();
-
-	private final boolean assumeOnline;
+	private final boolean integrationTest;
 
 	private static int DEFAULT_PORT = 8080;
 
@@ -101,19 +98,12 @@ public class ServerRunning implements MethodRule {
 	 * @return a new rule that assumes an existing running broker
 	 */
 	public static ServerRunning isRunning() {
-		return new ServerRunning(true);
+		return new ServerRunning();
 	}
 
-	/**
-	 * @return a new rule that assumes there is no existing broker
-	 */
-	public static ServerRunning isNotRunning() {
-		return new ServerRunning(false);
-	}
-
-	private ServerRunning(boolean assumeOnline) {
+	private ServerRunning() {
 		this.environment = TestProfileEnvironment.getEnvironment();
-		this.assumeOnline = assumeOnline;
+		this.integrationTest = environment.getProperty("uaa.integration.test", Boolean.class, false);
 		setPort(environment.getProperty("uaa.port", Integer.class, DEFAULT_PORT));
 		setRootPath(environment.getProperty("uaa.path", DEFAULT_ROOT_PATH));
 		setHostName(environment.getProperty("uaa.host", DEFAULT_HOST));
@@ -124,9 +114,6 @@ public class ServerRunning implements MethodRule {
 	 */
 	public void setPort(int port) {
 		this.port = port;
-		if (!serverOffline.containsKey(port)) {
-			serverOffline.put(port, true);
-		}
 		if (!serverOnline.containsKey(port)) {
 			serverOnline.put(port, true);
 		}
@@ -161,11 +148,8 @@ public class ServerRunning implements MethodRule {
 	public Statement apply(final Statement base, final FrameworkMethod method, final Object target) {
 
 		// Check at the beginning, so this can be used as a static field
-		if (assumeOnline) {
+		if (!integrationTest) {
 			Assume.assumeTrue(serverOnline.get(port));
-		}
-		else {
-			Assume.assumeTrue(serverOffline.get(port));
 		}
 
 		RestTemplate client = new RestTemplate();
@@ -179,19 +163,12 @@ public class ServerRunning implements MethodRule {
 			logger.warn(String.format(
 					"Not executing tests because basic connectivity test failed for hostName=%s, port=%d", hostName,
 					port), e);
-			if (assumeOnline) {
+			if (!integrationTest) {
 				Assume.assumeNoException(e);
 			}
 		}
 		finally {
-			if (online) {
-				serverOffline.put(port, false);
-				if (!assumeOnline) {
-					Assume.assumeTrue(serverOffline.get(port));
-				}
-
-			}
-			else {
+			if (!online) {
 				serverOnline.put(port, false);
 			}
 		}
