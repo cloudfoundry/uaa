@@ -27,21 +27,24 @@ import com.sun.net.httpserver.HttpHandler;
 
 /**
  * Convenience for setting up a lightweight local HTTP server to provide legacy style (cloud_conttoller) tokens.
- *
+ * 
  * @author Dave Syer
- *
+ * 
  */
 @SuppressWarnings("restriction")
 public class LegacyTokenServer {
 
 	private static final Log logger = LogFactory.getLog(LegacyTokenServer.class);
-	
+
 	private RandomValueStringGenerator generator = new RandomValueStringGenerator();
 
 	private SimpleHttpServerFactoryBean factory;
-	private int port;
 
-	private final String expectedpassword;
+	private final int port;
+
+	private String expectedpassword;
+
+	private String tokenValue;
 
 	public LegacyTokenServer() {
 		this(8888, null);
@@ -50,10 +53,27 @@ public class LegacyTokenServer {
 	public LegacyTokenServer(int port) {
 		this(port, null);
 	}
-	
+
 	public LegacyTokenServer(int port, String expectedpassword) {
 		this.port = port;
 		this.expectedpassword = expectedpassword;
+	}
+
+	/**
+	 * @param expectedpassword the expected password to set
+	 */
+	public void setExpectedpassword(String expectedpassword) {
+		this.expectedpassword = expectedpassword;
+	}
+
+	/**
+	 * The value of teh access token to return on successful authentication. If null the value will be randomly
+	 * generated.
+	 * 
+	 * @param tokenValue the token value to set
+	 */
+	public void setTokenValue(String tokenValue) {
+		this.tokenValue = tokenValue;
 	}
 
 	public void init() throws Exception {
@@ -72,17 +92,19 @@ public class LegacyTokenServer {
 				byte[] content;
 
 				boolean authenticated = false;
-				if (expectedpassword!=null) {
-					authenticated = body.equals("{\"password\":\""+expectedpassword+"\"}");
-				} else {
+				if (expectedpassword != null) {
+					authenticated = body.equals("{\"password\":\"" + expectedpassword + "\"}");
+				}
+				else {
 					authenticated = body.contains("{\"password\":\"");
 				}
 				if (authenticated) {
 					code = 200;
-					String token = generator.generate();
+					String token = tokenValue!=null ? tokenValue : generator.generate();
 					content = String.format("{\"token\":\"%s\"}", token).getBytes("UTF-8");
 					logger.debug("Successful authentication with token=" + token);
-				} else {
+				}
+				else {
 					code = 403;
 					content = "".getBytes("UTF-8");
 					logger.debug("Forbidden");

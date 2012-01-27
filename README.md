@@ -70,6 +70,42 @@ integration tests from the command line in one go with
 (This might require an initial `mvn install` from the parent directory
 to get the wars in your local repo first.)
 
+### BVTs
+
+There is a really simple cucumber feature spec (`--tag @uaa`) to
+verify that the UAS server is there.  There is also a rake task to
+launch the integration tests from the `uaa` submodule in `vcap`.
+Typical usage for a local (`uaa.vcap.me`) instance:
+
+    $ cd vcap/tests
+    $ rake bvt:run_uaa
+
+To modify the runtime parameters you can provide a `uaa.yml` and set the
+env var `CLOUD_FOUNDRY_CONFIG_PATH`, e.g.
+
+    $ cat > /tmp/uaa.yml
+    uaa:
+      host: uaa.appcloud21.dev.mozycloud
+      test:
+        username: dev@cloudfoundry.org # defaults to vcap_tester@vmware.com
+        password: changeme
+        email: dev@cloudfoundry.org
+    $ CLOUD_FOUNDRY_CONFIG_PATH=/tmp rake bvt:run_uaa
+
+The tests will usually fail on the first run because of the 1 sec
+granularity of the timestamp on the tokens in the cloud_controller (so
+duplicate tokens will be rejected by the server). When you run the
+second and subsequent times they should pass because new token values
+will be obtained from the server.
+
+You can also change individual properties on the command line with
+`UAA_ARGS`, which are passed on to the mvn command line, or with
+MAVEN_OPTS which are passed on to the shell executing mvn, e.g.
+
+    $ UAA_ARGS=-Duaa=uaa.appcloud21.dev.mozycloud rake bvt:run_uaa
+
+N.B. MAVEN_OPTS cannot be used to set JVM system properties for the tests, but it can be used to set memory limits for the process etc.
+
 ## Inventory
 
 There are actually several projects here, the main `uaa` server application and some samples:
