@@ -1,0 +1,14 @@
+#!/usr/bin/env ruby
+
+# Define this early so required dependencies can rely on it being available
+module Cloudfoundry
+  module Uaa
+  end
+end
+
+$:.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
+
+require 'cli'
+
+Cloudfoundry::Uaa::Cli.run(ARGV.dup)
+
