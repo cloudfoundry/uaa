@@ -51,7 +51,8 @@ public class CheckTokenEndpoint implements InitializingBean {
 
 		OAuth2Authentication authentication = tokenStore.readAuthentication(token);
 
-		if (!authentication.isClientOnly() && authentication.getUserAuthentication().getPrincipal() instanceof UaaPrincipal) {
+		if (!authentication.isClientOnly()
+				&& authentication.getUserAuthentication().getPrincipal() instanceof UaaPrincipal) {
 
 			UaaPrincipal principal = (UaaPrincipal) authentication.getUserAuthentication().getPrincipal();
 
@@ -73,7 +74,9 @@ public class CheckTokenEndpoint implements InitializingBean {
 		if (clientToken.getAuthorities() != null) {
 			response.put("client_authorities", getAuthorities(clientToken.getAuthorities()));
 		}
-		response.put("resource_ids", clientToken.getResourceIds());
+		if (clientToken.getResourceIds() != null && !clientToken.getResourceIds().isEmpty()) {
+			response.put("resource_ids", clientToken.getResourceIds());
+		}
 
 		return response;
 	}
