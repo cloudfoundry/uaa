@@ -50,15 +50,22 @@ public class CheckTokenEndpoint implements InitializingBean {
 		}
 
 		OAuth2Authentication authentication = tokenStore.readAuthentication(token);
-		UaaPrincipal principal = (UaaPrincipal) authentication.getUserAuthentication().getPrincipal();
 		AuthorizationRequest clientToken = authentication.getAuthorizationRequest();
 
-		response.put("id", principal.getId());
-		response.put(UserInfo.USER_ID, principal.getName());
-		response.put(UserInfo.EMAIL, principal.getEmail());
-		Collection<? extends GrantedAuthority> authorities = authentication.getUserAuthentication().getAuthorities();
-		if (authorities != null) {
-			response.put("user_authorities", getAuthorities(authorities));
+		if (!authentication.isClientOnly()
+				&& authentication.getUserAuthentication().getPrincipal() instanceof UaaPrincipal) {
+
+			UaaPrincipal principal = (UaaPrincipal) authentication.getUserAuthentication().getPrincipal();
+
+			response.put("id", principal.getId());
+			response.put(UserInfo.USER_ID, principal.getName());
+			response.put(UserInfo.EMAIL, principal.getEmail());
+			Collection<? extends GrantedAuthority> authorities = authentication.getUserAuthentication()
+					.getAuthorities();
+			if (authorities != null) {
+				response.put("user_authorities", getAuthorities(authorities));
+			}
+
 		}
 		response.put("scope", token.getScope());
 
@@ -66,7 +73,9 @@ public class CheckTokenEndpoint implements InitializingBean {
 		if (clientToken.getAuthorities() != null) {
 			response.put("client_authorities", getAuthorities(clientToken.getAuthorities()));
 		}
-		response.put("resource_ids", clientToken.getResourceIds());
+		if (clientToken.getResourceIds() != null && !clientToken.getResourceIds().isEmpty()) {
+			response.put("resource_ids", clientToken.getResourceIds());
+		}
 
 		return response;
 	}
