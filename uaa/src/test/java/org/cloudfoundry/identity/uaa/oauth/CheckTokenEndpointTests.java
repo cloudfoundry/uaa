@@ -69,4 +69,14 @@ public class CheckTokenEndpointTests {
 		assertEquals(Arrays.asList("ROLE_USER"), result.get("user_authorities"));
 	}
 
+	@Test
+	public void testClientOnly() {
+		authentication = new OAuth2Authentication(new AuthorizationRequest("client", Collections.singleton("read"), null, null), null);
+		endpoint.setTokenStore(tokenStore);
+		OAuth2AccessToken token = new OAuth2AccessToken("FOO");
+		tokenStore.storeAccessToken(token, authentication);
+		Map<String, Object> result = endpoint.checkToken("FOO");
+		assertEquals("client", result.get("client_id"));
+	}
+
 }
