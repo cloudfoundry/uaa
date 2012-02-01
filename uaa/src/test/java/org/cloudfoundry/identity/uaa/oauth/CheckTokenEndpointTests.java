@@ -13,9 +13,11 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
@@ -37,11 +39,15 @@ public class CheckTokenEndpointTests {
 
 	private OAuth2Authentication authentication;
 
+	private int expiresIn;
+
 	public CheckTokenEndpointTests() {
 		authentication = new OAuth2Authentication(new AuthorizationRequest("client", Collections.singleton("read"), null, null),
 				UaaAuthenticationTestFactory.getAuthentication("12345", "olds", "olds@vmware.com"));
 		endpoint.setTokenStore(tokenStore);
 		OAuth2AccessToken token = new OAuth2AccessToken("FOO");
+		token.setExpiration(new Date(System.currentTimeMillis()+100000));
+		expiresIn = token.getExpiresIn();
 		tokenStore.storeAccessToken(token, authentication);
 	}
 
@@ -64,9 +70,25 @@ public class CheckTokenEndpointTests {
 	}
 
 	@Test
+	public void testExpiryResult() {
+		Map<String, Object> result = endpoint.checkToken("FOO");
+		assertTrue(expiresIn >= Integer.parseInt(String.valueOf(result.get("expires_in"))));
+	}
+
+	@Test
 	public void testAuthoritiesInResult() {
 		Map<String, Object> result = endpoint.checkToken("FOO");
 		assertEquals(Arrays.asList("ROLE_USER"), result.get("user_authorities"));
+	}
+	
+	@Test
+	public void testExpiredToken() throws Exception {
+		OAuth2AccessToken token = new OAuth2AccessToken("FOO");
+		token.setExpiration(new Date(System.currentTimeMillis()-100000));
+		expiresIn = token.getExpiresIn();
+		tokenStore.storeAccessToken(token, authentication);
+		Map<String, Object> result = endpoint.checkToken("FOO");
+		assertEquals("expired_token", result.get("error"));
 	}
 
 	@Test

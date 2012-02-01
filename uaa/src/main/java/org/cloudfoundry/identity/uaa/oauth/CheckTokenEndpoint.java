@@ -67,7 +67,8 @@ public class CheckTokenEndpoint implements InitializingBean {
 			}
 
 		}
-		response.put("scope", token.getScope());
+		response.put(OAuth2AccessToken.SCOPE, token.getScope());
+		response.put(OAuth2AccessToken.EXPIRES_IN, token.getExpiresIn());
 
 		response.put("client_id", clientToken.getClientId());
 		if (clientToken.getAuthorities() != null) {
