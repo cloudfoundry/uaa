@@ -70,4 +70,14 @@ public class UaaRequestMatcherTests {
 		assertTrue(matcher.matches(request("/somePath", null, "response_type", "token")));
 	}
 
+	@Test
+	public void pathMatcherMatchesWithMultipleAccepts() throws Exception {
+		// Accept only JSON
+		UaaRequestMatcher matcher = new UaaRequestMatcher("/somePath");
+		matcher.setAccept(MediaType.APPLICATION_JSON);
+		assertTrue(matcher
+				.matches(request("/somePath",
+				String.format("%s,%s", MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML))));
+	}
+
 }

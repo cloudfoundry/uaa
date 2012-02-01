@@ -60,7 +60,7 @@
 	</bean>
 
 	<!-- Version of the /authorize endpoint for stateless clients such as VMC -->
-	<http request-matcher-ref="oauthAuthorizeRequestMatcher" create-session="stateless" entry-point-ref="http403"
+	<http request-matcher-ref="oauthAuthorizeRequestMatcher" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"
 		authentication-manager-ref="authzAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<custom-filter ref="authzAuthenticationFilter" position="FORM_LOGIN_FILTER" />
@@ -81,9 +81,7 @@
 		<constructor-arg ref="authzAuthenticationMgr" />
 	</bean>
 
-	<bean id="http403" class="org.springframework.security.web.authentication.Http403ForbiddenEntryPoint" />
-
-	<http pattern="/check_token" create-session="stateless" entry-point-ref="http403" authentication-manager-ref="clientAuthenticationManager"
+	<http pattern="/check_token" create-session="stateless" entry-point-ref="basicAuthenticationEntryPoint" authentication-manager-ref="clientAuthenticationManager"
 		xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<anonymous enabled="false" />
@@ -91,7 +89,7 @@
 	</http>
 
 	<http pattern="/userinfo" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
-		entry-point-ref="http403" access-decision-manager-ref="accessDecisionManager" xmlns="http://www.springframework.org/schema/security">
+		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="SCOPE_OPENID" />
 		<custom-filter ref="oauth2ResourceServerFilter" after="EXCEPTION_TRANSLATION_FILTER" />
 	</http>
@@ -116,8 +114,13 @@
 		<property name="authenticationDetailsSource" ref="authenticationDetailsSource" />
 	</bean>
 
-	<bean id="basicAuthenticationEntryPoint" class="org.springframework.security.web.authentication.www.BasicAuthenticationEntryPoint">
-		<property name="realmName" value="UAA Realm" />
+	<bean id="basicAuthenticationEntryPoint" class="org.cloudfoundry.identity.uaa.error.JsonAwareAuthenticationEntryPoint">
+		<property name="realmName" value="UAA" />
+	</bean>
+
+	<bean id="oauthAuthenticationEntryPoint" class="org.cloudfoundry.identity.uaa.error.JsonAwareAuthenticationEntryPoint">
+		<property name="realmName" value="UAA" />
+		<property name="typeName" value="Bearer" />
 	</bean>
 
 	<http access-denied-page="/" authentication-manager-ref="authzAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">

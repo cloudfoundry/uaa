@@ -70,7 +70,7 @@ public class BootstrapTests {
 		request.setServletPath("");
 		request.setPathInfo("/Users");
 		filterChain.doFilter(request, response, new MockFilterChain());
-		assertEquals(403, response.getStatus());
+		assertEquals(401, response.getStatus());
 	}
 
 	@Test

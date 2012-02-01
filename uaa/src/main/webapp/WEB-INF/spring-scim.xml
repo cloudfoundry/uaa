@@ -25,7 +25,7 @@
 	</bean>
 
 	<http request-matcher-ref="userEndPointRequestMatcher" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
-		entry-point-ref="http403" access-decision-manager-ref="accessDecisionManager" xmlns="http://www.springframework.org/schema/security">
+		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/User/*/password" access="ROLE_CLIENT,SCOPE_PASSWORD" />
 		<intercept-url pattern="/Users*" access="ROLE_CLIENT,SCOPE_READ" method="GET" />
 		<intercept-url pattern="/User/**" access="ROLE_CLIENT,SCOPE_READ" method="GET" />

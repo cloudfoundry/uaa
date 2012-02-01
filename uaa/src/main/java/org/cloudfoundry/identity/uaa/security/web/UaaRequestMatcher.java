@@ -90,10 +90,13 @@ public final class UaaRequestMatcher implements RequestMatcher {
 		if (request.getHeader("Accept") == null) {
 			return true;
 		}
-
-		// TODO: Use mime-type priorities and expect a list of media types
-		MediaType acceptHeader = MediaType.parseMediaType(request.getHeader("Accept"));
-		return acceptHeader == null || acceptHeader.includes(accept);
+		
+		// TODO: Use mime-type priorities
+		for (MediaType acceptHeader : MediaType.parseMediaTypes(request.getHeader("Accept"))) {
+			return acceptHeader.includes(accept);
+		}
+		
+		return false;
 	}
 
 	@Override

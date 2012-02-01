@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.integration;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -35,7 +36,8 @@ public class CheckTokenEndpointIntegrationTests {
 	@Rule
 	public ServerRunning serverRunning = ServerRunning.isRunning();
 
-	@Rule public TestAccountSetup testAccounts = TestAccountSetup.withLegacyTokenServerForProfile("mocklegacy");
+	@Rule
+	public TestAccountSetup testAccounts = TestAccountSetup.withLegacyTokenServerForProfile("mocklegacy");
 
 	/**
 	 * tests a happy-day flow of the <code>/check_token</code> endpoint
@@ -66,9 +68,27 @@ public class CheckTokenEndpointIntegrationTests {
 		System.err.println(response.getBody());
 
 		@SuppressWarnings("unchecked")
-		Map<String,String> map = response.getBody();
+		Map<String, String> map = response.getBody();
 		assertEquals(testAccounts.getUserName(), map.get("user_id"));
 		assertEquals(testAccounts.getEmail(), map.get("email"));
+
+	}
+
+	@Test
+	public void testUnauthorized() throws Exception {
+
+		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+		formData.add("token", "FOO");
+		HttpHeaders headers = new HttpHeaders();
+		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+
+		@SuppressWarnings("rawtypes")
+		ResponseEntity<Map> response = serverRunning.postForMap("/check_token", formData, headers);
+		assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+
+		@SuppressWarnings("unchecked")
+		Map<String, String> map = response.getBody();
+		assertTrue(map.containsKey("error"));
 
 	}
 
