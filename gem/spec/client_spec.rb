@@ -27,40 +27,93 @@ describe "Uaa client" do
     @client.prompts.should_not be_empty
   end
 
-  context "when logging in" do
+  context "when logging in with password grant" do
 
     before :each do
       @client.response = [200, '{"access_token":"FOO"}', nil]
     end
 
+    it "should post to the token endpoint", :integration=>false do
+      token = @client.login(:username=>"vcap_tester@vmware.com", :password=>"tester", :client_id=>"foo", :grant_type=>"password")
+      @client.input[:url].should =~ /\/token/
+      @client.input[:method].should == :post
+    end
+
+    it "should include the grant type", :integration=>false do
+      token = @client.login(:username=>"vcap_tester@vmware.com", :password=>"tester", :client_id=>"foo", :grant_type=>"password")
+      @client.input[:payload].should =~ /grant_type=password/
+    end
+
+    it "should not have a redirect uri", :integration=>false do
+      token = @client.login(:username=>"vcap_tester@vmware.com", :password=>"tester", :grant_type=>"password")
+      @client.input[:payload].should_not =~ /redirect_uri=/
+    end
+
     it "should be able to login, obtaining an access token, given a username and password", :integration=>true do
-      token = @client.login(:username=>"vcap_tester@vmware.com", :password=>"tester")
+      token = @client.login(:username=>"vcap_tester@vmware.com", :password=>"tester", :grant_type=>"password", :client_id=>"app", :client_secret=>"appclientsecret")
       token.should_not be_nil
     end
 
-    it "should concatenate scope parameters in the HTTP post", :integration=>false do
-      token = @client.login(:username=>"vcap_tester@vmware.com", :password=>"tester", :scope=>["read","write"])
-      @client.input[:payload].should =~ /scope=read write/
-      @default_auth = @client.input[:headers]['Authorization']
-    end
-
     it "should use the client id if provided", :integration=>false do
-      token = @client.login(:username=>"vcap_tester@vmware.com", :password=>"tester", :client_id=>"foo")
+      token = @client.login(:username=>"vcap_tester@vmware.com", :password=>"tester", :client_id=>"foo", :grant_type=>"password")
       @client.input[:payload].should =~ /client_id=foo/
       @client.input[:headers]['Authorization'].should_not == @default_auth if @default_auth
     end
 
     it "should use not send the client secret in form data", :integration=>false do
-      token = @client.login(:username=>"vcap_tester@vmware.com", :password=>"tester")
+      token = @client.login(:username=>"vcap_tester@vmware.com", :password=>"tester", :grant_type=>"password")
       @client.input[:payload].should_not =~ /client_secret=/
+    end
+
+    it "should concatenate scope parameters in the HTTP post", :integration=>false do
+      token = @client.login(:username=>"vcap_tester@vmware.com", :password=>"tester", :scope=>["read","write"], :grant_type=>"password")
+      @client.input[:payload].should =~ /scope=read write/
+      @default_auth = @client.input[:headers]['Authorization']
+    end
+
+    it "should add basic auth", :integration=>false do
+      token = @client.login(:username=>"vcap_tester@vmware.com", :password=>"tester", :grant_type=>"password")
+      @client.input[:headers]['Authorization'].should =~ /Basic .*/
     end
 
   end
 
-  context "once logged in" do
+  context "when logging in with implicit grant" do
+
+    before :each do
+      @client.response = [302, nil, {'Location'=>'urn:oauth:implicit#expires_in=100&access_token=FOO&scope=read'}]
+    end
+
+    it "should post to the authorize endpoint", :integration=>false do
+      token = @client.login()
+      @client.input[:url].should =~ /\/authorize/
+      @client.input[:method].should == :post
+    end
+
+    it "should have a redirect uri", :integration=>false do
+      token = @client.login(:credentials=>{:username=>"vcap_tester@vmware.com", :password=>"tester"})
+      @client.input[:payload].should =~ /redirect_uri=/
+    end
+
+    it "should jsonise a hash in the form data", :integration=>false do
+      token = @client.login(:credentials=>{:username=>"vcap_tester@vmware.com", :password=>"tester"})
+      @client.input[:payload].should =~ /credentials={"username":"vcap_tester@vmware.com"/
+    end
+
+    it "should be able to login, obtaining an access token, given credentials", :integration=>true do
+      token = @client.login(:credentials=>{:username=>"vcap_tester@vmware.com", :password=>"tester"})
+      token.should_not be_nil
+    end
+
+  end
+
+  context "once logged in with password grant" do
 
     before :each do
       @client.response = [200, '{"access_token":"FOO"}', nil]
+      @client.client_id = "app"
+      @client.client_secret = "appclientsecret"
+      @client.grant_type = "password"
       @token = @client.login(:username=>"vcap_tester@vmware.com", :password=>"tester") if @token.nil?
     end
 

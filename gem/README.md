@@ -23,7 +23,7 @@ Run it
          or: uaa help command
     $ uaa login vcap_tester@vmware.com tester
     LSAJDHF873e8feDKJHLK
-    $ uaa decode LSAJDHF873e8feDKJHLK
+    $ uaa --client_id app --client_secret appclientsecret decode LSAJDHF873e8feDKJHLK
     {"user_id":"vcap_tester@vmware.com","client_id":"app","scope":["read"]...}
     
 Use the gem:
@@ -39,8 +39,7 @@ Run the tests with rake:
 
     $ rake
     
-Use an env var to get coverage reports (seem to only report on some of
-the files?):
+Use an env var to get coverage reports:
 
     $ COVERAGE=true rake
 
