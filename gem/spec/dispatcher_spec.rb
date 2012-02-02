@@ -31,11 +31,17 @@ describe "Uaa cli dispatcher" do
       dispatcher = Cloudfoundry::Uaa::Dispatcher.new(:client=>@client, :target_file=>@target_file)
     end
 
-    it "should save the target when command is 'target'" do
+    it "should save the target when command is 'target' with argument" do
       @client.stub!(:target).and_return("http://anywhere.com")
       dispatcher = Cloudfoundry::Uaa::Dispatcher.new(:client=>@client, :target_file=>@target_file)
       dispatcher.dispatch(:target, ["http://nowhere.com"], {})
       File.open(@target_file).read.should == "http://nowhere.com"
+    end
+
+    it "should show the target when command is 'target' with no argument" do
+      @client.stub!(:target).and_return("http://anywhere.com")
+      dispatcher = Cloudfoundry::Uaa::Dispatcher.new(:client=>@client, :target_file=>@target_file)
+      dispatcher.dispatch(:target, [], {}).should == "http://anywhere.com"
     end
 
     it "should add protocol to target if missing" do

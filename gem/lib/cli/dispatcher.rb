@@ -39,9 +39,10 @@ class Cloudfoundry::Uaa::Dispatcher
   end
 
   def save_target(target)
+    return @client.target if target.nil?
     # TODO: use https by default?
     target = "http://#{target}" if target !~ /^http.*:\/\//
-    return if @client.target == target
+    return @client.target if @client.target == target
     file = File.open(@target_file, 'w')
     file.write target
     file.close
