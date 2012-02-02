@@ -114,13 +114,13 @@
 		<property name="authenticationDetailsSource" ref="authenticationDetailsSource" />
 	</bean>
 
-	<bean id="basicAuthenticationEntryPoint" class="org.cloudfoundry.identity.uaa.error.JsonAwareAuthenticationEntryPoint">
+	<bean id="basicAuthenticationEntryPoint" class="org.springframework.security.oauth2.provider.error.MediaTypeAwareAuthenticationEntryPoint">
 		<property name="realmName" value="UAA" />
+		<property name="typeName" value="Basic" />
 	</bean>
 
-	<bean id="oauthAuthenticationEntryPoint" class="org.cloudfoundry.identity.uaa.error.JsonAwareAuthenticationEntryPoint">
+	<bean id="oauthAuthenticationEntryPoint" class="org.springframework.security.oauth2.provider.error.MediaTypeAwareAuthenticationEntryPoint">
 		<property name="realmName" value="UAA" />
-		<property name="typeName" value="Bearer" />
 	</bean>
 
 	<http access-denied-page="/" authentication-manager-ref="authzAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
