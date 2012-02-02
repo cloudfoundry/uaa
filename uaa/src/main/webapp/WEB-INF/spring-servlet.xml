@@ -81,15 +81,16 @@
 		<constructor-arg ref="authzAuthenticationMgr" />
 	</bean>
 
-	<http pattern="/check_token" create-session="stateless" entry-point-ref="basicAuthenticationEntryPoint" authentication-manager-ref="clientAuthenticationManager"
-		xmlns="http://www.springframework.org/schema/security">
+	<http pattern="/check_token" create-session="stateless" entry-point-ref="basicAuthenticationEntryPoint"
+		authentication-manager-ref="clientAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<anonymous enabled="false" />
 		<custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
 	</http>
 
 	<http pattern="/userinfo" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
-		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager" xmlns="http://www.springframework.org/schema/security">
+		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
+		xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="SCOPE_OPENID" />
 		<custom-filter ref="oauth2ResourceServerFilter" after="EXCEPTION_TRANSLATION_FILTER" />
 	</http>
@@ -203,6 +204,24 @@
 	<context:mbean-server id="mbeanServer" />
 
 	<context:mbean-export server="mbeanServer" default-domain="spring.application" />
+
+	<bean class="org.springframework.jmx.export.MBeanExporter">
+		<property name="server" ref="mbeanServer" />
+		<property name="beans">
+			<map>
+				<entry key="spring.application:type=TokenStore,name=tokenStore" value-ref="tokenStore" />
+			</map>
+		</property>
+		<property name="assembler">
+			<bean class="org.springframework.jmx.export.assembler.MethodNameBasedMBeanInfoAssembler">
+				<property name="methodMappings">
+					<map>
+						<entry key="spring.application:type=TokenStore,name=tokenStore" value="getAccessTokenCount,getRefreshTokenCount,getFlushInterval,setFlushInterval" />
+					</map>
+				</property>
+			</bean>
+		</property>
+	</bean>
 
 	<!--Basic application beans. -->
 	<bean id="varzEndpoint" class="org.cloudfoundry.identity.uaa.varz.VarzEndpoint">
