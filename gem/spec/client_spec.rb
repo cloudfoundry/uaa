@@ -8,6 +8,12 @@ if !integration_test?
       @input = req # keys = [:method, :url, :payload, :headers, :multipart]
       @response
     end
+    def json_get(url)
+      if url == "/login" then
+        return {:prompts=>{:username=>["text", "Username"], :password=>["password", "Password"]}}
+      end
+      @response[1] if @response
+    end
   end
 else
   module Cloudfoundry::Uaa::Http
@@ -85,9 +91,14 @@ describe "Uaa client" do
     end
 
     it "should post to the authorize endpoint", :integration=>false do
-      token = @client.login()
+      token = @client.login(:username=>"vcap_tester@vmware.com", :password=>"tester")
       @client.input[:url].should =~ /\/authorize/
       @client.input[:method].should == :post
+    end
+
+    it "should convert credentials to json", :integration=>false do
+      token = @client.login(:username=>"vcap_tester@vmware.com", :password=>"tester")
+      @client.input[:payload].should =~ /credentials={"/
     end
 
     it "should have a redirect uri", :integration=>false do

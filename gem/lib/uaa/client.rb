@@ -31,7 +31,11 @@ class Cloudfoundry::Uaa::Client
   # Get the prompts (login info) required by the UAA server.  The response 
   # is a hash in the form {:name=>[<type>,<message>],...}
   def prompts()
-    json_get('/login')[:prompts]
+    return @prompts if @prompts # TODO: reset prompts when the target changes?
+    response = json_get('/login')
+    raise StandardError, "No prompts available. Is the server running at #{@target}?" unless response
+    @prompts = response[:prompts] unless @prompts
+    @prompts
   end
 
   # The default prompts that can be used to elicit input for resource
@@ -63,10 +67,21 @@ class Cloudfoundry::Uaa::Client
     grant_type = opts[:grant_type] ? opts[:grant_type] : @grant_type
     opts[:grant_type] = grant_type
 
+    username = opts[:username]
+    password = opts[:password]
     if grant_type=="password" then
-      username = opts[:username]
-      password = opts[:password]
       raise Cloudfoundry::Uaa::PromptRequiredError.new(default_prompts) if (username.nil? || password.nil?)
+    else
+      if username && password then
+        opts[:credentials] = {:username=>username, :password=>password}
+      else 
+        unless opts[:credentials] then
+          raise Cloudfoundry::Uaa::PromptRequiredError.new(prompts) if (username.nil? || password.nil?)
+        end
+      end
+      # make sure they don't get used as request or form params unless we want them to
+      opts.delete :username
+      opts.delete :password
     end
 
     if grant_type!="client_credentials" && grant_type!="password" then
@@ -93,6 +108,7 @@ class Cloudfoundry::Uaa::Client
     end
 
     opts.delete :client_secret # don't send secret in post data
+    opts.delete :verbose
 
     form_data = opts.map{|k,v| value=v.is_a?(Hash) ? v.to_json : v; "#{k}=#{value}"}.join('&')
 
