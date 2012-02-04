@@ -92,8 +92,9 @@ class Cloudfoundry::Uaa::OptParser
 
   def basic_usage
     <<-EOF
-  Usage: #{NAME} [options] command [<args>] [command_options]
-     or: #{NAME} help command
+  Usage: #{NAME} [options] <command> [<args>] [command_options]
+     or: #{NAME} help <command>
+         <command> can be one of target, prompts, login, decode
 EOF
   end
 
