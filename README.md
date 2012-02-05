@@ -35,25 +35,19 @@ First run the uaa server as described above:
 
 Then start another terminal and from the project base directory, run:
 
-    $ ./login.sh "localhost:8080/uaa"
+    $ ./gem/bin/uaa target localhost:8080/uaa
+    $ ./gem/bin/uaa login marissa koala
 
-And hit return twice to accept the default username and password.
+(or leave out the username / password to be prompted).
 
 This authenticates and obtains an access token from the server using the OAuth2 implicit
 grant, similar to the approach intended for a client like VMC. The token is
-stored in the file `.access_token`.
+returned in stdout, so copy paste the value into this next command:
 
-Now kill the `uaa` server and run the `api` server (which starts the
-`uaa` server as well):
-
-    $ cd samples/api
-    $ mvn tomcat:run
-
-And then (from the base directory) execute:
-
-    $ ./get.sh http://localhost:8080/api/apps
-
-which should return a JSON array of (pretend) running applications.
+    $ ./gem/bin --client_id=app --client_secret=appclientsecret decode <token>
+    
+and you should see your username and the client id of the original
+token grant on stdout.
 
 ## Integration tests
 
@@ -112,9 +106,11 @@ There are actually several projects here, the main `uaa` server application and 
 
 1. `uaa` is the actual UAA server
 
-2. `api` (sample) is an OAuth2 resource service which returns a mock list of deployed apps
+2. `gem` is a ruby gem (`cloudfoundry-uaa`) for interacting with the UAA server
 
-3. `app` (sample) is a user application that uses both of the above
+3. `api` (sample) is an OAuth2 resource service which returns a mock list of deployed apps
+
+4. `app` (sample) is a user application that uses both of the above
 
 In CloudFoundry terms
 

@@ -97,6 +97,11 @@ describe Cloudfoundry::Uaa::Client do
         @input[:headers]['Authorization'].should =~ /Basic .*/
       end
 
+      it "should not send credentials hash", :integration=>false do
+        token = subject.login(:username=>"vcap_tester@vmware.com", :password=>"tester", :grant_type=>"password")
+        @input[:payload].should_not =~ /credentials:.*/
+      end
+
     end
 
     context "with implicit grant" do

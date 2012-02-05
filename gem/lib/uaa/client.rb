@@ -10,13 +10,13 @@ class Cloudfoundry::Uaa::Client
 
   # The target (base url) of calls to the UAA server.  Default is "http://uaa.vcap.me".
   attr_writer :target
-  # The client id to use if client authorization is needed (default "app")
+  # The client id to use if client authorization is needed (default "vmc")
   attr_writer :client_id
   # The client secret to use if client authorization is needed
   attr_writer :client_secret
   # The oauth scope to use if needed (default "read")
   attr_writer :scope
-  # The grant type to use when logging in
+  # The grant type to use when logging in (default "implicit")
   attr_writer :grant_type
 
   def initialize
@@ -37,8 +37,9 @@ class Cloudfoundry::Uaa::Client
     rescue
       # Ignore
     end
-    raise StandardError, "No prompts available. Is the server running at #{@target}?" unless response
-    @prompts = response[:prompts] unless @prompts
+    raise StandardError, "No response from prompts endpoint. Is the server running at #{@target}?" unless response
+    @prompts ||= response[:prompts]
+    raise StandardError, "No prompts available. Is the server running at #{@target}?" unless @prompts
     @prompts
   end
 
@@ -54,21 +55,34 @@ class Cloudfoundry::Uaa::Client
   #
   # * +opts+ - parameters to send, e.g.
   #   * +client_id+ - the client id (defaults to the instance attribute)
-  #   * +grant_type+ - the OAuth2 grant type (default "implicit")
+  #   * +grant_type+ - the OAuth2 grant type (default to the instance attribute)
   #   * +client_secret+ - the client secret (defaults to the instance attribute)
-  #   * +scope+ - the oauth scopes to request, array of String, or space-separated list
-  #   * +credentials+ - a hash of credentials to be passed to the server as a JSON literal
-  #   * +username+ - the username of the resource owner to login (with grant_type="password")
-  #   * +password+ - the password of the resource owner to login (with grant_type="password")
+  #   * +scope+ - the oauth scopes to request, array of String, or comma- or space-separated list (defaults to "read")
+  #   * +credentials+ - a hash of credentials to be passed to the server as a JSON literal (with :grant_type=>"implicit")
+  #   * +username+ - the username of the resource owner to login (with :grant_type="password")
+  #   * +password+ - the password of the resource owner to login (with :grant_type="password")
   #     (defaults to the instance attribute)
+  # 
+  # === Implicit Grant
+  #
+  # The default grant type is "implicit" which is used by vmc and
+  # other untrusted clients.  The UAA server authenticates the user in
+  # that case using the data provided in the +credentials+ option.
+  #
+  # As a convenience the +credentials+ default to the +username+ and
+  # +password+ if those are provided.
+  #
+  # If +credentials+ are not provided, or if +username+ is provided
+  # without a +password+ then a Cloudfoundry::Uaa::PromptRequiredError
+  # is raised.
   def login(opts={})
 
     opts = opts.dup
  
-    opts[:client_id] = @client_id unless opts[:client_id]
-    opts[:client_secret] = @client_secret unless opts[:client_secret] if @client_secret
-    opts[:scope] = @scope unless opts[:scope]
-    grant_type = opts[:grant_type] ? opts[:grant_type] : @grant_type
+    opts[:client_id] ||= @client_id
+    opts[:client_secret] ||= @client_secret if @client_secret
+    opts[:scope] ||= @scope
+    grant_type = opts[:grant_type] || @grant_type
     opts[:grant_type] = grant_type
 
     username = opts[:username]
@@ -76,19 +90,17 @@ class Cloudfoundry::Uaa::Client
     if grant_type=="password" then
       raise Cloudfoundry::Uaa::PromptRequiredError.new(default_prompts) if (username.nil? || password.nil?)
     else
-      if prompts==default_prompts && username && password then
+      if prompts_require_username_and_password? && username && password then
         opts[:credentials] = {:username=>username, :password=>password}
       end
-      unless opts[:credentials] then
-        raise Cloudfoundry::Uaa::PromptRequiredError.new(prompts)
-      end
+      raise Cloudfoundry::Uaa::PromptRequiredError.new(prompts) unless opts[:credentials]
       # make sure they don't get used as request or form params unless we want them to
       opts.delete :username
       opts.delete :password
     end
 
     if grant_type!="client_credentials" && grant_type!="password" then
-      opts[:redirect_uri] = @redirect_uri unless opts[:redirect_uri]
+      opts[:redirect_uri] ||= @redirect_uri
     end
 
     opts[:scope] = join_array(opts[:scope]) if opts[:scope]
@@ -136,6 +148,11 @@ class Cloudfoundry::Uaa::Client
   # * +opts+ - optional: additional parameters to send, e.g.
   #   * +client_id+ - the client id (defaults to the instance attribute)
   #   * +client_secret+ - the client secret (defaults to the instance attribute)
+  #
+  # Note that the default client (vmc) is not authorized to decode
+  # tokens, so callers will need to change the default or provide
+  # explicit values in the options. Authoeized clients must be
+  # pre-registered with the server.
   def decode_token(token, opts={})
     headers = {'Accept'=>"application/json", 
       'Authorization'=>client_auth(opts)}
@@ -144,6 +161,10 @@ class Cloudfoundry::Uaa::Client
   end
 
   private
+
+  def prompts_require_username_and_password?
+    prompts.has_key?(:username) && prompts.has_key?(:password) && prompts.length==2
+  end
 
   def join_array(value)
     return value.join(" ") if value.is_a?(Array)
