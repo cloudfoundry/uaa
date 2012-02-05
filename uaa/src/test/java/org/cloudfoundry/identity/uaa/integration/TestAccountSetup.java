@@ -21,6 +21,7 @@ import org.junit.Assert;
 import org.junit.rules.TestWatchman;
 import org.junit.runners.model.FrameworkMethod;
 import org.springframework.core.env.Environment;
+import org.springframework.security.crypto.codec.Base64;
 
 /**
  * @author Dave Syer
@@ -98,6 +99,13 @@ public class TestAccountSetup extends TestWatchman {
 		List<String> profiles = Arrays.asList(environment.getActiveProfiles());
 		logger.debug(String.format("Checking for %s profile in: [%s]", legacyProfileName, environment));
 		return legacyProfileName != null && profiles.contains(legacyProfileName);
+	}
+
+	/**
+	 * @return
+	 */
+	public String getVarzAuthorizationHeader() {
+		return String.format("Basic %s", new String(Base64.encode("varz:varzclientsecret".getBytes())));
 	}
 
 }
