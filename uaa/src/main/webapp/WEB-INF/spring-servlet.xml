@@ -102,12 +102,17 @@
 		<custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
 	</http>
 
-	<http pattern="/varz/**" create-session="never" authentication-manager-ref="clientAuthenticationManager"
+	<http pattern="/varz/**" create-session="never" authentication-manager-ref="varzAuthenticationManager"
 		entry-point-ref="basicAuthenticationEntryPoint" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<anonymous enabled="false" />
-		<custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
+		<http-basic authentication-details-source-ref="authenticationDetailsSource" entry-point-ref="basicAuthenticationEntryPoint"/>
 	</http>
+
+	<bean id="varzAuthenticationFilter" class="org.springframework.security.web.authentication.www.BasicAuthenticationFilter">
+		<constructor-arg ref="varzAuthenticationManager" />
+		<constructor-arg ref="basicAuthenticationEntryPoint" />
+	</bean>
 
 	<bean id="clientAuthenticationFilter" class="org.springframework.security.web.authentication.www.BasicAuthenticationFilter">
 		<constructor-arg ref="clientAuthenticationManager" />
@@ -144,6 +149,15 @@
 		</authentication-provider>
 	</authentication-manager>
 
+	<authentication-manager id="varzAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
+		<authentication-provider>
+			<user-service>
+				<user name="varz" authorities="ROLE_VARZ"
+					password="${varz.client.secret:varzclientsecret}" />
+			</user-service>
+		</authentication-provider>
+	</authentication-manager>
+
 	<bean id="bcryptPasswordEncoder" class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder" />
 
 	<authentication-manager id="emptyAuthenticationMgr" xmlns="http://www.springframework.org/schema/security" />
@@ -163,8 +177,6 @@
 	</oauth:authorization-server>
 
 	<oauth:client-details-service id="clientDetails">
-		<oauth:client client-id="varz" authorized-grant-types="client_credentials" scope="varz" authorities="ROLE_VARZ"
-			secret="${varz.client.secret:$2a$10$NtUKE/BJvTQgvKEwI.a0he22qfs8IbQSbt6hs3bPoCShFmcJOxBz2}" />
 		<oauth:client client-id="app" authorized-grant-types="password,authorization_code,refresh_token" scope="read,openid"
 			authorities="ROLE_GUEST" secret="${app.client.secret:$2a$10$7uLdSof7NIMYAUlbrV8wzuEZ45cc17kZjH.kC7vcJgHBD0SnE7JSe}" />
 		<oauth:client client-id="my" authorized-grant-types="authorization_code,refresh_token,implicit,client_credentials"
