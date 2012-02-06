@@ -29,8 +29,6 @@
 		</property>
 	</bean>
 
-	<sec:debug />
-
 	<bean class="org.cloudfoundry.identity.uaa.event.listener.AuditListener">
 		<constructor-arg ref="loggingAuditService" />
 	</bean>
@@ -64,6 +62,7 @@
 		authentication-manager-ref="authzAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<custom-filter ref="authzAuthenticationFilter" position="FORM_LOGIN_FILTER" />
+		<access-denied-handler ref="oauthAccessDeniedHandler"/>
 	</http>
 
 	<bean id="oauthAuthorizeRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
@@ -86,6 +85,7 @@
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<anonymous enabled="false" />
 		<custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
+		<access-denied-handler ref="oauthAccessDeniedHandler"/>
 	</http>
 
 	<http pattern="/userinfo" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
@@ -93,6 +93,7 @@
 		xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="SCOPE_OPENID" />
 		<custom-filter ref="oauth2ResourceServerFilter" after="EXCEPTION_TRANSLATION_FILTER" />
+		<access-denied-handler ref="oauthAccessDeniedHandler"/>
 	</http>
 
 	<http pattern="/oauth/token" create-session="never" authentication-manager-ref="clientAuthenticationManager"
@@ -100,6 +101,7 @@
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<anonymous enabled="false" />
 		<custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
+		<access-denied-handler ref="oauthAccessDeniedHandler"/>
 	</http>
 
 	<http pattern="/varz/**" create-session="never" authentication-manager-ref="varzAuthenticationManager"
@@ -107,6 +109,7 @@
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<anonymous enabled="false" />
 		<http-basic authentication-details-source-ref="authenticationDetailsSource" entry-point-ref="basicAuthenticationEntryPoint"/>
+		<access-denied-handler ref="oauthAccessDeniedHandler"/>
 	</http>
 
 	<bean id="varzAuthenticationFilter" class="org.springframework.security.web.authentication.www.BasicAuthenticationFilter">
@@ -128,6 +131,8 @@
 	<bean id="oauthAuthenticationEntryPoint" class="org.springframework.security.oauth2.provider.error.MediaTypeAwareAuthenticationEntryPoint">
 		<property name="realmName" value="UAA" />
 	</bean>
+
+	<bean id="oauthAccessDeniedHandler" class="org.springframework.security.oauth2.provider.error.MediaTypeAwareAccessDeniedHandler" />
 
 	<http access-denied-page="/" authentication-manager-ref="authzAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
 		<!-- machine API access to the authorization process itself is allowed -->
@@ -183,7 +188,7 @@
 			scope="openid,read" authorities="ROLE_GUEST" secret="${my.client.secret:$2a$10$8qjw5C.p65W6VIV7vXC0Hemo0S5kvt1ib/n4zBObx9XxLHo7FqUGS}" />
 		<oauth:client client-id="scim" authorized-grant-types="client_credentials" scope="read,write,password"
 			authorities="ROLE_CLIENT" secret="${scim.client.secret:$2a$10$mEaFQ2.VeetFRVXAUZGzl.x62KjnwVTHPjbVJ/ErsRJyhndXawxv.}" />
-		<oauth:client client-id="vmc" authorized-grant-types="refresh_token,implicit" scope="read" authorities="ROLE_GUEST" />
+		<oauth:client client-id="vmc" authorized-grant-types="refresh_token,implicit" scope="read,password" authorities="ROLE_GUEST" />
 	</oauth:client-details-service>
 
 	<oauth:resource-server id="oauth2ResourceServerFilter" token-services-ref="tokenServices"

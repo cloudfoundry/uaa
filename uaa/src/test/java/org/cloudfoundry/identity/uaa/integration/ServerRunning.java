@@ -225,7 +225,7 @@ public class ServerRunning implements MethodRule {
 	}
 
 	public ResponseEntity<String> getForString(String path) {
-		return client.exchange(getUrl(path), HttpMethod.GET, new HttpEntity<Void>((Void) null), String.class);
+		return getForString(path, new HttpHeaders());
 	}
 
 	public <T> ResponseEntity<T> getForObject(String path, Class<T> type) {

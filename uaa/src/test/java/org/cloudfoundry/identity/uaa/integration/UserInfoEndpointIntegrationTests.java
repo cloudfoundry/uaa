@@ -5,7 +5,6 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Rule;
 import org.junit.Test;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -16,7 +15,7 @@ public class UserInfoEndpointIntegrationTests {
 
 	@Rule
 	public ServerRunning server = ServerRunning.isRunning();
-
+	
 	@Rule
 	public TestAccountSetup testAccounts = TestAccountSetup.withLegacyTokenServerForProfile("mocklegacy");
 	
@@ -30,8 +29,7 @@ public class UserInfoEndpointIntegrationTests {
 	@Test
 	public void testHappyDay() throws Exception {
 
-		HttpHeaders headers = new HttpHeaders();
-		ResponseEntity<String> user = server.getForString("/userinfo", headers);
+		ResponseEntity<String> user = server.getForString("/userinfo");
 		assertEquals(HttpStatus.OK, user.getStatusCode());
 
 		String map = user.getBody();
