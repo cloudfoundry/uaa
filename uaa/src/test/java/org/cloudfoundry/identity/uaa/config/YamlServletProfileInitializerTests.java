@@ -114,17 +114,17 @@ public class YamlServletProfileInitializerTests {
 	@Test
 	public void testLog4jFileFromYaml() throws Exception {
 		Mockito.when(context.getResource(Matchers.anyString())).thenReturn(
-				new ByteArrayResource("logging:\n  file: /tmp/bar".getBytes()));
+				new ByteArrayResource("logging:\n  file: /tmp/bar.log".getBytes()));
 		initializer.initialize(context);
-		assertEquals("/tmp/bar", System.getProperty("LOG_FILE"));
+		assertEquals("/tmp/bar.log", System.getProperty("LOG_FILE"));
 	}
 
 	@Test
 	public void testLog4jPathFromYaml() throws Exception {
 		Mockito.when(context.getResource(Matchers.anyString())).thenReturn(
-				new ByteArrayResource("logging:\n  path: /tmp/bar".getBytes()));
+				new ByteArrayResource("logging:\n  path: /tmp/log/bar".getBytes()));
 		initializer.initialize(context);
-		assertEquals("/tmp/bar", System.getProperty("LOG_PATH"));
+		assertEquals("/tmp/log/bar", System.getProperty("LOG_PATH"));
 	}
 
 	@Test
