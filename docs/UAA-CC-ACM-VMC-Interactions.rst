@@ -199,7 +199,6 @@ Web sequence diagrams for various operations
 #. `vmc create org <diagrams/flow-create-org.png>`_ -- (`text <diagrams/flow-create-org.txt>`__)
 #. `vmc add permissions <diagrams/flow-add-permissions.png>`_ -- (`text <diagrams/flow-add-permissions.txt>`__)
 #. `vmc bind service <diagrams/flow-bind-service.png>`_ -- (`text <diagrams/flow-bind-service.txt>`__)
-#. `bosh add stem_cell <diagrams/flow-bosh-add-stem.png>`_ -- (`text <diagrams/flow-bosh-add-stem.txt>`__)
 
 Web Application Flows
 ======================================
@@ -221,5 +220,5 @@ Open Issues
 
 * New LDAP user -- expect UAA to be able to provide Just In Time provisioning, i.e. create an account as the user authenticates.
 * Design database user account migration
-* we have now allowed for multiple UAAs per CC/BOSH, but we should also support multiple CC/BOSH per UAA -- and should get single signon between them. Really need a refresh token. Need to consider OAuth2 authcode flow vs. implicit flow (as Dave has suggested). 
-* Need more info on BOSH model. Doesn't need Orgs, but has similar concepts of group/project, object/resource. BOSH could actually be an org within a CS instance also used by CC -- though more likely would want the separation of their own instance. 
+* we have now allowed for multiple UAAs per CC, but we should also support multiple CC per UAA -- and should get single signon between them. Really need a refresh token. Need to consider OAuth2 authcode flow vs. implicit flow (as Dave has suggested). 
+
