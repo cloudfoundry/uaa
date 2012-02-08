@@ -63,24 +63,24 @@ The current applications under consideration for the authentication service with
 api.cloudfoundry.com
 ---------------------
 
-The cloud foundry service itself would the UAA service. The OAuth access token would be used instead of the current token in a similar way. Possible APIs and component boundaries between the UAA, the colloboration spaces authorization system, and the cloud controller are currently being explored in POC code. 
+The cloud foundry service itself would use the UAA service. The OAuth access token would be used instead of the current token in a similar way. Possible APIs and component boundaries between the UAA, the colloboration spaces authorization system, and the cloud controller are currently being explored in POC code. 
 
 www.cloudfoundry.com
 ----------------------
 
-Work with Scott Andrews to synchronize plans. Current thought is that the www site could be the UI for the user account and authentication service. It would support user account creation and management such as password reset, etc. This is also where any OAuth2 authorization page would go if we were to allow users to authorize other applications to access portions (scopes) of the cloudfoundry APIs on their behalf.\\
+Current thought is that the www site could be the UI for the user account and authentication service. It would support user account creation and management such as password reset, etc. This is also where any OAuth2 authorization page would go if we were to allow users to authorize other applications to access portions (scopes) of the cloudfoundry APIs on their behalf.
 
 The www app also supports the microcloud DNS management which would need to support OAuth2 access tokens as a client of the UAA.
 
 studio.cloudfoundry.com
 -------------------------
 
-Primary point of contact so far with the CF Studio (WaveMaker) team has been Christian Dupuis. My understanding from a meeting with Christian is that the CF Studio does not hold any user account information but will pushes applications to cloudfoundry.com similar to how the vmc and STS applications do now. Since CF Studio is a web application, it can use the OAuth2 redirect flows and therefore get an access token for its users via SSO with the UAA. Current expectation is that it would not be difficult for them to implement an OAuth client in their application such that their users would get SSO with VMware applications on cloudfoundry.com.
+Since CF Studio is a web application, it can use the OAuth2 redirect flows and therefore get an access token for its users via SSO with the UAA. Current expectation is that it would not be difficult for them to implement an OAuth client in their application such that their users would get SSO with VMware applications on cloudfoundry.com.
 
 support.cloudfoundry.com
 --------------------------
 
-This appears to be a zendesk instance. The zendesk product already supports various flavors of OpenID and OAuth, though status of OpenID Connect support is unknown.
+The product already supports various flavors of OpenID and OAuth, though status of OpenID Connect support is unknown.
 
 Unresolved Issues
 ===================
@@ -90,15 +90,10 @@ OAuth2 Scopes
 
 Not so much unresolved as just postponed. OAuth2 lets an authorization provider designate scopes that can further restrict what access a user delegates. For example, when I here of a new app that can analyze my apps on cloud foundry, I may only want to authorize it to read my data, not make any changes.
 
-Interaction Between Collaboration Spaces and Authentication Services
-----------------------------------------------------------------------
-
-In Collaboration Spaces, an Org may specify the authentication policy -- ie.g. an Org may require multi-factor authentication to change production apps. When a user contacts a service, the collaboration spaces model must indicate it's authentication policy to the UAA. This is similar to the Provider Authentication Policy Extension (PAPE) in OpenID 2.0, we'll need to figure out how to accomplish the same thing in OAuth2.
-
 Interaction between Collaboration Spaces and External Groups used for Authorization
 ------------------------------------------------------------------------------------
 
-In the collaboration spaces design, group may indicate that their membership is determined by an external source, such as a Group in Active Directory or a dynamic group in Horizon App Manager (which would be part of a SAML assertion). How is that information gathered by the UAA and provided to the Collaboration Spaces code?
+In the collaboration spaces design, a group may indicate that its membership is determined by an external source, such as a Group in Active Directory or a dynamic group in Horizon App Manager (which would be part of a SAML assertion). How is that information gathered by the UAA and provided to the Collaboration Spaces code?
 
 One or More External Authentication Mechanisms for Users
 ----------------------------------------------------------------------
