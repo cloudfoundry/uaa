@@ -8,10 +8,8 @@
   * Dave Syer (`dsyer@vmware.com`)
   * Luke Taylor (`ltaylor@vmware.com`)
   * Joel D'Sa (`jdsa@vmware.com`)
-* Team mailing list: `cfid@vmware.com`
-* Repository: [http://github.com/vmware-ac/uaa](http://github.com/vmware-ac/uaa)
-* Issue tracker: [https://issuetracker.springsource.com/browse/CFID](https://issuetracker.springsource.com/browse/CFID)
-* Docs: [http://github.com/vmware-ac/uaa/wiki](http://github.com/vmware-ac/uaa/wiki)
+* Team mailing list: `cf-id@vmware.com`
+* Docs: docs/
 
 ## Quick Start
 
