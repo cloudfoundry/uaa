@@ -2,8 +2,7 @@
 CloudFoundry Identity Services Preface
 ================================================
 
-.. attention:: This document was written in the summer of 2011. Many of the principles and goals are still valid in Dec 2011, but it
-   has not been updated for some time. 
+.. attention:: This document was written in the summer of 2011. Many of the principles and goals are still valid in Dec 2011, but it has not been updated for some time. 
 
 .. contents:: Table of Contents
 
@@ -20,7 +19,7 @@ The intent of this document is to provide an overall context in which to explore
 
 This document is obviously a work in progress. It's an attempt to organize and structure some initial research and ideas. 
 
-Goals of Foundry Identity Services
+Goals of Cloud Foundry Identity Services
 ---------------------------------------------
 
 There are three goals of this phase of the identity services for cloud foundry, in order of priority:
@@ -34,7 +33,7 @@ Access to the platform occurs through a variety of methods, including command li
 
 This general concept of supporting policies and roles within CloudFoundry itself is clearly needed for application developers so that they can development teams can produce, deploy and manager applications. This concept is referred to in CloudFoundry code and internal design documents as Collaboration Spaces.
 
-Provide identity services to Foundry applications
+Provide identity services to Cloud Foundry applications
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Foundry applications need a variety of identity services, yet the services need to be provided in an easily accessible, simple manner or developers tend to implement their own simple -- often insecure and inflexible -- solutions.
@@ -49,16 +48,7 @@ Some identity services that should be easily available to Foundry applications:
 
 All identity services should be able to support multi-tenant applications (i.e. where users within the application come from multiple identity providers).
 
-Note on Multi-Tenancy
-++++++++++++++++++++++
-
-I have seen in some Cloud Foundry documentation and heard in numerous presentations that a single DEA can support single or multiple tenants, i.e. multiple apps on a single VM. In this document I mean something else. When I refer to multi-tenancy, I mean users from multiple organizations accessing a single application. In this usage, a tenant maps to a company or department using a particular SaaS application. A multi-tenant application is one that supports multiple such organizations. All users in an organization map to tenant entity, which is usually billable, and a set of user accounts within that tenant. The accounts are sometimes external to the application but all users for a tenant generally come from a single identity provider. Think of Salesforce, Workday, and Axiom as multi-tenant applications where vmware is a tenant. For more on this definition of Multi-tenancy see:
-
-http://en.wikipedia.org/wiki/Multi-tenancy
-
-http://code.google.com/appengine/docs/java/multitenancy/overview.html
-
-Apply Foundry identity services to support the Foundry community
+Apply Foundry identity services to support the Cloud Foundry community
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Developers interact with the Foundry platform and with each other to form the Foundry community. The community uses tools such as git, github, wikis, mailing lists, and IRC channels, as well as accessing the Foundry platform.&nbsp; The current tools often use completely disjoint user accounts, and can lack authorization controls to enable maximum openness while maintaining necessary control to insure stable progress.
@@ -202,14 +192,14 @@ Relevant Standards
 ---------------------------------------------
 
 
-OAuth
+OAuth2
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The OAuth 2 RFC from the IETF should be complete this summer. A number of companies such as Google, Microsoft, Facebook, Salesforce have already implemented early versions of the RFC.
 
 http://oauth.net/2/
 
-OpenID
+OpenID Connect
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 OpenID has been somewhat stagnant since OpenID 2.0 was completed. The community fragmented over competing future directions in efforts such as OpenID Connect, OpenID Artifact Binding, etc. These issues appear to be resolved as of early May 2011. The combined efforts are now called OpenID Connect (though developed in the OpenID AB working group), and will be built on top of the OAuth 2 RFC.
@@ -223,80 +213,4 @@ A new effort led by Salesforce, Ping Identity, others, attempting to produce a R
 
 http://www.simplecloud.info/
 
-Traditional OASIS federation protocols (SAML, WS-Fed, WS-Trust)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Need to support these for vast majority of enterprise federation products, Horizon Access Manager, etc.
-
-Lessons from Other PaaS and IDaaS projects
----------------------------------------------
-
-
-MyOneLogin and Horizon Access Manager
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-They both provide lessons learned, and they are primary identity services to support.
-
-Microsoft Azure Access Control Service (ACS)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-ACS 2.0 certainly covers a lot of the same topics and services, though is often a good counter example regarding how the focus on difficult cases keeps adoption low.
-
-Google App Engine and Google Accounts
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Rather simplistic in the platform -- the simple cases are handled well, but the difficult cases are REALLY difficult.
-
-Salesforce and force.com
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Need more research here. We have an outstanding invitation from the Salesforce identity team to meet and collaborate beyond current vmforce project.
-
-Janrain Engage (formerly RPX)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-A separate service which offloads authentication services from web applications. Simple to use for an app, but requires apps to make external calls to yet another service. Similar to MyOneLogin and Google's new RP enablement service (called from their Identity Toolkit).
-
-Multi-factor authentication to Google App Engine
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Google supports two-factor authentication by allowing users to use a one-time password sent to a mobile phone in addition to their password.
-
-http://www.infosecurity-us.com/view/15887/twofactor-authentication-for-google-accounts-goes-live/
-
-As of late March, 2011, it was not cleanly supported by the command line tools:
-
-http://code.google.com/p/googleappengine/issues/detail?id=4777
-
-Interestingly, we could perhaps support it in Cloud Foundry similar to how it can be used to provide two-factor authentication to SSH sessions:
-
-http://www.techrepublic.com/blog/opensource/two-factor-ssh-authentication-via-google-secures-linux-logins/2607
-
-Multi-factor authentication to Amazon Web Services
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Amazon has supported multi factor authentication to AWS since 2009, though it requires a user to buy a device from Gemalto:
-
-http://aws.amazon.com/mfa/
-
-As far as I can decipher from the follow page, Amazon's multifactor authentication is limited to the AWS console:
-
-http://docs.amazonwebservices.com/AWSSecurityCredentials/1.0/AboutAWSCredentials.html
-
-Potential Starting Projects
----------------------------------------------
-
-
-OmniAuth
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Looks like a good start for authentication services for Ruby frameworks, though somewhat sparsely supported. Also, it does not appear to support multi-tenancy.
-
-https://github.com/intridea/omniauth/wiki
-
-The unfortunately named Google Identity Toolkit
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-First announced at IIW (May 4, 2011), Googles Toolkit to enable web applications to support federated authentication including current best practices for login UI.
-
-https://sites.google.com/site/gitooldocs/
