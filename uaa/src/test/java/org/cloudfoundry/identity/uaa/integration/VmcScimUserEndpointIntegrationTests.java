@@ -20,6 +20,8 @@ import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.scim.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.junit.Assume;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.http.HttpEntity;
@@ -50,8 +52,21 @@ public class VmcScimUserEndpointIntegrationTests {
 	@Rule
 	public OAuth2ContextSetup context = OAuth2ContextSetup.implicit(server, "joe", "password");
 
+	@Rule
+	public TestAccountSetup testAccounts = TestAccountSetup.withLegacyTokenServerForProfile("mocklegacy");
+	
+	@Before
+	public void checkLegacy() {
+		Assume.assumeTrue(!testAccounts.isLegacy());		
+	}
+	
 	@BeforeOAuth2Context
 	public void setUpUserAccounts() {
+
+		if (testAccounts.isLegacy()) {
+			// Don't try to set up test account if we are in legacy mode
+			return;		
+		}
 
 		RestTemplate client = context.getRestTemplate();
 

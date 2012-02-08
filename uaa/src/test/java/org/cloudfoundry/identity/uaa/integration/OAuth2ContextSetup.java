@@ -25,6 +25,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
+import org.junit.internal.AssumptionViolatedException;
 import org.junit.internal.runners.statements.RunBefores;
 import org.junit.rules.TestWatchman;
 import org.junit.runners.model.FrameworkMethod;
@@ -207,6 +208,9 @@ public class OAuth2ContextSetup extends TestWatchman {
 							public void evaluate() {
 							}
 						}, befores, target).evaluate();
+					}
+					catch (AssumptionViolatedException e) {
+						throw e;
 					}
 					catch (Throwable e) {
 						Assert.assertThat(e, CoreMatchers.not(CoreMatchers.anything()));
