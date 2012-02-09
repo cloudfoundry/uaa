@@ -96,7 +96,7 @@
 		<access-denied-handler ref="oauthAccessDeniedHandler"/>
 	</http>
 
-	<http pattern="/oauth/token" create-session="never" authentication-manager-ref="clientAuthenticationManager"
+	<http pattern="/oauth/token" create-session="stateless" authentication-manager-ref="clientAuthenticationManager"
 		entry-point-ref="basicAuthenticationEntryPoint" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<anonymous enabled="false" />
@@ -104,7 +104,7 @@
 		<access-denied-handler ref="oauthAccessDeniedHandler"/>
 	</http>
 
-	<http pattern="/varz/**" create-session="never" authentication-manager-ref="varzAuthenticationManager"
+	<http pattern="/varz/**" create-session="stateless" authentication-manager-ref="varzAuthenticationManager"
 		entry-point-ref="basicAuthenticationEntryPoint" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<anonymous enabled="false" />
