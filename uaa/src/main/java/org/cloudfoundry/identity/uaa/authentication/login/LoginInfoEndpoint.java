@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.authentication.login;
 
+import java.security.Principal;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -24,13 +25,16 @@ public class LoginInfoEndpoint {
 	}
 
 	@RequestMapping (value = {"/login_info", "/login"})
-	public String loginInfo(Model model) {
+	public String loginInfo(Model model, Principal principal) {
 		Map<String, String[]> map = new LinkedHashMap<String, String[]>();
 		for (Prompt prompt : prompts) {
 			map.put(prompt.getName(), prompt.getDetails());
 		}
 		model.addAttribute("prompts", map);
-		return "login";
+		if (principal==null) {
+			return "login";
+		}
+		return "home";
 	}
 
 }

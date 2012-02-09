@@ -1,11 +1,9 @@
-<%@ page session="true"%>
+<%@ page session="false"%>
 
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt"%>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions"%>
 <%@ taglib prefix="spring" uri="http://www.springframework.org/tags"%>
-<%@ taglib prefix="sec"
-	uri="http://www.springframework.org/security/tags"%>
 
 <c:url var="baseUrl" value="/resources" />
 <c:url var="faviconUrl" value="/favicon.ico" />
@@ -97,13 +95,6 @@ img.gsc-branding-img,img.gsc-branding-img-noclear,img.gcsc-branding-img,img.gcsc
 								<input autocomplete='off' class='search-input' name='q'
 									placeholder='search' type='text' value='' />
 							</form>
-							<sec:authorize ifAllGranted="ROLE_USER">
-								<ul class='super-nav'>
-									<li><span>Welcome <strong>${fn:escapeXml(pageContext.request.userPrincipal.name)}</strong></span>
-										/ <c:url value="/logout.do" var="url" /> <a
-										href="${fn:escapeXml(url)}">Logout</a> &nbsp;</li>
-								</ul>
-							</sec:authorize>
 						</div>
 						<div id='nav'>
 							<ul>
@@ -128,36 +119,30 @@ img.gsc-branding-img,img.gsc-branding-img-noclear,img.gcsc-branding-img,img.gcsc
 
 							<article class="container" style="position: relative;">
 								<div style="float: left; width: 40%;">
-									<sec:authorize ifNotGranted="ROLE_USER" var="authorized">
-										<form id="loginForm" name="loginForm"
-											action="<c:url value="/login.do"/>" method="POST" novalidate>
-											<div>
-												<h2>Login</h2>
-												<c:if
-													test="${not empty sessionScope['SPRING_SECURITY_LAST_EXCEPTION']}">
-													<div>
-														<span class="flash">${fn:escapeXml(sessionScope['SPRING_SECURITY_LAST_EXCEPTION'].message)}</span>
-														<a href="http://${hostName}/passwd">Forgot password?</a>
-													</div>
-												</c:if>
-												<c:forEach items="${prompts}" var="prompt">
-													<label for="${prompt.key}">${prompt.value[1]}</label>
-													<input id='${prompt.key}' type='${prompt.value[0]}'
-														name='${prompt.key}' />
-												</c:forEach>
-											</div>
-											<div class="buttons">
-												<button type="submit">Login</button>
-												<span class="button-alt">or <a
-													href="http://${hostName}/signup">sign up</a> for
-													CloudFoundry.com
-												</span>
-											</div>
-										</form>
-									</sec:authorize>
-									<c:if test="authorized">
-										<p>You are already authenticated.</p>
-									</c:if>
+									<form id="loginForm" name="loginForm"
+										action="<c:url value="/login.do"/>" method="POST" novalidate>
+										<div>
+											<h2>Login</h2>
+											<c:if test="${not empty param.error}">
+												<div>
+													<span class="flash">Login failed</span> <a
+														href="http://${hostName}/passwd">Forgot password?</a>
+												</div>
+											</c:if>
+											<c:forEach items="${prompts}" var="prompt">
+												<label for="${prompt.key}">${prompt.value[1]}</label>
+												<input id='${prompt.key}' type='${prompt.value[0]}'
+													name='${prompt.key}' />
+											</c:forEach>
+										</div>
+										<div class="buttons">
+											<button type="submit">Login</button>
+											<span class="button-alt">or <a
+												href="http://${hostName}/signup">sign up</a> for
+												CloudFoundry.com
+											</span>
+										</div>
+									</form>
 
 									<hr />
 									<section class="learnmore">

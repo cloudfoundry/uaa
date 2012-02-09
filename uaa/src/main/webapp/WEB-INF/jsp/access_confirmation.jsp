@@ -4,8 +4,6 @@
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt"%>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions"%>
 <%@ taglib prefix="spring" uri="http://www.springframework.org/tags"%>
-<%@ taglib prefix="sec"
-	uri="http://www.springframework.org/security/tags"%>
 
 <c:url var="baseUrl" value="/resources" />
 <c:set value="www.cloudfoundry.com" var="hostName" />
@@ -96,13 +94,11 @@ img.gsc-branding-img,img.gsc-branding-img-noclear,img.gcsc-branding-img,img.gcsc
 								<input autocomplete='off' class='search-input' name='q'
 									placeholder='search' type='text' value='' />
 							</form>
-							<sec:authorize ifAllGranted="ROLE_USER">
-								<ul class='super-nav'>
-									<li><span>Welcome <strong>${fn:escapeXml(pageContext.request.userPrincipal.name)}</strong></span>
-										/ <c:url value="/logout.do" var="url" /> <a
-										href="${fn:escapeXml(url)}">Logout</a> &nbsp;</li>
-								</ul>
-							</sec:authorize>
+							<ul class='super-nav'>
+								<li><span>Welcome <strong>${fn:escapeXml(pageContext.request.userPrincipal.name)}</strong></span>
+									/ <c:url value="/logout.do" var="url" /> <a
+									href="${fn:escapeXml(url)}">Logout</a> &nbsp;</li>
+							</ul>
 						</div>
 						<div id='nav'>
 							<ul>

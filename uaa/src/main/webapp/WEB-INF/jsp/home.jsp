@@ -4,8 +4,6 @@
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt"%>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions"%>
 <%@ taglib prefix="spring" uri="http://www.springframework.org/tags"%>
-<%@ taglib prefix="sec"
-	uri="http://www.springframework.org/security/tags"%>
 
 <c:url var="baseUrl" value="/resources" />
 <c:set value="www.cloudfoundry.com" var="hostName" />
@@ -28,14 +26,14 @@
 	name='copyright' />
 <link href='${baseUrl}/favicon.ico' rel='shortcut icon' />
 <meta content='all' name='robots' />
-<link href='${baseUrl}/stylesheets/print.css'
-	media='print' rel='stylesheet' type='text/css' />
-<link href='${baseUrl}/stylesheets/master.css'
-	media='screen' rel='stylesheet' type='text/css' />
+<link href='${baseUrl}/stylesheets/print.css' media='print'
+	rel='stylesheet' type='text/css' />
+<link href='${baseUrl}/stylesheets/master.css' media='screen'
+	rel='stylesheet' type='text/css' />
 <!--[if lt IE 9 ]> <link href="${baseUrl}/stylesheets/ie.css" media="screen" rel="stylesheet" type="text/css" /> <![endif]-->
 <!--[if lt IE 8 ]> <link href="${baseUrl}/stylesheets/ie7.css" media="screen" rel="stylesheet" type="text/css" /> <![endif]-->
-<link href='${baseUrl}/stylesheets/master-cf.css'
-	media='screen' rel='stylesheet' type='text/css' />
+<link href='${baseUrl}/stylesheets/master-cf.css' media='screen'
+	rel='stylesheet' type='text/css' />
 <style media='screen' type='text/css'>
 .js-hide {
 	display: none;
@@ -61,8 +59,7 @@ img.gsc-branding-img,img.gsc-branding-img-noclear,img.gcsc-branding-img,img.gcsc
 	color: #0094d4;
 }
 </style>
-<script type="text/javascript"
-	src="${baseUrl}/javascripts/jquery.js"></script>
+<script type="text/javascript" src="${baseUrl}/javascripts/jquery.js"></script>
 </head>
 <body id="micro">
 	<div class='wrapper'>
@@ -72,40 +69,33 @@ img.gsc-branding-img,img.gsc-branding-img-noclear,img.gcsc-branding-img,img.gcsc
 					<div class='span-6 logo-wrap'>
 						<a href='http://${hostName}/'> <img
 							alt="Cloud Foundry: The Industry's Open Platform As A Service"
-							src='${baseUrl}/images/logo_header_cloudfoundry.png'
-							width='373' height='70'> <span class='replaced'>Cloud
-								Foundry: The Industry's Open Platform As A Service</span> </img>
+							src='${baseUrl}/images/logo_header_cloudfoundry.png' width='373'
+							height='70'> <span class='replaced'>Cloud Foundry:
+								The Industry's Open Platform As A Service</span> </img>
 						</a>
 					</div>
 					<div class='span-9 last'>
 						<div class='right'>
-							<form action='http://${hostName}/search'
-								class='search-form' method='get'>
+							<form action='http://${hostName}/search' class='search-form'
+								method='get'>
 								<input autocomplete='off' class='search-input' name='q'
 									placeholder='search' type='text' value='' />
 							</form>
-							<sec:authorize ifAllGranted="ROLE_USER">
-								<ul class='super-nav'>
-									<li><span>Welcome <strong>${fn:escapeXml(pageContext.request.userPrincipal.name)}</strong></span>
-										/ <c:url value="/logout.do" var="url" /> <a
-										href="${fn:escapeXml(url)}">Logout</a> &nbsp;</li>
-								</ul>
-							</sec:authorize>
+							<ul class='super-nav'>
+								<li><span>Welcome <strong>${fn:escapeXml(pageContext.request.userPrincipal.name)}</strong></span>
+									/ <c:url value="/logout.do" var="url" /> <a
+									href="${fn:escapeXml(url)}">Logout</a> &nbsp;</li>
+							</ul>
 						</div>
 						<div id='nav'>
 							<ul>
 								<li><a href='http://start.cloudfoundry.com/'>Get
 										Started</a></li>
-								<li><a
-									href='http://${hostName}/getinvolved'>Get
+								<li><a href='http://${hostName}/getinvolved'>Get
 										Involved</a></li>
-								<li><a
-									href='http://${hostName}/partners'>Partners</a>
-								</li>
+								<li><a href='http://${hostName}/partners'>Partners</a></li>
 								<li><a href='http://blog.cloudfoundry.com'>Blog</a></li>
-								<li><a
-									href='http://${hostName}/about'>About</a>
-								</li>
+								<li><a href='http://${hostName}/about'>About</a></li>
 							</ul>
 						</div>
 					</div>
@@ -129,18 +119,7 @@ img.gsc-branding-img,img.gsc-branding-img-noclear,img.gcsc-branding-img,img.gcsc
 								</div>
 							</c:if>
 
-							<sec:authorize ifNotGranted="ROLE_USER">
-								<h2>You are logged in but do not have the user role</h2>
-								<div>
-									You should never see this, but if you do, maybe you can <a
-										href="<c:url value="/login"/>">log in here</a>
-								</div>
-								<br />
-							</sec:authorize>
-
-							<sec:authorize ifAllGranted="ROLE_USER">
-								<h2>You are logged in</h2>
-							</sec:authorize>
+							<h2>You are logged in</h2>
 
 						</div>
 					</div>
@@ -162,13 +141,12 @@ img.gsc-branding-img,img.gsc-branding-img-noclear,img.gcsc-branding-img,img.gcsc
 				</div>
 				<div class='prepend-2 span-5'>
 					<p>
-						<a href='http://${hostName}/faq'>FAQ</a> |
-						<a href='http://support.cloudfoundry.com' target='_blank'>Forums</a>
+						<a href='http://${hostName}/faq'>FAQ</a> | <a
+							href='http://support.cloudfoundry.com' target='_blank'>Forums</a>
 						| <a href='http://blog.cloudfoundry.com'>Blog</a> | <a
-							href='http://${hostName}/jobs'>Jobs</a> |
-						<a href='http://${hostName}/legal'>Legal</a>
-						| <a href='http://www.vmware.com/help/privacy.html'
-							target='_blank'>Privacy</a>
+							href='http://${hostName}/jobs'>Jobs</a> | <a
+							href='http://${hostName}/legal'>Legal</a> | <a
+							href='http://www.vmware.com/help/privacy.html' target='_blank'>Privacy</a>
 					</p>
 				</div>
 				<div class='span-5 last right'>
