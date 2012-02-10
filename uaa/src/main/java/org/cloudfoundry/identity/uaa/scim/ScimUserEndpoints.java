@@ -200,7 +200,7 @@ public class ScimUserEndpoints implements InitializingBean {
 	@RequestMapping(value = "/Users", method = RequestMethod.GET)
 	@ResponseBody
 	public SearchResults<Map<String, Object>> findUsers(
-			@RequestParam(required = false, defaultValue = "id") String attributesCommaSeparated,
+			@RequestParam(value="attributes", required = false, defaultValue = "id") String attributesCommaSeparated,
 			@RequestParam(required = false, defaultValue = "id pr") String filter,
 			@RequestParam(required = false, defaultValue = "1") int startIndex,
 			@RequestParam(required = false, defaultValue = "100") int count) {

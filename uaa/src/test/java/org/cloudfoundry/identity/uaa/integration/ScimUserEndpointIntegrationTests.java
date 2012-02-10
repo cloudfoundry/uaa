@@ -275,4 +275,14 @@ public class ScimUserEndpointIntegrationTests {
 		assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
 	}
 
+	@Test
+	public void findUsersWithAttributes() throws Exception {
+		@SuppressWarnings("rawtypes")
+		ResponseEntity<Map> response = server.getForObject(usersEndpoint + "?attributes=id,userName", Map.class);
+		@SuppressWarnings("unchecked")
+		Map<String, Object> results = response.getBody();
+		assertEquals(HttpStatus.OK, response.getStatusCode());
+		assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
+	}
+
 }
