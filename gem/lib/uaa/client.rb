@@ -87,19 +87,20 @@ class Cloudfoundry::Uaa::Client
 
     username = opts[:username]
     password = opts[:password]
-    if grant_type=="password" then
+
+    case grant_type
+    when "password"
       raise Cloudfoundry::Uaa::PromptRequiredError.new(default_prompts) if (username.nil? || password.nil?)
-    else
-      if grant_type=="implicit" then
-        if prompts_require_username_and_password? && username && password then
-          opts[:credentials] = {:username=>username, :password=>password}
-        end
-        raise Cloudfoundry::Uaa::PromptRequiredError.new(prompts) unless opts[:credentials]
+    when "implicit"
+      if prompts_require_username_and_password? && username && password then
+        opts[:credentials] = {:username=>username, :password=>password}
       end
-      # make sure they don't get used as request or form params unless we want them to
-      opts.delete :username
-      opts.delete :password
+      raise Cloudfoundry::Uaa::PromptRequiredError.new(prompts) unless opts[:credentials]
     end
+
+    # make sure they don't get used as request or form params unless we want them to
+    opts.delete :username
+    opts.delete :password
 
     if grant_type!="client_credentials" && grant_type!="password" then
       opts[:redirect_uri] ||= @redirect_uri
