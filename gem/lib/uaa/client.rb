@@ -1,6 +1,7 @@
 require 'uaa/http'
 require 'uaa/error'
 require 'base64'
+require 'uri'
 
 # Utility API for client of the UAA server.  Provides convenience
 # methods to obtain and decode OAuth2 access tokens.
@@ -156,7 +157,7 @@ class Cloudfoundry::Uaa::Client
   def decode_token(token, opts={})
     headers = {'Accept'=>"application/json", 
       'Authorization'=>client_auth(opts)}
-    status, body, headers = request(:get, "/check_token?token=#{token}", nil, headers)
+    status, body, headers = request(:get, "/check_token?token=#{URI.escape(token)}", nil, headers)
     result = json_parse(body)   
   end
 
