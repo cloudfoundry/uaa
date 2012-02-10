@@ -36,6 +36,21 @@ describe Cloudfoundry::Uaa::Client do
     end
         
 
+    context "with client_credentials grant" do
+
+      before :each do
+        @response = [200, '{"access_token":"FOO"}', nil]
+      end
+
+      it "should not require prompts", :integration=>false do
+        expect do
+          subject.login(:client_id=>"app", :client_secret=>"appclientsecret", :grant_type=>"client_credentials")
+          @input[:url].should =~ /\/token/
+        end.should_not raise_exception(Cloudfoundry::Uaa::PromptRequiredError)
+      end
+      
+    end
+
     context "with password grant" do
 
       before :each do
@@ -55,18 +70,18 @@ describe Cloudfoundry::Uaa::Client do
       end
       
       it "should post to the token endpoint", :integration=>false do
-        token = subject.login(:username=>"vcap_tester@vmware.com", :password=>"tester", :client_id=>"foo", :grant_type=>"password")
+        subject.login(:username=>"vcap_tester@vmware.com", :password=>"tester", :client_id=>"foo", :grant_type=>"password")
         @input[:url].should =~ /\/token/
         @input[:method].should == :post
       end
       
       it "should include the grant type", :integration=>false do
-        token = subject.login(:username=>"vcap_tester@vmware.com", :password=>"tester", :client_id=>"foo", :grant_type=>"password")
+        subject.login(:username=>"vcap_tester@vmware.com", :password=>"tester", :client_id=>"foo", :grant_type=>"password")
         @input[:payload].should =~ /grant_type=password/
       end
 
       it "should not have a redirect uri", :integration=>false do
-        token = subject.login(:username=>"vcap_tester@vmware.com", :password=>"tester", :grant_type=>"password")
+        subject.login(:username=>"vcap_tester@vmware.com", :password=>"tester", :grant_type=>"password")
         @input[:payload].should_not =~ /redirect_uri=/
       end
       
@@ -76,7 +91,7 @@ describe Cloudfoundry::Uaa::Client do
       end
 
       it "should use the client id if provided", :integration=>false do
-        token = subject.login(:username=>"vcap_tester@vmware.com", :password=>"tester", :client_id=>"foo", :grant_type=>"password")
+        subject.login(:username=>"vcap_tester@vmware.com", :password=>"tester", :client_id=>"foo", :grant_type=>"password")
         @input[:payload].should =~ /client_id=foo/
         @input[:headers]['Authorization'].should_not == @default_auth if @default_auth
       end
