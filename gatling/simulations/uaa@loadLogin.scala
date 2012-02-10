@@ -5,37 +5,41 @@ import com.excilys.ebi.gatling.script.GatlingSimulation
 
 class Simulation extends GatlingSimulation {
 
-  val urlBase = sys.env.getOrElse("GATLING_UAA_BASE", "http://localhost:8080/uaa")
+	val urlBase = sys.env.getOrElse("GATLING_UAA_BASE", "http://localhost:8080/uaa")
 
-  val httpConf = httpConfig.baseURL(urlBase)
+	val httpConf = httpConfig.baseURL(urlBase)
 
-  val plainHeaders = Map(
-    "Accept" -> "application/json",
-    "Content-Type" -> "application/x-www-form-urlencoded")
+	val plainHeaders = Map(
+		"Accept" -> "application/json",
+		"Content-Type" -> "application/x-www-form-urlencoded")
 
-  val feeder = new Feeder {
-    var counter = 0
-    def next = {
-      println("Counter " + counter)
-      counter += 1
-      Map("username" -> ("joe" + counter))
-    }
-  }
+	val feeder = new Feeder {
+		var counter = 0
 
-  val scn = scenario("Scenario name")
-    .feed(feeder)
-    .loop(
-      chain
-        .exec(
-          http("login")
-            .post("/oauth/authorize")
-            .param("client_id", "vmc")
-            .param("scope", "read")
-            .param("credentials", """{"username":"${username}","password":"koala"}""")
-            .param("redirect_uri", "uri:oauth:token")
-            .param("response_type", "token")
-            .headers(plainHeaders)
-            .check(status.is(302)))).times(200)
+		def next = {
+			println("Counter " + counter)
+			counter += 1
+			Map("username" -> ("joe" + counter))
+		}
+	}
 
-  runSimulation(scn.configure users 10 protocolConfig httpConf)
+	val scn = scenario("Scenario name")
+		.feed(feeder)
+		.loop(
+				chain.exec(
+					http("login")
+						.post("/oauth/authorize")
+						.param("client_id", "vmc")
+						.param("scope", "read")
+						.param("credentials", """{"username":"${username}","password":"password"}""")
+						.param("redirect_uri", "uri:oauth:token")
+						.param("response_type", "token")
+						.headers(plainHeaders)
+						.check(status.is(302))
+				)
+				.pause(1,2)
+		).during(60)
+
+
+	runSimulation(scn.configure users 10 ramp 30 protocolConfig httpConf)
 }
