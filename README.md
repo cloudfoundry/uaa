@@ -104,7 +104,7 @@ There are actually several projects here, the main `uaa` server application and 
 
 1. `uaa` is the actual UAA server
 
-2. `gem` is a ruby gem (`cloudfoundry-uaa`) for interacting with the UAA server
+2. `gem` is a ruby gem (`uaa_client`) for interacting with the UAA server
 
 3. `api` (sample) is an OAuth2 resource service which returns a mock list of deployed apps
 
