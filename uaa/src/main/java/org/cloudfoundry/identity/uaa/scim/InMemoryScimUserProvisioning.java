@@ -12,6 +12,7 @@
  */
 package org.cloudfoundry.identity.uaa.scim;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
@@ -19,17 +20,25 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import javax.activation.DataSource;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.springframework.beans.factory.DisposableBean;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.expression.Expression;
 import org.springframework.expression.spel.SpelParseException;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.Assert;
+import org.springframework.util.FileCopyUtils;
 
 /**
  * In-memory user account information storage.
@@ -37,143 +46,43 @@ import org.springframework.util.Assert;
  * @author Luke Taylor
  * @author Dave Syer
  */
-public class InMemoryScimUserProvisioning implements ScimUserProvisioning {
-
-	private final Log logger = LogFactory.getLog(getClass());
-
-	private final Map<String, UaaUser> users;
-
-	private final ConcurrentMap<String, String> ids = new ConcurrentHashMap<String, String>();
-
-	private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+public class InMemoryScimUserProvisioning extends JdbcScimUserProvisioning implements DisposableBean {
 
 	public InMemoryScimUserProvisioning(Map<String, UaaUser> users) {
-		this.users = users; // so we can share the storage with a UaaDatabase
-		for (UaaUser user : users.values()) {
-			addUser(user);
+		super(new JdbcTemplate((new DriverManagerDataSource("org.hsqldb.jdbcDriver", "jdbc:hsqldb:mem:scimusers", "sa", ""))));
+
+		try {
+			Resource sqlFile = new ClassPathResource("org/cloudfoundry/identity/uaa/schema-hsqldb.sql");
+			String sql = new String(FileCopyUtils.copyToByteArray(sqlFile.getInputStream()));
+			jdbcTemplate.execute(sql);
+		}
+		catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+
+		setPasswordValidator(new PasswordValidator() {
+			@Override
+			public void validate(String password, ScimUser user) throws InvalidPasswordException {
+				// accept anything
+			}
+		});
+
+		for (UaaUser u: users.values()) {
+			createUser(getScimUser(u), u.getPassword());
 		}
 	}
 
-	private UaaUser addUser(UaaUser user) {
-		if (user.getId().equals("NaN")) {
-			user = user.id(UUID.randomUUID().toString());
-		}
-		users.put(user.getUsername(), user);
-		ids.put(user.getId(), user.getUsername());
-		return users.get(user.getUsername());
+	@Override
+	public void destroy() {
+		jdbcTemplate.execute("SHUTDOWN");
 	}
 
 	/**
-	 * Convert to SCIM data for use in JSON responses.
+	 * Convert UaaUser to SCIM data.
 	 */
 	private ScimUser getScimUser(UaaUser user) {
 		ScimUser scim = new ScimUser(user.getId(), user.getUsername(), user.getGivenName(), user.getFamilyName());
 		scim.addEmail(user.getEmail());
 		return scim;
-	}
-
-	private UaaUser getUaaUser(ScimUser scim, String password) {
-		return new UaaUser(scim.getUserName(), password, scim.getPrimaryEmail(), scim.getGivenName(),
-				scim.getFamilyName());
-	}
-
-	@Override
-	public ScimUser retrieveUser(String id) throws UserNotFoundException {
-		if (!ids.containsKey(id)) {
-			throw new UserNotFoundException("User " + id + " does not exist");
-		}
-		return getScimUser(users.get(ids.get(id)));
-	}
-
-	@Override
-	public Collection<ScimUser> retrieveUsers() {
-		Collection<ScimUser> result = new ArrayList<ScimUser>();
-		for (UaaUser user : users.values()) {
-			result.add(getScimUser(user));
-		}
-		return result;
-	}
-
-	@Override
-	public Collection<ScimUser> retrieveUsers(String filter) {
-
-		Collection<ScimUser> users = new ArrayList<ScimUser>();
-
-		String spel = filter.replace(" eq ", " == ").replace(" pr", "!=null").replace(" ge ", " >= ")
-				.replace(" le ", " <= ").replace(" gt ", " > ").replace(" lt ", " < ")
-				.replaceAll(" co '(.*?)'", ".contains('$1')").replaceAll(" sw '(.*?)'", ".startsWith('$1')")
-				.replaceAll("emails\\.(.*?)\\.(.*?)\\((.*?)\\)", "emails.^[$1.$2($3)]!=null");
-
-		logger.debug("Filtering users with SpEL: " + spel);
-
-		StandardEvaluationContext context = new StandardEvaluationContext();
-		Expression expression;
-		try {
-			expression = new SpelExpressionParser().parseExpression(spel);
-		}
-		catch (SpelParseException e) {
-			throw new IllegalArgumentException("Invalid filter expression: [" + filter + "]");
-		}
-
-		for (ScimUser user : retrieveUsers()) {
-			if (expression.getValue(context, user, Boolean.class)) {
-				users.add(user);
-			}
-		}
-
-		return users;
-
-	}
-
-	@Override
-	public ScimUser removeUser(String id, int version) throws UserNotFoundException {
-		String name = ids.remove(id);
-		if (name == null) {
-			throw new UserNotFoundException("User " + id + " does not exist");
-		}
-		UaaUser removed = users.remove(name);
-		return getScimUser(removed);
-	}
-
-	@Override
-	public ScimUser createUser(ScimUser scim, String password) {
-		Assert.isTrue(!users.containsKey(scim.getUserName()), "A user with name '" + scim.getUserName()
-				+ "' already exists");
-		Assert.notEmpty(scim.getEmails(), "At least one email is required");
-
-		UaaUser user = addUser(getUaaUser(scim, passwordEncoder.encode(password)));
-		return getScimUser(user);
-	}
-
-	@Override
-	public ScimUser updateUser(String id, ScimUser user) throws UserNotFoundException {
-		if (!ids.containsKey(id)) {
-			throw new UserNotFoundException("User " + id + " does not exist");
-		}
-		UaaUser uaa = users.remove(ids.get(id));
-		String name = uaa.getUsername();
-		users.put(name, getUaaUser(user, uaa.getPassword()).id(id));
-		ids.replace(id, name);
-		return user;
-	}
-
-	@Override
-	public boolean changePassword(String id, String oldPassword, String password) throws UserNotFoundException {
-		if (!ids.containsKey(id)) {
-			throw new UserNotFoundException("User " + id + " does not exist");
-		}
-
-		UaaUser uaa = users.remove(ids.get(id));
-
-		if (oldPassword != null) {
-			if (!passwordEncoder.matches(oldPassword, uaa.getPassword())) {
-				throw new BadCredentialsException("Old password is incorrect");
-			}
-		}
-
-		String name = uaa.getUsername();
-		users.put(name, new UaaUser(name, passwordEncoder.encode(password), uaa.getEmail(), uaa.getGivenName(), uaa.getFamilyName()).id(id));
-		ids.replace(id, name);
-		return true;
 	}
 }
