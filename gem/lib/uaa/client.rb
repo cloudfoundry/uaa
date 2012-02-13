@@ -10,6 +10,8 @@ class Cloudfoundry::Uaa::Client
 
   # The target (base url) of calls to the UAA server.  Default is "http://uaa.vcap.me".
   attr_writer :target
+  # The token for authenticated calls to the UAA server if there is one currently.
+  attr_accessor :token
   # The client id to use if client authorization is needed (default "vmc")
   attr_writer :client_id
   # The client secret to use if client authorization is needed
@@ -47,6 +49,12 @@ class Cloudfoundry::Uaa::Client
   # owner password credentials (username and password).
   def default_prompts
     {:username=>["text", "Username"], :password=>["password", "Password"]}
+  end
+
+  # The prompts that can be used to elicit input for account
+  # registration (assuming it is supported on the server).
+  def registration_prompts
+    {:email=>["text", "Email"], :username=>["text", "Username"], :given_name=>["text", "Given (first) name"], :family_name=>["text", "Family (last) name"], :password=>["password", "Choose a password"]}
   end
 
   # Login get back an OAuth token. By default the UAA
@@ -126,7 +134,6 @@ class Cloudfoundry::Uaa::Client
     end
 
     opts.delete :client_secret # don't send secret in post data
-    opts.delete :verbose
 
     form_data = opts.map{|k,v| value=v.is_a?(Hash) ? v.to_json : v; "#{k}=#{value}"}.join('&')
 
@@ -156,11 +163,69 @@ class Cloudfoundry::Uaa::Client
   # tokens, so callers will need to change the default or provide
   # explicit values in the options. Authoeized clients must be
   # pre-registered with the server.
-  def decode_token(token, opts={})
+  def decode_token(token=nil, opts={})
     headers = {'Accept'=>"application/json", 
       'Authorization'=>client_auth(opts)}
+    token ||= @token
     status, body, headers = request(:get, "/check_token?token=#{token}", nil, headers)
     result = json_parse(body)   
+  end
+
+  # Register a new user account.
+  #
+  # === Attributes
+  #
+  # * +options+ - additional parameters to send
+  #   * +username+ - the username to register
+  #   * +password+ - the password to use for the new account
+  #   * +email+ - the email addres of the new account
+  #   * +family_name+ - the family name of the new user
+  #   * +given_name+ - the given name of the new user
+  #   * +name+ - (optional) the formatted name (defaults to use the given and family names)
+  #
+  # Any missing attributes will cause a PromptRequiredError to be
+  # raised with a set of prompts to provide to the user to elicit the
+  # required information.
+  def register(options={})
+
+    token ||= @token
+    raise StandardError, "No token provided. You must login first and set the authorization token up." unless token
+
+    username = options[:username]
+    password = options[:password]
+    family_name = options[:family_name]
+    given_name = options[:given_name]
+    email = options[:email]
+    name = options[:name]
+
+    raise Cloudfoundry::Uaa::PromptRequiredError.new(registration_prompts) if (username.nil? || password.nil? || family_name.nil? || given_name.nil? || email.nil?)
+
+    name ||= "#{given_name} #{family_name}"
+
+    options = options.dup
+    options[:name] = name
+
+    request= {
+      :name=>{
+        "givenName"=>options[:given_name],
+        "familyName"=>options[:family_name],
+        "formatted"=>options[:name]},
+      :userName=>options[:username],
+      :emails=>[{:value=>options[:email]}]
+    }
+ 
+   status, body, headers = http_post("/User", request.to_json, "application/json", "Bearer #{token}")
+    user = json_parse(body)
+
+    id = user[:id]
+    password_request = {:password=>password}
+
+    # TODO: rescue from 403 and ask user to reset password through
+    # another channel
+    status, body, headers = http_put("/User/#{id}/password", password_request.to_json, "application/json", "Bearer #{token}")
+
+    user
+
   end
 
   private

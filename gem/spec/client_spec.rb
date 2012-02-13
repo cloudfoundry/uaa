@@ -27,6 +27,21 @@ describe Cloudfoundry::Uaa::Client do
     subject.prompts.should_not be_empty
   end
 
+  context "with client_credentials grant" do
+
+    before :each do
+      @response = [200, '{"access_token":"FOO"}', nil]
+    end
+
+    it "should not require prompts", :integration=>false do
+      expect do
+        subject.login(:client_id=>"app", :client_secret=>"appclientsecret", :grant_type=>"client_credentials")
+        @input[:url].should =~ /\/token/
+      end.should_not raise_exception(Cloudfoundry::Uaa::PromptRequiredError)
+    end
+      
+  end
+
   context "when logging in with username and password" do
 
     before :each do
@@ -35,21 +50,6 @@ describe Cloudfoundry::Uaa::Client do
       end
     end
         
-
-    context "with client_credentials grant" do
-
-      before :each do
-        @response = [200, '{"access_token":"FOO"}', nil]
-      end
-
-      it "should not require prompts", :integration=>false do
-        expect do
-          subject.login(:client_id=>"app", :client_secret=>"appclientsecret", :grant_type=>"client_credentials")
-          @input[:url].should =~ /\/token/
-        end.should_not raise_exception(Cloudfoundry::Uaa::PromptRequiredError)
-      end
-      
-    end
 
     context "with password grant" do
 
@@ -177,9 +177,16 @@ describe Cloudfoundry::Uaa::Client do
       @token = subject.login(:username=>"vcap_tester@vmware.com", :password=>"tester") if @token.nil?
     end
 
-    it "should be able to decode token info", :integration=>true do
+    it "should be able to decode explicit token", :integration=>true do
       @response = [200, '{"user_id":"vcap_tester@vmware.com","client_id":"app"}', nil]
       result = subject.decode_token(@token)
+      result.should_not be_nil
+      result[:user_id].should == "vcap_tester@vmware.com"
+    end
+
+    it "should be able to decode its own token", :integration=>true do
+      @response = [200, '{"user_id":"vcap_tester@vmware.com","client_id":"app"}', nil]
+      result = subject.decode_token()
       result.should_not be_nil
       result[:user_id].should == "vcap_tester@vmware.com"
     end
@@ -188,6 +195,45 @@ describe Cloudfoundry::Uaa::Client do
       @response = [200, '{"user_id":"vcap_tester@vmware.com","client_id":"foo"}', nil]
       result = subject.decode_token(@token, :client_id=>"foo")
       @input[:headers]['Authorization'].should_not == @default_auth if @default_auth
+    end
+
+  end
+
+  context "once logged in with client credentials grant" do
+
+    before :each do
+      @response = [200, '{"access_token":"FOO"}', nil]
+      subject.client_id = "app"
+      subject.client_secret = "appclientsecret"
+      subject.grant_type = "client_credentials"
+      @token = subject.login() if @token.nil?
+      subject.token = "FOO"
+    end
+
+    it "should be able to decode token info", :integration=>true do
+      @response = [200, '{"user_id":"vcap_tester@vmware.com","client_id":"app"}', nil]
+      result = subject.decode_token(@token)
+      result.should_not be_nil
+      result[:user_id].should == "vcap_tester@vmware.com"
+    end
+
+    it "should require an access token register a user", :integration=>false do
+      subject.token = nil
+      expect do
+        result = subject.register("bar")
+      end.should raise_exception(StandardError)
+    end
+
+    it "should require prompts to register a user", :integration=>false do
+      expect do
+        result = subject.register(:username=>"bar")
+      end.should raise_exception(Cloudfoundry::Uaa::PromptRequiredError)
+    end
+
+    it "should be able to register a user", :integration=>false do
+      @response = [200, '{"id":"BAR","email":"bar@test.org"}', nil]
+      result = subject.register(:username=>"bar", :password=>"password", :email=>"bar@test.org", :family_name=>"Bloggs", :given_name=>"Bar")
+      result[:id].should == "BAR"
     end
 
   end

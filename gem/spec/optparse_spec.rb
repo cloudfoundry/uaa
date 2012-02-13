@@ -53,7 +53,7 @@ describe "Uaa opts parser" do
   it "should extract global options" do
     command, args, options, result = Cloudfoundry::Uaa::OptParser.parse(%w[--client_id foo login])
     result.should be_true
-    options.should == {:client_id=>"foo", :verbose=>false}
+    options[:client_id].should == "foo"
     command.should == :login
     args.should be_empty
   end
@@ -63,6 +63,14 @@ describe "Uaa opts parser" do
     command, args, options, result = Cloudfoundry::Uaa::OptParser.parse(%w[login --verbose])
     result.should be_true
     options.should == {:verbose=>true}
+    command.should == :login
+    args.should be_empty
+  end
+
+  it "should allow equals sign separator" do
+    command, args, options, result = Cloudfoundry::Uaa::OptParser.parse(%w[--client_id=foo login])
+    result.should be_true
+    options[:client_id].should == "foo"
     command.should == :login
     args.should be_empty
   end
@@ -77,7 +85,7 @@ describe "Uaa opts parser" do
   it "should allow login-specific options" do
     command, args, options, result = Cloudfoundry::Uaa::OptParser.parse(%w[login --grant_type client_credentials])
     result.should be_true
-    options.should == {:grant_type=>"client_credentials", :verbose=>false}
+    options[:grant_type].should == "client_credentials"
     command.should == :login
   end
 

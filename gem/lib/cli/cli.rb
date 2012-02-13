@@ -52,7 +52,7 @@ class Cloudfoundry::Uaa::Cli
     begin
       execute()
     rescue Cloudfoundry::Uaa::PromptRequiredError => bang
-      retry if parse_options_for_login(bang.prompts)
+      retry if prompt_for_missing_options(bang.prompts)
     end
 
   ensure
@@ -68,22 +68,18 @@ class Cloudfoundry::Uaa::Cli
 
   private
 
-  def parse_options_for_login(prompts)
-    index = 0
+  def prompt_for_missing_options(prompts)
     old_options = @options.dup
     prompts.keys.each do |key|
-      if index >= @command_args.length then
+      unless @options[key] then
         prompt = prompts[key]
         echo = true
         if prompt[0]=="password" then
           echo = "*"
         end 
         value = @terminal.ask("#{prompt[1]}: ") { |q| q.echo = echo }
-      else
-        value = @command_args[index]
+        @options[key] = value
       end
-      @options[key] = value
-      index = index + 1
     end
     return @options != old_options
   end

@@ -1,4 +1,5 @@
 require 'optparse'
+require 'json/pure'
 
 require 'uaa'
 
@@ -12,16 +13,29 @@ class Cloudfoundry::Uaa::Dispatcher
   def initialize(options={})
     @client = options[:client] || Cloudfoundry::Uaa::Client.new
     @target_file = options[:target_file] || File.join(ENV['HOME'], '.uaa_target')
+    @token_file = options[:token_file] || File.join(ENV['HOME'], '.uaa_tokens')
     init_target
   end
 
   def dispatch(command, args=[], options={})
+
     @client.trace = true if options[:verbose] 
+    save_token = options[:save_token]
+
+    options = options.dup
+    # These are just options for the dispatcher (so the clietn doesn't ned them)
+    options.delete :verbose
+    options.delete :save_token
+
     case command
     when :target
       save_target(args[0])
     when :login
-      @client.login(options)
+      token = @client.login(options)
+      save_token(token) if token && save_token
+      token
+    when :register
+      @client.register(options)
     when :decode
       @client.decode_token(args[0], options)
     when :prompts
@@ -29,6 +43,7 @@ class Cloudfoundry::Uaa::Dispatcher
     else
       raise StandardError, "Command cannot be dispatched: #{command}"
     end
+
   end
 
   private
@@ -36,6 +51,10 @@ class Cloudfoundry::Uaa::Dispatcher
   def init_target
     file = @target_file
     @client.target = File.open(file).read unless !File.exist? file
+    if @client.target
+      file = @token_file
+      @client.token = json_parse(File.open(file).read)[@client.target] unless !File.exist? file
+    end
   end
 
   def save_target(target)
@@ -47,6 +66,23 @@ class Cloudfoundry::Uaa::Dispatcher
     file.write target
     file.close
     @client.target = target
+  end
+
+  def save_token(token)
+    return @client.token if token.nil?
+    return @client.token if @client.token == token
+    tokens = File.exist?(@token_file) ? json_parse(File.open(@token_file).read) : {}
+    tokens[@client.target] = token
+    file = File.open(@token_file, 'w')
+    file.write tokens.to_json
+    file.close
+    @client.token = token
+  end
+
+  def json_parse(str)
+    if str
+      JSON.parse(str, :symbolize_names => false)
+    end
   end
 
 end
