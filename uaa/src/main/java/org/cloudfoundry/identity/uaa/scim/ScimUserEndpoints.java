@@ -137,12 +137,12 @@ public class ScimUserEndpoints implements InitializingBean {
 			// Trusted client (not acting on behalf of user)
 			return;
 		}
-		
+
 		// Call is by or on behalf of end user
 		String currentUser = securityContextAccessor.getUserId();
 
 		if (securityContextAccessor.isAdmin()) {
-			
+
 			// even an admin needs to provide the old value to change his password
 			if (userId.equals(currentUser) && !StringUtils.hasText(oldPassword)) {
 				throw new ScimException("Previous password is required even for admin", HttpStatus.BAD_REQUEST);
@@ -154,7 +154,7 @@ public class ScimUserEndpoints implements InitializingBean {
 				logger.warn("User with id " + currentUser + " attempting to change password for user " + userId);
 				// TODO: This should be audited when we have non-authentication events in the log
 				throw new ScimException("Bad request. Not permitted to change another user's password", HttpStatus.BAD_REQUEST);
-			}			
+			}
 
 			// User is changing their own password, old password is required
 			if (!StringUtils.hasText(oldPassword)) {
@@ -205,7 +205,13 @@ public class ScimUserEndpoints implements InitializingBean {
 			@RequestParam(required = false, defaultValue = "1") int startIndex,
 			@RequestParam(required = false, defaultValue = "100") int count) {
 
-		Collection<ScimUser> input = dao.retrieveUsers(filter);
+		Collection<ScimUser> input;
+		try {
+			input = dao.retrieveUsers(filter);
+		}
+		catch (IllegalArgumentException e) {
+			throw new ScimException("Invalid filter expression: [" + filter + "]", HttpStatus.BAD_REQUEST);
+		}
 		String[] attributes = attributesCommaSeparated.split(",");
 		Map<String, Expression> expressions = new LinkedHashMap<String, Expression>();
 

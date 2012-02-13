@@ -30,9 +30,11 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Meta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Name;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
@@ -91,7 +93,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	static final Pattern lePattern = Pattern.compile(" le ", Pattern.CASE_INSENSITIVE);
 
-	private JdbcTemplate jdbcTemplate;
+	protected final JdbcTemplate jdbcTemplate;
 
 	private NamedParameterJdbcTemplate parameterJdbcTemplate;
 
@@ -150,8 +152,13 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 			throw new UnsupportedOperationException("Filters on email address fields other than 'value' not supported");
 		}
 
-		List<ScimUser> input = parameterJdbcTemplate.query(ALL_USERS + " WHERE " + where, values, mapper);
-		return input;
+		try {
+			return parameterJdbcTemplate.query(ALL_USERS + " WHERE " + where, values, mapper);
+		}
+		catch (BadSqlGrammarException e) {
+			logger.debug("Query failed. ", e);
+			throw new IllegalArgumentException("Bad filter");
+		}
 
 	}
 
