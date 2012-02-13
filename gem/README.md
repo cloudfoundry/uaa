@@ -29,7 +29,7 @@ Run it
 Use the gem:
 
     #!/usr/bin/env ruby
-    require 'cloudfoundry-uaa'
+    require 'uaa/client'
     client = Cloudfoundry::Uaa::Client.new
     token_info = client.decode_token "LSAJDHF873e8feDKJHLK"
 
