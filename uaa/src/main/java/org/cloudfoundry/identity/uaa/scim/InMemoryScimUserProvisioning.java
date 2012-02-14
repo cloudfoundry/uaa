@@ -13,31 +13,13 @@
 package org.cloudfoundry.identity.uaa.scim;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
-import javax.activation.DataSource;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
-import org.springframework.expression.Expression;
-import org.springframework.expression.spel.SpelParseException;
-import org.springframework.expression.spel.standard.SpelExpressionParser;
-import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.util.Assert;
 import org.springframework.util.FileCopyUtils;
 
 /**
@@ -48,6 +30,7 @@ import org.springframework.util.FileCopyUtils;
  */
 public class InMemoryScimUserProvisioning extends JdbcScimUserProvisioning implements DisposableBean {
 
+	@SuppressWarnings("deprecation")
 	public InMemoryScimUserProvisioning(Map<String, UaaUser> users) {
 		super(new JdbcTemplate((new DriverManagerDataSource("org.hsqldb.jdbcDriver", "jdbc:hsqldb:mem:scimusers", "sa", ""))));
 
