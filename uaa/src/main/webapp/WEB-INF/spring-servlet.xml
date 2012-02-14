@@ -153,6 +153,7 @@
 
 	<bean id="clientDetailsUserService" class="org.springframework.security.oauth2.provider.client.ClientDetailsUserDetailsService">
 		<constructor-arg ref="clientDetails" />
+		<property name="passwordEncoder" ref="bcryptPasswordEncoder"/>
 	</bean>
 
 	<oauth:authorization-server client-details-service-ref="clientDetails" token-services-ref="tokenServices">
@@ -171,7 +172,7 @@
 		<oauth:client client-id="scim" authorized-grant-types="client_credentials" scope="read,write,password"
 			authorities="ROLE_CLIENT" secret="${scim.client.secret:$2a$10$mEaFQ2.VeetFRVXAUZGzl.x62KjnwVTHPjbVJ/ErsRJyhndXawxv.}" />
 		<oauth:client client-id="vmc" authorized-grant-types="refresh_token,implicit" scope="read,password"
-			authorities="ROLE_GUEST" />
+			authorities="ROLE_UNTRUSTED" />
 	</oauth:client-details-service>
 
 	<oauth:resource-server id="oauth2ResourceServerFilter" token-services-ref="tokenServices"

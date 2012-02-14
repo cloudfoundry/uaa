@@ -92,4 +92,24 @@ public class CheckTokenEndpointIntegrationTests {
 
 	}
 
+	@Test
+	public void testForbidden() throws Exception {
+
+		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+		formData.add("token", "FOO");
+		HttpHeaders headers = new HttpHeaders();
+		headers.set("Authorization", "Basic " + new String(Base64.encode("vmc:".getBytes("UTF-8"))));
+		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+
+		@SuppressWarnings("rawtypes")
+		ResponseEntity<Map> response = serverRunning.postForMap("/check_token", formData, headers);
+		// FORBIDDEN would be better. But this is good enough.
+		assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+
+		@SuppressWarnings("unchecked")
+		Map<String, String> map = response.getBody();
+		assertTrue(map.containsKey("error"));
+
+	}
+
 }
