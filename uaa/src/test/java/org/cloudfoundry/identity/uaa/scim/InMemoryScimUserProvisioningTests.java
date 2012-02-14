@@ -18,7 +18,6 @@ import java.util.Collection;
 import java.util.HashMap;
 
 import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
