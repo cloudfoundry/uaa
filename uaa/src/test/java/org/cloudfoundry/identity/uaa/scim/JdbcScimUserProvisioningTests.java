@@ -266,12 +266,12 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals(2, db.retrieveUsers("emails.type eq 'bar'").size());
 	}
 
-	@Test(expected = BadSqlGrammarException.class)
+	@Test(expected = IllegalArgumentException.class)
 	public void cannotRetrieveUsersWithIllegalFilterQuotes() {
 		assertEquals(2, db.retrieveUsers("username eq 'bar").size());
 	}
 
-	@Test(expected=DataAccessException.class)
+	@Test(expected=IllegalArgumentException.class)
 	public void cannotRetrieveUsersWithNativeSqlInjectionAttack() {
 		String password = template.queryForObject("select password from users where username='joe'", String.class);
 		assertNotNull(password);
@@ -281,7 +281,7 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals(password, users.iterator().next().getId());
 	}
 
-	@Test(expected=DataAccessException.class)
+	@Test(expected=IllegalArgumentException.class)
 	public void cannotRetrieveUsersWithSqlInjectionAttackOnGt() {
 		String password = template.queryForObject("select password from users where username='joe'", String.class);
 		assertNotNull(password);
@@ -291,7 +291,7 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals(password, users.iterator().next().getId());
 	}
 
-	@Test(expected=DataAccessException.class)
+	@Test(expected=IllegalArgumentException.class)
 	public void cannotRetrieveUsersWithSqlInjectionAttack() {
 		String password = template.queryForObject("select password from users where username='joe'", String.class);
 		assertNotNull(password);
@@ -301,7 +301,7 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals(password, users.iterator().next().getId());
 	}
 
-	@Test(expected=DataAccessException.class)
+	@Test(expected=IllegalArgumentException.class)
 	public void cannotRetrieveUsersWithAnotherSqlInjectionAttack() {
 		String password = template.queryForObject("select password from users where username='joe'", String.class);
 		assertNotNull(password);
@@ -311,7 +311,7 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals(password, users.iterator().next().getId());
 	}
 
-	@Test(expected=BadSqlGrammarException.class)
+	@Test(expected=IllegalArgumentException.class)
 	public void cannotRetrieveUsersWithYetAnotherSqlInjectionAttack() {
 		String password = template.queryForObject("select password from users where username='joe'", String.class);
 		assertNotNull(password);
