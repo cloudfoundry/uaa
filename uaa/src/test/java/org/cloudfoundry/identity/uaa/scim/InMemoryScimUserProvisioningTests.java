@@ -12,48 +12,45 @@
  */
 package org.cloudfoundry.identity.uaa.scim;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.junit.Before;
-import org.junit.Ignore;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
-import org.springframework.expression.spel.SpelEvaluationException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 /**
  * @author Luke Taylor
  * @author Dave Syer
  */
 public class InMemoryScimUserProvisioningTests {
+	private static InMemoryScimUserProvisioning db;
+	private static String joeId;
+	private static String mabelId;
 
-	private Map<String, UaaUser> users = new HashMap<String, UaaUser>();
-	private InMemoryScimUserProvisioning db =  new InMemoryScimUserProvisioning(users);
-
-	@Before
-	public void seed() {
-		ScimUser user;
-		user = new ScimUser(null, "joe", "Joe", "User");
+	@BeforeClass
+	public static void seed() {
+		db = new InMemoryScimUserProvisioning(new HashMap<String, UaaUser>());
+		ScimUser user = new ScimUser(null, "joe", "Joe", "User");
 		user.addEmail("joe@blah.com");
-		db.createUser(user, "password");
+		joeId = db.createUser(user, "password").getId();
 		user = new ScimUser(null, "mabel", "Mabel", "User");
 		user.addEmail("mabel@blah.com");
-		db.createUser(user, "password");
+		mabelId = db.createUser(user, "password").getId();
 	}
 
-	@Test
-	public void canCreateUser() throws Exception {
+	@AfterClass
+	public static void shutdownDb() throws Exception {
+		db.destroy();
 	}
 
 	@Test
 	public void canDeleteUser() throws Exception {
-		ScimUser user = db.removeUser(users.get("joe").getId(), 0);
+		ScimUser user = db.removeUser(mabelId, 0);
 		assertEquals(1, db.retrieveUsers().size());
 		assertNotNull(user);
 		db.createUser(user, "password");
@@ -62,86 +59,21 @@ public class InMemoryScimUserProvisioningTests {
 
 	@Test
 	public void canUpdateUser() throws Exception {
-		ScimUser user;
-		String id = users.get("joe").getId();
-		user = new ScimUser(id, "joe", "Joe", "User");
+		ScimUser user = new ScimUser(joeId, "joe", "Joe", "User");
 		user.addEmail("joe@unblah.com");
-		ScimUser result = db.updateUser(id, user);
-		assertEquals(result.getId(), user.getId());
+		ScimUser result = db.updateUser(joeId, user);
+		assertEquals(joeId, result.getId());
 		Collection<ScimUser> users = db.retrieveUsers();
 		assertEquals(2, users.size());
 		ScimUser joe = null;
-		// Check that the value retreived from a GET is what we just PUT
+		// Check that the value retrieved from a GET is what we just PUT
 		for (ScimUser scim : users) {
 			if (scim.getUserName().equals("joe")) {
 				joe = scim;
 			}
 		}
 		assertNotNull(joe);
-		assertEquals(id, joe.getId());
-	}
-
-	@Test
-	public void canChangePassword() throws Exception {
-		assertTrue(db.changePassword(users.get("joe").getId(), null, "newpassword"));
-		assertTrue(new BCryptPasswordEncoder().matches("newpassword", users.get("joe").getPassword()));
-	}
-
-	@Test
-	public void canRetrieveUsers() throws Exception {
-		assertEquals(2, db.retrieveUsers().size());
-	}
-
-	@Test
-	public void canRetrieveUsersWithFilter() throws Exception {
-		assertEquals(1, db.retrieveUsers("userName eq 'joe'").size());
-	}
-
-	@Test
-	public void canRetrieveUsersWithFilterExists() {
-		assertEquals(2, db.retrieveUsers("userName pr").size());
-	}
-
-	@Test
-	public void canRetrieveUsersWithFilterEquals() {
-		assertEquals(1, db.retrieveUsers("userName eq 'joe'").size());
-	}
-
-	@Test
-	@Ignore
-	public void canRetrieveUsersWithFilterCaseSensitivity() {
-		// TODO: CFID40 fix this.
-		assertEquals(1, db.retrieveUsers("USERNAME eq 'joe'").size());
-	}
-
-	@Test
-	public void canRetrieveUsersWithFilterContains() {
-		assertEquals(2, db.retrieveUsers("userName co 'e'").size());
-	}
-
-	@Test
-	public void canRetrieveUsersWithFilterStartsWith() {
-		assertEquals(1, db.retrieveUsers("userName sw 'j'").size());
-	}
-
-	@Test
-	public void canRetrieveUsersWithEmailFilter() {
-		assertEquals(1, db.retrieveUsers("emails.value sw 'j'").size());
-	}
-
-	@Test
-	public void canRetrieveUsersWithFilterBooleanAnd() {
-		assertEquals(2, db.retrieveUsers("userName pr and emails.value co '.com'").size());
-	}
-
-	@Test
-	public void canRetrieveUsersWithFilterBooleanOr() {
-		assertEquals(2, db.retrieveUsers("userName eq 'joe' or emails.value co '.com'").size());
-	}
-
-	@Test(expected=SpelEvaluationException.class)
-	public void canRetrieveUsersWithIllegalFilter() {
-		assertEquals(2, db.retrieveUsers("emails.type eq 'bar'").size());
+		assertEquals(joeId, joe.getId());
 	}
 
 }
