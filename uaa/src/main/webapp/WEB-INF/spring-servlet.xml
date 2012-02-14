@@ -14,8 +14,7 @@
 	<import resource="spring-data-source.xml" />
 	<import resource="spring-scim.xml" />
 
-	<context:property-placeholder properties-ref="applicationProperties"
-		system-properties-mode="OVERRIDE" />
+	<context:property-placeholder properties-ref="applicationProperties"/>
 
 	<bean class="org.cloudfoundry.identity.uaa.event.listener.AuditListener">
 		<constructor-arg ref="loggingAuditService" />

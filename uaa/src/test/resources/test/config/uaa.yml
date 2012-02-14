@@ -1,4 +1,8 @@
 foo: bar
-spring_profiles: legacy,!jdbc
+spring_profiles: legacy,hsqldb
 logging:
   path: /tmp/uaa/logs
+databases:
+  postgresql:
+    password: different
+  

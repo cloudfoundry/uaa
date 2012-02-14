@@ -42,7 +42,9 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 
 	private static final String PROFILE_CONFIG_FILE_LOCATION = "environmentConfigFile";
 
-	private static final String DEFAULT_PROFILE_CONFIG_FILE_LOCATION = "file:${CLOUD_FOUNDRY_CONFIG_PATH}/uaa.yml";
+	private static final String DEFAULT_PROFILE_CONFIG_FILE_LOCATION = "file:${UAA_CONFIG_FILE}";
+
+	private static final String FALLBACK_PROFILE_CONFIG_FILE_LOCATION = "file:${CLOUD_FOUNDRY_CONFIG_PATH}/uaa.yml";
 
 	@Override
 	public void initialize(ConfigurableWebApplicationContext applicationContext) {
@@ -54,7 +56,13 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 		Resource resource = applicationContext.getResource(location);
 		if (resource == null || !resource.exists()) {
 			servletContext.log("No YAML environment properties found at location: " + location);
-			return;
+			location = FALLBACK_PROFILE_CONFIG_FILE_LOCATION;
+			location = applicationContext.getEnvironment().resolvePlaceholders(location);
+			resource = applicationContext.getResource(location);
+			if (resource == null || !resource.exists()) {
+				servletContext.log("No YAML environment properties found at location: " + location);
+				return;
+			}
 		}
 
 		try {
@@ -74,7 +82,8 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 
 	}
 
-	private void applyLog4jConfiguration(Properties properties, ConfigurableEnvironment environment, ServletContext servletContext) {
+	private void applyLog4jConfiguration(Properties properties, ConfigurableEnvironment environment,
+			ServletContext servletContext) {
 
 		String log4jConfigLocation = "classpath:log4j.properties";
 
@@ -83,13 +92,13 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 			servletContext.log("Setting LOG_FILE: " + location);
 			System.setProperty("LOG_FILE", location);
 		}
-		
+
 		else if (properties.containsKey("logging.path")) {
 			String location = properties.getProperty("logging.path");
 			servletContext.log("Setting LOG_PATH: " + location);
 			System.setProperty("LOG_PATH", location);
 		}
-		
+
 		else if (properties.containsKey("logging.config")) {
 			log4jConfigLocation = properties.getProperty("logging.config");
 		}
@@ -104,7 +113,8 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 
 	}
 
-	private void applySpringProfiles(Properties properties, ConfigurableEnvironment environment, ServletContext servletContext) {
+	private void applySpringProfiles(Properties properties, ConfigurableEnvironment environment,
+			ServletContext servletContext) {
 		if (properties.containsKey("spring_profiles")) {
 			String profiles = properties.getProperty("spring_profiles");
 			servletContext.log("Setting active profiles: " + profiles);

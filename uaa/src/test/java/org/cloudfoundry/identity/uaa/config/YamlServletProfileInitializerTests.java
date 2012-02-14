@@ -64,6 +64,7 @@ public class YamlServletProfileInitializerTests {
 	@After
 	public void cleanup() throws Exception {
 		System.clearProperty("CLOUD_FOUNDRY_CONFIG_PATH");
+		System.clearProperty("UAA_CONFIG_FILE");
 		System.clearProperty("LOG_FILE");
 		System.clearProperty("LOG_PATH");
 		Log4jConfigurer.initLogging("classpath:log4j.properties");
@@ -152,6 +153,21 @@ public class YamlServletProfileInitializerTests {
 	public void testLoadReplacedResource() throws Exception {
 
 		System.setProperty("CLOUD_FOUNDRY_CONFIG_PATH", "foo");
+
+		Mockito.when(context.getResource(Matchers.eq("file:foo/uaa.yml"))).thenReturn(
+				new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
+
+		initializer.initialize(context);
+
+		assertEquals("bar", environment.getProperty("foo"));
+		assertEquals("baz", environment.getProperty("spam.foo"));
+
+	}
+
+	@Test
+	public void testLoadReplacedResourceFromFileLocation() throws Exception {
+
+		System.setProperty("UAA_CONFIG_FILE", "foo/uaa.yml");
 
 		Mockito.when(context.getResource(Matchers.eq("file:foo/uaa.yml"))).thenReturn(
 				new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));

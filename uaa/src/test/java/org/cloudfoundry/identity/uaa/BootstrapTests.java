@@ -16,13 +16,15 @@ package org.cloudfoundry.identity.uaa;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-import java.util.Properties;
-
+import org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.junit.After;
 import org.junit.Test;
 import org.springframework.context.support.GenericXmlApplicationContext;
+import org.springframework.core.env.PropertiesPropertySource;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -42,6 +44,8 @@ public class BootstrapTests {
 		System.clearProperty("CLOUD_FOUNDRY_CONFIG_PATH");
 		System.clearProperty("UAA_CONFIG_FILE");
 		if (context!=null) {
+			JdbcOperations jdbcTemplate = context.getBean(JdbcOperations.class);
+			jdbcTemplate.execute("SHUTDOWN");
 			context.close();
 		}
 	}
@@ -75,20 +79,21 @@ public class BootstrapTests {
 
 	@Test
 	public void testOverrideYmlConfigPath() throws Exception {
-		System.setProperty("CLOUD_FOUNDRY_CONFIG_PATH", "src/test/resources/test/config");
-		System.setProperty("spring.profiles.active", "hsqldb,legacy");
-		context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/spring-servlet.xml"));
-		Properties properties = context.getBean("applicationProperties", Properties.class);
-		assertEquals("bar", properties.get("foo"));
-	}
 
-	@Test
-	public void testOverrideYmlConfigFile() throws Exception {
-		System.setProperty("UAA_CONFIG_FILE", "src/test/resources/test/config/uaa.yml");
-		System.setProperty("spring.profiles.active", "hsqldb,legacy");
-		context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/spring-servlet.xml"));
-		Properties properties = context.getBean("applicationProperties", Properties.class);
-		assertEquals("bar", properties.get("foo"));
+		context = new GenericXmlApplicationContext();
+		context.load(new FileSystemResource("src/main/webapp/WEB-INF/spring-servlet.xml"), new ClassPathResource("/test/config/test-override.xml"));
+
+		context.getEnvironment().setActiveProfiles("hsqldb", "legacy");
+
+		// Simulate what happens in the webapp when the YamlServletProfileInitializer kicks in
+		YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
+		factory.setResource(new FileSystemResource("src/test/resources/test/config/uaa.yml"));
+		context.getEnvironment().getPropertySources().addLast(new PropertiesPropertySource("servletProperties", factory.getObject()));
+
+		context.refresh();
+
+		assertEquals("different", context.getBean("foo", String.class));
+
 	}
 
 }
