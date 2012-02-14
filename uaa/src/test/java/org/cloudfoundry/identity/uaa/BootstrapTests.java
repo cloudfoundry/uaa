@@ -41,6 +41,7 @@ public class BootstrapTests {
 	public void cleanup() {
 		System.clearProperty("spring.profiles.active");		
 		System.clearProperty("CLOUD_FOUNDRY_CONFIG_PATH");
+		System.clearProperty("UAA_CONFIG_FILE");
 		if (context!=null) {
 			context.close();
 		}
@@ -74,8 +75,17 @@ public class BootstrapTests {
 	}
 
 	@Test
-	public void testOverrideYmlConfig() throws Exception {
+	public void testOverrideYmlConfigPath() throws Exception {
 		System.setProperty("CLOUD_FOUNDRY_CONFIG_PATH", "src/test/resources/test/config");
+		System.setProperty("spring.profiles.active", "jdbc,hsqldb,legacy");
+		context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/spring-servlet.xml"));
+		Properties properties = context.getBean("applicationProperties", Properties.class);
+		assertEquals("bar", properties.get("foo"));
+	}
+
+	@Test
+	public void testOverrideYmlConfigFile() throws Exception {
+		System.setProperty("UAA_CONFIG_FILE", "src/test/resources/test/config/uaa.yml");
 		System.setProperty("spring.profiles.active", "jdbc,hsqldb,legacy");
 		context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/spring-servlet.xml"));
 		Properties properties = context.getBean("applicationProperties", Properties.class);
