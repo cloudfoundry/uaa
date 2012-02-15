@@ -8,7 +8,7 @@ Client->AuthServer: {client_id: mgt, scope: cc/read}
 activate AuthServer
 AuthServer->ClientRegistry: {client_id: mgt}
 activate ClientRegistry
-ClientRegistry->AuthServer: {scopes: [cc/read, cc/write, bosh/read])
+ClientRegistry->AuthServer: {scopes: [cc/read, cc/write, cc-exp/read])
 deactivate ClientRegistry
 note over AuthServer: scopes.contains(scope)?
 opt ResourceServer visible and supports message discovery

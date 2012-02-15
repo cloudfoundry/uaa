@@ -8,7 +8,7 @@ Client->AuthServer: {client_id: mgt, scope: read}
 activate AuthServer
 AuthServer->ClientRegistry: {client_id: mgt}
 activate ClientRegistry
-ClientRegistry->AuthServer: {scopes: [read, write], resource_ids: [cc, bosh])
+ClientRegistry->AuthServer: {scopes: [read, write], resource_ids: [cc1, cc2])
 deactivate ClientRegistry
 note left of AuthServer: 
 AuthServer doesn't need to know 
@@ -17,11 +17,11 @@ intends to access.
 end note
 note over AuthServer: scopes.contains(scope)?
 AuthServer->AuthServer: messages for UI
-AuthServer->User: {messages: "Do you approve client=mgt to access \nyour resources on servers [cc,bosh] in scope 'read'?"}
+AuthServer->User: {messages: "Do you approve client=mgt to access \nyour resources on servers [cc1,cc2] in scope 'read'?"}
 activate User
 User->AuthServer: approve
 deactivate User
-AuthServer->TokenService: access_token->{client_id: mgt, scope: read, resource_ids: [cc, bosh]}
+AuthServer->TokenService: access_token->{client_id: mgt, scope: read, resource_ids: [cc1, cc2]}
 note right of AuthServer: 
 The TokenService has stored the 
 valid resource ids for later use 
@@ -33,7 +33,7 @@ Client->ResourceServer: request(access_token)
 activate ResourceServer
 ResourceServer->TokenService: access_token
 activate TokenService
-TokenService->ResourceServer: {client_id: mgt, scope: read, resource_ids: [cc, bosh]}
+TokenService->ResourceServer: {client_id: mgt, scope: read, resource_ids: [cc1, cc2]}
 deactivate TokenService
 note over ResourceServer: resource_ids.contains(cc)?
 note over ResourceServer: scope permitted?
