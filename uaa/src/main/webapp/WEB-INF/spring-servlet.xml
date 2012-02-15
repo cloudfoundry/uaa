@@ -189,6 +189,8 @@
 		<oauth:client client-id="scim" authorized-grant-types="client_credentials" scope="read,write,password"
 			authorities="ROLE_CLIENT" secret="${scim.client.secret:$2a$10$mEaFQ2.VeetFRVXAUZGzl.x62KjnwVTHPjbVJ/ErsRJyhndXawxv.}" />
 		<oauth:client client-id="vmc" authorized-grant-types="refresh_token,implicit" scope="read,password" authorities="ROLE_GUEST" resource-ids="cloud_controller" />
+		<oauth:client client-id="cloud_controller" authorized-grant-types="password" scope="read,openid"
+			authorities="ROLE_GUEST" secret="${cloud_controller.client.secret:$2a$08$qsrUOJQo0CWRuI9l4St6Eugt0fXf2bPKeGXN8J3glRHHhEMajUUk2}" />
 	</oauth:client-details-service>
 
 	<oauth:resource-server id="oauth2ResourceServerFilter" token-services-ref="tokenServices"
