@@ -181,6 +181,8 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	public ScimUser createUser(final ScimUser user, final String password) throws InvalidPasswordException,
 			InvalidUserException {
 
+		logger.info("Creating new user: " + user.getUserName());
+
 		passwordValidator.validate(password, user);
 		validateUsername(user);
 
@@ -211,6 +213,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	@Override
 	public ScimUser updateUser(final String id, final ScimUser user) throws InvalidUserException {
 		validateUsername(user);
+		logger.info("Updating user " + id);
 		int updated = jdbcTemplate.update(UPDATE_USER_SQL, new PreparedStatementSetter() {
 			public void setValues(PreparedStatement ps) throws SQLException {
 				ps.setInt(1, user.getVersion() + 1);
@@ -258,7 +261,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	// Checks the existing password for a user
 	private void checkPasswordMatches(String id, String oldPassword) {
-		String currentPassword = null;
+		String currentPassword;
 		try {
 			currentPassword = jdbcTemplate.queryForObject(READ_PASSWORD_SQL, new Object[] {id},new int[] {Types.VARCHAR},  String.class);
 		}
@@ -273,6 +276,8 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	@Override
 	public ScimUser removeUser(String id, int version) {
+		logger.info("Removing user: " + id);
+
 		ScimUser user = retrieveUser(id);
 		int updated = jdbcTemplate.update(DELETE_USER_SQL, id, version);
 		if (updated == 0) {
