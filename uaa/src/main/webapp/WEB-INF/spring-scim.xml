@@ -4,6 +4,19 @@
 	xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.1.xsd
 		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd">
 
+	<bean id="userBootstrap" class="org.cloudfoundry.identity.uaa.user.JdbcUaaAdminUserBootstrap">
+		<constructor-arg ref="jdbcTemplate" />
+		<property name="username" value="${bootstrap.admin.username:admin}" />
+		<property name="password" value="${bootstrap.admin.password:$2a$10$yHj1jr2NYpGC3wu/BTeFDOnD4Jz3K6ALd6XghGXPTCU4WMxKZuRHu}" />
+		<property name="email" value="${bootstrap.admin.email:admin@localhost}" />
+		<property name="familyName" value="${bootstrap.admin.family_name:User}" />
+		<property name="givenName" value="${bootstrap.admin.given_name:Admin}" />
+	</bean>
+
+	<bean id="scimUserProvisioning" class="org.cloudfoundry.identity.uaa.scim.JdbcScimUserProvisioning">
+		<constructor-arg ref="jdbcTemplate" />
+	</bean>
+
 	<!-- Add a handler adapter with special knowledge of the ScimUser endpoints -->
 	<bean class="org.cloudfoundry.identity.uaa.config.HandlerAdapterFactoryBean" />
 
@@ -25,7 +38,8 @@
 	</bean>
 
 	<http request-matcher-ref="userEndPointRequestMatcher" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
-		entry-point-ref="oauthAuthenticationEntryPoint"  access-decision-manager-ref="accessDecisionManager" xmlns="http://www.springframework.org/schema/security">
+		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
+		xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/User/*/password" access="IS_AUTHENTICATED_FULLY,SCOPE_PASSWORD" />
 		<intercept-url pattern="/Users*" access="ROLE_CLIENT,SCOPE_READ" method="GET" />
 		<intercept-url pattern="/User/**" access="ROLE_CLIENT,SCOPE_READ" method="GET" />
@@ -33,7 +47,35 @@
 		<intercept-url pattern="/User*" access="ROLE_CLIENT,SCOPE_WRITE" method="POST" />
 		<intercept-url pattern="/User/**" access="ROLE_CLIENT,SCOPE_WRITE" method="PUT" />
 		<custom-filter ref="oauth2ResourceServerFilter" after="EXCEPTION_TRANSLATION_FILTER" />
-		<access-denied-handler ref="oauthAccessDeniedHandler"/>
+		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
+
+	<bean id="userEndPointRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
+		<constructor-arg value="/User" />
+	</bean>
+
+	<beans profile="default">
+
+		<bean id="scimUserProvisioning" class="org.cloudfoundry.identity.uaa.scim.JdbcScimUserProvisioning">
+			<constructor-arg ref="jdbcTemplate" />
+			<property name="passwordValidator">
+				<bean class="org.cloudfoundry.identity.uaa.scim.NullPasswordValidator" />
+			</property>
+		</bean>
+
+		<bean id="scimUserBootstrap" class="org.cloudfoundry.identity.uaa.scim.ScimUserBootstrap">
+			<constructor-arg ref="scimUserProvisioning" />
+			<constructor-arg>
+				<list value-type="org.cloudfoundry.identity.uaa.user.UaaUser">
+					<value>dale|password|olds@vmware.com|Dale|Olds</value>
+					<value>joel|password|jdsa@vmware.com|Joel|D'Sa</value>
+					<value>dave|password|dsyer@vmware.com|Dave|Syer</value>
+					<value>luke|password|ltaylor@vmware.com|Luke|Taylor</value>
+					<value>marissa|koala|marissa@test.org|Marissa|Bloggs</value>
+				</list>
+			</constructor-arg>
+		</bean>
+
+	</beans>
 
 </beans>
