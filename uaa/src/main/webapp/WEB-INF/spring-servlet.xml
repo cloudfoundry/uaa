@@ -10,28 +10,12 @@
 		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.1.xsd
 		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
 
+	<!--  The data source has to be defined first -->
+	<import resource="spring-data-source.xml" />
 	<import resource="spring-scim.xml" />
 
 	<context:property-placeholder properties-ref="applicationProperties"
 		system-properties-mode="OVERRIDE" />
-
-	<bean id="applicationProperties" class="org.springframework.beans.factory.config.PropertiesFactoryBean">
-		<property name="propertiesArray">
-			<list>
-				<bean class="org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean">
-					<property name="resource" value="classpath:/uaa.yml" />
-				</bean>
-				<bean class="org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean">
-					<property name="resource" value="file:${CLOUD_FOUNDRY_CONFIG_PATH:config}/uaa.yml" />
-					<property name="ignoreResourceNotFound" value="true" />
-				</bean>
-				<bean class="org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean">
-					<property name="resource" value="file:${UAA_CONFIG_FILE:config/uaa.yml}" />
-					<property name="ignoreResourceNotFound" value="true" />
-				</bean>
-			</list>
-		</property>
-	</bean>
 
 	<bean class="org.cloudfoundry.identity.uaa.event.listener.AuditListener">
 		<constructor-arg ref="loggingAuditService" />
@@ -46,10 +30,6 @@
 	<sec:http pattern="/login_info" security="none" />
 
 	<authentication-manager id="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security" />
-
-	<bean id="userEndPointRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
-		<constructor-arg value="/User" />
-	</bean>
 
 	<bean id="accessDecisionManager" class="org.springframework.security.access.vote.UnanimousBased" xmlns="http://www.springframework.org/schema/beans">
 		<constructor-arg>
@@ -66,7 +46,7 @@
 		authentication-manager-ref="authzAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<custom-filter ref="authzAuthenticationFilter" position="FORM_LOGIN_FILTER" />
-		<access-denied-handler ref="oauthAccessDeniedHandler"/>
+		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
 
 	<bean id="oauthAuthorizeRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
@@ -89,7 +69,7 @@
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<anonymous enabled="false" />
 		<custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
-		<access-denied-handler ref="oauthAccessDeniedHandler"/>
+		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
 
 	<http pattern="/userinfo" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
@@ -97,7 +77,7 @@
 		xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="SCOPE_OPENID" />
 		<custom-filter ref="oauth2ResourceServerFilter" after="EXCEPTION_TRANSLATION_FILTER" />
-		<access-denied-handler ref="oauthAccessDeniedHandler"/>
+		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
 
 	<http pattern="/oauth/token" create-session="stateless" authentication-manager-ref="clientAuthenticationManager"
@@ -105,15 +85,15 @@
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<anonymous enabled="false" />
 		<custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
-		<access-denied-handler ref="oauthAccessDeniedHandler"/>
+		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
 
 	<http pattern="/varz/**" create-session="stateless" authentication-manager-ref="varzAuthenticationManager"
 		entry-point-ref="basicAuthenticationEntryPoint" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<anonymous enabled="false" />
-		<http-basic authentication-details-source-ref="authenticationDetailsSource" entry-point-ref="basicAuthenticationEntryPoint"/>
-		<access-denied-handler ref="oauthAccessDeniedHandler"/>
+		<http-basic authentication-details-source-ref="authenticationDetailsSource" entry-point-ref="basicAuthenticationEntryPoint" />
+		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
 
 	<bean id="varzAuthenticationFilter" class="org.springframework.security.web.authentication.www.BasicAuthenticationFilter">
@@ -161,8 +141,7 @@
 	<authentication-manager id="varzAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
 		<authentication-provider>
 			<user-service>
-				<user name="${varz.client.username:varz}" authorities="ROLE_VARZ"
-					password="${varz.client.password:varzclientsecret}" />
+				<user name="${varz.client.username:varz}" authorities="ROLE_VARZ" password="${varz.client.password:varzclientsecret}" />
 			</user-service>
 		</authentication-provider>
 	</authentication-manager>
@@ -192,7 +171,8 @@
 			scope="openid,read" authorities="ROLE_GUEST" secret="${my.client.secret:$2a$10$8qjw5C.p65W6VIV7vXC0Hemo0S5kvt1ib/n4zBObx9XxLHo7FqUGS}" />
 		<oauth:client client-id="scim" authorized-grant-types="client_credentials" scope="read,write,password"
 			authorities="ROLE_CLIENT" secret="${scim.client.secret:$2a$10$mEaFQ2.VeetFRVXAUZGzl.x62KjnwVTHPjbVJ/ErsRJyhndXawxv.}" />
-		<oauth:client client-id="vmc" authorized-grant-types="refresh_token,implicit" scope="read,password" authorities="ROLE_GUEST" />
+		<oauth:client client-id="vmc" authorized-grant-types="refresh_token,implicit" scope="read,password"
+			authorities="ROLE_GUEST" />
 	</oauth:client-details-service>
 
 	<oauth:resource-server id="oauth2ResourceServerFilter" token-services-ref="tokenServices"
@@ -281,64 +261,17 @@
 
 	<bean id="homeController" class="org.cloudfoundry.identity.uaa.home.HomeController" />
 
-	<beans profile="default,!jdbc">
+	<bean id="userDatabase" class="org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase">
+		<constructor-arg ref="jdbcTemplate" />
+	</bean>
 
-		<bean id="userDatabase" class="org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase">
-			<constructor-arg ref="userData" />
-		</bean>
-
-		<bean id="scimUserProvisioning" class="org.cloudfoundry.identity.uaa.scim.InMemoryScimUserProvisioning">
-			<constructor-arg ref="userData" />
-		</bean>
-
-		<bean id="userData" class="org.cloudfoundry.identity.uaa.config.UaaUserMapFactoryBean">
-			<constructor-arg>
-				<list value-type="org.cloudfoundry.identity.uaa.user.UaaUser">
-					<value>dale|$2a$10$HoWPAUn9zqmmb0b.2TBZWe6cjQcxyo8TDwTX.5G46PBL347N3/0zO|olds@vmware.com|Dale|Olds</value>
-					<value>joel|$2a$10$HoWPAUn9zqmmb0b.2TBZWe6cjQcxyo8TDwTX.5G46PBL347N3/0zO|jdsa@vmware.com|Joel|D'Sa</value>
-					<value>dave|$2a$10$HoWPAUn9zqmmb0b.2TBZWe6cjQcxyo8TDwTX.5G46PBL347N3/0zO|dsyer@vmware.com|Dave|Syer</value>
-					<value>luke|$2a$10$HoWPAUn9zqmmb0b.2TBZWe6cjQcxyo8TDwTX.5G46PBL347N3/0zO|ltaylor@vmware.com|Luke|Taylor</value>
-					<value>marissa|$2a$10$ikFXo9IFG6zbMbhGcssySOhjDsGPpqzKwsdVOeCvJ7JoWjSQxyfs6|marissa@test.org|Marissa|Bloggs</value>
-				</list>
-			</constructor-arg>
-		</bean>
-
-	</beans>
-
-	<beans profile="jdbc">
-
-		<import resource="spring-data-source.xml" />
-
-		<bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
-			<property name="dataSource" ref="dataSource" />
-		</bean>
-
-		<bean id="userDatabase" class="org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase">
-			<constructor-arg ref="jdbcTemplate" />
-		</bean>
-
-		<bean id="userBootstrap" class="org.cloudfoundry.identity.uaa.user.JdbcUaaAdminUserBootstrap">
-			<constructor-arg ref="jdbcTemplate" />
-			<property name="username" value="${bootstrap.admin.username:admin}" />
-			<property name="password" value="${bootstrap.admin.password:$2a$10$yHj1jr2NYpGC3wu/BTeFDOnD4Jz3K6ALd6XghGXPTCU4WMxKZuRHu}" />
-			<property name="email" value="${bootstrap.admin.email:admin@localhost}" />
-			<property name="familyName" value="${bootstrap.admin.family_name:User}" />
-			<property name="givenName" value="${bootstrap.admin.given_name:Admin}" />
-		</bean>
-
-		<bean id="scimUserProvisioning" class="org.cloudfoundry.identity.uaa.scim.JdbcScimUserProvisioning">
-			<constructor-arg ref="jdbcTemplate" />
-		</bean>
-
-		<bean class="org.cloudfoundry.identity.uaa.event.listener.AuditListener">
-			<constructor-arg>
-				<bean class="org.cloudfoundry.identity.uaa.audit.JdbcAuditService">
-					<constructor-arg ref="dataSource" />
-				</bean>
-			</constructor-arg>
-		</bean>
-
-	</beans>
+	<bean class="org.cloudfoundry.identity.uaa.event.listener.AuditListener">
+		<constructor-arg>
+			<bean class="org.cloudfoundry.identity.uaa.audit.JdbcAuditService">
+				<constructor-arg ref="dataSource" />
+			</bean>
+		</constructor-arg>
+	</bean>
 
 	<beans profile="default,!legacy">
 

@@ -18,7 +18,6 @@ import static org.junit.Assert.assertNotNull;
 
 import java.util.Properties;
 
-import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.junit.After;
 import org.junit.Test;
@@ -49,20 +48,20 @@ public class BootstrapTests {
 
 	@Test
 	public void testRootContextWithJdbcUsers() throws Exception {
-		System.setProperty("spring.profiles.active", "jdbc,hsqldb,!legacy");
+		System.setProperty("spring.profiles.active", "hsqldb,!legacy");
 		context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/spring-servlet.xml"));
 		assertNotNull(context.getBean("userDatabase", JdbcUaaUserDatabase.class));
 	}
 
 	@Test
-	public void testRootContextWithDevUsers() throws Exception {
+	public void testRootContextDefaults() throws Exception {
 		context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/spring-servlet.xml"));
-		assertNotNull(context.getBean("userDatabase", InMemoryUaaUserDatabase.class));
+		assertNotNull(context.getBean("userDatabase", JdbcUaaUserDatabase.class));
 	}
 
 	@Test
 	public void testRootContextWithJdbcSecureUsers() throws Exception {
-		System.setProperty("spring.profiles.active", "jdbc,hsqldb,!legacy");
+		System.setProperty("spring.profiles.active", "hsqldb,!legacy");
 		context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/spring-servlet.xml"));
 		assertNotNull(context.getBean("userDatabase", JdbcUaaUserDatabase.class));
 		FilterChainProxy filterChain = context.getBean(FilterChainProxy.class);
@@ -77,7 +76,7 @@ public class BootstrapTests {
 	@Test
 	public void testOverrideYmlConfigPath() throws Exception {
 		System.setProperty("CLOUD_FOUNDRY_CONFIG_PATH", "src/test/resources/test/config");
-		System.setProperty("spring.profiles.active", "jdbc,hsqldb,legacy");
+		System.setProperty("spring.profiles.active", "hsqldb,legacy");
 		context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/spring-servlet.xml"));
 		Properties properties = context.getBean("applicationProperties", Properties.class);
 		assertEquals("bar", properties.get("foo"));
@@ -86,7 +85,7 @@ public class BootstrapTests {
 	@Test
 	public void testOverrideYmlConfigFile() throws Exception {
 		System.setProperty("UAA_CONFIG_FILE", "src/test/resources/test/config/uaa.yml");
-		System.setProperty("spring.profiles.active", "jdbc,hsqldb,legacy");
+		System.setProperty("spring.profiles.active", "hsqldb,legacy");
 		context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/spring-servlet.xml"));
 		Properties properties = context.getBean("applicationProperties", Properties.class);
 		assertEquals("bar", properties.get("foo"));
