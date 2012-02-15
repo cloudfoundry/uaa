@@ -1,5 +1,5 @@
 uaa.integration.test: true
-spring_profiles: legacy,mocklegacy,!jdbc
+spring_profiles: legacy,mocklegacy,hsqldb
 cloud_controller.login_url: http://localhost:8888/token
 bootstrap:
   admin:

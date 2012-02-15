@@ -24,22 +24,23 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
-import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.embedded.EmbeddedDatabase;
+import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
 import org.springframework.security.authentication.BadCredentialsException;
 
 /**
  * @author Dave Syer
  * @author Luke Taylor
- *
+ * 
  */
 public class ScimUserEndpointsTests {
 
@@ -47,13 +48,23 @@ public class ScimUserEndpointsTests {
 	public ExpectedException expected = ExpectedException.none();
 
 	private static ScimUser joel;
+
 	private static ScimUser dale;
+
 	private static ScimUserEndpoints endpoints;
-	private static InMemoryScimUserProvisioning dao;
+
+	private static JdbcScimUserProvisioning dao;
+
+	private static EmbeddedDatabase database;
 
 	@BeforeClass
 	public static void setUp() {
-		dao = new InMemoryScimUserProvisioning(new HashMap<String, UaaUser>());
+		EmbeddedDatabaseBuilder builder = new EmbeddedDatabaseBuilder();
+		builder.addScript("classpath:/org/cloudfoundry/identity/uaa/schema-hsqldb.sql");
+		database = builder.build();
+		JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
+		dao = new JdbcScimUserProvisioning(jdbcTemplate);
+		dao.setPasswordValidator(new NullPasswordValidator());
 		endpoints = new ScimUserEndpoints();
 		endpoints.setScimUserProvisioning(dao);
 		joel = new ScimUser(null, "jdsa", "Joel", "D'sa");
@@ -66,7 +77,7 @@ public class ScimUserEndpointsTests {
 
 	@AfterClass
 	public static void tearDown() throws Exception {
-		dao.destroy();
+		database.shutdown();
 	}
 
 	@Test
@@ -193,11 +204,11 @@ public class ScimUserEndpointsTests {
 				.contains(joel.getId()));
 	}
 
-//	@Test
-//	public void testFindIdsByNameExists() {
-//		SearchResults<Map<String, Object>> results = endpoints.findUsers("id", "name pr", 1, 100);
-//		assertEquals(2, results.getTotalResults());
-//	}
+	@Test
+	public void testFindIdsByNameExists() {
+		SearchResults<Map<String, Object>> results = endpoints.findUsers("id", "name pr", 1, 100);
+		assertEquals(2, results.getTotalResults());
+	}
 
 	@Test
 	public void testFindIdsByUserNameStartWith() {
@@ -231,7 +242,8 @@ public class ScimUserEndpointsTests {
 
 	@Test
 	public void testFindIdsWithBooleanExpressionIvolvingEmails() {
-		SearchResults<Map<String, Object>> results = endpoints.findUsers("id", "userName co 'd' and emails.value co 'vmware'", 1, 100);
+		SearchResults<Map<String, Object>> results = endpoints.findUsers("id",
+				"userName co 'd' and emails.value co 'vmware'", 1, 100);
 		assertEquals(2, results.getTotalResults());
 		assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
 				.contains(joel.getId()));
