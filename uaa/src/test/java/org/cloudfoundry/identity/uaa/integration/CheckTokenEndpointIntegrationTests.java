@@ -103,8 +103,7 @@ public class CheckTokenEndpointIntegrationTests {
 
 		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> response = serverRunning.postForMap("/check_token", formData, headers);
-		// FORBIDDEN would be better. But this is good enough.
-		assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+		assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
 
 		@SuppressWarnings("unchecked")
 		Map<String, String> map = response.getBody();

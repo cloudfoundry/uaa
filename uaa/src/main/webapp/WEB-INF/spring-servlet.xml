@@ -10,11 +10,11 @@
 		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.1.xsd
 		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
 
-	<!--  The data source has to be defined first -->
+	<!-- The data source has to be defined first -->
 	<import resource="spring-data-source.xml" />
 	<import resource="spring-scim.xml" />
 
-	<context:property-placeholder properties-ref="applicationProperties"/>
+	<context:property-placeholder properties-ref="applicationProperties" />
 
 	<bean class="org.cloudfoundry.identity.uaa.event.listener.AuditListener">
 		<constructor-arg ref="loggingAuditService" />
@@ -65,7 +65,7 @@
 
 	<http pattern="/check_token" create-session="stateless" entry-point-ref="basicAuthenticationEntryPoint"
 		authentication-manager-ref="clientAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+		<intercept-url pattern="/**" access="ROLE_CLIENT" />
 		<anonymous enabled="false" />
 		<custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
@@ -153,7 +153,7 @@
 
 	<bean id="clientDetailsUserService" class="org.springframework.security.oauth2.provider.client.ClientDetailsUserDetailsService">
 		<constructor-arg ref="clientDetails" />
-		<property name="passwordEncoder" ref="bcryptPasswordEncoder"/>
+		<property name="passwordEncoder" ref="bcryptPasswordEncoder" />
 	</bean>
 
 	<oauth:authorization-server client-details-service-ref="clientDetails" token-services-ref="tokenServices">
@@ -166,15 +166,15 @@
 
 	<oauth:client-details-service id="clientDetails">
 		<oauth:client client-id="app" authorized-grant-types="password,authorization_code,refresh_token" scope="read,openid"
-			authorities="ROLE_GUEST" secret="${app.client.secret:$2a$10$7uLdSof7NIMYAUlbrV8wzuEZ45cc17kZjH.kC7vcJgHBD0SnE7JSe}" />
+			authorities="ROLE_CLIENT" secret="${app.client.secret:$2a$10$7uLdSof7NIMYAUlbrV8wzuEZ45cc17kZjH.kC7vcJgHBD0SnE7JSe}" />
 		<oauth:client client-id="my" authorized-grant-types="authorization_code,refresh_token,implicit,client_credentials"
 			scope="openid,read" authorities="ROLE_GUEST" secret="${my.client.secret:$2a$10$8qjw5C.p65W6VIV7vXC0Hemo0S5kvt1ib/n4zBObx9XxLHo7FqUGS}" />
 		<oauth:client client-id="scim" authorized-grant-types="client_credentials" scope="read,write,password"
 			authorities="ROLE_CLIENT" secret="${scim.client.secret:$2a$10$mEaFQ2.VeetFRVXAUZGzl.x62KjnwVTHPjbVJ/ErsRJyhndXawxv.}" />
-		<oauth:client client-id="vmc" authorized-grant-types="refresh_token,implicit" scope="read,password"
-			authorities="ROLE_UNTRUSTED" resource-ids="cloud_controller"/>
+		<oauth:client client-id="vmc" authorized-grant-types="implicit" scope="read,password" authorities="ROLE_UNTRUSTED"
+			resource-ids="cloud_controller,openid" />
 		<oauth:client client-id="cloud_controller" authorized-grant-types="client_credentials" scope="read,openid"
-			authorities="ROLE_GUEST" secret="${cloud_controller.client.secret:$2a$08$qsrUOJQo0CWRuI9l4St6Eugt0fXf2bPKeGXN8J3glRHHhEMajUUk2}" />
+			authorities="ROLE_CLIENT" secret="${cloud_controller.client.secret:$2a$08$qsrUOJQo0CWRuI9l4St6Eugt0fXf2bPKeGXN8J3glRHHhEMajUUk2}" />
 	</oauth:client-details-service>
 
 	<oauth:resource-server id="oauth2ResourceServerFilter" token-services-ref="tokenServices"
