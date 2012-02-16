@@ -23,6 +23,7 @@ import java.util.Map;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
 import org.junit.Test;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
+import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.token.InMemoryTokenStore;
@@ -81,7 +82,7 @@ public class CheckTokenEndpointTests {
 		assertEquals(Arrays.asList("ROLE_USER"), result.get("user_authorities"));
 	}
 	
-	@Test
+	@Test(expected=InvalidTokenException.class)
 	public void testExpiredToken() throws Exception {
 		OAuth2AccessToken token = new OAuth2AccessToken("FOO");
 		token.setExpiration(new Date(System.currentTimeMillis()-100000));

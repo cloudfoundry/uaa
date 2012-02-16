@@ -11,6 +11,7 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
+import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.token.TokenStore;
@@ -40,13 +41,11 @@ public class CheckTokenEndpoint implements InitializingBean {
 		OAuth2AccessToken token = tokenStore.readAccessToken(value);
 
 		if (token == null) {
-			response.put("error", "invalid_token");
-			return response;
+			throw new InvalidTokenException("Token was not recognised");
 		}
 
 		if (token.isExpired()) {
-			response.put("error", "expired_token");
-			return response;
+			throw new InvalidTokenException("Token has expired");
 		}
 
 		OAuth2Authentication authentication = tokenStore.readAuthentication(token);
