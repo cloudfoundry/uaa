@@ -4,12 +4,13 @@
 
 The User Account and Authentication Service (UAA) is:
 
-* A new, separate application from the Cloud Controller
+* A separate application from the Cloud Controller
 * Owns the user accounts and authentication sources
 * Called via JSON APIs
-* support for standard protocols to provide single sign-on and delegated authorization to web applications
+* Support for standard protocols to provide single sign-on and delegated authorization to web applications
 in addition to JSON APIs to support the Cloud Controller and Collaboration Spaces
-* Will also eventually support APIs for a Web UI for user account management _(dale: via the portal exposed interfaces? or are you saying a new standalone UI?)_
+* Support APIs and a basic login/approval UI for web client apps
+* Support APIs for user account management for an external web UI (i.e. `www.cloudfoundry.com`)
 
 (Rather than trigger arguments about how RESTful these APIs are we'll just refer to them as JSON APIs. Most of them are defined by the specs for the OAuth2, OpenID Connect, and SCIM standards.)
 
@@ -17,9 +18,9 @@ APIs in this document:
 
 Authentication and Delegated Authorization APIs
 
-* [Get authorization approval or access token: /authorize](#authorize)
+* [Get authorization approval or access token: /oauth/authorize](#authorize)
 * [Validate access token: /check_token](#check_token)
-* [Get access token: /token](#token)
+* [Get access token: /oauth/token](#token)
 * [Validate authentication token: /check_id](#check_id)
 * [Get user information: /userinfo](#userinfo)
 * [Get login information and prompts: /login_info](#login_info)
@@ -35,13 +36,14 @@ User Account APIs
 
 ## Configuration Options
 
-These options are expected to be set in configuration files.  Settings
-for a handful of standard scenarios can be externalized and switched
-using environment variables or system properties.
+Several modes of operation and other optional features can be set in
+configuration files.  Settings for a handful of standard scenarios can
+be externalized and switched using environment variables or system
+properties.
 
 *  **Internal username/password authentication source**
 
-    The UAA will contain a user account database. This account can be used for password based authentication similar to existing Cloud Foundry user accounts. The UAA accounts could be configured with password policy such as length, accepted/required character types, expiration times, reset policy, etc.
+    The UAA manages a user account database. These accounts can be used for password based authentication similar to existing Cloud Foundry user accounts. The UAA accounts can be configured with password policy such as length, accepted/required character types, expiration times, reset policy, etc.
 
 * **Other Authentication sources**
 
@@ -52,9 +54,9 @@ using environment variables or system properties.
 
 ## Authentication and Delegated Authorization API Endpoints
 
-This section deals with machine interactions, not with browsers, although some of them may have browsable content for authenticated users.  All machine requests have accept headers indicating JSON (or a derivation perhaps).  
+This section deals with machine interactions, not with browsers, although some of them may have browsable content for authenticated users.  All machine requests have accept headers indicating JSON (or a derived media type perhaps).  
 
-The `/userinfo`, `/check_id`, and `/token` endpoints are specified in the [OpenID Connect][] and [OAuth2][] standards and should be used by web applications on a cloud foundry instance such as studio, www, support, but will not be used by flows from vmc.
+The `/userinfo`, `/check_id`, and `/token` endpoints are specified in the [OpenID Connect][] and [OAuth2][] standards and should be used by web applications on a cloud foundry instance such as micro, www, support, but will not be used by flows from vmc.
 
 [OAuth2]: http://tools.ietf.org/html/draft-ietf-oauth-v2-22 "OAuth2, draft 22"
 [OpenID Connect]: http://openid.net/openid-connect "OpenID Connect Spec Suite"
@@ -73,25 +75,25 @@ Resource IDs have some of the character of a scope, except that the clients them
 
 An [OAuth2][] defined endpoint to provide various tokens and authorization codes.
 
-For the flows in this document, we will probably be using the OAuth2 Implicit grant type (to avoid a second round trip to `/token` and so vmc does not need to securely store a refresh token). The authentication method for the user is undefined by OAuth2 but a POST to this endpoint is acceptable, although a GET must also be supported ([see the spec][OAuth2-3.1]).
+For the `vmc` flows in this document, we will probably be using the OAuth2 Implicit grant type (to avoid a second round trip to `/token` and so vmc does not need to securely store a refresh token). The authentication method for the user is undefined by OAuth2 but a POST to this endpoint is acceptable, although a GET must also be supported ([see the spec][OAuth2-3.1]).
 
 [OAuth2-3.1]: http://tools.ietf.org/html/draft-ietf-oauth-v2-22#section-3.1
 
 Effectively this means that the endpoint is used to authenticate _and_ obtain an access token in the same request.  Note the correspondence with the UI endpoints (this is similar to the `/login` endpoint with a different representation).
 
-N.B. a GET is used in the [relevant section](http://tools.ietf.org/html/draft-ietf-oauth-v2-22#section-4.2.1) of the spec that talks about the implicit grant, but a POST is explicitly allowed in the [section on the `/authorize` endpoint, paragraph 5][OAuth2-3.1].
+N.B. a GET is used in the [relevant section](http://tools.ietf.org/html/draft-ietf-oauth-v2-22#section-4.2.1) of the spec that talks about the implicit grant, but a POST is explicitly allowed in the [section on the `/oauth/authorize` endpoint, paragraph 5][OAuth2-3.1].
 
 All requests to this endpoint MUST be over SSL. 
 
 ### Implicit Grant
 
-* Request: `POST /authorize`
+* Request: `POST /oauth/authorize`
 * Request Body: some parameters specified by the spec, appended to the query component using the "application/x-www-form-urlencoded" format,
 
   * `response_type=token`
   * `client_id=vmc`
-  * `scope=http://api.cloudfoundry.example.com`
-  * `redirect_uri` is optional because it can be pre-registered, but a dummy is still needed where vmc is concerned (it doesn't redirect)
+  * `scope=read write`
+  * `redirect_uri` - optional because it can be pre-registered, but a dummy is still needed where vmc is concerned (it doesn't redirect)
 
   and some required by us for authentication:
   
@@ -114,12 +116,12 @@ This is a completely vanilla as per the [OAuth2][] spec, but we give a brief out
 
 ### Browser Initiates
 
-* Request: `GET /authorize`
+* Request: `GET /oauth/authorize`
 * Request Body: some parameters specified by the spec, appended to the query component using the "application/x-www-form-urlencoded" format,
 
   * `response_type=code`
   * `client_id=www`
-  * `scope=http://www.cloudfoundry.example.com`
+  * `scope=read write password`
   * `redirect_uri` is optional because it can be pre-registered
 
 * Request Header:
@@ -127,7 +129,7 @@ This is a completely vanilla as per the [OAuth2][] spec, but we give a brief out
   * `Cookie: JSESSIONID=ADHGFKHDSJGFGF; Path /` - the authentication
   cookie for the client with UAA.  If there is no cookie user's
   browser is redirected to the `/login`, and will eventually come back
-  to `/authorize`.
+  to `/oauth/authorize`.
 
 * Response Header: location as defined in the spec includes `access_token` if successful
 
@@ -144,7 +146,7 @@ See below for a more detailed description of the [token endpoint](#token).
 
 * Request: the authorization code (form encoded), e.g.
 
-        POST /token
+        POST /oauth/token
         code=F45jH
 
 * Response Body:
@@ -153,7 +155,6 @@ See below for a more detailed description of the [token endpoint](#token).
         "access_token":"2YotnFZFEjr1zCsicMWpAA",
         "token_type":"bearer",
         "expires_in":3600,
-        "example_parameter":"example_value"
         }        
 
 * Response Codes:
@@ -162,13 +163,13 @@ See below for a more detailed description of the [token endpoint](#token).
 
 ### <a id="check_token"/>OAuth2 Token Validation Service
 
-An endpoint that allows a resource server such as the cloud controller to validate an access token. Interactions between the resource server and the authorization provider are not specified in OAuth2, so we are adding this endpoint. The request should be over SSL and use basic auth with the shared secret between the UAA and the cloud controller. The POST body should be the access\_token and the response should include the userID, user_name, scope in json format.  The client (not the user) is authenticated via basic auth for this call.
+An endpoint that allows a resource server such as the cloud controller to validate an access token. Interactions between the resource server and the authorization provider are not specified in OAuth2, so we are adding this endpoint. The request should be over SSL and use basic auth with the shared secret between the UAA and the cloud controller. The POST body should be the access\_token and the response includes the userID, user_name and scope of the token in json format.  The client (not the user) is authenticated via basic auth for this call.
 
-OAuth2 access\_tokens could contain all needed information such as userID, scope(s), lifetime, user attributes and be encrypted with the resource server's (e.g. cloud countroller's) secret key. That way the resource server could validate and use the token with no contact with the UAA. However, it may be useful -- at least during development -- for the UAA to specify a short, opaque token and then provide a way for the resource server to return it to the UAA to validate and open. That is what this endpoint does. It does not return general user account information like the /userinfo endpoint, it is specifically to validate and return the information represented by access\_token that the user presented to the resource server.
+OAuth2 access\_tokens are opaque to clients, but can be decoded by resource servers to obtain all needed information such as userID, scope(s), lifetime, user attributes. If the token is encrypted witha shared sceret between the UAA are resource server it can be decoded without contacting the UAA. However, it may be useful -- at least during development -- for the UAA to specify a short, opaque token and then provide a way for the resource server to return it to the UAA to validate and open. That is what this endpoint does. It does not return general user account information like the /userinfo endpoint, it is specifically to validate and return the information represented by access\_token that the user presented to the resource server.
 
-This endpoint mirrors the OpenID Connect `/check_id` endpoint, so not very RESTful, but we want to make it look and feel like the others. The endpoint is not part of any spec, but it is a useful took to have for anyone implementing an OAuth2 Resource Server.
+This endpoint mirrors the OpenID Connect `/check_id` endpoint, so not very RESTful, but we want to make it look and feel like the others. The endpoint is not part of any spec, but it is a useful tool to have for anyone implementing an OAuth2 Resource Server.
 
-* Request: the basic authorization is as per OAuth2 spec, assuming the caller (a resource server) is a registered client: `base64(resource_server:shared_secret)`
+* Request: uses basic authorization assuming the caller (a resource server) is actually also a registered client: `base64(resource_server:shared_secret)`
 
         POST /check_token HTTP/1.1
         Host: server.example.com
@@ -183,16 +184,15 @@ This endpoint mirrors the OpenID Connect `/check_id` endpoint, so not very RESTf
         Content-Type: application/json
 
         {
-            "user_id":"bjensen",
-			"id":9017092310y301qhe",
-            "scope": "https://api.cloudfoundry.example.com",
-            "expiration": "231231231231",
-			"email":"bjensen@example.com",
-			"user_authorities":["ROLE_USER"],
-			"resource_ids":["https://api.cloudfoundry.example.com", "https://www.cloudfoundry.example.com"],
-			"client_id":"vmc",
-			"client_secret":"KHfdsfjahsdgfkj=",
-			"client_authorities":["ROLE_CLIENT"]
+            "id":"4657c1a8-b2d0-4304-b1fe-7bdc203d944f",
+            "resource_ids":["openid","cloud_controller"],
+            "scope":["read"],
+            "email":"marissa@test.org",
+            "client_authorities":["ROLE_UNTRUSTED"],
+            "expires_in":43173,
+            "user_authorities":["ROLE_USER"],
+            "user_id":"marissa",
+            "client_id":"vmc"
         }
 		
     Notes:
@@ -218,7 +218,7 @@ _Not needed for vmc. This endpoint would be used by web flows._
 
 An OAuth2 defined endpoint which accepts authorization code or refresh tokens and provides access\_tokens. The access\_tokens can then be used to gain access to resources within a resource server. 
 
-* Request: `POST /token`
+* Request: `POST /oauth/token`
 
 ### <a id="check_id"/>OpenID Check ID Endpoint
 
@@ -254,7 +254,7 @@ An endpoint which returns login information, e.g prompts for authorization codes
 	
 This call will be unauthenticated.
 
-* Request: `GET /login_info`
+* Request: `GET /login_info` or `GET /login`
 * Request body: _empty_
 * Response body: _example_
 
@@ -489,8 +489,8 @@ Web app clients need UI endpoints for the OAuth2 and OpenID redirects. Clients t
 
 ### OAuth2 Authorization Confirmation
 
-* Request: `GET /authorize/confirm`
-* Request Body: HTML form posts back to `/authorize`
+* Request: `GET /oauth/authorize/confirm`
+* Request Body: HTML form posts back to `/oauth/authorize`
 
     Do you approve the application "foo" to access your CloudFoundry 
     resources with scope "read_cloudfoundry"? Approve/Deny.
@@ -503,7 +503,7 @@ Web app clients need UI endpoints for the OAuth2 and OpenID redirects. Clients t
 
 The precise form of this request is not given by the spec (which just says "obtain authorization"), but the response is.
 
-* Request: `POST /authorize?user_oauth_approval=true`
+* Request: `POST /oauth/authorize?user_oauth_approval=true`
 * Request Header: needed to ensure the currently authenticated client is the one that is authorizing
 
     Cookie: JSESSIONID=ldfjhsdhafgkasd
