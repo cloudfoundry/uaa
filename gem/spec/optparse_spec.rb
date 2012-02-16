@@ -19,6 +19,29 @@ describe "Uaa opts parser" do
     result.should_not be_nil
   end
 
+  it "should accept --trace as an alias for --verbose" do
+    command, args, options, result = Cloudfoundry::Uaa::OptParser.parse(["--trace"])
+    options[:verbose].should be_true
+    result.should_not be_nil
+  end
+
+  {
+    :client_id => "client-id",
+    :client_secret => "client-secret"
+  }.each do |underscore,hyphen|
+
+    it "should accept #{hyphen} as an alias for #{underscore}" do
+      command, args, options, result = Cloudfoundry::Uaa::OptParser.parse(["--#{hyphen}", "foo"])
+      options[underscore].should be_true
+    end
+
+  end
+
+  it "should accept --grant-type as an alias for --grant_type" do
+    command, args, options, result = Cloudfoundry::Uaa::OptParser.parse(%w[login --grant_type foo])
+    options[:grant_type].should be_true
+  end
+
   it "should exit cleanly on -v" do
     command, args, options, result = Cloudfoundry::Uaa::OptParser.parse(["-v"])
     result.should_not be_nil

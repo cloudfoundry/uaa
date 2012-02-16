@@ -112,15 +112,15 @@ EOF
       opts.banner = basic_usage_with_options
       opts.version = Cloudfoundry::Uaa::VERSION
 
-      opts.on('--client_id CLIENT_ID', 'Use the specified client_id to authenticate') do |client_id|
+      opts.on('--client_id CLIENT_ID', '--client-id', 'Use the specified client_id to authenticate') do |client_id|
         @options[:client_id] = client_id
       end
 
-      opts.on('--client_secret CLIENT_SECRET', 'Use the specified client_secret to authenticate') do |client_secret|
+      opts.on('--client_secret CLIENT_SECRET', '--client-secret', 'Use the specified client_secret to authenticate') do |client_secret|
         @options[:client_secret] = client_secret
       end
 
-      opts.on('--verbose', 'Run verbosely') do
+      opts.on('--verbose', '--trace', 'Run verbosely') do
         @options[:verbose] = true
       end
 
@@ -171,7 +171,7 @@ EOF
             @options[:scope] = scope.split(",")
           end
         end
-        opts.on('-g', '--grant_type TYPE', 'Set the grant type of the token request (available as supported by server for this client)') do |grant_type|
+        opts.on('-g', '--grant_type TYPE', '--grant-type TYPE', 'Set the grant type of the token request (available as supported by server for this client)') do |grant_type|
           @options[:grant_type] = grant_type
         end
         @options[:save_token] = true
