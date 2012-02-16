@@ -86,7 +86,7 @@ class Cloudfoundry::Uaa::Client
   def login(opts={})
 
     opts = opts.dup
- 
+
     opts[:client_id] ||= @client_id
     opts[:client_secret] ||= @client_secret if @client_secret
     opts[:scope] ||= @scope
@@ -120,6 +120,7 @@ class Cloudfoundry::Uaa::Client
       'Accept'=>"application/json"}
     add_client_auth(grant_type, headers, opts)
 
+    url = '/oauth/token'
     case grant_type
     when "implicit"
       url = '/oauth/authorize'
@@ -129,8 +130,9 @@ class Cloudfoundry::Uaa::Client
       url = '/oauth/authorize'
       opts[:response_type] = "code"
       opts.delete :grant_type # don't send grant type
-    else
-      url = '/oauth/token'
+    when "password"
+      opts[:username] = username
+      opts[:password] = password
     end
 
     opts.delete :client_secret # don't send secret in post data
