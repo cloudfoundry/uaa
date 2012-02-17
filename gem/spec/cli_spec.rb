@@ -50,13 +50,13 @@ describe "Uaa cli wrapper" do
   end
 
   it "should use the client id if supplied" do
-    @dispatcher.should_receive(:dispatch).with(:login, ["marissa", "koala"], {:verbose=>false, :client_id=>"foo", :username=>"marissa", :password=>"koala"})
+    @dispatcher.should_receive(:dispatch).with(:login, ["marissa", "koala"], {:verbose=>false, :save_token=>true, :client_id=>"foo", :username=>"marissa", :password=>"koala"})
     result = cli("--client_id foo login marissa koala").run()
   end
 
   it "should prompt for username and password" do
-    @dispatcher.should_receive(:dispatch).with(:login, [], {:verbose=>true}).and_raise(prompts_error)
-    @dispatcher.should_receive(:dispatch).with(:login, [], {:verbose=>true, :username=>"marissa", :password=>"koala"})
+    @dispatcher.should_receive(:dispatch).with(:login, [], {:verbose=>true, :save_token=>true}).and_raise(prompts_error)
+    @dispatcher.should_receive(:dispatch).with(:login, [], {:verbose=>true, :save_token=>true, :username=>"marissa", :password=>"koala"})
     runner = cli("--verbose login")
     runner.terminal = HighLine.new(StringIO.new("marissa\nkoala"))
     result = runner.run()
@@ -64,8 +64,8 @@ describe "Uaa cli wrapper" do
   end
 
   it "should prompt for password" do
-    @dispatcher.should_receive(:dispatch).with(:login, ["marissa"], {:verbose=>true, :username=>"marissa"}).and_raise(prompts_error)
-    @dispatcher.should_receive(:dispatch).with(:login, ["marissa"], {:verbose=>true, :username=>"marissa", :password=>"koala"})
+    @dispatcher.should_receive(:dispatch).with(:login, ["marissa"], {:verbose=>true, :save_token=>true, :username=>"marissa"}).and_raise(prompts_error)
+    @dispatcher.should_receive(:dispatch).with(:login, ["marissa"], {:verbose=>true, :save_token=>true, :username=>"marissa", :password=>"koala"})
     runner = cli("--verbose login marissa")
     runner.terminal = HighLine.new(StringIO.new("koala"))
     result = runner.run()

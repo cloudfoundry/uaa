@@ -19,6 +19,29 @@ describe "Uaa opts parser" do
     result.should_not be_nil
   end
 
+  it "should accept --trace as an alias for --verbose" do
+    command, args, options, result = Cloudfoundry::Uaa::OptParser.parse(["--trace"])
+    options[:verbose].should be_true
+    result.should_not be_nil
+  end
+
+  {
+    :client_id => "client-id",
+    :client_secret => "client-secret"
+  }.each do |underscore,hyphen|
+
+    it "should accept #{hyphen} as an alias for #{underscore}" do
+      command, args, options, result = Cloudfoundry::Uaa::OptParser.parse(["--#{hyphen}", "foo"])
+      options[underscore].should be_true
+    end
+
+  end
+
+  it "should accept --grant-type as an alias for --grant_type" do
+    command, args, options, result = Cloudfoundry::Uaa::OptParser.parse(%w[login --grant_type foo])
+    options[:grant_type].should be_true
+  end
+
   it "should exit cleanly on -v" do
     command, args, options, result = Cloudfoundry::Uaa::OptParser.parse(["-v"])
     result.should_not be_nil
@@ -53,7 +76,7 @@ describe "Uaa opts parser" do
   it "should extract global options" do
     command, args, options, result = Cloudfoundry::Uaa::OptParser.parse(%w[--client_id foo login])
     result.should be_true
-    options.should == {:client_id=>"foo", :verbose=>false}
+    options[:client_id].should == "foo"
     command.should == :login
     args.should be_empty
   end
@@ -63,6 +86,14 @@ describe "Uaa opts parser" do
     command, args, options, result = Cloudfoundry::Uaa::OptParser.parse(%w[login --verbose])
     result.should be_true
     options.should == {:verbose=>true}
+    command.should == :login
+    args.should be_empty
+  end
+
+  it "should allow equals sign separator" do
+    command, args, options, result = Cloudfoundry::Uaa::OptParser.parse(%w[--client_id=foo login])
+    result.should be_true
+    options[:client_id].should == "foo"
     command.should == :login
     args.should be_empty
   end
@@ -77,7 +108,7 @@ describe "Uaa opts parser" do
   it "should allow login-specific options" do
     command, args, options, result = Cloudfoundry::Uaa::OptParser.parse(%w[login --grant_type client_credentials])
     result.should be_true
-    options.should == {:grant_type=>"client_credentials", :verbose=>false}
+    options[:grant_type].should == "client_credentials"
     command.should == :login
   end
 

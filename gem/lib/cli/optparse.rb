@@ -20,7 +20,7 @@ class Cloudfoundry::Uaa::OptParser
 
   # The name of the command (for usage banner)
   NAME = 'uaa'
-  COMMANDS = %w(help target prompts login decode)
+  COMMANDS = %w(help target prompts login decode register)
 
   class HelpRequiredException < StandardError
     def to_s
@@ -61,7 +61,7 @@ class Cloudfoundry::Uaa::OptParser
 
     opts_parser = global_opts_parser
 
-    if @args.empty?
+    if @args.nil? || @args.empty?
       @result = false
       raise HelpRequiredException, "(no command provided)"
     end
@@ -94,7 +94,7 @@ class Cloudfoundry::Uaa::OptParser
     <<-EOF
   Usage: #{NAME} [options] <command> [<args>] [command_options]
      or: #{NAME} help <command>
-         <command> can be one of target, prompts, login, decode
+         <command> can be one of help, target, prompts, login, decode, register
 EOF
   end
 
@@ -112,20 +112,20 @@ EOF
       opts.banner = basic_usage_with_options
       opts.version = Cloudfoundry::Uaa::VERSION
 
-      opts.on('--client_id CLIENT_ID', 'Use the specified client_id to authenticate') do |client_id|
+      opts.on('--client_id CLIENT_ID', '--client-id', 'Use the specified client_id to authenticate') do |client_id|
         @options[:client_id] = client_id
       end
 
-      opts.on('--client_secret CLIENT_SECRET', 'Use the specified client_secret to authenticate') do |client_secret|
+      opts.on('--client_secret CLIENT_SECRET', '--client-secret', 'Use the specified client_secret to authenticate') do |client_secret|
         @options[:client_secret] = client_secret
       end
 
-      opts.on('--verbose', 'Run verbosely') do
+      opts.on('--verbose', '--trace', 'Run verbosely') do
         @options[:verbose] = true
       end
 
       opts.on_tail("-h", "--help", "Show this message") do
-        puts opts
+        @command = :help
         @result = true
       end
 
@@ -154,12 +154,15 @@ EOF
       opts.banner = basic_usage
 
       case @command
+
       when :target
         opts.banner = "Usage: #{NAME} [options] target url"
+
       when :login
         opts.banner = <<-EOF
-  Usage: #{NAME} [options] login [username] [password]
-Options:
+  Usage: #{NAME} login [options] [username] [password] [login_options]
+         Arguments that are not provided will be prompted for as necessary
+Login Options:
 EOF
         opts.on('-s', '--scope SCOPE', 'Set the scope of the token request (space or comma separated list)') do |scope|
           if scope.include? " " then
@@ -168,11 +171,40 @@ EOF
             @options[:scope] = scope.split(",")
           end
         end
-        opts.on('-g', '--grant_type TYPE', 'Set the grant type of the token request (available as supported by server for this client)') do |grant_type|
+        opts.on('-g', '--grant_type TYPE', '--grant-type TYPE', 'Set the grant type of the token request (available as supported by server for this client)') do |grant_type|
           @options[:grant_type] = grant_type
         end
+        @options[:save_token] = true
+        opts.on('-s', '--[no-]save-token', 'If set (') do |save_token|
+          @options[:save_token] = save_token
+        end
+
       when :decode
-        opts.banner = "Usage: #{NAME} decode token"
+        opts.banner = <<-EOF
+  Usage: #{NAME} [options] decode [token]
+         The token is optional (defaults) to the token obtained when logging in.
+         If the token was obtained with an untrusted client you will need to
+         supply new client_id and client_secret global options to decode a token.
+EOF
+
+      when :register
+        opts.banner = <<-EOF
+  Usage: #{NAME} register [email] [username] [given_name] [family_name] [password]
+
+         email:        email address for the new new account
+         username:     username for the new new account
+         family_name:  family name for the new account
+         given_name:   given name for the new account
+         password:     password for the new new account
+
+  Arguments that are not provided will be prompted for as necessary
+
+  Options:
+
+EOF
+        opts.on('-n', '--name NAME', 'The full name of the new account (defaults to "given_name family_name")') do |name|
+          @options[:name] = name
+        end
       end
 
     end
@@ -184,17 +216,9 @@ EOF
 
   def parse_command()
 
-    case @command_args.shift
-    when 'help'
-      @command = :help
-    when 'target'
-      @command = :target
-    when 'login'
-      @command = :login
-    when 'decode'
-      @command = :decode
-    when 'prompts'
-      @command = :prompts
+    command = @command_args.shift
+    if COMMANDS.include?(command) 
+      @command = command.intern 
     else
       @result = false if @result.nil?
       raise HelpRequiredException, '(no command or invalid command specified)'
@@ -204,9 +228,18 @@ EOF
 
     # Validate additional args here if necessary
     case @command
+
     when :login
       @options[:username] = @command_args[0] if @command_args.length>0
       @options[:password] = @command_args[1] if @command_args.length>1
+
+    when :register
+      @options[:email] = @command_args[0] if @command_args.length>0
+      @options[:username] = @command_args[1] if @command_args.length>1
+      @options[:given_name] = @command_args[2] if @command_args.length>2
+      @options[:family_name] = @command_args[3] if @command_args.length>3
+      @options[:password] = @command_args[4] if @command_args.length>4
+
     end
 
     result

@@ -55,8 +55,8 @@ module Cloudfoundry::Uaa::Http
     request(:post, path, body, 'Content-Type'=>content_type, 'Authorization'=>authorization)
   end
 
-  def http_put(path, body, content_type=nil)
-    request(:put, path, body, 'Content-Type'=>content_type)
+  def http_put(path, body, content_type=nil, authorization=nil)
+    request(:put, path, body, 'Content-Type'=>content_type, 'Authorization'=>authorization)
   end
 
   def http_delete(path)
