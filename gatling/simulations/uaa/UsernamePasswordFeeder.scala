@@ -10,6 +10,6 @@ case class UsernamePasswordFeeder(prefix: String = "joe", password: String = "pa
 
 	def next = {
 		counter += 1
-		Map("username" -> ("joe" + counter), "password" -> password)
+		Map("username" -> (prefix + counter), "password" -> password)
 	}
 }

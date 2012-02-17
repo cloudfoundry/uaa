@@ -10,25 +10,40 @@ import com.excilys.ebi.gatling.http.check.{HttpCheck, HttpCheckBuilder}
 import java.util.regex.Pattern
 
 /**
- * Checks for the presence of a token in the fragment of the Location header
+ * Checks for the presence of an access token in the fragment of the Location header or JSON body
  */
-private[uaa] object FragmentTokenCheckBuilder {
-	val tokenFragment = Pattern.compile(".*#.*access_token=([^&]+).*")
+object AccessTokenCheckBuilder {
+	val fragmentTokenPattern = Pattern.compile(".*#.*access_token=([^&]+).*")
+	val jsonBodyTokenPattern = Pattern.compile(""""access_token":"(.*?)"""")
 
-	def token = new FragmentTokenCheckBuilder
+	def fragmentToken = new FragmentTokenCheckBuilder
 
-	private def findExtractorFactory: ExtractorFactory[Response, String] = { (response: Response) => (expression: String) =>
-		val matcher = tokenFragment.matcher(response.getHeader("Location"))
+	def jsonToken = new JsonTokenCheckBuilder
+
+	private[uaa] def fragmentExtractorFactory: ExtractorFactory[Response, String] = { (response: Response) => (expression: String) =>
+		val matcher = fragmentTokenPattern.matcher(response.getHeader("Location"))
 
 		if (matcher.find()) Some(matcher.group(1)) else None
 	}
+
+	private[uaa] def jsonExtractorFactory: ExtractorFactory[Response, String] = { (response: Response) => (expression: String) =>
+		val matcher = jsonBodyTokenPattern.matcher(response.getResponseBody)
+
+		if (matcher.find()) Some(matcher.group(1)) else None
+	}
+
 }
 
-import FragmentTokenCheckBuilder._
+import AccessTokenCheckBuilder._
 
-class FragmentTokenCheckBuilder extends HttpCheckBuilder[String](s => "", HttpPhase.HeadersReceived) {
-	def find = new CheckOneBuilder[HttpCheck[String], Response, String](httpCheckBuilderFactory, findExtractorFactory)
+private[uaa] class FragmentTokenCheckBuilder extends HttpCheckBuilder[String](s => "", HttpPhase.HeadersReceived) {
+	def find = new CheckOneBuilder[HttpCheck[String], Response, String](httpCheckBuilderFactory, fragmentExtractorFactory)
 }
+
+private[uaa] class JsonTokenCheckBuilder extends HttpCheckBuilder[String](s => "", HttpPhase.CompletePageReceived) {
+	def find = new CheckOneBuilder[HttpCheck[String], Response, String](httpCheckBuilderFactory, jsonExtractorFactory)
+}
+
 
 /**
  */
@@ -52,7 +67,7 @@ object OAuthComponents {
 				.param("scope", scope)
 				.param("grant_type", "client_credentials")
 				.headers(plainHeaders)
-				.check(status.is(200), regex(""""access_token":"(.*?)"""").saveAs("access_token"))
+				.check(status.is(200), jsonToken.saveAs("access_token"))
 	}
 
 	/**
@@ -74,7 +89,7 @@ object OAuthComponents {
 				.param("redirect_uri", "uri:oauth:token")
 				.param("response_type", "token")
 				.headers(plainHeaders)
-				.check(status.is(302), token.saveAs("access_token"))
+				.check(status.is(302), fragmentToken.saveAs("access_token"))
 	}
 
 
