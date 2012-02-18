@@ -21,20 +21,20 @@ logger.info("Config path: #{cfg_path}")
 
 cfg_file = File.join(cfg_path, "uaa.yml")
 
-config = {"uaa"=>{}, "varz"=>{"client"=>{}}}
+config = {"uaa"=>{}, "varz"=>{}}
 File.exist?(cfg_file) && File.open(cfg_file) do |f|
   logger.info("Loading config file from #{cfg_file}")
   config.update(YAML.load(f))
 end
-config["varz"]["client"]["username"] ||= VCAP.secure_uuid
-config["varz"]["client"]["password"] ||= VCAP.secure_uuid
+config["varz"]["username"] ||= VCAP.secure_uuid
+config["varz"]["password"] ||= VCAP.secure_uuid
 
 logger.info("Launching tomcat from PID=#{Process.pid}")
 
 maven_opts = "-DPID=$$"
 config["jvm_args"] && maven_opts += " " + config["jvm_args"]
 config["spring_profiles"] && maven_opts += " -Dspring.profiles.active=" + config["spring_profiles"]
-maven_opts += """ -Dvarz.client.username=#{config["varz"]["client"]["username"]} -Dvarz.client.password=#{config["varz"]["client"]["password"]}"""
+maven_opts += """ -Dvarz.username=#{config["varz"]["username"]} -Dvarz.password=#{config["varz"]["password"]}"""
 logger.info("Tomcat JVM args: #{maven_opts}")
 
 # The form of this next bit is very sensitive.  We need the PID for
@@ -58,7 +58,7 @@ router_json = Yajl::Encoder.encode(router_msg)
 discover_msg = { :type => 'UAA', 
   :host => "%s:%s" % [config["uaa"]["host"]||"localhost",  config["uaa"]["port"]||8080],
   :index => 0,
-  :credentials => [config["varz"]["client"]["username"], config["varz"]["client"]["password"]]
+  :credentials => [config["varz"]["username"], config["varz"]["password"]]
 }
 discover_json = Yajl::Encoder.encode(discover_msg)
 logger.info("Sending Router info to NATS: json="+router_json)

@@ -140,7 +140,7 @@
 	<authentication-manager id="varzAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
 		<authentication-provider>
 			<user-service>
-				<user name="${varz.client.username:varz}" authorities="ROLE_VARZ" password="${varz.client.password:varzclientsecret}" />
+				<user name="${varz.username:varz}" authorities="ROLE_VARZ" password="${varz.password:varzclientsecret}" />
 			</user-service>
 		</authentication-provider>
 	</authentication-manager>
