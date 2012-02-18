@@ -1,5 +1,6 @@
 require 'json/pure'
 require 'open-uri'
+require 'rest_client'
 
 # Utility accessors and methods for objects that want to access JSON
 # web APIs.
@@ -11,31 +12,30 @@ module Cloudfoundry::Uaa::Http
   class NotFound < RuntimeError; end
   class BadResponse < RuntimeError; end
   class HTTPException < RuntimeError; end
-
-  attr_accessor :trace
-  attr_accessor :target
-  attr_accessor :proxy
-
-  def proxy_for(proxy)
-    @proxy = proxy
+  class TargetJsonError < TargetError
+    attr_reader :info
+    def initialize(parsed_error_info)
+      @info = parsed_error_info
+    end
   end
+
+  attr_accessor :trace, :proxy
+  attr_reader :target
 
   private
 
-  def json_get(url)
-    status, body, headers = http_get(url, 'application/json')
-    json_parse(body)
-  rescue JSON::ParserError
-    raise BadResponse, "Can't parse response into JSON", body
+  def json_get(url, authorization = nil)
+    s, b, h = http_get(url, 'application/json', authorization)
+    json_parse_reply(s, b, h)
   end
 
-  def json_post(url, payload)
-    http_post(url, payload.to_json, 'application/json')
-  end
+  #def json_post(url, payload)
+    #http_post(url, payload.to_json, 'application/json')
+  #end
 
-  def json_put(url, payload)
-    http_put(url, payload.to_json, 'application/json')
-  end
+  #def json_put(url, payload)
+    #http_put(url, payload.to_json, 'application/json')
+  #end
 
   def json_parse(str)
     if str
@@ -43,7 +43,21 @@ module Cloudfoundry::Uaa::Http
     end
   end
 
-  require 'rest_client'
+  def json_parse_reply(status, body, headers)
+    if headers && headers[:content_type] !~ /application\/json/i
+      raise BadTarget, "received invalid response content type from #{@target}"
+    end
+    if status != 200 && status != 400
+      raise (status == 404 ? NotFound : BadResponse), "invalid status response from #{@target}: #{status}"
+    end
+    parsed_reply = body ? JSON.parse(body, :symbolize_names => true): nil
+    if status == 400
+      raise TargetJsonError.new(parsedReply), "error response from #{@target}"
+    end
+    parsed_reply
+  rescue JSON::ParserError
+    raise BadResponse, "invalid JSON response from #{@target}"
+  end
 
   # HTTP helpers
 
@@ -86,19 +100,21 @@ module Cloudfoundry::Uaa::Http
     end
     status, body, response_headers = perform_http_request(req)
 
-    if request_failed?(status)
-      err = (status == 404) ? NotFound : TargetError
-      raise err, parse_error_message(status, body)
-    else
-      return status, body, response_headers
-    end
+    # see comment on parse_error_message
+    #if request_failed?(status)
+      #err = (status == 404) ? NotFound : TargetError
+      #raise err, parse_error_message(status, body)
+    #else
+      #return status, body, response_headers
+    #end
   rescue URI::Error, SocketError, Errno::ECONNREFUSED => e
     raise BadTarget, "Cannot access target (%s)" % [ e.message ]
   end
 
-  def request_failed?(status)
-    status >= 400
-  end
+  # see comment on parse_error_message
+  #def request_failed?(status)
+    #status >= 400
+  #end
 
   def perform_http_request(req)
     proxy_uri = URI.parse(req[:url]).find_proxy()
@@ -116,12 +132,16 @@ module Cloudfoundry::Uaa::Http
         puts '>>>'
         puts "PROXY: #{RestClient.proxy}" if RestClient.proxy
         puts "REQUEST: #{req[:method]} #{req[:url]}"
-        puts "RESPONSE_HEADERS:"
-        response.headers.each do |key, value|
+        puts "REQUEST_HEADERS:"
+        req[:headers].each do |key, value|
             puts "    #{key} : #{value}"
         end
         puts "REQUEST_BODY: #{req[:payload]}" if req[:payload]
         puts "RESPONSE: [#{response.code}]"
+        puts "RESPONSE_HEADERS:"
+        response.headers.each do |key, value|
+            puts "    #{key} : #{value}"
+        end
         begin
             puts JSON.pretty_generate(JSON.parse(response.body))
         rescue
@@ -138,30 +158,29 @@ module Cloudfoundry::Uaa::Http
   end
 
   def truncate(str, limit = 30)
-    etc = '...'
     stripped = str.strip[0..limit]
-    if stripped.length > limit
-      stripped + etc
-    else
-      stripped
-    end
+    stripped.length > limit ? stripped + '...': stripped
   end
 
-  def parse_error_message(status, body)
-    parsed_body = json_parse(body.to_s)
-    if parsed_body && parsed_body[:code] && parsed_body[:description]
-      desc = parsed_body[:description].gsub("\"","'")
-      "Error #{parsed_body[:code]}: #{desc}"
-    else
-      "Error (HTTP #{status}): #{body}"
-    end
-  rescue JSON::ParserError
-    if body.nil? || body.empty?
-      "Error (#{status}): No Response Received"
-    else
-      body_out = trace ? body : truncate(body)
-      "Error (JSON #{status}): #{body_out}"
-    end
-  end
+  # the uaa defines json error responses with fields other than 'code' and
+  # 'description'. Error processing and json parsing has been commented
+  # out of the http request/reponse level to allow the json level to
+  # handle it without hiding other http errors.
+  #def parse_error_message(status, body)
+    #parsed_body = json_parse(body.to_s)
+    #if parsed_body && parsed_body[:code] && parsed_body[:description]
+      #desc = parsed_body[:description].gsub("\"","'")
+      #"Error #{parsed_body[:code]}: #{desc}"
+    #else
+      #"Error (HTTP #{status}): #{body}"
+    #end
+  #rescue JSON::ParserError
+    #if body.nil? || body.empty?
+      #"Error (#{status}): No Response Received"
+    #else
+      #body_out = trace ? body : truncate(body)
+      #"Error (JSON #{status}): #{body_out}"
+    #end
+  #end
 
 end
