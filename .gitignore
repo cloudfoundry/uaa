@@ -6,6 +6,7 @@ target/
 */src/main/*/WEB-INF/lib/
 .access_token
 .result
+.cache
 .classpath
 .project
 .DS_Store

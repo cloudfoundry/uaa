@@ -8,4 +8,4 @@ PWD=`pwd`
 
 echo $PWD
 
-$GATLING_HOME/bin/gatling.sh -sf $PWD/simulations
+$GATLING_HOME/bin/gatling.sh -sf $PWD/src/main/scala

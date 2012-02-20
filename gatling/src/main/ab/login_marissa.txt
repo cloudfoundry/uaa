@@ -1,0 +1,1 @@
+client_id=vmc&scope=read&credentials={"username":"marissa","password":"koala"}&redirect_uri=uri:oauth:token&response_type=token
