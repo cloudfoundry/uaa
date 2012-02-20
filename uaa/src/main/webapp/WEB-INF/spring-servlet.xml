@@ -268,17 +268,24 @@
 	</bean>
 
 	<bean class="org.cloudfoundry.identity.uaa.event.listener.AuditListener">
-		<constructor-arg>
-			<bean class="org.cloudfoundry.identity.uaa.audit.JdbcAuditService">
-				<constructor-arg ref="dataSource" />
-			</bean>
-		</constructor-arg>
+		<constructor-arg ref="jdbcAuditService" />
+	</bean>
+
+	<bean id="jdbcAuditService" class="org.cloudfoundry.identity.uaa.audit.JdbcAuditService">
+		<constructor-arg ref="dataSource" />
 	</bean>
 
 	<beans profile="default,!legacy">
 
 		<bean id="authzAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager">
 			<constructor-arg ref="userDatabase" />
+			<property name="accountLoginPolicy">
+				<bean class="org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy">
+					<constructor-arg ref="jdbcAuditService" />
+					<property name="lockoutAfterFailures" value="5" />
+					<property name="lockoutPeriodSeconds" value="300" />
+				</bean>
+			</property>
 		</bean>
 
 		<bean id="tokenServices" class="org.springframework.security.oauth2.provider.token.RandomValueTokenServices">

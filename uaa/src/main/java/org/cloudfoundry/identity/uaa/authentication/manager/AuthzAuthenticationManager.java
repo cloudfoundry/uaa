@@ -45,6 +45,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
 	private final PasswordEncoder encoder;
 	private final UaaUserDatabase userDatabase;
 	private ApplicationEventPublisher eventPublisher;
+	private AccountLoginPolicy accountLoginPolicy = new PermitAllAccountLoginPolicy();
 
 	public AuthzAuthenticationManager(UaaUserDatabase cfusers) {
 		this(cfusers, new BCryptPasswordEncoder());
@@ -60,6 +61,14 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
 		try {
 			logger.debug("Processing authentication request for " + req.getName());
 			UaaUser user = userDatabase.retrieveUserByName(req.getName().toLowerCase(Locale.US));
+
+			if (!accountLoginPolicy.isAllowed(user, req)) {
+				logger.warn("Login policy rejected authentication for " + user.getUsername() + ", " + user.getId()
+						+ ". Ignoring login request.");
+				// TODO: We should perhaps have another audit event type here
+				// since this will not be logged as an authentication failure.
+				throw new BadCredentialsException("Bad credentials");
+			}
 
 			if (encoder.matches((CharSequence) req.getCredentials(), user.getPassword())) {
 				logger.debug("Password successfully matched");
@@ -84,5 +93,9 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
 	@Override
 	public void setApplicationEventPublisher(ApplicationEventPublisher eventPublisher) {
 		this.eventPublisher = eventPublisher;
+	}
+
+	public void setAccountLoginPolicy(AccountLoginPolicy accountLoginPolicy) {
+		this.accountLoginPolicy = accountLoginPolicy;
 	}
 }

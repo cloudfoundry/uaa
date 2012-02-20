@@ -12,6 +12,8 @@
  */
 package org.cloudfoundry.identity.uaa.audit;
 
+import java.util.List;
+
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 
@@ -36,4 +38,6 @@ public interface UaaAuditService {
 	void principalAuthenticationFailure(String name, UaaAuthenticationDetails details);
 
 	void principalNotFound(String name, UaaAuthenticationDetails details);
+
+	List<AuditEvent> find(String principal, long after);
 }

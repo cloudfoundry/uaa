@@ -14,12 +14,17 @@ package org.cloudfoundry.identity.uaa.audit;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.List;
 
 import javax.sql.DataSource;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.crypto.codec.Utf8;
 import org.springframework.util.Assert;
@@ -79,6 +84,12 @@ public class JdbcAuditService implements UaaAuditService {
 		createAuditRecord(name, AuditEventType.PrincipalNotFound, getOrigin(details));
 	}
 
+	@Override
+	public List<AuditEvent> find(String principal, long after) {
+		return template.query("select event_type, principal_id, origin, event_data, created from sec_audit where " +
+								"principal_id=? and created > ? order by created desc", new AuditEventRowMapper(), principal, new Timestamp(after));
+	}
+
 	private void createAuditRecord(String principal_id, AuditEventType type, String origin) {
 		template.update("insert into sec_audit (principal_id, event_type, origin) values (?,?,?)",
 						principal_id, type.getCode(), origin);
@@ -87,5 +98,13 @@ public class JdbcAuditService implements UaaAuditService {
 	private void createAuditRecord(String principal_id, AuditEventType type, String origin, String data) {
 		template.update("insert into sec_audit (principal_id, event_type, origin, event_data) values (?,?,?,?)",
 						principal_id, type.getCode(), origin, data);
+	}
+
+	private class AuditEventRowMapper implements RowMapper<AuditEvent> {
+		@Override
+		public AuditEvent mapRow(ResultSet rs, int rowNum) throws SQLException {
+			return new AuditEvent(AuditEventType.fromCode(rs.getInt(1)), rs.getString(2), rs.getString(3),
+					rs.getString(4), rs.getTimestamp(5).getTime());
+		}
 	}
 }

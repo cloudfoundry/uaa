@@ -12,6 +12,7 @@
  */
 package org.cloudfoundry.identity.uaa.audit;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.logging.Log;
@@ -93,6 +94,11 @@ public class LoggingAuditService implements UaaAuditService {
 	public void principalNotFound(String name, UaaAuthenticationDetails details) {
 		principalNotFoundCount.incrementAndGet();
 		log("Authentication failed, principal not found: " + name);
+	}
+
+	@Override
+	public List<AuditEvent> find(String principal, long after) {
+		throw new UnsupportedOperationException("This implementation does not store data");
 	}
 
 	private void log(String msg) {

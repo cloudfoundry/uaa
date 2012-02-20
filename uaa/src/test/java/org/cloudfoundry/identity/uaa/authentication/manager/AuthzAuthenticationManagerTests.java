@@ -20,7 +20,6 @@ import static org.mockito.Mockito.*;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.event.UserAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.event.UserNotFoundEvent;
@@ -79,6 +78,15 @@ public class AuthzAuthenticationManagerTests {
 		}
 
 		verify(publisher).publishEvent(isA(UserAuthenticationFailureEvent.class));
+	}
+
+	@Test(expected = BadCredentialsException.class)
+	public void authenticationIsDeniedIfRejectedByLoginPolicy() throws Exception {
+		when(db.retrieveUserByName("auser")).thenReturn(user);
+		AccountLoginPolicy lp = mock(AccountLoginPolicy.class);
+		when(lp.isAllowed(any(UaaUser.class), any(Authentication.class))).thenReturn(false);
+		mgr.setAccountLoginPolicy(lp);
+		mgr.authenticate(createAuthRequest("auser","password"));
 	}
 
 	@Test

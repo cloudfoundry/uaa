@@ -33,6 +33,15 @@ public enum AuditEventType {
 		this.code = code;
 	}
 
+	public static AuditEventType fromCode(int code) {
+		for(AuditEventType a : AuditEventType.values()) {
+			if (a.getCode() == code) {
+				return a;
+			}
+		}
+		throw new IllegalArgumentException("No event type with code " + code + " exists");
+	}
+
 	public int getCode() {
 		return code;
 	}
