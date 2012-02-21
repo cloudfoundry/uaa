@@ -21,8 +21,8 @@ class Cloudfoundry::Uaa::TokenDecoder
     end
     res_auth = "Basic " + Base64::strict_encode64("#{@res_id}:#{@res_secret}")
     reply = json_get("/check_token?token_type=#{tkn[0]}&token=#{tkn[1]}", res_auth)
-    return reply if reply[:resource_id] == @res_id
-    raise AuthError, "invalid resource audience: #{reply[:resource_id]}"
+    return reply if reply[:resource_ids].include?(@res_id)
+    raise AuthError, "invalid resource audience: #{reply[:resource_ids]}"
   end
 
 end
