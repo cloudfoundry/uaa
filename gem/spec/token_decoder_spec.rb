@@ -33,7 +33,8 @@ describe Cloudfoundry::Uaa::TokenDecoder do
   it "should GET decoded token hash from the check_token endpoint" do
     @stub_req.to_return(File.new(spec_asset('check_token_success.txt')))
     info = subject.decode("one two")
-    info.should include(:resource_id => "test_resource")
+    info.should include(:resource_ids)
+    info[:resource_ids].should include("test_resource")
     info.should include(:email => "derek@gmail.com")
   end
 
