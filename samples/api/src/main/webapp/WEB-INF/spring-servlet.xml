@@ -87,6 +87,9 @@
 		</property>
 	</bean>
 
-	<bean id="homeController" class="org.cloudfoundry.identity.api.web.HomeController" />
+	<bean id="homeController" class="org.cloudfoundry.identity.api.web.HomeController">
+		<property name="userAuthorizationUri" value="${userAuthorizationUri}"/>
+		<property name="dataUri" value="${dataUri}"/>
+	</bean>
 
 </beans>
