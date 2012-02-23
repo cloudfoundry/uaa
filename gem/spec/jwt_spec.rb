@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-require 'jwt'
+require 'uaa/jwt'
 
 describe "JWT decoding" do
 
@@ -12,7 +12,7 @@ describe "JWT decoding" do
   it "should be able to extract JSON from the token" do
     result = JWT.decode(@token, "cloudcontrollersecret")
     result.should_not be_nil
-    result["email"].should == "foo@bar.com"
+    result[:email].should == "foo@bar.com"
   end
 
   it "should succeed with nil secret if not verified" do
@@ -20,7 +20,7 @@ describe "JWT decoding" do
   end
 
   it "should fail with wrong secret" do
-    expect { 
+    expect {
       JWT.decode(@token, "wrongsecret")
     }.should raise_exception(JWT::DecodeError)
   end
