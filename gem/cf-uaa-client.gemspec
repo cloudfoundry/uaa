@@ -19,9 +19,10 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
 
   # dependencies
+  s.add_development_dependency "bundler"
+  s.add_development_dependency "rake"
   s.add_development_dependency "rspec"
   s.add_development_dependency "webmock"
-  s.add_development_dependency "bundler"
   s.add_development_dependency "simplecov"
   s.add_development_dependency "highline"
   s.add_runtime_dependency "rest-client"
