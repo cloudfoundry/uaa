@@ -1,14 +1,12 @@
-# This class is for Web Client Apps (in the OAuth2 sense) that want access to
-# authenticated user information.
-# Basically this class is an OpenID Connect client.
+# This class is for Web Client Apps (in the OAuth2 sense) that want
+# access to authenticated user information.  Basically this class is
+# an OpenID Connect client.
 
 class Cloudfoundry::Uaa::IdToken
 
   include Cloudfoundry::Uaa::Http
 
-  attr_reader :issuer_url, :clientapp_id, :req_scopes
-
-  def initialize(issuer_url, clientapp_id, clientapp_secret, req_scopes)
+  def initialize(target, client_id, client_secret, scope)
   end
 
   def get_redirect_uri(callback_uri)

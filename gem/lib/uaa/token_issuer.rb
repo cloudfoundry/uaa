@@ -2,27 +2,19 @@
 # Web or Native Clients (in the OAuth2 sense) would use this class to get tokens
 # that they can use to get access to resources
 
-# It can be confusing to deal with the common term of 'client' in
-# code -- httpclient, rest-client, vmc client, etc. -- and then use the term
-# client in an oauth sense. The class here uses the ugly term
-# clientapp, as in clientapp_id and clientapp_secret.
-
-# ClientApps that want to get access on behalf of their users to resource servers
-# need to get tokens via authcode and implicit flows, request scopes,
-# etc., but they don't need to process tokens. This class is for these
-# use cases.
+# Client Apps that want to get access on behalf of their users to
+# resource servers need to get tokens via authcode and implicit flows,
+# request scopes, etc., but they don't need to process tokens. This
+# class is for these use cases.
 
 class Cloudfoundry::Uaa::TokenIssuer
 
   include Cloudfoundry::Uaa::Http
 
-  attr_reader :clientapp_id
-  attr_accessor :req_scopes, :req_resids
-
-  def initialize(issuer_url, clientapp_id, clientapp_secret, req_scopes, req_resids)
-    @issuer_url, @clientapp_id, @clientapp_secret = issuer_url, clientapp_id, clientapp_secret
-    @req_scopes, @req_resids = req_scopes, req_resids
-    @target = issuer_url
+  def initialize(target, client_id, client_secret, scope)
+    @target, @client_id, @client_secret = target, client_id, client_secret
+    @scope = scope
+    @target = target
   end
 
   def authcode_redirect_uri(callback_uri)
@@ -39,7 +31,7 @@ class Cloudfoundry::Uaa::TokenIssuer
   # login prompts for use by app to collect credentials for implicit grant
   def prompts
     return @prompts if @prompts || (response = json_get('/login')) && (@prompts = response[:prompts])
-    raise StandardError, "No prompts in response. Is the server running at #{@issuer_url}?"
+    raise StandardError, "No prompts in response. Is the server running at #{@target}?"
   end
 
   def implicit_grant(credentials)
@@ -58,10 +50,10 @@ class Cloudfoundry::Uaa::TokenIssuer
   end
 
   def owner_password_grant(username, password)
-    auth_header = "Basic " + Base64::strict_encode64("#{@clientapp_id}:#{@clientapp_secret}")
+    auth_header = "Basic " + Base64::strict_encode64("#{@client_id}:#{@client_secret}")
     headers = {'Content-Type'=> "application/x-www-form-urlencoded",
         'Accept'=>"application/json", 'Authorization' => auth_header}
-    body = URI.encode_www_form(:grant_type => "password", :username => username, :password => password, :scope => req_scopes)
+    body = URI.encode_www_form(:grant_type => "password", :username => username, :password => password, :scope => @scope)
     @parsed_reply = json_parse_reply(*request(:post, '/oauth/token', body, headers))
     @parsed_reply[:access_token]
   end

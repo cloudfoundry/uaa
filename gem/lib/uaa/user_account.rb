@@ -6,7 +6,7 @@ class Cloudfoundry::Uaa::UserAccount
 
   include Cloudfoundry::Uaa::Http
 
-  def initialize(issuer, clientapp_id, clientapp_secret)
+  def initialize(issuer, client_id, client_secret)
   end
 
   def create(username, password, email, other)

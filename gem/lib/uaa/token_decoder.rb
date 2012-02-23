@@ -8,10 +8,8 @@ class Cloudfoundry::Uaa::TokenDecoder
 
   include Cloudfoundry::Uaa::Http
 
-  attr_reader :res_id, :res_secret
-
-  def initialize(issuer_url, res_id, res_secret)
-    @target, @res_id, @res_secret = issuer_url, res_id, res_secret
+  def initialize(target, resource_id, secret)
+    @target, @resource_id, @secret = target, resource_id, secret
   end
 
   # returns hash of decoded values or parsed error from server
@@ -19,9 +17,9 @@ class Cloudfoundry::Uaa::TokenDecoder
     unless auth_header && (tkn = auth_header.split).length == 2
       raise AuthError, "invalid authentication header: #{auth_header}"
     end
-    res_auth = "Basic " + Base64::strict_encode64("#{@res_id}:#{@res_secret}")
+    res_auth = "Basic " + Base64::strict_encode64("#{@resource_id}:#{@secret}")
     reply = json_get("/check_token?token_type=#{tkn[0]}&token=#{tkn[1]}", res_auth)
-    return reply if reply[:resource_ids].include?(@res_id)
+    return reply if reply[:resource_ids].include?(@resource_id)
     raise AuthError, "invalid resource audience: #{reply[:resource_ids]}"
   end
 
