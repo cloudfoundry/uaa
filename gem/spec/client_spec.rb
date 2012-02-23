@@ -175,6 +175,29 @@ describe Cloudfoundry::Uaa::Client do
 
   end
 
+  context "when the token is a JWT" do
+    
+    it "should be able to decode explicit token", :integration=>false do
+      result = subject.decode_jwt_token(JWT.encode({foo:"bar"}, "secret"), :token_key=>"secret")
+      result.should_not be_nil
+      result[:foo].should == "bar"
+    end    
+
+    it "should be able to decode token by default", :integration=>false do
+      result = subject.decode_token(JWT.encode({foo:"bar"}, "secret"), :token_key=>"secret")
+      result.should_not be_nil
+      result[:foo].should == "bar"
+    end    
+
+    it "should fall back to assuming an opaque token", :integration=>true do
+      @response = [200, %Q({"user_id":"#{@username}","client_id":"app"}), nil]
+      result = subject.decode_token(@token)
+      result.should_not be_nil
+      result[:user_id].should == @username
+    end
+
+   end
+
   context "once logged in with password grant" do
 
     before :each do
