@@ -11,10 +11,9 @@ class Cloudfoundry::Uaa::TokenIssuer
 
   include Cloudfoundry::Uaa::Http
 
-  def initialize(target, client_id, client_secret, scope)
+  def initialize(target, client_id, client_secret, scope, resource_id)
     @target, @client_id, @client_secret = target, client_id, client_secret
-    @scope = scope
-    @target = target
+    @scope, @resource_id = scope, resource_id
   end
 
   def authcode_redirect_uri(callback_uri)

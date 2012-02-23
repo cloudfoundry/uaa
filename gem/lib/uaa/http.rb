@@ -25,8 +25,7 @@ module Cloudfoundry::Uaa::Http
   private
 
   def json_get(url, authorization = nil)
-    s, b, h = http_get(url, 'application/json', authorization)
-    json_parse_reply(s, b, h)
+    json_parse_reply(*http_get(url, 'application/json', authorization))
   end
 
   #def json_post(url, payload)
@@ -52,7 +51,7 @@ module Cloudfoundry::Uaa::Http
     end
     parsed_reply = body ? JSON.parse(body, :symbolize_names => true): nil
     if status == 400
-      raise TargetJsonError.new(parsedReply), "error response from #{@target}"
+      raise TargetJsonError.new(parsed_reply), "error response from #{@target}"
     end
     parsed_reply
   rescue JSON::ParserError
@@ -73,9 +72,9 @@ module Cloudfoundry::Uaa::Http
     request(:put, path, body, 'Content-Type'=>content_type, 'Authorization'=>authorization)
   end
 
-  def http_delete(path)
-    request(:delete, path)
-  end
+  #def http_delete(path)
+    #request(:delete, path)
+  #end
 
   def request(method, path, payload = nil, headers = {})
     headers = headers.dup
