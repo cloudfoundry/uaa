@@ -1,6 +1,7 @@
 require 'uaa/http'
 require 'uaa/error'
 require 'base64'
+require 'jwt'
 
 # Utility API for client of the UAA server.  Provides convenience
 # methods to obtain and decode OAuth2 access tokens.
@@ -16,6 +17,8 @@ class Cloudfoundry::Uaa::Client
   attr_writer :client_id
   # The client secret to use if client authorization is needed
   attr_writer :client_secret
+  # The key used by the server to sign JWT tokens
+  attr_writer :token_key
   # The oauth scope to use if needed (default "read")
   attr_writer :scope
   # The grant type to use when logging in (default "implicit")
@@ -152,7 +155,28 @@ class Cloudfoundry::Uaa::Client
 
   end
 
-  # Decode the contents of an opaque token obtained from the target UAA.
+  # Decode the contents of a JWT token obtained from the target UAA.
+  #
+  # === Attributes
+  #
+  # * +token+ - mandatory: the token to decode (e.g. obtained from #login)
+  # * +opts+ - optional: additional parameters to send, e.g.
+  #   * +token_key+ - the token key (defaults to the instance attribute)
+  #
+  # Note that the default client (vmc) is not authorized to decode
+  # tokens, so callers will need to change the default or provide
+  # explicit values in the options.  The secret is the one used by the
+  # server to sign the token (not the same as the client secret) but
+  # we overload the option with that name for the purpose of this
+  # call.
+  def decode_jwt_token(token=nil, opts={})
+    token ||= @token
+    result = symbolize_keys(JWT.decode(token, opts[:token_key]))
+  end
+
+  # Decode the contents of an opaque token obtained from the target
+  # UAA by sending an HTTP request to the UAA and getting back the
+  # result.
   #
   # === Attributes
   #
@@ -165,12 +189,21 @@ class Cloudfoundry::Uaa::Client
   # tokens, so callers will need to change the default or provide
   # explicit values in the options. Authoeized clients must be
   # pre-registered with the server.
-  def decode_token(token=nil, opts={})
+  def decode_opaque_token(token=nil, opts={})
     headers = {'Accept'=>"application/json", 
       'Authorization'=>client_auth(opts)}
     token ||= @token
     status, body, headers = request(:get, "/check_token?token=#{token}", nil, headers)
     result = json_parse(body)   
+  end
+
+  def decode_token(token=nil, opts={})
+    begin
+      return decode_jwt_token(token, opts) if opts[:token_key] || @token_key
+    rescue JWT::DecodeError
+      # log something?
+    end
+    decode_opaque_token(token, opts)
   end
 
   # Register a new user account.
@@ -269,6 +302,43 @@ class Cloudfoundry::Uaa::Client
       end
     end
     return nil
+  end
+
+  def symbolize_keys(obj)
+    case obj
+    when Array
+      obj.inject([]) do |res, val|
+        res << 
+          case val
+          when Hash, Array
+            symbolize_keys(val)
+          else
+            val
+          end
+        res
+      end
+    when Hash
+      obj.inject({}) do |res, (key, val)|
+        nkey = 
+          case key
+          when String
+            key.to_sym
+          else
+            key
+          end
+        nval = 
+          case val
+          when Hash, Array
+            symbolize_keys(val)
+          else
+            val
+          end
+        res[nkey] = nval
+        res
+      end
+    else
+      obj
+    end
   end
 
 end
