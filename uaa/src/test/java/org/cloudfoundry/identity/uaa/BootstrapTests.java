@@ -78,7 +78,7 @@ public class BootstrapTests {
 	}
 
 	@Test
-	public void testOverrideYmlConfigPath() throws Exception {
+	public void testLegacyProfileAndOverrideYmlConfigPath() throws Exception {
 
 		context = new GenericXmlApplicationContext();
 		context.load(new FileSystemResource("src/main/webapp/WEB-INF/spring-servlet.xml"), new ClassPathResource("/test/config/test-override.xml"));

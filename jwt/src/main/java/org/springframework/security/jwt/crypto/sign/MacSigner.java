@@ -30,6 +30,10 @@ public class MacSigner implements SignerVerifier {
 		this(new SecretKeySpec(key, DEFAULT_ALGORITHM));
 	}
 
+	public MacSigner(String key) {
+		this(new SecretKeySpec(key.getBytes(), DEFAULT_ALGORITHM));
+	}
+
 	public MacSigner(SecretKey key) {
 		this(DEFAULT_ALGORITHM, key);
 	}

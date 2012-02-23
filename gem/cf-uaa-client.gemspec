@@ -27,4 +27,5 @@ Gem::Specification.new do |s|
   s.add_development_dependency "highline"
   s.add_runtime_dependency "rest-client"
   s.add_runtime_dependency "json_pure"
+  s.add_runtime_dependency "jwt"
 end

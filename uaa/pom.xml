@@ -204,6 +204,12 @@
 	<dependencies>
 
 		<dependency>
+			<groupId>${pom.groupId}</groupId>
+			<artifactId>spring-security-jwt</artifactId>
+			<version>${pom.version}</version>
+		</dependency>
+
+		<dependency>
 			<groupId>org.springframework.security.oauth</groupId>
 			<artifactId>spring-security-oauth2</artifactId>
 			<version>${spring.security.oauth.version}</version>
