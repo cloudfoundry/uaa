@@ -10,11 +10,13 @@ require 'uaa/http'
 require 'uaa/error'
 require 'base64'
 
-module Cloudfoundry::Uaa
+module Cloudfoundry; module Uaa; end; end
 
-class TokenChecker
+class Cloudfoundry::Uaa::TokenChecker
 
-  include Http
+  include Cloudfoundry::Uaa::Http
+
+  class AuthError < RuntimeError; end
 
   def initialize(target, resource_id, secret)
     @target, @resource_id, @secret = target, resource_id, secret
@@ -30,7 +32,5 @@ class TokenChecker
     return reply if reply[:resource_ids].include?(@resource_id)
     raise AuthError, "invalid resource audience: #{reply[:resource_ids]}"
   end
-
-end
 
 end

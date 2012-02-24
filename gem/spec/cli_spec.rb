@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'cli'
 require 'highline'
 require 'stringio'
 

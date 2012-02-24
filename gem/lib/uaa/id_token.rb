@@ -2,6 +2,9 @@
 # access to authenticated user information.  Basically this class is
 # an OpenID Connect client.
 
+require 'uaa/http'
+require 'uaa/error'
+
 class Cloudfoundry::Uaa::IdToken
 
   include Cloudfoundry::Uaa::Http

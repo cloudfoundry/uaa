@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'cli'
 
 describe "Uaa cli dispatcher" do
 

@@ -1,10 +1,8 @@
-#-----------------------------------------------------------------------------
 # This class is for apps that need to manage User Accounts.
 # It provides access to the SCIM endpoints.
 
-require 'uaa/http'
-require 'uaa/error'
 require 'base64'
+require 'uaa/http'
 
 class Cloudfoundry::Uaa::UserAccount
 

@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'uaa/id_token'
 
 describe Cloudfoundry::Uaa::IdToken do
 

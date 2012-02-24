@@ -1,7 +1,7 @@
 require 'uaa/http'
 require 'uaa/error'
 require 'base64'
-require 'uaa/jwt'
+require 'uaa/token_coder'
 
 # Utility API for client of the UAA server.  Provides convenience
 # methods to obtain and decode OAuth2 access tokens.
@@ -170,7 +170,7 @@ class Cloudfoundry::Uaa::Client
   # we overload the option with that name for the purpose of this
   # call.
   def decode_jwt_token(token=nil, opts={})
-    JWT.decode(token || @token, opts[:token_key])
+    Cloudfoundry::Uaa::TokenCoder.decode(token || @token, opts[:token_key])
   end
 
   # Decode the contents of an opaque token obtained from the target
@@ -199,7 +199,7 @@ class Cloudfoundry::Uaa::Client
   def decode_token(token=nil, opts={})
     begin
       return decode_jwt_token(token, opts) if opts[:token_key] || @token_key
-    rescue JWT::DecodeError
+    rescue DecodeError
       # log something?
     end
     decode_opaque_token(token, opts)
