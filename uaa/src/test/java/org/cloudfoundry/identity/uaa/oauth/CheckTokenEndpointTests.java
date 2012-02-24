@@ -27,6 +27,7 @@ import org.springframework.security.oauth2.common.exceptions.InvalidTokenExcepti
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.token.InMemoryTokenStore;
+import org.springframework.security.oauth2.provider.token.RandomValueTokenServices;
 
 /**
  * @author Dave Syer
@@ -45,7 +46,9 @@ public class CheckTokenEndpointTests {
 	public CheckTokenEndpointTests() {
 		authentication = new OAuth2Authentication(new AuthorizationRequest("client", Collections.singleton("read"), null, null),
 				UaaAuthenticationTestFactory.getAuthentication("12345", "olds", "olds@vmware.com"));
-		endpoint.setTokenStore(tokenStore);
+		RandomValueTokenServices tokenServices = new RandomValueTokenServices();
+		tokenServices.setTokenStore(tokenStore);
+		endpoint.setTokenServices(tokenServices);
 		OAuth2AccessToken token = new OAuth2AccessToken("FOO");
 		token.setExpiration(new Date(System.currentTimeMillis()+100000));
 		expiresIn = token.getExpiresIn();
@@ -95,7 +98,9 @@ public class CheckTokenEndpointTests {
 	@Test
 	public void testClientOnly() {
 		authentication = new OAuth2Authentication(new AuthorizationRequest("client", Collections.singleton("read"), null, null), null);
-		endpoint.setTokenStore(tokenStore);
+		RandomValueTokenServices tokenServices = new RandomValueTokenServices();
+		tokenServices.setTokenStore(tokenStore);
+		endpoint.setTokenServices(tokenServices);
 		OAuth2AccessToken token = new OAuth2AccessToken("FOO");
 		tokenStore.storeAccessToken(token, authentication);
 		Map<String, Object> result = endpoint.checkToken("FOO");

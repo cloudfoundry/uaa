@@ -5,7 +5,8 @@ import java.util.Map;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
-import org.springframework.security.oauth2.provider.token.TokenStore;
+import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,25 +22,25 @@ import org.springframework.web.bind.annotation.ResponseBody;
 public class CheckTokenEndpoint implements InitializingBean {
 	
 	private AccessTokenConverter tokenConverter = new DefaultTokenConverter();
-	private TokenStore tokenStore;
+	private ResourceServerTokenServices resourceServerTokenServices;
 
 	public void setTokenConverter(AccessTokenConverter tokenConverter) {
 		this.tokenConverter = tokenConverter;
 	}
-
-	public void setTokenStore(TokenStore tokenStore) {
-		this.tokenStore = tokenStore;
+	
+	public void setTokenServices(ResourceServerTokenServices resourceServerTokenServices) {
+		this.resourceServerTokenServices = resourceServerTokenServices;
 	}
 
 	public void afterPropertiesSet() throws Exception {
-		Assert.notNull(tokenStore, "tokenStore must be set");
+		Assert.notNull(resourceServerTokenServices, "tokenServices must be set");
 	}
 
 	@RequestMapping(value = "/check_token")
 	@ResponseBody
 	public Map<String, Object> checkToken(@RequestParam("token") String value) {
-		OAuth2AccessToken token = tokenStore.readAccessToken(value);
 
+		OAuth2AccessToken token = resourceServerTokenServices.readAccessToken(value);
 		if (token == null) {
 			throw new InvalidTokenException("Token was not recognised");
 		}
@@ -48,7 +49,8 @@ public class CheckTokenEndpoint implements InitializingBean {
 			throw new InvalidTokenException("Token has expired");
 		}
 
-		Map<String, Object> response = tokenConverter.convertAccessToken(token, tokenStore.readAuthentication(token));
+		OAuth2Authentication authentication = resourceServerTokenServices.loadAuthentication(value);
+		Map<String, Object> response = tokenConverter.convertAccessToken(token, authentication);
 
 		return response;
 	}

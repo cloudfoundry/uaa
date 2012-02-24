@@ -30,6 +30,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.codec.Base64;
+import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
@@ -117,6 +118,11 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
 		Authentication userAuthentication = new UsernamePasswordAuthenticationToken(username, null, userAuthorities);
 
 		return new OAuth2Authentication(clientAuthentication, userAuthentication);
+	}
+
+	@Override
+	public OAuth2AccessToken readAccessToken(String accessToken) {
+		throw new UnsupportedOperationException("Not supported: read access token");
 	}
 
 	private Set<GrantedAuthority> getAuthorities(Collection<String> authorities) {
