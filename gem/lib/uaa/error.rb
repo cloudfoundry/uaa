@@ -1,5 +1,6 @@
+module Cloudfoundry
 
-module Cloudfoundry::Uaa
+module Uaa
 
   # Error to indicate that the caller should prompt for credentials and
   # try again.
@@ -11,5 +12,9 @@ module Cloudfoundry::Uaa
   end
 
   class AuthError < RuntimeError; end
+
+  class DecodeError < RuntimeError; end
+
+end
 
 end

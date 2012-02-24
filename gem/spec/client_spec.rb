@@ -181,13 +181,13 @@ describe Cloudfoundry::Uaa::Client do
   context "when the token is a JWT" do
 
     it "should be able to decode explicit token", :integration=>false do
-      result = subject.decode_jwt_token(JWT.encode({foo:"bar"}, "secret"), :token_key=>"secret")
+      result = subject.decode_jwt_token(Cloudfoundry::Uaa::TokenCoder.encode({foo:"bar"}, "secret"), :token_key=>"secret")
       result.should_not be_nil
       result[:foo].should == "bar"
     end
 
     it "should be able to decode token by default", :integration=>false do
-      result = subject.decode_token(JWT.encode({foo:"bar"}, "secret"), :token_key=>"secret")
+      result = subject.decode_token(Cloudfoundry::Uaa::TokenCoder.encode({foo:"bar"}, "secret"), :token_key=>"secret")
       result.should_not be_nil
       result[:foo].should == "bar"
     end

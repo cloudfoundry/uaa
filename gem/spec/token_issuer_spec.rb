@@ -34,21 +34,20 @@ describe Cloudfoundry::Uaa::TokenIssuer do
     subject.prompts.should_not be_empty
   end
 
-  context "with client_credentials grant" do
+  #context "with client_credentials grant" do
 
-    before :each do
-      @response = [200, '{"access_token":"FOO"}', {:content_type => "application/json"}]
-    end
+    #before :each do
+      #@response = [200, '{"access_token":"FOO"}', {:content_type => "application/json"}]
+    #end
 
-    # TODO: seems odd that .login does not exist, but this still passes.
-    it "should not require prompts", :integration=>false do
-      expect do
-        subject.login(:client_id=>"app", :client_secret=>"appclientsecret", :grant_type=>"client_credentials")
-        @input[:url].should =~ /\/token/
-      end.should_not raise_exception(Cloudfoundry::Uaa::PromptRequiredError)
-    end
+    #it "should not require prompts", :integration=>false do
+      #expect do
+        #subject.login(:client_id=>"app", :client_secret=>"appclientsecret", :grant_type=>"client_credentials")
+        #@input[:url].should =~ /\/token/
+      #end.should_not raise_exception
+    #end
 
-  end
+  #end
 
   context "when logging in with username and password" do
 
