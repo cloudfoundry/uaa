@@ -1,4 +1,7 @@
 require 'spec_helper'
+require 'cli'
+require 'uaa'
+
 
 describe Cloudfoundry::Uaa::Client do
 
@@ -42,7 +45,7 @@ describe Cloudfoundry::Uaa::Client do
         @input[:url].should =~ /\/token/
       end.should_not raise_exception(Cloudfoundry::Uaa::PromptRequiredError)
     end
-      
+
   end
 
   context "when logging in with username and password" do
@@ -52,7 +55,7 @@ describe Cloudfoundry::Uaa::Client do
         subject.stub!(:prompts).and_return({:username=>["text", "Username"], :password=>["password", "Password"]})
       end
     end
-        
+
 
     context "with password grant" do
 
@@ -65,19 +68,19 @@ describe Cloudfoundry::Uaa::Client do
           subject.login(:username=>@username, :grant_type=>"password")
         end.should raise_exception(Cloudfoundry::Uaa::PromptRequiredError)
       end
-      
+
       it "should require prompts if username and password missing", :integration=>false do
         expect do
           subject.login(:grant_type=>"password")
         end.should raise_exception(Cloudfoundry::Uaa::PromptRequiredError)
       end
-      
+
       it "should post to the token endpoint", :integration=>false do
         subject.login(:username=>@username, :password=>@password, :client_id=>"foo", :grant_type=>"password")
         @input[:url].should =~ /\/token/
         @input[:method].should == :post
       end
-      
+
       it "should include the grant type", :integration=>false do
         subject.login(:username=>@username, :password=>@password, :client_id=>"foo", :grant_type=>"password")
         @input[:payload].should =~ /grant_type=password/
@@ -87,7 +90,7 @@ describe Cloudfoundry::Uaa::Client do
         subject.login(:username=>@username, :password=>@password, :grant_type=>"password")
         @input[:payload].should_not =~ /redirect_uri=/
       end
-      
+
       it "should be able to login, obtaining an access token, given a username and password", :integration=>true do
         token = subject.login(:username=>@username, :password=>@password, :grant_type=>"password", :client_id=>"app", :client_secret=>"appclientsecret")
         token.should_not be_nil
@@ -138,13 +141,13 @@ describe Cloudfoundry::Uaa::Client do
           subject.login(:username=>@username)
         end.should raise_exception(Cloudfoundry::Uaa::PromptRequiredError)
       end
-      
+
       it "should require prompts if username and password missing", :integration=>false do
         expect do
           subject.login()
         end.should raise_exception(Cloudfoundry::Uaa::PromptRequiredError)
       end
-      
+
       it "should post to the authorize endpoint", :integration=>false do
         token = subject.login(:username=>@username, :password=>@password)
         @input[:url].should =~ /\/authorize/
@@ -176,18 +179,18 @@ describe Cloudfoundry::Uaa::Client do
   end
 
   context "when the token is a JWT" do
-    
+
     it "should be able to decode explicit token", :integration=>false do
       result = subject.decode_jwt_token(JWT.encode({foo:"bar"}, "secret"), :token_key=>"secret")
       result.should_not be_nil
       result[:foo].should == "bar"
-    end    
+    end
 
     it "should be able to decode token by default", :integration=>false do
       result = subject.decode_token(JWT.encode({foo:"bar"}, "secret"), :token_key=>"secret")
       result.should_not be_nil
       result[:foo].should == "bar"
-    end    
+    end
 
     it "should fall back to assuming an opaque token", :integration=>true do
       @response = [200, %Q({"user_id":"#{@username}","client_id":"app"}), nil]

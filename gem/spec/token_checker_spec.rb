@@ -17,8 +17,13 @@ describe Cloudfoundry::Uaa::TokenChecker do
 
   it "should raise an auth error if the given auth header is bad" do
     @stub_req.to_return(File.new(spec_asset('check_token_success.txt')))
+<<<<<<< HEAD
     expect { subject.decode(nil) }.to raise_exception(Cloudfoundry::Uaa::TokenChecker::AuthError)
     expect { subject.decode("one two three") }.to raise_exception(Cloudfoundry::Uaa::TokenChecker::AuthError)
+=======
+    expect { subject.decode(nil) }.to raise_exception(Cloudfoundry::Uaa::AuthError)
+    expect { subject.decode("one two three") }.to raise_exception(Cloudfoundry::Uaa::AuthError)
+>>>>>>> update JWT token decoder to work around jwt gem bugs
   end
 
   it "should raise a target error if the response is not json" do

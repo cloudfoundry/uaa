@@ -1,7 +1,7 @@
 require 'uaa/http'
 require 'uaa/error'
 require 'base64'
-require 'jwt'
+require 'uaa/jwt'
 
 # Utility API for client of the UAA server.  Provides convenience
 # methods to obtain and decode OAuth2 access tokens.
@@ -33,7 +33,7 @@ class Cloudfoundry::Uaa::Client
     @redirect_uri = "uri:oauth:token"
   end
 
-  # Get the prompts (login info) required by the UAA server.  The response 
+  # Get the prompts (login info) required by the UAA server.  The response
   # is a hash in the form {:name=>[<type>,<message>],...}
   def prompts
     return @prompts if @prompts # TODO: reset prompts when the target changes?
@@ -73,7 +73,7 @@ class Cloudfoundry::Uaa::Client
   #   * +username+ - the username of the resource owner to login (with :grant_type="password")
   #   * +password+ - the password of the resource owner to login (with :grant_type="password")
   #     (defaults to the instance attribute)
-  # 
+  #
   # === Implicit Grant
   #
   # The default grant type is "implicit" which is used by vmc and
@@ -119,7 +119,7 @@ class Cloudfoundry::Uaa::Client
 
     opts[:scope] = join_array(opts[:scope]) if opts[:scope]
 
-    headers = {'Content-Type'=>"application/x-www-form-urlencoded", 
+    headers = {'Content-Type'=>"application/x-www-form-urlencoded",
       'Accept'=>"application/json"}
     add_client_auth(grant_type, headers, opts)
 
@@ -170,8 +170,7 @@ class Cloudfoundry::Uaa::Client
   # we overload the option with that name for the purpose of this
   # call.
   def decode_jwt_token(token=nil, opts={})
-    token ||= @token
-    result = symbolize_keys(JWT.decode(token, opts[:token_key]))
+    JWT.decode(token || @token, opts[:token_key])
   end
 
   # Decode the contents of an opaque token obtained from the target
@@ -190,11 +189,11 @@ class Cloudfoundry::Uaa::Client
   # explicit values in the options. Authoeized clients must be
   # pre-registered with the server.
   def decode_opaque_token(token=nil, opts={})
-    headers = {'Accept'=>"application/json", 
+    headers = {'Accept'=>"application/json",
       'Authorization'=>client_auth(opts)}
     token ||= @token
     status, body, headers = request(:get, "/check_token?token=#{token}", nil, headers)
-    result = json_parse(body)   
+    result = json_parse(body)
   end
 
   def decode_token(token=nil, opts={})
@@ -248,7 +247,7 @@ class Cloudfoundry::Uaa::Client
       :userName=>options[:username],
       :emails=>[{:value=>options[:email]}]
     }
- 
+
    status, body, headers = http_post("/User", request.to_json, "application/json", "Bearer #{token}")
     user = json_parse(body)
 
@@ -302,43 +301,6 @@ class Cloudfoundry::Uaa::Client
       end
     end
     return nil
-  end
-
-  def symbolize_keys(obj)
-    case obj
-    when Array
-      obj.inject([]) do |res, val|
-        res << 
-          case val
-          when Hash, Array
-            symbolize_keys(val)
-          else
-            val
-          end
-        res
-      end
-    when Hash
-      obj.inject({}) do |res, (key, val)|
-        nkey = 
-          case key
-          when String
-            key.to_sym
-          else
-            key
-          end
-        nval = 
-          case val
-          when Hash, Array
-            symbolize_keys(val)
-          else
-            val
-          end
-        res[nkey] = nval
-        res
-      end
-    else
-      obj
-    end
   end
 
 end

@@ -7,7 +7,6 @@ require 'rest_client'
 module Cloudfoundry::Uaa::Http
 
   class BadTarget < RuntimeError; end
-  class AuthError < RuntimeError; end
   class TargetError < RuntimeError; end
   class NotFound < RuntimeError; end
   class BadResponse < RuntimeError; end
