@@ -7,7 +7,6 @@
 # class is for these use cases.
 
 require 'uaa/http'
-require 'uaa/error'
 require 'base64'
 
 class Cloudfoundry::Uaa::TokenIssuer
@@ -17,6 +16,9 @@ class Cloudfoundry::Uaa::TokenIssuer
   def initialize(target, client_id, client_secret, scope, resource_ids)
     @target, @client_id, @client_secret = target, client_id, client_secret
     @scope, @resource_ids = scope, resource_ids
+    @client_auth = "Basic " + Base64::strict_encode64("#{@client_id}:#{@client_secret}")
+    @client_headers = {'Content-Type'=> "application/x-www-form-urlencoded",
+        'Accept'=>"application/json", 'Authorization' => @client_auth}
   end
 
   def authcode_redirect_uri(callback_uri)
@@ -52,27 +54,26 @@ class Cloudfoundry::Uaa::TokenIssuer
   end
 
   def owner_password_grant(username, password)
-    auth_header = "Basic " + Base64::strict_encode64("#{@client_id}:#{@client_secret}")
-    headers = {'Content-Type'=> "application/x-www-form-urlencoded",
-        'Accept'=>"application/json", 'Authorization' => auth_header}
     body = URI.encode_www_form(:grant_type => "password", :username => username, :password => password, :scope => @scope)
-    @parsed_reply = json_parse_reply(*request(:post, '/oauth/token', body, headers))
+    @parsed_reply = json_parse_reply(*request(:post, '/oauth/token', body, @client_headers))
     @parsed_reply[:access_token]
   end
 
   def client_credentials_grant
-  # => token_type, token, expires_in, granted_scopes, granted_resids, others{}
-  # => error_response
+    body = URI.encode_www_form(:grant_type => "client_credentials", :scope => @scope)
+    @parsed_reply = json_parse_reply(*request(:post, '/oauth/token', body, @client_headers))
+    @parsed_reply[:access_token]
   end
 
-  def refresh_token
-  # => token_type, token, expires_in, granted_scopes, granted_resids, others{}
-  # => error_response
+  def refresh_token(refresh_token = info[:refresh_token])
+    body = URI.encode_www_form(:grant_type => "refresh_token", :refresh_token => refresh_token)
+    @parsed_reply = json_parse_reply(*request(:post, '/oauth/token', body, @client_headers))
+    @parsed_reply[:access_token]
   end
 
+  # => {token_type, access_token, expires_in, others, ...}
   def info
-  # => {token_type, token, expires_in, granted_scopes, granted_resids, refresh_token, error, others, ...}
-    @parsed_reply
+    @parsed_reply || {}
   end
 
 end

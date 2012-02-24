@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'uaa/user_account'
 
 describe Cloudfoundry::Uaa::UserAccount do
 

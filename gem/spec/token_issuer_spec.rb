@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'uaa/token_issuer'
 
 describe Cloudfoundry::Uaa::TokenIssuer do
 
@@ -40,12 +41,11 @@ describe Cloudfoundry::Uaa::TokenIssuer do
       @response = [200, '{"access_token":"FOO"}', {:content_type => "application/json"}]
     end
 
-    # TODO: seems odd that .login does not exist, but this still passes.
-    it "should not require prompts", :integration=>false do
+    it "should get a token with client credentials", :integration=>false do
       expect do
-        subject.login(:client_id=>"app", :client_secret=>"appclientsecret", :grant_type=>"client_credentials")
+        subject.client_credentials_grant
         @input[:url].should =~ /\/token/
-      end.should_not raise_exception(Cloudfoundry::Uaa::PromptRequiredError)
+      end.should_not raise_exception
     end
 
   end
