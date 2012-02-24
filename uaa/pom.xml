@@ -204,9 +204,9 @@
 	<dependencies>
 
 		<dependency>
-			<groupId>${pom.groupId}</groupId>
+			<groupId>org.springframework.security</groupId>
 			<artifactId>spring-security-jwt</artifactId>
-			<version>${pom.version}</version>
+			<version>${spring.security.jwt.version}</version>
 		</dependency>
 
 		<dependency>
