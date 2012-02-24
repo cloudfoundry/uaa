@@ -112,6 +112,10 @@ EOF
       opts.banner = basic_usage_with_options
       opts.version = Cloudfoundry::Uaa::VERSION
 
+      opts.on('--target TARGET', 'Use the specified target instead of the one set with the target command') do |target|
+        @options[:target] = target
+      end
+
       opts.on('--client_id CLIENT_ID', '--client-id', 'Use the specified client_id to authenticate') do |client_id|
         @options[:client_id] = client_id
       end

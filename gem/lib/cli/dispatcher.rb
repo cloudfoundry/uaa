@@ -19,6 +19,10 @@ class Cloudfoundry::Uaa::Dispatcher
 
   def dispatch(command, args=[], options={})
 
+    unless options[:target].nil? then
+      @client.target = fix_target(options[:target])
+    end
+
     @client.trace = true if options[:verbose] 
     save_token = options[:save_token]
 
@@ -48,7 +52,7 @@ class Cloudfoundry::Uaa::Dispatcher
 
   private
 
-  def init_target
+  def init_target(target=nil)
     file = @target_file
     @client.target = File.open(file).read unless !File.exist? file
     if @client.target
@@ -60,12 +64,16 @@ class Cloudfoundry::Uaa::Dispatcher
   def save_target(target)
     return @client.target if target.nil?
     # TODO: use https by default?
-    target = "http://#{target}" if target !~ /^http.*:\/\//
+    target = fix_target target
     return @client.target if @client.target == target
     file = File.open(@target_file, 'w')
     file.write target
     file.close
     @client.target = target
+  end
+
+  def fix_target(target)
+    target = "http://#{target}" if target !~ /^http.*:\/\//
   end
 
   def save_token(token)
