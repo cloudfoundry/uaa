@@ -14,16 +14,10 @@ class Cloudfoundry::Uaa::TokenIssuer
 
   include Cloudfoundry::Uaa::Http
 
-<<<<<<< HEAD
-  def initialize(target, client_id, client_secret, scope, resource_id)
-    @target, @client_id, @client_secret = target, client_id, client_secret
-    @scope, @resource_id = scope, resource_id
-  end
-=======
   def initialize(target, client_id, client_secret, scope, resource_ids)
     @target, @client_id, @client_secret = target, client_id, client_secret
     @scope, @resource_ids = scope, resource_ids
->>>>>>> update JWT token decoder to work around jwt gem bugs
+  end
 
   def authcode_redirect_uri(callback_uri)
   # => uri string

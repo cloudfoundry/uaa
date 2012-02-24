@@ -10,17 +10,11 @@ require 'uaa/http'
 require 'uaa/error'
 require 'base64'
 
-<<<<<<< HEAD
-class Cloudfoundry::Uaa::TokenChecker
-
-  include Cloudfoundry::Uaa::Http
-=======
 module Cloudfoundry::Uaa
 
 class TokenChecker
 
   include Http
->>>>>>> update JWT token decoder to work around jwt gem bugs
 
   def initialize(target, resource_id, secret)
     @target, @resource_id, @secret = target, resource_id, secret
@@ -38,8 +32,5 @@ class TokenChecker
   end
 
 end
-<<<<<<< HEAD
-=======
 
 end
->>>>>>> update JWT token decoder to work around jwt gem bugs
