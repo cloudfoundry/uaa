@@ -4,15 +4,17 @@ describe Cloudfoundry::Uaa::TokenIssuer do
 
   subject do
     Cloudfoundry::Uaa::TokenIssuer.new("http://localhost:8080/uaa", "test_app",
-        "test_secret", "read")
+        "test_secret", "read", "test_resource")
   end
 
   before :each do
-    subject.stub!(:perform_http_request) do |req|
-      @input = req
-      @response
+    if !integration_test?
+      subject.stub!(:perform_http_request) do |req|
+        @input = req
+        @response
+      end
     end
-    # subject.trace = true
+    subject.trace = true
     @username = "marissa"
     @password = "koala"
   end
@@ -51,7 +53,9 @@ describe Cloudfoundry::Uaa::TokenIssuer do
   context "when logging in with username and password" do
 
     before :each do
-      subject.stub!(:prompts).and_return({:username=>["text", "Username"], :password=>["password", "Password"]})
+      if !integration_test?
+        subject.stub!(:prompts).and_return({:username=>["text", "Username"], :password=>["password", "Password"]})
+      end
     end
 
     context "with password grant" do

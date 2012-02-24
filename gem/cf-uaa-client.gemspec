@@ -2,7 +2,7 @@
 $:.push File.expand_path("../lib", __FILE__)
 require "uaa/version"
 
-Gem::Specification.new do |s|  
+Gem::Specification.new do |s|
   s.name        = "cf-uaa-client"
   s.version     = Cloudfoundry::Uaa::VERSION
   s.authors     = ["Dave Syer"]
@@ -22,9 +22,9 @@ Gem::Specification.new do |s|
   s.add_development_dependency "bundler"
   s.add_development_dependency "rake"
   s.add_development_dependency "rspec"
+  s.add_development_dependency "webmock"
   s.add_development_dependency "simplecov"
   s.add_development_dependency "highline"
   s.add_runtime_dependency "rest-client"
   s.add_runtime_dependency "json_pure"
-  s.add_runtime_dependency "jwt"
 end

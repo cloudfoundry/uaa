@@ -3,8 +3,8 @@ if ENV['COVERAGE']
   SimpleCov.start
 end
 
-require 'cli'
-require 'uaa'
+#require 'cli'
+#require 'uaa'
 require 'rspec'
 
 def integration_test?

@@ -1,4 +1,3 @@
-#-----------------------------------------------------------------------------
 # Web or Native Clients (in the OAuth2 sense) would use this class to get tokens
 # that they can use to get access to resources
 
@@ -7,15 +6,17 @@
 # request scopes, etc., but they don't need to process tokens. This
 # class is for these use cases.
 
+require 'uaa/http'
+require 'uaa/error'
+require 'base64'
+
 class Cloudfoundry::Uaa::TokenIssuer
 
   include Cloudfoundry::Uaa::Http
 
-  def initialize(target, client_id, client_secret, scope)
+  def initialize(target, client_id, client_secret, scope, resource_ids)
     @target, @client_id, @client_secret = target, client_id, client_secret
-    @scope = scope
-    @target = target
-  end
+    @scope, @resource_ids = scope, resource_ids
 
   def authcode_redirect_uri(callback_uri)
   # => uri string
