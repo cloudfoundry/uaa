@@ -16,6 +16,8 @@ package org.cloudfoundry.identity.uaa;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import javax.sql.DataSource;
+
 import org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.junit.After;
@@ -24,7 +26,6 @@ import org.springframework.context.support.GenericXmlApplicationContext;
 import org.springframework.core.env.PropertiesPropertySource;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.FileSystemResource;
-import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -39,13 +40,12 @@ public class BootstrapTests {
 	private GenericXmlApplicationContext context;
 	
 	@After
-	public void cleanup() {
+	public void cleanup() throws Exception {
 		System.clearProperty("spring.profiles.active");		
 		System.clearProperty("CLOUD_FOUNDRY_CONFIG_PATH");
 		System.clearProperty("UAA_CONFIG_FILE");
 		if (context!=null) {
-			JdbcOperations jdbcTemplate = context.getBean(JdbcOperations.class);
-			jdbcTemplate.execute("SHUTDOWN");
+			TestUtils.dropSchema(context.getBean(DataSource.class));
 			context.close();
 		}
 	}
