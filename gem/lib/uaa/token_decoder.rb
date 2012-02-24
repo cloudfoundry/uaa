@@ -10,24 +10,24 @@ require 'uaa/jwt'
 
 module Cloudfoundry::Uaa
 
-class Cloudfoundry::Uaa::TokenDecoder
+  class TokenDecoder
 
-  def initialize(resource_id, signing_secret)
-    @resource_id, @secret = resource_id, signing_secret
-  end
-
-  # returns hash of values decoded from the token contents
-  def decode(auth_header)
-    unless auth_header && (tkn = auth_header.split).length == 2 && tkn[0] =~ /bearer/i
-      raise AuthError, "invalid authentication header: #{auth_header}"
+    def initialize(resource_id, signing_secret)
+      @resource_id, @secret = resource_id, signing_secret
     end
-    reply = JWT.decode(tkn[1], @secret)
-    return reply if reply[:resource_ids].include?(@resource_id)
-    raise AuthError, "invalid resource audience: #{reply[:resource_ids]}"
-  rescue JWT::DecodeError
-    raise AuthError, "invalid authentication token"
-  end
 
-end
+    # returns hash of values decoded from the token contents
+    def decode(auth_header)
+      unless auth_header && (tkn = auth_header.split).length == 2 && tkn[0] =~ /bearer/i
+        raise AuthError, "invalid authentication header: #{auth_header}"
+      end
+      reply = JWT.decode(tkn[1], @secret)
+      return reply if reply[:resource_ids].include?(@resource_id)
+      raise AuthError, "invalid resource audience: #{reply[:resource_ids]}"
+    rescue JWT::DecodeError
+      raise AuthError, "invalid authentication token"
+    end
+
+  end
 
 end

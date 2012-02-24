@@ -12,25 +12,25 @@ require 'base64'
 
 module Cloudfoundry::Uaa
 
-class TokenChecker
+  class TokenChecker
 
-  include Http
+    include Http
 
-  def initialize(target, resource_id, secret)
-    @target, @resource_id, @secret = target, resource_id, secret
-  end
-
-  # returns hash of values from server that are associated with the opaque token
-  def decode(auth_header)
-    unless auth_header && (tkn = auth_header.split).length == 2
-      raise AuthError, "invalid authentication header: #{auth_header}"
+    def initialize(target, resource_id, secret)
+      @target, @resource_id, @secret = target, resource_id, secret
     end
-    res_auth = "Basic " + Base64::strict_encode64("#{@resource_id}:#{@secret}")
-    reply = json_get("/check_token?token_type=#{tkn[0]}&token=#{tkn[1]}", res_auth)
-    return reply if reply[:resource_ids].include?(@resource_id)
-    raise AuthError, "invalid resource audience: #{reply[:resource_ids]}"
-  end
 
-end
+    # returns hash of values from server that are associated with the opaque token
+    def decode(auth_header)
+      unless auth_header && (tkn = auth_header.split).length == 2
+        raise AuthError, "invalid authentication header: #{auth_header}"
+      end
+      res_auth = "Basic " + Base64::strict_encode64("#{@resource_id}:#{@secret}")
+      reply = json_get("/check_token?token_type=#{tkn[0]}&token=#{tkn[1]}", res_auth)
+      return reply if reply[:resource_ids].include?(@resource_id)
+      raise AuthError, "invalid resource audience: #{reply[:resource_ids]}"
+    end
+    
+  end
 
 end
