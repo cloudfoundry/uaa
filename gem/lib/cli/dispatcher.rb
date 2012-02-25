@@ -74,6 +74,7 @@ class Cloudfoundry::Uaa::Dispatcher
 
   def fix_target(target)
     target = "http://#{target}" if target !~ /^http.*:\/\//
+    target
   end
 
   def save_token(token)
