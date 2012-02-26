@@ -95,10 +95,17 @@ public class TestAccountSetup extends TestWatchman {
 	/**
 	 * @return true if the legacy Spring profile is enabled on the server
 	 */
-	public boolean isLegacy() {
+	public boolean isProfileActive(String profile) {
 		List<String> profiles = Arrays.asList(environment.getActiveProfiles());
-		logger.debug(String.format("Checking for %s profile in: [%s]", legacyProfileName, environment));
-		return legacyProfileName != null && profiles.contains(legacyProfileName);
+		logger.debug(String.format("Checking for %s profile in: [%s]", profile, environment));
+		return profile != null && profiles.contains(profile);
+	}
+
+	/**
+	 * @return true if the legacy Spring profile is enabled on the server
+	 */
+	public boolean isLegacy() {
+		return isProfileActive(legacyProfileName);
 	}
 
 	/**
