@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
 	xmlns:sec="http://www.springframework.org/schema/security"
-	xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.1.xsd
+	xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
+	xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2.xsd
+		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.1.xsd
 		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd">
 
 	<bean id="userBootstrap" class="org.cloudfoundry.identity.uaa.user.JdbcUaaAdminUserBootstrap">
@@ -37,18 +39,31 @@
 		</property>
 	</bean>
 
-	<http request-matcher-ref="userEndPointRequestMatcher" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
+	<http pattern="/User/*/password" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
 		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
 		xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/User/*/password" access="IS_AUTHENTICATED_FULLY,SCOPE_PASSWORD" />
+		<custom-filter ref="passwordResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
+		<access-denied-handler ref="oauthAccessDeniedHandler" />
+	</http>
+
+	<http request-matcher-ref="userEndPointRequestMatcher" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
+		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
+		xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/Users*" access="ROLE_CLIENT,SCOPE_READ" method="GET" />
 		<intercept-url pattern="/User/**" access="ROLE_CLIENT,SCOPE_READ" method="GET" />
 		<intercept-url pattern="/User/**" access="ROLE_CLIENT,SCOPE_WRITE" method="DELETE" />
 		<intercept-url pattern="/User*" access="ROLE_CLIENT,SCOPE_WRITE" method="POST" />
 		<intercept-url pattern="/User/**" access="ROLE_CLIENT,SCOPE_WRITE" method="PUT" />
-		<custom-filter ref="oauth2ResourceServerFilter" position="PRE_AUTH_FILTER" />
+		<custom-filter ref="scimResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
+
+	<oauth:resource-server id="passwordResourceAuthenticationFilter" token-services-ref="tokenServices"
+		resource-id="password" />
+
+	<oauth:resource-server id="scimResourceAuthenticationFilter" token-services-ref="tokenServices"
+		resource-id="scim" />
 
 	<bean id="userEndPointRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
 		<constructor-arg value="/User" />

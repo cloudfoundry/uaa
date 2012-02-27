@@ -84,7 +84,7 @@
 		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
 		xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="SCOPE_OPENID" />
-		<custom-filter ref="oauth2ResourceServerFilter" position="PRE_AUTH_FILTER" />
+		<custom-filter ref="openidResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
 
@@ -188,14 +188,15 @@
 		<oauth:client client-id="my" authorized-grant-types="authorization_code,refresh_token,implicit,client_credentials"
 			scope="openid,read" authorities="ROLE_CLIENT" secret="${my.client.secret:$2a$10$8qjw5C.p65W6VIV7vXC0Hemo0S5kvt1ib/n4zBObx9XxLHo7FqUGS}" />
 		<oauth:client client-id="scim" authorized-grant-types="client_credentials" scope="read,write,password"
-			authorities="ROLE_CLIENT,ROLE_ADMIN" secret="${scim.client.secret:$2a$10$mEaFQ2.VeetFRVXAUZGzl.x62KjnwVTHPjbVJ/ErsRJyhndXawxv.}" />
+			authorities="ROLE_CLIENT,ROLE_ADMIN" secret="${scim.client.secret:$2a$10$mEaFQ2.VeetFRVXAUZGzl.x62KjnwVTHPjbVJ/ErsRJyhndXawxv.}" 
+			resource-ids="scim,password"/>
 		<oauth:client client-id="vmc" authorized-grant-types="implicit" scope="read,password" authorities="ROLE_UNTRUSTED"
-			resource-ids="cloud_controller,openid" />
+			resource-ids="cloud_controller,openid,password" />
 		<oauth:client client-id="cloud_controller" authorized-grant-types="client_credentials" scope="read,openid"
 			authorities="ROLE_CLIENT" secret="${cloud_controller.client.secret:$2a$08$qsrUOJQo0CWRuI9l4St6Eugt0fXf2bPKeGXN8J3glRHHhEMajUUk2}" />
 	</oauth:client-details-service>
 
-	<oauth:resource-server id="oauth2ResourceServerFilter" token-services-ref="tokenServices"
+	<oauth:resource-server id="openidResourceAuthenticationFilter" token-services-ref="tokenServices"
 		resource-id="openid" />
 
 	<mvc:resources location="/resources/" mapping="/resources/**" />
