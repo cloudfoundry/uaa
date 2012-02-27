@@ -17,7 +17,7 @@
 		xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/apps" access="SCOPE_READ" />
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
-		<custom-filter ref="oauth2ServiceFilter" before="EXCEPTION_TRANSLATION_FILTER" />
+		<custom-filter ref="oauth2ServiceFilter" position="PRE_AUTH_FILTER" />
 		<custom-filter ref="contentTypeFilter" after="EXCEPTION_TRANSLATION_FILTER" />
 		<anonymous />
 	</http>

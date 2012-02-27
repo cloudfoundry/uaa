@@ -133,7 +133,7 @@ public class VmcScimUserEndpointIntegrationTests {
 		@SuppressWarnings("unchecked")
 		Map<String, String> error = response.getBody();
 		// System.err.println(error);
-		assertEquals("Access is denied", error.get("error"));
+		assertEquals("access_denied", error.get("error"));
 	}
 
 	@Test

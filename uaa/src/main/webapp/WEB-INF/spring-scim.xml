@@ -46,7 +46,7 @@
 		<intercept-url pattern="/User/**" access="ROLE_CLIENT,SCOPE_WRITE" method="DELETE" />
 		<intercept-url pattern="/User*" access="ROLE_CLIENT,SCOPE_WRITE" method="POST" />
 		<intercept-url pattern="/User/**" access="ROLE_CLIENT,SCOPE_WRITE" method="PUT" />
-		<custom-filter ref="oauth2ResourceServerFilter" after="EXCEPTION_TRANSLATION_FILTER" />
+		<custom-filter ref="oauth2ResourceServerFilter" position="PRE_AUTH_FILTER" />
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
 
