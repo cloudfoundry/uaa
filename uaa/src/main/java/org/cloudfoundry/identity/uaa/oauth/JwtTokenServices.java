@@ -27,13 +27,13 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 /**
  * OAuth2 token services that produces JWT encoded token values.
- * 
+ *
  * @author Dave Syer
  */
 public class JwtTokenServices extends RandomValueTokenServices {
 
 	private AccessTokenConverter tokenConverter = new DefaultTokenConverter();
-	
+
 	private ObjectMapper objectMapper = new ObjectMapper();
 
 	private String key = new RandomValueStringGenerator().generate();
@@ -66,7 +66,7 @@ public class JwtTokenServices extends RandomValueTokenServices {
 	protected OAuth2AccessToken createAccessToken(OAuth2Authentication authentication, OAuth2RefreshToken refreshToken) {
 
 		OAuth2AccessToken accessToken = super.createAccessToken(authentication, refreshToken);
-		
+
 		String content;
 		try {
 			content = objectMapper.writeValueAsString(tokenConverter.convertAccessToken(accessToken, authentication));
@@ -75,7 +75,7 @@ public class JwtTokenServices extends RandomValueTokenServices {
 			throw new IllegalStateException("Cannot convert access token to JSON", e);
 		}
 		// TODO: use client secret from client details service (but N.B. the audience is the resource server)
-		String token = new String(JwtHelper.encode(content , new MacSigner(key)).getEncoded());
+		String token = JwtHelper.encode(content , new MacSigner(key)).getEncoded();
 		OAuth2AccessToken result = new OAuth2AccessToken(token);
 		result.setScope(accessToken.getScope());
 		result.setExpiration(accessToken.getExpiration());
