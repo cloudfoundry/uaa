@@ -14,6 +14,7 @@ module Cloudfoundry; module Uaa; end; end
 class Cloudfoundry::Uaa::TokenCoder
 
   class DecodeError < RuntimeError; end
+  class AuthError < RuntimeError; end
 
   def self.sign(algorithm, msg, signing_secret)
     raise DecodeError, "unsupported signing method" unless ["HS256", "HS384", "HS512"].include?(algorithm)
@@ -56,7 +57,7 @@ class Cloudfoundry::Uaa::TokenCoder
       raise DecodeError, "Algorithm not supported"
     end
     unless signature == sign(algo, [header_segment, payload_segment].join('.'), signing_secret)
-      raise DecodeError, "Signature verification failed"
+      raise AuthError, "Signature verification failed"
     end
     payload
   end
@@ -65,11 +66,14 @@ class Cloudfoundry::Uaa::TokenCoder
     @resource_id, @secret = resource_id, signing_secret
   end
 
-  def encode(token_body)
+  def encode(token_body = {})
     unless token_body[:resource_ids] || token_body["resource_ids"]
       token_body[:resource_ids] = [@resource_id]
     end
-    Cloudfoundry::Uaa::TokenCoder.encode(token_body, @secret)
+    unless token_body[:expires_at] || token_body["expires_at"]
+      token_body[:expires_at] = Time.now.to_i + 7 * 24 * 60 * 60
+    end
+    self.class.encode(token_body, @secret)
   end
 
   # returns hash of values decoded from the token contents
@@ -77,11 +81,14 @@ class Cloudfoundry::Uaa::TokenCoder
     unless auth_header && (tkn = auth_header.split).length == 2 && tkn[0] =~ /bearer/i
       raise DecodeError, "invalid authentication header: #{auth_header}"
     end
-    reply = Cloudfoundry::Uaa::TokenCoder.decode(tkn[1], @secret)
-    return reply if reply[:resource_ids].include?(@resource_id)
-    raise DecodeError, "invalid resource audience: #{reply[:resource_ids]}"
-  rescue DecodeError
-    raise DecodeError, "invalid authentication token"
+    reply = self.class.decode(tkn[1], @secret)
+    unless reply[:resource_ids] && reply[:resource_ids].include?(@resource_id)
+      raise AuthError, "invalid resource audience: #{reply[:resource_ids]}"
+    end
+    unless reply[:expires_at].is_a?(Integer) && reply[:expires_at] > Time.now.to_i
+      raise AuthError, "token expired"
+    end
+    reply
   end
 
 end
