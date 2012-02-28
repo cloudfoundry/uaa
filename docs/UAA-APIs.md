@@ -24,6 +24,8 @@ Authentication and Delegated Authorization APIs
 * [Validate authentication token: /check_id](#check_id)
 * [Get user information: /userinfo](#userinfo)
 * [Get login information and prompts: /login_info](#login_info)
+* [JWT token key for verifying tokens: /token_key](#token_key)
+* [Access token admin: `/oauth/(users|clients)/.*`](#token_admin)
 
 User Account APIs
 
@@ -455,6 +457,83 @@ See [SCIM - Deleting Resources](http://www.simplecloud.info/specs/draft-scim-res
         401 - Unauthorized
         404 - Not found
 
+
+### <a id="token_key"/>JWT Token Key
+
+An endpoint which returns the JWT token kwy, used by the UAA to sign JWT access tokens, and to be used by authorized clients to verify that the key came from the UAA.
+	
+This call is authenticated with client credentials using the HTTP Basic method.
+
+* Request: `GET /token_key`
+* Request body: empty
+* Response body: _example_
+
+        HTTP/1.1 200 OK
+        Content-Type: text/plain
+
+        FYSDKJHfgdUydsFJSHDFKAJHDSF
+
+### <a id="token_admin"/>Access Token Admin
+
+OAuth2 proected resources which deal with listing and revoking access tokens.  To revoke a token with `DELETE` clients need to provide a `token_id` (not the token value) which can be obtained from the token list via the corresponding `GET`.  This is to prevent token values from being logged in the server (`DELETE` does not have a body).
+
+### List Tokens for User
+
+* Request: `GET /oauth/users/:username/tokens`
+* Access: allowed by clients with `ROLE_ADMIN` and for users to see their own tokens (as long as the client has `ROLE_ADMIN`)
+* Request body: empty
+* Response body: a list of access tokens, _example_
+
+        HTTP/1.1 200 OK
+        Content-Type: text/plain
+
+        [
+          {
+            "access_token": "FYSDKJHfgdUydsFJSHDFKAJHDSF",
+            "token_id": "fkjhsdfgksafhdjg",
+            "expires_in": 1234,
+            "client_id": "vmc"
+          }
+        ]
+
+### Revoke Token by User
+
+* Request: `DELETE /oauth/users/:username/tokens/:token_id`
+* Access: allowed by clients with `ROLE_ADMIN` and for users to revoke their own tokens (as long as the client has `ROLE_ADMIN`)
+* Request body: empty
+* Reponse code: 204 (NO_CONTENT)
+* Response body: empty
+
+        HTTP/1.1 204 NO_CONTENT
+
+### List Tokens for Client
+
+* Request: `GET /oauth/clients/:client_id/tokens`
+* Access: allowed by clients with `ROLE_CLIENT`
+* Request body: empty
+* Response body: a list of access tokens, _example_
+
+        HTTP/1.1 200 OK
+        Content-Type: text/plain
+
+        [
+          {
+            "access_token": "KJHDGFKDHSJFUYTGUYGHBKAJHDSF",
+            "token_id": "fkjhsdfgksafhdjg",
+            "expires_in": 1234,
+            "client_id": "www"
+          }
+        ]
+
+### Revoke Token by Client
+
+* Request: `DELETE /oauth/clients/:client_id/tokens/:token_id`
+* Access: allowed by clients with `ROLE_CLIENT`
+* Request body: empty
+* Reponse code: 204 (NO_CONTENT)
+* Response body: empty
+
+        HTTP/1.1 204 NO_CONTENT
 
 ## UI Endpoints
 
