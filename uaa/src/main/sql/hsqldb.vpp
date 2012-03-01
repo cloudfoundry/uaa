@@ -2,4 +2,4 @@
 	ID BIGINT IDENTITY
 );
 #end
-#macro (notnull $name $type)ALTER COLUMN ${name} ${type} NOT NULL#end
+#macro (notnull $name $type)ALTER COLUMN ${name} NOT NULL#end

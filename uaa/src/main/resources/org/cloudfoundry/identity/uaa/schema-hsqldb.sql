@@ -27,6 +27,12 @@ CREATE TABLE USERS (
    constraint unique_uk_1 unique(username)
 ) ;
 
+ALTER TABLE USERS ADD COLUMN active BOOLEAN default true not null;
+ALTER TABLE USERS ALTER COLUMN created set not null;
+ALTER TABLE USERS ALTER COLUMN lastModified set not null;
+ALTER TABLE USERS ALTER COLUMN version set not null;
+ALTER TABLE USERS ALTER COLUMN authority set not null;
+
 CREATE TABLE SEC_AUDIT (
    principal_id char(36) not null,
    event_type INTEGER not null,

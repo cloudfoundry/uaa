@@ -30,10 +30,10 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Meta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Name;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.dao.OptimisticLockingFailureException;
-import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
@@ -154,7 +154,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		try {
 			return parameterJdbcTemplate.query(ALL_USERS + " WHERE " + where, values, mapper);
 		}
-		catch (BadSqlGrammarException e) {
+		catch (DataAccessException e) {
 			logger.debug("Query failed. ", e);
 			throw new IllegalArgumentException("Bad filter");
 		}

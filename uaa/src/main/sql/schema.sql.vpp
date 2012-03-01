@@ -26,6 +26,12 @@ CREATE TABLE USERS (
    constraint unique_uk_1 unique(username)
 ) $!{VOODOO};
 
+ALTER TABLE USERS ADD COLUMN active BOOLEAN not null default true;
+ALTER TABLE USERS #not_null ("created" ${TIMESTAMP});
+ALTER TABLE USERS #not_null ("lastModified" ${TIMESTAMP});
+ALTER TABLE USERS #not_null ("version set" ${TIMESTAMP});
+ALTER TABLE USERS #not_null ("authority" ${TIMESTAMP});
+
 CREATE TABLE SEC_AUDIT (
    principal_id char(36) not null,
    event_type INTEGER not null,
