@@ -9,3 +9,18 @@ databases:
     url: jdbc:postgresql:uaa
     username: root
     password: changeme
+
+cloud_controller:
+  databases:
+    hsqldb:
+      driverClassName: org.hsqldb.jdbcDriver
+      url: jdbc:hsqldb:mem:cloud_controller;sql.enforce_strict_size=true
+      username: sa
+      password:
+    postgresql:
+      driverClassName: org.postgresql.Driver
+      url: jdbc:postgresql://basic/cloud_controller
+      username: root
+      password: changeme
+  admin:
+    users: vcap_tester@vmware.com # comma-separated list

@@ -2,7 +2,8 @@ target/
 *~
 #*
 *#
-*/src/main/*/META-INF/
+*/src/main/java/META-INF/
+*/src/main/webapp/META-INF/
 */src/main/*/WEB-INF/lib/
 .access_token
 .result

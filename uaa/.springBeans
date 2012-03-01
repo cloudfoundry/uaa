@@ -10,6 +10,9 @@
 		<config>src/main/webapp/WEB-INF/spring-servlet.xml</config>
 		<config>src/main/webapp/WEB-INF/spring-scim.xml</config>
 		<config>src/test/resources/test-data-source.xml</config>
+		<config>src/main/resources/META-INF/spring/batch/jobs/jobs.xml</config>
+		<config>src/main/webapp/WEB-INF/spring-data-source.xml</config>
+		<config>src/test/resources/test/config/test-override.xml</config>
 	</configs>
 	<configSets>
 	</configSets>

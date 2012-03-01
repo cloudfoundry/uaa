@@ -21,9 +21,9 @@ import org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.junit.After;
 import org.junit.Test;
+import org.springframework.batch.admin.service.JobService;
 import org.springframework.context.support.GenericXmlApplicationContext;
 import org.springframework.core.env.PropertiesPropertySource;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -63,6 +63,12 @@ public class BootstrapTests {
 	}
 
 	@Test
+	public void testBatchContextDefaults() throws Exception {
+		context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/batch-servlet.xml"));
+		assertNotNull(context.getBean("jobService", JobService.class));
+	}
+
+	@Test
 	public void testRootContextWithJdbcSecureUsers() throws Exception {
 		System.setProperty("spring.profiles.active", "hsqldb,!legacy");
 		context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/spring-servlet.xml"));
@@ -79,8 +85,15 @@ public class BootstrapTests {
 	@Test
 	public void testLegacyProfileAndOverrideYmlConfigPath() throws Exception {
 
-		context = new GenericXmlApplicationContext();
-		context.load(new FileSystemResource("src/main/webapp/WEB-INF/spring-servlet.xml"), new ClassPathResource("/test/config/test-override.xml"));
+		context = getServletContext("file:./src/main/webapp/WEB-INF/spring-servlet.xml", "classpath:/test/config/test-override.xml");
+		assertEquals("different", context.getBean("foo", String.class));
+
+	}
+
+	private GenericXmlApplicationContext getServletContext(String... resources) {
+
+		GenericXmlApplicationContext context = new GenericXmlApplicationContext();
+		context.load(resources);
 
 		context.getEnvironment().setActiveProfiles("hsqldb", "legacy");
 
@@ -91,8 +104,8 @@ public class BootstrapTests {
 
 		context.refresh();
 
-		assertEquals("different", context.getBean("foo", String.class));
-
+		return context;
+		
 	}
 
 }
