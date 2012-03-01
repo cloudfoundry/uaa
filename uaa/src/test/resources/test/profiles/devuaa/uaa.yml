@@ -4,4 +4,4 @@ uaa:
   port: 80
   path: /
 # YAML values must not start with "!"
-spring_profiles: \!legacy,!jdbc
+spring_profiles: "!legacy,hsqldb"

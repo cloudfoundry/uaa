@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Cloud Foundry 2012.02.03 Beta Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved. This product is licensed to 
+	you under the Apache License, Version 2.0 (the "License"). You may not use this product except in compliance with the License. 
+	This product includes a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents 
+	is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file. -->
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
+	xmlns:batch="http://www.springframework.org/schema/batch"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+		http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd">
+
+	<job id="testJob" xmlns="http://www.springframework.org/schema/batch">
+		<step id="emptyStep">
+			<tasklet ref="resourceService" method="getServletPath" />
+		</step>
+	</job>
+
+	<job id="userDataMigrationJob" xmlns="http://www.springframework.org/schema/batch">
+		<step id="copyDataStep" next="updateAdminUsersStep">
+			<tasklet>
+				<chunk reader="cloudControllerUserReader" processor="cloudControllerUserProcessor" writer="uaaUserWriter"
+					commit-interval="100" skip-limit="100">
+					<skippable-exception-classes>
+						<include class="org.cloudfoundry.identity.uaa.scim.job.InvalidEmailException" />
+					</skippable-exception-classes>
+				</chunk>
+			</tasklet>
+		</step>
+		<step id="updateAdminUsersStep">
+			<tasklet>
+				<bean xmlns="http://www.springframework.org/schema/beans" class="org.cloudfoundry.identity.uaa.scim.job.AdminUsersTasklet">
+					<property name="dataSource" ref="uaaDataSource" />
+					<property name="admins">
+						<value>#{new String('${cloud_controller.admin.users:vcap_tester@vmware.com}').split(',')}</value>
+					</property>
+				</bean>
+			</tasklet>
+		</step>
+	</job>
+
+	<bean id="cloudControllerUserReader" class="org.springframework.batch.item.database.JdbcPagingItemReader" scope="step">
+		<property name="dataSource" ref="cloudControllerDataSource" />
+		<property name="parameterValues">
+			<map>
+				<entry key="id" value="#{jobParameters['minId']?:0}"/>
+			</map>
+		</property>
+		<property name="queryProvider">
+			<bean class="org.springframework.batch.item.database.support.SqlPagingQueryProviderFactoryBean">
+				<property name="dataSource" ref="cloudControllerDataSource" />
+				<property name="selectClause" value="*" />
+				<property name="fromClause" value="users" />
+				<property name="whereClause" value="id>=:id" />
+				<property name="sortKey" value="id" />
+			</bean>
+		</property>
+		<property name="rowMapper">
+			<bean class="org.springframework.jdbc.core.ColumnMapRowMapper" />
+		</property>
+	</bean>
+
+	<bean id="cloudControllerUserProcessor" class="org.cloudfoundry.identity.uaa.scim.job.CloudControllerUserItemProcessor" />
+
+	<bean id="uaaUserWriter" class="org.springframework.batch.item.database.JdbcBatchItemWriter">
+		<property name="dataSource" ref="uaaDataSource" />
+		<property name="sql">
+			<value>insert into users
+				(id,created,lastModified,userName,email,password,givenName,familyName)
+				values
+				(:id,:created,:lastModified,:userName,:email,:password,:givenName,:familyName)
+			</value>
+		</property>
+		<property name="itemSqlParameterSourceProvider">
+			<bean class="org.cloudfoundry.identity.uaa.scim.job.MapItemSqlParameterSourceProvider" />
+		</property>
+	</bean>
+
+	<bean id="uaaDataSource" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
+		<property name="driverClassName" value="${database.driverClassName}" />
+		<property name="url" value="${database.url}" />
+		<property name="username" value="${database.username}" />
+		<property name="password" value="${database.password}" />
+	</bean>
+
+	<bean id="cloudControllerDataSource" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
+		<property name="driverClassName" value="${cloud_controller.database.driverClassName}" />
+		<property name="url" value="${cloud_controller.database.url}" />
+		<property name="username" value="${cloud_controller.database.username}" />
+		<property name="password" value="${cloud_controller.database.password}" />
+	</bean>
+
+</beans>

@@ -130,6 +130,9 @@ public class YamlPropertiesFactoryBean implements FactoryBean<Properties> {
 		Yaml yaml = new Yaml();
 		Properties properties = new Properties();
 		try {
+			if (logger.isDebugEnabled()) {
+				logger.debug("Loading properties from " + resource);
+			}
 			@SuppressWarnings("unchecked")
 			Map<String, Object> map = (Map<String, Object>) yaml.load(resource.getInputStream());
 			assignProperties(properties, map, null);

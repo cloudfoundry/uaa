@@ -34,7 +34,7 @@ public class TestUtils {
 
 	public static void runScript(DataSource dataSource, String stem) throws Exception {
 		ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
-		populator.addScript(new ClassPathResource("/org/cloudfoundry/identity/uaa/" + stem + "-" + platform + ".sql", TestUtils.class));
+		populator.addScript(new ClassPathResource(stem + "-" + platform + ".sql", TestUtils.class));
 		Connection connection = dataSource.getConnection();
 		try {
 			populator.populate(connection);

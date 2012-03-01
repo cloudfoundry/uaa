@@ -1,0 +1,2 @@
+uaa.integration.test: true
+spring_profiles: "!legacy,postgresql"
