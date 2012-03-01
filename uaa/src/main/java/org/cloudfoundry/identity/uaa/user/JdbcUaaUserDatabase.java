@@ -32,7 +32,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
 	public static final String USER_BY_USERNAME_QUERY =
 			"select " + USER_FIELDS +
 			"from users " +
-			"where username = ?";
+			"where username = ? and active=true";
 
 
 	private JdbcTemplate jdbcTemplate;

@@ -198,7 +198,7 @@ public final class ScimUser {
 	private String preferredLanguage;
 	private String locale;
 	private String timezone;
-	private Boolean active;
+	private boolean active = true;
 	private Meta meta = new Meta();
 
 	public ScimUser() {
@@ -314,7 +314,7 @@ public final class ScimUser {
 		this.timezone = timezone;
 	}
 
-	public Boolean getActive() {
+	public boolean isActive() {
 		return active;
 	}
 

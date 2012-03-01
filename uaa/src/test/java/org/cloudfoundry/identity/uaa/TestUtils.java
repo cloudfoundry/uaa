@@ -12,11 +12,14 @@
  */
 package org.cloudfoundry.identity.uaa;
 
+import static org.junit.Assert.assertEquals;
+
 import java.sql.Connection;
 
 import javax.sql.DataSource;
 
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.jdbc.datasource.init.ScriptStatementFailedException;
@@ -49,5 +52,10 @@ public class TestUtils {
 	public static void dropSchema(DataSource dataSource) throws Exception {
 		runScript(dataSource, "schema-drop");
 	}
+
+	public static void assertNoSuchUser(JdbcTemplate template, String column, String value) {
+		assertEquals(0, template.queryForInt("select count(id) from users where " + column +"='"+value+"'"));
+	}
+
 
 }

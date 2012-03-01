@@ -39,7 +39,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  */
 @ContextConfiguration("classpath:/test-data-source.xml")
 @RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "" , "jdbc" })
+@IfProfileValue(name = "spring.profiles.active", values = { "" , "hsqldb", "test,postgresql" })
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class JdbcUaaUserDatabaseTests {
 
@@ -52,20 +52,30 @@ public class JdbcUaaUserDatabaseTests {
 
 	private static final String MABEL_ID = UUID.randomUUID().toString();
 
+	private JdbcTemplate template;
+
 	@Before
 	public void initializeDb() throws Exception {
-		JdbcTemplate template = new JdbcTemplate(dataSource);
+
+		template = new JdbcTemplate(dataSource);
+
+		TestUtils.assertNoSuchUser(template, "id", JOE_ID);
+		TestUtils.assertNoSuchUser(template, "id", MABEL_ID);
+		TestUtils.assertNoSuchUser(template, "userName", "jo@foo.com");
+
 		db = new JdbcUaaUserDatabase(template);
 		TestUtils.createSchema(dataSource);
 		template.execute("insert into users (id, username, password, email, givenName, familyName) " + "values ('"
 				+ JOE_ID + "', 'joe','joespassword','joe@joe.com','Joe','User')");
 		template.execute("insert into users (id, username, password, email, givenName, familyName) " + "values ('"
 				+ MABEL_ID + "', 'mabel','mabelspassword','mabel@mabel.com','Mabel','User')");
+
 	}
 
 	@After
 	public void clearDb() throws Exception {
-		TestUtils.dropSchema(dataSource);
+		template.execute("delete from users where id = '" + JOE_ID + "'");
+		template.execute("delete from users where id = '" + MABEL_ID + "'");
 	}
 
 	@Test

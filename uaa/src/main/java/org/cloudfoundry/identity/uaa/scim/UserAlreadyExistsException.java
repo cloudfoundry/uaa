@@ -13,17 +13,17 @@
 package org.cloudfoundry.identity.uaa.scim;
 
 /**
- * Unchecked exception signalling that a user account could not be found.
+ * Unchecked exception signalling that a user account already exists.
  * 
  * @author Dave Syer
  *
  */
-public class UserNotFoundException extends RuntimeException {
+public class UserAlreadyExistsException extends RuntimeException {
 
 	/**
 	 * @param message a message for the caller
 	 */
-	public UserNotFoundException(String message) {
+	public UserAlreadyExistsException(String message) {
 		super(message);
 	}
 

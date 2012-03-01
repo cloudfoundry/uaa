@@ -28,6 +28,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
@@ -39,6 +40,8 @@ import org.springframework.web.client.RestTemplate;
  */
 public class VmcScimUserEndpointIntegrationTests {
 
+	private final String JOE = "joe" + new RandomValueStringGenerator().generate().toLowerCase();
+
 	private final String userEndpoint = "/User";
 
 	private final String usersEndpoint = "/Users";
@@ -49,7 +52,7 @@ public class VmcScimUserEndpointIntegrationTests {
 	public ServerRunning server = ServerRunning.isRunning();
 
 	@Rule
-	public OAuth2ContextSetup context = OAuth2ContextSetup.implicit(server, "joe", "password");
+	public OAuth2ContextSetup context = OAuth2ContextSetup.implicit(server, JOE, "password");
 
 	@Rule
 	public TestAccountSetup testAccounts = TestAccountSetup.withLegacyTokenServerForProfile("mocklegacy");
@@ -74,14 +77,14 @@ public class VmcScimUserEndpointIntegrationTests {
 		}
 
 		ScimUser user = new ScimUser();
-		user.setUserName("joe");
+		user.setUserName(JOE);
 		user.setName(new ScimUser.Name("Joe", "User"));
 		user.addEmail("joe@blah.com");
 
 		ResponseEntity<ScimUser> newuser = client.postForEntity(server.getUrl(userEndpoint), user, ScimUser.class);
 
 		joe = newuser.getBody();
-		assertEquals("joe", joe.getUserName());
+		assertEquals(JOE, joe.getUserName());
 
 		PasswordChangeRequest change = new PasswordChangeRequest();
 		change.setPassword("password");

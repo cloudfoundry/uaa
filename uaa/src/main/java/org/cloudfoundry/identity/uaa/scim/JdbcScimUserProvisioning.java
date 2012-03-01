@@ -31,6 +31,7 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Meta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Name;
 import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -52,21 +53,22 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	private final Log logger = LogFactory.getLog(getClass());
 
-	public static final String USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName";
+	public static final String USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName,active";
 
 	public static final String CREATE_USER_SQL = "insert into users (" + USER_FIELDS
-			+ ",password) values (?,?,?,?,?,?,?,?,?)";
+			+ ",password) values (?,?,?,?,?,?,?,?,?,?)";
 
-	public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, email=?, givenName=?, familyName=? where id = ? and version = ?";
+	public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, email=?, givenName=?, familyName=?, active=? where id=? and version=?";
 
-	// TODO: We should probably look into flagging the account rather than removing the user
-	public static final String DELETE_USER_SQL = "delete from users where id = ? and version = ?";
+	public static final String DELETE_USER_SQL = "update users set active=false where id=? and version=?";
 
-	public static final String CHANGE_PASSWORD_SQL = "update users set lastModified=?, password=? where id = ?";
+	public static final String ID_FOR_DELETED_USER_SQL = "select id from users where userName=? and active=false";
 
-	public static final String READ_PASSWORD_SQL = "select password from users where id = ?";
+	public static final String CHANGE_PASSWORD_SQL = "update users set lastModified=?, password=? where id=?";
 
-	public static final String USER_BY_ID_QUERY = "select " + USER_FIELDS + " from users " + "where id = ?";
+	public static final String READ_PASSWORD_SQL = "select password from users where id=?";
+
+	public static final String USER_BY_ID_QUERY = "select " + USER_FIELDS + " from users " + "where id=?";
 
 	public static final String ALL_USERS = "select " + USER_FIELDS + " from users";
 
@@ -169,8 +171,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		while (matcher.matches()) {
 			values.put("value" + count, String.format(valueTemplate, matcher.group(3).toLowerCase()));
 			String query = template.replace("?", "value" + count);
-			output = matcher
-					.replaceFirst(String.format(query, matcher.group(1), matcher.group(2), matcher.group(4)));
+			output = matcher.replaceFirst(String.format(query, matcher.group(1), matcher.group(2), matcher.group(4)));
 			matcher = pattern.matcher(output);
 			count++;
 		}
@@ -187,19 +188,26 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		logger.info("Creating new user: " + user.getUserName());
 
 		final String id = UUID.randomUUID().toString();
-		jdbcTemplate.update(CREATE_USER_SQL, new PreparedStatementSetter() {
-			public void setValues(PreparedStatement ps) throws SQLException {
-				ps.setString(1, id);
-				ps.setInt(2, user.getVersion());
-				ps.setTimestamp(3, new Timestamp(new Date().getTime()));
-				ps.setTimestamp(4, new Timestamp(new Date().getTime()));
-				ps.setString(5, user.getUserName());
-				ps.setString(6, user.getPrimaryEmail());
-				ps.setString(7, user.getName().getGivenName());
-				ps.setString(8, user.getName().getFamilyName());
-				ps.setString(9, passwordEncoder.encode(password));
-			}
-		});
+		try {
+			jdbcTemplate.update(CREATE_USER_SQL, new PreparedStatementSetter() {
+				public void setValues(PreparedStatement ps) throws SQLException {
+					ps.setString(1, id);
+					ps.setInt(2, user.getVersion());
+					ps.setTimestamp(3, new Timestamp(new Date().getTime()));
+					ps.setTimestamp(4, new Timestamp(new Date().getTime()));
+					ps.setString(5, user.getUserName());
+					ps.setString(6, user.getPrimaryEmail());
+					ps.setString(7, user.getName().getGivenName());
+					ps.setString(8, user.getName().getFamilyName());
+					ps.setBoolean(9, user.isActive());
+					ps.setString(10, passwordEncoder.encode(password));
+				}
+			});
+		}
+		catch (DuplicateKeyException e) {
+			throw new UserAlreadyExistsException("Username already in use (could be inactive account): "
+					+ user.getUserName());
+		}
 		return retrieveUser(id);
 
 	}
@@ -222,8 +230,9 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 				ps.setString(3, user.getPrimaryEmail());
 				ps.setString(4, user.getName().getGivenName());
 				ps.setString(5, user.getName().getFamilyName());
-				ps.setString(6, id);
-				ps.setInt(7, user.getVersion());
+				ps.setBoolean(6, user.isActive());
+				ps.setString(7, id);
+				ps.setInt(8, user.getVersion());
 			}
 		});
 		ScimUser result = retrieveUser(id);
@@ -239,7 +248,8 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	}
 
 	@Override
-	public boolean changePassword(final String id, String oldPassword, final String newPassword) throws UserNotFoundException {
+	public boolean changePassword(final String id, String oldPassword, final String newPassword)
+			throws UserNotFoundException {
 		if (oldPassword != null) {
 			checkPasswordMatches(id, oldPassword);
 		}
@@ -264,7 +274,8 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	private void checkPasswordMatches(String id, String oldPassword) {
 		String currentPassword;
 		try {
-			currentPassword = jdbcTemplate.queryForObject(READ_PASSWORD_SQL, new Object[] {id},new int[] {Types.VARCHAR},  String.class);
+			currentPassword = jdbcTemplate.queryForObject(READ_PASSWORD_SQL, new Object[] { id },
+					new int[] { Types.VARCHAR }, String.class);
 		}
 		catch (IncorrectResultSizeDataAccessException e) {
 			throw new UserNotFoundException("User " + id + " does not exist");
@@ -289,6 +300,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		if (updated > 1) {
 			throw new IncorrectResultSizeDataAccessException(1);
 		}
+		user.setActive(false);
 		return user;
 	}
 
@@ -299,7 +311,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	/**
 	 * The encoder used to hash passwords before storing them in the database.
-	 *
+	 * 
 	 * Defaults to a {@link BCryptPasswordEncoder}.
 	 */
 	public void setPasswordEncoder(PasswordEncoder passwordEncoder) {
@@ -318,6 +330,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 			String email = rs.getString(6);
 			String givenName = rs.getString(7);
 			String familyName = rs.getString(8);
+			boolean active = rs.getBoolean(9);
 			ScimUser user = new ScimUser();
 			user.setId(id);
 			Meta meta = new Meta();
@@ -331,6 +344,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 			name.setGivenName(givenName);
 			name.setFamilyName(familyName);
 			user.setName(name);
+			user.setActive(active);
 			return user;
 		}
 	}

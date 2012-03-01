@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.scim;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
@@ -23,6 +24,7 @@ import java.util.UUID;
 import javax.sql.DataSource;
 
 import org.cloudfoundry.identity.uaa.NullSafeSystemProfileValueSource;
+import org.cloudfoundry.identity.uaa.TestUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -44,7 +46,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  */
 @ContextConfiguration("classpath:/test-data-source.xml")
 @RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "", "postgresql", "hsqldb" })
+@IfProfileValue(name = "spring.profiles.active", values = { "", "test,postgresql", "hsqldb" })
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class JdbcScimUserProvisioningTests {
 
@@ -66,9 +68,9 @@ public class JdbcScimUserProvisioningTests {
 
 		template = new JdbcTemplate(dataSource);
 
-		assertNoSuchUser(template, "id", JOE_ID);
-		assertNoSuchUser(template, "id", MABEL_ID);
-		assertNoSuchUser(template, "userName", "jo@foo.com");
+		TestUtils.assertNoSuchUser(template, "id", JOE_ID);
+		TestUtils.assertNoSuchUser(template, "id", MABEL_ID);
+		TestUtils.assertNoSuchUser(template, "userName", "jo@foo.com");
 
 		db = new JdbcScimUserProvisioning(template);
 		BCryptPasswordEncoder pe = new BCryptPasswordEncoder(4);
@@ -76,10 +78,6 @@ public class JdbcScimUserProvisioningTests {
 				+ JOE_ID + "', 'joe','" + pe.encode("joespassword") + "','joe@joe.com','Joe','User')");
 		template.execute("insert into users (id, username, password, email, givenName, familyName) " + "values ('"
 				+ MABEL_ID + "', 'mabel','" + pe.encode("mabelspassword") + "','mabel@mabel.com','Mabel','User')");
-	}
-
-	private void assertNoSuchUser(JdbcTemplate template, String column, String value) {
-		assertEquals(0, template.queryForInt("select count(id) from users where " + column +"='"+value+"'"));
 	}
 
 	@After
@@ -176,20 +174,21 @@ public class JdbcScimUserProvisioningTests {
 		assertJoe(joe);
 	}
 
-	private void assertJoe(ScimUser joe) {
-		assertNotNull(joe);
-		assertEquals(JOE_ID, joe.getId());
-		assertEquals("Joe", joe.getGivenName());
-		assertEquals("User", joe.getFamilyName());
-		assertEquals("joe@joe.com", joe.getPrimaryEmail());
-		assertEquals("joe", joe.getUserName());
-	}
-
 	@Test
 	public void canRemoveExistingUser() {
 		ScimUser joe = db.removeUser(JOE_ID, 0);
 		assertJoe(joe);
-		template.queryForList("select * from users").isEmpty();
+		assertEquals(1, template.queryForList("select * from users where id=? and active=false", JOE_ID).size());
+		assertFalse(joe.isActive());
+	}
+
+	@Test(expected=UserAlreadyExistsException.class)
+	public void canRemoveExistingUserAndThenCreateHimAgain() {
+		ScimUser joe = db.removeUser(JOE_ID, 0);
+		assertJoe(joe);
+		joe.setActive(true);
+		ScimUser user = db.createUser(joe, "foobarspam1234");
+		assertEquals(JOE_ID, user.getId());
 	}
 
 	@Test(expected = UserNotFoundException.class)
@@ -320,6 +319,15 @@ public class JdbcScimUserProvisioningTests {
 		Collection<ScimUser> users = db.retrieveUsers("username eq 'joe''; select " + SQL_INJECTION_FIELDS
 				+ " from users where username='joe''");
 		assertEquals(password, users.iterator().next().getId());
+	}
+
+	private void assertJoe(ScimUser joe) {
+		assertNotNull(joe);
+		assertEquals(JOE_ID, joe.getId());
+		assertEquals("Joe", joe.getGivenName());
+		assertEquals("User", joe.getFamilyName());
+		assertEquals("joe@joe.com", joe.getPrimaryEmail());
+		assertEquals("joe", joe.getUserName());
 	}
 
 }
