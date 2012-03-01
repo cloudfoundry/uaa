@@ -84,6 +84,7 @@ public class TestAccountSetup extends TestWatchman {
 	public void finished(FrameworkMethod method) {
 		if (tokenServer != null) {
 			try {
+				logger.debug("Stopping legacy token server");
 				tokenServer.close();
 			}
 			catch (Exception e) {

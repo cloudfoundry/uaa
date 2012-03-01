@@ -42,31 +42,31 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 
 	private static final String PROFILE_CONFIG_FILE_LOCATION = "environmentConfigFile";
 
-	private static final String DEFAULT_PROFILE_CONFIG_FILE_LOCATION = "file:${UAA_CONFIG_FILE}";
-
-	private static final String FALLBACK_PROFILE_CONFIG_FILE_LOCATION = "file:${CLOUD_FOUNDRY_CONFIG_PATH}/uaa.yml";
+	private static final String[] DEFAULT_PROFILE_CONFIG_FILE_LOCATIONS = new String[] { "${UAA_CONFIG_URL}", "file:${UAA_CONFIG_FILE}",
+			"file:${CLOUD_FOUNDRY_CONFIG_PATH}/uaa.yml" };
 
 	@Override
 	public void initialize(ConfigurableWebApplicationContext applicationContext) {
 
-		String location = applicationContext.getServletConfig().getInitParameter(PROFILE_CONFIG_FILE_LOCATION);
+		Resource resource = null;
 		ServletContext servletContext = applicationContext.getServletContext();
-		location = location == null ? DEFAULT_PROFILE_CONFIG_FILE_LOCATION : location;
-		location = applicationContext.getEnvironment().resolvePlaceholders(location);
-		Resource resource = applicationContext.getResource(location);
-		if (resource == null || !resource.exists()) {
-			servletContext.log("No YAML environment properties found at location: " + location);
-			location = FALLBACK_PROFILE_CONFIG_FILE_LOCATION;
+		
+		for (String location : DEFAULT_PROFILE_CONFIG_FILE_LOCATIONS) {
 			location = applicationContext.getEnvironment().resolvePlaceholders(location);
 			resource = applicationContext.getResource(location);
-			if (resource == null || !resource.exists()) {
-				servletContext.log("No YAML environment properties found at location: " + location);
-				return;
+			if (resource != null && resource.exists()) {
+				break;
 			}
+		}
+		
+		if (resource==null) {
+			servletContext.log("No YAML environment properties from environment.  Defaulting to servlet config.");
+			String location = applicationContext.getServletConfig().getInitParameter(PROFILE_CONFIG_FILE_LOCATION);
+			resource = applicationContext.getResource(location);
 		}
 
 		try {
-			servletContext.log("Loading YAML environment properties from location: " + location);
+			servletContext.log("Loading YAML environment properties from location: " + resource);
 			YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
 			factory.setIgnoreResourceNotFound(true);
 			factory.setResource(resource);
@@ -77,7 +77,7 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 					.addLast(new PropertiesPropertySource("servletConfigYaml", properties));
 		}
 		catch (Exception e) {
-			servletContext.log("Error loading YAML environment properties from location: " + location, e);
+			servletContext.log("Error loading YAML environment properties from location: " + resource, e);
 		}
 
 	}
