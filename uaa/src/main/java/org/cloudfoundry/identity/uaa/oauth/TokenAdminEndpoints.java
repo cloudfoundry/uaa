@@ -103,14 +103,14 @@ public class TokenAdminEndpoints {
 	private Collection<OAuth2AccessToken> enhance(Collection<OAuth2AccessToken> tokens) {
 		Collection<OAuth2AccessToken> result = new ArrayList<OAuth2AccessToken>();
 		for (OAuth2AccessToken token : tokens) {
+			Map<String, Object> map = new HashMap<String, Object>(token.getAdditionalInformation());
+			map.put("token_id", encoder.encode(token.getValue()));
 			String clientId = tokenServices.getClientId(token.getValue());
 			if (clientId != null) {
-				Map<String, Object> map = new HashMap<String, Object>(token.getAdditionalInformation());
 				map.put("client_id", clientId);
-				map.put("token_id", encoder.encode(token.getValue()));
-				token.setAdditionalInformation(map);
-				result.add(token);
 			}
+			token.setAdditionalInformation(map);
+			result.add(token);
 		}
 		return result;
 	}
@@ -122,7 +122,11 @@ public class TokenAdminEndpoints {
 				throw new AccessDeniedException(String.format("User '%s' cannot obtain tokens for user '%s'",
 						principal.getName(), user));
 			}
+		} else if (!user.equals(principal.getName())) {
+			throw new AccessDeniedException(String.format("User '%s' cannot obtain tokens for user '%s'",
+					principal.getName(), user));
 		}
+
 	}
 
 	private void checkClient(String client, Principal principal) {
