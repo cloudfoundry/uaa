@@ -12,7 +12,10 @@
  */
 package org.cloudfoundry.identity.uaa.varz;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+
+import java.util.Map;
 
 import javax.management.MBeanServerConnection;
 
@@ -20,11 +23,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.jmx.support.MBeanServerFactoryBean;
+import org.springframework.mock.web.MockHttpServletRequest;
 
 public class VarzEndpointTests {
 
 	private MBeanServerConnection server;
 	private VarzEndpoint endpoint;
+	private MockHttpServletRequest request;
 
 	@Before
 	public void start() throws Exception {
@@ -34,6 +39,21 @@ public class VarzEndpointTests {
 		server = factory.getObject();
 		endpoint = new VarzEndpoint();
 		endpoint.setServer(server);
+		request = new MockHttpServletRequest();
+		request.setServerPort(80);
+		request.setServerName("uaa.vcap.me");
+		request.setScheme("http");
+	}
+
+	@Test
+	public void testGetConfiguredBaseUrl() throws Exception {
+		endpoint.setBaseUrl("http://uaa.cloudfoundry.com");
+		assertEquals("http://uaa.cloudfoundry.com", endpoint.getBaseUrl(request));
+	}
+
+	@Test
+	public void testGetCopmutedBaseUrl() throws Exception {
+		assertEquals("http://uaa.vcap.me", endpoint.getBaseUrl(request));
 	}
 
 	@Test
@@ -43,18 +63,20 @@ public class VarzEndpointTests {
 
 	@Test
 	public void testListMBeans() throws Exception {
-		assertNotNull(endpoint.getMBeans("java.lang:type=Runtime,*"));
+		assertNotNull(endpoint.getDomain("java.lang", "type=Runtime,*"));
 	}
 
 	@Test
 	public void testDefaultVarz() throws Exception {
-		assertNotNull(endpoint.getVarz());
+		Map<String, ?> varz = endpoint.getVarz("http://uua.vcap.me");
+		// System.err.println(varz);
+		assertNotNull(varz.get("mem"));
 	}
 
 	@Test
 	public void testActiveProfiles() throws Exception {
 		endpoint.setEnvironment(new StandardEnvironment());
-		assertNotNull(endpoint.getVarz().get("spring.profiles.active"));
+		assertNotNull(endpoint.getVarz("http://uua.vcap.me").get("spring.profiles.active"));
 	}
 
 }
