@@ -21,11 +21,51 @@ class Cloudfoundry::Uaa::UserAccount
 
   include Cloudfoundry::Uaa::Http
 
-  def initialize(issuer, client_id, client_secret)
+  class AuthError < RuntimeError; end
+
+  attr_accessor :target, :access_token
+
+  def initialize(target, access_token)
+    @target, @access_token = target, access_token
   end
 
-  def create(username, password, email, other)
-  # => user_id
+  def create(username, password, email_addresses, other={})
+    raise AuthError, "No token provided. You must login first and set the authorization token up." unless access_token
+
+    family_name = other[:family_name] if other[:family_name]
+    given_name = other[:given_name] if other[:given_name]
+    name ||= "#{given_name} #{family_name}" if given_name && family_name
+    name = other[:name] if other[:name]
+
+    request= {
+      :name=>{
+        "givenName"=>other[:given_name],
+        "familyName"=>other[:family_name],
+        "formatted"=>other[:name]},
+      :userName=>username,
+    }
+
+    emails = []
+    if email_addresses.respond_to?(:each)
+      email_addresses.each do |email_address|
+        emails.unshift({:value => email_address})
+      end
+    else
+      emails = [:value => email_addresses]
+    end
+    request[:emails] = emails if emails.size() > 0
+
+    status, body, headers = http_post("/User", request.to_json, "application/json", "Bearer #{access_token}")
+    user = json_parse(body)
+
+    id = user[:id]
+    password_request = {:password=>password}
+
+    # TODO: rescue from 403 and ask user to reset password through
+    # another channel
+    status, body, headers = http_put("/User/#{id}/password", password_request.to_json, "application/json", "Bearer #{access_token}")
+
+    user
   end
 
   def update(user_id, info = {})
