@@ -14,6 +14,9 @@
 require 'json/pure'
 require 'open-uri'
 require 'rest_client'
+require 'eventmachine'
+require 'em-http'
+require 'fiber'
 
 module Cloudfoundry; module Uaa; end; end
 
@@ -33,7 +36,7 @@ module Cloudfoundry::Uaa::Http
     end
   end
 
-  attr_accessor :trace, :proxy
+  attr_accessor :trace, :proxy, :async
   attr_reader :target
 
   private
@@ -100,8 +103,15 @@ module Cloudfoundry::Uaa::Http
       puts "url: #{req[:url]}"
       puts "payload: #{truncate(payload.to_s, 200)}" unless payload.nil?
       puts "headers: #{headers}"
+
+      # Setup tracing if needed
+      req[:headers]['X-VCAP-Trace'] = (trace == true ? '22' : trace)
     end
-    status, body, response_headers = perform_http_request(req)
+    if async && EventMachine.reactor_running?
+      status, body, response_headers = perform_ahttp_request(req)
+    else
+      status, body, response_headers = perform_http_request(req)
+    end
   rescue URI::Error, SocketError, Errno::ECONNREFUSED => e
     raise BadTarget, "Cannot access target (%s)" % [ e.message ]
   end
@@ -109,11 +119,6 @@ module Cloudfoundry::Uaa::Http
   def perform_http_request(req)
     proxy_uri = URI.parse(req[:url]).find_proxy()
     RestClient.proxy = proxy_uri.to_s if proxy_uri
-
-    # Setup tracing if needed
-    unless trace.nil?
-      req[:headers]['X-VCAP-Trace'] = (trace == true ? '22' : trace)
-    end
 
     result = nil
     RestClient::Request.execute(req) do |response, request|
@@ -145,6 +150,44 @@ module Cloudfoundry::Uaa::Http
     raise BadTarget "Received bad HTTP response from target: #{e}"
   rescue SystemCallError, RestClient::Exception => e
     raise HTTPException, "HTTP exception: #{e.class}:#{e}"
+  end
+
+  def perform_ahttp_request(req)
+    url = req[:url]
+    method = req[:method]
+    headers = req[:headers]
+    payload = req[:payload]
+
+    f = Fiber.current
+    opts ={:connect_timeout => 10, :inactivity_timeout => 10}
+    connection = EventMachine::HttpRequest.new(url, opts)
+    client = connection.setup_request(method.to_sym, :head => headers, :body => payload)
+    client.callback { 
+      unless trace.nil?
+        puts '>>>'
+        puts "REQUEST: #{req[:method]} #{req[:url]}"
+        puts "REQUEST_HEADERS:"
+        req[:headers].each do |key, value|
+            puts "    #{key} : #{value}"
+        end
+        puts "REQUEST_BODY: #{req[:payload]}" if req[:payload]
+        puts "RESPONSE: [#{client.response.http_status}]"
+        puts "RESPONSE_HEADERS:"
+        client.response_header.each do |key, value|
+            puts "    #{key} : #{value}"
+        end
+        begin
+            puts JSON.pretty_generate(JSON.parse(client.response))
+        rescue
+            puts "#{truncate(client.response, 200)}" if client.response
+        end
+        puts '<<<'
+      end
+      f.resume [client.response_header.http_status, client.response, client.response_header]
+    }
+    client.errback  { f.resume HTTPException.new("An error occurred in the HTTP request: #{http.errors}", self) }
+
+    return Fiber.yield
   end
 
   def truncate(str, limit = 30)
