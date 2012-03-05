@@ -13,23 +13,54 @@
 
 require 'spec_helper'
 require 'uaa/user_account'
+require 'uaa/client'
 
 describe Cloudfoundry::Uaa::UserAccount do
 
-  subject { Cloudfoundry::Uaa::UserAccount.new("http://localhost:8080/uaa", "test_app", "test_secret") }
+  subject { Cloudfoundry::Uaa::UserAccount.new("http://localhost:8080/uaa", nil) }
 
   before :each do
+    client = Cloudfoundry::Uaa::Client.new()
     if !integration_test?
       subject.stub!(:perform_http_request) do |req|
         @input = req
         @response
       end
+      client.stub!(:perform_http_request) do |req|
+        @input = req
+        @response
+      end
     end
     subject.trace = true
+    @response = [200, '{"access_token":"example_access_token"}', nil]
+    client.target = "http://localhost:8080/uaa"
+    client.client_id = "my"
+    client.client_secret = "myclientsecret"
+    client.grant_type = "client_credentials"
+    @token = client.login() if @token.nil?
+    subject.access_token = @token
   end
 
-  it "should do something", :integration=>false do
-      subject.trace.should_not be_nil
-    end
+  it "should be possible to register a user", :integration=>false do
+    @response = [200, '{"id":"randomId","email":"jdoe@example.org"}', nil]
+    result = subject.create("jdoe", "password", "jdoe@example.org", {:family_name=>"Doe", :given_name=>"John"})
+    result[:id].should eql("randomId")
+    result[:email].should eql("jdoe@example.org")
+  end
+
+  it "should be possible to register a user with multiple email addresses", :integration=>false do
+    @response = [200, '{"id":"randomId","email":["jdoe@example.org", "jdoe@gmail.com"]}', nil]
+    result = subject.create("jdoe", "password", ["jdoe@example.org", "jdoe@gmail.com"], {:family_name=>"Doe", :given_name=>"John"})
+    result[:id].should eql("randomId")
+    result[:email].sort().should eql(["jdoe@example.org", "jdoe@gmail.com"].sort())
+  end
+
+
+  it "should not be possible to register a user without an access token", :integration=>false do
+    subject.access_token = nil
+    expect do
+      result = subject.create("jdoe", "password", "jdoe@example.org", nil)
+    end.should raise_exception(Cloudfoundry::Uaa::UserAccount::AuthError)
+  end
 
 end
