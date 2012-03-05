@@ -17,3 +17,7 @@ target/
 *.ipr
 .idea/
 cargo-installs/
+.metadata/
+Servers/
+*.swp
+*.swo
