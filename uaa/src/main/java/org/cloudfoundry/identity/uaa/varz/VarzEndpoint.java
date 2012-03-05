@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.varz;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -77,8 +78,9 @@ public class VarzEndpoint implements EnvironmentAware {
 	public Map<String, ?> getVarz(@ModelAttribute("baseUrl") String baseUrl) throws Exception {
 
 		Map<String, Object> result = new LinkedHashMap<String, Object>(statix);
-		result.put("domains", getLinks(baseUrl, getMBeanDomains()));
-		result.put("env", getLink(baseUrl, "env"));
+		Map<String, String> links = new HashMap<String, String>(getLinks(baseUrl, getMBeanDomains()));
+		links.put("env", getLink(baseUrl, "env"));
+		result.put("links", links);
 
 		Map<String, ?> memory = pullUpMap("java.lang", "type=Memory");
 		result.put("mem", getValueFromMap(memory, "memory.heap_memory_usage.used"));
