@@ -19,6 +19,7 @@ import javax.sql.DataSource;
 
 import org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
+import org.cloudfoundry.identity.uaa.varz.VarzEndpoint;
 import org.junit.After;
 import org.junit.Test;
 import org.springframework.batch.admin.service.JobService;
@@ -44,7 +45,9 @@ public class BootstrapTests {
 		System.clearProperty("CLOUD_FOUNDRY_CONFIG_PATH");
 		System.clearProperty("UAA_CONFIG_FILE");
 		if (context!=null) {
-			TestUtils.dropSchema(context.getBean(DataSource.class));
+			if (context.containsBean("dataSource")) {
+				TestUtils.dropSchema(context.getBean("dataSource", DataSource.class));
+			}
 			context.close();
 		}
 	}
@@ -69,6 +72,12 @@ public class BootstrapTests {
 	}
 
 	@Test
+	public void testVarzContextDefaults() throws Exception {
+		context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/varz-servlet.xml"));
+		assertNotNull(context.getBean("varzEndpoint", VarzEndpoint.class));
+	}
+
+	@Test
 	public void testRootContextWithJdbcSecureUsers() throws Exception {
 		System.setProperty("spring.profiles.active", "hsqldb,!legacy");
 		context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/spring-servlet.xml"));
@@ -84,10 +93,8 @@ public class BootstrapTests {
 
 	@Test
 	public void testLegacyProfileAndOverrideYmlConfigPath() throws Exception {
-
 		context = getServletContext("file:./src/main/webapp/WEB-INF/spring-servlet.xml", "classpath:/test/config/test-override.xml");
 		assertEquals("different", context.getBean("foo", String.class));
-
 	}
 
 	private GenericXmlApplicationContext getServletContext(String... resources) {
@@ -99,7 +106,7 @@ public class BootstrapTests {
 
 		// Simulate what happens in the webapp when the YamlServletProfileInitializer kicks in
 		YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
-		factory.setResource(new FileSystemResource("src/test/resources/test/config/uaa.yml"));
+		factory.setResource(new FileSystemResource("./src/test/resources/test/config/uaa.yml"));
 		context.getEnvironment().getPropertySources().addLast(new PropertiesPropertySource("servletProperties", factory.getObject()));
 
 		context.refresh();

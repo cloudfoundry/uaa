@@ -13,6 +13,7 @@
 		<config>src/main/resources/META-INF/spring/batch/jobs/jobs.xml</config>
 		<config>src/main/webapp/WEB-INF/spring-data-source.xml</config>
 		<config>src/test/resources/test/config/test-override.xml</config>
+		<config>src/main/webapp/WEB-INF/env-context.xml</config>
 	</configs>
 	<configSets>
 	</configSets>

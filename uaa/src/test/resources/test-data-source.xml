@@ -18,10 +18,7 @@
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
 		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
 
-	<context:property-placeholder properties-ref="applicationProperties" system-properties-mode="OVERRIDE" />
-
-	<bean id="applicationPropertiesParent" class="org.springframework.beans.factory.config.PropertiesFactoryBean"/>
-
 	<import resource="file:./src/main/webapp/WEB-INF/spring-data-source.xml"/>
+	<import resource="file:./src/main/webapp/WEB-INF/env-context.xml"/>
 
 </beans>

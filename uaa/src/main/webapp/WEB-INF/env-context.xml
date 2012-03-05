@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Cloud Foundry 2012.02.03 Beta Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved. This product is licensed to 
+	you under the Apache License, Version 2.0 (the "License"). You may not use this product except in compliance with the License. 
+	This product includes a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents 
+	is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file. -->
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+
+	<context:property-placeholder properties-ref="applicationProperties"/>
+
+	<bean id="applicationProperties" class="org.springframework.beans.factory.config.PropertiesFactoryBean">
+		<property name="properties">
+			<bean class="org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean">
+				<property name="resource" value="classpath:/uaa.yml" />
+				<property name="keyReplacements">
+					<map>
+						<entry key="databases.#{@platform}" value="database" />
+						<entry key="cloud_controller.databases.#{@platform}" value="cloud_controller.database" />
+					</map>
+				</property>
+			</bean>
+		</property>
+	</bean>
+
+	<beans profile="default,hsqldb">
+		<bean id="platform" class="java.lang.String">
+			<constructor-arg value="hsqldb" />
+		</bean>
+	</beans>
+
+	<beans profile="postgresql">
+		<bean id="platform" class="java.lang.String">
+			<constructor-arg value="postgresql" />
+		</bean>
+	</beans>
+
+</beans>

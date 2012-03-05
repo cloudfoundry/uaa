@@ -64,7 +64,7 @@ public class VarzEndpointIntegrationTests {
 	public void testUnauthorized() throws Exception {
 
 		HttpHeaders headers = new HttpHeaders();
-		headers.add("Authorization", String.format("Basic %s", new String(Base64.encode("varz:bogust".getBytes()))));
+		headers.add("Authorization", String.format("Basic %s", new String(Base64.encode("varz:bogus".getBytes()))));
 		ResponseEntity<String> response = server.getForString("/varz", headers);
 		assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
 
