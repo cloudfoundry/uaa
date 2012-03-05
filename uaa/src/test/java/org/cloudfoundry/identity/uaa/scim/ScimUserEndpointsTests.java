@@ -165,6 +165,13 @@ public class ScimUserEndpointsTests {
 	}
 
 	@Test
+	public void testFindPageOfIds() {
+		SearchResults<Map<String, Object>> results = endpoints.findUsers("id", "id pr", 1, 1);
+		assertEquals(2, results.getTotalResults());
+		assertEquals(1, results.getResources().size());
+	}
+
+	@Test
 	public void testFindAllNames() {
 		SearchResults<Map<String, Object>> results = endpoints.findUsers("userName", "id pr", 1, 100);
 		Collection<Object> values = getSetFromMaps(results.getResources(), "userName");

@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
@@ -51,7 +52,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
 
 /**
- *
+ * 
  * @author Luke Taylor
  * @author Dave Syer
  */
@@ -84,7 +85,7 @@ public class ScimUserEndpoints implements InitializingBean {
 
 	/**
 	 * Map from exception type to Http status.
-	 *
+	 * 
 	 * @param statuses the statuses to set
 	 */
 	public void setStatuses(Map<Class<? extends Exception>, HttpStatus> statuses) {
@@ -148,12 +149,14 @@ public class ScimUserEndpoints implements InitializingBean {
 				throw new ScimException("Previous password is required even for admin", HttpStatus.BAD_REQUEST);
 			}
 
-		} else {
+		}
+		else {
 
 			if (!userId.equals(currentUser)) {
 				logger.warn("User with id " + currentUser + " attempting to change password for user " + userId);
 				// TODO: This should be audited when we have non-authentication events in the log
-				throw new ScimException("Bad request. Not permitted to change another user's password", HttpStatus.BAD_REQUEST);
+				throw new ScimException("Bad request. Not permitted to change another user's password",
+						HttpStatus.BAD_REQUEST);
 			}
 
 			// User is changing their own password, old password is required
@@ -162,7 +165,6 @@ public class ScimUserEndpoints implements InitializingBean {
 			}
 
 		}
-
 
 	}
 
@@ -200,12 +202,12 @@ public class ScimUserEndpoints implements InitializingBean {
 	@RequestMapping(value = "/Users", method = RequestMethod.GET)
 	@ResponseBody
 	public SearchResults<Map<String, Object>> findUsers(
-			@RequestParam(value="attributes", required = false, defaultValue = "id") String attributesCommaSeparated,
+			@RequestParam(value = "attributes", required = false, defaultValue = "id") String attributesCommaSeparated,
 			@RequestParam(required = false, defaultValue = "id pr") String filter,
 			@RequestParam(required = false, defaultValue = "1") int startIndex,
 			@RequestParam(required = false, defaultValue = "100") int count) {
 
-		Collection<ScimUser> input;
+		List<ScimUser> input;
 		try {
 			input = dao.retrieveUsers(filter);
 		}
@@ -234,7 +236,7 @@ public class ScimUserEndpoints implements InitializingBean {
 
 		Collection<Map<String, Object>> users = new ArrayList<Map<String, Object>>();
 		StandardEvaluationContext context = new StandardEvaluationContext();
-		for (ScimUser user : input) {
+		for (ScimUser user : input.subList(startIndex - 1, startIndex + count - 1)) {
 			Map<String, Object> map = new LinkedHashMap<String, Object>();
 			for (String attribute : expressions.keySet()) {
 				map.put(attribute, expressions.get(attribute).getValue(context, user));
@@ -242,7 +244,7 @@ public class ScimUserEndpoints implements InitializingBean {
 			users.add(map);
 		}
 
-		return new SearchResults<Map<String, Object>>(schemas, users, 1, users.size(), users.size());
+		return new SearchResults<Map<String, Object>>(schemas, users, 1, count, input.size());
 
 	}
 
@@ -261,7 +263,7 @@ public class ScimUserEndpoints implements InitializingBean {
 				}
 			}
 		}
-		return new ConvertingExceptionView(new ResponseEntity<Exception>(e, e.getStatus()),  messageConverters);
+		return new ConvertingExceptionView(new ResponseEntity<Exception>(e, e.getStatus()), messageConverters);
 	}
 
 	public void setScimUserProvisioning(ScimUserProvisioning dao) {

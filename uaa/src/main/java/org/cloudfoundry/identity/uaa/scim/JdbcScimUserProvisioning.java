@@ -17,7 +17,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
-import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -38,7 +37,6 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -96,8 +94,6 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	protected final JdbcTemplate jdbcTemplate;
 
-	private NamedParameterJdbcTemplate parameterJdbcTemplate;
-
 	private PasswordValidator passwordValidator = new DefaultPasswordValidator();
 
 	private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
@@ -107,7 +103,6 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	public JdbcScimUserProvisioning(JdbcTemplate jdbcTemplate) {
 		Assert.notNull(jdbcTemplate);
 		this.jdbcTemplate = jdbcTemplate;
-		this.parameterJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
 	}
 
 	@Override
@@ -122,14 +117,13 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	}
 
 	@Override
-	public Collection<ScimUser> retrieveUsers() {
-		// TODO: Need to be able to build a cursor into the result
-		List<ScimUser> input = jdbcTemplate.query(ALL_USERS, mapper);
+	public List<ScimUser> retrieveUsers() {
+		List<ScimUser> input = new JdbcPagingList<ScimUser>(jdbcTemplate, ALL_USERS + " ORDER by created ASC", mapper, 200);
 		return input;
 	}
 
 	@Override
-	public Collection<ScimUser> retrieveUsers(String filter) {
+	public List<ScimUser> retrieveUsers(String filter) {
 
 		String where = filter;
 
@@ -154,7 +148,8 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		}
 
 		try {
-			return parameterJdbcTemplate.query(ALL_USERS + " WHERE " + where, values, mapper);
+			return new JdbcPagingList<ScimUser>(jdbcTemplate, ALL_USERS + " WHERE " + where + " ORDER BY created",
+					values, mapper, 200);
 		}
 		catch (DataAccessException e) {
 			logger.debug("Query failed. ", e);

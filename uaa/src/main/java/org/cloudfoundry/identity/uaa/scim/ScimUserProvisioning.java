@@ -12,7 +12,8 @@
  */
 package org.cloudfoundry.identity.uaa.scim;
 
-import java.util.Collection;
+import java.util.List;
+
 
 /**
  * @author Luke Taylor
@@ -22,9 +23,9 @@ public interface ScimUserProvisioning {
 
 	public ScimUser retrieveUser(String id) throws UserNotFoundException;
 
-	public Collection<ScimUser> retrieveUsers();
+	public List<ScimUser> retrieveUsers();
 
-	public Collection<ScimUser> retrieveUsers(String filter);
+	public List<ScimUser> retrieveUsers(String filter);
 
 	public ScimUser createUser(ScimUser user, String password) throws InvalidPasswordException, InvalidUserException;
 
