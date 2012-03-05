@@ -1,18 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!--
-
-    Cloud Foundry 2012.02.03 Beta
-    Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved.
-
-    This product is licensed to you under the Apache License, Version 2.0 (the "License").
-    You may not use this product except in compliance with the License.
-
-    This product includes a number of subcomponents with
-    separate copyright notices and license terms. Your use of these
-    subcomponents is subject to the terms and conditions of the
-    subcomponent's license, as noted in the LICENSE file.
-
--->
+<!-- Cloud Foundry 2012.02.03 Beta Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved. This product is licensed to 
+	you under the Apache License, Version 2.0 (the "License"). You may not use this product except in compliance with the License. 
+	This product includes a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents 
+	is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file. -->
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mvc="http://www.springframework.org/schema/mvc"
 	xmlns="http://www.springframework.org/schema/beans" xmlns:context="http://www.springframework.org/schema/context"
 	xmlns:sec="http://www.springframework.org/schema/security" xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
@@ -27,8 +17,7 @@
 	<!-- The data source has to be defined first -->
 	<import resource="spring-data-source.xml" />
 	<import resource="spring-scim.xml" />
-
-	<context:property-placeholder properties-ref="applicationProperties" />
+	<import resource="env-context.xml" />
 
 	<bean class="org.cloudfoundry.identity.uaa.event.listener.AuditListener">
 		<constructor-arg ref="loggingAuditService" />
@@ -110,27 +99,18 @@
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
 
-	<http pattern="/varz/**" create-session="stateless" authentication-manager-ref="varzAuthenticationManager"
-		entry-point-ref="varzAuthenticationEntryPoint" xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
-		<anonymous enabled="false" />
-		<http-basic authentication-details-source-ref="authenticationDetailsSource" entry-point-ref="basicAuthenticationEntryPoint" />
-		<access-denied-handler ref="oauthAccessDeniedHandler" />
-	</http>
-
 	<!-- The OAuth2 protected resources are separated out into their own block so we can deal with authorization and error handling 
 		separately. This isn't mandatory, but it makes it easier to control the behaviour. -->
-	<http pattern="/oauth/(users|clients)/.*" request-matcher="regex" create-session="stateless"
-		entry-point-ref="oauthAuthenticationEntryPoint" use-expressions="true" authentication-manager-ref="emptyAuthenticationManager"
-		xmlns="http://www.springframework.org/schema/security">
+	<http pattern="/oauth/(users|clients)/.*" request-matcher="regex" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"
+		use-expressions="true" authentication-manager-ref="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/oauth/users/([^/].*?)/tokens/.*"
 			access="oauthClientHasRole('ROLE_ADMIN') and (hasRole('ROLE_USER') or oauthIsClient()) and oauthHasScope('write')"
 			method="DELETE" />
 		<intercept-url pattern="/oauth/users/.*"
 			access="oauthClientHasRole('ROLE_ADMIN') and (hasRole('ROLE_USER') or oauthIsClient()) and oauthHasScope('read')"
 			method="GET" />
-		<intercept-url pattern="/oauth/clients/([^/].*?)/tokens/.*" access="oauthClientHasRole('ROLE_CLIENT') and oauthIsClient() and oauthHasScope('write')"
-			method="DELETE" />
+		<intercept-url pattern="/oauth/clients/([^/].*?)/tokens/.*"
+			access="oauthClientHasRole('ROLE_CLIENT') and oauthIsClient() and oauthHasScope('write')" method="DELETE" />
 		<intercept-url pattern="/oauth/clients/.*" access="oauthClientHasRole('ROLE_CLIENT') and oauthIsClient() and oauthHasScope('read')"
 			method="GET" />
 		<custom-filter ref="tokensResourceAuthenticationFilter" before="PRE_AUTH_FILTER" />
@@ -149,16 +129,17 @@
 		<property name="typeName" value="Basic" />
 	</bean>
 
-	<bean id="varzAuthenticationEntryPoint" class="org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint">
-		<property name="realmName" value="UAA/varz" />
-		<property name="typeName" value="Basic" />
-	</bean>
-
 	<bean id="oauthAuthenticationEntryPoint" class="org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint">
 		<property name="realmName" value="UAA/oauth" />
 	</bean>
 
 	<bean id="oauthAccessDeniedHandler" class="org.springframework.security.oauth2.provider.error.OAuth2AccessDeniedHandler" />
+
+	<!-- We need this even though /varz is in a different servlet because the default security filter applies to all requests -->
+	<http pattern="/varz/**" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
+		entry-point-ref="oauthAuthenticationEntryPoint" xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+	</http>
 
 	<http access-denied-page="/" authentication-manager-ref="authzAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
 		<!-- machine API access to the authorization process itself is allowed -->
@@ -176,14 +157,6 @@
 	<authentication-manager id="clientAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
 		<authentication-provider user-service-ref="clientDetailsUserService">
 			<password-encoder ref="bcryptPasswordEncoder" />
-		</authentication-provider>
-	</authentication-manager>
-
-	<authentication-manager id="varzAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
-		<authentication-provider>
-			<user-service>
-				<user name="${varz.username:varz}" authorities="ROLE_VARZ" password="${varz.password:varzclientsecret}" />
-			</user-service>
 		</authentication-provider>
 	</authentication-manager>
 
@@ -288,26 +261,6 @@
 	</bean>
 
 	<!--Basic application beans. -->
-	<bean id="varzEndpoint" class="org.cloudfoundry.identity.uaa.varz.VarzEndpoint">
-		<property name="server" ref="mbeanServer" />
-		<property name="staticValues">
-			<map>
-				<entry key="type" value="UAA" />
-				<entry key="config">
-					<bean class="org.cloudfoundry.identity.uaa.config.YamlMapFactoryBean">
-						<property name="ignoreResourceNotFound" value="true" />
-						<property name="resources">
-							<list>
-								<value>classpath:/uaa.yml</value>
-								<value>file:${CLOUD_FOUNDRY_CONFIG_PATH:config}/uaa.yml</value>
-							</list>
-						</property>
-					</bean>
-				</entry>
-			</map>
-		</property>
-	</bean>
-
 	<bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.authentication.login.LoginInfoEndpoint" />
 
 	<bean id="userInfoEndpoint" class="org.cloudfoundry.identity.uaa.openid.UserInfoEndpoint">

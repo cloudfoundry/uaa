@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Cloud Foundry 2012.02.03 Beta Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved. This product is licensed to 
+	you under the Apache License, Version 2.0 (the "License"). You may not use this product except in compliance with the License. 
+	This product includes a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents 
+	is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file. -->
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
+	xmlns:security="http://www.springframework.org/schema/security"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.1.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+
+	<import resource="classpath:/org/springframework/batch/admin/web/resources/webapp-config.xml" />
+	<import resource="classpath:/org/springframework/batch/admin/web/resources/servlet-config.xml" />
+	
+	<bean id="messageSource" class="org.springframework.context.support.ResourceBundleMessageSource">
+		<property name="basename" value="messages"/>
+	</bean>
+
+	<bean id="resourceService" class="org.springframework.batch.admin.web.resources.DefaultResourceService">
+		<property name="servletPath" value="/batch" />
+	</bean>
+
+	<http pattern="/batch/**" xmlns="http://www.springframework.org/schema/security" security-context-repository-ref="securityContextRepository">
+		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+		<anonymous enabled="false" />
+		<http-basic/>
+	</http>
+	
+	<alias alias="batchSecurityFilterChain" name="springSecurityFilterChain" />
+	
+	<bean id="securityContextRepository" class="org.springframework.security.web.context.HttpSessionSecurityContextRepository">
+		<property name="springSecurityContextKey" value="SPRING_SECURITY_CONTEXT_BATCH"/>
+	</bean>
+
+	<authentication-manager xmlns="http://www.springframework.org/schema/security">
+		<authentication-provider>
+			<user-service>
+				<user name="${batch.username:batch}" authorities="ROLE_BATCH" password="${batch.password:batchsecret}" />
+			</user-service>
+		</authentication-provider>
+	</authentication-manager>
+
+	<bean id="placeholderProperties" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="locations">
+			<list>
+				<value>classpath:/org/springframework/batch/admin/bootstrap/batch.properties</value>
+				<value>classpath:batch-default.properties</value>
+				<value>classpath:batch-#{@platform}.properties</value>
+			</list>
+		</property>
+		<property name="properties" ref="applicationProperties"/>
+		<property name="systemPropertiesModeName" value="SYSTEM_PROPERTIES_MODE_OVERRIDE" />
+		<property name="ignoreResourceNotFound" value="true" />
+		<property name="ignoreUnresolvablePlaceholders" value="false" />
+		<property name="order" value="1" />
+	</bean>
+
+	<bean id="applicationProperties" class="org.springframework.beans.factory.config.PropertiesFactoryBean">
+		<property name="properties">
+			<bean class="org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean">
+				<property name="resource" value="classpath:/uaa.yml" />
+				<property name="keyReplacements">
+					<map>
+						<entry key="databases.#{@platform}" value="database" />
+						<entry key="cloud_controller.databases.#{@platform}" value="cloud_controller.database" />
+					</map>
+				</property>
+			</bean>
+		</property>
+	</bean>
+
+	<beans profile="default,hsqldb">
+		<bean id="platform" class="java.lang.String">
+			<constructor-arg value="hsqldb" />
+		</bean>
+	</beans>
+
+	<beans profile="postgresql">
+		<bean id="platform" class="java.lang.String">
+			<constructor-arg value="postgresql" />
+		</bean>
+	</beans>
+
+</beans>

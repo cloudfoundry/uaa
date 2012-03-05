@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Cloud Foundry 2012.02.03 Beta Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved. This product is licensed to 
+	you under the Apache License, Version 2.0 (the "License"). You may not use this product except in compliance with the License. 
+	This product includes a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents 
+	is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file. -->
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
+	xmlns:security="http://www.springframework.org/schema/security" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xsi:schemaLocation="http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-3.1.xsd
+		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.1.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+
+	<import resource="env-context.xml"/>
+
+	<context:mbean-server id="mbeanServer" />
+
+	<http pattern="/varz/**" create-session="stateless" entry-point-ref="authenticationEntryPoint"
+		xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/**" access="ROLE_VARZ" />
+		<anonymous enabled="false" />
+		<http-basic authentication-details-source-ref="authenticationDetailsSource" entry-point-ref="authenticationEntryPoint" />
+		<access-denied-handler ref="accessDeniedHandler" />
+	</http>
+
+	<alias alias="varzSecurityFilterChain" name="springSecurityFilterChain" />
+
+	<authentication-manager xmlns="http://www.springframework.org/schema/security">
+		<authentication-provider>
+			<user-service>
+				<user name="${varz.username:varz}" authorities="ROLE_VARZ" password="${varz.password:varzclientsecret}" />
+			</user-service>
+		</authentication-provider>
+	</authentication-manager>
+
+	<bean id="authenticationDetailsSource" class="org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetailsSource" />
+
+	<bean id="accessDeniedHandler" class="org.cloudfoundry.identity.uaa.error.JsonAwareAccessDeniedHandler" />
+
+	<bean id="authenticationEntryPoint" class="org.cloudfoundry.identity.uaa.error.JsonAwareAuthenticationEntryPoint">
+		<property name="realmName" value="UAA/varz" />
+	</bean>
+
+	<mvc:resources location="/resources/" mapping="/resources/**" />
+
+	<mvc:annotation-driven />
+
+	<mvc:default-servlet-handler />
+
+	<bean id="varzEndpoint" class="org.cloudfoundry.identity.uaa.varz.VarzEndpoint">
+		<property name="server" ref="mbeanServer" />
+		<property name="staticValues">
+			<map>
+				<entry key="type" value="UAA" />
+			</map>
+		</property>
+	</bean>
+
+</beans>
