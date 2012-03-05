@@ -13,7 +13,7 @@
 package org.cloudfoundry.identity.uaa;
 
 import org.cloudfoundry.identity.uaa.scim.JdbcScimUserProvisioningTests;
-import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabaseTests;
+import org.cloudfoundry.identity.uaa.scim.jobs.UserMigrationJobIntegrationTests;
 import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -22,10 +22,11 @@ import org.junit.runners.Suite.SuiteClasses;
 /**
  * A test suite for probing weird ordering problems in the tests.
  * @author Dave Syer
- *
+ * 
  */
 @RunWith(Suite.class)
-@SuiteClasses({JdbcUaaUserDatabaseTests.class, BootstrapTests.class, JdbcScimUserProvisioningTests.class})
+@SuiteClasses({ UserMigrationJobIntegrationTests.class, JdbcScimUserProvisioningTests.class })
+// @SuiteClasses({JdbcUaaUserDatabaseTests.class, BootstrapTests.class, JdbcScimUserProvisioningTests.class})
 @Ignore
 public class AdhocTestSuite {
 
