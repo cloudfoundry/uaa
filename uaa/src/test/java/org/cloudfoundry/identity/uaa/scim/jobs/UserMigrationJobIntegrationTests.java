@@ -22,6 +22,7 @@ import javax.sql.DataSource;
 
 import org.cloudfoundry.identity.uaa.NullSafeSystemProfileValueSource;
 import org.cloudfoundry.identity.uaa.TestUtils;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -83,6 +84,11 @@ public class UserMigrationJobIntegrationTests {
 		new JdbcTemplate(cloudControllerDataSource)
 				.update("insert into users (id, active, email, crypted_password, created_at, updated_at) values (?, ?, ?, ?, ?, ?)",
 						1, true, "vcap_tester@vmware.com", "ENCRYPT_ME", new Date(), new Date());
+	}
+
+	@After
+	public void clearUp() {
+		new JdbcTemplate(uaaDataSource).update("delete from users");
 	}
 
 	@Test

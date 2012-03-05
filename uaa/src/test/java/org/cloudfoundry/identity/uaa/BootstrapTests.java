@@ -45,8 +45,8 @@ public class BootstrapTests {
 		System.clearProperty("CLOUD_FOUNDRY_CONFIG_PATH");
 		System.clearProperty("UAA_CONFIG_FILE");
 		if (context!=null) {
-			if (context.containsBean("dataSource")) {
-				TestUtils.dropSchema(context.getBean("dataSource", DataSource.class));
+			if (context.containsBean("scimEndpoints")) {
+				TestUtils.deleteFrom(context.getBean("dataSource", DataSource.class), "users", "sec_audit");
 			}
 			context.close();
 		}
