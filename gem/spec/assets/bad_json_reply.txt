@@ -1,0 +1,14 @@
+HTTP/1.1 200 OK
+Content-Type: application/json;charset=UTF-8
+Cache-Control: no-store
+Pragma: no-cache
+Content-Length: 200
+
+{
+"access_token":"good.access.token",
+"token_type":"exampletokentype",
+"expires_in":3600,
+"refresh_token":"no comma on this line"
+"example_parameter":"example parameter value",
+"scope":"read-logs"
+}

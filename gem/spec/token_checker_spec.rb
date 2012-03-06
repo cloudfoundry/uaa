@@ -18,8 +18,10 @@ require 'webmock/rspec'
 describe Cloudfoundry::Uaa::TokenChecker do
   include WebMock::API
 
-  subject { Cloudfoundry::Uaa::TokenChecker.new("http://localhost:8080/uaa",
-      "test_resource", "test_secret") }
+  subject do
+    Cloudfoundry::Uaa::TokenChecker.new("http://localhost:8080/uaa",
+        "test_resource", "test_secret")
+  end
 
   before :each do
     @stub_req = stub_request(:get, "http://test_resource:test_secret@localhost:8080/uaa/check_token")
@@ -41,7 +43,7 @@ describe Cloudfoundry::Uaa::TokenChecker do
 
   it "should raise a target json error if the response is 400 with valid oauth json error" do
     @stub_req.to_return(File.new(spec_asset('oauth_error_reply.txt')))
-    expect { subject.decode("one two")}.should raise_exception(Cloudfoundry::Uaa::TokenChecker::TargetJsonError)
+    expect { subject.decode("one two")}.should raise_exception(Cloudfoundry::Uaa::TokenChecker::TargetError)
   end
 
   it "should GET decoded token hash from the check_token endpoint" do

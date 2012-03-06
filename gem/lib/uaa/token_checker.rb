@@ -19,11 +19,8 @@
 # from the uaa and can make a call to the check_token endpoint to validate
 # the token.
 
-require 'uaa/http'
-require 'uaa/error'
 require 'base64'
-
-module Cloudfoundry; module Uaa; end; end
+require 'uaa/http'
 
 class Cloudfoundry::Uaa::TokenChecker
 

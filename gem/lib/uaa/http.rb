@@ -22,14 +22,13 @@ module Cloudfoundry; module Uaa; end; end
 module Cloudfoundry::Uaa::Http
 
   class BadTarget < RuntimeError; end
-  class TargetError < RuntimeError; end
   class NotFound < RuntimeError; end
   class BadResponse < RuntimeError; end
   class HTTPException < RuntimeError; end
-  class TargetJsonError < TargetError
+  class TargetError < RuntimeError
     attr_reader :info
-    def initialize(parsed_error_info)
-      @info = parsed_error_info
+    def initialize(error_info = {})
+      @info = error_info
     end
   end
 
@@ -38,12 +37,14 @@ module Cloudfoundry::Uaa::Http
 
   private
 
+  # takes an x-www-form-urlencoded string and returns a of symbol => value.
+  # raises an ArgumentException if a key occurs more than once.
   def json_get(url, authorization = nil)
     json_parse_reply(*http_get(url, 'application/json', authorization))
   end
 
   def json_parse(str)
-    str ? JSON.parse(str, :symbolize_names => true) : nil
+    JSON.parse(str, :symbolize_names => true) if str
   end
 
   def json_parse_reply(status, body, headers)
@@ -53,9 +54,9 @@ module Cloudfoundry::Uaa::Http
     if status != 200 && status != 400
       raise (status == 404 ? NotFound : BadResponse), "invalid status response from #{@target}: #{status}"
     end
-    parsed_reply = body ? JSON.parse(body, :symbolize_names => true): nil
+    parsed_reply = (JSON.parse(body, :symbolize_names => true) if body)
     if status == 400
-      raise TargetJsonError.new(parsed_reply), "error response from #{@target}"
+      raise TargetError.new(parsed_reply), "error response from #{@target}"
     end
     parsed_reply
   rescue JSON::ParserError
@@ -65,7 +66,9 @@ module Cloudfoundry::Uaa::Http
   # HTTP helpers
 
   def http_get(path, content_type=nil, authorization=nil)
-    request(:get, path, nil, 'Content-Type'=>content_type, 'Authorization'=>authorization)
+    headers = {'Content-Type' => content_type}
+    headers['Authorization'] = authorization if authorization
+    request(:get, path, nil, headers)
   end
 
   def http_post(path, body, content_type=nil, authorization=nil)
@@ -76,9 +79,9 @@ module Cloudfoundry::Uaa::Http
     request(:put, path, body, 'Content-Type'=>content_type, 'Authorization'=>authorization)
   end
 
-  def http_delete(path)
-    request(:delete, path)
-  end
+  #def http_delete(path)
+    #request(:delete, path)
+  #end
 
   def request(method, path, payload = nil, headers = {})
     headers = headers.dup
@@ -102,8 +105,8 @@ module Cloudfoundry::Uaa::Http
       puts "headers: #{headers}"
     end
     status, body, response_headers = perform_http_request(req)
-  rescue URI::Error, SocketError, Errno::ECONNREFUSED => e
-    raise BadTarget, "Cannot access target (%s)" % [ e.message ]
+  rescue URI::Error, SocketError => e
+    raise BadTarget, "Cannot access target (#{e.message})"
   end
 
   def perform_http_request(req)
@@ -142,7 +145,7 @@ module Cloudfoundry::Uaa::Http
     end
     result
   rescue Net::HTTPBadResponse => e
-    raise BadTarget "Received bad HTTP response from target: #{e}"
+    raise BadTarget, "Received bad HTTP response from target: #{e}"
   rescue SystemCallError, RestClient::Exception => e
     raise HTTPException, "HTTP exception: #{e.class}:#{e}"
   end
