@@ -11,7 +11,7 @@
 		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
 		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
 
-	<import resource="env-context.xml"/>
+	<context:property-placeholder properties-ref="applicationProperties"/>
 
 	<context:mbean-server id="mbeanServer" />
 
@@ -41,11 +41,13 @@
 		<property name="realmName" value="UAA/varz" />
 	</bean>
 
-	<mvc:resources location="/resources/" mapping="/resources/**" />
-
 	<mvc:annotation-driven />
-
-	<mvc:default-servlet-handler />
+	
+	<!-- Override the default mapping so that domain names with periods can be used -->
+	<bean class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping">
+		<property name="useSuffixPatternMatch" value="false"/>
+		<property name="order" value="-1"/>
+	</bean>
 
 	<bean id="varzEndpoint" class="org.cloudfoundry.identity.uaa.varz.VarzEndpoint">
 		<property name="server" ref="mbeanServer" />

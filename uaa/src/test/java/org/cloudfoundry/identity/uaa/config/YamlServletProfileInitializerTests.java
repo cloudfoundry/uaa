@@ -43,12 +43,13 @@ public class YamlServletProfileInitializerTests {
 
 	private ServletConfig servletConfig = Mockito.mock(ServletConfig.class);
 
+	private ServletContext servletContext = Mockito.mock(ServletContext.class);
+	
 	private String activeProfiles;
 
 	@Before
 	public void setup() {
 		Mockito.when(context.getServletConfig()).thenReturn(servletConfig);
-		ServletContext servletContext = Mockito.mock(ServletContext.class);
 		Mockito.when(context.getServletContext()).thenReturn(servletContext);
 		Mockito.when(context.getEnvironment()).thenReturn(environment);
 		Mockito.doAnswer(new Answer<Void>() {
@@ -136,9 +137,23 @@ public class YamlServletProfileInitializerTests {
 	}
 
 	@Test
-	public void testLoadConfiguredResource() throws Exception {
+	public void testLoadServletonfiguredResource() throws Exception {
 
 		Mockito.when(servletConfig.getInitParameter("environmentConfigFile")).thenReturn("foo.yml");
+		Mockito.when(context.getResource(Matchers.eq("foo.yml"))).thenReturn(
+				new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
+
+		initializer.initialize(context);
+
+		assertEquals("bar", environment.getProperty("foo"));
+		assertEquals("baz", environment.getProperty("spam.foo"));
+
+	}
+
+	@Test
+	public void testLoadContextConfiguredResource() throws Exception {
+
+		Mockito.when(servletContext.getInitParameter("environmentConfigFile")).thenReturn("foo.yml");
 		Mockito.when(context.getResource(Matchers.eq("foo.yml"))).thenReturn(
 				new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
 
