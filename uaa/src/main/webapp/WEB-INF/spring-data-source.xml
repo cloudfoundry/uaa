@@ -26,6 +26,25 @@
 		<property name="password" value="${database.password}" />
 	</bean>
 
+	<bean class="org.springframework.jmx.export.MBeanExporter">
+		<property name="server" ref="mbeanServer" />
+		<property name="registrationBehaviorName" value="REGISTRATION_REPLACE_EXISTING" />
+		<property name="beans">
+			<map>
+				<entry key="spring.application:type=DataSource,name=dataSource" value-ref="dataSource" />
+			</map>
+		</property>
+		<property name="assembler">
+			<bean class="org.springframework.jmx.export.assembler.MethodNameBasedMBeanInfoAssembler">
+				<property name="methodMappings">
+					<map>
+						<entry key="spring.application:type=DataSource,name=dataSource" value="getMaxIdle,getMaxActive,getNumIdle,getNumActive" />
+					</map>
+				</property>
+			</bean>
+		</property>
+	</bean>
+
 	<bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
 		<property name="dataSource" ref="dataSource" />
 	</bean>

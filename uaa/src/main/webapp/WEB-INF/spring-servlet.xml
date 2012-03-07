@@ -15,16 +15,9 @@
 		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
 
 	<!-- The data source has to be defined first -->
-	<import resource="spring-data-source.xml" />
 	<import resource="spring-scim.xml" />
-	<import resource="env-context.xml" />
 
-	<bean class="org.cloudfoundry.identity.uaa.event.listener.AuditListener">
-		<constructor-arg ref="loggingAuditService" />
-	</bean>
-
-	<!-- Keep this as a top-level bean to ensure it is exposed as a @ManagedResource -->
-	<bean id="loggingAuditService" class="org.cloudfoundry.identity.uaa.audit.LoggingAuditService" />
+	<context:property-placeholder properties-ref="applicationProperties"/>
 
 	<sec:http pattern="/resources/**" security="none" />
 	<sec:http pattern="/favicon.ico" security="none" />
@@ -152,8 +145,6 @@
 		<logout logout-success-url="/" logout-url="/logout.do" />
 	</http>
 
-	<bean id="authenticationDetailsSource" class="org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetailsSource" />
-
 	<authentication-manager id="clientAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
 		<authentication-provider user-service-ref="clientDetailsUserService">
 			<password-encoder ref="bcryptPasswordEncoder" />
@@ -161,8 +152,6 @@
 	</authentication-manager>
 
 	<bean id="bcryptPasswordEncoder" class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder" />
-
-	<authentication-manager id="emptyAuthenticationMgr" xmlns="http://www.springframework.org/schema/security" />
 
 	<bean id="tokenStore" class="org.springframework.security.oauth2.provider.token.InMemoryTokenStore" />
 
@@ -214,6 +203,28 @@
 	<oauth:resource-server id="tokensResourceAuthenticationFilter" token-services-ref="tokenServices"
 		resource-id="tokens" />
 
+	<context:mbean-server id="mbeanServer" />
+
+	<context:mbean-export server="mbeanServer" default-domain="spring.application" registration="replaceExisting"/>
+
+	<bean class="org.springframework.jmx.export.MBeanExporter">
+		<property name="server" ref="mbeanServer" />
+		<property name="beans">
+			<map>
+				<entry key="spring.application:type=TokenStore,name=tokenStore" value-ref="tokenStore" />
+			</map>
+		</property>
+		<property name="assembler">
+			<bean class="org.springframework.jmx.export.assembler.MethodNameBasedMBeanInfoAssembler">
+				<property name="methodMappings">
+					<map>
+						<entry key="spring.application:type=TokenStore,name=tokenStore" value="getAccessTokenCount,getRefreshTokenCount,getFlushInterval,setFlushInterval" />
+					</map>
+				</property>
+			</bean>
+		</property>
+	</bean>
+
 	<mvc:resources location="/resources/" mapping="/resources/**" />
 
 	<mvc:annotation-driven />
@@ -235,28 +246,6 @@
 		</property>
 		<property name="defaultViews">
 			<bean class="org.springframework.web.servlet.view.json.MappingJacksonJsonView" />
-		</property>
-	</bean>
-
-	<context:mbean-server id="mbeanServer" />
-
-	<context:mbean-export server="mbeanServer" default-domain="spring.application" />
-
-	<bean class="org.springframework.jmx.export.MBeanExporter">
-		<property name="server" ref="mbeanServer" />
-		<property name="beans">
-			<map>
-				<entry key="spring.application:type=TokenStore,name=tokenStore" value-ref="tokenStore" />
-			</map>
-		</property>
-		<property name="assembler">
-			<bean class="org.springframework.jmx.export.assembler.MethodNameBasedMBeanInfoAssembler">
-				<property name="methodMappings">
-					<map>
-						<entry key="spring.application:type=TokenStore,name=tokenStore" value="getAccessTokenCount,getRefreshTokenCount,getFlushInterval,setFlushInterval" />
-					</map>
-				</property>
-			</bean>
 		</property>
 	</bean>
 
@@ -283,14 +272,6 @@
 
 	<bean id="userDatabase" class="org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase">
 		<constructor-arg ref="jdbcTemplate" />
-	</bean>
-
-	<bean class="org.cloudfoundry.identity.uaa.event.listener.AuditListener">
-		<constructor-arg ref="jdbcAuditService" />
-	</bean>
-
-	<bean id="jdbcAuditService" class="org.cloudfoundry.identity.uaa.audit.JdbcAuditService">
-		<constructor-arg ref="dataSource" />
 	</bean>
 
 	<beans profile="default,!legacy">

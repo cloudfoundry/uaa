@@ -49,9 +49,9 @@ public class VarzEndpoint implements EnvironmentAware {
 	private Map<String, Object> statix = new LinkedHashMap<String, Object>();
 
 	private Environment environment;
-	
+
 	private String baseUrl;
-	
+
 	/**
 	 * Hard-coded baseUrl for absolute links.
 	 * @param baseUrl the baseUrl to set
@@ -73,7 +73,7 @@ public class VarzEndpoint implements EnvironmentAware {
 		this.server = server;
 	}
 
-	@RequestMapping("/varz")
+	@RequestMapping(value = { "/", "/varz" })
 	@ResponseBody
 	public Map<String, ?> getVarz(@ModelAttribute("baseUrl") String baseUrl) throws Exception {
 
@@ -91,7 +91,8 @@ public class VarzEndpoint implements EnvironmentAware {
 			// Information about tokens (counts etc)
 			putIfNotNull(result, "token_store", getValueFromMap(spring, "#this['token_store']?.token_store"));
 			// Information about audit (counts)
-			putIfNotNull(result, "audit_service", getValueFromMap(spring, "#this['logging_audit_service']?.logging_audit_service"));
+			putIfNotNull(result, "audit_service",
+					getValueFromMap(spring, "#this['logging_audit_service']?.logging_audit_service"));
 		}
 		if (environment != null) {
 			result.put("spring.profiles.active", environment.getActiveProfiles());
@@ -99,8 +100,8 @@ public class VarzEndpoint implements EnvironmentAware {
 		return result;
 	}
 
-	private Map<String,String> getLinks(String baseUrl, Collection<String> paths) {
-		Map<String,String> map = new LinkedHashMap<String, String>();
+	private Map<String, String> getLinks(String baseUrl, Collection<String> paths) {
+		Map<String, String> map = new LinkedHashMap<String, String>();
 		for (String domain : paths) {
 			map.put(domain, getLink(baseUrl, domain));
 		}
@@ -123,7 +124,7 @@ public class VarzEndpoint implements EnvironmentAware {
 	 */
 	@ModelAttribute("baseUrl")
 	public String getBaseUrl(HttpServletRequest request) {
-		if (this.baseUrl!=null) {
+		if (this.baseUrl != null) {
 			return this.baseUrl;
 		}
 		String scheme = request.getScheme();
@@ -138,7 +139,7 @@ public class VarzEndpoint implements EnvironmentAware {
 	}
 
 	private void putIfNotNull(Map<String, Object> result, String key, Object value) {
-		if (value!=null) {
+		if (value != null) {
 			result.put(key, value);
 		}
 	}
@@ -146,7 +147,7 @@ public class VarzEndpoint implements EnvironmentAware {
 	private Map<String, ?> pullUpMap(String domain, String pattern) throws Exception {
 		@SuppressWarnings("unchecked")
 		Map<String, ?> map = (Map<String, ?>) getMBeans(domain, pattern).get(domain);
-		return map == null ? Collections.<String, Object>emptyMap() : map;
+		return map == null ? Collections.<String, Object> emptyMap() : map;
 	}
 
 	private Object getValueFromMap(Map<String, ?> map, String path) throws Exception {
@@ -155,7 +156,7 @@ public class VarzEndpoint implements EnvironmentAware {
 		return wrapper.get(path);
 	}
 
-	@RequestMapping("/varz/env")
+	@RequestMapping("/env")
 	@ResponseBody
 	public Map<String, ?> getEnv() throws Exception {
 		Map<String, Object> result = new LinkedHashMap<String, Object>(statix);
@@ -166,7 +167,7 @@ public class VarzEndpoint implements EnvironmentAware {
 		return result;
 	}
 
-	@RequestMapping("/varz/domains/{domain}")
+	@RequestMapping("/{domain}")
 	@ResponseBody
 	public Map<String, ?> getDomain(@PathVariable String domain,
 			@RequestParam(required = false, defaultValue = "*") String pattern) throws Exception {
@@ -245,7 +246,7 @@ public class VarzEndpoint implements EnvironmentAware {
 
 	}
 
-	@RequestMapping("/varz/domains")
+	@RequestMapping("/domains")
 	@ResponseBody
 	public Set<String> getMBeanDomains() throws IOException {
 		Set<String> result = new HashSet<String>();
