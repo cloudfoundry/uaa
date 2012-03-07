@@ -43,7 +43,8 @@ describe Cloudfoundry::Uaa::UserAccount do
 
   it "should be possible to register a user", :integration=>false do
     @response = [200, '{"id":"randomId","email":"jdoe@example.org"}', nil]
-    result = subject.create("jdoe", "password", "jdoe@example.org", {:family_name=>"Doe", :given_name=>"John"})
+    result = subject.create("jdoe", "password", "jdoe@example.org",
+        {:family_name => "Doe", :given_name =>" John"})
     result[:id].should eql("randomId")
     result[:email].should eql("jdoe@example.org")
   end
