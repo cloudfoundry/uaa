@@ -54,4 +54,9 @@ describe Cloudfoundry::Uaa::TokenChecker do
     info.should include(:email => "derek@gmail.com")
   end
 
+  it "should raise an auth error if the returned token does not contain the resource id" do
+    @stub_req.to_return(File.new(spec_asset('check_token_bad_resource.txt')))
+    expect { subject.decode("one two")}.to raise_exception(Cloudfoundry::Uaa::TokenChecker::AuthError)
+  end
+
 end

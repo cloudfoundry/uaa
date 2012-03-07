@@ -27,6 +27,8 @@ class Cloudfoundry::Uaa::TokenIssuer
 
   include Cloudfoundry::Uaa::Http
 
+  # takes an x-www-form-urlencoded string and returns a hash of symbol => value.
+  # raises an ArgumentError if a key occurs more than once.
   def self.decode_oauth_parameters(url_encoded_pairs)
     args = {}
     URI.decode_www_form(url_encoded_pairs).each do |p|
