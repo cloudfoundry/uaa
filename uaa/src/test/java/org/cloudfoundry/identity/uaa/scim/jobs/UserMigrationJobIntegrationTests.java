@@ -21,6 +21,7 @@ import java.util.Iterator;
 import javax.sql.DataSource;
 
 import org.cloudfoundry.identity.uaa.NullSafeSystemProfileValueSource;
+import org.cloudfoundry.identity.uaa.ParentContextLoader;
 import org.cloudfoundry.identity.uaa.TestUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -45,8 +46,8 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  * @author Dave Syer
  * 
  */
-@ContextConfiguration({ "file:./src/main/webapp/WEB-INF/batch-servlet.xml",
-		"classpath*:/META-INF/spring/batch/jobs/jobs.xml" })
+@ContextConfiguration(locations = { "file:./src/main/webapp/WEB-INF/applicationContext.xml",
+		"file:./src/main/webapp/WEB-INF/batch-servlet.xml", "classpath*:/META-INF/spring/batch/jobs/jobs.xml" }, loader = ParentContextLoader.class)
 @RunWith(SpringJUnit4ClassRunner.class)
 @IfProfileValue(name = "spring.profiles.active", values = { "", "test,postgresql", "hsqldb" })
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)

@@ -22,7 +22,7 @@ class Cloudfoundry::Uaa::Client
 
   include Cloudfoundry::Uaa::Http
 
-  # The target (base url) of calls to the UAA server.  Default is "http://uaa.vcap.me".
+  # The target (base url) of calls to the UAA server.  Default is "http://uaa.cloudfoundry.com".
   attr_writer :target
   # The token for authenticated calls to the UAA server if there is one currently.
   attr_accessor :token
@@ -38,12 +38,12 @@ class Cloudfoundry::Uaa::Client
   attr_writer :grant_type
 
   def initialize
-    @target = 'http://uaa.vcap.me'
+    @target = 'http://uaa.cloudfoundry.com'
     @client_id = "vmc"
     @client_secret = nil
     @grant_type = "implicit"
     @scope = ["read"]
-    @redirect_uri = "uri:oauth:token"
+    @redirect_uri = "http://vmc.cloudfoundry.com/redirect"
   end
 
   # Get the prompts (login info) required by the UAA server.  The response
@@ -73,7 +73,7 @@ class Cloudfoundry::Uaa::Client
     {:email=>["text", "Email"], :username=>["text", "Username"], :given_name=>["text", "Given (first) name"], :family_name=>["text", "Family (last) name"], :password=>["password", "Choose a password"]}
   end
 
-  # Login get back an OAuth token. By default the UAA
+  # Login and get back an OAuth token.
   #
   # === Attributes
   #
