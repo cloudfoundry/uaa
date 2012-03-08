@@ -1,0 +1,15 @@
+HTTP/1.1 200 OK
+Content-Type: application/json;charset=UTF-8
+Cache-Control: no-store
+Pragma: no-cache
+Content-Length: 255
+
+{
+"prompts":
+  {
+    "hat_size": ["text", "Hat Size"],
+    "fav-color": ["password", "Secret Favorite Color"],
+    "something longer with spaces ": ["text", "Prompt for something longer with spaces"]
+  },
+"other json info": ["perhaps", "an", "array"]
+}

@@ -11,31 +11,39 @@
 # subcomponent's license, as noted in the LICENSE file.
 #
 
-# This class is for resource servers
-
-# Resource servers get tokens and need to validate and decode them, but they
-# do not initiate their creation with the AS. This is for
-# this use. It is for resource servers which can accept an opaque token
-# from the uaa and can make a call to the check_token endpoint to validate
-# the token.
-
-require 'uaa/http'
-require 'uaa/error'
 require 'base64'
+require 'uaa/http'
 
-module Cloudfoundry; module Uaa; end; end
+# This class is for Resource Servers to decode an access token through
+# an HTTP endpoint on the Authorization Server.
 
+# Resource servers get tokens and need to validate and decode
+# them. This class is for Resource Servers which can accept an opaque
+# token from the Authorization Server and can make a call to the
+# /check_token endpoint to validate the token.
 class Cloudfoundry::Uaa::TokenChecker
 
   include Cloudfoundry::Uaa::Http
 
   class AuthError < RuntimeError; end
 
+  # Create a new instace of the token checker. Attributes:
+  #
+  # * target - the target base URL of the Authorization Server
+  #
+  # * resource_id - the id of the Resource Server (known to the 
+  # Authorization Server), used to validate the tokens and also
+  # to authenticate with the /check_token endpoint
+  #
+  # * secret - the shared secret owned by the Resource Server and used
+  # to authenticate with the /check_token endpoint.
+  #
   def initialize(target, resource_id, secret)
     @target, @resource_id, @secret = target, resource_id, secret
   end
 
-  # returns hash of values from server that are associated with the opaque token
+  # Returns hash of values from server that are associated with the
+  # opaque token.
   def decode(auth_header)
     unless auth_header && (tkn = auth_header.split).length == 2
       raise AuthError, "invalid authentication header: #{auth_header}"

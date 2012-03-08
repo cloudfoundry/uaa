@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.config;
 import java.io.FileNotFoundException;
 import java.util.Properties;
 
+import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
 
 import org.springframework.context.ApplicationContextInitializer;
@@ -42,15 +43,15 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 
 	private static final String PROFILE_CONFIG_FILE_LOCATION = "environmentConfigFile";
 
-	private static final String[] DEFAULT_PROFILE_CONFIG_FILE_LOCATIONS = new String[] { "${UAA_CONFIG_URL}", "file:${UAA_CONFIG_FILE}",
-			"file:${CLOUD_FOUNDRY_CONFIG_PATH}/uaa.yml" };
+	private static final String[] DEFAULT_PROFILE_CONFIG_FILE_LOCATIONS = new String[] { "${UAA_CONFIG_URL}",
+			"file:${UAA_CONFIG_FILE}", "file:${CLOUD_FOUNDRY_CONFIG_PATH}/uaa.yml" };
 
 	@Override
 	public void initialize(ConfigurableWebApplicationContext applicationContext) {
 
 		Resource resource = null;
 		ServletContext servletContext = applicationContext.getServletContext();
-		
+
 		for (String location : DEFAULT_PROFILE_CONFIG_FILE_LOCATIONS) {
 			location = applicationContext.getEnvironment().resolvePlaceholders(location);
 			resource = applicationContext.getResource(location);
@@ -58,11 +59,23 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 				break;
 			}
 		}
-		
-		if (resource==null) {
+
+		if (resource == null) {
 			servletContext.log("No YAML environment properties from environment.  Defaulting to servlet config.");
-			String location = applicationContext.getServletConfig().getInitParameter(PROFILE_CONFIG_FILE_LOCATION);
-			resource = applicationContext.getResource(location);
+			ServletConfig servletConfig = applicationContext.getServletConfig();
+			if (servletConfig != null) {
+				String location = servletConfig.getInitParameter(PROFILE_CONFIG_FILE_LOCATION);
+				resource = applicationContext.getResource(location);
+			}
+		}
+
+		if (resource == null) {
+			servletContext.log("No YAML environment properties from servlet.  Defaulting to servlet context.");
+			ServletContext servletConfig = applicationContext.getServletContext();
+			if (servletConfig != null) {
+				String location = servletConfig.getInitParameter(PROFILE_CONFIG_FILE_LOCATION);
+				resource = applicationContext.getResource(location);
+			}
 		}
 
 		try {

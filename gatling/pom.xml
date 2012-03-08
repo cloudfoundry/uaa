@@ -66,28 +66,28 @@
 			<artifactId>gatling-charts-highcharts</artifactId>
 		</dependency>
 	</dependencies>
-	
+
 	<repositories>
 		<repository>
-        <id>repository.excilys.com</id>
-        <url>http://repository.excilys.com/content/repositories/releases</url>
-        <releases>
-           <enabled>true</enabled>
-        </releases>
-        <snapshots>
-          <enabled>false</enabled>
-        </snapshots>        
-     </repository>
+			<id>repository.excilys.com</id>
+			<url>http://repository.excilys.com/content/repositories/releases</url>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
 		<repository>
-        <id>snapshots.excilys.com</id>
-        <url>http://repository.excilys.com/content/repositories/snapshots</url>
-        <releases>
-           <enabled>false</enabled>
-        </releases>
-        <snapshots>
-          <enabled>true</enabled>
-        </snapshots>        
-     </repository>
+			<id>snapshots.excilys.com</id>
+			<url>http://repository.excilys.com/content/repositories/snapshots</url>
+			<releases>
+				<enabled>false</enabled>
+			</releases>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
 	</repositories>
 
 	<build>
@@ -97,6 +97,33 @@
 					<groupId>org.scala-tools</groupId>
 					<artifactId>maven-scala-plugin</artifactId>
 					<version>${maven-scala-plugin.version}</version>
+				</plugin>
+				<!--This plugin's configuration is used to store Eclipse m2e settings 
+					only. It has no influence on the Maven build itself. -->
+				<plugin>
+					<groupId>org.eclipse.m2e</groupId>
+					<artifactId>lifecycle-mapping</artifactId>
+					<version>1.0.0</version>
+					<configuration>
+						<lifecycleMappingMetadata>
+							<pluginExecutions>
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>org.scala-tools</groupId>
+										<artifactId>maven-scala-plugin</artifactId>
+										<versionRange>[1.0,)</versionRange>
+										<goals>
+											<goal>compile</goal>
+											<goal>testCompile</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<ignore />
+									</action>
+								</pluginExecution>
+							</pluginExecutions>
+						</lifecycleMappingMetadata>
+					</configuration>
 				</plugin>
 			</plugins>
 		</pluginManagement>
@@ -110,7 +137,8 @@
 							<goal>compile</goal>
 							<goal>testCompile</goal>
 						</goals>
-						<configuration><sourceDir></sourceDir>
+						<configuration>
+							<sourceDir></sourceDir>
 							<args>
 								<arg>-make:transitive</arg>
 								<arg>-dependencyfile</arg>
