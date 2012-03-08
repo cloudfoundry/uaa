@@ -177,16 +177,16 @@ describe Cloudfoundry::Uaa::TokenIssuer do
       @stub_req = stub_request(:post, /^http:\/\/localhost:8080\/uaa\/oauth\/authorize.*/ )
           .with(body: {credentials: {username: "joe", password: "joe's password"}.to_json})
           .to_return do |req|
-        redir_uri = "implicit-grant://no-host/test_app"
+        redirect_uri = "http://uaa.cloudfoundry.com/redirect/test_app"
         params = decode_parameters(URI.parse(req.uri).query)
         params[:response_type].should == "token"
         params[:client_id].should == "test_app"
         params[:scope].should == "read"
-        params[:redirect_uri].should == redir_uri
+        params[:redirect_uri].should == redirect_uri
         params[:state].should_not be_nil
         resp = {access_token: "good.access.token", token_type: "TokTypE",
             expires_in: 3, scope: "read", state: params[:state]}
-        loc = "#{redir_uri}#" + URI.encode_www_form(resp)
+        loc = "#{redirect_uri}#" + URI.encode_www_form(resp)
         { headers: {"Location" => loc}, status: 302 }
       end
       token = subject.implicit_grant(username: "joe", password: "joe's password")
@@ -196,10 +196,10 @@ describe Cloudfoundry::Uaa::TokenIssuer do
     it "should reject an access token with wrong state" do
       @stub_req = stub_request(:post, /^http:\/\/localhost:8080\/uaa\/oauth\/authorize.*/ )
           .to_return do |req|
-        redir_uri = "implicit-grant://no-host/test_app"
+        redirect_uri = "http://uaa.cloudfoundry.com/redirect/test_app"
         resp = {access_token: "good.access.token", token_type: "TokTypE",
             expires_in: 3, scope: "read", state: "not-a-uuid"}
-        loc = "#{redir_uri}#" + URI.encode_www_form(resp)
+        loc = "#{redirect_uri}#" + URI.encode_www_form(resp)
         { headers: {"Location" => loc}, status: 302 }
       end
       expect { subject.implicit_grant(username: "n/a", password: "n/a") }
@@ -209,11 +209,11 @@ describe Cloudfoundry::Uaa::TokenIssuer do
     it "should reject an access token with no type" do
       @stub_req = stub_request(:post, /^http:\/\/localhost:8080\/uaa\/oauth\/authorize.*/ )
           .to_return do |req|
-        redir_uri = "implicit-grant://no-host/test_app"
+        redirect_uri = "http://uaa.cloudfoundry.com/redirect/test_app"
         params = decode_parameters(URI.parse(req.uri).query)
         resp = {access_token: "good.access.token",
             expires_in: 3, scope: "read", state: params[:state]}
-        loc = "#{redir_uri}#" + URI.encode_www_form(resp)
+        loc = "#{redirect_uri}#" + URI.encode_www_form(resp)
         { headers: {"Location" => loc}, status: 302 }
       end
       expect { subject.implicit_grant(username: "n/a", password: "n/a") }

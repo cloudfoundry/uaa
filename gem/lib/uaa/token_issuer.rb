@@ -40,7 +40,7 @@ class Cloudfoundry::Uaa::TokenIssuer
 
   def implicit_grant(credentials)
     # this manufactured redirect_uri is a convention here, not part of OAuth2
-    redirect_uri = "implicit-grant://no-host/#{@client_id}"
+    redirect_uri = "http://uaa.cloudfoundry.com/redirect/#{@client_id}"
     state = SecureRandom.uuid
     params = {client_id: @client_id, response_type: "token", scope: @scope,
         redirect_uri: redirect_uri, state: state}
