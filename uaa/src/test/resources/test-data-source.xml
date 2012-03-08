@@ -21,4 +21,8 @@
 	<import resource="file:./src/main/webapp/WEB-INF/spring-data-source.xml"/>
 	<import resource="file:./src/main/webapp/WEB-INF/env-context.xml"/>
 
+	<context:property-placeholder properties-ref="applicationProperties"/>
+
+	<context:mbean-server id="mbeanServer" />
+
 </beans>

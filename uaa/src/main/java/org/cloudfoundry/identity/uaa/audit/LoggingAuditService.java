@@ -24,21 +24,25 @@ import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.jmx.support.MetricType;
 
 /**
- * Audit service implementation which just outputs the relevant
- * information through the logger.
+ * Audit service implementation which just outputs the relevant information through the logger.
  * <p>
  * Also accumulates count data for exposure through /varz
- *
+ * 
  * @author Luke Taylor
  * @author Dave Syer
  */
 @ManagedResource
 public class LoggingAuditService implements UaaAuditService {
-	private final Log logger = LogFactory.getLog("UAA Audit Logger");
+	private final Log logger = LogFactory.getLog("UAA.Audit");
+
 	private AtomicInteger userAuthenticationCount = new AtomicInteger();
+
 	private AtomicInteger userAuthenticationFailureCount = new AtomicInteger();
+
 	private AtomicInteger principalAuthenticationFailureCount = new AtomicInteger();
+
 	private AtomicInteger userNotFoundCount = new AtomicInteger();
+
 	private AtomicInteger principalNotFoundCount = new AtomicInteger();
 
 	@ManagedMetric(metricType = MetricType.COUNTER, displayName = "User Not Found Count")
@@ -102,10 +106,14 @@ public class LoggingAuditService implements UaaAuditService {
 	}
 
 	private void log(String msg) {
-		StringBuilder output = new StringBuilder(256);
-  		output.append("\n\n************************************************************\n\n");
-		output.append(msg).append("\n");
-		output.append("\n\n************************************************************\n\n");
-		logger.trace(output.toString());
+		if (logger.isTraceEnabled()) {
+			StringBuilder output = new StringBuilder(256);
+			output.append("\n************************************************************\n");
+			output.append(msg);
+			output.append("\n\n************************************************************\n");
+			logger.trace(output.toString());
+		} else {
+			logger.info(msg);
+		}
 	}
 }

@@ -29,6 +29,7 @@ import org.apache.commons.logging.LogFactory;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -67,8 +68,11 @@ public class AuthzAuthenticationFilter implements Filter {
 			// Keep it simple for now and just use a map of JSON fields to create the authentication request.
 			Map<String,String> loginInfo = mapper.readValue(credentials, new TypeReference<Map<String, String>>() {});
 			logger.debug("Located credentials in request, with keys: " + loginInfo.keySet());
-
+			
 			try {
+				if (!"POST".equals(req.getMethod().toUpperCase())) {
+					throw new BadCredentialsException("Credentials for implicit grant must be sent via POST");
+				}				
 				Authentication result =
 						authenticationManager.authenticate(new AuthzAuthenticationRequest(loginInfo, new UaaAuthenticationDetails(req)));
 				SecurityContextHolder.getContext().setAuthentication(result);

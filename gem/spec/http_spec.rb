@@ -54,7 +54,7 @@ describe Cloudfoundry::Uaa::Http do
             code, body, headers = perform_ahttp_request(req)
             code.should eql(200)
             body.should eql("{\"result\" => \"Success\"}")
-            headers.should eql("CONTENT_TYPE" => "application/json", "CONTENT_LENGTH" => "23")
+            headers.should eql("content_type" => "application/json", "content_length" => "23")
           }.resume
         }
       end

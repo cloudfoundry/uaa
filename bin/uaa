@@ -12,6 +12,7 @@
 #
 
 require 'yaml'
+require 'bundler/setup'
 require 'nats/client'
 require 'vcap/common'
 require 'vcap/logging'

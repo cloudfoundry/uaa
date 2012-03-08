@@ -59,7 +59,6 @@ public class JwtTokenServices extends RandomValueTokenServices {
 	@Override
 	public void afterPropertiesSet() throws Exception {
 		super.afterPropertiesSet();
-		setSupportRefreshToken(false);
 	}
 
 	@Override
@@ -74,11 +73,11 @@ public class JwtTokenServices extends RandomValueTokenServices {
 		catch (Exception e) {
 			throw new IllegalStateException("Cannot convert access token to JSON", e);
 		}
-		// TODO: use client secret from client details service (but N.B. the audience is the resource server)
-		String token = JwtHelper.encode(content , new MacSigner(key)).getEncoded();
+		String token = JwtHelper.encode(content, new MacSigner(key)).getEncoded();
 		OAuth2AccessToken result = new OAuth2AccessToken(token);
 		result.setScope(accessToken.getScope());
 		result.setExpiration(accessToken.getExpiration());
+		result.setRefreshToken(refreshToken);
 
 		return result;
 

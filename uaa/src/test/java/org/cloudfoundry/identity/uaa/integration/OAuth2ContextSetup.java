@@ -122,7 +122,7 @@ public class OAuth2ContextSetup extends TestWatchman {
 		parameters.put("credentials", String.format("{\"username\":\"%s\",\"password\":\"%s\"}", username, password));
 		resource.setClientAuthenticationScheme(AuthenticationScheme.header);
 		resource.setAccessTokenUri(server.getUrl("/oauth/authorize"));
-		resource.setPreEstablishedRedirectUri("http://nowhere.com");
+		resource.setPreEstablishedRedirectUri("http://uaa.cloudfoundry.com/redirect/vmc");
 		return new OAuth2ContextSetup(server, resource, parameters);
 	}
 

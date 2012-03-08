@@ -56,30 +56,4 @@
 		<property name="order" value="1" />
 	</bean>
 
-	<bean id="applicationProperties" class="org.springframework.beans.factory.config.PropertiesFactoryBean">
-		<property name="properties">
-			<bean class="org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean">
-				<property name="resource" value="classpath:/uaa.yml" />
-				<property name="keyReplacements">
-					<map>
-						<entry key="databases.#{@platform}" value="database" />
-						<entry key="cloud_controller.databases.#{@platform}" value="cloud_controller.database" />
-					</map>
-				</property>
-			</bean>
-		</property>
-	</bean>
-
-	<beans profile="default,hsqldb">
-		<bean id="platform" class="java.lang.String">
-			<constructor-arg value="hsqldb" />
-		</bean>
-	</beans>
-
-	<beans profile="postgresql">
-		<bean id="platform" class="java.lang.String">
-			<constructor-arg value="postgresql" />
-		</bean>
-	</beans>
-
 </beans>

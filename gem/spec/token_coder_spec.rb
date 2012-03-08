@@ -54,6 +54,21 @@ describe Cloudfoundry::Uaa::TokenCoder do
     expect { subject.decode("bEaReR #{tkn}") }.to raise_exception(Cloudfoundry::Uaa::TokenCoder::DecodeError)
   end
 
+  it "should raise a decode error if the token is malformed" do
+    tkn = "one.two.three.four"
+    expect { subject.decode("bEaReR #{tkn}") }.to raise_exception(Cloudfoundry::Uaa::TokenCoder::DecodeError)
+    tkn = "onlyone"
+    expect { subject.decode("bEaReR #{tkn}") }.to raise_exception(Cloudfoundry::Uaa::TokenCoder::DecodeError)
+  end
+
+  it "should raise a decode error if a token segment is malformed" do
+    segments = [Cloudfoundry::Uaa::TokenCoder.base64url_encode("this is not json")]
+    segments << Cloudfoundry::Uaa::TokenCoder.base64url_encode("n/a")
+    segments << Cloudfoundry::Uaa::TokenCoder.base64url_encode("n/a")
+    tkn = segments.join('.')
+    expect { subject.decode("bEaReR #{tkn}") }.to raise_exception(Cloudfoundry::Uaa::TokenCoder::DecodeError)
+  end
+
   it "should raise an auth error if the token has expired" do
     tkn = subject.encode({'foo' => "bar", 'expires_at' => Time.now.to_i - 60 })
     expect { subject.decode("bEaReR #{tkn}") }.to raise_exception(Cloudfoundry::Uaa::TokenCoder::AuthError)

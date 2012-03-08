@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.varz.VarzEndpoint;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.springframework.batch.admin.service.JobService;
 import org.springframework.context.support.GenericXmlApplicationContext;
@@ -30,6 +31,7 @@ import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.web.FilterChainProxy;
+import org.springframework.util.StringUtils;
 
 /**
  * @author Dave Syer
@@ -38,6 +40,11 @@ import org.springframework.security.web.FilterChainProxy;
 public class BootstrapTests {
 	
 	private GenericXmlApplicationContext context;
+	
+	@Before
+	public void setup() throws Exception {
+		System.clearProperty("spring.profiles.active");		
+	}
 	
 	@After
 	public void cleanup() throws Exception {
@@ -54,33 +61,31 @@ public class BootstrapTests {
 
 	@Test
 	public void testRootContextWithJdbcUsers() throws Exception {
-		System.setProperty("spring.profiles.active", "hsqldb,!legacy");
-		context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/spring-servlet.xml"));
+		context = getServletContext("hsqldb,!legacy", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
 		assertNotNull(context.getBean("userDatabase", JdbcUaaUserDatabase.class));
 	}
 
 	@Test
 	public void testRootContextDefaults() throws Exception {
-		context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/spring-servlet.xml"));
+		context = getServletContext("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
 		assertNotNull(context.getBean("userDatabase", JdbcUaaUserDatabase.class));
 	}
 
 	@Test
 	public void testBatchContextDefaults() throws Exception {
-		context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/batch-servlet.xml"));
+		context = getServletContext("file:./src/main/webapp/WEB-INF/batch-servlet.xml");
 		assertNotNull(context.getBean("jobService", JobService.class));
 	}
 
 	@Test
 	public void testVarzContextDefaults() throws Exception {
-		context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/varz-servlet.xml"));
+		context = getServletContext("file:./src/main/webapp/WEB-INF/varz-servlet.xml");
 		assertNotNull(context.getBean("varzEndpoint", VarzEndpoint.class));
 	}
 
 	@Test
 	public void testRootContextWithJdbcSecureUsers() throws Exception {
-		System.setProperty("spring.profiles.active", "hsqldb,!legacy");
-		context = new GenericXmlApplicationContext(new FileSystemResource("src/main/webapp/WEB-INF/spring-servlet.xml"));
+		context = getServletContext("hsqldb,!legacy", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
 		assertNotNull(context.getBean("userDatabase", JdbcUaaUserDatabase.class));
 		FilterChainProxy filterChain = context.getBean(FilterChainProxy.class);
 		MockHttpServletResponse response = new MockHttpServletResponse();
@@ -93,16 +98,29 @@ public class BootstrapTests {
 
 	@Test
 	public void testLegacyProfileAndOverrideYmlConfigPath() throws Exception {
-		context = getServletContext("file:./src/main/webapp/WEB-INF/spring-servlet.xml", "classpath:/test/config/test-override.xml");
+		context = getServletContext("hsqldb,legacy", "file:./src/main/webapp/WEB-INF/spring-servlet.xml", "classpath:/test/config/test-override.xml");
 		assertEquals("different", context.getBean("foo", String.class));
 	}
 
 	private GenericXmlApplicationContext getServletContext(String... resources) {
+		
+		String profiles = null;
+		String[] resourcesToLoad = resources;
+		if (!resources[0].endsWith(".xml")) {
+			profiles = resources[0];
+			resourcesToLoad = new String[resources.length-1];
+			System.arraycopy(resources, 1, resourcesToLoad, 0, resourcesToLoad.length);
+		}
+
+		GenericXmlApplicationContext parent = new GenericXmlApplicationContext("file:./src/main/webapp/WEB-INF/applicationContext.xml");
 
 		GenericXmlApplicationContext context = new GenericXmlApplicationContext();
-		context.load(resources);
+		context.setParent(parent);
+		context.load(resourcesToLoad);
 
-		context.getEnvironment().setActiveProfiles("hsqldb", "legacy");
+		if (profiles!=null) {
+			context.getEnvironment().setActiveProfiles(StringUtils.commaDelimitedListToStringArray(profiles));
+		}
 
 		// Simulate what happens in the webapp when the YamlServletProfileInitializer kicks in
 		YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();

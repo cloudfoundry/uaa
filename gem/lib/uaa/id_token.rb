@@ -16,7 +16,6 @@
 # an OpenID Connect client.
 
 require 'uaa/http'
-require 'uaa/error'
 
 class Cloudfoundry::Uaa::IdToken
 
