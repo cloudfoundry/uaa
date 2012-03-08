@@ -98,19 +98,12 @@ module Cloudfoundry::Uaa::Http
       :method => method, :url => "#{@target}#{path}",
       :payload => payload, :headers => headers, :multipart => true
     }
-    unless logger.nil?
-      debug_out "---"
-      debug_out "method: #{method}"
-      debug_out "url: #{req[:url]}"
-      debug_out "payload: #{truncate(payload.to_s, 200)}" unless payload.nil?
-      debug_out "headers: #{headers}"
-
     if trace
-      puts "--->"
-      puts "request: #{method} #{req[:url]}"
-      puts "headers: #{headers}"
-      puts "body: #{truncate(payload.to_s, 200)}" if payload
-      puts "async: #{async.inspect}"
+      debug_out "--->"
+      debug_out "request: #{method} #{req[:url]}"
+      debug_out "headers: #{headers}"
+      debug_out "body: #{truncate(payload.to_s, 200)}" if payload
+      debug_out "async: #{async.inspect}"
     end
 
     if async == true && EventMachine.reactor_running?
@@ -118,11 +111,12 @@ module Cloudfoundry::Uaa::Http
     else
       status, body, response_headers = perform_http_request(req)
     end
+
     if trace
-      puts "<---"
-      puts "response: #{status}"
-      puts "headers: #{response_headers}"
-      puts "body: #{truncate(body.to_s, 200)}" if body
+      debug_out "<---"
+      debug_out "response: #{status}"
+      debug_out "headers: #{response_headers}"
+      debug_out "body: #{truncate(body.to_s, 200)}" if body
     end
     [status, body, response_headers]
 

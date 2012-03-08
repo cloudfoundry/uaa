@@ -14,6 +14,7 @@
 require 'spec_helper'
 require 'uaa/user_account'
 require 'uaa/client'
+require 'webmock/rspec'
 
 describe Cloudfoundry::Uaa::UserAccount do
 
@@ -21,18 +22,16 @@ describe Cloudfoundry::Uaa::UserAccount do
 
   before :each do
     client = Cloudfoundry::Uaa::Client.new()
-    if !integration_test?
-      subject.stub!(:perform_http_request) do |req|
-        @input = req
-        @response
-      end
-      client.stub!(:perform_http_request) do |req|
-        @input = req
-        @response
-      end
-    end
-    subject.trace = true
-    @response = [200, '{"access_token":"example_access_token"}', nil]
+    client.trace=true
+    @stub_access_token_req = stub_request(:post, "http://my:myclientsecret@localhost:8080/uaa/oauth/token").
+                                          with(:body => {"client_id"=>"my", "grant_type"=>"client_credentials", "scope"=>"read"},
+                                          :headers => {"Content-Type"=>"application/x-www-form-urlencoded", "Accept"=>"application/json"})
+    @stub_create_user_req = stub_request(:post, "http://localhost:8080/uaa/User").
+                                          with(:headers => {'Authorization'=>'Bearer example_access_token'})
+    @stub_update_password_req = stub_request(:put, "http://localhost:8080/uaa/User/randomId/password").
+                                          with(:headers => {'Authorization'=>'Bearer example_access_token'})
+
+    @stub_access_token_req.to_return(:status => 200, :body => "{\"access_token\":\"example_access_token\"}")
     client.target = "http://localhost:8080/uaa"
     client.client_id = "my"
     client.client_secret = "myclientsecret"
@@ -42,14 +41,21 @@ describe Cloudfoundry::Uaa::UserAccount do
   end
 
   it "should be possible to register a user", :integration=>false do
-    @response = [200, '{"id":"randomId","email":"jdoe@example.org"}', nil]
+    @stub_create_user_req.to_return(:status => 200,
+                        :body => "{\"id\":\"randomId\", \"email\":\"jdoe@example.org\"}",
+                        :headers => {"Content-Type" => "application/json"})
+    @stub_update_password_req.to_return(:status => 204)
     result = subject.create("jdoe", "password", "jdoe@example.org", {:family_name=>"Doe", :given_name=>"John"})
     result[:id].should eql("randomId")
     result[:email].should eql("jdoe@example.org")
   end
 
   it "should be possible to register a user with multiple email addresses", :integration=>false do
-    @response = [200, '{"id":"randomId","email":["jdoe@example.org", "jdoe@gmail.com"]}', nil]
+    @stub_create_user_req.to_return(:status => 200,
+                        :body => "{\"id\":\"randomId\", \"email\":[\"jdoe@example.org\", \"jdoe@gmail.com\"]}",
+                        :headers => {"Content-Type" => "application/json"})
+    @stub_update_password_req.to_return(:status => 204)
+
     result = subject.create("jdoe", "password", ["jdoe@example.org", "jdoe@gmail.com"], {:family_name=>"Doe", :given_name=>"John"})
     result[:id].should eql("randomId")
     result[:email].sort().should eql(["jdoe@example.org", "jdoe@gmail.com"].sort())
@@ -62,5 +68,5 @@ describe Cloudfoundry::Uaa::UserAccount do
       result = subject.create("jdoe", "password", "jdoe@example.org", nil)
     end.should raise_exception(Cloudfoundry::Uaa::UserAccount::AuthError)
   end
-
 end
+
