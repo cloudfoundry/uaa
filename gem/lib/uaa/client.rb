@@ -73,7 +73,7 @@ class Cloudfoundry::Uaa::Client
     {:email=>["text", "Email"], :username=>["text", "Username"], :given_name=>["text", "Given (first) name"], :family_name=>["text", "Family (last) name"], :password=>["password", "Choose a password"]}
   end
 
-  # Login get back an OAuth token. By default the UAA
+  # Login and get back an OAuth token.
   #
   # === Attributes
   #
