@@ -59,7 +59,6 @@ public class JwtTokenServices extends RandomValueTokenServices {
 	@Override
 	public void afterPropertiesSet() throws Exception {
 		super.afterPropertiesSet();
-		setSupportRefreshToken(false);
 	}
 
 	@Override
@@ -78,6 +77,7 @@ public class JwtTokenServices extends RandomValueTokenServices {
 		OAuth2AccessToken result = new OAuth2AccessToken(token);
 		result.setScope(accessToken.getScope());
 		result.setExpiration(accessToken.getExpiration());
+		result.setRefreshToken(refreshToken);
 
 		return result;
 
