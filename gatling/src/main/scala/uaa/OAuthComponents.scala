@@ -14,29 +14,17 @@ package uaa
 
 import java.util.regex.Pattern
 
-import com.excilys.ebi.gatling.core.Predef.Session
-import com.excilys.ebi.gatling.core.Predef.chain
-import com.excilys.ebi.gatling.core.Predef.checkBuilderToCheckOne
-import com.excilys.ebi.gatling.core.Predef.checkBuilderToExists
-import com.excilys.ebi.gatling.core.Predef.checkWithVerifyBuilderToHttpCheck
-import com.excilys.ebi.gatling.core.Predef.stringToSessionFunction
-import com.excilys.ebi.gatling.core.Predef.toSessionFunction
-import com.excilys.ebi.gatling.core.Predef.toSimpleActionBuilder
+import com.excilys.ebi.gatling.core.Predef._
 import com.excilys.ebi.gatling.core.check.ExtractorFactory
-import com.excilys.ebi.gatling.core.check.CheckOneBuilder
+import com.excilys.ebi.gatling.core.check.MatcherCheckBuilder
 import com.excilys.ebi.gatling.core.structure.ChainBuilder
-import com.excilys.ebi.gatling.http.Predef.header
-import com.excilys.ebi.gatling.http.Predef.http
-import com.excilys.ebi.gatling.http.Predef.status
+import com.excilys.ebi.gatling.http.Predef._
 import com.excilys.ebi.gatling.http.check.HttpCheck
-import com.excilys.ebi.gatling.http.check.HttpCheckBuilder
+import com.excilys.ebi.gatling.http.check.HttpExtractorCheckBuilder
 import com.excilys.ebi.gatling.http.request.HttpPhase
 import com.ning.http.client.Response
 
-import AccessTokenCheckBuilder.fragmentExtractorFactory
-import AccessTokenCheckBuilder.fragmentToken
-import AccessTokenCheckBuilder.jsonExtractorFactory
-import AccessTokenCheckBuilder.jsonToken
+import AccessTokenCheckBuilder._
 
 /**
  * Checks for the presence of an access token in the fragment of the Location header or JSON body
@@ -65,12 +53,12 @@ object AccessTokenCheckBuilder {
 
 }
 
-private[uaa] class FragmentTokenCheckBuilder extends HttpCheckBuilder[String](s => "", HttpPhase.HeadersReceived) {
-  def find = new CheckOneBuilder[HttpCheck[String], Response, String](httpCheckBuilderFactory, fragmentExtractorFactory)
+private[uaa] class FragmentTokenCheckBuilder extends HttpExtractorCheckBuilder[String](s => "", HttpPhase.HeadersReceived) {
+  def find = new MatcherCheckBuilder[HttpCheck, Response, String](httpCheckBuilderFactory, fragmentExtractorFactory)
 }
 
-private[uaa] class JsonTokenCheckBuilder extends HttpCheckBuilder[String](s => "", HttpPhase.CompletePageReceived) {
-  def find = new CheckOneBuilder[HttpCheck[String], Response, String](httpCheckBuilderFactory, jsonExtractorFactory)
+private[uaa] class JsonTokenCheckBuilder extends HttpExtractorCheckBuilder[String](s => "", HttpPhase.CompletePageReceived) {
+  def find = new MatcherCheckBuilder[HttpCheck, Response, String](httpCheckBuilderFactory, jsonExtractorFactory)
 }
 
 /**
@@ -152,7 +140,7 @@ object OAuthComponents {
           .headers(plainHeaders)
           .check(status.is(302), header("Location").saveAs("location")))
       .exec((s: Session) => {
-        var location = s.getAttribute[String]("location")
+        var location = s.getAttribute("location")
         println("Login redirected to " + location)
         s
       })
@@ -168,7 +156,7 @@ object OAuthComponents {
           .headers(plainHeaders)
           .check(status.is(302), header("Location").saveAs("location")))
       .exec((s: Session) => {
-        var code = s.getAttribute[String]("location")
+        var code = s.getTypedAttribute[String]("location")
         println("Authorize redirected to " + code)
         code = code.substring(code.indexOf("code=") + 5)
         if (code.contains("&")) {
