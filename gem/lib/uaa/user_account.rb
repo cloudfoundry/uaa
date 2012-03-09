@@ -25,11 +25,11 @@ class Cloudfoundry::Uaa::UserAccount
   attr_accessor :access_token
 
   def initialize(target, access_token)
-    @target, @access_token = target, access_token
+    @target, access_token = target, access_token
   end
 
   def create(username, password, email_addresses, other={})
-    raise AuthError, "No token provided. You must login first and set the authorization token up." unless @access_token
+    raise AuthError, "No token provided. You must login first and set the authorization token up." unless access_token
 
     family_name = other[:family_name] if other[:family_name]
     given_name = other[:given_name] if other[:given_name]
@@ -60,7 +60,7 @@ class Cloudfoundry::Uaa::UserAccount
       :emails=>emails
     }
 
-    status, body, headers = http_post("/User", request.to_json, "application/json", "#{@access_token}")
+    status, body, headers = http_post("/User", request.to_json, "application/json", "#{access_token}")
     user = json_parse(body)
     if user[:error]
       raise BadResponse, "Error creating a user #{user.inspect}"
@@ -71,7 +71,7 @@ class Cloudfoundry::Uaa::UserAccount
 
     # TODO: rescue from 403 and ask user to reset password through
     # another channel
-    status, body, headers = http_put("/User/#{id}/password", password_request.to_json, "application/json", "#{@access_token}")
+    status, body, headers = http_put("/User/#{id}/password", password_request.to_json, "application/json", "#{access_token}")
     if status != 204
       raise BadResponse, "Error updating the user's password"
     end
