@@ -14,9 +14,9 @@
 require 'spec_helper'
 require 'uaa'
 
-#ENV["UAA_CLIENT_ID"] = "scim"
-#ENV["UAA_CLIENT_SECRET"] = "scimsecret"
-#ENV["UAA_CLIENT_TARGET"] = "http://localhost:8080/uaa"
+ENV["UAA_CLIENT_ID"] = "scim"
+ENV["UAA_CLIENT_SECRET"] = "scimsecret"
+ENV["UAA_CLIENT_TARGET"] = "http://localhost:8080/uaa"
 
 if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
 
@@ -42,16 +42,31 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
 
       before :all do
         toki = Cloudfoundry::Uaa::TokenIssuer.new(@target, @client_id,
-            @client_secret, "read", "scim")
+            @client_secret, "read write password", "scim")
         toki.trace = true
-        @tokn = toki.client_credentials_grant
+        tokn = toki.client_credentials_grant
+        @user_acct = Cloudfoundry::Uaa::UserAccount.new(@target, tokn)
+        @user_acct.trace = true
+        @username = "joe#{Time.now.to_i}"
       end
 
       it "creates a user" do
-        usr_acct = Cloudfoundry::Uaa::UserAccount.new(@target, @tokn)
-        usr_acct.trace = true
-        usr = usr_acct.create("joe", "joe's password", "joe@example.com")
+        usr = @user_acct.create(@username, "joe's password", "joe@example.com")
         puts usr
+        ENV["UAA_USER_ID"] = usr[:id] # need a better way
+        puts usr[:id]
+      end
+
+      #it "finds the user" do
+        #user_info = @user_acct.query("id", "username", @username)
+        #puts user_info
+      #end
+
+      it "deletes a user" do
+        user_id = ENV["UAA_USER_ID"]
+        puts user_id
+        @user_acct.delete(user_id)
+        # TODO: query that the user is gone
       end
 
     end
