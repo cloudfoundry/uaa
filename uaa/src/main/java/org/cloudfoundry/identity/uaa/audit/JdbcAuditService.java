@@ -103,8 +103,14 @@ public class JdbcAuditService implements UaaAuditService {
 	private class AuditEventRowMapper implements RowMapper<AuditEvent> {
 		@Override
 		public AuditEvent mapRow(ResultSet rs, int rowNum) throws SQLException {
-			return new AuditEvent(AuditEventType.fromCode(rs.getInt(1)), rs.getString(2), rs.getString(3),
-					rs.getString(4), rs.getTimestamp(5).getTime());
+			String principalId = rs.getString(2);
+			principalId = principalId==null ? null : principalId.trim();
+			String origin = rs.getString(3);
+			origin = origin==null ? null : origin.trim();
+			String data = rs.getString(4);
+			data = data==null ? null : data.trim();
+			return new AuditEvent(AuditEventType.fromCode(rs.getInt(1)), principalId, origin,
+					data, rs.getTimestamp(5).getTime());
 		}
 	}
 }

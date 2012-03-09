@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa;
 
 import org.cloudfoundry.identity.uaa.scim.jobs.UserMigrationJobIntegrationTests;
+import org.cloudfoundry.identity.uaa.scim.jobs.UserSyncJobIntegrationTests;
 import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -24,7 +25,7 @@ import org.junit.runners.Suite.SuiteClasses;
  * 
  */
 @RunWith(Suite.class)
-@SuiteClasses({ BootstrapTests.class, UserMigrationJobIntegrationTests.class })
+@SuiteClasses({ UserSyncJobIntegrationTests.class, UserMigrationJobIntegrationTests.class })
 @Ignore
 public class AdhocTestSuite {
 
