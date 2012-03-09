@@ -12,6 +12,7 @@ package org.cloudfoundry.identity.uaa.scim.jobs;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.Date;
 import java.util.Iterator;
 
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
@@ -37,6 +38,9 @@ public class UserMigrationJobIntegrationTests extends AbstractJobIntegrationTest
 
 	@Test
 	public void testJobRuns() throws Exception {
+		new JdbcTemplate(cloudControllerDataSource)
+		.update("insert into users (id, active, email, crypted_password, created_at, updated_at) values (?, ?, ?, ?, ?, ?)",
+				4, true, "invalid", "ENCRYPT_ME", new Date(), new Date());
 		JobExecution execution = jobLauncher.run(job,
 				new JobParametersBuilder().addString("users", "marissa@test.org,vcap_tester@vmware.com")
 						.toJobParameters());
