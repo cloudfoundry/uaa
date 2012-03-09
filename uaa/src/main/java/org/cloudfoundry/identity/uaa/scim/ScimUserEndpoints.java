@@ -171,11 +171,9 @@ public class ScimUserEndpoints implements InitializingBean {
 	@RequestMapping(value = "/User/{userId}", method = RequestMethod.DELETE)
 	@ResponseBody
 	public ScimUser deleteUser(@PathVariable String userId,
-			@RequestHeader(value = "If-Match", required = false, defaultValue = "NaN") String etag) {
-		if (etag.equals("NaN")) {
-			throw new ScimException("Missing If-Match for DELETE", HttpStatus.BAD_REQUEST);
-		}
-		int version = getVersion(userId, etag);
+			@RequestHeader(value = "If-Match", required = false) String etag) {
+		int version = etag == null ? -1 : getVersion(userId, etag);
+
 		return dao.removeUser(userId, version);
 	}
 
