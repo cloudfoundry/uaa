@@ -35,6 +35,10 @@ User Account APIs
 * [Query for information about users: /Users](#queryuser)
 * [Delete a user: /User/{id}](#deleteuser)
 
+Management information
+
+* [Basic metrics: /varz](#varz)
+* [Detailed metrics: /varz/{domain}](#varzdomain)
 
 ## Configuration Options
 
@@ -603,3 +607,87 @@ The precise form of this request is not given by the spec (which just says "obta
 * Response Codes: 
 
     302 - Found
+
+## Management Endpoints
+
+### <a id="varz"/>Basic Metrics
+
+Authentication is via HTTP basic using credentials that are configured
+via `varz.username` and `varz.password`.  The `/varz` endpoint pulls
+data out of the JMX `MBeanServer`, exposing selected nuggets directly
+for ease of use, and providing links to more detailed metrics.
+
+* Request: `GET /varz`
+* Response Body:
+
+    {
+      "type": "UAA",
+      "links": {
+        "Users": "http://localhost:8080/uaa/varz/Users",
+        "JMImplementation": "http://localhost:8080/uaa/varz/JMImplementation",
+        "spring.application": "http://localhost:8080/uaa/varz/spring.application",
+        "com.sun.management": "http://localhost:8080/uaa/varz/com.sun.management",
+        "Catalina": "http://localhost:8080/uaa/varz/Catalina",
+        "env": "http://localhost:8080/uaa/varz/env",
+        "java.lang": "http://localhost:8080/uaa/varz/java.lang",
+        "java.util.logging": "http://localhost:8080/uaa/varz/java.util.logging"
+      },
+      "mem": 19173496,
+      "memory": {
+        "verbose": false,
+        "non_heap_memory_usage": {
+          "max": 184549376,
+          "committed": 30834688,
+          "init": 19136512,
+          "used": 30577744
+        },
+        "object_pending_finalization_count": 0,
+        "heap_memory_usage": {
+          "max": 902299648,
+          "committed": 84475904,
+          "init": 63338496,
+          "used": 19173496
+        }
+      },
+      "token_store": {
+        "refresh_token_count": 0,
+        "access_token_count": 0,
+        "flush_interval": 1000
+      },
+      "audit_service": {
+        "user_authentication_count": 0,
+        "user_not_found_count": 0,
+        "principal_authentication_failure_count": 1,
+        "principal_not_found_count": 0,
+        "user_authentication_failure_count": 0
+      },
+      "spring.profiles.active": []
+    }
+
+### <a id="varzdomain"/>Detailed Metrics
+
+More detailed metrics can be obtained from the links in `/varz`.  All
+except the `env` link (the OS env vars) are just the top-level domains
+in the JMX `MBeanServer`.  In the case of `Catalina` there are some
+known cycles in the object graph which we avoid by restricting the
+result to the most interesting areas to do with request processing.
+
+* Request: `GET /varz/{domain}`
+* Response Body: (for domain=Catalina)
+
+    {
+      "global_request_processor": {
+        "http-8080": {
+          "processing_time": 0,
+          "max_time": 0,
+          "request_count": 0,
+          "bytes_sent": 0,
+          "bytes_received": 0,
+          "error_count": 0,
+          "modeler_type": "org.apache.coyote.RequestGroupInfo"
+        }
+      }
+    }
+
+Beans from the Spring application context are exposed at
+`/varz/spring.application`.
