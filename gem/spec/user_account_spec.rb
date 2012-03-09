@@ -26,9 +26,9 @@ describe Cloudfoundry::Uaa::UserAccount do
                                           with(:body => {"client_id"=>"my", "grant_type"=>"client_credentials", "scope"=>"read"},
                                           :headers => {"Content-Type"=>"application/x-www-form-urlencoded", "Accept"=>"application/json"})
     @stub_create_user_req = stub_request(:post, "http://localhost:8080/uaa/User").
-                                          with(:headers => {'Authorization'=>'Bearer example_access_token'})
+                                          with(:headers => {'Authorization'=>'example_access_token'})
     @stub_update_password_req = stub_request(:put, "http://localhost:8080/uaa/User/randomId/password").
-                                          with(:headers => {'Authorization'=>'Bearer example_access_token'})
+                                          with(:headers => {'Authorization'=>'example_access_token'})
 
     @stub_access_token_req.to_return(:status => 200, :body => "{\"access_token\":\"example_access_token\"}")
     client.target = "http://localhost:8080/uaa"
