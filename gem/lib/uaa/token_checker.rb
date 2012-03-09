@@ -27,7 +27,7 @@ class Cloudfoundry::Uaa::TokenChecker
 
   class AuthError < RuntimeError; end
 
-  # Create a new instace of the token checker. Attributes:
+  # Create a new instance of the token checker. Attributes:
   #
   # * target - the target base URL of the Authorization Server
   #
@@ -42,8 +42,8 @@ class Cloudfoundry::Uaa::TokenChecker
     @target, @resource_id, @secret = target, resource_id, secret
   end
 
-  # Returns hash of values from server that are associated with the
-  # opaque token.
+  # Returns hash of values from the Authorization Server that are associated
+  # with the opaque token.
   def decode(auth_header)
     unless auth_header && (tkn = auth_header.split).length == 2
       raise AuthError, "invalid authentication header: #{auth_header}"
