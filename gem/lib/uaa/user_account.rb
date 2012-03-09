@@ -22,6 +22,8 @@ class Cloudfoundry::Uaa::UserAccount
 
   class AuthError < RuntimeError; end
 
+  attr_accessor :access_token
+
   def initialize(target, access_token)
     @target, @access_token = target, access_token
   end
@@ -31,16 +33,6 @@ class Cloudfoundry::Uaa::UserAccount
 
     family_name = other[:family_name] if other[:family_name]
     given_name = other[:given_name] if other[:given_name]
-    name ||= "#{given_name} #{family_name}" if given_name && family_name
-    name = other[:name] if other[:name]
-
-    request= {
-      :name=>{
-        "givenName"=>other[:given_name],
-        "familyName"=>other[:family_name],
-        "formatted"=>other[:name]},
-      :userName=>username,
-    }
 
     emails = []
     if email_addresses.respond_to?(:each)
@@ -50,17 +42,39 @@ class Cloudfoundry::Uaa::UserAccount
     elsif !email_addresses.nil?
       emails = [{:value => email_addresses}]
     end
-    request[:emails] = emails if emails.size() > 0
 
-    status, body, headers = http_post("/User", request.to_json, "application/json", "Bearer #{@access_token}")
+    if given_name.nil? && emails.size() > 0
+      given_name = emails[0][:value]
+    end
+
+    if family_name.nil? && emails.size() > 0
+      family_name = emails[0][:value]
+    end
+ 
+    request= {
+      :name=>{
+        :givenName=>given_name,
+        :familyName=>family_name
+      },
+      :userName=>username,
+      :emails=>emails
+    }
+
+    status, body, headers = http_post("/User", request.to_json, "application/json", "#{@access_token}")
     user = json_parse(body)
+    if user[:error]
+      raise BadResponse, "Error creating a user #{user.inspect}"
+    end
 
     id = user[:id]
     password_request = {:password=>password}
 
     # TODO: rescue from 403 and ask user to reset password through
     # another channel
-    status, body, headers = http_put("/User/#{id}/password", password_request.to_json, "application/json", "Bearer #{@access_token}")
+    status, body, headers = http_put("/User/#{id}/password", password_request.to_json, "application/json", "#{@access_token}")
+    if status != 204
+      raise BadResponse, "Error updating the user's password"
+    end
 
     user
   end
