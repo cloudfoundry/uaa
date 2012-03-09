@@ -19,6 +19,10 @@ class Cloudfoundry::Uaa::UserAccount
 
   include Cloudfoundry::Uaa::Http
 
+  # the authorization parameter refers to a string that can be used in an
+  # authorization header. For oauth with jwt tokens this would be something
+  # like "bearer xxxx.xxxx.xxxx". The TokenIssuer methods return a string
+  # in the expected form.
   def initialize(target, authorization)
     @target, @authorization = target, authorization
   end
@@ -58,10 +62,6 @@ class Cloudfoundry::Uaa::UserAccount
 
   end
 
-  def update(user_id, info = {})
-  # => yes/no, error
-  end
-
   def change_password(user_id, new_password)
     password_request = { password: new_password }
     status, body, headers = http_put("/User/#{user_id}/password", password_request.to_json, "application/json", @authorization)
@@ -70,15 +70,27 @@ class Cloudfoundry::Uaa::UserAccount
     end
   end
 
-  def query(attribute, filter_attribute, filter_value)
-    query = { attributes: attribute, filter: "#{filter_attribute} eq #{filter_value}" }
+  def query_by_value(attribute, filter_attribute, filter_value)
+    query = { attributes: attribute, filter: "#{filter_attribute} eq '#{filter_value}'" }
     json_get("/Users?#{URI.encode_www_form(query)}", @authorization)
+  end
+
+  def get(user_id)
+    json_get("/User/#{URI.encode(user_id)}", @authorization)
   end
 
   def delete(user_id)
     unless (status = http_delete("/User/#{user_id}", @authorization)) == 200
       raise (status == 404 ? NotFound : BadResponse), "invalid response from #{@target}: #{status}"
     end
+  end
+
+  def delete_by_name(username)
+    qinfo = query_by_value(:id, :username, username)
+    unless qinfo && qinfo[:resources] && qinfo[:resources][0] && qinfo[:resources][0][:id]
+      raise NotFound, "user #{username} not found in #{@target}"
+    end
+    delete qinfo[:resources][0][:id]
   end
 
 end

@@ -14,9 +14,9 @@
 require 'spec_helper'
 require 'uaa'
 
-#ENV["UAA_CLIENT_ID"] = "scim"
-#ENV["UAA_CLIENT_SECRET"] = "scimsecret"
-#ENV["UAA_CLIENT_TARGET"] = "http://localhost:8080/uaa"
+ENV["UAA_CLIENT_ID"] = "scim"
+ENV["UAA_CLIENT_SECRET"] = "scimsecret"
+ENV["UAA_CLIENT_TARGET"] = "http://localhost:8080/uaa"
 
 if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
 
@@ -47,7 +47,7 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
         tokn = toki.client_credentials_grant
         @user_acct = Cloudfoundry::Uaa::UserAccount.new(@target, tokn)
         @user_acct.trace = true
-        @username = "joe#{Time.now.to_i}"
+        @username = "sam_#{Time.now.to_i}"
       end
 
       it "creates a user" do
@@ -58,16 +58,24 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
       end
 
       it "finds the user" do
-        user_info = @user_acct.query("id", "username", @username)
+        user_info = @user_acct.query_by_value("id", "username", @username)
+        puts JSON.pretty_generate(user_info)
         puts user_info
       end
 
-      #it "deletes a user" do
-        #user_id = ENV["UAA_USER_ID"]
-        #puts user_id
-        #@user_acct.delete(user_id)
-        ## TODO: query that the user is gone
-      #end
+      it "gets the user" do
+        user_id = ENV["UAA_USER_ID"]
+        user_info = @user_acct.get(user_id)
+        puts JSON.pretty_generate(user_info)
+        puts user_info[:meta][:version]
+      end
+
+      it "deletes the user by name" do
+        user_id = ENV["UAA_USER_ID"]
+        puts user_id
+        @user_acct.delete(user_id)
+        # TODO: query that the user is gone
+      end
 
     end
 
