@@ -14,7 +14,7 @@ require "rspec/core/rake_task"
 require "bundler/gem_tasks"
 require "rdoc/task"
 
-task :default => [:test]
+task :default => [:cover]
 
 RSpec::Core::RakeTask.new("test") do |test|
   test.rspec_opts = ["--format", "documentation", "--colour"]
@@ -30,6 +30,7 @@ task :cov => [:pre_coverage, :test, :view_coverage]
 task :cover => [:pre_coverage, :test]
 task :coverage => [:pre_coverage, :test]
 task :pre_coverage do
+  rm_f "coverage"
   ENV['COVERAGE'] = "true"
 end
 
