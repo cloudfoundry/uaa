@@ -199,6 +199,8 @@
 			resource-ids="cloud_controller,openid,password" redirect-uri="http://uaa.cloudfoundry.com/redirect/vmc" />
 		<oauth:client client-id="cloud_controller" authorized-grant-types="client_credentials" scope="read,openid,write,password"
 			authorities="ROLE_CLIENT,ROLE_ADMIN" secret="${cloud_controller.client.secret:$2a$08$qsrUOJQo0CWRuI9l4St6Eugt0fXf2bPKeGXN8J3glRHHhEMajUUk2}" />
+	</oauth:client-details-service>
+
 	<oauth:web-expression-handler id="oauthWebExpressionHandler" />
 
 	<oauth:resource-server id="openidResourceAuthenticationFilter" token-services-ref="tokenServices"
