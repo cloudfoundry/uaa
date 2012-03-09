@@ -11,7 +11,7 @@
 		<module>samples</module>
 	</modules>
 	<properties>
-		<spring.version>3.1.0.RELEASE</spring.version>
+		<spring.version>3.1.1.RELEASE</spring.version>
 		<spring.security.version>3.1.0.RELEASE</spring.security.version>
 		<spring.security.oauth.version>1.0.0.BUILD-SNAPSHOT</spring.security.oauth.version>
 		<spring.security.jwt.version>1.0.0.BUILD-SNAPSHOT</spring.security.jwt.version>
