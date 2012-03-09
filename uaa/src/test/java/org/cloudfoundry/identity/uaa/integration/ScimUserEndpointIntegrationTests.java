@@ -44,10 +44,12 @@ import org.springframework.web.client.RestTemplate;
  * @author Dave Syer
  */
 public class ScimUserEndpointIntegrationTests {
-	
+
 	private final String JOEL = "joel_" + new RandomValueStringGenerator().generate().toLowerCase();
 
 	private final String JOE = "joe_" + new RandomValueStringGenerator().generate().toLowerCase();
+
+	private final String DELETE_ME = "deleteme_" + new RandomValueStringGenerator().generate().toLowerCase();
 
 	private final String userEndpoint = "/User";
 
@@ -91,17 +93,20 @@ public class ScimUserEndpointIntegrationTests {
 				headers), Map.class, id);
 	}
 
+	private ResponseEntity<ScimUser> createUser(String username, String firstName, String lastName, String email) {
+		ScimUser user = new ScimUser();
+		user.setUserName(username);
+		user.setName(new ScimUser.Name(firstName, lastName));
+		user.addEmail(email);
+
+		return client.postForEntity(server.getUrl(userEndpoint), user, ScimUser.class);
+	}
+
 	// curl -v -H "Content-Type: application/json" -H "Accept: application/json" --data
 	// "{\"userName\":\"joe\",\"schemas\":[\"urn:scim:schemas:core:1.0\"]}" http://localhost:8080/uaa/User
 	@Test
 	public void createUserSucceeds() throws Exception {
-		ScimUser user = new ScimUser();
-		user.setUserName(JOE);
-		user.setName(new ScimUser.Name("Joe", "User"));
-		user.addEmail("joe@blah.com");
-
-		ResponseEntity<ScimUser> response = client.postForEntity(server.getUrl(userEndpoint), user,
-				ScimUser.class);
+		ResponseEntity<ScimUser> response = createUser(JOE, "Joe", "User", "joe@blah.com");
 		ScimUser joe1 = response.getBody();
 		assertEquals(JOE, joe1.getUserName());
 
@@ -114,13 +119,7 @@ public class ScimUserEndpointIntegrationTests {
 
 	@Test
 	public void getUserHasEtag() throws Exception {
-		ScimUser user = new ScimUser();
-		user.setUserName(JOE);
-		user.setName(new ScimUser.Name("Joe", "User"));
-		user.addEmail("joe@blah.com");
-
-		ResponseEntity<ScimUser> response = client.postForEntity(server.getUrl(userEndpoint), user,
-				ScimUser.class);
+		ResponseEntity<ScimUser> response = createUser(JOE, "Joe", "User", "joe@blah.com");
 		ScimUser joe = response.getBody();
 		assertEquals(JOE, joe.getUserName());
 
@@ -134,15 +133,7 @@ public class ScimUserEndpointIntegrationTests {
 	// "{\"userName\":\"joe\",\"schemas\":[\"urn:scim:schemas:core:1.0\"]}" http://localhost:8080/uaa/User
 	@Test
 	public void updateUserSucceeds() throws Exception {
-
-		ScimUser user = new ScimUser();
-		user.setUserName(JOE);
-		user.setName(new ScimUser.Name("Joe", "User"));
-		user.addEmail("joe@blah.com");
-
-		ResponseEntity<ScimUser> response = client.postForEntity(server.getUrl(userEndpoint), user,
-				ScimUser.class);
-
+		ResponseEntity<ScimUser> response = createUser(JOE, "Joe", "User", "joe@blah.com");
 		ScimUser joe = response.getBody();
 		assertEquals(JOE, joe.getUserName());
 
@@ -164,15 +155,7 @@ public class ScimUserEndpointIntegrationTests {
 	// http://localhost:8080/uaa/User/{id}/password
 	@Test
 	public void changePasswordSucceeds() throws Exception {
-
-		ScimUser user = new ScimUser();
-		user.setUserName(JOE);
-		user.setName(new ScimUser.Name("Joe", "User"));
-		user.addEmail("joe@blah.com");
-
-		ResponseEntity<ScimUser> response = client.postForEntity(server.getUrl(userEndpoint), user,
-				ScimUser.class);
-
+		ResponseEntity<ScimUser> response = createUser(JOE, "Joe", "User", "joe@blah.com");
 		ScimUser joe = response.getBody();
 		assertEquals(JOE, joe.getUserName());
 
@@ -225,18 +208,15 @@ public class ScimUserEndpointIntegrationTests {
 	}
 
 	// curl -v -H "Content-Type: application/json" -H "Accept: application/json" -X DELETE
-	// -H "If-Match: 0" http://localhost:8080/uaa/User/joel
+	// http://localhost:8080/uaa/User/joel
 	@Test
-	public void deleteUserWithNoEtagFails() throws Exception {
+	public void deleteUserWithNoEtagSucceeds() throws Exception {
+		ScimUser deleteMe = createUser(DELETE_ME, "Delete", "Me", "deleteme@blah.com").getBody();
+
 		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> response = client.exchange(server.getUrl(userEndpoint + "/{id}"),
-				HttpMethod.DELETE, new HttpEntity<Void>((Void) null), Map.class, JOE);
-		@SuppressWarnings("unchecked")
-		Map<String, String> error = response.getBody();
-		// System.err.println(error);
-		assertEquals(ScimException.class.getName(), error.get("error"));
-		assertEquals("Missing If-Match for DELETE", error.get("message"));
-
+				HttpMethod.DELETE, new HttpEntity<Void>((Void) null), Map.class, deleteMe.getId());
+		assertEquals(HttpStatus.OK, response.getStatusCode());
 	}
 
 	@Test

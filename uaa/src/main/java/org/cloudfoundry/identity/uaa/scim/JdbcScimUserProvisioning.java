@@ -58,7 +58,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, email=?, givenName=?, familyName=?, active=? where id=? and version=?";
 
-	public static final String DELETE_USER_SQL = "update users set active=false where id=? and version=?";
+	public static final String DELETE_USER_SQL = "update users set active=false where id=?";
 
 	public static final String ID_FOR_DELETED_USER_SQL = "select id from users where userName=? and active=false";
 
@@ -286,7 +286,14 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		logger.info("Removing user: " + id);
 
 		ScimUser user = retrieveUser(id);
-		int updated = jdbcTemplate.update(DELETE_USER_SQL, id, version);
+		int updated;
+
+		if (version < 0) {
+			// Ignore
+			updated = jdbcTemplate.update(DELETE_USER_SQL, id);
+		} else {
+			updated = jdbcTemplate.update(DELETE_USER_SQL + " and version=?", id, version);
+		}
 		if (updated == 0) {
 			throw new OptimisticLockingFailureException(String.format(
 					"Attempt to update a user (%s) with wrong version: expected=%d but found=%d", id,
@@ -306,7 +313,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	/**
 	 * The encoder used to hash passwords before storing them in the database.
-	 * 
+	 *
 	 * Defaults to a {@link BCryptPasswordEncoder}.
 	 */
 	public void setPasswordEncoder(PasswordEncoder passwordEncoder) {

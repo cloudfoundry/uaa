@@ -30,6 +30,7 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabase;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
@@ -38,7 +39,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 /**
  * @author Dave Syer
  * @author Luke Taylor
- * 
+ *
  */
 public class ScimUserEndpointsTests {
 
@@ -80,21 +81,16 @@ public class ScimUserEndpointsTests {
 
 	@Test
 	public void userCanChangeTheirOwnPasswordIfTheySupplyCorrectCurrentPassword() {
-		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
-		String id = joel.getId();
-		when(sca.getUserId()).thenReturn(id);
-		endpoints.setSecurityContextAccessor(sca);
+		endpoints.setSecurityContextAccessor(mockSecurityContext(joel));
 		PasswordChangeRequest change = new PasswordChangeRequest();
 		change.setOldPassword("password");
 		change.setPassword("newpassword");
-		endpoints.changePassword(id, change);
+		endpoints.changePassword(joel.getId(), change);
 	}
 
 	@Test(expected = ScimException.class)
 	public void userCantChangeAnotherUsersPassword() {
-		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
-		when(sca.getUserId()).thenReturn(joel.getId());
-		endpoints.setSecurityContextAccessor(sca);
+		endpoints.setSecurityContextAccessor(mockSecurityContext(joel));
 		PasswordChangeRequest change = new PasswordChangeRequest();
 		change.setOldPassword("password");
 		change.setPassword("newpassword");
@@ -103,8 +99,7 @@ public class ScimUserEndpointsTests {
 
 	@Test
 	public void adminCanChangeAnotherUsersPassword() {
-		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
-		when(sca.getUserId()).thenReturn(dale.getId());
+		SecurityContextAccessor sca = mockSecurityContext(dale);
 		when(sca.isAdmin()).thenReturn(true);
 		endpoints.setSecurityContextAccessor(sca);
 		PasswordChangeRequest change = new PasswordChangeRequest();
@@ -114,60 +109,80 @@ public class ScimUserEndpointsTests {
 
 	@Test(expected = ScimException.class)
 	public void changePasswordRequestFailsForUserWithoutCurrentPassword() {
-		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
-		String id = joel.getId();
-		when(sca.getUserId()).thenReturn(id);
-		endpoints.setSecurityContextAccessor(sca);
+		endpoints.setSecurityContextAccessor(mockSecurityContext(joel));
 		PasswordChangeRequest change = new PasswordChangeRequest();
 		change.setPassword("newpassword");
-		endpoints.changePassword(id, change);
+		endpoints.changePassword(joel.getId(), change);
 	}
 
 	@Test(expected = ScimException.class)
 	public void changePasswordRequestFailsForAdminWithoutOwnCurrentPassword() {
-		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
-		String id = joel.getId();
-		when(sca.getUserId()).thenReturn(id);
-		when(sca.isAdmin()).thenReturn(true);
-		endpoints.setSecurityContextAccessor(sca);
+		endpoints.setSecurityContextAccessor(mockSecurityContext(joel));
 		PasswordChangeRequest change = new PasswordChangeRequest();
 		change.setPassword("newpassword");
-		endpoints.changePassword(id, change);
+		endpoints.changePassword(joel.getId(), change);
 	}
 
 	@Test
 	public void clientCanChangeUserPasswordWithoutCurrentPassword() {
-		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
-		String id = joel.getId();
+		SecurityContextAccessor sca = mockSecurityContext(joel);
 		when(sca.isClient()).thenReturn(true);
 		endpoints.setSecurityContextAccessor(sca);
 		PasswordChangeRequest change = new PasswordChangeRequest();
 		change.setPassword("newpassword");
-		endpoints.changePassword(id, change);
+		endpoints.changePassword(joel.getId(), change);
 	}
 
 	@Test(expected = BadCredentialsException.class)
 	public void changePasswordFailsForUserIfTheySupplyWrongCurrentPassword() {
-		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
-		String id = joel.getId();
-		when(sca.getUserId()).thenReturn(id);
-		endpoints.setSecurityContextAccessor(sca);
+		endpoints.setSecurityContextAccessor(mockSecurityContext(joel));
 		PasswordChangeRequest change = new PasswordChangeRequest();
 		change.setPassword("newpassword");
 		change.setOldPassword("wrongpassword");
-		endpoints.changePassword(id, change);
+		endpoints.changePassword(joel.getId(), change);
+	}
+
+	@Test
+	public void deleteIsAllowedWithCorrectVersionInEtag() {
+		ScimUser exGuy = new ScimUser(null, "deleteme", "Expendable", "Guy");
+		exGuy.addEmail("exguy@imonlyheretobedeleted.com");
+		exGuy = dao.createUser(exGuy, "exguyspassword");
+		endpoints.deleteUser(exGuy.getId(), Integer.toString(exGuy.getMeta().getVersion()));
+	}
+
+	@Test(expected = OptimisticLockingFailureException.class)
+	public void deleteIsNotAllowedWithWrongVersionInEtag() {
+		ScimUser exGuy = new ScimUser(null, "deleteme2", "Expendable", "Guy");
+		exGuy.addEmail("exguy2@imonlyheretobedeleted.com");
+		exGuy = dao.createUser(exGuy, "exguyspassword");
+		endpoints.deleteUser(exGuy.getId(), Integer.toString(exGuy.getMeta().getVersion() + 1));
+	}
+
+	@Test
+	public void deleteIsAllowedWithNullEtag() {
+		ScimUser exGuy = new ScimUser(null, "deleteme3", "Expendable", "Guy");
+		exGuy.addEmail("exguy3@imonlyheretobedeleted.com");
+		exGuy = dao.createUser(exGuy, "exguyspassword");
+		endpoints.deleteUser(exGuy.getId(), null);
+	}
+
+	private SecurityContextAccessor mockSecurityContext(ScimUser user) {
+		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
+		String id = user.getId();
+		when(sca.getUserId()).thenReturn(id);
+		return sca;
 	}
 
 	@Test
 	public void testFindAllIds() {
 		SearchResults<Map<String, Object>> results = endpoints.findUsers("id", "id pr", 1, 100);
-		assertEquals(2, results.getTotalResults());
+		assertEquals(5, results.getTotalResults());
 	}
 
 	@Test
 	public void testFindPageOfIds() {
 		SearchResults<Map<String, Object>> results = endpoints.findUsers("id", "id pr", 1, 1);
-		assertEquals(2, results.getTotalResults());
+		assertEquals(5, results.getTotalResults());
 		assertEquals(1, results.getResources().size());
 	}
 
@@ -204,7 +219,7 @@ public class ScimUserEndpointsTests {
 	@Test
 	public void testFindIdsByUserNameContains() {
 		SearchResults<Map<String, Object>> results = endpoints.findUsers("id", "userName co 'd'", 1, 100);
-		assertEquals(2, results.getTotalResults());
+		assertEquals(5, results.getTotalResults());
 		assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
 				.contains(joel.getId()));
 	}
@@ -241,7 +256,7 @@ public class ScimUserEndpointsTests {
 	@Test
 	public void testFindIdsWithBooleanExpression() {
 		SearchResults<Map<String, Object>> results = endpoints.findUsers("id", "userName co 'd' and id pr", 1, 100);
-		assertEquals(2, results.getTotalResults());
+		assertEquals(5, results.getTotalResults());
 		assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
 				.contains(joel.getId()));
 	}
