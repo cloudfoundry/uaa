@@ -25,13 +25,11 @@ class Cloudfoundry::Uaa::TokenChecker
 
   include Cloudfoundry::Uaa::Http
 
-  class AuthError < RuntimeError; end
-
   # Create a new instance of the token checker. Attributes:
   #
   # * target - the target base URL of the Authorization Server
   #
-  # * resource_id - the id of the Resource Server (known to the 
+  # * resource_id - the id of the Resource Server (known to the
   # Authorization Server), used to validate the tokens and also
   # to authenticate with the /check_token endpoint
   #

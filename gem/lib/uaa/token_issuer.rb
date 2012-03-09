@@ -27,19 +27,6 @@ class Cloudfoundry::Uaa::TokenIssuer
 
   include Cloudfoundry::Uaa::Http
 
-  # Takes an x-www-form-urlencoded string and returns a hash of symbol => value.
-  # It raises an ArgumentError if a key occurs more than once, which is a
-  # restriction of OAuth query strings. See draft-ietf-oauth-v2-23 section 3.1.
-  def self.decode_oauth_parameters(url_encoded_pairs)
-    args = {}
-    URI.decode_www_form(url_encoded_pairs).each do |p|
-      k = p[0].to_sym
-      raise ArgumentError, "duplicate keys in oauth form parameters" if args[k]
-      args[k] = p[1]
-    end
-    args
-  end
-
   def initialize(target, client_id, client_secret, scope, resource_ids)
     @target, @client_id, @client_secret = target, client_id, client_secret
     @scope, @resource_ids = scope, resource_ids
@@ -70,7 +57,7 @@ class Cloudfoundry::Uaa::TokenIssuer
     rescue URI::InvalidURIError, ArgumentError, BadResponse
       raise BadResponse, "received invalid response from target #{@target}"
     end
-    result_auth_header
+    token_auth_header
   end
 
   # constructs a uri that the client is to return to the browser to redirect the user
@@ -130,16 +117,29 @@ class Cloudfoundry::Uaa::TokenIssuer
     headers = {'Content-Type'=> "application/x-www-form-urlencoded",
         'Accept'=>"application/json",
         'Authorization' => "Basic " + Base64::strict_encode64("#{@client_id}:#{@client_secret}") }
-    body = URI.encode_www_form(params.merge!(scope: @scope))
+    body = URI.encode_www_form(params.merge(scope: @scope))
     @parsed_reply = json_parse_reply(*request(:post, '/oauth/token', body, headers))
-    result_auth_header
+    token_auth_header
   end
 
-  def result_auth_header
+  def token_auth_header
     unless @parsed_reply[:token_type] && @parsed_reply[:access_token]
-      raise TargetError.new(@parsed_reply), "response from target #{@target} did not include token type and access token"
+      raise TargetError.new(@parsed_reply), "no access token and type from target #{@target}"
     end
     "#{@parsed_reply[:token_type]} #{@parsed_reply[:access_token]}"
+  end
+
+  # Takes an x-www-form-urlencoded string and returns a hash of symbol => value.
+  # It raises an ArgumentError if a key occurs more than once, which is a
+  # restriction of OAuth query strings. See draft-ietf-oauth-v2-23 section 3.1.
+  def self.decode_oauth_parameters(url_encoded_pairs)
+    args = {}
+    URI.decode_www_form(url_encoded_pairs).each do |p|
+      k = p[0].to_sym
+      raise ArgumentError, "duplicate keys in oauth form parameters" if args[k]
+      args[k] = p[1]
+    end
+    args
   end
 
 end

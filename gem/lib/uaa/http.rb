@@ -28,6 +28,7 @@ module Cloudfoundry::Uaa::Http
   class NotFound < RuntimeError; end
   class BadResponse < RuntimeError; end
   class HTTPException < RuntimeError; end
+  class AuthError < RuntimeError; end
   class TargetError < RuntimeError
     attr_reader :info
     def initialize(error_info = {})
@@ -49,11 +50,11 @@ module Cloudfoundry::Uaa::Http
   end
 
   def json_parse_reply(status, body, headers)
+    unless [200, 201, 400].include? status
+      raise (status == 404 ? NotFound : BadResponse), "invalid status response from #{@target}: #{status}"
+    end
     if headers && headers[:content_type] !~ /application\/json/i
       raise BadTarget, "received invalid response content type from #{@target}"
-    end
-    if status != 200 && status != 400
-      raise (status == 404 ? NotFound : BadResponse), "invalid status response from #{@target}: #{status}"
     end
     parsed_reply = (JSON.parse(body, :symbolize_names => true) if body)
     if status == 400
@@ -80,9 +81,9 @@ module Cloudfoundry::Uaa::Http
     request(:put, path, body, 'Content-Type'=>content_type, 'Authorization'=>authorization)
   end
 
-  #def http_delete(path)
-    #request(:delete, path)
-  #end
+  def http_delete(path, authorization)
+    request(:delete, path, nil, 'Authorization'=>authorization)[0]
+  end
 
   def request(method, path, payload = nil, headers = {})
     headers = headers.dup
@@ -121,7 +122,11 @@ module Cloudfoundry::Uaa::Http
     [status, body, response_headers]
 
   rescue URI::Error, SocketError => e
+    debug_out "<---- no response due to exception (#{e})" if trace
     raise BadTarget, "Cannot access target (#{e.message})"
+  rescue e
+    debug_out "<---- no response due to exception (#{e})" if trace
+    raise
   end
 
   def perform_http_request(req)
@@ -150,7 +155,7 @@ module Cloudfoundry::Uaa::Http
     opts ={:connect_timeout => 10, :inactivity_timeout => 10}
     connection = EventMachine::HttpRequest.new(url, opts)
     client = connection.setup_request(method.to_sym, :head => headers, :body => payload)
-    client.callback { 
+    client.callback {
       response_headers = client.response_header.inject({}) { |h, (k, v)| h[k.downcase.to_sym] = v; h }
       f.resume [client.response_header.http_status, client.response, response_headers]
     }
@@ -163,10 +168,10 @@ module Cloudfoundry::Uaa::Http
     stripped = str.strip[0..limit]
     stripped.length > limit ? stripped + '...': stripped
   end
-  
+
   def debug_out(string)
     if logger
-      logger.debug(string) 
+      logger.debug(string)
     else
       puts(string)
     end
