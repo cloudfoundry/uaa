@@ -19,6 +19,7 @@ import java.util.HashSet;
 
 import javax.sql.DataSource;
 
+import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.Tasklet;
@@ -35,6 +36,8 @@ public class AdminUsersTasklet implements Tasklet {
 	private JdbcOperations jdbcTemplate;
 	
 	private Collection<String> admins = Collections.emptySet();
+
+	private int authority = 1;
 	
 	public void setDataSource(DataSource dataSource) {
 		jdbcTemplate = new JdbcTemplate(dataSource);
@@ -43,11 +46,15 @@ public class AdminUsersTasklet implements Tasklet {
 	public void setAdmins(Collection<String> admins) {
 		this.admins = new HashSet<String>(admins);
 	}
+	
+	public void setAuthority(UaaAuthority authority) {
+		this.authority = authority.value();
+	}
 
 	@Override
 	public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
 		for (String user : admins) {
-			int updated = jdbcTemplate.update("update users set authority=1 where userName=?", user);
+			int updated = jdbcTemplate.update("update users set authority=? where userName=?", authority , user);
 			contribution.incrementWriteCount(updated);
 		}
 		return RepeatStatus.FINISHED;

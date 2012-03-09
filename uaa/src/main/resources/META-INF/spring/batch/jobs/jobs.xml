@@ -15,7 +15,7 @@
 	</job>
 
 	<job id="userDataMigrationJob" xmlns="http://www.springframework.org/schema/batch">
-		<step id="copyDataStep" next="updateAdminUsersStep">
+		<step id="copyDataStep" next="migrateAdminUsers">
 			<tasklet>
 				<chunk reader="cloudControllerUserReader" processor="cloudControllerUserProcessor" writer="uaaUserWriter"
 					commit-interval="100" skip-limit="100">
@@ -25,23 +25,44 @@
 				</chunk>
 			</tasklet>
 		</step>
-		<step id="updateAdminUsersStep">
+		<step id="migrateAdminUsers" parent="adminUsersStep" />
+	</job>
+
+	<job id="updateAdminUsersJob" xmlns="http://www.springframework.org/schema/batch">
+		<step id="updateAdminUsers" parent="adminUsersStep" />
+	</job>
+
+	<job id="userDataSyncJob" xmlns="http://www.springframework.org/schema/batch">
+		<step id="syncDataStep">
 			<tasklet>
-				<bean xmlns="http://www.springframework.org/schema/beans" class="org.cloudfoundry.identity.uaa.scim.job.AdminUsersTasklet">
-					<property name="dataSource" ref="uaaDataSource" />
-					<property name="admins">
-						<value>#{new String('${cloud_controller.admin.users:vcap_tester@vmware.com}').split(',')}</value>
-					</property>
-				</bean>
+				<chunk reader="cloudControllerUserSyncReader" processor="lastModifiedFilter" writer="uaaPasswordUpdater"
+					commit-interval="100" skip-limit="100">
+					<skippable-exception-classes>
+						<include class="org.cloudfoundry.identity.uaa.scim.job.InvalidEmailException" />
+					</skippable-exception-classes>
+				</chunk>
 			</tasklet>
 		</step>
 	</job>
 
+	<step id="adminUsersStep" xmlns="http://www.springframework.org/schema/batch">
+		<tasklet>
+			<bean xmlns="http://www.springframework.org/schema/beans" class="org.cloudfoundry.identity.uaa.scim.job.AdminUsersTasklet"
+				scope="step">
+				<property name="dataSource" ref="uaaDataSource" />
+				<property name="admins">
+					<value>#{new String(jobParameters['users']?:'').split(',')}</value>
+				</property>
+				<property name="authority" value="#{jobParameters['authority']?:'ROLE_ADMIN'}"></property>
+			</bean>
+		</tasklet>
+	</step>
+	
 	<bean id="cloudControllerUserReader" class="org.springframework.batch.item.database.JdbcPagingItemReader" scope="step">
 		<property name="dataSource" ref="cloudControllerDataSource" />
 		<property name="parameterValues">
 			<map>
-				<entry key="id" value="#{jobParameters['minId']?:0}"/>
+				<entry key="id" value="#{jobParameters['minId']?:0}" />
 			</map>
 		</property>
 		<property name="queryProvider">
@@ -58,7 +79,32 @@
 		</property>
 	</bean>
 
+	<bean id="cloudControllerUserSyncReader" class="org.springframework.batch.item.database.JdbcPagingItemReader" scope="step">
+		<property name="dataSource" ref="cloudControllerDataSource" />
+		<property name="parameterValues">
+			<map>
+				<entry key="start.date" value="#{jobParameters['start.date']}" />
+			</map>
+		</property>
+		<property name="queryProvider">
+			<bean class="org.springframework.batch.item.database.support.SqlPagingQueryProviderFactoryBean">
+				<property name="dataSource" ref="cloudControllerDataSource" />
+				<property name="selectClause" value="*" />
+				<property name="fromClause" value="users" />
+				<property name="whereClause" value="updated_at>=:start.date" />
+				<property name="sortKey" value="updated_at" />
+			</bean>
+		</property>
+		<property name="rowMapper">
+			<bean class="org.springframework.jdbc.core.ColumnMapRowMapper" />
+		</property>
+	</bean>
+
 	<bean id="cloudControllerUserProcessor" class="org.cloudfoundry.identity.uaa.scim.job.CloudControllerUserItemProcessor" />
+
+	<bean id="lastModifiedFilter" class="org.cloudfoundry.identity.uaa.scim.job.CloudControllerLastModifiedFilterProcessor">
+		<property name="dataSource" ref="uaaDataSource" />
+	</bean>
 
 	<bean id="uaaUserWriter" class="org.springframework.batch.item.database.JdbcBatchItemWriter">
 		<property name="dataSource" ref="uaaDataSource" />
@@ -72,6 +118,21 @@
 		<property name="itemSqlParameterSourceProvider">
 			<bean class="org.cloudfoundry.identity.uaa.scim.job.MapItemSqlParameterSourceProvider" />
 		</property>
+	</bean>
+
+	<bean id="uaaPasswordUpdater" class="org.springframework.batch.item.database.JdbcBatchItemWriter">
+		<property name="dataSource" ref="uaaDataSource" />
+		<property name="sql">
+			<value>
+				update users set 
+					version=:version,lastModified=:lastModified,password=:password
+				where userName=:userName and password!=:password
+			</value>
+		</property>
+		<property name="itemSqlParameterSourceProvider">
+			<bean class="org.cloudfoundry.identity.uaa.scim.job.MapItemSqlParameterSourceProvider" />
+		</property>
+		<property name="assertUpdates" value="false"/>
 	</bean>
 
 	<bean id="uaaDataSource" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
