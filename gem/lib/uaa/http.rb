@@ -35,7 +35,7 @@ module Cloudfoundry::Uaa::Http
     end
   end
 
-  attr_accessor :trace, :proxy, :async
+  attr_accessor :trace, :proxy, :async, :logger
   attr_reader :target
 
   private
@@ -94,25 +94,29 @@ module Cloudfoundry::Uaa::Http
 
     raise BadTarget, "Missing target. Please set the target before executing a request" unless @target
 
-    req = { :method => method, :url => "#{@target}#{path}",
-      :payload => payload, :headers => headers, :multipart => true }
+    req = {
+      :method => method, :url => "#{@target}#{path}",
+      :payload => payload, :headers => headers, :multipart => true
+    }
     if trace
-      puts "--->"
-      puts "request: #{method} #{req[:url]}"
-      puts "headers: #{headers}"
-      puts "body: #{truncate(payload.to_s, 200)}" if payload
-      puts "async: #{async.inspect}"
+      debug_out "--->"
+      debug_out "request: #{method} #{req[:url]}"
+      debug_out "headers: #{headers}"
+      debug_out "body: #{truncate(payload.to_s, 200)}" if payload
+      debug_out "async: #{async.inspect}"
     end
+
     if async == true && EventMachine.reactor_running?
       status, body, response_headers = perform_ahttp_request(req)
     else
       status, body, response_headers = perform_http_request(req)
     end
+
     if trace
-      puts "<---"
-      puts "response: #{status}"
-      puts "headers: #{response_headers}"
-      puts "body: #{truncate(body.to_s, 200)}" if body
+      debug_out "<---"
+      debug_out "response: #{status}"
+      debug_out "headers: #{response_headers}"
+      debug_out "body: #{truncate(body.to_s, 200)}" if body
     end
     [status, body, response_headers]
 
@@ -127,6 +131,29 @@ module Cloudfoundry::Uaa::Http
     result = nil
     RestClient::Request.execute(req) do |response, request|
       result = [ response.code, response.body, response.headers ]
+      unless trace.nil?
+        debug_out '>>>'
+        debug_out "ASYNC: FALSE"
+        debug_out "PROXY: #{RestClient.proxy}" if RestClient.proxy
+        debug_out "REQUEST: #{req[:method]} #{req[:url]}"
+        debug_out "REQUEST_HEADERS:"
+        req[:headers].each do |key, value|
+            debug_out "    #{key} : #{value}"
+        end
+        debug_out "REQUEST_BODY: #{req[:payload]}" if req[:payload]
+        debug_out "RESPONSE: [#{response.code}]"
+        debug_out "RESPONSE_HEADERS:"
+        response.headers.each do |key, value|
+            debug_out "    #{key} : #{value}"
+        end
+        debug_out "BODY:"
+        begin
+            debug_out JSON.pretty_generate(JSON.parse(response.body))
+        rescue
+            debug_out "#{truncate(response.body, 200)}" if response.body
+        end
+        debug_out '<<<'
+      end
     end
     result
 
@@ -137,23 +164,57 @@ module Cloudfoundry::Uaa::Http
   end
 
   def perform_ahttp_request(req)
+    url = req[:url]
+    method = req[:method]
+    headers = req[:headers]
+    payload = req[:payload]
+
     f = Fiber.current
-    connection = EventMachine::HttpRequest.new(req[:url],
-        connect_timeout: 10, inactivity_timeout: 10)
-    client = connection.setup_request(req[:method].to_sym,
-        head: req[:headers], body: req[:payload])
-    client.callback do
-      f.resume [client.response_header.http_status, client.response, client.response_header]
-    end
-    client.errback do
-      f.resume HTTPException.new("An error occurred in the HTTP request: #{http.errors}", self)
-    end
+    opts ={:connect_timeout => 10, :inactivity_timeout => 10}
+    connection = EventMachine::HttpRequest.new(url, opts)
+    client = connection.setup_request(method.to_sym, :head => headers, :body => payload)
+    client.callback { 
+      response_headers = client.response_header.inject({}) { |h, (k, v)| h[k.downcase.to_sym] = v; h }
+      unless trace.nil?
+        debug_out '>>>'
+        debug_out "ASYNC: TRUE"
+        debug_out "REQUEST: #{req[:method]} #{req[:url]}"
+        debug_out "REQUEST_HEADERS:"
+        req[:headers].each do |key, value|
+            debug_out "    #{key} : #{value}"
+        end
+        debug_out "REQUEST_BODY: #{req[:payload]}" if req[:payload]
+        debug_out "RESPONSE: [#{client.response_header.http_status}]"
+        debug_out "RESPONSE_HEADERS:"
+        response_headers.each do |key, value|
+            debug_out "    #{key} : #{value}"
+        end
+        debug_out "BODY:"
+        begin
+            debug_out JSON.pretty_generate(JSON.parse(client.response))
+        rescue
+            debug_out "#{truncate(client.response, 200)}" if client.response
+        end
+        debug_out '<<<'
+      end
+      f.resume [client.response_header.http_status, client.response, response_headers]
+    }
+    client.errback  { f.resume HTTPException.new("An error occurred in the HTTP request: #{http.errors}", self) }
+
     return Fiber.yield
   end
 
   def truncate(str, limit = 30)
     stripped = str.strip[0..limit]
     stripped.length > limit ? stripped + '...': stripped
+  end
+  
+  def debug_out(string)
+    if logger
+      logger.debug(string) 
+    else
+      puts(string)
+    end
   end
 
 end
