@@ -10,7 +10,6 @@
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  */
-import com.excilys.ebi.gatling.app.Simulation
 import com.excilys.ebi.gatling.core.Predef._
 import com.excilys.ebi.gatling.http.Predef._
 
