@@ -94,25 +94,28 @@ module Cloudfoundry::Uaa::Http
 
     raise BadTarget, "Missing target. Please set the target before executing a request" unless @target
 
-    req = { :method => method, :url => "#{@target}#{path}",
-      :payload => payload, :headers => headers, :multipart => true }
+    req = {
+      :method => method, :url => "#{@target}#{path}",
+      :payload => payload, :headers => headers, :multipart => true
+    }
     if trace
-      puts "--->"
-      puts "request: #{method} #{req[:url]}"
-      puts "headers: #{headers}"
-      puts "body: #{truncate(payload.to_s, 200)}" if payload
-      puts "async: #{async.inspect}"
+      debug_out "--->"
+      debug_out "request: #{method} #{req[:url]}"
+      debug_out "headers: #{headers}"
+      debug_out "body: #{truncate(payload.to_s, 200)}" if payload
+      debug_out "async: #{async.inspect}"
     end
     if async == true && EventMachine.reactor_running?
       status, body, response_headers = perform_ahttp_request(req)
     else
       status, body, response_headers = perform_http_request(req)
     end
+
     if trace
-      puts "<---"
-      puts "response: #{status}"
-      puts "headers: #{response_headers}"
-      puts "body: #{truncate(body.to_s, 200)}" if body
+      debug_out "<---"
+      debug_out "response: #{status}"
+      debug_out "headers: #{response_headers}"
+      debug_out "body: #{truncate(body.to_s, 200)}" if body
     end
     [status, body, response_headers]
 

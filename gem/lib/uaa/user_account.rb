@@ -22,6 +22,8 @@ class Cloudfoundry::Uaa::UserAccount
 
   class AuthError < RuntimeError; end
 
+  attr_accessor :access_token
+
   def initialize(target, access_token)
     @target, @access_token = target, access_token
   end
@@ -61,6 +63,9 @@ class Cloudfoundry::Uaa::UserAccount
     # TODO: rescue from 403 and ask user to reset password through
     # another channel
     status, body, headers = http_put("/User/#{id}/password", password_request.to_json, "application/json", "Bearer #{@access_token}")
+    if status != 204
+      raise BadResponse, "Error updating the user's password"
+    end
 
     user
   end
