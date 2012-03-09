@@ -53,7 +53,7 @@ public class ConvertingExceptionView implements View {
 
 	@Override
 	public String getContentType() {
-		return null;
+		return MediaType.ALL_VALUE;
 	}
 
 	@Override

@@ -71,6 +71,8 @@ public class YamlServletProfileInitializerTests {
 		Log4jConfigurer.initLogging("classpath:log4j.properties");
 		if (activeProfiles!=null) {
 			System.setProperty("spring.profiles.active", activeProfiles);
+		} else {
+			System.clearProperty("spring.profiles.active");
 		}
 	}
 
