@@ -11,7 +11,6 @@
 # subcomponent's license, as noted in the LICENSE file.
 #
 
-require 'base64'
 require 'uaa/http'
 
 # This class is for apps that need to manage User Accounts.
@@ -20,79 +19,66 @@ class Cloudfoundry::Uaa::UserAccount
 
   include Cloudfoundry::Uaa::Http
 
-  class AuthError < RuntimeError; end
-
-  attr_accessor :access_token
-
-  def initialize(target, access_token)
-    @target, access_token = target, access_token
+  def initialize(target, authorization)
+    @target, @authorization = target, authorization
   end
 
-  def create(username, password, email_addresses, other={})
-    raise AuthError, "No token provided. You must login first and set the authorization token up." unless access_token
-
-    family_name = other[:family_name] if other[:family_name]
-    given_name = other[:given_name] if other[:given_name]
+  def create(username, password, email_addresses = nil, given_name = username, family_name = username)
+    unless @authorization
+      raise AuthError, "No authorization provided. You must login first to get a token."
+    end
 
     emails = []
     if email_addresses.respond_to?(:each)
-      email_addresses.each do |email_address|
-        emails.unshift({:value => email_address})
+      email_addresses.each { |email| emails.unshift({:value => email}) }
+    else
+      emails = [{:value => (email_addresses || username) }]
+    end
+
+    request = { userName: username, emails: emails,
+        name: { givenName: given_name, familyName: family_name }}
+    user = json_parse_reply(*http_post("/User", request.to_json, "application/json", @authorization))
+    unless user[:id]
+      raise BadResponse, "no user id returned for new user from target #{@target}"
+    end
+
+    # TODO: change this when CFID-184 is done (include password in create user call)
+    begin
+      change_password user[:id], password
+    rescue BadResponse
+      # give it a good try to delete the user since we couldn't set the password,
+      # then reraise the original exception
+      begin
+        delete user[:id]
+      rescue
       end
-    elsif !email_addresses.nil?
-      emails = [{:value => email_addresses}]
+      raise
     end
-
-    if given_name.nil? && emails.size() > 0
-      given_name = emails[0][:value]
-    end
-
-    if family_name.nil? && emails.size() > 0
-      family_name = emails[0][:value]
-    end
- 
-    request= {
-      :name=>{
-        :givenName=>given_name,
-        :familyName=>family_name
-      },
-      :userName=>username,
-      :emails=>emails
-    }
-
-    status, body, headers = http_post("/User", request.to_json, "application/json", "#{access_token}")
-    user = json_parse(body)
-    if user[:error]
-      raise BadResponse, "Error creating a user #{user.inspect}"
-    end
-
-    id = user[:id]
-    password_request = {:password=>password}
-
-    # TODO: rescue from 403 and ask user to reset password through
-    # another channel
-    status, body, headers = http_put("/User/#{id}/password", password_request.to_json, "application/json", "#{access_token}")
-    if status != 204
-      raise BadResponse, "Error updating the user's password"
-    end
-
     user
+
   end
 
   def update(user_id, info = {})
   # => yes/no, error
   end
 
-  def change_password(user_id, old_password, new_password)
-  # => yes/no, error
+  def change_password(user_id, new_password)
+    password_request = { password: new_password }
+    status, body, headers = http_put("/User/#{user_id}/password", password_request.to_json, "application/json", @authorization)
+    unless status == 204
+      raise BadResponse, "Error updating the user's password from target #{@target}, status #{status}"
+    end
   end
 
-  def query(attr_name, attr_value)
-  # => user_ids[], or users{}?
+  def query(attribute, filter_attribute, filter_value)
+    query = { attributes: attribute, filter: "#{filter_attribute} eq #{filter_value}" }
+    json_get("/Users?#{URI.encode_www_form(query)}", @authorization)
   end
 
   def delete(user_id)
-  # => yes/no, error
+    unless (status = http_delete("/User/#{user_id}", @authorization)) == 200
+      raise (status == 404 ? NotFound : BadResponse), "invalid response from #{@target}: #{status}"
+    end
   end
 
 end

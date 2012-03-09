@@ -23,6 +23,15 @@ describe Cloudfoundry::Uaa::TokenIssuer do
         "test_secret", "read", "test_resource")
   end
 
+  def check_good_token_info(auth_header)
+    auth_header.should == "exampletokentype good.access.token"
+    subject.info[:access_token].should == "good.access.token"
+    subject.info[:token_type].should == "exampletokentype"
+    subject.info[:refresh_token].should == "good.refresh.token"
+    subject.info[:example_parameter].should == "example parameter value"
+    subject.info[:scope].should == "read-logs"
+  end
+
   context "with client credentials grant" do
 
     before :each do
@@ -34,12 +43,7 @@ describe Cloudfoundry::Uaa::TokenIssuer do
 
     it "should get a token with client credentials" do
       @stub_req.to_return(File.new(spec_asset('oauth_token_good.txt')))
-      subject.client_credentials_grant.should == "exampletokentype good.access.token"
-      subject.info[:access_token].should == "good.access.token"
-      subject.info[:token_type].should == "exampletokentype"
-      subject.info[:refresh_token].should == "good.refresh.token"
-      subject.info[:example_parameter].should == "example parameter value"
-      subject.info[:scope].should == "read-logs"
+      check_good_token_info subject.client_credentials_grant
     end
 
     it "should raise a bad target error if response content type is not json" do
@@ -106,12 +110,7 @@ describe Cloudfoundry::Uaa::TokenIssuer do
 
     it "should get a token with owner password" do
       @stub_req.to_return(File.new(spec_asset('oauth_token_good.txt')))
-      subject.owner_password_grant(@username, @userpwd).should == "exampletokentype good.access.token"
-      subject.info[:access_token].should == "good.access.token"
-      subject.info[:token_type].should == "exampletokentype"
-      subject.info[:refresh_token].should == "good.refresh.token"
-      subject.info[:example_parameter].should == "example parameter value"
-      subject.info[:scope].should == "read-logs"
+      check_good_token_info subject.owner_password_grant(@username, @userpwd)
     end
 
     it "should raise a response content type is not json" do
@@ -143,12 +142,7 @@ describe Cloudfoundry::Uaa::TokenIssuer do
 
     it "should get an access token with a refresh token" do
       @stub_req.to_return(File.new(spec_asset('oauth_token_good.txt')))
-      subject.refresh_token_grant(@refresh_token).should == "exampletokentype good.access.token"
-      subject.info[:access_token].should == "good.access.token"
-      subject.info[:token_type].should == "exampletokentype"
-      subject.info[:refresh_token].should == "good.refresh.token"
-      subject.info[:example_parameter].should == "example parameter value"
-      subject.info[:scope].should == "read-logs"
+      check_good_token_info subject.refresh_token_grant(@refresh_token)
     end
   end
 
@@ -255,14 +249,7 @@ describe Cloudfoundry::Uaa::TokenIssuer do
 
       authcode_uri = subject.authcode_redirect_uri(callback_uri)
       params = subject.class.decode_oauth_parameters(URI.parse(authcode_uri).query)
-
-      subject.authcode_grant("code=good.auth.code&state=#{params[:state]}")
-          .should == "exampletokentype good.access.token"
-      subject.info[:access_token].should == "good.access.token"
-      subject.info[:token_type].should == "exampletokentype"
-      subject.info[:refresh_token].should == "good.refresh.token"
-      subject.info[:example_parameter].should == "example parameter value"
-      subject.info[:scope].should == "read-logs"
+      check_good_token_info subject.authcode_grant("code=good.auth.code&state=#{params[:state]}")
     end
 
     it "should reject an access token with an invalid state" do
