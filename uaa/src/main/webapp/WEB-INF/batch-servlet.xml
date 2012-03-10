@@ -56,7 +56,8 @@
 		<property name="order" value="1" />
 	</bean>
 
-	<!-- Switch off Batch MBeans -->
+	<!-- Switch off MBeans -->
+	<bean id="integrationMBeanExporter" class="java.lang.String"/>
 	<bean id="batchMBeanExporter" class="java.lang.String"/>
 	<bean id="cacheInterceptor" class="java.lang.String" />
 
