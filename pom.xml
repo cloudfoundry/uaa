@@ -43,6 +43,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-eclipse-plugin</artifactId>
+				<version>2.9</version>
 				<configuration>
 					<additionalProjectnatures>
 						<projectnature>org.springframework.ide.eclipse.core.springnature</projectnature>
@@ -69,6 +70,7 @@
 			<plugin>
 				<groupId>com.mycila.maven-license-plugin</groupId>
 				<artifactId>maven-license-plugin</artifactId>
+                <version>1.9.0</version>
 				<configuration>
 					<header>NOTICE.TXT</header>
 					<excludes>
@@ -212,6 +214,11 @@
 						</dependency>
 					</dependencies>
 				</plugin>
+                <plugin>
+                  <groupId>org.codehaus.mojo</groupId>
+                  <artifactId>maven-emma-plugin</artifactId>
+                  <version>1.0-alpha-3</version>
+                </plugin>
 			</plugins>
 		</pluginManagement>
 		<extensions>
