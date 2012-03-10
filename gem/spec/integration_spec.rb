@@ -14,9 +14,9 @@
 require 'spec_helper'
 require 'uaa'
 
-ENV["UAA_CLIENT_ID"] = "scim"
-ENV["UAA_CLIENT_SECRET"] = "scimsecret"
-ENV["UAA_CLIENT_TARGET"] = "http://localhost:8080/uaa"
+#ENV["UAA_CLIENT_ID"] = "scim"
+#ENV["UAA_CLIENT_SECRET"] = "scimsecret"
+#ENV["UAA_CLIENT_TARGET"] = "http://localhost:8080/uaa"
 
 if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
 
@@ -57,23 +57,26 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
         puts usr[:id]
       end
 
-      it "finds the user" do
+      it "finds the user by name" do
         user_info = @user_acct.query_by_value("id", "username", @username)
         puts JSON.pretty_generate(user_info)
         puts user_info
       end
 
-      it "gets the user" do
+      it "gets the user by id" do
         user_id = ENV["UAA_USER_ID"]
         user_info = @user_acct.get(user_id)
         puts JSON.pretty_generate(user_info)
         puts user_info[:meta][:version]
       end
 
+      it "changes the user's password by name" do
+        @user_acct.change_password_by_name(@username, "newpassword")
+        # TODO: query that the user is gone
+      end
+
       it "deletes the user by name" do
-        user_id = ENV["UAA_USER_ID"]
-        puts user_id
-        @user_acct.delete(user_id)
+        @user_acct.delete_by_name(@username)
         # TODO: query that the user is gone
       end
 

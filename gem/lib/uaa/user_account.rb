@@ -86,11 +86,21 @@ class Cloudfoundry::Uaa::UserAccount
   end
 
   def delete_by_name(username)
-    qinfo = query_by_value(:id, :username, username)
+    delete user_id_from_name(username)
+  end
+
+  def change_password_by_name(username, new_password)
+    change_password(user_id_from_name(username), new_password)
+  end
+
+  private
+
+  def user_id_from_name(name)
+    qinfo = query_by_value(:id, :username, name)
     unless qinfo && qinfo[:resources] && qinfo[:resources][0] && qinfo[:resources][0][:id]
       raise NotFound, "user #{username} not found in #{@target}"
     end
-    delete qinfo[:resources][0][:id]
+    qinfo[:resources][0][:id]
   end
 
 end
