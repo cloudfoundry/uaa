@@ -16,7 +16,6 @@ import java.util.Date;
 import java.util.Iterator;
 
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.Job;
@@ -26,12 +25,14 @@ import org.springframework.batch.core.StepExecution;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.ContextConfiguration;
 
 /**
  * @author Dave Syer
  * 
  */
-@Ignore("TODO: unignore this when we figure out where the databas eis being closed down")
+// @Ignore("TODO: unignore this when we figure out where the database is being closed down")
+@ContextConfiguration
 public class UserMigrationJobIntegrationTests extends AbstractJobIntegrationTests {
 
 	@Autowired

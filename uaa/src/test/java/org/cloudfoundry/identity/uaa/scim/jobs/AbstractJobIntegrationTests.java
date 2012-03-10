@@ -18,7 +18,9 @@ import org.cloudfoundry.identity.uaa.NullSafeSystemProfileValueSource;
 import org.cloudfoundry.identity.uaa.ParentContextLoader;
 import org.cloudfoundry.identity.uaa.TestUtils;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.springframework.batch.core.launch.support.SimpleJobLauncher;
 import org.springframework.batch.core.repository.JobRepository;
@@ -42,6 +44,17 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public abstract class AbstractJobIntegrationTests {
 
 	protected SimpleJobLauncher jobLauncher;
+
+	@BeforeClass
+	public static void setUpDatabaseUrl() {
+		// Switch the database URL for these tests so that any stale connections from other places don't muck things up
+		System.setProperty("batch.jdbc.url", "jdbc:hsqldb:mem:batchtest;sql.enforce_strict_size=true");
+	}
+
+	@AfterClass
+	public static void cleanUpDatabaseUrl() {
+		System.clearProperty("batch.jdbc.url");
+	}
 
 	@Autowired
 	public void setJobRepository(JobRepository jobRepository) throws Exception {
