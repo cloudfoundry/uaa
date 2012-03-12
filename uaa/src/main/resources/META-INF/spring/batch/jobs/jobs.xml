@@ -57,7 +57,7 @@
 			</bean>
 		</tasklet>
 	</step>
-	
+
 	<bean id="cloudControllerUserReader" class="org.springframework.batch.item.database.JdbcPagingItemReader" scope="step">
 		<property name="dataSource" ref="cloudControllerDataSource" />
 		<property name="parameterValues">
@@ -79,7 +79,8 @@
 		</property>
 	</bean>
 
-	<bean id="cloudControllerUserSyncReader" class="org.springframework.batch.item.database.JdbcPagingItemReader" scope="step">
+	<bean id="cloudControllerUserSyncReader" class="org.springframework.batch.item.database.JdbcPagingItemReader"
+		scope="step">
 		<property name="dataSource" ref="cloudControllerDataSource" />
 		<property name="parameterValues">
 			<map>
@@ -124,15 +125,15 @@
 		<property name="dataSource" ref="uaaDataSource" />
 		<property name="sql">
 			<value>
-				update users set 
-					version=:version,lastModified=:lastModified,password=:password
+				update users set
+				version=:version,lastModified=:lastModified,password=:password
 				where userName=:userName and password!=:password
 			</value>
 		</property>
 		<property name="itemSqlParameterSourceProvider">
 			<bean class="org.cloudfoundry.identity.uaa.scim.job.MapItemSqlParameterSourceProvider" />
 		</property>
-		<property name="assertUpdates" value="false"/>
+		<property name="assertUpdates" value="false" />
 	</bean>
 
 	<bean id="uaaDataSource" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">

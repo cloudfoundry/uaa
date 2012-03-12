@@ -48,7 +48,9 @@ public abstract class AbstractJobIntegrationTests {
 	@BeforeClass
 	public static void setUpDatabaseUrl() {
 		// Switch the database URL for these tests so that any stale connections from other places don't muck things up
-		System.setProperty("batch.jdbc.url", "jdbc:hsqldb:mem:batchtest;sql.enforce_strict_size=true");
+		if (System.getProperty("spring.profiles.active", "").contains("hsqldb")) {
+			System.setProperty("batch.jdbc.url", "jdbc:hsqldb:mem:batchtest;sql.enforce_strict_size=true");
+		}
 	}
 
 	@AfterClass

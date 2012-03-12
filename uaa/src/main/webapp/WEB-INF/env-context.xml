@@ -38,6 +38,7 @@
 				</property>
 			</bean>
 		</property>
+		<property name="registrationBehaviorName" value="REGISTRATION_REPLACE_EXISTING"/>
 	</bean>
 
 	<beans profile="default,hsqldb">
