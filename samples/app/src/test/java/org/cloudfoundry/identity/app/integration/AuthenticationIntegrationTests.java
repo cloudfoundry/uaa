@@ -1,14 +1,11 @@
 /**
- * Cloud Foundry 2012.02.03 Beta
- * Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved.
- *
- * This product is licensed to you under the Apache License, Version 2.0 (the "License").
- * You may not use this product except in compliance with the License.
- *
- * This product includes a number of subcomponents with
- * separate copyright notices and license terms. Your use of these
- * subcomponents is subject to the terms and conditions of the
- * subcomponent's license, as noted in the LICENSE file.
+ * Cloud Foundry 2012.02.03 Beta Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved.
+ * 
+ * This product is licensed to you under the Apache License, Version 2.0 (the "License"). You may not use this product
+ * except in compliance with the License.
+ * 
+ * This product includes a number of subcomponents with separate copyright notices and license terms. Your use of these
+ * subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
  */
 package org.cloudfoundry.identity.app.integration;
 
@@ -28,8 +25,8 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 /**
- * Tests implicit grant using a direct posting of credentials to the /authorize endpoint and
- * also with an intermediate form login.
+ * Tests implicit grant using a direct posting of credentials to the /authorize endpoint and also with an intermediate
+ * form login.
  * 
  * @author Dave Syer
  */
@@ -54,18 +51,18 @@ public class AuthenticationIntegrationTests {
 		result = serverRunning.getForResponse("/app/", appHeaders);
 		assertEquals(HttpStatus.FOUND, result.getStatusCode());
 		location = result.getHeaders().getLocation().toString();
-		
+
 		cookie = result.getHeaders().getFirst("Set-Cookie");
 		assertNotNull("Expected cookie in " + result.getHeaders(), cookie);
 		appHeaders.set("Cookie", cookie);
-		
-		assertTrue("Wrong location: "+ location, location.contains("/app/login"));
+
+		assertTrue("Wrong location: " + location, location.contains("/app/login"));
 		// *** GET /app/login
 		result = serverRunning.getForResponse(location, appHeaders);
 		assertEquals(HttpStatus.FOUND, result.getStatusCode());
 		location = result.getHeaders().getLocation().toString();
-		
-		assertTrue("Wrong location: "+ location, location.contains("/uaa/oauth/authorize"));
+
+		assertTrue("Wrong location: " + location, location.contains("/uaa/oauth/authorize"));
 		// *** GET /uaa/oauth/authorize
 		result = serverRunning.getForResponse(location, uaaHeaders);
 		assertEquals(HttpStatus.FOUND, result.getStatusCode());
@@ -75,7 +72,7 @@ public class AuthenticationIntegrationTests {
 		assertNotNull("Expected cookie in " + result.getHeaders(), cookie);
 		uaaHeaders.set("Cookie", cookie);
 
-		assertTrue("Wrong location: "+ location, location.contains("/uaa/login"));
+		assertTrue("Wrong location: " + location, location.contains("/uaa/login"));
 		location = "/uaa/login.do";
 
 		MultiValueMap<String, String> formData;
@@ -93,36 +90,32 @@ public class AuthenticationIntegrationTests {
 		assertEquals(HttpStatus.FOUND, result.getStatusCode());
 		location = result.getHeaders().getLocation().toString();
 
-		assertTrue("Wrong location: "+ location, location.contains("/uaa/oauth/authorize"));
+		assertTrue("Wrong location: " + location, location.contains("/uaa/oauth/authorize"));
 		// *** GET /uaa/oauth/authorize
 		result = serverRunning.getForResponse(location, uaaHeaders);
-		assertEquals(HttpStatus.OK, result.getStatusCode());
 
-		location = "/uaa/oauth/authorize";
+		// If there is no token in place alreday for this client we ge the approval page.
+		if (result.getStatusCode() == HttpStatus.OK) {
+			location = "/uaa/oauth/authorize";
 
-		formData = new LinkedMultiValueMap<String, String>();
-		formData.add("user_oauth_approval", "true");
+			formData = new LinkedMultiValueMap<String, String>();
+			formData.add("user_oauth_approval", "true");
 
-		// *** POST /uaa/oauth/authorize
-		result = serverRunning.postForResponse(location, uaaHeaders, formData);
+			// *** POST /uaa/oauth/authorize
+			result = serverRunning.postForResponse(location, uaaHeaders, formData);
+		}
+
 		location = result.getHeaders().getLocation().toString();
 
-		assertTrue("Wrong location: "+ location, location.contains("app/login"));
+		assertTrue("Wrong location: " + location, location.contains("app/login"));
 		// *** GET /app/login
 		result = serverRunning.getForResponse(location, appHeaders);
 
 		assertEquals(HttpStatus.FOUND, result.getStatusCode());
 		location = result.getHeaders().getLocation().toString();
-		
-		assertTrue("Wrong location: "+ location, location.contains("app/login"));
-		// *** GET /app/login
-		result = serverRunning.getForResponse(location, appHeaders);
 
-		assertEquals(HttpStatus.FOUND, result.getStatusCode());
-		location = result.getHeaders().getLocation().toString();
-		
 		// SUCCESS
-		assertTrue("Wrong location: "+ location, location.endsWith("/app/"));
+		assertTrue("Wrong location: " + location, location.endsWith("/app/"));
 
 		// *** GET /app/
 		result = serverRunning.getForResponse(location, appHeaders);
