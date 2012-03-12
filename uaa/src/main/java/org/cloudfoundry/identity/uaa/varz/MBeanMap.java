@@ -1,14 +1,11 @@
 /**
- * Cloud Foundry 2012.02.03 Beta
- * Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved.
- *
- * This product is licensed to you under the Apache License, Version 2.0 (the "License").
- * You may not use this product except in compliance with the License.
- *
- * This product includes a number of subcomponents with
- * separate copyright notices and license terms. Your use of these
- * subcomponents is subject to the terms and conditions of the
- * subcomponent's license, as noted in the LICENSE file.
+ * Cloud Foundry 2012.02.03 Beta Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved.
+ * 
+ * This product is licensed to you under the Apache License, Version 2.0 (the "License"). You may not use this product
+ * except in compliance with the License.
+ * 
+ * This product includes a number of subcomponents with separate copyright notices and license terms. Your use of these
+ * subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
  */
 package org.cloudfoundry.identity.uaa.varz;
 
@@ -22,6 +19,7 @@ import java.util.Set;
 
 import javax.management.MBeanAttributeInfo;
 import javax.management.MBeanInfo;
+import javax.management.MBeanOperationInfo;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 import javax.management.openmbean.CompositeDataSupport;
@@ -57,12 +55,10 @@ public class MBeanMap extends AbstractMap<String, Object> {
 		if (server != null) {
 			try {
 				info = server.getMBeanInfo(name);
-			}
-			catch (Exception e) {
+			} catch (Exception e) {
 				throw new IllegalStateException(e);
 			}
-		}
-		else {
+		} else {
 			info = null;
 		}
 	}
@@ -81,9 +77,24 @@ public class MBeanMap extends AbstractMap<String, Object> {
 				try {
 					Object value = server.getAttribute(name, key);
 					verySafePut(map, key, value);
-				}
-				catch (Exception e) {
+				} catch (Exception e) {
 					logger.trace("Cannot extract attribute: " + key);
+				}
+			}
+			MBeanOperationInfo[] operations = info.getOperations();
+			for (MBeanOperationInfo operation : operations) {
+				String key = operation.getName();
+				if (key.startsWith("get") && operation.getSignature().length == 0) {
+					String attribute = MBeanMap.prettify(key.substring(3));
+					if (map.containsKey(attribute)) {
+						continue;
+					}
+					try {
+						Object value = server.invoke(name, key, null, null);
+						verySafePut(map, attribute, value);
+					} catch (Exception e) {
+						logger.trace("Cannot extract operation: " + key);
+					}
 				}
 			}
 		}
@@ -127,8 +138,7 @@ public class MBeanMap extends AbstractMap<String, Object> {
 				if (isKeyValuePair(wrapper)) {
 					String key = getKey(wrapper);
 					safePut(map, key, getValue(wrapper), prettifyKeys);
-				}
-				else {
+				} else {
 					safePut(map, getCompositeWrapper(entry.getKey()), wrapper, prettifyKeys);
 				}
 			}

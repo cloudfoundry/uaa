@@ -88,6 +88,8 @@ public class VarzEndpoint implements EnvironmentAware {
 
 		Map<String, ?> spring = pullUpMap("spring.application", "*");
 		if (spring != null) {
+			// Application config properties
+			putIfNotNull(result, "config", getValueFromMap(spring, "#this['properties']?.config.object"));
 			// Information about tokens (counts etc)
 			putIfNotNull(result, "token_store", getValueFromMap(spring, "#this['token_store']?.token_store"));
 			// Information about audit (counts)
