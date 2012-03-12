@@ -37,18 +37,12 @@ import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJacksonHttpMessageConverter;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
-import org.springframework.security.oauth2.client.UserRedirectRequiredException;
 import org.springframework.security.oauth2.client.context.OAuth2ClientContext;
 import org.springframework.security.oauth2.client.context.OAuth2ClientContextHolder;
 import org.springframework.security.oauth2.client.resource.OAuth2ProtectedResourceDetails;
-import org.springframework.security.oauth2.client.token.AccessTokenProvider;
-import org.springframework.security.oauth2.client.token.AccessTokenProviderChain;
 import org.springframework.security.oauth2.client.token.AccessTokenRequest;
-import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsAccessTokenProvider;
 import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
-import org.springframework.security.oauth2.client.token.grant.implicit.ImplicitAccessTokenProvider;
 import org.springframework.security.oauth2.client.token.grant.implicit.ImplicitResourceDetails;
-import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordAccessTokenProvider;
 import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordResourceDetails;
 import org.springframework.security.oauth2.common.AuthenticationScheme;
 import org.springframework.web.client.ResponseErrorHandler;
@@ -70,8 +64,6 @@ public class OAuth2ContextSetup extends TestWatchman {
 	private OAuth2ProtectedResourceDetails resource;
 
 	private OAuth2RestTemplate client;
-
-	private AccessTokenProviderChain accessTokenProvider;
 
 	private Map<String, String> parameters = new LinkedHashMap<String, String>();
 
@@ -137,9 +129,6 @@ public class OAuth2ContextSetup extends TestWatchman {
 		this.parameters = parameters;
 		this.client = createRestTemplate(resource);
 		this.resource = resource;
-		this.accessTokenProvider = new AccessTokenProviderChain(Arrays.<AccessTokenProvider> asList(
-				new ClientCredentialsAccessTokenProvider(), new ResourceOwnerPasswordAccessTokenProvider(),
-				new ImplicitAccessTokenProvider()));
 	}
 
 	private OAuth2RestTemplate createRestTemplate(OAuth2ProtectedResourceDetails resource) {
@@ -176,17 +165,11 @@ public class OAuth2ContextSetup extends TestWatchman {
 	@Override
 	public void starting(FrameworkMethod method) {
 		logger.info("Starting OAuth2 context for: " + resource);
-		OAuth2ClientContext context = new OAuth2ClientContext();
-		OAuth2ClientContextHolder.setContext(context);
 		AccessTokenRequest request = new AccessTokenRequest();
 		request.setAll(parameters);
+		OAuth2ClientContext context = new OAuth2ClientContext(request);
+		OAuth2ClientContextHolder.setContext(context);
 		server.setRestTemplate(client);
-		try {
-			context.addAccessToken(resource, accessTokenProvider.obtainAccessToken(resource, request));
-		}
-		catch (UserRedirectRequiredException e) {
-			throw new IllegalStateException("Grant type not supported?", e);
-		}
 	}
 
 	@Override
@@ -243,18 +226,12 @@ public class OAuth2ContextSetup extends TestWatchman {
 		logger.info("Setting up OAuth2 context for: " + resource);
 		RestTemplate savedServerClient = server.getRestTemplate();
 		OAuth2ClientContext savedContext = OAuth2ClientContextHolder.getContext();
-		OAuth2ClientContext context = new OAuth2ClientContext();
-		OAuth2ClientContextHolder.setContext(context);
 		AccessTokenRequest request = new AccessTokenRequest();
 		request.setAll(parameters);
+		OAuth2ClientContext context = new OAuth2ClientContext(request);
+		OAuth2ClientContextHolder.setContext(context);
 		server.setRestTemplate(client);
 
-		try {
-			context.addAccessToken(resource, accessTokenProvider.obtainAccessToken(resource, request));
-		}
-		catch (UserRedirectRequiredException e) {
-			throw new IllegalStateException("Grant type not supported?", e);
-		}
 		try {
 			callback.doWithRestOperations(client);
 		}

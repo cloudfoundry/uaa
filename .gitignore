@@ -21,3 +21,4 @@ cargo-installs/
 Servers/
 *.swp
 *.swo
+coverage.ec

@@ -38,9 +38,6 @@
 								</configuration>
 							</execution>
 						</executions>
-                        <configuration>
-                          <addContextWarDependencies>true</addContextWarDependencies>
-                        </configuration>
 					</plugin>
 				</plugins>
 			</build>
@@ -64,6 +61,7 @@
 					<artifactId>tomcat-maven-plugin</artifactId>
 					<configuration>
 						<path>/app</path>
+                        <addContextWarDependencies>true</addContextWarDependencies>
 					</configuration>
 				</plugin>
 				<plugin>
@@ -96,6 +94,13 @@
 		<dependency>
 			<groupId>${pom.groupId}</groupId>
 			<artifactId>uaa</artifactId>
+			<version>${pom.version}</version>
+			<type>war</type>
+			<scope>tomcat</scope>
+		</dependency>
+		<dependency>
+			<groupId>${pom.groupId}</groupId>
+			<artifactId>api</artifactId>
 			<version>${pom.version}</version>
 			<type>war</type>
 			<scope>tomcat</scope>
@@ -149,6 +154,11 @@
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-context</artifactId>
+			<version>${spring.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-web</artifactId>
 			<version>${spring.version}</version>
 		</dependency>
 		<dependency>
