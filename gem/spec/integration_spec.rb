@@ -12,17 +12,19 @@
 #
 
 require 'spec_helper'
+require 'webmock/rspec'
 require 'uaa'
 
-#ENV["UAA_CLIENT_ID"] = "scim"
-#ENV["UAA_CLIENT_SECRET"] = "scimsecret"
-#ENV["UAA_CLIENT_TARGET"] = "http://localhost:8080/uaa"
+#ENV["UAA_CLIENT_ID"] = "cloud_controller"
+#ENV["UAA_CLIENT_SECRET"] = "cloudcontrollersecret"
+#ENV["UAA_CLIENT_TARGET"] = "http://uaa.vcap.me"
 
 if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
 
-  describe "UAA Integration Tests" do
+  describe "UAA Integration:" do
 
     before :all do
+      WebMock.disable!
       @target = ENV["UAA_CLIENT_TARGET"]
       @client_id = ENV["UAA_CLIENT_ID"]
       @client_secret = ENV["UAA_CLIENT_SECRET"]
@@ -38,7 +40,7 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
       puts toki.prompts
     end
 
-    context "manage users with client credentials grant" do
+    context "with a client credentials grant, " do
 
       before :all do
         toki = Cloudfoundry::Uaa::TokenIssuer.new(@target, @client_id,

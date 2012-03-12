@@ -124,7 +124,7 @@ module Cloudfoundry::Uaa::Http
   rescue URI::Error, SocketError => e
     debug_out "<---- no response due to exception (#{e})" if trace
     raise BadTarget, "Cannot access target (#{e.message})"
-  rescue e
+  rescue Exception => e
     debug_out "<---- no response due to exception (#{e})" if trace
     raise
   end
