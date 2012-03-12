@@ -22,6 +22,24 @@
 		</property>
 	</bean>
 
+	<bean class="org.springframework.jmx.export.MBeanExporter">
+		<property name="server" ref="mbeanServer" />
+		<property name="beans">
+			<map>
+				<entry key="spring.application:type=Properties,name=config" value-ref="&amp;applicationProperties" />
+			</map>
+		</property>
+		<property name="assembler">
+			<bean class="org.springframework.jmx.export.assembler.MethodNameBasedMBeanInfoAssembler">
+				<property name="methodMappings">
+					<map>
+						<entry key="spring.application:type=Properties,name=config" value="getObject" />
+					</map>
+				</property>
+			</bean>
+		</property>
+	</bean>
+
 	<beans profile="default,hsqldb">
 		<bean id="platform" class="java.lang.String">
 			<constructor-arg value="hsqldb" />
