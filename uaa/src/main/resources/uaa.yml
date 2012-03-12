@@ -22,3 +22,7 @@ cloud_controller:
       url: jdbc:postgresql:cloud_controller
       username: root
       password: changeme
+      
+batch:
+  username: batch
+  password: batchsecret
