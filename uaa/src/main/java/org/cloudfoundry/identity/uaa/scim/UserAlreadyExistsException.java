@@ -12,19 +12,21 @@
  */
 package org.cloudfoundry.identity.uaa.scim;
 
+import org.springframework.http.HttpStatus;
+
 /**
  * Unchecked exception signalling that a user account already exists.
  * 
  * @author Dave Syer
  *
  */
-public class UserAlreadyExistsException extends RuntimeException {
+public class UserAlreadyExistsException extends ScimException {
 
 	/**
 	 * @param message a message for the caller
 	 */
 	public UserAlreadyExistsException(String message) {
-		super(message);
+		super(message, HttpStatus.CONFLICT);
 	}
 
 }

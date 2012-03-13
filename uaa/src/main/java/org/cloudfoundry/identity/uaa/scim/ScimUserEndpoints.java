@@ -28,6 +28,7 @@ import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.expression.Expression;
 import org.springframework.expression.spel.SpelParseException;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
@@ -120,7 +121,11 @@ public class ScimUserEndpoints implements InitializingBean {
 		}
 		int version = getVersion(userId, etag);
 		user.setVersion(version);
-		return dao.updateUser(userId, user);
+		try {
+			return dao.updateUser(userId, user);
+		} catch (OptimisticLockingFailureException e) {
+			throw new ScimException(e.getMessage(), HttpStatus.CONFLICT);
+		}
 	}
 
 	@RequestMapping(value = "/User/{userId}/password", method = RequestMethod.PUT)

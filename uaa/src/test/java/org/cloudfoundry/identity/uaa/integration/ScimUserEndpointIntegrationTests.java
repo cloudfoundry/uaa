@@ -23,6 +23,7 @@ import java.util.Map;
 import org.cloudfoundry.identity.uaa.scim.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.UserAlreadyExistsException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -189,7 +190,7 @@ public class ScimUserEndpointIntegrationTests {
 		Map<String, String> error = response.getBody();
 
 		// System.err.println(error);
-		assertEquals(ScimException.class.getName(), error.get("error"));
+		assertEquals(UserAlreadyExistsException.class.getName(), error.get("error"));
 
 	}
 

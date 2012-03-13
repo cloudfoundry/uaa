@@ -12,19 +12,21 @@
  */
 package org.cloudfoundry.identity.uaa.scim;
 
+import org.springframework.http.HttpStatus;
+
 /**
  * Unchecked exception to signal that a user has an invalid field, e.g. username.
  * 
  * @author Dave Syer
  *
  */
-public class InvalidUserException extends RuntimeException {
+public class InvalidUserException extends ScimException {
 
 	/**
 	 * @param message a message for the caller
 	 */
 	public InvalidUserException(String message) {
-		super(message);
+		super(message, HttpStatus.BAD_REQUEST);
 	}
 
 }
