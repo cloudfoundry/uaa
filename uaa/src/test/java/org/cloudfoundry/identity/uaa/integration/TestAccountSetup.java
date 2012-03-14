@@ -116,4 +116,11 @@ public class TestAccountSetup extends TestWatchman {
 		return String.format("Basic %s", new String(Base64.encode("varz:varzclientsecret".getBytes())));
 	}
 
+	/**
+	 * @return
+	 */
+	public String getBatchAuthorizationHeader() {
+		return String.format("Basic %s", new String(Base64.encode("batch:batchsecret".getBytes())));
+	}
+
 }

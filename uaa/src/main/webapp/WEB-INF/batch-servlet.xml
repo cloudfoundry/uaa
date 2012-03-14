@@ -24,7 +24,7 @@
 	<http pattern="/batch/**" xmlns="http://www.springframework.org/schema/security" security-context-repository-ref="securityContextRepository">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<anonymous enabled="false" />
-		<http-basic/>
+		<http-basic authentication-details-source-ref="authenticationDetailsSource" entry-point-ref="authenticationEntryPoint"/>
 	</http>
 	
 	<alias alias="batchSecurityFilterChain" name="springSecurityFilterChain" />
@@ -40,6 +40,10 @@
 			</user-service>
 		</authentication-provider>
 	</authentication-manager>
+
+	<bean id="authenticationEntryPoint" class="org.cloudfoundry.identity.uaa.error.JsonAwareAuthenticationEntryPoint">
+		<property name="realmName" value="UAA/batch" />
+	</bean>
 
 	<bean id="placeholderProperties" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
 		<property name="locations">
