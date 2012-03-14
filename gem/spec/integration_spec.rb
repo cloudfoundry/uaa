@@ -74,7 +74,11 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
 
       it "changes the user's password by name" do
         @user_acct.change_password_by_name(@username, "newpassword")
-        # TODO: query that the user is gone
+      end
+
+      it "lists all users" do
+        user_info = @user_acct.list
+        puts JSON.pretty_generate(user_info)
       end
 
       it "deletes the user by name" do

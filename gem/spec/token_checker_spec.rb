@@ -23,6 +23,11 @@ describe Cloudfoundry::Uaa::TokenChecker do
         "test_resource", "test_secret")
   end
 
+  before :all do
+    WebMock.enable!
+    WebMock.reset!
+  end
+
   before :each do
     @stub_req = stub_request(:get, "http://test_resource:test_secret@localhost:8080/uaa/check_token")
         .with(:headers => {'Accept' => 'application/json'},

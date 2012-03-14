@@ -19,8 +19,12 @@ require 'fiber'
 
 describe Cloudfoundry::Uaa::Http do
   include WebMock::API
-
   include Cloudfoundry::Uaa::Http
+
+  before :all do
+    WebMock.enable!
+    WebMock.reset!
+  end
 
   context "uri validation" do
     it "should raise an auth error if the uri is nil or invalid" do
@@ -37,14 +41,14 @@ describe Cloudfoundry::Uaa::Http do
       @auth_headers = {"Authorization" => "dGVzdDpwYXNzd29yZA=="}
       @stub_req = stub_request(:any, "http://localhost:8080")
                   .with(:headers => @auth_headers)
-                  .to_return(:status => 200, 
-                          :body => "{\"result\" => \"Success\"}", 
+                  .to_return(:status => 200,
+                          :body => "{\"result\" => \"Success\"}",
                           :headers => {"Content-Type" => "application/json"})
 
     end
 
     shared_examples_for "any operation" do
-      it "should work for a get operation" do 
+      it "should work for a get operation" do
         EM.run_block {
           Fiber.new {
             req = {
@@ -73,14 +77,14 @@ describe Cloudfoundry::Uaa::Http do
       end
       it_should_behave_like "any operation"
     end
-    
+
     context "using the get method" do
       before :all do
         @method = :post
       end
       it_should_behave_like "any operation"
     end
-    
+
     context "using the get method" do
       before :all do
         @method = :delete

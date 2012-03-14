@@ -19,6 +19,11 @@ describe Cloudfoundry::Uaa::UserAccount do
 
   subject { Cloudfoundry::Uaa::UserAccount.new("http://localhost:8080/uaa", 'Bearer example_access_token') }
 
+  before :all do
+    WebMock.enable!
+    WebMock.reset!
+  end
+
   before :each do
     @stub_create_user_req = stub_request(:post, "http://localhost:8080/uaa/User").
                                           with(:headers => {'Authorization'=>'Bearer example_access_token'})
