@@ -25,6 +25,7 @@
 	<http pattern="/index.html" security="none" xmlns="http://www.springframework.org/schema/security" />
 	<http pattern="/browse" security="none" xmlns="http://www.springframework.org/schema/security" />
 	<http pattern="/denied" security="none" xmlns="http://www.springframework.org/schema/security" />
+	<http pattern="/js/**" security="none" xmlns="http://www.springframework.org/schema/security" />
 
 	<!-- TODO: make an access denied view that tells me something useful -->
 	<http access-denied-page="/denied" entry-point-ref="authenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
@@ -99,11 +100,6 @@
 		<property name="defaultViews">
 			<bean class="org.springframework.web.servlet.view.json.MappingJacksonJsonView" />
 		</property>
-	</bean>
-
-	<bean id="homeController" class="org.cloudfoundry.identity.api.web.HomeController">
-		<property name="userAuthorizationUri" value="${userAuthorizationUri}"/>
-		<property name="dataUri" value="${dataUri}"/>
 	</bean>
 
 </beans>

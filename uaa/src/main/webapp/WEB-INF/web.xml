@@ -112,6 +112,11 @@
 	</servlet-mapping>
 
 	<servlet-mapping>
+		<servlet-name>batch</servlet-name>
+		<url-pattern>/batch</url-pattern>
+	</servlet-mapping>
+
+	<servlet-mapping>
 		<servlet-name>spring</servlet-name>
 		<url-pattern>/</url-pattern>
 	</servlet-mapping>

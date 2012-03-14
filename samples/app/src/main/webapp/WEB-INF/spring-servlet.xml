@@ -95,7 +95,10 @@
 		<property name="treeUrlPattern" value="${treeUrlPattern}" />
 	</bean>
 
-	<bean id="homeController" class="org.cloudfoundry.identity.app.web.HomeController" />
+	<bean id="homeController" class="org.cloudfoundry.identity.app.web.HomeController">
+		<property name="userAuthorizationUri" value="${userAuthorizationUri}"/>
+		<property name="dataUri" value="${dataUri}"/>
+	</bean>
 
 	<!--define an oauth 2 resource for api access -->
 	<oauth:resource id="api" type="authorization_code" client-id="app" client-secret="appclientsecret"
