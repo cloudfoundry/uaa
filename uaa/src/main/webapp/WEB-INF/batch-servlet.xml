@@ -4,17 +4,16 @@
 	This product includes a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents 
 	is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file. -->
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
-	xmlns:security="http://www.springframework.org/schema/security"
-	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:security="http://www.springframework.org/schema/security" xmlns:context="http://www.springframework.org/schema/context"
 	xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.1.xsd
 		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
 		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
 
 	<import resource="classpath:/org/springframework/batch/admin/web/resources/webapp-config.xml" />
 	<import resource="classpath:/org/springframework/batch/admin/web/resources/servlet-config.xml" />
-	
+
 	<bean id="messageSource" class="org.springframework.context.support.ResourceBundleMessageSource">
-		<property name="basename" value="messages"/>
+		<property name="basename" value="messages" />
 	</bean>
 
 	<bean id="resourceService" class="org.springframework.batch.admin.web.resources.DefaultResourceService">
@@ -24,13 +23,14 @@
 	<http pattern="/batch/**" xmlns="http://www.springframework.org/schema/security" security-context-repository-ref="securityContextRepository">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<anonymous enabled="false" />
-		<http-basic authentication-details-source-ref="authenticationDetailsSource" entry-point-ref="authenticationEntryPoint"/>
+		<http-basic authentication-details-source-ref="authenticationDetailsSource" entry-point-ref="authenticationEntryPoint" />
 	</http>
-	
+
 	<alias alias="batchSecurityFilterChain" name="springSecurityFilterChain" />
-	
+
 	<bean id="securityContextRepository" class="org.springframework.security.web.context.HttpSessionSecurityContextRepository">
-		<property name="springSecurityContextKey" value="SPRING_SECURITY_CONTEXT_BATCH"/>
+		<property name="springSecurityContextKey" value="SPRING_SECURITY_CONTEXT_BATCH" />
+		<property name="disableUrlRewriting" value="true" />
 	</bean>
 
 	<authentication-manager xmlns="http://www.springframework.org/schema/security">
@@ -53,7 +53,7 @@
 				<value>classpath:batch-#{@platform}.properties</value>
 			</list>
 		</property>
-		<property name="properties" ref="applicationProperties"/>
+		<property name="properties" ref="applicationProperties" />
 		<property name="systemPropertiesModeName" value="SYSTEM_PROPERTIES_MODE_OVERRIDE" />
 		<property name="ignoreResourceNotFound" value="true" />
 		<property name="ignoreUnresolvablePlaceholders" value="false" />
@@ -61,8 +61,8 @@
 	</bean>
 
 	<!-- Switch off MBeans -->
-	<bean id="integrationMBeanExporter" class="java.lang.String"/>
-	<bean id="batchMBeanExporter" class="java.lang.String"/>
+	<bean id="integrationMBeanExporter" class="java.lang.String" />
+	<bean id="batchMBeanExporter" class="java.lang.String" />
 	<bean id="cacheInterceptor" class="java.lang.String" />
 
 </beans>
