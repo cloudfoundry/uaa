@@ -79,6 +79,10 @@ class Cloudfoundry::Uaa::UserAccount
     json_get("/User/#{URI.encode(user_id)}", @authorization)
   end
 
+  def list
+    json_get("/Users?attributes=userName", @authorization)
+  end
+
   def delete(user_id)
     unless (status = http_delete("/User/#{user_id}", @authorization)) == 200
       raise (status == 404 ? NotFound : BadResponse), "invalid response from #{@target}: #{status}"

@@ -23,6 +23,11 @@ describe Cloudfoundry::Uaa::TokenIssuer do
         "test_secret", "read", "test_resource")
   end
 
+  before :all do
+    WebMock.enable!
+    WebMock.reset!
+  end
+
   def check_good_token_info(auth_header)
     auth_header.should == "exampletokentype good.access.token"
     subject.info[:access_token].should == "good.access.token"
