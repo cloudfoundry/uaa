@@ -56,6 +56,7 @@
 				<entry key="type" value="UAA" />
 			</map>
 		</property>
+		<property name="environmentProperties" ref="applicationProperties"/>
 	</bean>
 
 </beans>

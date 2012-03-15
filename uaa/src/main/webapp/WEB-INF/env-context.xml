@@ -9,36 +9,20 @@
 		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
 
 	<bean id="applicationProperties" class="org.springframework.beans.factory.config.PropertiesFactoryBean">
-		<property name="properties">
-			<bean class="org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean">
-				<property name="resource" value="classpath:/uaa.yml" />
-				<property name="keyReplacements">
-					<map>
-						<entry key="databases.#{@platform}" value="database" />
-						<entry key="cloud_controller.databases.#{@platform}" value="cloud_controller.database" />
-					</map>
-				</property>
-			</bean>
+		<property name="propertiesArray">
+			<list>
+				<bean class="org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean">
+					<property name="resource" value="classpath:/uaa.yml" />
+					<property name="keyReplacements">
+						<map>
+							<entry key="databases.#{@platform}" value="database" />
+							<entry key="cloud_controller.databases.#{@platform}" value="cloud_controller.database" />
+						</map>
+					</property>
+				</bean>
+				<bean class="org.cloudfoundry.identity.uaa.config.EnvironmentPropertiesFactoryBean" />
+			</list>
 		</property>
-	</bean>
-
-	<bean class="org.springframework.jmx.export.MBeanExporter">
-		<property name="server" ref="mbeanServer" />
-		<property name="beans">
-			<map>
-				<entry key="spring.application:type=Properties,name=config" value-ref="&amp;applicationProperties" />
-			</map>
-		</property>
-		<property name="assembler">
-			<bean class="org.springframework.jmx.export.assembler.MethodNameBasedMBeanInfoAssembler">
-				<property name="methodMappings">
-					<map>
-						<entry key="spring.application:type=Properties,name=config" value="getObject" />
-					</map>
-				</property>
-			</bean>
-		</property>
-		<property name="registrationBehaviorName" value="REGISTRATION_REPLACE_EXISTING"/>
 	</bean>
 
 	<beans profile="default,hsqldb">

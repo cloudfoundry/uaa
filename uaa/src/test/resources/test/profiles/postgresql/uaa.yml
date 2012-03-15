@@ -1,2 +1,12 @@
 uaa.integration.test: true
-spring_profiles: "!legacy,postgresql"
+spring_profiles: "!legacy,test,postgresql"
+cloud_controller:
+  database:
+    driverClassName: org.postgresql.Driver
+    url: jdbc:postgresql:cloud_controller
+    username: root
+    password: changeme
+      
+batch:
+  username: batch
+  password: batchpass

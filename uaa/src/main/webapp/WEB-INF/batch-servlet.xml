@@ -12,6 +12,8 @@
 	<import resource="classpath:/org/springframework/batch/admin/web/resources/webapp-config.xml" />
 	<import resource="classpath:/org/springframework/batch/admin/web/resources/servlet-config.xml" />
 
+	<context:property-placeholder properties-ref="mergedProperties" />
+
 	<bean id="messageSource" class="org.springframework.context.support.ResourceBundleMessageSource">
 		<property name="basename" value="messages" />
 	</bean>
@@ -45,20 +47,40 @@
 		<property name="realmName" value="UAA/batch" />
 	</bean>
 
-	<bean id="placeholderProperties" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
-		<property name="locations">
+	<bean id="mergedProperties" class="org.springframework.beans.factory.config.PropertiesFactoryBean">
+		<property name="propertiesArray">
 			<list>
-				<value>classpath:/org/springframework/batch/admin/bootstrap/batch.properties</value>
-				<value>classpath:batch-default.properties</value>
-				<value>classpath:batch-#{@platform}.properties</value>
+				<bean class="org.springframework.beans.factory.config.PropertiesFactoryBean">
+					<property name="locations">
+						<list>
+							<value>classpath:/org/springframework/batch/admin/bootstrap/batch.properties</value>
+							<value>classpath:batch-default.properties</value>
+							<value>classpath:batch-#{@platform}.properties</value>
+						</list>
+					</property>
+					<property name="ignoreResourceNotFound" value="true" />
+				</bean>
+				<ref bean="applicationProperties" />
 			</list>
 		</property>
-		<property name="properties" ref="applicationProperties" />
-		<property name="systemPropertiesModeName" value="SYSTEM_PROPERTIES_MODE_OVERRIDE" />
-		<property name="ignoreResourceNotFound" value="true" />
-		<property name="ignoreUnresolvablePlaceholders" value="false" />
-		<property name="order" value="1" />
 	</bean>
+
+	<bean id="jobLoader" class="org.springframework.batch.core.configuration.support.AutomaticJobRegistrar">
+		<property name="applicationContextFactories">
+			<bean class="org.springframework.batch.core.configuration.support.ClasspathXmlApplicationContextsFactoryBean">
+				<property name="resources" value="classpath*:/META-INF/spring/batch/jobs/*.xml" />
+				<property name="beanFactoryPostProcessorClasses" value="org.springframework.context.support.PropertySourcesPlaceholderConfigurer"/>
+			</bean>
+		</property>
+		<property name="jobLoader">
+			<bean class="org.springframework.batch.core.configuration.support.DefaultJobLoader">
+				<property name="jobRegistry" ref="jobRegistry" />
+			</bean>
+		</property>
+	</bean>
+
+	<!-- Switch off default property placeholders -->
+	<bean id="placeholderProperties" class="java.lang.String" />
 
 	<!-- Switch off MBeans -->
 	<bean id="integrationMBeanExporter" class="java.lang.String" />

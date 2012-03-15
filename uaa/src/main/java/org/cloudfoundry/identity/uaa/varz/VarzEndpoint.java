@@ -1,14 +1,11 @@
 /**
- * Cloud Foundry 2012.02.03 Beta
- * Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved.
- *
- * This product is licensed to you under the Apache License, Version 2.0 (the "License").
- * You may not use this product except in compliance with the License.
- *
- * This product includes a number of subcomponents with
- * separate copyright notices and license terms. Your use of these
- * subcomponents is subject to the terms and conditions of the
- * subcomponent's license, as noted in the LICENSE file.
+ * Cloud Foundry 2012.02.03 Beta Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved.
+ * 
+ * This product is licensed to you under the Apache License, Version 2.0 (the "License"). You may not use this product
+ * except in compliance with the License.
+ * 
+ * This product includes a number of subcomponents with separate copyright notices and license terms. Your use of these
+ * subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
  */
 package org.cloudfoundry.identity.uaa.varz;
 
@@ -19,6 +16,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 import javax.management.MBeanServerConnection;
@@ -52,12 +50,21 @@ public class VarzEndpoint implements EnvironmentAware {
 
 	private String baseUrl;
 
+	private Properties environmentProperties = new Properties();
+
 	/**
 	 * Hard-coded baseUrl for absolute links.
 	 * @param baseUrl the baseUrl to set
 	 */
 	public void setBaseUrl(String baseUrl) {
 		this.baseUrl = baseUrl;
+	}
+
+	/**
+	 * @param environmentProperties the environment properties to set
+	 */
+	public void setEnvironmentProperties(Properties environmentProperties) {
+		this.environmentProperties = environmentProperties;
 	}
 
 	@Override
@@ -88,14 +95,14 @@ public class VarzEndpoint implements EnvironmentAware {
 
 		Map<String, ?> spring = pullUpMap("spring.application", "*");
 		if (spring != null) {
-			// Application config properties
-			putIfNotNull(result, "config", getValueFromMap(spring, "#this['properties']?.config.object"));
 			// Information about tokens (counts etc)
 			putIfNotNull(result, "token_store", getValueFromMap(spring, "#this['token_store']?.token_store"));
 			// Information about audit (counts)
 			putIfNotNull(result, "audit_service",
 					getValueFromMap(spring, "#this['logging_audit_service']?.logging_audit_service"));
 		}
+		// Application config properties
+		putIfNotNull(result, "config", environmentProperties);
 		if (environment != null) {
 			result.put("spring.profiles.active", environment.getActiveProfiles());
 		}
@@ -189,13 +196,11 @@ public class VarzEndpoint implements EnvironmentAware {
 					@SuppressWarnings("unchecked")
 					Map<String, ?> map = (Map<String, ?>) tomcat.values().iterator().next();
 					result.putAll(map);
-				}
-				else {
+				} else {
 					result.putAll(tomcat);
 				}
 			}
-		}
-		else {
+		} else {
 			result.putAll(getMBeans(domain, pattern));
 		}
 
@@ -275,8 +280,7 @@ public class VarzEndpoint implements EnvironmentAware {
 			for (String key : values.keySet()) {
 				env.put(key, values.get(key));
 			}
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			logger.warn("Could not obtain OS environment", e);
 		}
 		return env;
