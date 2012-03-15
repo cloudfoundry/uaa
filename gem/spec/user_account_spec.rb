@@ -13,7 +13,7 @@
 
 require 'spec_helper'
 require 'uaa/user_account'
-require 'webmock/rspec'
+require 'webmock_helper'
 
 describe Cloudfoundry::Uaa::UserAccount do
 

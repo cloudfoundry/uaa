@@ -12,8 +12,8 @@
 #
 
 require 'spec_helper'
-require 'webmock/rspec'
 require 'uaa'
+require 'webmock_helper'
 
 #ENV["UAA_CLIENT_ID"] = "cloud_controller"
 #ENV["UAA_CLIENT_SECRET"] = "cloudcontrollersecret"

@@ -13,7 +13,7 @@
 
 require 'spec_helper'
 require 'uaa/token_checker'
-require 'webmock/rspec'
+require 'webmock_helper'
 
 describe Cloudfoundry::Uaa::TokenChecker do
   include WebMock::API
