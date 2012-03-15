@@ -154,14 +154,22 @@ module Cloudfoundry::Uaa::Http
     f = Fiber.current
     opts ={:connect_timeout => 10, :inactivity_timeout => 10}
     connection = EventMachine::HttpRequest.new(url, opts)
-    client = connection.setup_request(method.to_sym, :head => headers, :body => payload)
-    client.callback {
-      response_headers = client.response_header.inject({}) { |h, (k, v)| h[k.downcase.to_sym] = v; h }
-      f.resume [client.response_header.http_status, client.response, response_headers]
-    }
-    client.errback  { f.resume HTTPException.new("An error occurred in the HTTP request: #{http.errors}", self) }
+    # This condition only works with em-http-request 1.0.0.beta.3
+    unless connection.is_a? EventMachine::FailedConnection
+      client = connection.setup_request(method.to_sym, :head => headers, :body => payload)
+      client.callback {
+        response_headers = client.response_header.inject({}) { |h, (k, v)| h[k.downcase.to_sym] = v; h }
+        f.resume [client.response_header.http_status, client.response, response_headers]
+      }
+      client.errback  { f.resume [:error, "Error in the HTTP request: #{client.error}"] }
 
-    return Fiber.yield
+      result = Fiber.yield
+      debug_out result.inspect
+      raise HTTPException, result[1] if result[0] == :error
+      result
+    else
+      raise HTTPException.new("An error occurred in the HTTP request #{connection.error}")
+    end
   end
 
   def truncate(str, limit = 30)

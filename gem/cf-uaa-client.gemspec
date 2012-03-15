@@ -42,5 +42,7 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency "rest-client"
   s.add_runtime_dependency "json_pure"
   s.add_runtime_dependency "eventmachine"
+  # if you change the version of em-http-request, need to fix
+  # error handling in http.rb
   s.add_runtime_dependency "em-http-request", "= 1.0.0.beta.3"
 end
