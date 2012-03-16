@@ -67,17 +67,18 @@ module Cloudfoundry::Uaa::Http
 
   # HTTP helpers
 
-  def http_get(path, content_type=nil, authorization=nil)
-    headers = {'Content-Type' => content_type}
+  def http_get(path, content_type = nil, authorization = nil)
+    headers = {}
+    headers['Content-Type'] = content_type if content_type
     headers['Authorization'] = authorization if authorization
     request(:get, path, nil, headers)
   end
 
-  def http_post(path, body, content_type=nil, authorization=nil)
+  def http_post(path, body, content_type, authorization)
     request(:post, path, body, 'Content-Type'=>content_type, 'Authorization'=>authorization)
   end
 
-  def http_put(path, body, content_type=nil, authorization=nil)
+  def http_put(path, body, content_type, authorization)
     request(:put, path, body, 'Content-Type'=>content_type, 'Authorization'=>authorization)
   end
 
@@ -152,24 +153,23 @@ module Cloudfoundry::Uaa::Http
     payload = req[:payload]
 
     f = Fiber.current
-    opts ={:connect_timeout => 10, :inactivity_timeout => 10}
-    connection = EventMachine::HttpRequest.new(url, opts)
-    # This condition only works with em-http-request 1.0.0.beta.3
-    unless connection.is_a? EventMachine::FailedConnection
-      client = connection.setup_request(method.to_sym, :head => headers, :body => payload)
-      client.callback {
-        response_headers = client.response_header.inject({}) { |h, (k, v)| h[k.downcase.to_sym] = v; h }
-        f.resume [client.response_header.http_status, client.response, response_headers]
-      }
-      client.errback  { f.resume [:error, "Error in the HTTP request: #{client.error}"] }
+    connection = EventMachine::HttpRequest.new(url, connect_timeout: 10, inactivity_timeout: 10)
+    client = connection.setup_request(method.to_sym, :head => headers, :body => payload)
 
-      result = Fiber.yield
-      debug_out result.inspect
-      raise HTTPException, result[1] if result[0] == :error
-      result
-    else
-      raise HTTPException.new("An error occurred in the HTTP request #{connection.error}")
+    # This condition only works with em-http-request 1.0.0.beta.3
+    if connection.is_a? EventMachine::FailedConnection
+      raise HTTPException, "An error occurred in the HTTP request setup: #{client.error}"
     end
+
+    client.callback {
+      response_headers = client.response_header.inject({}) { |h, (k, v)| h[k.downcase.to_sym] = v; h }
+      f.resume [client.response_header.http_status, client.response, response_headers]
+    }
+    client.errback { f.resume [:error, "Error in the HTTP request: #{client.error}"] }
+    result = Fiber.yield
+    debug_out result.inspect
+    raise HTTPException, result[1] if result[0] == :error
+    result
   end
 
   def truncate(str, limit = 30)

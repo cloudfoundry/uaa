@@ -12,7 +12,6 @@
 #
 
 require 'spec_helper'
-require 'webmock/rspec'
 require 'uaa'
 
 #ENV["UAA_CLIENT_ID"] = "cloud_controller"
@@ -24,7 +23,6 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
   describe "UAA Integration:" do
 
     before :all do
-      WebMock.disable!
       @target = ENV["UAA_CLIENT_TARGET"]
       @client_id = ENV["UAA_CLIENT_ID"]
       @client_secret = ENV["UAA_CLIENT_SECRET"]

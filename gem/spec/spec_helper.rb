@@ -13,8 +13,11 @@
 
 if ENV['COVERAGE']
   require "simplecov"
-  require "simplecov-rcov"
-  SimpleCov.formatter = SimpleCov::Formatter::RcovFormatter
+  if ENV['COVERAGE'] =~ /rcov/
+    require "simplecov-rcov"
+    SimpleCov.formatter = SimpleCov::Formatter::RcovFormatter
+  end
+  SimpleCov.add_filter "^#{File.dirname(__FILE__)}" if ENV['COVERAGE'] =~ /exclude-spec/
   SimpleCov.start
 end
 

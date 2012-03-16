@@ -19,7 +19,7 @@ describe Cloudfoundry::Uaa::Http do
 
   include Cloudfoundry::Uaa::Http
 
-  def run_ftest
+  def run_test_on_fiber
     EM.run do
       @stubs = StubServer.new("HTTP/1.0 200 OK\nConnection: close\n\nFoo", 8083)
       EM::Timer.new(2) { @stubs.stop; EM.stop; fail "timed out" }
@@ -38,7 +38,7 @@ describe Cloudfoundry::Uaa::Http do
   end
 
   it "should get something from stub server on a fiber" do
-    run_ftest do
+    run_test_on_fiber do
       f = Fiber.current
       http = EM::HttpRequest.new('http://127.0.0.1:8083/').get
       http.errback { f.resume "error"}
@@ -53,21 +53,21 @@ describe Cloudfoundry::Uaa::Http do
   end
 
   it "should fail cleanly for a failed dns lookup" do
-    run_ftest do
+    run_test_on_fiber do
       @target = "http://bad.example.bad"
       expect { http_get("/") }.to raise_exception(HTTPException)
     end
   end
 
   it "should fail cleanly for a get operation, no connection to address" do
-    run_ftest do
+    run_test_on_fiber do
       @target = "http://127.0.0.253:30000"
       expect { http_get("/") }.to raise_exception(HTTPException)
     end
   end
 
   it "should work for a get operation to a valid address" do
-    run_ftest do
+    run_test_on_fiber do
       @target = "http://127.0.0.1:8083"
       status, body, headers = http_get("/")
       status.should == 200
