@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!-- Cloud Foundry 2012.02.03 Beta Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved. This product is licensed to 
-	you under the Apache License, Version 2.0 (the "License"). You may not use this product except in compliance with the License. 
-	This product includes a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents 
+<!-- Cloud Foundry 2012.02.03 Beta Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved. This product is licensed to
+	you under the Apache License, Version 2.0 (the "License"). You may not use this product except in compliance with the License.
+	This product includes a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents
 	is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file. -->
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mvc="http://www.springframework.org/schema/mvc"
 	xmlns="http://www.springframework.org/schema/beans" xmlns:context="http://www.springframework.org/schema/context"
@@ -92,7 +92,7 @@
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
 
-	<!-- The OAuth2 protected resources are separated out into their own block so we can deal with authorization and error handling 
+	<!-- The OAuth2 protected resources are separated out into their own block so we can deal with authorization and error handling
 		separately. This isn't mandatory, but it makes it easier to control the behaviour. -->
 	<http pattern="/oauth/(users|clients)/.*" request-matcher="regex" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"
 		use-expressions="true" authentication-manager-ref="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
@@ -199,6 +199,15 @@
 			resource-ids="cloud_controller,openid,password" redirect-uri="http://uaa.cloudfoundry.com/redirect/vmc" />
 		<oauth:client client-id="cloud_controller" authorized-grant-types="client_credentials" scope="read,write,password"
 			authorities="ROLE_CLIENT,ROLE_ADMIN" secret="${cloud_controller.client.secret:$2a$08$qsrUOJQo0CWRuI9l4St6Eugt0fXf2bPKeGXN8J3glRHHhEMajUUk2}" />
+    <oauth:client client-id="AppDirectDebug" authorized-grant-types="implicit,authorization_code,refresh_token" scope="read,write,openid"
+     authorities="ROLE_CLIENT" resource-ids="cloud_controller,openid" secret="${appdirect.client.secret:$2a$10$lrnnGW8zt3IYa/8gv8iOZOO1U86LW9La0nQpazKJAhVNgg9AE9xGW}"
+     redirect-uri="http://127.0.0.16:8080/oauth2/return?service=cloudfoundry"/>
+    <oauth:client client-id="AppDirect" authorized-grant-types="implicit,authorization_code,refresh_token" scope="read,write,openid"
+     authorities="ROLE_CLIENT" resource-ids="cloud_controller,openid" secret="${appdirect.client.secret:$2a$10$lrnnGW8zt3IYa/8gv8iOZOO1U86LW9La0nQpazKJAhVNgg9AE9xGW}"
+     redirect-uri="https://dev3.appdirect.com.com/oauth2/return?service=cloudfoundry"/>
+    <oauth:client client-id="Gallery" authorized-grant-types="implicit,authorization_code,refresh_token" scope="read,write,openid"
+     authorities="ROLE_CLIENT" resource-ids="cloud_controller,openid" secret="${gallery.client.secret:$2a$10$8nOW.QxiOOnVQC3QNEhEC.ZGe6ji3BHMFTMqYr9YtqCkEgyS/G51q}"
+     redirect-uri="https://gallery-app.cloudfoundry.com/oauth2"/>
 	</oauth:client-details-service>
 
 	<oauth:web-expression-handler id="oauthWebExpressionHandler" />
