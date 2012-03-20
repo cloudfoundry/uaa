@@ -104,7 +104,9 @@ public class TokenAdminEndpoints {
 		Collection<OAuth2AccessToken> result = new ArrayList<OAuth2AccessToken>();
 		for (OAuth2AccessToken token : tokens) {
 			Map<String, Object> map = new HashMap<String, Object>(token.getAdditionalInformation());
-			map.put("token_id", encoder.encode(token.getValue()));
+			if (!map.containsKey("token_id")) {
+				map.put("token_id", encoder.encode(token.getValue()));
+			}
 			String clientId = tokenServices.getClientId(token.getValue());
 			if (clientId != null) {
 				map.put("client_id", clientId);

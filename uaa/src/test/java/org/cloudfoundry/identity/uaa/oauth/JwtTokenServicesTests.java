@@ -9,8 +9,8 @@
  */
 package org.cloudfoundry.identity.uaa.oauth;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
 import static org.mockito.Mockito.mock;
 
 import java.util.Arrays;
@@ -68,7 +68,18 @@ public class JwtTokenServicesTests {
 	}
 
 	@Test
-	public void testDuplicateTokens() {
+	public void testDuplicateTokensOnRefresh() {
+		authData.put("token", "FOO");
+		tokenServices.setSupportRefreshToken(true);
+		OAuth2Authentication authentication1 = new OAuth2Authentication(new AuthorizationRequest("id",
+				Collections.singleton("read"), null, null), userAuthentication);
+		OAuth2AccessToken token1 = tokenServices.createAccessToken(authentication1);
+		OAuth2AccessToken token2 = tokenServices.refreshAccessToken(token1.getRefreshToken().getValue(), null);
+		assertFalse(token1.equals(token2));
+	}
+
+	@Test
+	public void testDuplicateTokensWithDifferentScope() {
 		authData.put("token", "FOO");
 		OAuth2Authentication authentication1 = new OAuth2Authentication(
 				new AuthorizationRequest("id", null, null, null), userAuthentication);
@@ -76,7 +87,7 @@ public class JwtTokenServicesTests {
 		OAuth2Authentication authentication2 = new OAuth2Authentication(new AuthorizationRequest("id",
 				Collections.singleton("read"), null, null), userAuthentication);
 		OAuth2AccessToken token2 = tokenServices.createAccessToken(authentication2);
-		assertNotSame(token1, token2);
+		assertFalse(token1.equals(token2));
 	}
 
 }
