@@ -52,7 +52,7 @@ public class TokenAdminEndpointsIntegrationTests {
 		ResponseEntity<String> result = serverRunning.getForString("/oauth/users/" + testAccounts.getUserName()
 				+ "/tokens", headers);
 		assertEquals(HttpStatus.OK, result.getStatusCode());
-		// System.err.println(result.getBody());
+		System.err.println(result.getBody());
 		assertTrue(result.getBody().contains(token.getValue()));
 	}
 

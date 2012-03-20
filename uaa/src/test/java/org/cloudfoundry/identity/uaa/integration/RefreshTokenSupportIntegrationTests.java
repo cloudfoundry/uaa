@@ -40,10 +40,10 @@ public class RefreshTokenSupportIntegrationTests {
 	public TestAccountSetup testAccounts = TestAccountSetup.withLegacyTokenServerForProfile("mocklegacy");
 
 	/**
-	 * tests a happy-day flow of the native application profile.
+	 * tests a happy-day flow of the refresh token grant
 	 */
 	@Test
-	public void testHappyDay() throws Exception {
+	public void testTokenRefreshed() throws Exception {
 
 		// Quick and dirty way of switching this test off if running against vcap in legacy mode (no refresh tokens)
 		Assume.assumeTrue(testAccounts.getUserName().equals("marissa"));

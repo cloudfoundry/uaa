@@ -58,6 +58,8 @@ public class DefaultTokenConverter implements AccessTokenConverter {
 		if (token.getExpiration() != null) {
 			response.put("expires_at", token.getExpiration().getTime()/1000);
 		}
+		
+		response.putAll(token.getAdditionalInformation());
 
 		response.put("client_id", clientToken.getClientId());
 		if (clientToken.getAuthorities() != null) {
