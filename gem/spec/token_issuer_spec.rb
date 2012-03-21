@@ -1,4 +1,4 @@
-#
+#--
 # Cloud Foundry 2012.02.03 Beta
 # Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved.
 #
@@ -9,7 +9,7 @@
 # separate copyright notices and license terms. Your use of these
 # subcomponents is subject to the terms and conditions of the
 # subcomponent's license, as noted in the LICENSE file.
-#
+#++
 
 require 'spec_helper'
 require 'uaa/token_issuer'
