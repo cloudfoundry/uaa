@@ -26,9 +26,9 @@ object AcmBaseData {
     "write_service", "add_user", "remove_user")
 
   // Standard list of users and groups for use in ACLs etc
-  val acmUsers: Seq[String] = 1 to 1000 map (i => "acm_user_%s".format(i))
+  val acmUsers: List[String] = (1 to 1000 map (i => "acm_user_%s".format(i))).toList
 
-  //val acmGroups: Seq[String] = 1 to 1000 map (i => "g-acm_group_%s".format(i))
+  val acmGroups: List[String] = (1 to 1000 map (i => "g-acm_group_%s".format(i))).toList
 
   // Feeder for plugging standard user names into actions
   def acmUserFeeder = new Feeder {

@@ -39,12 +39,12 @@ class AcmSmokeSimulation extends Simulation {
   ).during(Duration)
 
   /**
-   * Creates n objects with nUsers assigned to each of the standard (base data) permissions
+   * Creates objects with nUsers and nGroups assigned to each of the standard (base data) permissions
    * Reads the object nReads times
    */
-  def createObjects(n: Int, nUsers: Int, nGroups: Int, nReads: Int=100) = scenario("Bash ACM Object Creation")
+  def createObjects(nUsers: Int, nGroups: Int, nReads: Int=100) = scenario("Bash ACM Object Creation")
     .loop(
-      chain.exec(createObject(Seq("app_space"), stdPermissions map (s => (s, acmUsers.take(nUsers))) toMap))
+      chain.exec(createObject(Seq("app_space"), stdPermissions map (s => (s, acmUsers.take(nUsers) ::: acmGroups.take(nGroups))) toMap))
       .loop(
         chain.exec(getObject("${acm_object_id}"))
         .pause(10,100, TimeUnit.MILLISECONDS)
@@ -57,7 +57,7 @@ class AcmSmokeSimulation extends Simulation {
   def apply = {
     Seq(
 //        createPermissionSets(10).configure users 1 protocolConfig acmHttpConfig,
-        createObjects(10, 5, 2, 1).configure users 1 protocolConfig acmHttpConfig
+        createObjects(5, 2, 1).configure users 1 protocolConfig acmHttpConfig
     )
   }
 
