@@ -56,8 +56,8 @@ class AcmSmokeSimulation extends Simulation {
    */
   def apply = {
     Seq(
-        createPermissionSets(10).configure users 1 protocolConfig acmHttpConfig,
-        createObjects(10, 5, 2).configure users 1 protocolConfig acmHttpConfig
+//        createPermissionSets(10).configure users 1 protocolConfig acmHttpConfig,
+        createObjects(10, 5, 2, 1).configure users 1 protocolConfig acmHttpConfig
     )
   }
 

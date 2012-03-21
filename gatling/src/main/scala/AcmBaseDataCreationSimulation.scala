@@ -56,11 +56,11 @@ class AcmBaseDataCreationSimulation extends Simulation {
     .loop(chain
       .feed(acmUserFeeder)
       .exec(createUser("${acm_user}"))
-  ).times(1000)
+  ).times(100)
 
   val groupCount = new AtomicInteger(0)
   val groupUsersCount = new AtomicInteger(0)
-  val MaxUsersPerGroup = 200
+  val MaxUsersPerGroup = 50
   
   val createGroups = scenario("Create Standard Groups")
     // Loop until we have enough users created
@@ -92,7 +92,8 @@ class AcmBaseDataCreationSimulation extends Simulation {
           .body("""{"members": [${group_users}]}""")
           .basicAuth(acmUser, acmPassword)
           .check(status.is(200)))
-      ).times(1000)
+      ).times(1000
+  )
 
   def apply = {
     Seq(
