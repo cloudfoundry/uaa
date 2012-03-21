@@ -12,6 +12,7 @@
  */
 package org.cloudfoundry.identity.uaa.integration;
 
+import java.util.Enumeration;
 import java.util.Properties;
 
 import org.apache.commons.logging.Log;
@@ -48,8 +49,16 @@ public class TestProfileEnvironment {
 			factory.setResource(new FileSystemResource(location));
 			factory.setIgnoreResourceNotFound(true);
 			Properties properties = factory.getObject();
-			logger.debug("Environment properties: " + properties);
+			logger.debug("Decoding environment properties: " + properties.size());
 			if (!properties.isEmpty()) {
+				for (Enumeration<?> names = properties.propertyNames(); names.hasMoreElements();) {
+					String name = (String) names.nextElement();
+					String value = properties.getProperty(name);
+					if (value != null) {
+						properties.setProperty(name, environment.resolvePlaceholders(value));
+					}
+				}
+				logger.debug("Environment properties: " + properties);
 				if (properties.containsKey("spring_profiles")) {
 					properties.setProperty(StandardEnvironment.ACTIVE_PROFILES_PROPERTY_NAME,
 							properties.getProperty("spring_profiles"));
@@ -59,7 +68,7 @@ public class TestProfileEnvironment {
 			}
 		}
 	}
-	
+
 	/**
 	 * @return the environment
 	 */
