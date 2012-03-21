@@ -11,6 +11,6 @@ uaa:
     username: vcap_tester@vmware.com
     email: vcap_tester@vmware.com
     password: tester
-  host: uaa.vcap.me
+  host: uaa.${VCAP_BVT_TARGET:vcap.me}
   port: 80
   path: /
