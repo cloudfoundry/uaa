@@ -40,6 +40,18 @@ public class ScimUserTests {
 
 		ScimUser user = mapper.readValue(minimal, ScimUser.class);
 		assertEquals("bjensen@example.com", user.getUserName());
+		assertEquals(null, user.getPassword());
+	}
+
+	@Test
+	public void passwordJsonMapsToUser() throws Exception {
+		String minimal = "{" + SCHEMAS +
+				"  \"userName\": \"bjensen@example.com\",\n" +
+				"  \"password\": \"foo\"\n" +
+				"}";
+
+		ScimUser user = mapper.readValue(minimal, ScimUser.class);
+		assertEquals("foo", user.getPassword());
 	}
 
 	@Test
