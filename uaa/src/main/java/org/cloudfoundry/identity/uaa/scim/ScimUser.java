@@ -136,7 +136,6 @@ public final class ScimUser {
 			this.primary = primary;
 		}
 
-		@JsonIgnore
 		public boolean isPrimary() {
 			return primary != null && primary;
 		}
