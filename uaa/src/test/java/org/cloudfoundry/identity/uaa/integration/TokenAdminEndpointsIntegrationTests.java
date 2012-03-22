@@ -53,7 +53,7 @@ public class TokenAdminEndpointsIntegrationTests {
 	@Test
 	public void testListTokensByUser() throws Exception {
 
-		OAuth2AccessToken token = getResourceOwnerPasswordAccessToken("read", "token", "scimsecret");
+		OAuth2AccessToken token = getResourceOwnerPasswordAccessToken("read", "token", "tokenclientsecret");
 
 		HttpHeaders headers = getAuthenticatedHeaders(token);
 		ResponseEntity<String> result = serverRunning.getForString("/oauth/users/" + testAccounts.getUserName()
@@ -66,7 +66,7 @@ public class TokenAdminEndpointsIntegrationTests {
 	@Test
 	public void testRevokeTokenByUser() throws Exception {
 
-		OAuth2AccessToken token = getResourceOwnerPasswordAccessToken("read write", "token", "scimsecret");
+		OAuth2AccessToken token = getResourceOwnerPasswordAccessToken("read write", "token", "tokenclientsecret");
 		String hash = new StandardPasswordEncoder().encode(token.getValue());
 
 		HttpHeaders headers = getAuthenticatedHeaders(token);
@@ -89,7 +89,7 @@ public class TokenAdminEndpointsIntegrationTests {
 	@Test
 	public void testRevokeBogusToken() throws Exception {
 
-		OAuth2AccessToken token = getResourceOwnerPasswordAccessToken("read write", "token", "scimsecret");
+		OAuth2AccessToken token = getResourceOwnerPasswordAccessToken("read write", "token", "tokenclientsecret");
 
 		HttpHeaders headers = getAuthenticatedHeaders(token);
 
@@ -120,7 +120,7 @@ public class TokenAdminEndpointsIntegrationTests {
 	@Test
 	public void testCannotListTokensOfAnotherUser() throws Exception {
 
-		OAuth2AccessToken token = getResourceOwnerPasswordAccessToken("read", "token", "scimsecret");
+		OAuth2AccessToken token = getResourceOwnerPasswordAccessToken("read", "token", "tokenclientsecret");
 
 		HttpHeaders headers = getAuthenticatedHeaders(token);
 		assertEquals(HttpStatus.FORBIDDEN, serverRunning.getForString("/oauth/users/foo/tokens", headers)
@@ -173,7 +173,7 @@ public class TokenAdminEndpointsIntegrationTests {
 	@Test
 	public void testUserCannotListTokensOfClient() throws Exception {
 
-		OAuth2AccessToken token = getResourceOwnerPasswordAccessToken("read", "token", "scimsecret");
+		OAuth2AccessToken token = getResourceOwnerPasswordAccessToken("read", "token", "tokenclientsecret");
 
 		HttpHeaders headers = getAuthenticatedHeaders(token);
 		assertEquals(HttpStatus.FORBIDDEN, serverRunning.getForString("/oauth/clients/scim/tokens", headers)

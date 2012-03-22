@@ -85,6 +85,7 @@
 
 	<beans profile="default">
 
+		<!-- Override scim provisioning so that passwords are not validated in test environments -->
 		<bean id="scimUserProvisioning" class="org.cloudfoundry.identity.uaa.scim.JdbcScimUserProvisioning">
 			<constructor-arg ref="jdbcTemplate" />
 			<property name="passwordValidator">
