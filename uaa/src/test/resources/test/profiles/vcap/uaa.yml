@@ -1,5 +1,5 @@
 uaa.integration.test: true
-spring_profiles: legacy,hsqldb,vcap
+spring_profiles: hsqldb,vcap
 cloud_controller.login_url: http://api.vcap.me/users/{username}/tokens
 bootstrap:
   admin:

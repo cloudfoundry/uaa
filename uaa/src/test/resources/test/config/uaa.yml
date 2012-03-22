@@ -1,5 +1,5 @@
 foo: bar
-spring_profiles: legacy,hsqldb
+spring_profiles: hsqldb
 logging:
   path: /tmp/uaa/logs
 databases:

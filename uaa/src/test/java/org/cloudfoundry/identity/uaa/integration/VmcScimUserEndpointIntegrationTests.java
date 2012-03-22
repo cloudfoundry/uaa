@@ -55,13 +55,13 @@ public class VmcScimUserEndpointIntegrationTests {
 	public OAuth2ContextSetup context = OAuth2ContextSetup.implicit(server, JOE, "password");
 
 	@Rule
-	public TestAccountSetup testAccounts = TestAccountSetup.withLegacyTokenServerForProfile("mocklegacy");
+	public TestAccountSetup testAccounts = TestAccountSetup.standard();
 	
 	@BeforeOAuth2Context
 	public void setUpUserAccounts() {
 
-		// If running against vcap or mocklegacy we don't want to run these tests because they create new user accounts
-		Assume.assumeTrue(!testAccounts.isProfileActive("vcap") && !testAccounts.isProfileActive("mocklegacy"));		
+		// If running against vcap we don't want to run these tests because they create new user accounts
+		Assume.assumeTrue(!testAccounts.isProfileActive("vcap"));		
 
 		RestTemplate client = context.getRestTemplate();
 

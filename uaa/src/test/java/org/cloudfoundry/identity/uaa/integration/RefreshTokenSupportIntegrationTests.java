@@ -16,7 +16,6 @@ import static org.junit.Assert.assertNotNull;
 import java.util.Arrays;
 import java.util.Map;
 
-import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.http.HttpHeaders;
@@ -37,16 +36,13 @@ public class RefreshTokenSupportIntegrationTests {
 	public ServerRunning serverRunning = ServerRunning.isRunning();
 
 	@Rule
-	public TestAccountSetup testAccounts = TestAccountSetup.withLegacyTokenServerForProfile("mocklegacy");
+	public TestAccountSetup testAccounts = TestAccountSetup.standard();
 
 	/**
 	 * tests a happy-day flow of the refresh token grant
 	 */
 	@Test
 	public void testTokenRefreshed() throws Exception {
-
-		// Quick and dirty way of switching this test off if running against vcap in legacy mode (no refresh tokens)
-		Assume.assumeTrue(testAccounts.getUserName().equals("marissa"));
 
 		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
 		formData.add("grant_type", "password");
@@ -64,7 +60,6 @@ public class RefreshTokenSupportIntegrationTests {
 		@SuppressWarnings("unchecked")
 		OAuth2AccessToken accessToken = OAuth2AccessToken.valueOf(response.getBody());
 
-		Assume.assumeTrue(!testAccounts.isLegacy());
 		// now use the refresh token to get a new access token.
 		assertNotNull(accessToken.getRefreshToken());
 		formData = new LinkedMultiValueMap<String, String>();

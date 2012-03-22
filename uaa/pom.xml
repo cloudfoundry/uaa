@@ -36,13 +36,6 @@
 			</properties>
 		</profile>
 		<profile>
-			<!-- Use this profile in conjunction with 'integration' profile to run tests against a legacy mode server -->
-			<id>legacy</id>
-			<properties>
-				<CLOUD_FOUNDRY_CONFIG_PATH>src/test/resources/test/profiles/mocklegacy</CLOUD_FOUNDRY_CONFIG_PATH>
-			</properties>
-		</profile>
-		<profile>
 			<id>integration</id>
 			<build>
 				<plugins>

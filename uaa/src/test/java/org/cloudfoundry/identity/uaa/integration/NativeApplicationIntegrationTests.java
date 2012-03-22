@@ -40,7 +40,7 @@ public class NativeApplicationIntegrationTests {
 	public ServerRunning serverRunning = ServerRunning.isRunning();
 
 	@Rule
-	public TestAccountSetup testAccounts = TestAccountSetup.withLegacyTokenServerForProfile("mocklegacy");
+	public TestAccountSetup testAccounts = TestAccountSetup.standard();
 
 	/**
 	 * tests a happy-day flow of the Resource Owner Password Credentials grant type. (formerly native application

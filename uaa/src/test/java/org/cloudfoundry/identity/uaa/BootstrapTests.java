@@ -61,7 +61,7 @@ public class BootstrapTests {
 
 	@Test
 	public void testRootContextWithJdbcUsers() throws Exception {
-		context = getServletContext("hsqldb,!legacy", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+		context = getServletContext("hsqldb", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
 		assertNotNull(context.getBean("userDatabase", JdbcUaaUserDatabase.class));
 	}
 
@@ -85,7 +85,7 @@ public class BootstrapTests {
 
 	@Test
 	public void testRootContextWithJdbcSecureUsers() throws Exception {
-		context = getServletContext("hsqldb,!legacy", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+		context = getServletContext("hsqldb", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
 		assertNotNull(context.getBean("userDatabase", JdbcUaaUserDatabase.class));
 		FilterChainProxy filterChain = context.getBean(FilterChainProxy.class);
 		MockHttpServletResponse response = new MockHttpServletResponse();
@@ -97,8 +97,8 @@ public class BootstrapTests {
 	}
 
 	@Test
-	public void testLegacyProfileAndOverrideYmlConfigPath() throws Exception {
-		context = getServletContext("hsqldb,legacy", "file:./src/main/webapp/WEB-INF/spring-servlet.xml", "classpath:/test/config/test-override.xml");
+	public void testOverrideYmlConfigPath() throws Exception {
+		context = getServletContext("hsqldb", "file:./src/main/webapp/WEB-INF/spring-servlet.xml", "classpath:/test/config/test-override.xml");
 		assertEquals("different", context.getBean("foo", String.class));
 	}
 

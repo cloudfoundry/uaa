@@ -37,7 +37,7 @@ public class AuthorizationCodeGrantIntegrationTests {
 	public ServerRunning serverRunning = ServerRunning.isRunning();
 
 	@Rule
-	public TestAccountSetup testAccounts = TestAccountSetup.withLegacyTokenServerForProfile("mocklegacy");
+	public TestAccountSetup testAccounts = TestAccountSetup.standard();
 
 	@Test
 	public void testSuccessfulAuthorizationCodeFlow() throws Exception {

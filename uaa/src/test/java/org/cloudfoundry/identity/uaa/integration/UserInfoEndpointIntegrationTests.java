@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.integration;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
@@ -29,7 +30,7 @@ public class UserInfoEndpointIntegrationTests {
 	public ServerRunning server = ServerRunning.isRunning();
 	
 	@Rule
-	public TestAccountSetup testAccounts = TestAccountSetup.withLegacyTokenServerForProfile("mocklegacy");
+	public TestAccountSetup testAccounts = TestAccountSetup.standard();
 	
 	@Rule
 	public OAuth2ContextSetup context = OAuth2ContextSetup.resourceOwner(server, testAccounts.getUserName(),
@@ -40,6 +41,8 @@ public class UserInfoEndpointIntegrationTests {
 	 */
 	@Test
 	public void testHappyDay() throws Exception {
+
+		Assume.assumeTrue(!testAccounts.isProfileActive("vcap"));
 
 		ResponseEntity<String> user = server.getForString("/userinfo");
 		assertEquals(HttpStatus.OK, user.getStatusCode());

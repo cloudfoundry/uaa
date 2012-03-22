@@ -24,6 +24,7 @@ import org.cloudfoundry.identity.uaa.scim.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.UserAlreadyExistsException;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -62,10 +63,15 @@ public class ScimUserEndpointIntegrationTests {
 	@Rule
 	public OAuth2ContextSetup context = OAuth2ContextSetup.defaultClientCredentials(server);
 
+	@Rule
+	public TestAccountSetup testAccounts = TestAccountSetup.standard();
+
 	private RestTemplate client;
 
 	@Before
 	public void createRestTemplate() throws Exception {
+
+		Assume.assumeTrue(!testAccounts.isProfileActive("vcap"));
 
 		client = context.getRestTemplate();
 

@@ -11,22 +11,16 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.Mockito.mock;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.cloudfoundry.identity.uaa.authentication.LegacyAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.common.ExpiringOAuth2RefreshToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
@@ -50,9 +44,8 @@ public class JwtTokenServicesTests {
 		tokenServices = new JwtTokenServices();
 		tokenServices.setTokenStore(new InMemoryTokenStore());
 		authData = new HashMap<String, String>();
-		userAuthentication = new LegacyAuthentication(UaaAuthenticationTestFactory.getPrincipal("NaN", "foo@bar.com",
-				"foo@bar.com"), Arrays.<GrantedAuthority> asList(new SimpleGrantedAuthority("ROLE_USER")),
-				mock(UaaAuthenticationDetails.class), authData);
+		userAuthentication =UaaAuthenticationTestFactory.getAuthentication("foo@bar.com", "Foo Bar",
+				"foo@bar.com");
 
 	}
 

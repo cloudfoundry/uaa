@@ -18,6 +18,8 @@ import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 import java.util.Map;
 
+import org.junit.Assume;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.http.HttpEntity;
@@ -42,6 +44,11 @@ public class TokenAdminEndpointsIntegrationTests {
 
 	@Rule
 	public TestAccountSetup testAccounts = TestAccountSetup.standard();
+	
+	@Before
+	public void setUp() {
+		Assume.assumeTrue(!testAccounts.isProfileActive("vcap"));
+	}
 
 	@Test
 	public void testListTokensByUser() throws Exception {
