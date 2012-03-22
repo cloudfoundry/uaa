@@ -16,6 +16,7 @@
 
 	<!-- The data source has to be defined first -->
 	<import resource="spring-scim.xml" />
+	<import resource="oauth-clients.xml" />
 
 	<context:property-placeholder properties-ref="applicationProperties" />
 
@@ -94,22 +95,6 @@
 
 	<!-- The OAuth2 protected resources are separated out into their own block so we can deal with authorization and error handling 
 		separately. This isn't mandatory, but it makes it easier to control the behaviour. -->
-	<http pattern="/oauth/(users|clients)/.*" request-matcher="regex" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"
-		use-expressions="true" authentication-manager-ref="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/oauth/users/([^/].*?)/tokens/.*"
-			access="oauthClientHasRole('ROLE_ADMIN') and (hasRole('ROLE_USER') or oauthIsClient()) and oauthHasScope('write')"
-			method="DELETE" />
-		<intercept-url pattern="/oauth/users/.*"
-			access="oauthClientHasRole('ROLE_ADMIN') and (hasRole('ROLE_USER') or oauthIsClient()) and oauthHasScope('read')"
-			method="GET" />
-		<intercept-url pattern="/oauth/clients/([^/].*?)/tokens/.*"
-			access="oauthClientHasRole('ROLE_CLIENT') and oauthIsClient() and oauthHasScope('write')" method="DELETE" />
-		<intercept-url pattern="/oauth/clients/.*" access="oauthClientHasRole('ROLE_CLIENT') and oauthIsClient() and oauthHasScope('read')"
-			method="GET" />
-		<custom-filter ref="tokensResourceAuthenticationFilter" before="PRE_AUTH_FILTER" />
-		<access-denied-handler ref="oauthAccessDeniedHandler" />
-		<expression-handler ref="oauthWebExpressionHandler" />
-	</http>
 
 	<bean id="clientAuthenticationFilter" class="org.springframework.security.web.authentication.www.BasicAuthenticationFilter">
 		<constructor-arg ref="clientAuthenticationManager" />
@@ -183,40 +168,11 @@
 		<oauth:client-credentials />
 		<oauth:password authentication-manager-ref="authzAuthenticationMgr" />
 	</oauth:authorization-server>
-
-	<oauth:client-details-service id="clientDetails">
-		<oauth:client client-id="app" authorized-grant-types="password,authorization_code,refresh_token" scope="read,openid"
-			authorities="ROLE_CLIENT" secret="${app.client.secret:$2a$10$7uLdSof7NIMYAUlbrV8wzuEZ45cc17kZjH.kC7vcJgHBD0SnE7JSe}" />
-		<oauth:client client-id="my" authorized-grant-types="authorization_code,refresh_token,implicit,client_credentials"
-			scope="openid,read" authorities="ROLE_CLIENT" secret="${my.client.secret:$2a$10$8qjw5C.p65W6VIV7vXC0Hemo0S5kvt1ib/n4zBObx9XxLHo7FqUGS}" />
-		<oauth:client client-id="scim" authorized-grant-types="client_credentials" scope="read,write,password"
-			authorities="ROLE_CLIENT,ROLE_ADMIN" secret="${scim.client.secret:$2a$10$mEaFQ2.VeetFRVXAUZGzl.x62KjnwVTHPjbVJ/ErsRJyhndXawxv.}"
-			resource-ids="scim,password,tokens" />
-		<oauth:client client-id="token" authorized-grant-types="password,authorization_code" scope="read,write"
-			authorities="ROLE_CLIENT,ROLE_ADMIN" secret="${token.client.secret:$2a$10$mEaFQ2.VeetFRVXAUZGzl.x62KjnwVTHPjbVJ/ErsRJyhndXawxv.}"
-			resource-ids="tokens" />
-		<oauth:client client-id="vmc" authorized-grant-types="implicit" scope="read,password" authorities="ROLE_UNTRUSTED"
-			resource-ids="cloud_controller,openid,password" redirect-uri="http://uaa.cloudfoundry.com/redirect/vmc" />
-		<oauth:client client-id="cloud_controller" authorized-grant-types="client_credentials" scope="read,write,password"
-			authorities="ROLE_CLIENT,ROLE_ADMIN" secret="${cloud_controller.client.secret:$2a$08$qsrUOJQo0CWRuI9l4St6Eugt0fXf2bPKeGXN8J3glRHHhEMajUUk2}" />
-		<oauth:client client-id="AppDirectDebug" authorized-grant-types="implicit,authorization_code,refresh_token"
-			scope="read,write,openid" authorities="ROLE_CLIENT" resource-ids="cloud_controller,openid"
-			secret="${appdirect.client.secret:$2a$10$lrnnGW8zt3IYa/8gv8iOZOO1U86LW9La0nQpazKJAhVNgg9AE9xGW}" redirect-uri="http://127.0.0.16:8080/AppDirect/oauth2/return/cloudfoundry" />
-		<oauth:client client-id="AppDirect" authorized-grant-types="implicit,authorization_code,refresh_token"
-			scope="read,write,openid" authorities="ROLE_CLIENT" resource-ids="cloud_controller,openid"
-			secret="${appdirect.client.secret:$2a$10$lrnnGW8zt3IYa/8gv8iOZOO1U86LW9La0nQpazKJAhVNgg9AE9xGW}" redirect-uri="https://dev3.appdirect.com.com/oauth2/return/cloudfoundry" />
-		<oauth:client client-id="Gallery" authorized-grant-types="implicit,authorization_code,refresh_token"
-			scope="read,write,openid" authorities="ROLE_CLIENT" resource-ids="cloud_controller,openid"
-			secret="${gallery.client.secret:$2a$10$8nOW.QxiOOnVQC3QNEhEC.ZGe6ji3BHMFTMqYr9YtqCkEgyS/G51q}" redirect-uri="https://gallery-app.cloudfoundry.com/oauth2/cloudfoundry/callback" />
-	</oauth:client-details-service>
-
+	
 	<oauth:web-expression-handler id="oauthWebExpressionHandler" />
 
 	<oauth:resource-server id="openidResourceAuthenticationFilter" token-services-ref="tokenServices"
 		resource-id="openid" />
-
-	<oauth:resource-server id="tokensResourceAuthenticationFilter" token-services-ref="tokenServices"
-		resource-id="tokens" />
 
 	<context:mbean-server id="mbeanServer" />
 

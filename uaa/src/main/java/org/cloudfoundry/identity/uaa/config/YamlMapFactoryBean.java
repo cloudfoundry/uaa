@@ -33,9 +33,32 @@ public class YamlMapFactoryBean implements FactoryBean<Map<String, Object>> {
 
 	private static final Log logger = LogFactory.getLog(YamlMapFactoryBean.class);
 
+	public static enum ResolutionMethod {
+		OVERRIDE, FIRST_FOUND
+	}
+
+	private ResolutionMethod resolutionMethod = ResolutionMethod.OVERRIDE;
+
 	private Resource[] resources = new Resource[0];
 
 	private boolean ignoreResourceNotFound = false;
+
+	/**
+	 * Method to use for resolving resources. Each resource will be converted to a Map, so this property is used to
+	 * decide which map entries to keep in the final output from this factory. Possible values:
+	 * <ul>
+	 * <li><code>OVERRIDE</code> for replacing values from earlier in the list</li>
+	 * <li><code>FIRST_FOUND</code> if you want to take the first resource in the list that exists and use just that. If
+	 * this is set it implies {@link #setIgnoreResourceNotFound(boolean) ignoreResourceNotFound} is true (there's no
+	 * need to set both).</li>
+	 * </ul>
+	 * 
+	 * 
+	 * @param resolutionMethod the resolution method to set. Defaults to OVERRIDE.
+	 */
+	public void setResolutionMethod(ResolutionMethod resolutionMethod) {
+		this.resolutionMethod = resolutionMethod;
+	}
 
 	/**
 	 * @param ignoreResourceNotFound the flag value to set
@@ -55,14 +78,20 @@ public class YamlMapFactoryBean implements FactoryBean<Map<String, Object>> {
 	public Map<String, Object> getObject() throws Exception {
 		Yaml yaml = new Yaml();
 		Map<String, Object> result = new LinkedHashMap<String, Object>();
+		boolean found = false;
 		for (Resource resource : resources) {
 			try {
 				@SuppressWarnings("unchecked")
 				Map<String, Object> map = (Map<String, Object>) yaml.load(resource.getInputStream());
-				result.putAll(map);
+				if (resolutionMethod == ResolutionMethod.OVERRIDE || !found) {
+					result.putAll(map);
+					found = true;
+				} else {
+					break; // no need to load any more
+				}
 			}
 			catch (IOException e) {
-				if (ignoreResourceNotFound) {
+				if (ignoreResourceNotFound || resolutionMethod == ResolutionMethod.FIRST_FOUND) {
 					if (logger.isWarnEnabled()) {
 						logger.warn("Could not load properties from " + resource + ": " + e.getMessage());
 					}
