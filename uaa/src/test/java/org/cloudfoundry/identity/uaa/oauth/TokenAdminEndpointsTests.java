@@ -94,8 +94,28 @@ public class TokenAdminEndpointsTests {
 	}
 
 	@Test
+	public void testRevokeTokenForUserWithTokenId() throws Exception {
+		OAuth2AccessToken token = new OAuth2AccessToken("FOO");
+		token.setAdditionalInformation(Collections.<String, Object> singletonMap("token_id", "BAR"));
+		Mockito.when(tokenServices.findTokensByUserName("marissa")).thenReturn(Collections.singleton(token));
+		Mockito.when(tokenServices.revokeToken("FOO")).thenReturn(true);
+		ResponseEntity<Void> result = endpoints.revokeUserToken("marissa", "BAR",
+				new TestingAuthenticationToken("marissa", ""));
+		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+	}
+
+	@Test
 	public void testRevokeInvalidTokenForUser() throws Exception {
+		OAuth2AccessToken token = new OAuth2AccessToken("BAR");
+		Mockito.when(tokenServices.findTokensByUserName("marissa")).thenReturn(Collections.singleton(token));
 		ResponseEntity<Void> result = endpoints.revokeUserToken("marissa", "FOO", new TestingAuthenticationToken(
+				"marissa", ""));
+		assertEquals(HttpStatus.NOT_FOUND, result.getStatusCode());
+	}
+
+	@Test
+	public void testRevokeNullTokenForUser() throws Exception {
+		ResponseEntity<Void> result = endpoints.revokeUserToken("marissa", null, new TestingAuthenticationToken(
 				"marissa", ""));
 		assertEquals(HttpStatus.NOT_FOUND, result.getStatusCode());
 	}

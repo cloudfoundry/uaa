@@ -57,7 +57,7 @@ public class TokenAdminEndpoints {
 			Principal principal) throws Exception {
 		checkResourceOwner(user, principal);
 		String tokenValue = getTokenValue(tokenServices.findTokensByUserName(user), token);
-		if (tokenValue!=null && tokenServices.revokeToken(tokenValue)) {
+		if (tokenValue != null && tokenServices.revokeToken(tokenValue)) {
 			return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
 		}
 		else {
@@ -78,7 +78,7 @@ public class TokenAdminEndpoints {
 			Principal principal) throws Exception {
 		checkClient(client, principal);
 		String tokenValue = getTokenValue(tokenServices.findTokensByClientId(client), token);
-		if (tokenValue!=null && tokenServices.revokeToken(tokenValue)) {
+		if (tokenValue != null && tokenServices.revokeToken(tokenValue)) {
 			return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
 		}
 		else {
@@ -87,15 +87,17 @@ public class TokenAdminEndpoints {
 	}
 
 	private String getTokenValue(Collection<OAuth2AccessToken> tokens, String hash) {
-		try {
-			for (OAuth2AccessToken token : tokens) {
-				if (encoder.matches(token.getValue(), hash)) {
+		for (OAuth2AccessToken token : tokens) {
+			try {
+				if (token.getAdditionalInformation().containsKey("token_id")
+						&& hash.equals(token.getAdditionalInformation().get("token_id"))
+						|| encoder.matches(token.getValue(), hash)) {
 					return token.getValue();
 				}
 			}
-		}
-		catch (Exception e) {
-			// it doesn't match
+			catch (Exception e) {
+				// it doesn't match
+			}
 		}
 		return null;
 	}
@@ -105,6 +107,7 @@ public class TokenAdminEndpoints {
 		for (OAuth2AccessToken token : tokens) {
 			Map<String, Object> map = new HashMap<String, Object>(token.getAdditionalInformation());
 			if (!map.containsKey("token_id")) {
+				// The token doesn't have an ID in the token service, but we need one for the endpoint, so add one here
 				map.put("token_id", encoder.encode(token.getValue()));
 			}
 			String clientId = tokenServices.getClientId(token.getValue());
@@ -124,7 +127,8 @@ public class TokenAdminEndpoints {
 				throw new AccessDeniedException(String.format("User '%s' cannot obtain tokens for user '%s'",
 						principal.getName(), user));
 			}
-		} else if (!user.equals(principal.getName())) {
+		}
+		else if (!user.equals(principal.getName())) {
 			throw new AccessDeniedException(String.format("User '%s' cannot obtain tokens for user '%s'",
 					principal.getName(), user));
 		}

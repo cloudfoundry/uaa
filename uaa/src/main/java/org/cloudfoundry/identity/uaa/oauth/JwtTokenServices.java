@@ -15,8 +15,6 @@ package org.cloudfoundry.identity.uaa.oauth;
 import java.util.Collections;
 
 import org.codehaus.jackson.map.ObjectMapper;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.crypto.password.StandardPasswordEncoder;
 import org.springframework.security.jwt.JwtHelper;
 import org.springframework.security.jwt.crypto.sign.MacSigner;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
@@ -41,8 +39,6 @@ public class JwtTokenServices extends RandomValueTokenServices {
 	private ObjectMapper objectMapper = new ObjectMapper();
 
 	private String key = new RandomValueStringGenerator().generate();
-
-	private PasswordEncoder encoder = new StandardPasswordEncoder();
 
 	/**
 	 * @return the key used when signing tokens
@@ -71,7 +67,7 @@ public class JwtTokenServices extends RandomValueTokenServices {
 	protected OAuth2AccessToken createAccessToken(OAuth2Authentication authentication, OAuth2RefreshToken refreshToken) {
 
 		OAuth2AccessToken accessToken = super.createAccessToken(authentication, refreshToken);
-		String tokenId = encoder.encode(accessToken.getValue());
+		String tokenId = accessToken.getValue();
 		accessToken.setAdditionalInformation(Collections.<String,Object>singletonMap("token_id", tokenId));
 
 		String content;
