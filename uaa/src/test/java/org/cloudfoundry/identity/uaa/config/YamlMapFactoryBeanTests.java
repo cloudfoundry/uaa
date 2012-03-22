@@ -16,10 +16,16 @@ package org.cloudfoundry.identity.uaa.config;
 import static org.junit.Assert.assertEquals;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Map;
 
+import org.cloudfoundry.identity.uaa.config.YamlMapFactoryBean.ResolutionMethod;
 import org.junit.Test;
+import org.springframework.core.io.AbstractResource;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 
 /**
  * @author Dave Syer
@@ -45,6 +51,30 @@ public class YamlMapFactoryBeanTests {
 	@Test
 	public void testGetObject() throws Exception {
 		factory.setResources(new ByteArrayResource[] {new ByteArrayResource("foo: bar".getBytes())});
+		assertEquals(1, factory.getObject().size());
+	}
+
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testOverrideAndremoveDefaults() throws Exception {
+		factory.setResources(new ByteArrayResource[] {new ByteArrayResource("foo:\n  bar: spam".getBytes()), new ByteArrayResource("foo:\n  spam: bar".getBytes())});
+		assertEquals(1, factory.getObject().size());
+		assertEquals(1, ((Map<String, Object>) factory.getObject().get("foo")).size());
+	}
+
+	@Test
+	public void testFirstFound() throws Exception {
+		factory.setResolutionMethod(ResolutionMethod.FIRST_FOUND);
+		factory.setResources(new Resource[] {new AbstractResource() {
+			@Override
+			public String getDescription() {
+				return "non-existent";
+			}
+			@Override
+			public InputStream getInputStream() throws IOException {
+				throw new IOException("planned");
+			}
+		}, new ByteArrayResource("foo:\n  spam: bar".getBytes())});
 		assertEquals(1, factory.getObject().size());
 	}
 
