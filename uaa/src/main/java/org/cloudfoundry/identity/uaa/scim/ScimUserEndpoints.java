@@ -109,7 +109,7 @@ public class ScimUserEndpoints implements InitializingBean {
 	@ResponseStatus(HttpStatus.CREATED)
 	@ResponseBody
 	public ScimUser createUser(@RequestBody ScimUser user) {
-		return dao.createUser(user, generatePassword());
+		return dao.createUser(user, user.getPassword() == null ? generatePassword() : user.getPassword());
 	}
 
 	@RequestMapping(value = "/User/{userId}", method = RequestMethod.PUT)
@@ -123,7 +123,8 @@ public class ScimUserEndpoints implements InitializingBean {
 		user.setVersion(version);
 		try {
 			return dao.updateUser(userId, user);
-		} catch (OptimisticLockingFailureException e) {
+		}
+		catch (OptimisticLockingFailureException e) {
 			throw new ScimException(e.getMessage(), HttpStatus.CONFLICT);
 		}
 	}

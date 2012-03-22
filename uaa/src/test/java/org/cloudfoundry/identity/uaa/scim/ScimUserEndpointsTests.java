@@ -13,6 +13,8 @@
 package org.cloudfoundry.identity.uaa.scim;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.internal.matchers.StringContains.containsString;
 import static org.mockito.Mockito.mock;
@@ -21,9 +23,11 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -35,11 +39,13 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabase;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.crypto.password.NoOpPasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 /**
  * @author Dave Syer
  * @author Luke Taylor
- *
+ * 
  */
 public class ScimUserEndpointsTests {
 
@@ -56,6 +62,8 @@ public class ScimUserEndpointsTests {
 
 	private static EmbeddedDatabase database;
 
+	private List<ScimUser> createdUsers = new ArrayList<ScimUser>();
+
 	@BeforeClass
 	public static void setUp() {
 		EmbeddedDatabaseBuilder builder = new EmbeddedDatabaseBuilder();
@@ -63,6 +71,7 @@ public class ScimUserEndpointsTests {
 		database = builder.build();
 		JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
 		dao = new JdbcScimUserProvisioning(jdbcTemplate);
+		dao.setPasswordEncoder(NoOpPasswordEncoder.getInstance());
 		dao.setPasswordValidator(new NullPasswordValidator());
 		endpoints = new ScimUserEndpoints();
 		endpoints.setScimUserProvisioning(dao);
@@ -77,6 +86,44 @@ public class ScimUserEndpointsTests {
 	@AfterClass
 	public static void tearDown() throws Exception {
 		database.shutdown();
+	}
+
+	@After
+	public void cleanUp() {
+		JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
+		for (ScimUser user : createdUsers) {
+			jdbcTemplate.update("delete from users where id=?", user.getId());
+		}
+	}
+
+	@Test
+	public void userGetsADefaultPassword() {
+		ScimUser user = new ScimUser(null, "dave", "David", "Syer");
+		user.addEmail("dsyer@vmware.com");
+		endpoints.setSecurityContextAccessor(mockSecurityContext(user));
+		ScimUser created = endpoints.createUser(user);
+		createdUsers.add(created);
+		assertNull("A newly created user revealed its password", created.getPassword());
+		JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
+		String password = jdbcTemplate.queryForObject("select password from users where id=?", String.class,
+				created.getId());
+		// Generated password...
+		assertNotNull(password);
+	}
+
+	@Test
+	public void userCanInitializePassword() {
+		ScimUser user = new ScimUser(null, "dave", "David", "Syer");
+		user.addEmail("dsyer@vmware.com");
+		ReflectionTestUtils.setField(user, "password", "foo");
+		endpoints.setSecurityContextAccessor(mockSecurityContext(user));
+		ScimUser created = endpoints.createUser(user);
+		createdUsers.add(created);
+		assertNull("A newly created user revealed its password", created.getPassword());
+		JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
+		String password = jdbcTemplate.queryForObject("select password from users where id=?", String.class,
+				created.getId());
+		assertEquals("foo", password);
 	}
 
 	@Test
@@ -147,6 +194,7 @@ public class ScimUserEndpointsTests {
 		ScimUser exGuy = new ScimUser(null, "deleteme", "Expendable", "Guy");
 		exGuy.addEmail("exguy@imonlyheretobedeleted.com");
 		exGuy = dao.createUser(exGuy, "exguyspassword");
+		createdUsers.add(exGuy);
 		endpoints.deleteUser(exGuy.getId(), Integer.toString(exGuy.getMeta().getVersion()));
 	}
 
@@ -155,6 +203,7 @@ public class ScimUserEndpointsTests {
 		ScimUser exGuy = new ScimUser(null, "deleteme2", "Expendable", "Guy");
 		exGuy.addEmail("exguy2@imonlyheretobedeleted.com");
 		exGuy = dao.createUser(exGuy, "exguyspassword");
+		createdUsers.add(exGuy);
 		endpoints.deleteUser(exGuy.getId(), Integer.toString(exGuy.getMeta().getVersion() + 1));
 	}
 
@@ -163,6 +212,7 @@ public class ScimUserEndpointsTests {
 		ScimUser exGuy = new ScimUser(null, "deleteme3", "Expendable", "Guy");
 		exGuy.addEmail("exguy3@imonlyheretobedeleted.com");
 		exGuy = dao.createUser(exGuy, "exguyspassword");
+		createdUsers.add(exGuy);
 		endpoints.deleteUser(exGuy.getId(), null);
 	}
 
@@ -176,13 +226,13 @@ public class ScimUserEndpointsTests {
 	@Test
 	public void testFindAllIds() {
 		SearchResults<Map<String, Object>> results = endpoints.findUsers("id", "id pr", 1, 100);
-		assertEquals(5, results.getTotalResults());
+		assertEquals(2, results.getTotalResults());
 	}
 
 	@Test
 	public void testFindPageOfIds() {
 		SearchResults<Map<String, Object>> results = endpoints.findUsers("id", "id pr", 1, 1);
-		assertEquals(5, results.getTotalResults());
+		assertEquals(2, results.getTotalResults());
 		assertEquals(1, results.getResources().size());
 	}
 
@@ -219,7 +269,7 @@ public class ScimUserEndpointsTests {
 	@Test
 	public void testFindIdsByUserNameContains() {
 		SearchResults<Map<String, Object>> results = endpoints.findUsers("id", "userName co 'd'", 1, 100);
-		assertEquals(5, results.getTotalResults());
+		assertEquals(2, results.getTotalResults());
 		assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
 				.contains(joel.getId()));
 	}
@@ -256,7 +306,7 @@ public class ScimUserEndpointsTests {
 	@Test
 	public void testFindIdsWithBooleanExpression() {
 		SearchResults<Map<String, Object>> results = endpoints.findUsers("id", "userName co 'd' and id pr", 1, 100);
-		assertEquals(5, results.getTotalResults());
+		assertEquals(2, results.getTotalResults());
 		assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
 				.contains(joel.getId()));
 	}

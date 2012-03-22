@@ -20,6 +20,7 @@ import java.util.List;
 import org.cloudfoundry.identity.uaa.scim.json.JsonDateDeserializer;
 import org.cloudfoundry.identity.uaa.scim.json.JsonDateSerializer;
 import org.codehaus.jackson.annotate.JsonIgnore;
+import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.map.annotate.JsonDeserialize;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 import org.springframework.util.Assert;
@@ -200,6 +201,8 @@ public final class ScimUser {
 	private String timezone;
 	private boolean active = true;
 	private Meta meta = new Meta();
+	@JsonProperty
+	private String password;
 
 	public ScimUser() {
 	}
@@ -228,6 +231,10 @@ public final class ScimUser {
 
 	public String getUserName() {
 		return userName;
+	}
+
+	public String getPassword() {
+		return password;
 	}
 
 	public void setUserName(String userName) {
