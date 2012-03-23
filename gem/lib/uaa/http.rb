@@ -54,7 +54,7 @@ module Cloudfoundry::Uaa::Http
       raise (status == 404 ? NotFound : BadResponse), "invalid status response from #{@target}: #{status}"
     end
     if headers && headers[:content_type] !~ /application\/json/i
-      raise BadTarget, "received invalid response content type from #{@target}"
+      raise BadResponse, "received invalid response content type from #{@target}"
     end
     parsed_reply = (JSON.parse(body, :symbolize_names => true) if body)
     if status == 400
@@ -122,9 +122,6 @@ module Cloudfoundry::Uaa::Http
     end
     [status, body, response_headers]
 
-  rescue URI::Error, SocketError => e
-    debug_out "<---- no response due to exception (#{e})" if trace
-    raise BadTarget, "Cannot access target (#{e.message})"
   rescue Exception => e
     debug_out "<---- no response due to exception (#{e})" if trace
     raise
@@ -140,10 +137,10 @@ module Cloudfoundry::Uaa::Http
     end
     result
 
-  rescue Net::HTTPBadResponse => e
-    raise BadTarget, "Received bad HTTP response from target: #{e}"
-  rescue SystemCallError, RestClient::Exception => e
-    raise HTTPException, "HTTP exception: #{e.class}:#{e}"
+  rescue URI::Error, SocketError, SystemCallError => e
+    raise BadTarget, "Cannot access target (#{e.message})"
+  rescue RestClient::Exception, Net::HTTPBadResponse => e
+    raise HTTPException, "HTTP exception: #{e.class}: #{e}"
   end
 
   def perform_ahttp_request(req)
@@ -158,17 +155,19 @@ module Cloudfoundry::Uaa::Http
 
     # This condition only works with em-http-request 1.0.0.beta.3
     if connection.is_a? EventMachine::FailedConnection
-      raise HTTPException, "An error occurred in the HTTP request setup: #{client.error}"
+      raise BadTarget, "HTTP connection setup error: #{client.error}"
     end
 
     client.callback {
       response_headers = client.response_header.inject({}) { |h, (k, v)| h[k.downcase.to_sym] = v; h }
       f.resume [client.response_header.http_status, client.response, response_headers]
     }
-    client.errback { f.resume [:error, "Error in the HTTP request: #{client.error}"] }
+    client.errback { f.resume [:error, client.error] }
     result = Fiber.yield
-    debug_out result.inspect
-    raise HTTPException, result[1] if result[0] == :error
+    if result[0] == :error
+      raise BadTarget, "connection failed" unless result[1] && result[1] != ""
+      raise HTTPException, result[1]
+    end
     result
   end
 
