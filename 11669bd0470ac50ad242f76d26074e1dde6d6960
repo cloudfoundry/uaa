@@ -1,0 +1,8 @@
+Code-Review+1: Dale Olds <olds@vmware.com>
+Code-Review+2: Dave Syer <dsyer@vmware.com>
+Verified+1: CI bot <cf-ci@rbcon.com>
+Submitted-by: Dave Syer <dsyer@vmware.com>
+Submitted-at: Fri, 23 Mar 2012 14:00:48 +0000
+Reviewed-on: http://cloudfoundry-codereview.qa.mozycloud.com/gerrit/4353
+Project: uaa
+Branch: refs/heads/master
