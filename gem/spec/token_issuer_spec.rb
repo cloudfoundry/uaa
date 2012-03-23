@@ -51,9 +51,9 @@ describe Cloudfoundry::Uaa::TokenIssuer do
       check_good_token_info subject.client_credentials_grant
     end
 
-    it "should raise a bad target error if response content type is not json" do
+    it "should raise a bad response error if response content type is not json" do
       @stub_req.to_return(File.new(spec_asset('text_reply.txt')))
-      expect { subject.client_credentials_grant }.should raise_exception(Cloudfoundry::Uaa::TokenIssuer::BadTarget)
+      expect { subject.client_credentials_grant }.should raise_exception(Cloudfoundry::Uaa::TokenIssuer::BadResponse)
     end
 
     it "should raise a bad response error if the response is not proper json" do
@@ -61,9 +61,9 @@ describe Cloudfoundry::Uaa::TokenIssuer do
       expect { subject.client_credentials_grant }.should raise_exception(Cloudfoundry::Uaa::TokenIssuer::BadResponse)
     end
 
-    it "should raise a bad target error if the http response is bad" do
+    it "should raise an http error if the http response is bad" do
       @stub_req.to_raise(Net::HTTPBadResponse)
-      expect { subject.client_credentials_grant }.should raise_exception(Cloudfoundry::Uaa::TokenIssuer::BadTarget)
+      expect { subject.client_credentials_grant }.should raise_exception(Cloudfoundry::Uaa::TokenIssuer::HTTPException)
     end
 
     it "should raise a bad target error if the target uri is bad" do
@@ -118,9 +118,9 @@ describe Cloudfoundry::Uaa::TokenIssuer do
       check_good_token_info subject.owner_password_grant(@username, @userpwd)
     end
 
-    it "should raise a response content type is not json" do
+    it "should raise a bad response error if content type is not json" do
       @stub_req.to_return(File.new(spec_asset('text_reply.txt')))
-      expect { subject.owner_password_grant(@username, @userpwd)}.should raise_exception(Cloudfoundry::Uaa::TokenIssuer::BadTarget)
+      expect { subject.owner_password_grant(@username, @userpwd)}.should raise_exception(Cloudfoundry::Uaa::TokenIssuer::BadResponse)
     end
 
     it "should raise a bad response error if the response is not proper json" do

@@ -41,12 +41,12 @@ describe Cloudfoundry::Uaa::TokenChecker do
     expect { subject.decode("one two three") }.to raise_exception(Cloudfoundry::Uaa::TokenChecker::AuthError)
   end
 
-  it "should raise a target error if the response is not json" do
+  it "should raise a bad response error if the response is not json" do
     @stub_req.to_return(File.new(spec_asset('text_reply.txt')))
-    expect { subject.decode("one two")}.should raise_exception(Cloudfoundry::Uaa::TokenChecker::BadTarget)
+    expect { subject.decode("one two")}.should raise_exception(Cloudfoundry::Uaa::TokenChecker::BadResponse)
   end
 
-  it "should raise a target json error if the response is 400 with valid oauth json error" do
+  it "should raise a target error if the response is 400 with valid oauth json error" do
     @stub_req.to_return(File.new(spec_asset('oauth_error_reply.txt')))
     expect { subject.decode("one two")}.should raise_exception(Cloudfoundry::Uaa::TokenChecker::TargetError)
   end
