@@ -29,6 +29,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Meta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Name;
+import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -51,12 +52,12 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	private final Log logger = LogFactory.getLog(getClass());
 
-	public static final String USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName,active";
+	public static final String USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName,active,authority";
 
 	public static final String CREATE_USER_SQL = "insert into users (" + USER_FIELDS
-			+ ",password) values (?,?,?,?,?,?,?,?,?,?)";
+			+ ",password) values (?,?,?,?,?,?,?,?,?,?,?)";
 
-	public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, email=?, givenName=?, familyName=?, active=? where id=? and version=?";
+	public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, email=?, givenName=?, familyName=?, active=?, authority=? where id=? and version=?";
 
 	public static final String DELETE_USER_SQL = "update users set active=false where id=?";
 
@@ -195,7 +196,8 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 					ps.setString(7, user.getName().getGivenName());
 					ps.setString(8, user.getName().getFamilyName());
 					ps.setBoolean(9, user.isActive());
-					ps.setString(10, passwordEncoder.encode(password));
+					ps.setLong(10, UaaAuthority.fromUserType(user.getUserType()).value());
+					ps.setString(11, passwordEncoder.encode(password));
 				}
 			});
 		}
@@ -226,8 +228,9 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 				ps.setString(4, user.getName().getGivenName());
 				ps.setString(5, user.getName().getFamilyName());
 				ps.setBoolean(6, user.isActive());
-				ps.setString(7, id);
-				ps.setInt(8, user.getVersion());
+				ps.setLong(7, UaaAuthority.fromUserType(user.getUserType()).value());
+				ps.setString(8, id);
+				ps.setInt(9, user.getVersion());
 			}
 		});
 		ScimUser result = retrieveUser(id);
@@ -333,6 +336,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 			String givenName = rs.getString(7);
 			String familyName = rs.getString(8);
 			boolean active = rs.getBoolean(9);
+			long authority = rs.getLong(10);
 			ScimUser user = new ScimUser();
 			user.setId(id);
 			Meta meta = new Meta();
@@ -347,6 +351,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 			name.setFamilyName(familyName);
 			user.setName(name);
 			user.setActive(active);
+			user.setUserType(UaaAuthority.valueOf((int)authority).getUserType());
 			return user;
 		}
 	}
