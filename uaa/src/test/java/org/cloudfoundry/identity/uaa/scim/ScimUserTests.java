@@ -73,6 +73,20 @@ public class ScimUserTests {
 	}
 
 	@Test
+	public void anotherUserMapsToJson() throws Exception {
+		ScimUser user = new ScimUser();
+		user.setId("123");
+		user.setUserName("joe");
+		user.getMeta().setCreated(new SimpleDateFormat("yyyy-MM-dd").parse("2011-11-30"));
+		user.addEmail("joe@test.org");
+
+		String json = mapper.writeValueAsString(user);
+		// System.err.println(json);
+		assertTrue(json.contains("\"emails\":"));
+
+	}
+
+	@Test
 	public void emailsAreMappedCorrectly() throws Exception {
 		String json = "{ \"userName\":\"bjensen\"," +
 				"\"emails\": [\n" +

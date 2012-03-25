@@ -105,12 +105,12 @@ public final class ScimUser {
 
 	}
 
-	@JsonSerialize (include = JsonSerialize.Inclusion.NON_NULL)
+	@JsonSerialize (include = JsonSerialize.Inclusion.NON_DEFAULT)
 	public static final class Email {
 		private String value;
 		// this should probably be an enum
 		private String type;
-		private Boolean primary;
+		private boolean primary = false;
 
 		public String getValue() {
 			return value;
@@ -128,16 +128,12 @@ public final class ScimUser {
 			this.type = type;
 		}
 
-		public Boolean getPrimary() {
-			return primary;
-		}
-
 		public void setPrimary(boolean primary) {
 			this.primary = primary;
 		}
 
 		public boolean isPrimary() {
-			return primary != null && primary;
+			return primary;
 		}
 	}
 
@@ -193,7 +189,7 @@ public final class ScimUser {
 	private String displayName;
 	private String nickName;
 	private String profileUrl;
-	private String title;
+	private String title;;
 	private String userType;
 	private String preferredLanguage;
 	private String locale;
