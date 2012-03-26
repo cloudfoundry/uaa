@@ -39,8 +39,7 @@ public class NativeApplicationIntegrationTests {
 	@Rule
 	public ServerRunning serverRunning = ServerRunning.isRunning();
 
-	@Rule
-	public TestAccountSetup testAccounts = TestAccountSetup.standard();
+	private TestAccounts testAccounts = TestAccounts.standard(serverRunning);
 
 	/**
 	 * tests a happy-day flow of the Resource Owner Password Credentials grant type. (formerly native application

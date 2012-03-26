@@ -36,8 +36,7 @@ public class AuthorizationCodeGrantIntegrationTests {
 	@Rule
 	public ServerRunning serverRunning = ServerRunning.isRunning();
 
-	@Rule
-	public TestAccountSetup testAccounts = TestAccountSetup.standard();
+	private TestAccounts testAccounts = TestAccounts.standard(serverRunning);
 
 	@Test
 	public void testSuccessfulAuthorizationCodeFlow() throws Exception {
