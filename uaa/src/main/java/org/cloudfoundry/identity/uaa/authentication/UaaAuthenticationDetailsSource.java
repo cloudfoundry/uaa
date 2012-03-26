@@ -1,4 +1,4 @@
-/**
+/*
  * Cloud Foundry 2012.02.03 Beta
  * Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved.
  *
