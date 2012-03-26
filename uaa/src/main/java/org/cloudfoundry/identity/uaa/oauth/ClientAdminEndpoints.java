@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 /**
- * Controller for listing and manipulating access tokens.
+ * Controller for listing and manipulating OAUth2 clients.
  * 
  * @author Dave Syer
  */

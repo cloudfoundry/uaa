@@ -32,8 +32,7 @@ public class BatchEndpointIntegrationTests {
 	@Rule
 	public ServerRunning server = ServerRunning.isRunning();
 
-	@Rule
-	public TestAccountSetup testAccounts = TestAccountSetup.standard();
+	private TestAccounts testAccounts = TestAccounts.standard(server);
 	
 	@Before
 	public void checkVcap() {

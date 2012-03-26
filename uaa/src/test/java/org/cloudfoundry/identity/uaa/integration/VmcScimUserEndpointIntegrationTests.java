@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.integration;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -38,6 +39,7 @@ import org.springframework.web.client.RestTemplate;
  * @author Luke Taylor
  * @author Dave Syer
  */
+@OAuth2ContextConfiguration(OAuth2ContextConfiguration.GrantType.IMPLICIT)
 public class VmcScimUserEndpointIntegrationTests {
 
 	private final String JOE = "joe" + new RandomValueStringGenerator().generate().toLowerCase();
@@ -50,13 +52,12 @@ public class VmcScimUserEndpointIntegrationTests {
 
 	@Rule
 	public ServerRunning server = ServerRunning.isRunning();
-
-	@Rule
-	public OAuth2ContextSetup context = OAuth2ContextSetup.implicit(server, JOE, "password");
-
-	@Rule
-	public TestAccountSetup testAccounts = TestAccountSetup.standard();
 	
+	private TestAccounts testAccounts = TestAccounts.standard(server);	
+
+	@Rule
+	public OAuth2ContextSetup context = OAuth2ContextSetup.standard(server, testAccounts);
+
 	@BeforeOAuth2Context
 	public void setUpUserAccounts() {
 
@@ -93,6 +94,8 @@ public class VmcScimUserEndpointIntegrationTests {
 		ResponseEntity<Void> result = client.exchange(server.getUrl(userEndpoint) + "/{id}/password", HttpMethod.PUT,
 				new HttpEntity<PasswordChangeRequest>(change, headers), null, joe.getId());
 		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+
+		context.setParameters(Collections.singletonMap("credentials", testAccounts.getJsonCredentials(joe.getUserName(), "password")));
 
 	}
 

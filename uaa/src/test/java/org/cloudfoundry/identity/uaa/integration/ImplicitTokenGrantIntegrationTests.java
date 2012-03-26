@@ -39,8 +39,7 @@ public class ImplicitTokenGrantIntegrationTests {
 	@Rule
 	public ServerRunning serverRunning = ServerRunning.isRunning();
 
-	@Rule
-	public TestAccountSetup testAccounts = TestAccountSetup.standard();
+	private TestAccounts testAccounts = TestAccounts.standard(serverRunning);
 
 	private String implicitUrl() {
 		URI uri = serverRunning.buildUri("/oauth/authorize").queryParam("response_type", "token")
