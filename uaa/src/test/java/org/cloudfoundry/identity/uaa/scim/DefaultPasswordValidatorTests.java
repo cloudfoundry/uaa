@@ -52,6 +52,11 @@ public class DefaultPasswordValidatorTests {
 		v.validate("okApartfrom3456789", roz);
 	}
 
+    @Test
+    public void alphabeticAndNumericSequenceIsAllowedInLongPassword() {
+        v.validate("ab01234abcdefae86e5d92", roz);
+    }
+
 	@Test(expected = InvalidPasswordException.class)
 	public void qwertySequenceIsRejected() {
 		v.validate("0kApartfromFGHJKL", roz);
