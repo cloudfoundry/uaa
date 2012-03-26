@@ -45,6 +45,7 @@ import org.springframework.web.client.RestTemplate;
  * @author Luke Taylor
  * @author Dave Syer
  */
+@OAuth2ContextConfiguration(OAuth2ContextConfiguration.GrantType.CLIENT_CREDENTIALS)
 public class ScimUserEndpointIntegrationTests {
 
 	private final String JOEL = "joel_" + new RandomValueStringGenerator().generate().toLowerCase();
@@ -60,11 +61,10 @@ public class ScimUserEndpointIntegrationTests {
 	@Rule
 	public ServerRunning server = ServerRunning.isRunning();
 
+	private TestAccounts testAccounts = TestAccounts.standard(server);
+	
 	@Rule
-	public OAuth2ContextSetup context = OAuth2ContextSetup.defaultClientCredentials(server);
-
-	@Rule
-	public TestAccountSetup testAccounts = TestAccountSetup.standard();
+	public OAuth2ContextSetup context = OAuth2ContextSetup.standard(server, testAccounts);
 
 	private RestTemplate client;
 
@@ -73,7 +73,7 @@ public class ScimUserEndpointIntegrationTests {
 
 		Assume.assumeTrue(!testAccounts.isProfileActive("vcap"));
 
-		client = context.getRestTemplate();
+		client = server.getRestTemplate();
 
 		List<HttpMessageConverter<?>> list = new ArrayList<HttpMessageConverter<?>>();
 		list.add(new MappingJacksonHttpMessageConverter());

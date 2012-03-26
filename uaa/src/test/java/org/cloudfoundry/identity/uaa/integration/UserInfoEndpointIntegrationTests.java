@@ -24,17 +24,16 @@ import org.springframework.http.ResponseEntity;
 /**
  * @author Dave Syer
  */
+@OAuth2ContextConfiguration(OAuth2ContextConfiguration.GrantType.RESOURCE_OWNER)
 public class UserInfoEndpointIntegrationTests {
 
 	@Rule
 	public ServerRunning server = ServerRunning.isRunning();
 	
-	@Rule
-	public TestAccountSetup testAccounts = TestAccountSetup.standard();
+	private TestAccounts testAccounts = TestAccounts.standard(server);
 	
 	@Rule
-	public OAuth2ContextSetup context = OAuth2ContextSetup.resourceOwner(server, testAccounts.getUserName(),
-			testAccounts.getPassword());
+	public OAuth2ContextSetup context = OAuth2ContextSetup.standard(server, testAccounts);
 	
 	/**
 	 * tests a happy-day flow of the <code>/userinfo</code> endpoint

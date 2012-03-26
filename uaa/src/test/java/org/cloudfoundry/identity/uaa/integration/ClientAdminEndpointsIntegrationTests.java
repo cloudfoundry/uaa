@@ -44,8 +44,7 @@ public class ClientAdminEndpointsIntegrationTests {
 	@Rule
 	public ServerRunning serverRunning = ServerRunning.isRunning();
 
-	@Rule
-	public TestAccountSetup testAccounts = TestAccountSetup.standard();
+	private TestAccounts testAccounts = TestAccounts.standard(serverRunning);
 
 	@Before
 	public void setUp() {

@@ -42,8 +42,6 @@ import org.springframework.security.oauth2.client.context.OAuth2ClientContextHol
 import org.springframework.security.oauth2.client.resource.OAuth2ProtectedResourceDetails;
 import org.springframework.security.oauth2.client.token.AccessTokenRequest;
 import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
-import org.springframework.security.oauth2.client.token.grant.implicit.ImplicitResourceDetails;
-import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordResourceDetails;
 import org.springframework.security.oauth2.common.AuthenticationScheme;
 import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestOperations;
@@ -69,66 +67,20 @@ public class OAuth2ContextSetup extends TestWatchman {
 
 	private final ServerRunning server;
 
-	public static OAuth2ContextSetup defaultClientCredentials(ServerRunning server) {
-		return clientCredentials(server, Arrays.asList("read,write,password"));
+	private final TestAccounts testAccounts;
+	
+	public static OAuth2ContextSetup standard(ServerRunning server, TestAccounts testAccounts) {
+		return new OAuth2ContextSetup(server, testAccounts);
 	}
 
-	public static OAuth2ContextSetup clientCredentials(ServerRunning server, List<String> scopes) {
-		ClientCredentialsResourceDetails resource = new ClientCredentialsResourceDetails();
-		resource.setClientId("scim");
-		resource.setClientSecret("scimsecret");
-		resource.setId("scim");
-		resource.setScope(scopes);
-		resource.setClientAuthenticationScheme(AuthenticationScheme.header);
-		resource.setAccessTokenUri(server.getUrl("/oauth/token"));
-		return new OAuth2ContextSetup(server, resource);
+	private OAuth2ContextSetup(ServerRunning server, TestAccounts testAccounts) {
+		this(server, testAccounts, Collections.<String, String> emptyMap());
 	}
 
-	public static OAuth2ContextSetup resourceOwner(ServerRunning server, String username, String password) {
-		return resourceOwner(server, username, password, Arrays.asList("read", "openid"));
-	}
-
-	public static OAuth2ContextSetup resourceOwner(ServerRunning server, String username, String password,
-			List<String> scopes) {
-		ResourceOwnerPasswordResourceDetails resource = new ResourceOwnerPasswordResourceDetails();
-		resource.setClientId("app");
-		resource.setClientSecret("appclientsecret");
-		resource.setId("app");
-		resource.setScope(scopes);
-		Map<String, String> parameters = new LinkedHashMap<String, String>();
-		parameters.put("username", username);
-		parameters.put("password", password);
-		resource.setUsername(username);
-		resource.setPassword(password);
-		resource.setClientAuthenticationScheme(AuthenticationScheme.header);
-		resource.setAccessTokenUri(server.getUrl("/oauth/token"));
-		return new OAuth2ContextSetup(server, resource, parameters);
-	}
-
-	public static OAuth2ContextSetup implicit(ServerRunning server, String username, String password) {
-		ImplicitResourceDetails resource = new ImplicitResourceDetails();
-		resource.setClientId("vmc");
-		resource.setId("app");
-		resource.setScope(Arrays.asList("read", "password"));
-		Map<String, String> parameters = new LinkedHashMap<String, String>();
-		parameters.put("credentials", String.format("{\"username\":\"%s\",\"password\":\"%s\"}", username, password));
-		resource.setClientAuthenticationScheme(AuthenticationScheme.header);
-		resource.setAccessTokenUri(server.getUrl("/oauth/authorize"));
-		resource.setPreEstablishedRedirectUri("http://uaa.cloudfoundry.com/redirect/vmc");
-		return new OAuth2ContextSetup(server, resource, parameters);
-	}
-
-	public OAuth2ContextSetup(ServerRunning server, OAuth2ProtectedResourceDetails resource) {
-		this(server, resource, Collections.<String, String> emptyMap());
-	}
-
-	public OAuth2ContextSetup(ServerRunning server, OAuth2ProtectedResourceDetails resource,
-			Map<String, String> parameters) {
+	private OAuth2ContextSetup(ServerRunning server, TestAccounts testAccounts, Map<String, String> parameters) {
 		this.server = server;
-		this.resource = resource;
+		this.testAccounts = testAccounts;
 		this.parameters = parameters;
-		this.client = createRestTemplate(resource);
-		this.resource = resource;
 	}
 
 	private OAuth2RestTemplate createRestTemplate(OAuth2ProtectedResourceDetails resource) {
@@ -158,28 +110,39 @@ public class OAuth2ContextSetup extends TestWatchman {
 
 	@Override
 	public Statement apply(Statement base, FrameworkMethod method, Object target) {
-		initializeIfNecessary(target);
+		initializeIfNecessary(method, target);
 		return super.apply(base, method, target);
 	}
 
 	@Override
 	public void starting(FrameworkMethod method) {
-		logger.info("Starting OAuth2 context for: " + resource);
-		AccessTokenRequest request = new AccessTokenRequest();
-		request.setAll(parameters);
-		OAuth2ClientContext context = new OAuth2ClientContext(request);
-		OAuth2ClientContextHolder.setContext(context);
-		server.setRestTemplate(client);
+		if (resource != null) {
+			logger.info("Starting OAuth2 context for: " + resource);
+			AccessTokenRequest request = new AccessTokenRequest();
+			request.setAll(parameters);
+			OAuth2ClientContext context = new OAuth2ClientContext(request);
+			OAuth2ClientContextHolder.setContext(context);
+			server.setRestTemplate(client);
+		}
 	}
 
 	@Override
 	public void finished(FrameworkMethod method) {
-		logger.info("Ending OAuth2 context for: " + resource);
-		OAuth2ClientContextHolder.clearContext();
+		if (resource != null) {
+			logger.info("Ending OAuth2 context for: " + resource);
+			OAuth2ClientContextHolder.clearContext();
+		}
 	}
 
-	private void initializeIfNecessary(final Object target) {
+	private void initializeIfNecessary(FrameworkMethod method, final Object target) {
 		final TestClass testClass = new TestClass(target.getClass());
+		OAuth2ContextConfiguration contextConfiguration = findOAuthContextConfiguration(method, testClass);
+		if (contextConfiguration == null) {
+			// Nothing to do
+			return;
+		}
+		this.resource = creatResource(contextConfiguration);
+		this.client = createRestTemplate(resource);
 		final List<FrameworkMethod> befores = testClass.getAnnotatedMethods(BeforeOAuth2Context.class);
 		if (!befores.isEmpty()) {
 			logger.debug("Running @BeforeOAuth2Context methods");
@@ -203,6 +166,10 @@ public class OAuth2ContextSetup extends TestWatchman {
 		}
 	}
 
+	public void setParameters(Map<String, String> parameters) {
+		this.parameters = parameters;
+	}
+
 	public OAuth2ProtectedResourceDetails getResource() {
 		return resource;
 	}
@@ -211,7 +178,27 @@ public class OAuth2ContextSetup extends TestWatchman {
 		return client;
 	}
 
-	public void setup(OAuth2ContextSetupCallback callback) {
+	private OAuth2ProtectedResourceDetails creatResource(OAuth2ContextConfiguration contextLoader) {
+		if (contextLoader.value() == OAuth2ContextConfiguration.GrantType.CLIENT_CREDENTIALS) {
+			return testAccounts.getClientCredentialsResource("scim", "scim", "scimsecret");
+		}
+		if (contextLoader.value() == OAuth2ContextConfiguration.GrantType.IMPLICIT) {
+			return testAccounts.getImplicitResource("vmc", "vmc", "marissa", "koala");
+		}
+		if (contextLoader.value() == OAuth2ContextConfiguration.GrantType.RESOURCE_OWNER) {
+			return testAccounts.getResourceOwnerPasswordResource("test", "app", "appclientsecret", "marissa", "koala");
+		}
+		throw new IllegalStateException("Should not happen: no such type " + contextLoader.value());
+	}
+
+	private OAuth2ContextConfiguration findOAuthContextConfiguration(FrameworkMethod method, TestClass testClass) {
+		if (testClass.getJavaClass().isAnnotationPresent(OAuth2ContextConfiguration.class)) {
+			return testClass.getJavaClass().getAnnotation(OAuth2ContextConfiguration.class);
+		}
+		return method.getAnnotation(OAuth2ContextConfiguration.class);
+	}
+
+	private void setup(OAuth2ContextSetupCallback callback) {
 
 		ClientCredentialsResourceDetails resource = new ClientCredentialsResourceDetails();
 		resource.setClientId("scim");
