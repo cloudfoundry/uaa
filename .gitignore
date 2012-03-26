@@ -22,3 +22,4 @@ Servers/
 *.swp
 *.swo
 coverage.ec
+git.properties

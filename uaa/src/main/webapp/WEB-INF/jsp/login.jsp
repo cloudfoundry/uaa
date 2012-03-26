@@ -237,7 +237,7 @@ img.gsc-branding-img,img.gsc-branding-img-noclear,img.gcsc-branding-img,img.gcsc
 							href='http://www.vmware.com/help/privacy.html' target='_blank'>Privacy</a>
 					</p>
 				</div>
-				<div class='span-5 last right'>
+				<div class='span-5 last right' title="Commit: ${commit_id}, Timestamp: ${timestamp}">
 					<p>
 						Copyright &copy;
 						<fmt:formatDate value="<%= new java.util.Date() %>" pattern="yyyy" />
