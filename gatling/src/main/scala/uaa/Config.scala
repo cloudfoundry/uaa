@@ -19,6 +19,12 @@ import com.excilys.ebi.gatling.http.Predef.httpConfig
 object Config {
 	val urlBase = sys.env.getOrElse("GATLING_UAA_BASE", "http://localhost:8080/uaa")
 
+  val uaa_admin_user = "admin"
+  val uaa_admin_password = "admin"
+
+  val scim_client_id = "scim"
+  val scim_client_password = "scimsecret"
+
 	def uaaHttpConfig = httpConfig.baseURL(urlBase)
 
 }

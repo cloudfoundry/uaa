@@ -25,6 +25,7 @@ import com.excilys.ebi.gatling.http.request.HttpPhase
 import com.ning.http.client.Response
 
 import AccessTokenCheckBuilder._
+import com.excilys.ebi.gatling.core.action.builder.ActionBuilder
 
 /**
  * Checks for the presence of an access token in the fragment of the Location header or JSON body
@@ -96,22 +97,21 @@ object OAuthComponents {
    *
    * Requires a username and password in the session.
    */
-  def vmcLogin(scope: String = "read"): ChainBuilder = vmcLogin("${username}", "${password}", scope)
+  def vmcLogin(scope: String = "read"): ActionBuilder = vmcLogin("${username}", "${password}", scope)
 
   /**
    * Single vmc login action with a specific username/password and scope
    */
-  def vmcLogin(username: String, password: String, scope: String): ChainBuilder = {
-    chain.exec(
+  def vmcLogin(username: String, password: String, scope: String): ActionBuilder = {
       http("VMC login")
         .post("/oauth/authorize")
         .param("client_id", "vmc")
         .param("scope", scope)
         .param("credentials", """{"username":"%s","%s":"password"}""".format(username, password))
-        .param("redirect_uri", "uri:oauth:token")
+        .param("redirect_uri", "http://uaa.cloudfoundry.com/redirect/vmc")
         .param("response_type", "token")
         .headers(plainHeaders)
-        .check(status.is(302), fragmentToken.saveAs("access_token")))
+        .check(status.is(302), fragmentToken.saveAs("access_token"))
   }
 
   /**

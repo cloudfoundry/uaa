@@ -19,6 +19,8 @@ import com.excilys.ebi.gatling.core.structure.ChainBuilder
 import uaa.OAuthComponents._
 import java.util.concurrent.TimeUnit
 
+import uaa.Config._
+
 /**
  */
 object ScimComponents {
@@ -30,14 +32,15 @@ object ScimComponents {
    */
   def createScimUsers(n: Int, usernamePrefix: String = "joe"): ChainBuilder = {
     clientCredentialsAccessTokenRequest(
-      username = "scim",
-      password = "scimsecret",
-      client_id = "scim",
+      username = scim_client_id,
+      password = scim_client_password,
+      client_id = scim_client_id,
       scope = "write password").insertChain(
         chain.loop(
           chain.feed(UsernamePasswordFeeder(usernamePrefix))
+            .exec((s: Session) => {println("Creating user: %s" format(s.getAttribute("username"))); s})
             .insertChain(createScimUserChain)
-            .pause(50, 100, TimeUnit.MILLISECONDS)).times(n))
+            ).times(n))
   }
 
   /**

@@ -2,7 +2,6 @@ import collection.Seq
 import sbt._
 import Keys._
 
-
 object GatlingPlugin {
 
   val gatling = TaskKey[Unit]("gatling")
@@ -17,46 +16,15 @@ object GatlingPlugin {
     gatlingResultsDirectory <<= target(_.getAbsolutePath + "/gatling-results"),
     gatlingDataDirectory <<= (resourceDirectory in Compile).apply(_.getAbsolutePath),
     gatlingConfigFile <<= (resourceDirectory in Compile).apply(_.getAbsolutePath + "/gatling.conf"),
-//    gatlingRunner <<= (gatlingResultsDirectory, gatlingDataDirectory, gatlingConfigFile, classDirectory in Compile).apply ({
-//      (results, data, config, classes) =>
-//        new Gatling(Options(
-//          resultsFolder = Some(results),
-//          configFileName = Some(config),
-//          dataFolder = Some(data),
-//          simulationBinariesFolder = Some(classes.absolutePath)))
-//    }),
-/*
-    gatling <<= (gatlingRunner, taskTemporaryDirectory, scalaInstance, target, resourceDirectory in Compile, fullClasspath in gatling, classDirectory in Compile) map { (gat, temp, si, tgt, rd, cp, cd) =>
-      val oldLoader = Thread.currentThread.getContextClassLoader
-      val loader = ClasspathUtilities.makeLoader(Build.data(cp), Gatling.getClass.getClassLoader, si)
-      println("Loader is : " + loader.asInstanceOf[URLClassLoader].getURLs.mkString(","))
-      Thread.currentThread.setContextClassLoader(loader)
 
-      println("Context Loader is : " + oldLoader.asInstanceOf[URLClassLoader].getURLs.mkString(","))
-
-      println("Gatling loader is: " +  Gatling.getClass.getClassLoader.asInstanceOf[URLClassLoader].getURLs.mkString(","))
-
-//
-      try {
-        gat.start
-//        new Gatling(Options(resultsFolder = Some((tgt / "gatling-results").getAbsolutePath),
-//          dataFolder = Some(rd.absolutePath),
-//          configFileName = Some(rd.absolutePath + "/gatling.conf"),
-//          simulationBinariesFolder = Some(cd.absolutePath))).start
-      }
-      finally { Thread.currentThread.setContextClassLoader(oldLoader) }
-*/
     gatling <<= (streams, gatlingResultsDirectory, gatlingDataDirectory, gatlingConfigFile, fullClasspath in gatling, classDirectory in Compile, runner in run)
         map { (s, grd, gdd, gcf, cp, cd, runner) => {
-        val args = Array("--results-folder", grd,
+          val args = Array("--results-folder", grd,
                         "--data-folder", gdd,
                         "--config-file", gcf,
                         "--simulations-binaries-folder", cd.absolutePath)
 
-        val classpath = Build.data(cp)
-//        println("Classpath is : " + classpath)
-
-        toError(runner.run("com.excilys.ebi.gatling.app.Gatling", classpath, args, s.log))
+          toError(runner.run("com.excilys.ebi.gatling.app.Gatling", Build.data(cp), args, s.log))
       }
     }
   )
