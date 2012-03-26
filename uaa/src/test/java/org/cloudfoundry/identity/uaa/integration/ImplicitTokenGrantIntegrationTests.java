@@ -39,8 +39,11 @@ public class ImplicitTokenGrantIntegrationTests {
 	@Rule
 	public ServerRunning serverRunning = ServerRunning.isRunning();
 
-	private TestAccounts testAccounts = TestAccounts.standard(serverRunning);
+	private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
 
+	@Rule
+	public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
+	
 	private String implicitUrl() {
 		URI uri = serverRunning.buildUri("/oauth/authorize").queryParam("response_type", "token")
 				.queryParam("client_id", "vmc").queryParam("redirect_uri", "http://uaa.cloudfoundry.com/redirect/vmc")

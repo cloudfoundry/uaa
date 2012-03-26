@@ -43,7 +43,7 @@ class Cloudfoundry::Uaa::Client
     @client_secret = nil
     @grant_type = "implicit"
     @scope = ["read"]
-    @redirect_uri = "http://vmc.cloudfoundry.com/redirect"
+    @redirect_uri = "http://uaa.cloudfoundry.com/redirect/vmc"
   end
 
   # Get the prompts (login info) required by the UAA server.  The response

@@ -9,8 +9,9 @@
 		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.1.xsd
 		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd">
 
-	<http pattern="/oauth/(users|clients)/(.*?)/tokens.*" request-matcher="regex" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"
-		use-expressions="true" authentication-manager-ref="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
+	<http pattern="/oauth/(users|clients)/(.*?)/tokens.*" request-matcher="regex" create-session="stateless"
+		entry-point-ref="oauthAuthenticationEntryPoint" use-expressions="true" authentication-manager-ref="emptyAuthenticationManager"
+		xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/oauth/users/([^/].*?)/tokens/.*"
 			access="oauthClientHasRole('ROLE_ADMIN') and (hasRole('ROLE_USER') or oauthIsClient()) and oauthHasScope('write')"
 			method="DELETE" />
@@ -65,19 +66,38 @@
 	<bean id="config" class="org.cloudfoundry.identity.uaa.config.YamlMapFactoryBean">
 		<property name="resources">
 			<list>
-				<value>${UAA_CONFIG_URL:config/uaa.yml}</value>
-				<value>file:${UAA_CONFIG_PATH:config}/uaa.yml</value>
-				<value>file:${CLOUD_FOUNDRY_CONFIG_PATH:config}/uaa.yml</value>
 				<value>classpath:/uaa.yml</value>
+				<value>file:${CLOUD_FOUNDRY_CONFIG_PATH:config}/uaa.yml</value>
+				<value>file:${UAA_CONFIG_PATH:config}/uaa.yml</value>
+				<value>${UAA_CONFIG_URL:config/uaa.yml}</value>
 			</list>
 		</property>
-		<!-- The first file that is found will be used, so we don't accidentally get extra clients from the default test config -->
-		<property name="resolutionMethod" value="FIRST_FOUND" />
+		<!-- Default configuration should contain only the admin client to avoid bootstrapping extra clients -->
+		<property name="resolutionMethod" value="OVERRIDE_AND_IGNORE" />
 	</bean>
 
 	<bean id="clientAdminBootstrap" class="org.cloudfoundry.identity.uaa.oauth.ClientAdminBootstrap">
 		<property name="clientRegistrationService" ref="clientDetails" />
 		<property name="clients" value="#{@config['oauth']?.clients}" />
 	</bean>
+
+	<beans profile="default">
+		<bean class="org.cloudfoundry.identity.uaa.oauth.ClientAdminBootstrap">
+			<property name="clientRegistrationService" ref="clientDetails" />
+			<property name="clients">
+				<map>
+					<entry key="vmc">
+						<map>
+							<entry key="id" value="vmc" />
+							<entry key="authorized-grant-types" value="implicit" />
+							<entry key="scope" value="read,write,openid,password" />
+							<entry key="sauthorities" value="ROLE_UNTRUSTED" />
+							<entry key="resource-ids" value="password,cloud_controller" />
+						</map>
+					</entry>
+				</map>
+			</property>
+		</bean>
+	</beans>
 
 </beans>

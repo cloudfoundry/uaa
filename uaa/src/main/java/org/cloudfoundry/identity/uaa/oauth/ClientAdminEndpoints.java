@@ -14,12 +14,16 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
+import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
+import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -55,7 +59,12 @@ public class ClientAdminEndpoints {
 	@RequestMapping(value="/oauth/clients/{client}", method=RequestMethod.GET)
 	@ResponseBody
 	public ClientDetails getClientDetails(@PathVariable String client) throws Exception {
-		return removeSecret(clientDetailsService.loadClientByClientId(client));
+		try {
+			return removeSecret(clientDetailsService.loadClientByClientId(client));
+		}
+		catch (InvalidClientException e) {
+			throw new NoSuchClientException("No such client: " + client);
+		}
 	}
 
 	@RequestMapping(value="/oauth/clients", method=RequestMethod.POST)
@@ -76,6 +85,16 @@ public class ClientAdminEndpoints {
 		ClientDetails details = clientDetailsService.loadClientByClientId(client);
 		clientRegistrationService.updateClientDetails(details);
 		return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
+	}
+	
+	@ExceptionHandler(NoSuchClientException.class)
+	public ResponseEntity<Void> handleNoSuchClient(NoSuchClientException e) {
+		return new ResponseEntity<Void>(HttpStatus.NOT_FOUND);
+	}
+
+	@ExceptionHandler(ClientAlreadyExistsException.class)
+	public ResponseEntity<Void> handleClientAlreadyExists(ClientAlreadyExistsException e) {
+		return new ResponseEntity<Void>(HttpStatus.CONFLICT);
 	}
 
 	private ClientDetails removeSecret(ClientDetails client) {

@@ -16,23 +16,32 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Arrays;
-
+import org.cloudfoundry.identity.uaa.integration.TestAccountSetup;
+import org.cloudfoundry.identity.uaa.integration.UaaTestAccounts;
 import org.junit.Rule;
 import org.junit.Test;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.common.OAuth2AccessToken;
+import org.springframework.security.oauth2.client.test.OAuth2ContextConfiguration;
+import org.springframework.security.oauth2.client.test.OAuth2ContextSetup;
+import org.springframework.web.client.RestOperations;
 
 /**
  * @author Dave Syer
  */
+@OAuth2ContextConfiguration
 public class AppsIntegrationTests {
 
 	@Rule
 	public ServerRunning serverRunning = ServerRunning.isRunning();
+	
+	private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
+	
+	@Rule
+	public OAuth2ContextSetup context = OAuth2ContextSetup.withTestAccounts(serverRunning, testAccounts);
+
+	@Rule
+	public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
 	
 	/**
 	 * tests a happy-day flow of the native application profile.
@@ -40,17 +49,12 @@ public class AppsIntegrationTests {
 	@Test
 	public void testHappyDay() throws Exception {
 
-		OAuth2AccessToken accessToken = serverRunning.getToken();
-		// now try and use the token to access a protected resource.
-
+		RestOperations restTemplate = serverRunning.createRestTemplate();
+		ResponseEntity<String> response = restTemplate.getForEntity(serverRunning.getUrl("/api/apps"), String.class);
 		// first make sure the resource is actually protected.
-		assertNotSame(HttpStatus.OK, serverRunning.getStatusCode("/api/apps"));
+		assertNotSame(HttpStatus.OK, response.getStatusCode());
 
-		// then make sure an authorized request is valid.
-		HttpHeaders headers = new HttpHeaders();
-		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
-		headers.set("Authorization", String.format("%s %s", OAuth2AccessToken.BEARER_TYPE, accessToken.getValue()));
-		ResponseEntity<String> result = serverRunning.getForString("/api/apps", headers);
+		ResponseEntity<String> result = serverRunning.getForString("/api/apps");
 		assertEquals(HttpStatus.OK, result.getStatusCode());
 		String body = result.getBody();
 		assertTrue("Wrong response: "+body, body.contains("dsyerapi.cloudfoundry.com"));

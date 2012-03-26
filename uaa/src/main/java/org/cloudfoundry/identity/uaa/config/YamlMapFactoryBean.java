@@ -34,14 +34,12 @@ public class YamlMapFactoryBean implements FactoryBean<Map<String, Object>> {
 	private static final Log logger = LogFactory.getLog(YamlMapFactoryBean.class);
 
 	public static enum ResolutionMethod {
-		OVERRIDE, FIRST_FOUND
+		OVERRIDE, OVERRIDE_AND_IGNORE, FIRST_FOUND
 	}
 
 	private ResolutionMethod resolutionMethod = ResolutionMethod.OVERRIDE;
 
 	private Resource[] resources = new Resource[0];
-
-	private boolean ignoreResourceNotFound = false;
 
 	/**
 	 * Method to use for resolving resources. Each resource will be converted to a Map, so this property is used to
@@ -61,13 +59,6 @@ public class YamlMapFactoryBean implements FactoryBean<Map<String, Object>> {
 	}
 
 	/**
-	 * @param ignoreResourceNotFound the flag value to set
-	 */
-	public void setIgnoreResourceNotFound(boolean ignoreResourceNotFound) {
-		this.ignoreResourceNotFound = ignoreResourceNotFound;
-	}
-
-	/**
 	 * @param resource the resource to set
 	 */
 	public void setResources(Resource[] resources) {
@@ -81,19 +72,22 @@ public class YamlMapFactoryBean implements FactoryBean<Map<String, Object>> {
 		boolean found = false;
 		for (Resource resource : resources) {
 			try {
+				logger.info("Loading map from YAML: " + resource);
 				@SuppressWarnings("unchecked")
 				Map<String, Object> map = (Map<String, Object>) yaml.load(resource.getInputStream());
-				if (resolutionMethod == ResolutionMethod.OVERRIDE || !found) {
+				if (resolutionMethod != ResolutionMethod.FIRST_FOUND || !found) {
 					result.putAll(map);
 					found = true;
-				} else {
+				}
+				else {
 					break; // no need to load any more
 				}
 			}
 			catch (IOException e) {
-				if (ignoreResourceNotFound || resolutionMethod == ResolutionMethod.FIRST_FOUND) {
+				if (resolutionMethod == ResolutionMethod.FIRST_FOUND
+						|| resolutionMethod == ResolutionMethod.OVERRIDE_AND_IGNORE) {
 					if (logger.isWarnEnabled()) {
-						logger.warn("Could not load properties from " + resource + ": " + e.getMessage());
+						logger.warn("Could not load map from " + resource + ": " + e.getMessage());
 					}
 				}
 				else {

@@ -15,6 +15,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 
+import org.cloudfoundry.identity.uaa.integration.TestAccountSetup;
+import org.cloudfoundry.identity.uaa.integration.UaaTestAccounts;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.http.HttpHeaders;
@@ -34,7 +36,12 @@ public class AuthenticationIntegrationTests {
 
 	@Rule
 	public ServerRunning serverRunning = ServerRunning.isRunning();
+	
+	private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);	
 
+	@Rule
+	public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
+	
 	@Test
 	public void formLoginSucceeds() throws Exception {
 
@@ -62,7 +69,7 @@ public class AuthenticationIntegrationTests {
 		assertEquals(HttpStatus.FOUND, result.getStatusCode());
 		location = result.getHeaders().getLocation().toString();
 
-		assertTrue("Wrong location: " + location, location.contains("/uaa/oauth/authorize"));
+		assertTrue("Wrong location: " + location, location.contains("/oauth/authorize"));
 		// *** GET /uaa/oauth/authorize
 		result = serverRunning.getForResponse(location, uaaHeaders);
 		assertEquals(HttpStatus.FOUND, result.getStatusCode());
@@ -77,8 +84,8 @@ public class AuthenticationIntegrationTests {
 
 		MultiValueMap<String, String> formData;
 		formData = new LinkedMultiValueMap<String, String>();
-		formData.add("username", "marissa");
-		formData.add("password", "koala");
+		formData.add("username", testAccounts.getUserName());
+		formData.add("password", testAccounts.getPassword());
 
 		// *** POST /uaa/login.do
 		result = serverRunning.postForResponse(location, uaaHeaders, formData);
@@ -90,11 +97,11 @@ public class AuthenticationIntegrationTests {
 		assertEquals(HttpStatus.FOUND, result.getStatusCode());
 		location = result.getHeaders().getLocation().toString();
 
-		assertTrue("Wrong location: " + location, location.contains("/uaa/oauth/authorize"));
+		assertTrue("Wrong location: " + location, location.contains("/oauth/authorize"));
 		// *** GET /uaa/oauth/authorize
 		result = serverRunning.getForResponse(location, uaaHeaders);
 
-		// If there is no token in place alreday for this client we ge the approval page.
+		// If there is no token in place already for this client we get the approval page.
 		if (result.getStatusCode() == HttpStatus.OK) {
 			location = "/uaa/oauth/authorize";
 
@@ -119,7 +126,7 @@ public class AuthenticationIntegrationTests {
 
 		// *** GET /app/
 		result = serverRunning.getForResponse(location, appHeaders);
-		System.err.println(result.getHeaders());
+		// System.err.println(result.getHeaders());
 		assertEquals(HttpStatus.OK, result.getStatusCode());
 	}
 

@@ -10,16 +10,29 @@
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  */
+
 package org.cloudfoundry.identity.uaa.integration;
 
-import org.springframework.web.client.RestOperations;
-
 /**
+ * Convenience interface for classes that externalize URLs.
+ * 
  * @author Dave Syer
  *
  */
-public interface OAuth2ContextSetupCallback {
+public interface UrlHelper {
 	
-	void doWithRestOperations(RestOperations client);
+	String getUrl(String path);
+	
+	String getBaseUrl();
+	
+	String getAccessTokenUri();
+
+	String getAuthorizationUri();
+	
+	String getClientsUri();
+
+	String getUsersUri();
+
+	String getUserUri();
 
 }

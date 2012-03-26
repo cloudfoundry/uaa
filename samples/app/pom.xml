@@ -41,6 +41,22 @@
 					</plugin>
 				</plugins>
 			</build>
+			<dependencies>
+				<dependency>
+					<groupId>${pom.groupId}</groupId>
+					<artifactId>uaa</artifactId>
+					<version>${pom.version}</version>
+					<type>war</type>
+					<scope>tomcat</scope>
+				</dependency>
+				<dependency>
+					<groupId>${pom.groupId}</groupId>
+					<artifactId>api</artifactId>
+					<version>${pom.version}</version>
+					<type>war</type>
+					<scope>tomcat</scope>
+				</dependency>
+			</dependencies>
 		</profile>
 	</profiles>
 
@@ -61,7 +77,7 @@
 					<artifactId>tomcat-maven-plugin</artifactId>
 					<configuration>
 						<path>/app</path>
-                        <addContextWarDependencies>true</addContextWarDependencies>
+						<addContextWarDependencies>true</addContextWarDependencies>
 					</configuration>
 				</plugin>
 				<plugin>
@@ -93,17 +109,40 @@
 	<dependencies>
 		<dependency>
 			<groupId>${pom.groupId}</groupId>
-			<artifactId>uaa</artifactId>
+			<artifactId>cloudfoundry-identity-uaa</artifactId>
+			<version>${pom.version}</version>
+			<classifier>classes</classifier>
+			<scope>test</scope>
+		</dependency>
+		<!-- Only needed by wtp? -->
+		<dependency>
+			<groupId>${pom.groupId}</groupId>
+			<artifactId>cloudfoundry-identity-uaa</artifactId>
 			<version>${pom.version}</version>
 			<type>war</type>
-			<scope>tomcat</scope>
+			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>${pom.groupId}</groupId>
-			<artifactId>api</artifactId>
+			<artifactId>cloudfoundry-identity-uaa</artifactId>
 			<version>${pom.version}</version>
-			<type>war</type>
-			<scope>tomcat</scope>
+			<type>test-jar</type>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security.oauth</groupId>
+			<artifactId>spring-security-oauth2</artifactId>
+			<version>${spring.security.oauth.version}</version>
+			<exclusions>
+				<exclusion>
+					<artifactId>spring-jdbc</artifactId>
+					<groupId>org.springframework</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>spring-aop</artifactId>
+					<groupId>org.springframework</groupId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.mockito</groupId>
@@ -189,21 +228,6 @@
 			<artifactId>spring-security-web</artifactId>
 			<version>${spring.security.version}</version>
 			<scope>compile</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.security.oauth</groupId>
-			<artifactId>spring-security-oauth2</artifactId>
-			<version>${spring.security.oauth.version}</version>
-			<exclusions>
-				<exclusion>
-					<artifactId>spring-jdbc</artifactId>
-					<groupId>org.springframework</groupId>
-				</exclusion>
-				<exclusion>
-					<artifactId>spring-aop</artifactId>
-					<groupId>org.springframework</groupId>
-				</exclusion>
-			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>javax.servlet</groupId>
