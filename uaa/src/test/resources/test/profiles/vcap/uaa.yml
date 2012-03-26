@@ -1,16 +1,36 @@
 uaa.integration.test: true
-spring_profiles: hsqldb,vcap
-cloud_controller.login_url: http://api.vcap.me/users/{username}/tokens
-bootstrap:
-  admin:
-    username: vcap_tester@vmware.com
-    email: vcap_tester@vmware.com
-    password: $2a$10$CQVggCwiHCVFwMu8jKQRnuQnN7KwClUym3YDm56AtLyUgLfKtFn1G
+spring_profiles: postgresql,vcap
+
 uaa:
   test:
     username: vcap_tester@vmware.com
     email: vcap_tester@vmware.com
-    password: tester
+    password: dr0wssaPH@ck
   host: uaa.${VCAP_BVT_TARGET:vcap.me}
   port: 80
-  path: /
+  path: /war
+
+cloud_controller:
+  database:
+    driverClassName: org.postgresql.Driver
+    url: jdbc:postgresql:cloud_controller
+    username: root
+    password: changeme
+
+oauth:
+  clients:
+    vmc:    
+      id: vmc
+      authorized-grant-types: implicit
+      scope: read,write,password
+      authorities: ROLE_UNTRUSTED
+      resource-ids: password,cloud_controller
+      redirect-uri: http://uaa.cloudfoundry.com/redirect/vmc
+    cloud_controller:    
+      id: cloud_controller
+      secret: cloudcontrollersecret
+      authorized-grant-types: client_credentials
+      scope: read,write,password
+      authorities: ROLE_CLIENT,ROLE_ADMIN
+      resource-ids: scim,password
+  

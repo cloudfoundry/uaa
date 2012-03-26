@@ -21,7 +21,9 @@ import org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.PropertiesPropertySource;
 import org.springframework.core.env.StandardEnvironment;
-import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.DefaultResourceLoader;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 
 /**
  * @author Dave Syer
@@ -31,22 +33,30 @@ public class TestProfileEnvironment {
 
 	private static final Log logger = LogFactory.getLog(TestProfileEnvironment.class);
 
+	private static final String[] DEFAULT_PROFILE_CONFIG_FILE_LOCATIONS = new String[] { "${UAA_CONFIG_URL}",
+		"file:${UAA_CONFIG_FILE}", "file:${CLOUD_FOUNDRY_CONFIG_PATH}/uaa.yml" };
+
 	private StandardEnvironment environment = new StandardEnvironment();
 
-	static TestProfileEnvironment instance = new TestProfileEnvironment();
+	private static TestProfileEnvironment instance = new TestProfileEnvironment();
+	
+	private ResourceLoader recourceLoader = new DefaultResourceLoader();
 
 	private TestProfileEnvironment() {
-		String location = null;
-		try {
-			location = environment.resolveRequiredPlaceholders("${CLOUD_FOUNDRY_CONFIG_PATH}/uaa.yml");
+
+		Resource resource = null;
+
+		for (String location : DEFAULT_PROFILE_CONFIG_FILE_LOCATIONS) {
+			location =  environment.resolvePlaceholders(location);
+			resource = recourceLoader.getResource(location);
+			if (resource != null && resource.exists()) {
+				break;
+			}
 		}
-		catch (IllegalArgumentException e) {
-			logger.debug("No config at CLOUD_FOUNDRY_CONFIG_PATH="
-					+ environment.getProperty("CLOUD_FOUNDRY_CONFIG_PATH"));
-		}
-		if (location != null) {
+		
+		if (resource != null) {
 			YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
-			factory.setResource(new FileSystemResource(location));
+			factory.setResource(resource);
 			factory.setIgnoreResourceNotFound(true);
 			Properties properties = factory.getObject();
 			logger.debug("Decoding environment properties: " + properties.size());

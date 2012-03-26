@@ -29,18 +29,6 @@ batch:
 
 oauth:
   clients:
-    app:
-      authorized-grant-types: password,authorization_code,refresh_token
-      scope: read,openid
-      authorities: ROLE_CLIENT
-      id: app
-      secret: appclientsecret
-    my:
-      authorized-grant-types: password,authorization_code,refresh_token,implicit,client_credentials
-      scope: read,openid
-      authorities: ROLE_CLIENT
-      id: my
-      secret: myclientsecret
     admin:    
       authorized-grant-types: client_credentials
       scope: read,write,password
@@ -48,24 +36,3 @@ oauth:
       id: admin
       secret: adminclientsecret
       resource-ids: clients
-    scim:    
-      authorized-grant-types: client_credentials
-      scope: read,write,password
-      authorities: ROLE_CLIENT,ROLE_ADMIN
-      id: scim
-      secret: scimsecret
-      resource-ids: scim,password,tokens
-    token:
-      authorized-grant-types: password,authorization_code
-      scope: read,write
-      authorities: ROLE_CLIENT,ROLE_ADMIN
-      id: token
-      secret: tokenclientsecret
-      resource-ids: tokens
-    vmc:
-      authorized-grant-types: implicit
-      scope: read,password
-      authorities: ROLE_UNTRUSTED
-      id: vmc
-      resource-ids: cloud_controller,openid,password
-      redirect-uri: http://uaa.cloudfoundry.com/redirect/vmc
