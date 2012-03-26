@@ -43,7 +43,7 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 
 	private static final String PROFILE_CONFIG_FILE_LOCATION = "environmentConfigFile";
 
-	private static final String[] DEFAULT_PROFILE_CONFIG_FILE_LOCATIONS = new String[] { "${UAA_CONFIG_URL}",
+	public static final String[] DEFAULT_PROFILE_CONFIG_FILE_LOCATIONS = new String[] { "${UAA_CONFIG_URL}",
 			"file:${UAA_CONFIG_FILE}", "file:${CLOUD_FOUNDRY_CONFIG_PATH}/uaa.yml" };
 
 	@Override

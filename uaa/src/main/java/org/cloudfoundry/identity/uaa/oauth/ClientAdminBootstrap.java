@@ -15,6 +15,7 @@
  */
 package org.cloudfoundry.identity.uaa.oauth;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -30,7 +31,7 @@ import org.springframework.security.oauth2.provider.ClientRegistrationService;
  * 
  */
 public class ClientAdminBootstrap implements InitializingBean {
-	
+
 	private static Log logger = LogFactory.getLog(ClientAdminBootstrap.class);
 
 	private Map<String, Map<String, Object>> clients = new HashMap<String, Map<String, Object>>();
@@ -41,7 +42,8 @@ public class ClientAdminBootstrap implements InitializingBean {
 	 * @param clients the clients to set
 	 */
 	public void setClients(Map<String, Map<String, Object>> clients) {
-		this.clients = clients;
+		this.clients = clients == null ? Collections.<String, Map<String, Object>> emptyMap()
+				: new HashMap<String, Map<String, Object>>(clients);
 	}
 
 	/**
@@ -56,7 +58,8 @@ public class ClientAdminBootstrap implements InitializingBean {
 		for (String clientId : clients.keySet()) {
 			Map<String, Object> map = clients.get(clientId);
 			BaseClientDetails client = new BaseClientDetails((String) map.get("resource-ids"),
-					(String) map.get("scope"), (String) map.get("authorized-grant-types"), (String) map.get("authorities"), (String) map.get("redirect-uri"));
+					(String) map.get("scope"), (String) map.get("authorized-grant-types"),
+					(String) map.get("authorities"), (String) map.get("redirect-uri"));
 			client.setClientId(clientId);
 			client.setClientSecret((String) map.get("secret"));
 			Integer validity = (Integer) map.get("access-token-validity");
@@ -65,7 +68,8 @@ public class ClientAdminBootstrap implements InitializingBean {
 			}
 			try {
 				clientRegistrationService.addClientDetails(client);
-			} catch (ClientAlreadyExistsException e) {
+			}
+			catch (ClientAlreadyExistsException e) {
 				// ignore it
 				logger.debug(e.getMessage());
 			}

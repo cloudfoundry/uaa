@@ -20,15 +20,6 @@
 		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.1.xsd
 		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd">
 
-	<bean id="userBootstrap" class="org.cloudfoundry.identity.uaa.user.JdbcUaaAdminUserBootstrap">
-		<constructor-arg ref="jdbcTemplate" />
-		<property name="username" value="${bootstrap.admin.username:admin}" />
-		<property name="password" value="${bootstrap.admin.password:$2a$10$yHj1jr2NYpGC3wu/BTeFDOnD4Jz3K6ALd6XghGXPTCU4WMxKZuRHu}" />
-		<property name="email" value="${bootstrap.admin.email:admin@localhost}" />
-		<property name="familyName" value="${bootstrap.admin.family_name:User}" />
-		<property name="givenName" value="${bootstrap.admin.given_name:Admin}" />
-	</bean>
-
 	<bean id="scimUserProvisioning" class="org.cloudfoundry.identity.uaa.scim.JdbcScimUserProvisioning">
 		<constructor-arg ref="jdbcTemplate" />
 	</bean>
@@ -85,7 +76,6 @@
 
 	<beans profile="default">
 
-		<!-- Override scim provisioning so that passwords are not validated in test environments -->
 		<bean id="scimUserProvisioning" class="org.cloudfoundry.identity.uaa.scim.JdbcScimUserProvisioning">
 			<constructor-arg ref="jdbcTemplate" />
 			<property name="passwordValidator">
@@ -97,10 +87,6 @@
 			<constructor-arg ref="scimUserProvisioning" />
 			<constructor-arg>
 				<list value-type="org.cloudfoundry.identity.uaa.user.UaaUser">
-					<value>dale|password|olds@vmware.com|Dale|Olds</value>
-					<value>joel|password|jdsa@vmware.com|Joel|D'Sa</value>
-					<value>dave|password|dsyer@vmware.com|Dave|Syer</value>
-					<value>luke|password|ltaylor@vmware.com|Luke|Taylor</value>
 					<value>marissa|koala|marissa@test.org|Marissa|Bloggs</value>
 				</list>
 			</constructor-arg>

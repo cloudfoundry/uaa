@@ -1,34 +1,25 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!--
-
-    Cloud Foundry 2012.02.03 Beta
-    Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved.
-
-    This product is licensed to you under the Apache License, Version 2.0 (the "License").
-    You may not use this product except in compliance with the License.
-
-    This product includes a number of subcomponents with
-    separate copyright notices and license terms. Your use of these
-    subcomponents is subject to the terms and conditions of the
-    subcomponent's license, as noted in the LICENSE file.
-
--->
+<!-- Cloud Foundry 2012.02.03 Beta Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved. This product is licensed to 
+	you under the Apache License, Version 2.0 (the "License"). You may not use this product except in compliance with the License. 
+	This product includes a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents 
+	is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file. -->
 
 <beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xmlns:mvc="http://www.springframework.org/schema/mvc" xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
 	xmlns:context="http://www.springframework.org/schema/context" xmlns:sec="http://www.springframework.org/schema/security"
 	xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-1.0.xsd
-		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-3.0.xsd
+		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-3.1.xsd
 		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.1.xsd
-		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
-		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
 
 	<sec:http pattern="/loggedout.jsp" security="none" />
 	<sec:http pattern="/login_error.jsp" security="none" />
 	<sec:http pattern="/resources/**" security="none" />
 	<sec:http pattern="/favicon.ico" security="none" />
 
-	<http xmlns="http://www.springframework.org/schema/security" entry-point-ref="loginEntryPoint" disable-url-rewriting="true">
+	<http xmlns="http://www.springframework.org/schema/security" entry-point-ref="loginEntryPoint"
+		disable-url-rewriting="true">
 		<intercept-url pattern="/**" access="ROLE_USER" />
 		<logout logout-success-url="/loggedout.jsp" />
 		<anonymous enabled="false" />
@@ -43,15 +34,13 @@
 	<sec:authentication-manager alias="authenticationManager" />
 
 	<!--apply the oauth client context -->
-	<oauth:client id="oauth2ClientFilter"/>
+	<oauth:client id="oauth2ClientFilter" />
 
 	<bean id="openidClientFilter" class="org.cloudfoundry.identity.app.web.OpenIdClientFilter">
 		<constructor-arg value="/login" />
 		<property name="authenticationManager" ref="authenticationManager" />
 		<property name="restTemplate">
-			<bean class="org.springframework.security.oauth2.client.OAuth2RestTemplate">
-				<constructor-arg ref="api" />
-			</bean>
+			<oauth:rest-template resource="api" />
 		</property>
 		<property name="userInfoUrl" value="${userInfoUri}" />
 	</bean>
@@ -88,16 +77,14 @@
 
 	<bean id="treeController" class="org.cloudfoundry.identity.app.web.TreeController">
 		<property name="restTemplate">
-			<bean class="org.springframework.security.oauth2.client.OAuth2RestTemplate">
-				<constructor-arg ref="api" />
-			</bean>
+			<oauth:rest-template resource="api" />
 		</property>
 		<property name="treeUrlPattern" value="${treeUrlPattern}" />
 	</bean>
 
 	<bean id="homeController" class="org.cloudfoundry.identity.app.web.HomeController">
-		<property name="userAuthorizationUri" value="${userAuthorizationUri}"/>
-		<property name="dataUri" value="${dataUri}"/>
+		<property name="userAuthorizationUri" value="${userAuthorizationUri}" />
+		<property name="dataUri" value="${dataUri}" />
 	</bean>
 
 	<!--define an oauth 2 resource for api access -->

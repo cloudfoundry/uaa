@@ -35,8 +35,11 @@ public class RefreshTokenSupportIntegrationTests {
 	@Rule
 	public ServerRunning serverRunning = ServerRunning.isRunning();
 
-	private TestAccounts testAccounts = TestAccounts.standard(serverRunning);
+	private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
 
+	@Rule
+	public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
+	
 	/**
 	 * tests a happy-day flow of the refresh token grant
 	 */

@@ -38,10 +38,12 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.security.oauth2.client.test.RestTemplateHolder;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriTemplate;
 import org.springframework.web.util.UriUtils;
@@ -69,7 +71,7 @@ import org.springframework.web.util.UriUtils;
  * @author Dave Syer
  * 
  */
-public class ServerRunning implements MethodRule {
+public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper {
 
 	private static Log logger = LogFactory.getLog(ServerRunning.class);
 
@@ -92,7 +94,7 @@ public class ServerRunning implements MethodRule {
 
 	private String rootPath = DEFAULT_ROOT_PATH;
 
-	private RestTemplate client;
+	private RestOperations client;
 
 	/**
 	 * @return a new rule that assumes an existing running broker
@@ -188,6 +190,26 @@ public class ServerRunning implements MethodRule {
 		return "http://" + hostName + (port == 80 ? "" : ":" + port) + rootPath;
 	}
 
+	public String getAccessTokenUri() {
+		return getUrl("/oauth/token");
+	}
+
+	public String getAuthorizationUri() {
+		return getUrl("/oauth/authorize");
+	}
+
+	public String getClientsUri() {
+		return getUrl("/oauth/clients");
+	}
+
+	public String getUsersUri() {
+		return getUrl("/Users");
+	}
+
+	public String getUserUri() {
+		return getUrl("/User");
+	}
+
 	public String getUrl(String path) {
 		if (path.startsWith("http:")) {
 			return path;
@@ -268,14 +290,14 @@ public class ServerRunning implements MethodRule {
 		return client.exchange(location, HttpMethod.GET, new HttpEntity<Void>(null, headers), null);
 	}
 
-	public RestTemplate getRestTemplate() {
+	public RestOperations getRestTemplate() {
 		if (client == null) {
 			client = createRestTemplate();
 		}
 		return client;
 	}
 
-	public void setRestTemplate(RestTemplate restTemplate) {
+	public void setRestTemplate(RestOperations restTemplate) {
 		this.client = restTemplate;
 	}
 
