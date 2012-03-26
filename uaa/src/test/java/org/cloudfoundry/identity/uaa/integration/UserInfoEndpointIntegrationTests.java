@@ -15,25 +15,29 @@ package org.cloudfoundry.identity.uaa.integration;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.client.test.OAuth2ContextConfiguration;
+import org.springframework.security.oauth2.client.test.OAuth2ContextSetup;
 
 /**
  * @author Dave Syer
  */
-@OAuth2ContextConfiguration(OAuth2ContextConfiguration.GrantType.RESOURCE_OWNER)
+@OAuth2ContextConfiguration
 public class UserInfoEndpointIntegrationTests {
 
 	@Rule
-	public ServerRunning server = ServerRunning.isRunning();
+	public ServerRunning serverRunning = ServerRunning.isRunning();
 	
-	private TestAccounts testAccounts = TestAccounts.standard(server);
+	private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
 	
 	@Rule
-	public OAuth2ContextSetup context = OAuth2ContextSetup.standard(server, testAccounts);
+	public OAuth2ContextSetup context = OAuth2ContextSetup.withTestAccounts(serverRunning, testAccounts);
+	
+	@Rule
+	public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
 	
 	/**
 	 * tests a happy-day flow of the <code>/userinfo</code> endpoint
@@ -41,9 +45,7 @@ public class UserInfoEndpointIntegrationTests {
 	@Test
 	public void testHappyDay() throws Exception {
 
-		Assume.assumeTrue(!testAccounts.isProfileActive("vcap"));
-
-		ResponseEntity<String> user = server.getForString("/userinfo");
+		ResponseEntity<String> user = serverRunning.getForString("/userinfo");
 		assertEquals(HttpStatus.OK, user.getStatusCode());
 
 		String map = user.getBody();

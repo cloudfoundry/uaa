@@ -12,19 +12,17 @@
  */
 package org.cloudfoundry.identity.api.web;
 
-import static org.junit.Assert.assertEquals;
-
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.integration.UrlHelper;
 import org.junit.Assume;
 import org.junit.internal.AssumptionViolatedException;
 import org.junit.rules.TestWatchman;
@@ -39,14 +37,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
-import org.springframework.security.crypto.codec.Base64;
-import org.springframework.security.oauth2.common.OAuth2AccessToken;
+import org.springframework.security.oauth2.client.test.RestTemplateHolder;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RequestCallback;
 import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.ResponseExtractor;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriTemplate;
 import org.springframework.web.util.UriUtils;
@@ -74,7 +72,7 @@ import org.springframework.web.util.UriUtils;
  * @author Dave Syer
  * 
  */
-public class ServerRunning extends TestWatchman {
+public class ServerRunning extends TestWatchman implements RestTemplateHolder, UrlHelper {
 
 	private static Log logger = LogFactory.getLog(ServerRunning.class);
 
@@ -92,13 +90,17 @@ public class ServerRunning extends TestWatchman {
 
 	private static String DEFAULT_HOST = "localhost";
 
+	private static final String DEFAULT_AUTH_SERVER_ROOT = "/uaa";
+	
+	private String authServerRoot = DEFAULT_AUTH_SERVER_ROOT;
+
 	private int port;
 
 	private int uaaPort;
 
 	private String hostName = DEFAULT_HOST;
 
-	private RestTemplate client;
+	private RestOperations client;
 
 	/**
 	 * @return a new rule that assumes an existing running broker
@@ -135,7 +137,7 @@ public class ServerRunning extends TestWatchman {
 		if (!serverOnline.containsKey(port)) {
 			serverOnline.put(port, true);
 		}
-		client = getRestTemplate();
+		client = createRestTemplate();
 	}
 
 	/**
@@ -191,6 +193,26 @@ public class ServerRunning extends TestWatchman {
 
 	public String getBaseUrl() {
 		return "http://" + hostName + ":" + port;
+	}
+
+	public String getAccessTokenUri() {
+		return getUrl(authServerRoot + "/oauth/token");
+	}
+
+	public String getAuthorizationUri() {
+		return getUrl(authServerRoot + "/oauth/authorize");
+	}
+
+	public String getClientsUri() {
+		return getUrl(authServerRoot + "/oauth/clients");
+	}
+
+	public String getUsersUri() {
+		return getUrl(authServerRoot + "/Users");
+	}
+
+	public String getUserUri() {
+		return getUrl(authServerRoot + "/User");
 	}
 
 	public String getUrl(String path) {
@@ -261,35 +283,16 @@ public class ServerRunning extends TestWatchman {
 	public HttpStatus getStatusCode(String path) {
 		return getStatusCode(getUrl(path), null);
 	}
-
-	public OAuth2AccessToken getToken() {
-		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
-		formData.add("grant_type", "password");
-		formData.add("username", "marissa");
-		formData.add("password", "koala");
-		formData.add("scope", "read");
-
-		HttpHeaders headers = new HttpHeaders();
-		try {
-			headers.set("Authorization", "Basic " + new String(Base64.encode("app:appclientsecret".getBytes("UTF-8"))));
-		}
-		catch (UnsupportedEncodingException e) {
-			throw new IllegalStateException("Could not decode basic auth string", e);
-		}
-		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
-
-		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = postForMap(getUrl("/uaa/oauth/token", uaaPort), formData, headers);
-		assertEquals(HttpStatus.OK, response.getStatusCode());
-		assertEquals("no-store", response.getHeaders().getFirst("Cache-Control"));
-
-		@SuppressWarnings("unchecked")
-		OAuth2AccessToken accessToken = OAuth2AccessToken.valueOf(response.getBody());
-		logger.debug("Obtained access token: " + accessToken.getValue());
-		return accessToken;
+	
+	public void setRestTemplate(RestOperations restTemplate) {
+		client = restTemplate;
 	}
 
-	public RestTemplate getRestTemplate() {
+	public RestOperations getRestTemplate() {
+		return client;
+	}
+	
+	public RestOperations createRestTemplate() {
 		RestTemplate client = new RestTemplate();
 		client.setRequestFactory(new SimpleClientHttpRequestFactory() {
 			@Override

@@ -30,9 +30,9 @@ import org.springframework.security.crypto.codec.Base64;
 public class VarzEndpointIntegrationTests {
 
 	@Rule
-	public ServerRunning server = ServerRunning.isRunning();
+	public ServerRunning serverRunning = ServerRunning.isRunning();
 
-	private TestAccounts testAccounts = TestAccounts.standard(server);
+	private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
 	
 	@Before
 	public void checkVcap() {
@@ -48,7 +48,7 @@ public class VarzEndpointIntegrationTests {
 
 		HttpHeaders headers = new HttpHeaders();
 		headers.add("Authorization", testAccounts.getVarzAuthorizationHeader());
-		ResponseEntity<String> response = server.getForString("/varz", headers);
+		ResponseEntity<String> response = serverRunning.getForString("/varz", headers);
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 
 		String map = response.getBody();
@@ -64,7 +64,7 @@ public class VarzEndpointIntegrationTests {
 
 		HttpHeaders headers = new HttpHeaders();
 		headers.add("Authorization", String.format("Basic %s", new String(Base64.encode("varz:bogus".getBytes()))));
-		ResponseEntity<String> response = server.getForString("/varz", headers);
+		ResponseEntity<String> response = serverRunning.getForString("/varz", headers);
 		assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
 
 		String map = response.getBody();

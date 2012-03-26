@@ -23,6 +23,7 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.integration.UrlHelper;
 import org.junit.Assume;
 import org.junit.internal.AssumptionViolatedException;
 import org.junit.rules.TestWatchman;
@@ -35,10 +36,12 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.security.oauth2.client.test.RestTemplateHolder;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriTemplate;
 import org.springframework.web.util.UriUtils;
@@ -66,7 +69,7 @@ import org.springframework.web.util.UriUtils;
  * @author Dave Syer
  * 
  */
-public class ServerRunning extends TestWatchman {
+public class ServerRunning extends TestWatchman implements RestTemplateHolder, UrlHelper {
 
 	private static Log logger = LogFactory.getLog(ServerRunning.class);
 
@@ -78,15 +81,19 @@ public class ServerRunning extends TestWatchman {
 
 	private final boolean assumeOnline;
 
-	private static int DEFAULT_PORT = 8080;
+	private static final int DEFAULT_PORT = 8080;
 
-	private static String DEFAULT_HOST = "localhost";
+	private static final String DEFAULT_HOST = "localhost";
 
+	private static final String DEFAULT_AUTH_SERVER_ROOT = "/uaa";
+	
 	private int port;
 
 	private String hostName = DEFAULT_HOST;
+	
+	private String authServerRoot = DEFAULT_AUTH_SERVER_ROOT;
 
-	private RestTemplate client;
+	private RestOperations client;
 
 	/**
 	 * @return a new rule that assumes an existing running broker
@@ -118,7 +125,7 @@ public class ServerRunning extends TestWatchman {
 		if (!serverOnline.containsKey(port)) {
 			serverOnline.put(port, true);
 		}
-		client = getRestTemplate();
+		client = createRestTemplate();
 	}
 
 	/**
@@ -126,6 +133,13 @@ public class ServerRunning extends TestWatchman {
 	 */
 	public void setHostName(String hostName) {
 		this.hostName = hostName;
+	}
+	
+	/**
+	 * @param authServerRoot the authServerRoot to set
+	 */
+	public void setAuthServerRoot(String authServerRoot) {
+		this.authServerRoot = authServerRoot;
 	}
 
 	@Override
@@ -174,6 +188,26 @@ public class ServerRunning extends TestWatchman {
 
 	public String getBaseUrl() {
 		return "http://" + hostName + ":" + port;
+	}
+	
+	public String getAccessTokenUri() {
+		return getUrl(authServerRoot + "/oauth/token");
+	}
+
+	public String getAuthorizationUri() {
+		return getUrl(authServerRoot + "/oauth/authorize");
+	}
+
+	public String getClientsUri() {
+		return getUrl(authServerRoot + "/oauth/clients");
+	}
+
+	public String getUsersUri() {
+		return getUrl(authServerRoot + "/Users");
+	}
+
+	public String getUserUri() {
+		return getUrl(authServerRoot + "/User");
 	}
 
 	public String getUrl(String path) {
@@ -247,8 +281,18 @@ public class ServerRunning extends TestWatchman {
 		logger.info("Response headers: " + exchange.getHeaders());
 		return exchange;
 	}
+	
+	@Override
+	public void setRestTemplate(RestOperations restTemplate) {
+		client = restTemplate;
+	}
+	
+	@Override
+	public RestOperations getRestTemplate() {
+		return client;
+	}
 
-	public RestTemplate getRestTemplate() {
+	public RestOperations createRestTemplate() {
 		RestTemplate client = new RestTemplate(new SimpleClientHttpRequestFactory() {
 			@Override
 			protected void prepareConnection(HttpURLConnection connection, String httpMethod) throws IOException {

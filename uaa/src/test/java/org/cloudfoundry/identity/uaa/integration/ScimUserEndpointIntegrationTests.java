@@ -15,9 +15,6 @@ package org.cloudfoundry.identity.uaa.integration;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.scim.PasswordChangeRequest;
@@ -33,19 +30,16 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.ClientHttpResponse;
-import org.springframework.http.converter.HttpMessageConverter;
-import org.springframework.http.converter.StringHttpMessageConverter;
-import org.springframework.http.converter.json.MappingJacksonHttpMessageConverter;
+import org.springframework.security.oauth2.client.test.OAuth2ContextConfiguration;
+import org.springframework.security.oauth2.client.test.OAuth2ContextSetup;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.web.client.ResponseErrorHandler;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestOperations;
 
 /**
  * @author Luke Taylor
  * @author Dave Syer
  */
-@OAuth2ContextConfiguration(OAuth2ContextConfiguration.GrantType.CLIENT_CREDENTIALS)
+@OAuth2ContextConfiguration(OAuth2ContextConfiguration.ClientCredentials.class)
 public class ScimUserEndpointIntegrationTests {
 
 	private final String JOEL = "joel_" + new RandomValueStringGenerator().generate().toLowerCase();
@@ -59,36 +53,24 @@ public class ScimUserEndpointIntegrationTests {
 	private final String usersEndpoint = "/Users";
 
 	@Rule
-	public ServerRunning server = ServerRunning.isRunning();
+	public ServerRunning serverRunning = ServerRunning.isRunning();
 
-	private TestAccounts testAccounts = TestAccounts.standard(server);
+	private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
 	
 	@Rule
-	public OAuth2ContextSetup context = OAuth2ContextSetup.standard(server, testAccounts);
+	public OAuth2ContextSetup context = OAuth2ContextSetup.withTestAccounts(serverRunning, testAccounts);
 
-	private RestTemplate client;
+	@Rule
+	public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
+	
+	private RestOperations client;
 
 	@Before
 	public void createRestTemplate() throws Exception {
 
 		Assume.assumeTrue(!testAccounts.isProfileActive("vcap"));
 
-		client = server.getRestTemplate();
-
-		List<HttpMessageConverter<?>> list = new ArrayList<HttpMessageConverter<?>>();
-		list.add(new MappingJacksonHttpMessageConverter());
-		list.add(new StringHttpMessageConverter());
-		client.setErrorHandler(new ResponseErrorHandler() {
-			@Override
-			public boolean hasError(ClientHttpResponse response) throws IOException {
-				return false;
-			}
-
-			@Override
-			public void handleError(ClientHttpResponse response) throws IOException {
-			}
-		});
-		client.setMessageConverters(list);
+		client = serverRunning.getRestTemplate();
 
 	}
 
@@ -96,7 +78,7 @@ public class ScimUserEndpointIntegrationTests {
 	private ResponseEntity<Map> deleteUser(String id, int version) {
 		HttpHeaders headers = new HttpHeaders();
 		headers.add("If-Match", "\"" + version + "\"");
-		return client.exchange(server.getUrl(userEndpoint + "/{id}"), HttpMethod.DELETE, new HttpEntity<Void>(
+		return client.exchange(serverRunning.getUrl(userEndpoint + "/{id}"), HttpMethod.DELETE, new HttpEntity<Void>(
 				headers), Map.class, id);
 	}
 
@@ -106,7 +88,7 @@ public class ScimUserEndpointIntegrationTests {
 		user.setName(new ScimUser.Name(firstName, lastName));
 		user.addEmail(email);
 
-		return client.postForEntity(server.getUrl(userEndpoint), user, ScimUser.class);
+		return client.postForEntity(serverRunning.getUrl(userEndpoint), user, ScimUser.class);
 	}
 
 	// curl -v -H "Content-Type: application/json" -H "Accept: application/json" --data
@@ -119,7 +101,7 @@ public class ScimUserEndpointIntegrationTests {
 
 		// Check we can GET the user
 		ScimUser joe2 = client
-				.getForObject(server.getUrl(userEndpoint + "/{id}"), ScimUser.class, joe1.getId());
+				.getForObject(serverRunning.getUrl(userEndpoint + "/{id}"), ScimUser.class, joe1.getId());
 
 		assertEquals(joe1.getId(), joe2.getId());
 	}
@@ -131,7 +113,7 @@ public class ScimUserEndpointIntegrationTests {
 		assertEquals(JOE, joe.getUserName());
 
 		// Check we can GET the user
-		ResponseEntity<ScimUser> result = client.getForEntity(server.getUrl(userEndpoint + "/{id}"),
+		ResponseEntity<ScimUser> result = client.getForEntity(serverRunning.getUrl(userEndpoint + "/{id}"),
 				ScimUser.class, joe.getId());
 		assertEquals("\"" + joe.getVersion() + "\"", result.getHeaders().getFirst("ETag"));
 	}
@@ -148,7 +130,7 @@ public class ScimUserEndpointIntegrationTests {
 
 		HttpHeaders headers = new HttpHeaders();
 		headers.add("If-Match", "\"" + joe.getVersion() + "\"");
-		response = client.exchange(server.getUrl(userEndpoint) + "/{id}", HttpMethod.PUT,
+		response = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}", HttpMethod.PUT,
 				new HttpEntity<ScimUser>(joe, headers), ScimUser.class, joe.getId());
 		ScimUser joe1 = response.getBody();
 		assertEquals(JOE, joe1.getUserName());
@@ -170,7 +152,7 @@ public class ScimUserEndpointIntegrationTests {
 		change.setPassword("newpassword");
 
 		HttpHeaders headers = new HttpHeaders();
-		ResponseEntity<Void> result = client.exchange(server.getUrl(userEndpoint) + "/{id}/password",
+		ResponseEntity<Void> result = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password",
 				HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers), null, joe.getId());
 		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
 
@@ -186,12 +168,12 @@ public class ScimUserEndpointIntegrationTests {
 		user.addEmail("joel@blah.com");
 
 		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = client.postForEntity(server.getUrl(userEndpoint), user, Map.class);
+		ResponseEntity<Map> response = client.postForEntity(serverRunning.getUrl(userEndpoint), user, Map.class);
 		@SuppressWarnings("unchecked")
 		Map<String, String> joel = response.getBody();
 		assertEquals(JOEL, joel.get("userName"));
 
-		response = client.postForEntity(server.getUrl(userEndpoint), user, Map.class);
+		response = client.postForEntity(serverRunning.getUrl(userEndpoint), user, Map.class);
 		@SuppressWarnings("unchecked")
 		Map<String, String> error = response.getBody();
 
@@ -221,7 +203,7 @@ public class ScimUserEndpointIntegrationTests {
 		ScimUser deleteMe = createUser(DELETE_ME, "Delete", "Me", "deleteme@blah.com").getBody();
 
 		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = client.exchange(server.getUrl(userEndpoint + "/{id}"),
+		ResponseEntity<Map> response = client.exchange(serverRunning.getUrl(userEndpoint + "/{id}"),
 				HttpMethod.DELETE, new HttpEntity<Void>((Void) null), Map.class, deleteMe.getId());
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 	}
@@ -229,7 +211,7 @@ public class ScimUserEndpointIntegrationTests {
 	@Test
 	public void getReturnsNotFoundForNonExistentUser() throws Exception {
 		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = client.exchange(server.getUrl(userEndpoint + "/{id}"),
+		ResponseEntity<Map> response = client.exchange(serverRunning.getUrl(userEndpoint + "/{id}"),
 				HttpMethod.GET, new HttpEntity<Void>((Void) null), Map.class, "9999");
 		@SuppressWarnings("unchecked")
 		Map<String, String> error = response.getBody();
@@ -241,7 +223,7 @@ public class ScimUserEndpointIntegrationTests {
 	@Test
 	public void findUsers() throws Exception {
 		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = server.getForObject(usersEndpoint, Map.class);
+		ResponseEntity<Map> response = serverRunning.getForObject(usersEndpoint, Map.class);
 		@SuppressWarnings("unchecked")
 		Map<String, Object> results = response.getBody();
 		assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -251,7 +233,7 @@ public class ScimUserEndpointIntegrationTests {
 	@Test
 	public void findUsersWithAttributes() throws Exception {
 		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = server.getForObject(usersEndpoint + "?attributes=id,userName", Map.class);
+		ResponseEntity<Map> response = serverRunning.getForObject(usersEndpoint + "?attributes=id,userName", Map.class);
 		@SuppressWarnings("unchecked")
 		Map<String, Object> results = response.getBody();
 		assertEquals(HttpStatus.OK, response.getStatusCode());

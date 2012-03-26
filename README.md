@@ -31,8 +31,22 @@ First run the uaa server as described above:
     $ cd uaa
     $ mvn tomcat:run
 
-Then start another terminal and from the project base directory, run:
+Then start another terminal and from the project base directory, and ask
+the login endpoint to tell you about the system:
 
+    $ curl -H "Accept: application/json" localhost:8080/uaa/login
+    {
+      "timestamp":"2012-03-28T18:25:49+0100",
+      "commit_id":"111274e",
+      "prompts":{"username":["text","Username"],
+        "password":["password","Password"]
+      }
+    }
+    
+Then you can try logging in with the UAA ruby gem.  Make sure you have
+ruby 1.9, and bundler installed, then
+
+    $ (cd gem/; bundle)
     $ ./gem/bin/uaa target localhost:8080/uaa
     $ ./gem/bin/uaa login marissa koala
 
@@ -42,7 +56,7 @@ This authenticates and obtains an access token from the server using the OAuth2 
 grant, similar to the approach intended for a client like VMC. The token is
 returned in stdout, so copy paste the value into this next command:
 
-    $ ./gem/bin --client_id=app --client_secret=appclientsecret decode <token>
+    $ ./gem/bin/uaa --client-id=admin --client-secret=adminclientsecret decode
     
 and you should see your username and the client id of the original
 token grant on stdout.
@@ -52,12 +66,12 @@ token grant on stdout.
 With all apps deployed into a running server on port 8080 the tests
 will include integration tests (a check is done before each test that
 the app is running).  You can deploy them in your IDE or using the
-command line with `mvn tomcat:run`.
+command line with `mvn tomcat:run -P integration`.
 
 For individual modules, or for the whole project, you can also run
 integration tests from the command line in one go with
 
-    $ mvn integration-test
+    $ mvn integration-test -P integration
 
 (This might require an initial `mvn install` from the parent directory
 to get the wars in your local repo first.)
@@ -65,15 +79,14 @@ to get the wars in your local repo first.)
 ### BVTs
 
 There is a really simple cucumber feature spec (`--tag @uaa`) to
-verify that the UAS server is there.  There is also a rake task to
+verify that the UAA server is there.  There is also a rake task to
 launch the integration tests from the `uaa` submodule in `vcap`.
 Typical usage for a local (`uaa.vcap.me`) instance:
 
     $ cd vcap/tests
     $ rake bvt:run_uaa
 
-To modify the runtime parameters you can provide a `uaa.yml` and set the
-env var `CLOUD_FOUNDRY_CONFIG_PATH`, e.g.
+To modify the runtime parameters you can provide a `uaa.yml`, e.g.
 
     $ cat > /tmp/uaa.yml
     uaa:
@@ -83,12 +96,22 @@ env var `CLOUD_FOUNDRY_CONFIG_PATH`, e.g.
         password: changeme
         email: dev@cloudfoundry.org
     $ CLOUD_FOUNDRY_CONFIG_PATH=/tmp rake bvt:run_uaa
+    
+The integration tests look for a Yaml file in the following locations,
+and the webapp does the same when it starts up so you can use the same
+config file for both:
 
-The tests will usually fail on the first run because of the 1 sec
-granularity of the timestamp on the tokens in the cloud_controller (so
-duplicate tokens will be rejected by the server). When you run the
-second and subsequent times they should pass because new token values
-will be obtained from the server.
+    ${UAA_CONFIG_URL}
+    file:${UAA_CONFIG_FILE}
+    file:${CLOUD_FOUNDRY_CONFIG_PATH}/uaa.yml
+    
+To test against a vcap instance use the Maven profile `vcap`:
+
+    $ (cd uaa; mvn test -P vcap)
+    
+To change the target server it should suffice to set
+`BVT_TARGET_DOMAIN` (the tests prefix it with `uaa.` to form the
+server url).
 
 You can also change individual properties on the command line with
 `UAA_ARGS`, which are passed on to the mvn command line, or with
@@ -96,7 +119,8 @@ MAVEN_OPTS which are passed on to the shell executing mvn, e.g.
 
     $ UAA_ARGS=-Duaa=uaa.appcloud21.dev.mozycloud rake bvt:run_uaa
 
-N.B. MAVEN_OPTS cannot be used to set JVM system properties for the tests, but it can be used to set memory limits for the process etc.
+N.B. MAVEN_OPTS cannot be used to set JVM system properties for the
+tests, but it can be used to set memory limits for the process etc.
 
 ## Inventory
 
@@ -159,69 +183,55 @@ There is a `uaa.yml` in the application which provides defaults to the
 placeholders in the Spring XML.  Wherever you see
 `${placeholder.name}` in the XML there is an opportunity to override
 it either by providing a System property (`-D` to JVM) with the same
-name, or an environment-specific `uaa.yml` under
-`env['CLOUD_FOUNDRY_CONFIG_PATH']/uaa.yml`.  When vcap is deployed the
-`CLOUD_FOUNDRY_CONFIG_PATH` is defined according to the way it was
-installed.
+name, or a custom `uaa.yml` (as desceibed above).
 
-All passwords and client secrets in the config files must be encypted
-using BCrypt.  In Java you can do it like this (with
-`spring-securty-crypto` on the classpath):
-
-    String password = BCrypt.hashpw("plaintext");
-
-In ruby you can do it like this:
-
-    require 'bcrypt'
-    password = BCrypt::Password.create('plaintext')
+All passwords and client secrets in the config files are plain text,
+but they will be inserted into the UAA database encrypted with BCrypt.
 
 ### User Account Data
 
-The default is to use an in-memory, hash-based user store that is
-pre-populated with some test users: e.g. `dale` has password
-`password` and `marissa` has password `koala`.
+The default is to use an in-memory RDBMS user store that is
+pre-populated with a single test users: `marissa` has password
+`koala`.
 
-To use a RDBMS for user data, activate the Spring profiles `jdbc` and
-one of `hsqldb` or `postgresql`.  The opposite is `!jdbc` which needs
-to be specified explicitly if any other profiles are active.  The
-`hsqldb` profile will start up with an in-memory RDBMS by default.
+To use Postgresql for user data, activate one of the Spring profiles
+`hsqldb` or `postgresql`.
 
-The active profiles can be configured by passing the
-`spring.profiles.active` parameter to the JVM. For, example to run
-with an embedded HSQL database:
+The active profiles can be configured in `uaa.yml` using
 
-     mvn -Dspring.profiles.active=jdbc,hsqldb,!legacy tomcat:run
+    spring_profiles: postgresql
+    
+or by passing the `spring.profiles.active` parameter to the JVM. For,
+example to run with an embedded HSQL database:
+
+     mvn -Dspring.profiles.active=hsqldb tomcat:run
 
 Or to use PostgreSQL instead of HSQL:
 
-     mvn -Dspring.profiles.active=jdbc,postgresql,!legacy tomcat:run
+     mvn -Dspring.profiles.active=postgresql tomcat:run
 
-To bootstrap a microcloud type environment you need an admin user.
+To bootstrap a microcloud type environment you need an admin client.
 For this there is a database initializer component that inserts an
-admin user if it finds an empty database on startup.  Override the
-default settings (username/password=admin/admin) in `uaa.yml`:
+admin client.  If the default profile is active (i.e. not
+`postgresql`) there is also a `vmc` client so that the gem login works
+out of the box.  You can override the default settings and add
+additional clients in `uaa.yml`:
 
-    bootstrap:
-      admin:
-        username: foo
-        password: $2a$10$yHj...
-        email: admin@test.com
-        family_name: Piper
-        given_name: Peter
+    oauth:
+      clients:
+        admin:    
+          authorized-grant-types: client_credentials
+          scope: read,write,password
+          authorities: ROLE_CLIENT,ROLE_ADMIN
+          id: admin
+          secret: adminclientsecret
+          resource-ids: clients
 
-(the password has to be bcrypted).
-
-### Legacy Mode
-
-There is a legacy mode where the CF.com cloud controller is used for
-the authentication and token generation.  To use this, launch the app
-with Spring profile `legacy` (a Maven profile with the same name is
-provided for convenience as well).  The opposite is `!legacy` which
-needs to be specified explicitly if any other profiles are active.
-The cloud controller login URL defaults to
-`http://api.cloudfoundry.com/users/{username}/tokens` - to override it
-provide a System property or `uaa.yml` entry for
-`cloud_controller.login_url`.
+The admin client can be used to create additional clients (but not to
+do anything much else).  A client with read/write access to the `scim`
+resource will be needed to create user accounts.  The integration
+tests take care of this automatically, inserting client and user
+accounts as necessary to make the tests work.
 
 ## The API Application
 

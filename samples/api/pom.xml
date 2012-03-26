@@ -38,12 +38,21 @@
 								</configuration>
 							</execution>
 						</executions>
-                       <configuration>
-                          <addContextWarDependencies>true</addContextWarDependencies>
-                        </configuration>
+						<configuration>
+							<addContextWarDependencies>true</addContextWarDependencies>
+						</configuration>
 					</plugin>
 				</plugins>
 			</build>
+			<dependencies>
+				<dependency>
+					<groupId>${pom.groupId}</groupId>
+					<artifactId>uaa</artifactId>
+					<version>${pom.version}</version>
+					<type>war</type>
+					<scope>tomcat</scope>
+				</dependency>
+			</dependencies>
 		</profile>
 	</profiles>
 
@@ -117,16 +126,41 @@
 
 		<dependency>
 			<groupId>${pom.groupId}</groupId>
-			<artifactId>uaa</artifactId>
+			<artifactId>cloudfoundry-identity-uaa</artifactId>
 			<version>${pom.version}</version>
+			<type>test-jar</type>
+			<scope>test</scope>
+		</dependency>
+		<!-- Only needed by wtp? -->
+		<dependency>
+			<groupId>${pom.groupId}</groupId>
+			<artifactId>cloudfoundry-identity-uaa</artifactId>
 			<type>war</type>
-			<scope>tomcat</scope>
+			<version>${pom.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>${pom.groupId}</groupId>
+			<artifactId>cloudfoundry-identity-uaa</artifactId>
+			<version>${pom.version}</version>
+			<classifier>classes</classifier>
+			<scope>test</scope>
 		</dependency>
 
 		<dependency>
 			<groupId>org.springframework.security.oauth</groupId>
 			<artifactId>spring-security-oauth2</artifactId>
 			<version>${spring.security.oauth.version}</version>
+			<exclusions>
+				<exclusion>
+					<artifactId>spring-jdbc</artifactId>
+					<groupId>org.springframework</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>spring-aop</artifactId>
+					<groupId>org.springframework</groupId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 
 		<dependency>

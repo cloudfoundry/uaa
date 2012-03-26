@@ -18,7 +18,6 @@ import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 import java.util.Map;
 
-import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.http.HttpHeaders;
@@ -37,16 +36,17 @@ public class CheckTokenEndpointIntegrationTests {
 	@Rule
 	public ServerRunning serverRunning = ServerRunning.isRunning();
 
-	private TestAccounts testAccounts = TestAccounts.standard(serverRunning);
+	private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
 
+	@Rule
+	public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
+	
 	/**
 	 * tests a happy-day flow of the <code>/check_token</code> endpoint
 	 */
 	@Test
 	public void testHappyDay() throws Exception {
 		
-		Assume.assumeTrue(!testAccounts.isProfileActive("vcap"));
-
 		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
 		formData.add("grant_type", "password");
 		formData.add("username", testAccounts.getUserName());
