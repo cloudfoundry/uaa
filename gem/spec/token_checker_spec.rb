@@ -32,7 +32,7 @@ describe Cloudfoundry::Uaa::TokenChecker do
     @stub_req = stub_request(:get, "http://test_resource:test_secret@localhost:8080/uaa/check_token")
         .with(:headers => {'Accept' => 'application/json'},
             :query => {'token' => 'two', 'token_type' => 'one'})
-    subject.trace = true
+    subject.trace = false
   end
 
   it "should raise an auth error if the given auth header is bad" do

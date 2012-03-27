@@ -20,8 +20,7 @@ require 'fiber'
 
 module Cloudfoundry; module Uaa; end; end
 
-# Utility accessors and methods for objects that want to access JSON
-# web APIs.
+# Utility accessors and methods for objects that want to access JSON web APIs.
 module Cloudfoundry::Uaa::Http
 
   class BadTarget < RuntimeError; end
@@ -36,7 +35,7 @@ module Cloudfoundry::Uaa::Http
     end
   end
 
-  attr_accessor :trace, :proxy, :async, :logger
+  attr_accessor :trace, :proxy, :use_fiber, :logger
   attr_reader :target
 
   private
@@ -94,7 +93,7 @@ module Cloudfoundry::Uaa::Http
       headers['Accept'] = headers['Content-Type'] unless headers['Accept']
     end
 
-    raise BadTarget, "Missing target. Please set the target before executing a request" unless @target
+    raise BadTarget, "Missing target. Target must be set before executing a request" unless @target
 
     req = {
       :method => method, :url => "#{@target}#{path}",
@@ -105,14 +104,10 @@ module Cloudfoundry::Uaa::Http
       debug_out "request: #{method} #{req[:url]}"
       debug_out "headers: #{headers}"
       debug_out "body: #{truncate(payload.to_s, 200)}" if payload
-      debug_out "async: #{async.inspect}"
+      debug_out "use_fiber: #{use_fiber.inspect}"
     end
 
-    if async == true && EventMachine.reactor_running?
-      status, body, response_headers = perform_ahttp_request(req)
-    else
-      status, body, response_headers = perform_http_request(req)
-    end
+    status, body, response_headers = use_fiber ? perform_ahttp_request(req) : perform_http_request(req)
 
     if trace
       debug_out "<---"
@@ -144,14 +139,9 @@ module Cloudfoundry::Uaa::Http
   end
 
   def perform_ahttp_request(req)
-    url = req[:url]
-    method = req[:method]
-    headers = req[:headers]
-    payload = req[:payload]
-
     f = Fiber.current
-    connection = EventMachine::HttpRequest.new(url, connect_timeout: 10, inactivity_timeout: 10)
-    client = connection.setup_request(method.to_sym, :head => headers, :body => payload)
+    connection = EventMachine::HttpRequest.new(req[:url], connect_timeout: 10, inactivity_timeout: 10)
+    client = connection.setup_request(req[:method].to_sym, head: req[:headers], body: req[:payload])
 
     # This condition only works with em-http-request 1.0.0.beta.3
     if connection.is_a? EventMachine::FailedConnection
@@ -159,7 +149,7 @@ module Cloudfoundry::Uaa::Http
     end
 
     client.callback {
-      response_headers = client.response_header.inject({}) { |h, (k, v)| h[k.downcase.to_sym] = v; h }
+      response_headers = client.response_header.inject({}) { |h, (k, v)| h[k.downcase.gsub('-', '_').to_sym] = v; h }
       f.resume [client.response_header.http_status, client.response, response_headers]
     }
     client.errback { f.resume [:error, client.error] }

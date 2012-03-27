@@ -24,7 +24,7 @@ describe Cloudfoundry::Uaa::Client do
       end
     end
     subject.target = "http://localhost:8080/uaa"
-    subject.trace = true
+    subject.trace = false
     @username = "marissa"
     @password = "koala"
   end

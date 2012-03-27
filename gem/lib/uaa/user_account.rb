@@ -39,35 +39,20 @@ class Cloudfoundry::Uaa::UserAccount
       emails = [{:value => (email_addresses || username) }]
     end
 
-    request = { userName: username, emails: emails,
+    request = { userName: username, password: password, emails: emails,
         name: { givenName: given_name, familyName: family_name }}
-    user = json_parse_reply(*http_post("/User", request.to_json, "application/json", @authorization))
-    unless user[:id]
-      raise BadResponse, "no user id returned for new user from target #{@target}"
-    end
-
-    # TODO: change this when CFID-184 is done (include password in create user call)
-    begin
-      change_password user[:id], password
-    rescue BadResponse
-      # give it a good try to delete the user since we couldn't set the password,
-      # then reraise the original exception
-      begin
-        delete user[:id]
-      rescue
-      end
-      raise
-    end
-    user
-
+    user = json_parse_reply(*http_post("/User", request.to_json,
+        "application/json", @authorization))
+    return user if user[:id]
+    raise BadResponse, "no user id returned by create user: target #{@target}"
   end
 
   def change_password(user_id, new_password)
     password_request = { password: new_password }
-    status, body, headers = http_put("/User/#{user_id}/password", password_request.to_json, "application/json", @authorization)
-    unless status == 204
-      raise BadResponse, "Error updating the user's password from target #{@target}, status #{status}"
-    end
+    status, body, headers = http_put("/User/#{user_id}/password",
+        password_request.to_json, "application/json", @authorization)
+    return true if status == 204
+    raise BadResponse, "Change password error: target #{@target}, status #{status}"
   end
 
   def query_by_value(attribute, filter_attribute, filter_value)
@@ -102,7 +87,7 @@ class Cloudfoundry::Uaa::UserAccount
   def user_id_from_name(name)
     qinfo = query_by_value(:id, :username, name)
     unless qinfo && qinfo[:resources] && qinfo[:resources][0] && qinfo[:resources][0][:id]
-      raise NotFound, "user #{username} not found in #{@target}"
+      raise NotFound, "user #{name} not found in #{@target}"
     end
     qinfo[:resources][0][:id]
   end

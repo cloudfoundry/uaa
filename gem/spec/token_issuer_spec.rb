@@ -43,7 +43,7 @@ describe Cloudfoundry::Uaa::TokenIssuer do
       @stub_req = stub_request(:post, "http://test_app:test_secret@localhost:8080/uaa/oauth/token")
           .with(headers: {accept: 'application/json', content_type: 'application/x-www-form-urlencoded'},
                 body: {grant_type: 'client_credentials', scope: 'read'})
-      subject.trace = true
+      subject.trace = false
     end
 
     it "should get a token with client credentials" do
@@ -110,7 +110,7 @@ describe Cloudfoundry::Uaa::TokenIssuer do
       @stub_req = stub_request(:post, "http://test_app:test_secret@localhost:8080/uaa/oauth/token")
           .with(headers: {accept: 'application/json', content_type: 'application/x-www-form-urlencoded'},
                 body: {grant_type: 'password', username: @username, password: @userpwd, scope: 'read'})
-      subject.trace = true
+      subject.trace = false
     end
 
     it "should get a token with owner password" do
@@ -142,7 +142,7 @@ describe Cloudfoundry::Uaa::TokenIssuer do
       @stub_req = stub_request(:post, "http://test_app:test_secret@localhost:8080/uaa/oauth/token")
           .with(headers: {accept: 'application/json', content_type: 'application/x-www-form-urlencoded'},
                 body: {grant_type: 'refresh_token', refresh_token: @refresh_token, scope: 'read'})
-      subject.trace = true
+      subject.trace = false
     end
 
     it "should get an access token with a refresh token" do
@@ -154,7 +154,7 @@ describe Cloudfoundry::Uaa::TokenIssuer do
   context "with implicit grant" do
 
     before :each do
-      subject.trace = true
+      subject.trace = false
     end
 
     it "should be able to get the prompts for credentials used to authenticate implicit grant" do
@@ -224,7 +224,7 @@ describe Cloudfoundry::Uaa::TokenIssuer do
   context "with auth code grant" do
 
     before :each do
-      subject.trace = true
+      subject.trace = false
     end
 
     it "should raise an ArgumentError if an authcode grant is attempted without first getting the redirect uri" do
