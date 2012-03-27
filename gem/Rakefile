@@ -14,7 +14,7 @@ require "rspec/core/rake_task"
 require "bundler/gem_tasks"
 require "rdoc/task"
 
-#task :default => [:cover]
+task :default => [:cover]
 
 task :test => [:webmock_specs, :non_webmock_specs]
 

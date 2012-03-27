@@ -14,9 +14,9 @@
 require 'spec_helper'
 require 'uaa'
 
-#ENV["UAA_CLIENT_ID"] = "cloud_controller"
-#ENV["UAA_CLIENT_SECRET"] = "cloudcontrollersecret"
-#ENV["UAA_CLIENT_TARGET"] = "http://uaa.vcap.me"
+#ENV["UAA_CLIENT_ID"] = "scim"
+#ENV["UAA_CLIENT_SECRET"] = "scimsecret"
+#ENV["UAA_CLIENT_TARGET"] = "http://localhost:8080/uaa"
 
 if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
 
@@ -81,6 +81,12 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
 
       it "deletes the user by name" do
         @user_acct.delete_by_name(@username)
+        # TODO: query that the user is gone
+      end
+
+      it "deletes the user by name" do
+        expect { @user_acct.delete_by_name("non-existent-user") }
+            .to raise_exception(Cloudfoundry::Uaa::UserAccount::NotFound)
         # TODO: query that the user is gone
       end
 

@@ -20,9 +20,8 @@ describe Cloudfoundry::Uaa::Http do
   include Cloudfoundry::Uaa::Http
 
   before :each do
-    #@trace = true
+    @trace = false
     @target = StubServer.url
-    #StubServer.responder { |indata| puts indata; <<-REPLY.gsub(/^ +/, '') }
     StubServer.responder { <<-REPLY.gsub(/^ +/, '') }
       HTTP/1.0 200 OK
       Connection: close
@@ -61,28 +60,28 @@ describe Cloudfoundry::Uaa::Http do
   shared_examples_for "http client" do
 
     it "fail cleanly for a failed dns lookup" do
-      StubServer.request(@async) do
+      StubServer.request do
         @target = "http://bad.example.bad"
-        expect { http_get("/") }.to raise_exception(BadTarget)
+        expect { http_get("/") }.to raise_exception(Cloudfoundry::Uaa::Http::BadTarget)
       end
     end
 
     it "fail cleanly for a get operation, no connection to address" do
-      StubServer.request(@async) do
+      StubServer.request do
         @target = "http://127.0.0.1:30000"
-        expect { http_get("/") }.to raise_exception(BadTarget)
+        expect { http_get("/") }.to raise_exception(Cloudfoundry::Uaa::Http::BadTarget)
       end
     end
 
     it "fail cleanly for a get operation with bad response" do
       StubServer.responder { "badly formatted http response" }
-      StubServer.request(@async) do
-        expect { http_get("/") }.to raise_exception(HTTPException)
+      StubServer.request do
+        expect { http_get("/") }.to raise_exception(Cloudfoundry::Uaa::Http::HTTPException)
       end
     end
 
     it "work for a get operation to a valid address" do
-      StubServer.request(@async) do
+      StubServer.request do
         status, body, headers = http_get("/")
         status.should == 200
         body.should == "Foo"
@@ -92,12 +91,12 @@ describe Cloudfoundry::Uaa::Http do
   end
 
   context "on a fiber" do
-    before(:all) { @async = true }
+    before(:all) { StubServer.use_fiber = @use_fiber = true }
     it_should_behave_like "http client"
   end
 
   context "on a thread" do
-    before(:all) { @async = false }
+    before(:all) { StubServer.use_fiber = @use_fiber = false }
     it_should_behave_like "http client"
   end
 
@@ -114,7 +113,7 @@ describe Cloudfoundry::Uaa::Http do
     @trace = true
     @logger = clog = CustomLogger.new
     clog.log.should be_empty
-    StubServer.request(@async) { http_get("/") }
+    StubServer.request { http_get("/") }
     clog.log.should_not be_empty
   end
 
