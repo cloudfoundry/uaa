@@ -12,12 +12,6 @@
  */
 package org.cloudfoundry.identity.uaa.scim;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertTrue;
-
 import java.util.Collection;
 import java.util.UUID;
 
@@ -39,6 +33,8 @@ import org.springframework.test.annotation.IfProfileValue;
 import org.springframework.test.annotation.ProfileValueSourceConfiguration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import static org.junit.Assert.*;
 
 /**
  * @author Luke Taylor
@@ -320,6 +316,16 @@ public class JdbcScimUserProvisioningTests {
 				+ " from users where username='joe''");
 		assertEquals(password, users.iterator().next().getId());
 	}
+
+    @Test
+    public void filterEqWithoutQuotesIsRejected() {
+        try {
+            db.retrieveUsers("username eq joe");
+            fail();
+        } catch (Exception e) {
+            assertTrue(e.getMessage().startsWith("Eq argument in filter"));
+        }
+    }
 
 	private void assertJoe(ScimUser joe) {
 		assertNotNull(joe);
