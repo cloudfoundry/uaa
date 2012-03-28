@@ -67,27 +67,6 @@
 					</execution>
 				</executions>
 			</plugin>
-			<plugin>
-				<groupId>com.mycila.maven-license-plugin</groupId>
-				<artifactId>maven-license-plugin</artifactId>
-                <version>1.9.0</version>
-				<configuration>
-					<header>NOTICE.TXT</header>
-					<excludes>
-						<exclude>LICENSE.TXT</exclude>
-						<exclude>**/*.txt</exclude>
-						<exclude>**/*.css</exclude>
-						<exclude>**/*.js</exclude>
-						<exclude>gatling/src/main/resources/**</exclude>
-						<exclude>.idea/**</exclude>
-					</excludes>
-					<useDefaultExcludes>true</useDefaultExcludes>
-					<mapping>
-						<gemspec>SCRIPT_STYLE</gemspec>
-					</mapping>
-					<useDefaultMapping>true</useDefaultMapping>
-				</configuration>
-			</plugin>
 		</plugins>
 		<pluginManagement>
 			<plugins>
@@ -268,17 +247,6 @@
 		<pluginRepository>
 			<id>atlassian</id>
 			<url>https://maven.atlassian.com/repository/public</url>
-		</pluginRepository>
-		<pluginRepository>
-			<id>mc-release</id>
-			<name>Local Maven repository of releases</name>
-			<url>http://mc-repo.googlecode.com/svn/maven2/releases</url>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-			<releases>
-				<enabled>true</enabled>
-			</releases>
 		</pluginRepository>
 	</pluginRepositories>
 	<distributionManagement>
