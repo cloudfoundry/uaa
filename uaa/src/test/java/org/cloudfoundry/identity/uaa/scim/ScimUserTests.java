@@ -114,6 +114,7 @@ public class ScimUserTests {
 //		System.out.println(mapper.writeValueAsString(user));
 	}
 
+    @Test
 	public void basicNamesAreMappedCorrectly() {
 		ScimUser roz = new ScimUser("1234", "roz", "Roslyn", "MacRae");
 		assertEquals("1234", roz.getId());
