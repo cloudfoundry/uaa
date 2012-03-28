@@ -35,6 +35,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
@@ -93,6 +94,8 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	static final Pattern lePattern = Pattern.compile(" le ", Pattern.CASE_INSENSITIVE);
 
+    static final Pattern unquotedEq = Pattern.compile("(id|username|email|givenName|familyName) eq [^'].*", Pattern.CASE_INSENSITIVE);
+
 	protected final JdbcTemplate jdbcTemplate;
 
 	private PasswordValidator passwordValidator = new DefaultPasswordValidator();
@@ -125,6 +128,9 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	@Override
 	public List<ScimUser> retrieveUsers(String filter) {
+        if (unquotedEq.matcher(filter).matches()) {
+            throw new IllegalArgumentException("Eq argument in filter (" + filter + ") must be quoted");
+        }
 
 		String where = filter;
 
@@ -152,11 +158,10 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 			return new JdbcPagingList<ScimUser>(jdbcTemplate, ALL_USERS + " WHERE " + where + " ORDER BY created",
 					values, mapper, 200);
 		}
-		catch (DataAccessException e) {
-			logger.debug("Query failed. ", e);
-			throw new IllegalArgumentException("Bad filter");
-		}
-
+        catch(BadSqlGrammarException e) {
+            logger.debug("Filter '"+ filter +"' generated invalid SQL", e);
+            throw new IllegalArgumentException("Invalid filter: " + filter);
+        }
 	}
 
 	private String makeCaseInsensitive(String where, Pattern pattern, String template, String valueTemplate,
