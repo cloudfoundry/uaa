@@ -25,6 +25,7 @@ import AcmBaseData._
 class AcmSmokeSimulation extends Simulation {
   val Duration = 60
 
+
   /**
    * Creates permission sets and with the specified number of randomly-named permissions,
    * reads the permission set nReads times then deletes it
@@ -40,16 +41,33 @@ class AcmSmokeSimulation extends Simulation {
 
   /**
    * Creates objects with nUsers and nGroups assigned to each of the standard (base data) permissions
-   * Reads the object nReads times
+   * Reads the object, the users with permissions on an object, and then checks the object access nReads times
+   * for each user with three permission values.
    */
-  def createObjects(nUsers: Int, nGroups: Int, nReads: Int=100) = scenario("Bash ACM Object Creation")
+  def createObjects(nUsers: Int, nGroups: Int, nReads: Int=100) = scenario("Object Creation and access checks")
     .loop(
       chain.exec(createObject(Seq("app_space"), stdPermissions map (s => (s, acmUsers.take(nUsers) ::: acmGroups.take(nGroups))) toMap))
-      .loop(
-        chain.exec(getObject("${acm_object_id}"))
-        .pause(10,100, TimeUnit.MILLISECONDS)
-      ).times(nReads)
+        .exec(getObject("${acm_object_id}"))
+        .exec(
+          http("Get Object Users")
+            .get("/objects/${acm_object_id}/users")
+            .basicAuth(acmUser, acmPassword)
+            .check(status is(200))
+        )
+        .loop(
+          chain.loop(
+            chain.feed(AcmBaseData.userFeeder(nUsers-1))
+            .exec(
+              http("Check Access")
+                .get("/objects/${acm_object_id}/access?id=${acm_user}&p=%s".format(stdPermissions.take(3).mkString(",")))
+                .basicAuth(acmUser, acmPassword)
+                .check(status is(200))
+             )
+            .pause(10,100, TimeUnit.MILLISECONDS)
+          ).times(nUsers)
+        ).times(nReads)
   ).during(Duration)
+
 
   /**
    * The main simulation method defining scenarios to be run, number of users.
@@ -57,7 +75,7 @@ class AcmSmokeSimulation extends Simulation {
   def apply = {
     Seq(
 //        createPermissionSets(10).configure users 1 protocolConfig acmHttpConfig,
-        createObjects(5, 2, 1).configure users 1 protocolConfig acmHttpConfig
+        createObjects(5, 3, 10).configure users 1 protocolConfig acmHttpConfig
     )
   }
 

@@ -10,7 +10,14 @@ import uaa.OAuthComponents._
 class UaaSmokeSimulation extends Simulation {
   val Duration = 60
 
-  val vmcUserLogins = scenario("VMC Load Login")
+  val authzCodeLogin = scenario("Authorization Code Login")
+    .feed(UsernamePasswordFeeder())
+    .loop(
+      authorizationCodeLogin()
+    .pause(1, 2)).during(Duration)
+
+
+  val vmcUserLogins = scenario("VMC Login")
     .loop(
       chain.feed(UsernamePasswordFeeder(resetAfter=1000))
     // Uses the session values for username/password provided by the feeder
@@ -22,6 +29,7 @@ class UaaSmokeSimulation extends Simulation {
 
   def apply = {
     Seq(
+      authzCodeLogin.configure users 10 ramp 10 protocolConfig uaaHttpConfig,
       vmcUserLogins.configure users 100 ramp 10 protocolConfig uaaHttpConfig
     )
   }

@@ -55,14 +55,14 @@ object ScimComponents {
         .post("/User")
         .header("Authorization", "Bearer ${access_token}")
         .body("""{"name":{"givenName":"Joe","familyName":"User","formatted":"Joe User"},"userName":"${username}","emails":[{"value":"${username}@blah.com"}]}""")
-        .asJSON()
+        .asJSON
         .check(status.is(201), regex(""""id":"(.*?)"""").saveAs("__scimUserId")))
       .exec(
         http("Change Password")
           .put("/User/${__scimUserId}/password")
           .header("Authorization", "Bearer ${access_token}")
           .body("""{"password":"${password}"}""")
-          .asJSON()
+          .asJSON
           .check(status.is(204))).exec((s: Session) => {
           s.removeAttribute("__scimUserId")
         })

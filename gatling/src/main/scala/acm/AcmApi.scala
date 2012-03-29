@@ -35,7 +35,7 @@ object AcmApi {
       .post("/permission_sets")
       .basicAuth(acmUser, acmPassword)
       .body(genPermissions(size))
-      .asJSON()
+      .asJSON
       .check(status.is(200), jsonPath("/name").saveAs(PermissionSet))
 
   private def genPermissions(n: Int)(s: Session): String = {
@@ -48,7 +48,7 @@ object AcmApi {
       .post("/permission_sets")
       .basicAuth(acmUser, acmPassword)
       .body("""{"name": "%s", "permissions": [%s]}""".format(name, formatSeq(permissions)))
-      .asJSON()
+      .asJSON
       .check(status.is(expectedStatus))
 
   def getPermissionSet(name: String, expectedStatus: Int = 200) =
@@ -62,7 +62,7 @@ object AcmApi {
       .put("/permission_sets/%s".format(name))
       .basicAuth(acmUser, acmPassword)
       .body("""{"name": "%s", "permissions": [%s]}""".format(name, formatSeq(permissions)))
-      .asJSON()
+      .asJSON
       .check(status.is(200))
 
   def deletePermissionSet(name: String) =
@@ -88,7 +88,7 @@ object AcmApi {
       .post("/objects")
       .basicAuth(acmUser, acmPassword)
       .body("""{"permission_sets": [%s], "acl": {%s} }""".format(formatSeq(permissionSets), formatAcl(acl)))
-      .asJSON()
+      .asJSON
       .check(status.is(200), jsonPath("/id").saveAs(ObjectId))
   
   def getObject(id: String) =
@@ -96,6 +96,7 @@ object AcmApi {
       .get("/objects/%s".format(id))
       .basicAuth(acmUser, acmPassword)
       .check(status.is(200))
+
 
   def createGroup(id: Option[String], members: Seq[String]): ActionBuilder =
     http("Create Group")
@@ -112,6 +113,8 @@ object AcmApi {
       .get("/groups/%s".format(id))
       .basicAuth(acmUser, acmPassword)
       .check(status.is(200))
+
+
 
   private def formatSeq(strings: Seq[String]) = strings.mkString("\"", "\",\"", "\"")
 

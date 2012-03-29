@@ -31,10 +31,13 @@ object AcmBaseData {
   val acmGroups: List[String] = (1 to 1000 map (i => "g-acm_group_%s".format(i))).toList
 
   // Feeder for plugging standard user names into actions
-  def acmUserFeeder = new Feeder {
+  def userFeeder(resetAfterIndex: Int = -1) = new Feeder {
     var count = -1
 
     def next = {
+      if (count == resetAfterIndex) {
+        count = -1
+      }
       count += 1
       Map("acm_user" -> acmUsers(count))
     }
@@ -54,7 +57,7 @@ class AcmBaseDataCreationSimulation extends Simulation {
 
   val createUsers = scenario("Create Standard Users")
     .loop(chain
-      .feed(acmUserFeeder)
+      .feed(userFeeder())
       .exec(createUser("${acm_user}"))
   ).times(100)
 
