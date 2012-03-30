@@ -35,7 +35,7 @@ module Cloudfoundry::Uaa::Http
     end
   end
 
-  attr_accessor :trace, :proxy, :use_fiber, :logger
+  attr_accessor :trace, :proxy, :async, :logger
   attr_reader :target
 
   private
@@ -103,17 +103,17 @@ module Cloudfoundry::Uaa::Http
       debug_out "--->"
       debug_out "request: #{method} #{req[:url]}"
       debug_out "headers: #{headers}"
-      debug_out "body: #{truncate(payload.to_s, 200)}" if payload
-      debug_out "use_fiber: #{use_fiber.inspect}"
+      debug_out "body: #{truncate(payload.to_s, 500)}" if payload
+      debug_out "async: #{async.inspect}"
     end
 
-    status, body, response_headers = use_fiber ? perform_ahttp_request(req) : perform_http_request(req)
+    status, body, response_headers = async ? perform_ahttp_request(req) : perform_http_request(req)
 
     if trace
       debug_out "<---"
       debug_out "response: #{status}"
       debug_out "headers: #{response_headers}"
-      debug_out "body: #{truncate(body.to_s, 200)}" if body
+      debug_out "body: #{truncate(body.to_s, 500)}" if body
     end
     [status, body, response_headers]
 

@@ -21,7 +21,7 @@ describe Cloudfoundry::Uaa::UserAccount do
 
   before :each do
     subject.trace = false
-    StubServer.use_fiber = subject.use_fiber = true
+    StubServer.use_fiber = subject.async = true
     StubServer.responder do |request, reply|
       reply.headers[:content_type] = "application/json;charset=UTF-8"
       reply.body = %<{ "id":"random_id", "email":[#{@email_addrs}] }>
@@ -95,7 +95,6 @@ describe Cloudfoundry::Uaa::UserAccount do
       request.headers[:authorization].should == 'Bearer example_access_token'
       request.headers[:accept].should =~ /application\/json/
       request.method.should == :get
-      #request: get http://localhost:8080/uaa/Users?attributes=id&filter=username+eq+%27sam_1332817108%27
       request.path.should == "/Users?attributes=#{@keyattr}&filter=#{@attrname}+eq+%27#{@attrvalue}%27"
       reply.headers[:content_type] = "application/json;charset=UTF-8"
       reply.body = %<{"resources":[{"id":"aaf3af73-1a41-4918-89a3-bc9d73760a7e"}],"startIndex":1,"itemsPerPage":100,"totalResults":1,"schemas":["urn:scim:schemas:core:1.0"]}>
@@ -129,7 +128,7 @@ describe Cloudfoundry::Uaa::UserAccount do
     end
   end
 
-  it "should complain if attempting to delete gets an error" do
+  it "should complain if attempting to delete a user fails" do
     @user_id = 'Test_User_Id3'
     StubServer.responder { |request, reply| reply.status = 401; reply }
     StubServer.request do
@@ -154,5 +153,21 @@ describe Cloudfoundry::Uaa::UserAccount do
         .to raise_exception(Cloudfoundry::Uaa::UserAccount::NotFound)
     end
   end
+
+  #it "should get user info from a user id" do
+    # get
+  #end
+
+  #it "should get user info from a user name" do
+    # get_by_name
+  #end
+
+  #it "should list all users" do
+    # list
+  #end
+
+  #it "should get change password by user name" do
+    # change password by name
+  #end
 
 end

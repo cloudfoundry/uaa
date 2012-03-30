@@ -91,12 +91,12 @@ describe Cloudfoundry::Uaa::Http do
   end
 
   context "on a fiber" do
-    before(:all) { StubServer.use_fiber = @use_fiber = true }
+    before(:all) { StubServer.use_fiber = @async = true }
     it_should_behave_like "http client"
   end
 
   context "on a thread" do
-    before(:all) { StubServer.use_fiber = @use_fiber = false }
+    before(:all) { StubServer.use_fiber = @async = false }
     it_should_behave_like "http client"
   end
 

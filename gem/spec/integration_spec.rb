@@ -14,8 +14,8 @@
 require 'spec_helper'
 require 'uaa'
 
-#ENV["UAA_CLIENT_ID"] = "scim"
-#ENV["UAA_CLIENT_SECRET"] = "scimsecret"
+#ENV["UAA_CLIENT_ID"] = "admin"
+#ENV["UAA_CLIENT_SECRET"] = "adminclientsecret"
 #ENV["UAA_CLIENT_TARGET"] = "http://localhost:8080/uaa"
 
 if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
