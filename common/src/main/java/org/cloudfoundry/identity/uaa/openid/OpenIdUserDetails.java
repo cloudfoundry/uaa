@@ -10,7 +10,7 @@
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  */
-package org.cloudfoundry.identity.app.web;
+package org.cloudfoundry.identity.uaa.openid;
 
 import java.util.Collection;
 
@@ -23,12 +23,12 @@ import org.springframework.security.core.userdetails.User;
  * @author Luke Taylor
  * @author Dave Syer
  */
-public class CustomUserDetails extends User {
+public class OpenIdUserDetails extends User {
     private String email;
     private String name;
     private boolean newUser;
 
-    public CustomUserDetails(String id, Collection<GrantedAuthority> authorities) {
+    public OpenIdUserDetails(String id, Collection<GrantedAuthority> authorities) {
         super(id, "unused", authorities);
     }
 

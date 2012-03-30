@@ -8,7 +8,7 @@ uaa:
     password: dr0wssaPH@ck
   host: uaa.${VCAP_BVT_TARGET:vcap.me}
   port: 80
-  path: /war
+  path: /
 
 cloud_controller:
   database:
