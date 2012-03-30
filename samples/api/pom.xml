@@ -16,6 +16,12 @@
 
 	<properties>
 		<m2eclipse.wtp.contextRoot>/api</m2eclipse.wtp.contextRoot>
+		<!-- Brain dead install plugin (Maven 3) cannot extract this stuff from its own configuration -->
+		<file>target/${project.artifactId}-${project.version}.war</file>
+		<groupId>${project.groupId}</groupId>
+		<artifactId>api</artifactId>
+		<version>${project.version}</version>
+		<packaging>war</packaging>
 	</properties>
 
 	<profiles>
@@ -29,7 +35,7 @@
 						<executions>
 							<execution>
 								<id>start-tomcat</id>
-								<phase>pre-integration-test</phase>
+								<phase>process-test-sources</phase>
 								<goals>
 									<goal>run</goal>
 								</goals>
@@ -42,13 +48,29 @@
 							<addContextWarDependencies>true</addContextWarDependencies>
 						</configuration>
 					</plugin>
+					<plugin>
+						<groupId>org.apache.tomcat.maven</groupId>
+						<artifactId>tomcat7-maven-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>start-tomcat</id>
+								<phase>none</phase>
+								<goals>
+									<goal>run</goal>
+								</goals>
+								<configuration>
+									<fork>true</fork>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
 				</plugins>
 			</build>
 			<dependencies>
 				<dependency>
-					<groupId>${pom.groupId}</groupId>
+					<groupId>${project.groupId}</groupId>
 					<artifactId>uaa</artifactId>
-					<version>${pom.version}</version>
+					<version>${project.version}</version>
 					<type>war</type>
 					<scope>tomcat</scope>
 				</dependency>
@@ -76,17 +98,16 @@
 					</configuration>
 				</plugin>
 				<plugin>
+					<groupId>org.apache.tomcat.maven</groupId>
+					<artifactId>tomcat7-maven-plugin</artifactId>
+					<configuration>
+						<path>/api</path>
+						<addContextWarDependencies>true</addContextWarDependencies>
+					</configuration>
+				</plugin>
+				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-surefire-plugin</artifactId>
-					<executions>
-						<execution>
-							<id>surefire-it</id>
-							<phase>integration-test</phase>
-							<goals>
-								<goal>test</goal>
-							</goals>
-						</execution>
-					</executions>
 					<configuration>
 						<skip>${skipTests}</skip>
 						<includes>
@@ -109,10 +130,10 @@
 							</goals>
 							<inherited>false</inherited>
 							<configuration>
-								<file>target/${pom.artifactId}-${pom.version}.war</file>
-								<groupId>${pom.groupId}</groupId>
+								<file>target/${project.artifactId}-${project.version}.war</file>
+								<groupId>${project.groupId}</groupId>
 								<artifactId>api</artifactId>
-								<version>${pom.version}</version>
+								<version>${project.version}</version>
 								<packaging>war</packaging>
 							</configuration>
 						</execution>
@@ -125,26 +146,9 @@
 	<dependencies>
 
 		<dependency>
-			<groupId>${pom.groupId}</groupId>
-			<artifactId>cloudfoundry-identity-uaa</artifactId>
-			<version>${pom.version}</version>
-			<type>test-jar</type>
-			<scope>test</scope>
-		</dependency>
-		<!-- Only needed by wtp? -->
-		<dependency>
-			<groupId>${pom.groupId}</groupId>
-			<artifactId>cloudfoundry-identity-uaa</artifactId>
-			<type>war</type>
-			<version>${pom.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>${pom.groupId}</groupId>
-			<artifactId>cloudfoundry-identity-uaa</artifactId>
-			<version>${pom.version}</version>
-			<classifier>classes</classifier>
-			<scope>test</scope>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>cloudfoundry-identity-common</artifactId>
+			<version>${project.version}</version>
 		</dependency>
 
 		<dependency>

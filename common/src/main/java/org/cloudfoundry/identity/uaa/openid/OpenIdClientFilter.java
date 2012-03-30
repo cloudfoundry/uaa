@@ -10,7 +10,7 @@
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  */
-package org.cloudfoundry.identity.app.web;
+package org.cloudfoundry.identity.uaa.openid;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -75,7 +75,7 @@ public class OpenIdClientFilter extends AbstractAuthenticationProcessingFilter {
 		}
 		String userId = map.get("user_id");
 		List<GrantedAuthority> authorities = Arrays.<GrantedAuthority> asList(new SimpleGrantedAuthority("ROLE_USER"));
-		CustomUserDetails user = new CustomUserDetails(userId, authorities);
+		OpenIdUserDetails user = new OpenIdUserDetails(userId, authorities);
 		if (map.containsKey("email")) {
 			user.setEmail(map.get("email"));
 		}
