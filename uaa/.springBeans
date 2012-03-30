@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beansProjectDescription>
 	<version>1</version>
-	<pluginVersion><![CDATA[2.8.1.201111220115-RELEASE]]></pluginVersion>
+	<pluginVersion><![CDATA[2.8.0.201110170010-RELEASE]]></pluginVersion>
 	<configSuffixes>
 		<configSuffix><![CDATA[xml]]></configSuffix>
 	</configSuffixes>
 	<enableImports><![CDATA[false]]></enableImports>
 	<configs>
-		<config>src/main/webapp/WEB-INF/spring-servlet.xml</config>
+		<config>src/main/webapp/WEB-INF/env-context.xml</config>
+		<config>src/main/resources/META-INF/spring/batch/jobs/jobs.xml</config>
+		<config>src/main/webapp/WEB-INF/oauth-clients.xml</config>
+		<config>src/main/webapp/WEB-INF/spring-data-source.xml</config>
 		<config>src/main/webapp/WEB-INF/spring-scim.xml</config>
 		<config>src/test/resources/test-data-source.xml</config>
-		<config>src/main/resources/META-INF/spring/batch/jobs/jobs.xml</config>
-		<config>src/main/webapp/WEB-INF/spring-data-source.xml</config>
 		<config>src/test/resources/test/config/test-override.xml</config>
-		<config>src/main/webapp/WEB-INF/env-context.xml</config>
 	</configs>
 	<configSets>
 	</configSets>
