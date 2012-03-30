@@ -22,7 +22,9 @@ If this works you are in business:
 Each module has a `mvn tomcat:run` target to run individually, or you
 could import them as projects into STS (use 2.8.0 or better if you
 can).  The apps all work together the apps running on the same port
-(8080) as `/uaa`, `/app` and `/api`.
+(8080) as `/uaa`, `/app` and `/api`.  You can probably use Maven 2.2.1
+to build the code, but you need to use Maven 3 if you want to run it
+from the command line (or run integration tests).
 
 ### Demo of command line usage
 
@@ -71,7 +73,7 @@ command line with `mvn tomcat:run -P integration`.
 For individual modules, or for the whole project, you can also run
 integration tests from the command line in one go with
 
-    $ mvn integration-test -P integration
+    $ mvn test -P integration
 
 (This might require an initial `mvn install` from the parent directory
 to get the wars in your local repo first.)
@@ -111,7 +113,9 @@ To test against a vcap instance use the Maven profile `vcap`:
     
 To change the target server it should suffice to set
 `BVT_TARGET_DOMAIN` (the tests prefix it with `uaa.` to form the
-server url).
+server url), e.g.
+
+    $ BVT_TARGET_DOMAIN=appcloud21.dev.mozycloud rake bvt:run_uaa
 
 You can also change individual properties on the command line with
 `UAA_ARGS`, which are passed on to the mvn command line, or with
@@ -125,6 +129,9 @@ tests, but it can be used to set memory limits for the process etc.
 ## Inventory
 
 There are actually several projects here, the main `uaa` server application and some samples:
+
+0. `common` is a module containing a JAR with all the business logic.  It is used in
+the webapps below.
 
 1. `uaa` is the actual UAA server
 

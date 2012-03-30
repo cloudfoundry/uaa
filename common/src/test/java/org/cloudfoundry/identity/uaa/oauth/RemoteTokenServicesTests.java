@@ -10,7 +10,7 @@
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  */
-package org.cloudfoundry.identity.api.oauth;
+package org.cloudfoundry.identity.uaa.oauth;
 
 import static org.junit.Assert.*;
 
@@ -18,6 +18,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.cloudfoundry.identity.uaa.oauth.RemoteTokenServices;
 import org.junit.Test;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
