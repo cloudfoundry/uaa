@@ -81,13 +81,13 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
 
       it "deletes the user by name" do
         @user_acct.delete_by_name(@username)
-        # TODO: query that the user is gone
+        expect { @user_acct.get_by_name(@username) }
+            .to raise_exception(Cloudfoundry::Uaa::UserAccount::NotFound)
       end
 
-      it "deletes the user by name" do
+      it "complains about an attempt to delete a non-existent user" do
         expect { @user_acct.delete_by_name("non-existent-user") }
             .to raise_exception(Cloudfoundry::Uaa::UserAccount::NotFound)
-        # TODO: query that the user is gone
       end
 
     end

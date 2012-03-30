@@ -11,10 +11,15 @@
 # subcomponent's license, as noted in the LICENSE file.
 #
 
+ENV['BUNDLE_GEMFILE'] ||= File.expand_path("../../Gemfile", __FILE__)
+require "bundler"
+Bundler.setup
+
 require 'yaml'
 require 'nats/client'
 require 'vcap/common'
 require 'vcap/logging'
+require 'rest_client'
 
 VCAP::Logging.setup_from_config()
 logger = VCAP::Logging.logger('uaa')
@@ -23,7 +28,7 @@ root=File.absolute_path(File.join(File.dirname(__FILE__), ".."))
 if File.exist?(root) then
   logger.info("Using root=#{root}")
 else
-  abort("#{root} is not a directory.  Do you need to init submodules?") 
+  abort("#{root} is not a directory.  Do you need to init submodules?")
 end
 
 cfg_path = ENV['CLOUD_FOUNDRY_CONFIG_PATH'] ? ENV['CLOUD_FOUNDRY_CONFIG_PATH'] : File.join(root, "config")
@@ -66,7 +71,7 @@ logger.info("Preparing to launch NATS from #{pid}")
 
 router_msg = { :host => config["uaa"]["host"]||"localhost", :port => config["uaa"]["port"]||8080, :uris => config["uaa"]["uris"]||["uaa.vcap.me"], :tags => {:component => "UAA"} }
 router_json = Yajl::Encoder.encode(router_msg)
-discover_msg = { :type => 'UAA', 
+discover_msg = { :type => 'UAA',
   :host => "%s:%s" % [config["uaa"]["host"]||"localhost",  config["uaa"]["port"]||8080],
   :index => 0,
   :credentials => [config["varz"]["username"], config["varz"]["password"]]
@@ -77,10 +82,23 @@ mbus = config["mbus"] || "nats://localhost:4222/"
 
 Thread.new do
 
+  max_wait = 30
+  uaa_is_up = false
+  start_time = Time.now
+  logger.info("Waiting for uaa to start within #{max_wait} seconds")
+  begin
+    response = RestClient.get "#{discover_msg[:host]}/login", accept: "application/json",
+        open_timeout: 2, timeout: 2
+    uaa_is_up = response.code == 200 && response.body =~ /prompts/
+  rescue Exception => e
+    logger.info "waiting for uaa to start: #{e}"
+    sleep 2
+  end while !uaa_is_up && Time.now - start_time < max_wait
+
   # NATS will block and we want to wait for the tomcat process so this
   # has to go in a new thread
 
-  logger.info("Launching NATS from uaa")
+  logger.info("UAA started, registering with NATS")
   NATS.start(:uri => mbus) do
 
     NATS.subscribe('vcap.component.discover') do |msg, reply|
