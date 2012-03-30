@@ -45,7 +45,7 @@
 						<executions>
 							<execution>
 								<id>start-tomcat</id>
-								<phase>pre-integration-test</phase>
+								<phase>process-test-sources</phase>
 								<goals>
 									<goal>run</goal>
 								</goals>
@@ -58,26 +58,6 @@
 							</execution>
 						</executions>
 					</plugin>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-surefire-plugin</artifactId>
-						<executions>
-							<execution>
-								<id>surefire-it</id>
-								<phase>integration-test</phase>
-								<goals>
-									<goal>test</goal>
-								</goals>
-							</execution>
-							<execution>
-								<id>default-test</id>
-								<phase>test</phase>
-								<configuration>
-									<skip>true</skip>
-								</configuration>
-							</execution>
-						</executions>
-					</plugin>
 				</plugins>
 			</build>
 		</profile>
@@ -85,51 +65,6 @@
 
 	<build>
 		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-antrun-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>generate-sql</id>
-						<phase>generate-sources</phase>
-						<configuration>
-							<target>
-								<typedef resource="foundrylogic/vpp/typedef.properties" />
-								<taskdef resource="foundrylogic/vpp/taskdef.properties" />
-								<vppcopy todir="${basedir}/target/generated-resources" overwrite="true">
-									<config>
-										<context>
-											<property key="includes" value="src/main/sql" />
-											<property file="${basedir}/src/main/sql/hsqldb.properties" />
-										</context>
-										<engine>
-											<property key="velocimacro.library" value="src/main/sql/hsqldb.vpp" />
-										</engine>
-									</config>
-									<fileset dir="${basedir}/src/main/sql" includes="schema*.sql.vpp" />
-									<mapper type="glob" from="*.sql.vpp" to="*-hsqldb.sql" />
-								</vppcopy>
-								<vppcopy todir="${basedir}/target/generated-resources" overwrite="true">
-									<config>
-										<context>
-											<property key="includes" value="src/main/sql" />
-											<property file="${basedir}/src/main/sql/postgresql.properties" />
-										</context>
-										<engine>
-											<property key="velocimacro.library" value="src/main/sql/postgresql.vpp" />
-										</engine>
-									</config>
-									<fileset dir="${basedir}/src/main/sql" includes="schema*.sql.vpp" />
-									<mapper type="glob" from="*.sql.vpp" to="*-postgresql.sql" />
-								</vppcopy>
-							</target>
-						</configuration>
-						<goals>
-							<goal>run</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
 			<plugin>
 				<groupId>pl.project13.maven</groupId>
 				<artifactId>git-commit-id-plugin</artifactId>
@@ -148,31 +83,19 @@
 					<generateGitPropertiesFilename>src/main/resources/git.properties</generateGitPropertiesFilename>
 				</configuration>
 			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-jar-plugin</artifactId>
-				<version>2.2</version>
-				<executions>
-					<execution>
-						<goals>
-							<goal>test-jar</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-war-plugin</artifactId>
-				<configuration>
-					<attachClasses>true</attachClasses>
-				</configuration>
-			</plugin>
 		</plugins>
 		<pluginManagement>
 			<plugins>
 				<plugin>
 					<groupId>org.codehaus.mojo</groupId>
 					<artifactId>tomcat-maven-plugin</artifactId>
+					<configuration>
+						<path>${uaa.path}</path>
+					</configuration>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.tomcat.maven</groupId>
+					<artifactId>tomcat7-maven-plugin</artifactId>
 					<configuration>
 						<path>${uaa.path}</path>
 					</configuration>
@@ -234,9 +157,10 @@
 	<dependencies>
 
 		<dependency>
-			<groupId>org.springframework.security</groupId>
-			<artifactId>spring-security-jwt</artifactId>
-			<version>${spring.security.jwt.version}</version>
+			<groupId>${pom.groupId}</groupId>
+			<artifactId>cloudfoundry-identity-common</artifactId>
+			<version>${pom.version}</version>
+			<scope>compile</scope>
 		</dependency>
 
 		<dependency>
@@ -246,89 +170,10 @@
 		</dependency>
 
 		<dependency>
-			<groupId>org.springframework.security.oauth</groupId>
-			<artifactId>spring-security-oauth2</artifactId>
-			<version>${spring.security.oauth.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-core</artifactId>
-			<version>${spring.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-expression</artifactId>
-			<version>${spring.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-beans</artifactId>
-			<version>${spring.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-context</artifactId>
-			<version>${spring.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-aop</artifactId>
-			<version>${spring.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-web</artifactId>
-			<version>${spring.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-jdbc</artifactId>
-			<version>${spring.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-webmvc</artifactId>
-			<version>${spring.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-tx</artifactId>
-			<version>${spring.version}</version>
-		</dependency>
-
-		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-test</artifactId>
 			<version>${spring.version}</version>
 			<scope>test</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>org.springframework.security</groupId>
-			<artifactId>spring-security-core</artifactId>
-			<version>${spring.security.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.springframework.security</groupId>
-			<artifactId>spring-security-web</artifactId>
-			<version>${spring.security.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.springframework.security</groupId>
-			<artifactId>spring-security-taglibs</artifactId>
-			<version>${spring.security.version}</version>
-			<scope>runtime</scope>
 		</dependency>
 
 		<dependency>
@@ -374,35 +219,10 @@
 		</dependency>
 
 		<dependency>
-			<groupId>org.codehaus.jackson</groupId>
-			<artifactId>jackson-mapper-asl</artifactId>
-			<version>1.9.2</version>
-		</dependency>
-
-		<dependency>
-			<groupId>edu.vt.middleware</groupId>
-			<artifactId>vt-password</artifactId>
-			<version>3.1.1</version>
-		</dependency>
-
-		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<version>4.8.2</version>
 			<scope>test</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>org.apache.httpcomponents</groupId>
-			<artifactId>httpclient</artifactId>
-			<version>4.1.2</version>
-			<scope>compile</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>org.yaml</groupId>
-			<artifactId>snakeyaml</artifactId>
-			<version>1.9</version>
 		</dependency>
 
 		<dependency>
@@ -423,14 +243,6 @@
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-all</artifactId>
 			<version>1.8.5</version>
-			<scope>test</scope>
-		</dependency>
-
-		<!-- Only needed for CC token serialization PoC -->
-		<dependency>
-			<groupId>org.jruby</groupId>
-			<artifactId>jruby</artifactId>
-			<version>1.6.5</version>
 			<scope>test</scope>
 		</dependency>
 

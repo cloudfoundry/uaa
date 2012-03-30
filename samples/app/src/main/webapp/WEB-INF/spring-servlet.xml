@@ -36,7 +36,7 @@
 	<!--apply the oauth client context -->
 	<oauth:client id="oauth2ClientFilter" />
 
-	<bean id="openidClientFilter" class="org.cloudfoundry.identity.app.web.OpenIdClientFilter">
+	<bean id="openidClientFilter" class="org.cloudfoundry.identity.uaa.openid.OpenIdClientFilter">
 		<constructor-arg value="/login" />
 		<property name="authenticationManager" ref="authenticationManager" />
 		<property name="restTemplate">

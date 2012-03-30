@@ -10,7 +10,7 @@
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  */
-package org.cloudfoundry.identity.app.web;
+package org.cloudfoundry.identity.uaa.openid;
 
 import static org.junit.Assert.assertNotNull;
 
@@ -19,6 +19,7 @@ import java.util.HashMap;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.cloudfoundry.identity.uaa.openid.OpenIdClientFilter;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;

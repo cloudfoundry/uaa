@@ -50,7 +50,7 @@
 	</bean>
 
 	<jdbc:initialize-database ignore-failures="ALL" data-source="dataSource">
-		<jdbc:script location="classpath:org/cloudfoundry/identity/uaa/schema-#{@platform}.sql" />
+		<jdbc:script location="classpath*:org/cloudfoundry/identity/uaa/schema-#{@platform}.sql" />
 	</jdbc:initialize-database>
 
 </beans>
