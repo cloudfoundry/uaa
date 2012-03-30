@@ -64,6 +64,10 @@ class Cloudfoundry::Uaa::UserAccount
     json_get("/User/#{URI.encode(user_id)}", @authorization)
   end
 
+  def get_by_name(name)
+    json_get("/User/#{URI.encode(user_id_from_name(name))}", @authorization)
+  end
+
   def list
     json_get("/Users?attributes=userName", @authorization)
   end

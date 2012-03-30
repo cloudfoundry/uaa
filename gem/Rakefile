@@ -11,7 +11,7 @@
 #
 
 require "rspec/core/rake_task"
-require "bundler/gem_tasks"
+#require "bundler/gem_tasks" # only available in bundler >= 1.0.15
 require "rdoc/task"
 
 task :default => [:cover]
