@@ -83,6 +83,8 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	static final Pattern eqPattern = Pattern.compile("(.*?)([a-z0-9]*) eq '(.*?)'([\\s]*.*)", Pattern.CASE_INSENSITIVE);
 
+	static final Pattern boPattern = Pattern.compile("(.*?)([a-z0-9]*) eq (true|false)([\\s]*.*)", Pattern.CASE_INSENSITIVE);
+
 	static final Pattern prPattern = Pattern.compile(" pr([\\s]*)", Pattern.CASE_INSENSITIVE);
 
 	static final Pattern gtPattern = Pattern.compile(" gt ", Pattern.CASE_INSENSITIVE);
@@ -141,6 +143,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		where = makeCaseInsensitive(where, coPattern, "%slower(%s) like :?%s", "%%%s%%", values);
 		where = makeCaseInsensitive(where, swPattern, "%slower(%s) like :?%s", "%s%%", values);
 		where = makeCaseInsensitive(where, eqPattern, "%slower(%s) = :?%s", "%s", values);
+		where = makeCaseInsensitive(where, boPattern, "%s%s = :?%s", "%s", values);
 		where = prPattern.matcher(where).replaceAll(" is not null$1");
 		where = gtPattern.matcher(where).replaceAll(" > ");
 		where = gePattern.matcher(where).replaceAll(" >= ");

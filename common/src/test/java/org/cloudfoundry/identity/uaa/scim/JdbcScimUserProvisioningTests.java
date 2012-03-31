@@ -176,6 +176,7 @@ public class JdbcScimUserProvisioningTests {
 		assertJoe(joe);
 		assertEquals(1, template.queryForList("select * from users where id=? and active=false", JOE_ID).size());
 		assertFalse(joe.isActive());
+		assertEquals(1, db.retrieveUsers("username eq 'joe' and active eq false").size());
 	}
 
 	@Test(expected=UserAlreadyExistsException.class)
@@ -245,6 +246,11 @@ public class JdbcScimUserProvisioningTests {
 	@Test
 	public void canRetrieveUsersWithEmailFilter() {
 		assertEquals(1, db.retrieveUsers("emails.value sw 'joe'").size());
+	}
+
+	@Test
+	public void canRetrieveUsersWithBooleanFilter() {
+		assertTrue(2<=db.retrieveUsers("username pr and active eq true").size());
 	}
 
 	@Test
