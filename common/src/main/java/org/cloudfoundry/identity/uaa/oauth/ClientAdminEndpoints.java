@@ -83,7 +83,7 @@ public class ClientAdminEndpoints {
 	@RequestMapping(value="/oauth/clients/{client}", method=RequestMethod.DELETE)
 	public ResponseEntity<Void> removeClientDetails(@PathVariable String client) throws Exception {
 		ClientDetails details = clientDetailsService.loadClientByClientId(client);
-		clientRegistrationService.updateClientDetails(details);
+		clientRegistrationService.removeClientDetails(details);
 		return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
 	}
 	
