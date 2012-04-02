@@ -112,10 +112,10 @@ To test against a vcap instance use the Maven profile `vcap`:
     $ (cd uaa; mvn test -P vcap)
     
 To change the target server it should suffice to set
-`BVT_TARGET_DOMAIN` (the tests prefix it with `uaa.` to form the
+`VCAP_BVT_TARGET` (the tests prefix it with `uaa.` to form the
 server url), e.g.
 
-    $ BVT_TARGET_DOMAIN=appcloud21.dev.mozycloud rake bvt:run_uaa
+    $ VCAP_BVT_TARGET=appcloud21.dev.mozycloud rake bvt:run_uaa
 
 You can also change individual properties on the command line with
 `UAA_ARGS`, which are passed on to the mvn command line, or with
@@ -229,7 +229,7 @@ additional clients in `uaa.yml`:
         admin:    
           authorized-grant-types: client_credentials
           scope: read,write,password
-          authorities: ROLE_CLIENT,ROLE_ADMIN
+          authorities: ROLE_CLIENT,ROLE_ADIN
           id: admin
           secret: adminclientsecret
           resource-ids: clients

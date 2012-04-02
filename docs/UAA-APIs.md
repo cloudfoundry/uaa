@@ -25,7 +25,8 @@ Authentication and Delegated Authorization APIs
 * [Get user information: /userinfo](#userinfo)
 * [Get login information and prompts: /login_info](#login_info)
 * [JWT token key for verifying tokens: /token_key](#token_key)
-* [Access token admin: `/oauth/(users|clients)/.*`](#token_admin)
+* [Access token admin: `/oauth/(users|clients)/tokens/.*`](#token_admin)
+* [Client registration admin: `/oauth/clients/.*`](#client_admin)
 
 User Account APIs
 
@@ -422,7 +423,9 @@ See [SCIM - Changing Password](http://www.simplecloud.info/specs/draft-scim-rest
 
 See [SCIM - List/Query Resources](http://www.simplecloud.info/specs/draft-scim-rest-api-01.html#query-resources)
 
-Get information about a user. This is needed by Collab Spaces to convert names and email addresses to immutable ids, and immutable ids to display names. SCIM supports more complex querying than we require. A simple "equals" filter for attributes should be adequate.
+Get information about a user. This is needed by to convert names and email addresses to immutable ids, and immutable ids to display names. The implementation provides the core schema from the specification, but not all attributes are handled in the back end at present (e.g. only one email address per account).
+
+Filters: note that, per the specification, attribute values are comma separated and the filter expressions can be combined with boolean keywords ("or" and "and").
 
 * Request: `GET /Users?attributes=:requestedAttributes&filter=:filter`
 * Response Body (for `GET /Users?attributes=id&filter=emails.value eq bjensen@example.com`):
@@ -449,7 +452,7 @@ Get information about a user. This is needed by Collab Spaces to convert names a
 
 ### <a id="deleteuser"/>Delete a User
 
-See [SCIM - Deleting Resources](http://www.simplecloud.info/specs/draft-scim-rest-api-01.html#delete-resource)
+See [SCIM - Deleting Resources](http://www.simplecloud.info/specs/draft-scim-rest-api-01.html#delete-resource).
 
 * Request: `DELETE /User/:id`
 * Request Headers: `If-Match` the `ETag` (version id) for the value to delete
@@ -461,10 +464,14 @@ See [SCIM - Deleting Resources](http://www.simplecloud.info/specs/draft-scim-res
         401 - Unauthorized
         404 - Not found
 
+Deleting accounts is handled in the back end logically using the `active` flag, so to see a list of deleted users you can filter on that attribute (filters by default have it set to true), e.g.
 
-### <a id="token_key"/>JWT Token Key
+* Request: `GET /Users?attributes=id,userName&filter=userName co 'bjensen' and active eq false`
+* Response Body: list of users matching the filter
 
-An endpoint which returns the JWT token kwy, used by the UAA to sign JWT access tokens, and to be used by authorized clients to verify that the key came from the UAA.
+### <a id="token_key"/>Token Key
+
+An endpoint which returns the JWT token key, used by the UAA to sign JWT access tokens, and to be used by authorized clients to verify that the key came from the UAA.
 	
 This call is authenticated with client credentials using the HTTP Basic method.
 
@@ -538,6 +545,80 @@ OAuth2 proected resources which deal with listing and revoking access tokens.  T
 * Response body: empty
 
         HTTP/1.1 204 NO_CONTENT
+
+### <a id="client_admin"/>Client Registration Admin
+
+### Inspect Client
+
+* Request: `GET /oauth/clients/:client_id`
+* Access: allowed by clients or users with `ROLE_ADMIN` and `scope=read`
+* Request body: client details
+* Reponse code: 200 (OK) if successful with client details in JSON response
+* Response body: empty
+
+        HTTP/1.1 200 OK
+        {
+          id : foo,
+          scope : comma,separated,
+          resource-ids : cloud_controller,scim
+          authorities : ROLE_CLIENT,ROLE_ADMIN
+          authorized-grant-types : client_credentials
+        }
+
+### Register Client
+
+* Request: `POST /oauth/clients/:client_id`
+* Access: allowed by clients or users with `ROLE_ADMIN` and `scope=write`
+* Request body: client details
+* Reponse code: 201 (CREATED) if successful
+* Response body: empty
+
+        HTTP/1.1 201 CREATED
+        
+Example:
+
+    PUT /oauth/clients/foo
+    {
+      id : foo,
+      secret : fooclientsecret, // optional for untrusted clients
+      scope : comma,separated,
+      resource-ids : cloud_controller,scim
+      authorities : ROLE_CLIENT,ROLE_ADMIN
+      authorized-grant-types : client_credentials
+    }
+
+### Update Client
+
+* Request: `PUT /oauth/clients/:client_id`
+* Access: allowed by clients or users with `ROLE_ADMIN` and `scope=write`
+* Request body: client details
+* Reponse code: 204 (NO_CONTENT) if successful
+* Response body: empty
+
+        HTTP/1.1 204 NO_CONTENT
+        
+Example:
+
+    PUT /oauth/clients/foo
+    {
+      id : foo,
+      secret : fooclientsecret, // optional for untrusted clients
+      scope : comma,separated,
+      resource-ids : cloud_controller,scim
+      authorities : ROLE_CLIENT,ROLE_ADMIN
+      authorized-grant-types : client_credentials
+    }
+
+### Delete Client
+
+* Request: `DELETE /oauth/clients/:client_id`
+* Access: allowed by clients or users with `ROLE_ADMIN` and `scope=write`
+* Request body: empty
+* Reponse code: 204 (NO_CONTENT)
+* Response body: empty
+
+        HTTP/1.1 204 NO_CONTENT
+
 
 ## UI Endpoints
 

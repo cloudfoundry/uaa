@@ -1,5 +1,5 @@
 [gerrit]
-host=cloudfoundry-codereview.qa.mozycloud.com
+host=reviews.cloudfoundry.org
 port=29418
 project=uaa
 
