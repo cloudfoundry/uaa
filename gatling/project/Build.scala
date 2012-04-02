@@ -43,13 +43,16 @@ object UaaGatlingBuild extends Build {
 //    val mavenLocalRepo = "Local Maven Repository" at "file://" + Path.userHome.absolutePath +"/.m2/repository"
 
     val excilysReleaseRepo = "Excilys Release Repo" at "http://repository.excilys.com/content/repositories/releases"
+    val excilys3rdPartyRepo = "Excilys 3rd Party Repo" at "http://repository.excilys.com/content/repositories/thirdparty"
+    val jenkinsRepo = "Jenkins Repo" at "http://maven.jenkins-ci.org/content/repositories/releases"
     val twitterRepo = "Twitter Repo" at "http://maven.twttr.com"
+    val typesafeRepo = "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases"
 
     val buildSettings = Defaults.defaultSettings ++ gatlingSettings ++ Seq (
       scalaVersion := "2.9.1",
       gatlingVersion := "1.1.1",
       version      := "0.1-SNAPSHOT",
-      resolvers ++= Seq(excilysReleaseRepo, twitterRepo))
+      resolvers ++= Seq(excilysReleaseRepo, excilys3rdPartyRepo, jenkinsRepo, typesafeRepo, twitterRepo))
 
     lazy val gatling = Project("gatling", file("."), settings = buildSettings)
 }
