@@ -19,7 +19,7 @@
 		<m2eclipse.wtp.contextRoot>/uaa</m2eclipse.wtp.contextRoot>
 		<uaa.path>/uaa</uaa.path>
 		<CLOUD_FOUNDRY_CONFIG_PATH></CLOUD_FOUNDRY_CONFIG_PATH>
-		<!-- Brain dead install plugin (Maven 3) cannot extract this stuff from  its own configuration-->
+		<!-- Brain dead install plugin (Maven 3) cannot extract this stuff from its own configuration -->
 		<file>target/${project.artifactId}-${project.version}.war</file>
 		<groupId>${project.groupId}</groupId>
 		<artifactId>uaa</artifactId>
@@ -124,7 +124,6 @@
 						</systemPropertyVariables>
 					</configuration>
 				</plugin>
-<!--
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-install-plugin</artifactId>
@@ -148,7 +147,6 @@
 						</execution>
 					</executions>
 				</plugin>
--->
 			</plugins>
 		</pluginManagement>
 	</build>
