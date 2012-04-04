@@ -102,7 +102,10 @@
 		</property>
 	</bean>
 
-	<bean id="cloudControllerUserProcessor" class="org.cloudfoundry.identity.uaa.scim.job.CloudControllerUserItemProcessor" />
+	<bean id="cloudControllerUserProcessor" class="org.cloudfoundry.identity.uaa.scim.job.CloudControllerUserItemProcessor">
+		<property name="dataSource" ref="uaaDataSource" />
+		<property name="filterExisting" value="true" />
+	</bean>
 
 	<bean id="lastModifiedFilter" class="org.cloudfoundry.identity.uaa.scim.job.CloudControllerLastModifiedFilterProcessor">
 		<property name="dataSource" ref="uaaDataSource" />

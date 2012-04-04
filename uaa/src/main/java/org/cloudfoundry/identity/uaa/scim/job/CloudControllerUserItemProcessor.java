@@ -18,9 +18,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import javax.sql.DataSource;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.batch.item.ItemProcessor;
+import org.springframework.jdbc.core.JdbcOperations;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * @author Dave Syer
@@ -29,6 +33,23 @@ import org.springframework.batch.item.ItemProcessor;
 public class CloudControllerUserItemProcessor implements ItemProcessor<Map<String, ?>, Map<String, ?>> {
 
 	private static Log logger = LogFactory.getLog(CloudControllerUserItemProcessor.class);
+	
+	private boolean filterExisting = false;
+	
+	private JdbcOperations jdbcTemplate;
+	
+	public void setDataSource(DataSource dataSource) {
+		jdbcTemplate = new JdbcTemplate(dataSource);
+	}
+	
+	/**
+	 * Filter out records where there is already an account in the target database.
+	 *  
+	 * @param filterExisting the flag to set
+	 */
+	public void setFilterExisting(boolean filterExisting) {
+		this.filterExisting = filterExisting;
+	}
 
 	@Override
 	public Map<String, ?> process(Map<String, ?> item) throws Exception {
@@ -54,6 +75,13 @@ public class CloudControllerUserItemProcessor implements ItemProcessor<Map<Strin
 		String[] names = getNames(email);
 		map.put("givenName", names[0]);
 		map.put("familyName", names[1]);
+		
+		if (filterExisting) {
+			if (jdbcTemplate.queryForInt("select count(id) from users where userName=?", email)>0) {
+				// Filter this item
+				return null;
+			}
+		}
 
 		return map;
 

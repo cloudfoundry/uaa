@@ -22,6 +22,7 @@ import javax.sql.DataSource;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.batch.item.ItemProcessor;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -52,7 +53,14 @@ public class CloudControllerLastModifiedFilterProcessor implements ItemProcessor
 		String userName = email.toLowerCase();
 		map.put("userName", userName);
 		map.put("email", email);
-		Map<String, Object> target = jdbcTemplate.queryForMap("select * from users where userName=?", userName);
+
+		Map<String, Object> target;
+		try {
+			target = jdbcTemplate.queryForMap("select * from users where userName=?", userName);
+		} catch (EmptyResultDataAccessException e) {
+			// skip this record
+			return null;
+		}
 		
 		if (isTargetModifiedMoreRecently(item, target)) {
 			logger.info("Target is modified more recently than source for: " + target);
