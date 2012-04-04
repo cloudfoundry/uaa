@@ -2,13 +2,13 @@
 
 ## Overview
 
-The User Account and Authentication Service (UAA) is:
+The User Account and Authentication Service (UAA):
 
 * A separate application from the Cloud Controller
 * Owns the user accounts and authentication sources
 * Called via JSON APIs
 * Support for standard protocols to provide single sign-on and delegated authorization to web applications
-in addition to JSON APIs to support the Cloud Controller and Collaboration Spaces
+in addition to JSON APIs to support the Cloud Controller and team features of Cloud Foundry
 * Support APIs and a basic login/approval UI for web client apps
 * Support APIs for user account management for an external web UI (i.e. `www.cloudfoundry.com`)
 
@@ -281,14 +281,14 @@ The plan is to support
 [Simple Cloud Identity Management (SCIM)](http://simplecloud.info) for
 these APIs and endpoints.  Authentication is by OAuth2 token, and
 access decision is undefined - which users are allowed to do these
-operations?  Since this is independent of Collab Spaces a simple
-(role-based) decision based on local data should be fine.  TODO: how
-should it be bootstrapped - how does the first user get created?
+operations?  Since this is independent of individual client
+applications' access decisions, a simple (role-based) decision based
+on local data is adequate.
 
 SCIM has endpoints in /group/* as well which are probably useful (for
 the local access decisions in the UAA), but we don't need to support
-groups in UAA yet. We need to pass through based on attributes from
-external stores like LDAP (which could be groups).
+groups in UAA yet. We might need a pass through based on attributes
+from external stores like LDAP (which could be groups).
 
 ### <a id="createuser"/>Create a User
 
@@ -300,7 +300,6 @@ See [SCIM - Creating Resources](http://www.simplecloud.info/specs/draft-scim-res
         {
           "schemas":["urn:scim:schemas:core:1.0"],
           "userName":"bjensen",
-          "externalId":"bjensen",
           "name":{
             "formatted":"Ms. Barbara J Jensen III",
             "familyName":"Jensen",
@@ -308,7 +307,7 @@ See [SCIM - Creating Resources](http://www.simplecloud.info/specs/draft-scim-res
           }
         }
 
-_(dale: what is the unique key in this scheme? is it the externalId property? The userName property? Instead of cutting and pasting the equally terse SCIM spec, you guys should put in a paragraph or two on how we plan to implement /User. I think we want the flexibility to authenticate using an email address as a key, but be able to change the email address as needed. I'm not sure what position you are taking on this from reading the spec. Please address as this is not well defined in this doc)_
+The `userName` is unique in the UAA, but is allowed to change.  Each user also has a fixed primary key which is a UUID (stored in the `id` field of the core schema).
 
 * Response Body:
 
