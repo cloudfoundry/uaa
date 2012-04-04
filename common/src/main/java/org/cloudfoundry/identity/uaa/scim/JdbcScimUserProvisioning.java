@@ -217,7 +217,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	}
 
 	private void validateUsername(final ScimUser user) throws InvalidUserException {
-		if (!user.getUserName().matches("[a-z0-9_.@]+")) {
+		if (!user.getUserName().matches("[a-z0-9+-_.@]+")) {
 			throw new InvalidUserException("Username must be lower case alphanumeric with optional characters '._@'.");
 		}
 	}
