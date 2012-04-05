@@ -91,8 +91,17 @@
 							<entry key="id" value="vmc" />
 							<entry key="authorized-grant-types" value="implicit" />
 							<entry key="scope" value="read,write,openid,password" />
-							<entry key="sauthorities" value="ROLE_UNTRUSTED" />
+							<entry key="authorities" value="ROLE_UNTRUSTED" />
 							<entry key="resource-ids" value="password,cloud_controller" />
+						</map>
+					</entry>
+					<entry key="app">
+						<map>
+							<entry key="id" value="app" />
+							<entry key="secret" value="appclientsecret"/>
+							<entry key="authorized-grant-types" value="password,authorization_code,refresh_token" />
+							<entry key="scope" value="read,openid" />
+							<entry key="authorities" value="ROLE_CLIENT" />
 						</map>
 					</entry>
 				</map>
