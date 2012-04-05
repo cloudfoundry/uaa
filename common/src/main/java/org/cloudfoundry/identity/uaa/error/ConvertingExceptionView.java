@@ -42,11 +42,11 @@ public class ConvertingExceptionView implements View {
 
 	private static final Log logger = LogFactory.getLog(ConvertingExceptionView.class);
 
-	private ResponseEntity<? extends Exception> responseEntity;
+	private ResponseEntity<? extends ExceptionReport> responseEntity;
 
 	private final HttpMessageConverter<?>[] messageConverters;
 
-	public ConvertingExceptionView(ResponseEntity<? extends Exception> responseEntity, HttpMessageConverter<?>[] messageConverters) {
+	public ConvertingExceptionView(ResponseEntity<? extends ExceptionReport> responseEntity, HttpMessageConverter<?>[] messageConverters) {
 		this.responseEntity = responseEntity;
 		this.messageConverters = messageConverters;
 	}
@@ -94,7 +94,7 @@ public class ConvertingExceptionView implements View {
 		return new ServletServerHttpResponse(servletResponse);
 	}
 
-	private void handleHttpEntityResponse(ResponseEntity<? extends Exception> responseEntity,
+	private void handleHttpEntityResponse(ResponseEntity<? extends ExceptionReport> responseEntity,
 			HttpInputMessage inputMessage, HttpOutputMessage outputMessage) throws Exception {
 		if (outputMessage instanceof ServerHttpResponse) {
 			((ServerHttpResponse) outputMessage).setStatusCode(responseEntity.getStatusCode());

@@ -29,27 +29,33 @@ import org.springframework.mock.web.MockHttpServletResponse;
 
 /**
  * @author Dave Syer
- *
+ * 
  */
 public class ConvertingExceptionViewTests {
-	
+
 	private ConvertingExceptionView view;
+
 	private HttpMessageConverter<?>[] messageConverters = new HttpMessageConverter<?>[] { new StringHttpMessageConverter() };
+
 	private MockHttpServletRequest request = new MockHttpServletRequest();
+
 	private MockHttpServletResponse response = new MockHttpServletResponse();
 
 	@Test
 	public void testGetContentType() throws Exception {
-		ScimException e = new ScimException("Unexpected error", new RuntimeException("foo"), HttpStatus.INTERNAL_SERVER_ERROR);
-		view = new ConvertingExceptionView(new ResponseEntity<Exception>(e, e.getStatus()), messageConverters );
+		ScimException e = new ScimException("Unexpected error", new RuntimeException("foo"),
+				HttpStatus.INTERNAL_SERVER_ERROR);
+		view = new ConvertingExceptionView(new ResponseEntity<ExceptionReport>(new ExceptionReport(e), e.getStatus()),
+				messageConverters);
 		assertEquals("*/*", view.getContentType());
 	}
 
 	@Test
 	public void testRender() throws Exception {
-		ScimException e = new ScimException("Unexpected error", new RuntimeException("foo"), HttpStatus.INTERNAL_SERVER_ERROR);
-		view = new ConvertingExceptionView(new ResponseEntity<Exception>(e, e.getStatus()), messageConverters );
-		view.render(new HashMap<String, Object>(), request , response);
+		ScimException e = new ScimException("Unexpected error", new RuntimeException("foo"),
+				HttpStatus.INTERNAL_SERVER_ERROR);
+		view = new ConvertingExceptionView(new ResponseEntity<ExceptionReport>(new ExceptionReport(e), e.getStatus()), messageConverters);
+		view.render(new HashMap<String, Object>(), request, response);
 		assertNotNull(response.getContentAsString());
 	}
 

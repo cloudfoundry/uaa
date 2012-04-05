@@ -35,10 +35,12 @@ import org.springframework.web.client.RestTemplate;
  * @author Dave Syer
  * 
  */
-public class ExceptionHttpMessageConverter extends AbstractHttpMessageConverter<Exception> {
+public class ExceptionReportHttpMessageConverter extends AbstractHttpMessageConverter<ExceptionReport> {
 
-	private HttpMessageConverter<?>[] messageConverters = new RestTemplate().getMessageConverters().toArray(
+	private static final HttpMessageConverter<?>[] DEFAULT_MESSAGE_CONVERTERS = new RestTemplate().getMessageConverters().toArray(
 			new HttpMessageConverter<?>[0]);
+
+	private HttpMessageConverter<?>[] messageConverters = DEFAULT_MESSAGE_CONVERTERS;
 
 	/**
 	 * Set the message body converters to use.
@@ -48,7 +50,7 @@ public class ExceptionHttpMessageConverter extends AbstractHttpMessageConverter<
 	public void setMessageConverters(HttpMessageConverter<?>[] messageConverters) {
 		this.messageConverters = messageConverters;
 	}
-	
+
 	@Override
 	public List<MediaType> getSupportedMediaTypes() {
 		Set<MediaType> list = new LinkedHashSet<MediaType>();
@@ -60,11 +62,11 @@ public class ExceptionHttpMessageConverter extends AbstractHttpMessageConverter<
 
 	@Override
 	protected boolean supports(Class<?> clazz) {
-		return Exception.class.isAssignableFrom(clazz);
+		return ExceptionReport.class.isAssignableFrom(clazz);
 	}
 
 	@Override
-	protected Exception readInternal(Class<? extends Exception> clazz, HttpInputMessage inputMessage)
+	protected ExceptionReport readInternal(Class<? extends ExceptionReport> clazz, HttpInputMessage inputMessage)
 			throws IOException, HttpMessageNotReadableException {
 		for (HttpMessageConverter<?> converter : messageConverters) {
 			for (MediaType mediaType : converter.getSupportedMediaTypes()) {
@@ -73,7 +75,7 @@ public class ExceptionHttpMessageConverter extends AbstractHttpMessageConverter<
 					HttpMessageConverter<Map> messageConverter = (HttpMessageConverter<Map>) converter;
 					@SuppressWarnings("unchecked")
 					Map<String, String> map = messageConverter.read(Map.class, inputMessage);
-					return getException(map);
+					return new ExceptionReport(getException(map));
 				}
 			}
 		}
@@ -85,14 +87,17 @@ public class ExceptionHttpMessageConverter extends AbstractHttpMessageConverter<
 	}
 
 	@Override
-	protected void writeInternal(Exception e, HttpOutputMessage outputMessage) throws IOException,
+	protected void writeInternal(ExceptionReport report, HttpOutputMessage outputMessage) throws IOException,
 			HttpMessageNotWritableException {
+		Exception e = report.getException();
 		Map<String, String> map = new HashMap<String, String>();
 		map.put("error", e.getClass().getName());
 		map.put("message", e.getMessage());
-		StringWriter trace = new StringWriter();
-		e.printStackTrace(new PrintWriter(trace));
-		map.put("trace", trace.toString());
+		if (report.isTrace()) {
+			StringWriter trace = new StringWriter();
+			e.printStackTrace(new PrintWriter(trace));
+			map.put("trace", trace.toString());
+		}
 		for (HttpMessageConverter<?> converter : messageConverters) {
 			for (MediaType mediaType : converter.getSupportedMediaTypes()) {
 				if (converter.canWrite(Map.class, mediaType)) {

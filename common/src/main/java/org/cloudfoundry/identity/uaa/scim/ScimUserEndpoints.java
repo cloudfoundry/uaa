@@ -22,14 +22,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import javax.servlet.http.HttpServletRequest;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
+import org.cloudfoundry.identity.uaa.error.ExceptionReport;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.expression.Expression;
+import org.springframework.expression.spel.SpelEvaluationException;
 import org.springframework.expression.spel.SpelParseException;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
@@ -231,7 +235,8 @@ public class ScimUserEndpoints implements InitializingBean {
 				expression = new SpelExpressionParser().parseExpression(spel);
 			}
 			catch (SpelParseException e) {
-				throw new ScimException("Invalid filter expression: [" + filter + "]", HttpStatus.BAD_REQUEST);
+				throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]",
+						HttpStatus.BAD_REQUEST);
 			}
 
 			expressions.put(attribute, expression);
@@ -240,12 +245,17 @@ public class ScimUserEndpoints implements InitializingBean {
 
 		Collection<Map<String, Object>> users = new ArrayList<Map<String, Object>>();
 		StandardEvaluationContext context = new StandardEvaluationContext();
-		for (ScimUser user : input.subList(startIndex - 1, startIndex + count - 1)) {
-			Map<String, Object> map = new LinkedHashMap<String, Object>();
-			for (String attribute : expressions.keySet()) {
-				map.put(attribute, expressions.get(attribute).getValue(context, user));
+		try {
+			for (ScimUser user : input.subList(startIndex - 1, startIndex + count - 1)) {
+				Map<String, Object> map = new LinkedHashMap<String, Object>();
+				for (String attribute : expressions.keySet()) {
+					map.put(attribute, expressions.get(attribute).getValue(context, user));
+				}
+				users.add(map);
 			}
-			users.add(map);
+		}
+		catch (SpelEvaluationException e) {
+			throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST);
 		}
 
 		return new SearchResults<Map<String, Object>>(schemas, users, 1, count, input.size());
@@ -253,7 +263,7 @@ public class ScimUserEndpoints implements InitializingBean {
 	}
 
 	@ExceptionHandler
-	public View handleException(Exception t) throws ScimException {
+	public View handleException(Exception t, HttpServletRequest request) throws ScimException {
 		ScimException e = new ScimException("Unexpected error", t, HttpStatus.INTERNAL_SERVER_ERROR);
 		if (t instanceof ScimException) {
 			e = (ScimException) t;
@@ -267,7 +277,10 @@ public class ScimUserEndpoints implements InitializingBean {
 				}
 			}
 		}
-		return new ConvertingExceptionView(new ResponseEntity<Exception>(e, e.getStatus()), messageConverters);
+		// User can supply trace=true or just trace (unspecified) to get stack traces
+		boolean trace = request.getParameter("trace") != null && !request.getParameter("trace").equals("false");
+		return new ConvertingExceptionView(new ResponseEntity<ExceptionReport>(new ExceptionReport(e, trace),
+				e.getStatus()), messageConverters);
 	}
 
 	public void setScimUserProvisioning(ScimUserProvisioning dao) {

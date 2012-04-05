@@ -216,6 +216,11 @@ public class JdbcScimUserProvisioningTests {
 	}
 
 	@Test
+	public void canRetrieveUsersWithFilterEqualsDoubleQuote() {
+		assertEquals(1, db.retrieveUsers("username eq \"joe\"").size());
+	}
+
+	@Test
 	public void canRetrieveUsersWithFilterKeyCaseSensitivity() {
 		// This actually depends on the RDBMS.
 		assertEquals(1, db.retrieveUsers("USERNAME eq 'joe'").size());
@@ -244,8 +249,23 @@ public class JdbcScimUserProvisioningTests {
 	}
 
 	@Test
+	public void canRetrieveUsersWithFilterGreater() {
+		assertEquals(1, db.retrieveUsers("username gt 'joe'").size());
+	}
+
+	@Test
 	public void canRetrieveUsersWithEmailFilter() {
 		assertEquals(1, db.retrieveUsers("emails.value sw 'joe'").size());
+	}
+
+	@Test
+	public void canRetrieveUsersWithMetaVersionFilter() {
+		assertEquals(1, db.retrieveUsers("userName eq 'joe' and meta.version eq 0").size());
+	}
+
+	@Test
+	public void canRetrieveUsersWithMetaDateFilter() {
+		assertEquals(2, db.retrieveUsers("meta.created gt '1970-01-01T00:00:00.000Z'").size());
 	}
 
 	@Test

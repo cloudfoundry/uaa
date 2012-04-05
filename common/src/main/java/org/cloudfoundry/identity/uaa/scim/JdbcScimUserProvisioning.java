@@ -17,6 +17,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -83,7 +86,11 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	static final Pattern eqPattern = Pattern.compile("(.*?)([a-z0-9]*) eq '(.*?)'([\\s]*.*)", Pattern.CASE_INSENSITIVE);
 
-	static final Pattern boPattern = Pattern.compile("(.*?)([a-z0-9]*) eq (true|false)([\\s]*.*)", Pattern.CASE_INSENSITIVE);
+	static final Pattern boPattern = Pattern.compile("(.*?)([a-z0-9]*) eq (true|false)([\\s]*.*)",
+			Pattern.CASE_INSENSITIVE);
+
+	static final Pattern metaPattern = Pattern.compile("(.*?)meta\\.([a-z0-9]*) (\\S) '(.*?)'([\\s]*.*)",
+			Pattern.CASE_INSENSITIVE);
 
 	static final Pattern prPattern = Pattern.compile(" pr([\\s]*)", Pattern.CASE_INSENSITIVE);
 
@@ -95,7 +102,10 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	static final Pattern lePattern = Pattern.compile(" le ", Pattern.CASE_INSENSITIVE);
 
-    static final Pattern unquotedEq = Pattern.compile("(id|username|email|givenName|familyName) eq [^'].*", Pattern.CASE_INSENSITIVE);
+	static final Pattern unquotedEq = Pattern.compile("(id|username|email|givenName|familyName) eq [^'].*",
+			Pattern.CASE_INSENSITIVE);
+
+	private static final DateFormat TIMESTAMP_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 
 	protected final JdbcTemplate jdbcTemplate;
 
@@ -123,22 +133,26 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	@Override
 	public List<ScimUser> retrieveUsers() {
-		List<ScimUser> input = new JdbcPagingList<ScimUser>(jdbcTemplate, ALL_USERS + " ORDER by created ASC", mapper, 200);
+		List<ScimUser> input = new JdbcPagingList<ScimUser>(jdbcTemplate, ALL_USERS + " ORDER by created ASC", mapper,
+				200);
 		return input;
 	}
 
 	@Override
 	public List<ScimUser> retrieveUsers(String filter) {
-        if (unquotedEq.matcher(filter).matches()) {
-            throw new IllegalArgumentException("Eq argument in filter (" + filter + ") must be quoted");
-        }
-
 		String where = filter;
+
+		// Single quotes for literals
+		where = where.replaceAll("\"", "'");
+
+		if (unquotedEq.matcher(where).matches()) {
+			throw new IllegalArgumentException("Eq argument in filter (" + filter + ") must be quoted");
+		}
 
 		// There is only one email address for now...
 		where = StringUtils.arrayToDelimitedString(emailsValuePattern.split(where), "email");
 
-		Map<String, String> values = new HashMap<String, String>();
+		Map<String, Object> values = new HashMap<String, Object>();
 
 		where = makeCaseInsensitive(where, coPattern, "%slower(%s) like :?%s", "%%%s%%", values);
 		where = makeCaseInsensitive(where, swPattern, "%slower(%s) like :?%s", "%s%%", values);
@@ -149,8 +163,12 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		where = gePattern.matcher(where).replaceAll(" >= ");
 		where = ltPattern.matcher(where).replaceAll(" < ");
 		where = lePattern.matcher(where).replaceAll(" <= ");
+		// This will catch equality of number literals
+		where = where.replaceAll(" eq ", " = ");
+		where = makeTimestamps(where, metaPattern, "%s%s %s :?%s", values);
+		where = where.replaceAll("meta\\.", "");
 
-		logger.debug("Filtering users with SQL: '" + where + "', with parameters: " + values);
+		logger.debug("Filtering users with SQL: [" + where + "], and parameters: " + values);
 
 		if (where.contains("emails.")) {
 			throw new UnsupportedOperationException("Filters on email address fields other than 'value' not supported");
@@ -160,14 +178,39 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 			return new JdbcPagingList<ScimUser>(jdbcTemplate, ALL_USERS + " WHERE " + where + " ORDER BY created",
 					values, mapper, 200);
 		}
-        catch(BadSqlGrammarException e) {
-            logger.debug("Filter '"+ filter +"' generated invalid SQL", e);
-            throw new IllegalArgumentException("Invalid filter: " + filter);
-        }
+		catch (BadSqlGrammarException e) {
+			logger.debug("Filter '" + filter + "' generated invalid SQL", e);
+			throw new IllegalArgumentException("Invalid filter: " + filter);
+		}
+	}
+
+	private String makeTimestamps(String where, Pattern pattern, String template, Map<String, Object> values) {
+		String output = where;
+		Matcher matcher = pattern.matcher(output);
+		int count = values.size();
+		while (matcher.matches()) {
+			String property = matcher.group(2);
+			Object value = matcher.group(4);
+			if (property.equals("created") || property.equals("lastModified")) {
+				try {
+					value = TIMESTAMP_FORMAT.parse((String) value);
+				}
+				catch (ParseException e) {
+					// ignore
+				}
+			}
+			values.put("value" + count, value);
+			String query = template.replace("?", "value" + count);
+			output = matcher.replaceFirst(String.format(query, matcher.group(1), property, matcher.group(3),
+					matcher.group(5)));
+			matcher = pattern.matcher(output);
+			count++;
+		}
+		return output;
 	}
 
 	private String makeCaseInsensitive(String where, Pattern pattern, String template, String valueTemplate,
-			Map<String, String> values) {
+			Map<String, Object> values) {
 		String output = where;
 		Matcher matcher = pattern.matcher(output);
 		int count = values.size();
@@ -301,7 +344,8 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		if (version < 0) {
 			// Ignore
 			updated = jdbcTemplate.update(DELETE_USER_SQL, id);
-		} else {
+		}
+		else {
 			updated = jdbcTemplate.update(DELETE_USER_SQL + " and version=?", id, version);
 		}
 		if (updated == 0) {
@@ -323,7 +367,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	/**
 	 * The encoder used to hash passwords before storing them in the database.
-	 *
+	 * 
 	 * Defaults to a {@link BCryptPasswordEncoder}.
 	 */
 	public void setPasswordEncoder(PasswordEncoder passwordEncoder) {
@@ -358,7 +402,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 			name.setFamilyName(familyName);
 			user.setName(name);
 			user.setActive(active);
-			user.setUserType(UaaAuthority.valueOf((int)authority).getUserType());
+			user.setUserType(UaaAuthority.valueOf((int) authority).getUserType());
 			return user;
 		}
 	}
