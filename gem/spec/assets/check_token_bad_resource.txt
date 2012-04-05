@@ -1,8 +1,0 @@
-HTTP/1.1 200 OK
-Server: nginx/0.7.65
-Date: Thu, 03 Mar 2011 19:38:32 GMT
-Content-Type: application/json
-Connection: keep-alive
-Content-Length: 95
-
-{"resource_ids": ["one_resource", "two_resource", "other_resource"],"email":"derek@gmail.com"}

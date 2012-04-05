@@ -18,13 +18,13 @@ require 'uaa'
 
 # Useful abstraction to separate command line wrapper from the actual
 # client code. Takes a command and dispatches it to the client.
-class Cloudfoundry::Uaa::Dispatcher
+class CF::UAA::Dispatcher
 
   attr_accessor :client
   attr_writer :target_file
 
   def initialize(options={})
-    @client = options[:client] || Cloudfoundry::Uaa::Client.new
+    @client = options[:client] || CF::UAA::Client.new
     @target_file = options[:target_file] || File.join(ENV['HOME'], '.uaa_target')
     @token_file = options[:token_file] || File.join(ENV['HOME'], '.uaa_tokens')
     init_target
@@ -36,7 +36,7 @@ class Cloudfoundry::Uaa::Dispatcher
       @client.target = fix_target(options[:target])
     end
 
-    @client.trace = true if options[:verbose] 
+    @client.trace = true if options[:verbose]
     save_token = options[:save_token]
 
     options = options.dup

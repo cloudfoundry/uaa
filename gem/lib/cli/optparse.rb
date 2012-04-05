@@ -23,13 +23,13 @@ require 'uaa/version'
 # :help command or with '-h' or '--help' global options, then the
 # caller can extract a false result and stop further processing.  E.g.
 #
-#  command, command_args, options, result = Cloudfoundry::Uaa::OptParser.parse(args)
+#  command, command_args, options, result = CF::UAA::OptParser.parse(args)
 #  return result if !result
 #  execute()
 #
 # If the result is false the usage and help will already have been
 # output to the console.
-class Cloudfoundry::Uaa::OptParser
+class CF::UAA::OptParser
 
   # The name of the command (for usage banner)
   NAME = 'uaa'
@@ -123,7 +123,7 @@ EOF
     opts_parser = OptionParser.new do |opts|
 
       opts.banner = basic_usage_with_options
-      opts.version = Cloudfoundry::Uaa::VERSION
+      opts.version = CF::UAA::VERSION
 
       opts.on('--target TARGET', 'Use the specified target instead of the one set with the target command') do |target|
         @options[:target] = target
@@ -234,8 +234,8 @@ EOF
   def parse_command()
 
     command = @command_args.shift
-    if COMMANDS.include?(command) 
-      @command = command.intern 
+    if COMMANDS.include?(command)
+      @command = command.intern
     else
       @result = false if @result.nil?
       raise HelpRequiredException, '(no command or invalid command specified)'

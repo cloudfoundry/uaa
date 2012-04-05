@@ -11,9 +11,9 @@
 # subcomponent's license, as noted in the LICENSE file.
 #++
 
-module Cloudfoundry
+module CF
 
-  module Uaa
+  module UAA
 
     # Error to indicate that the caller should prompt for credentials and
     # try again.

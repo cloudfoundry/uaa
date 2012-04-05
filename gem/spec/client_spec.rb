@@ -14,7 +14,7 @@
 require 'spec_helper'
 require 'uaa'
 
-describe Cloudfoundry::Uaa::Client do
+describe CF::UAA::Client do
 
   before :each do
     if !integration_test?
@@ -54,7 +54,7 @@ describe Cloudfoundry::Uaa::Client do
       expect do
         subject.login(:client_id=>"app", :client_secret=>"appclientsecret", :grant_type=>"client_credentials")
         @input[:url].should =~ /\/token/
-      end.should_not raise_exception(Cloudfoundry::Uaa::PromptRequiredError)
+      end.should_not raise_exception(CF::UAA::PromptRequiredError)
     end
 
   end
@@ -77,13 +77,13 @@ describe Cloudfoundry::Uaa::Client do
       it "should require prompts if password missing", :integration=>false do
         expect do
           subject.login(:username=>@username, :grant_type=>"password")
-        end.should raise_exception(Cloudfoundry::Uaa::PromptRequiredError)
+        end.should raise_exception(CF::UAA::PromptRequiredError)
       end
 
       it "should require prompts if username and password missing", :integration=>false do
         expect do
           subject.login(:grant_type=>"password")
-        end.should raise_exception(Cloudfoundry::Uaa::PromptRequiredError)
+        end.should raise_exception(CF::UAA::PromptRequiredError)
       end
 
       it "should post to the token endpoint", :integration=>false do
@@ -150,13 +150,13 @@ describe Cloudfoundry::Uaa::Client do
       it "should require prompts if password missing", :integration=>false do
         expect do
           subject.login(:username=>@username)
-        end.should raise_exception(Cloudfoundry::Uaa::PromptRequiredError)
+        end.should raise_exception(CF::UAA::PromptRequiredError)
       end
 
       it "should require prompts if username and password missing", :integration=>false do
         expect do
           subject.login()
-        end.should raise_exception(Cloudfoundry::Uaa::PromptRequiredError)
+        end.should raise_exception(CF::UAA::PromptRequiredError)
       end
 
       it "should post to the authorize endpoint", :integration=>false do
@@ -192,13 +192,13 @@ describe Cloudfoundry::Uaa::Client do
   context "when the token is a JWT" do
 
     it "should be able to decode explicit token", :integration=>false do
-      result = subject.decode_jwt_token(Cloudfoundry::Uaa::TokenCoder.encode({foo:"bar"}, "secret"), :token_key=>"secret")
+      result = subject.decode_jwt_token(CF::UAA::TokenCoder.encode({foo:"bar"}, "secret"), :token_key=>"secret")
       result.should_not be_nil
       result[:foo].should == "bar"
     end
 
     it "should be able to decode token by default", :integration=>false do
-      result = subject.decode_token(Cloudfoundry::Uaa::TokenCoder.encode({foo:"bar"}, "secret"), :token_key=>"secret")
+      result = subject.decode_token(CF::UAA::TokenCoder.encode({foo:"bar"}, "secret"), :token_key=>"secret")
       result.should_not be_nil
       result[:foo].should == "bar"
     end
@@ -274,7 +274,7 @@ describe Cloudfoundry::Uaa::Client do
     it "should require prompts to register a user", :integration=>false do
       expect do
         result = subject.register(:username=>"bar")
-      end.should raise_exception(Cloudfoundry::Uaa::PromptRequiredError)
+      end.should raise_exception(CF::UAA::PromptRequiredError)
     end
 
     it "should be able to register a user", :integration=>false do

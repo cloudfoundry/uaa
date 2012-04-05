@@ -69,7 +69,7 @@ end
 
 class StubServer
 
-  PORT = 8099
+  PORT = 8199
   HOST = "127.0.0.1"
 
   module Server

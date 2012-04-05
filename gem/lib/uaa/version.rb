@@ -11,8 +11,8 @@
 # subcomponent's license, as noted in the LICENSE file.
 #++
 
-module Cloudfoundry
-  module Uaa
-    VERSION = "0.0.6"
+module CF
+  module UAA
+    VERSION = "0.0.7.beta.1"
   end
 end

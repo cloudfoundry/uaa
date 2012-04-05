@@ -16,19 +16,9 @@ require "rdoc/task"
 
 task :default => [:cover]
 
-task :test => [:webmock_specs, :non_webmock_specs]
-
-RSpec::Core::RakeTask.new("non_webmock_specs") do |test|
-  non_webmock_specs = `ls spec/*spec.rb`.split - `grep -l webmock spec/*spec.rb`.split
-  test.rspec_opts = ["--format", "documentation", "--colour"] + non_webmock_specs
-  test.pattern = ""
-end
-
-RSpec::Core::RakeTask.new("webmock_specs") do |test|
-  webmock_specs = `grep -l webmock spec/*spec.rb`.split
-  test.rspec_opts = ["--format", "documentation", "--colour"] + webmock_specs
-  #test.pattern = "spec/**/*_spec.rb"
-  test.pattern = ""
+RSpec::Core::RakeTask.new("test") do |test|
+  test.rspec_opts = ["--format", "documentation", "--colour"]
+  test.pattern = "spec/**/*_spec.rb"
 end
 
 RDoc::Task.new do |rd|
@@ -42,7 +32,7 @@ task :cover => [:pre_coverage, :test]
 task :coverage => [:pre_coverage, :test]
 task :pre_coverage do
   rm_rf "coverage"
-  ENV['COVERAGE'] = "exclude-spec"
+  ENV['COVERAGE'] = "exclude-spec exclude-vendor"
 end
 task :rcov_reports do
   ENV['COVERAGE'] += " rcov"

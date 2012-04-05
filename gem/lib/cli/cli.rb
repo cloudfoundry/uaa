@@ -19,7 +19,7 @@ require 'uaa/error'
 
 # Commandline framework.  Parses subcommands and options passed on the
 # command line and dispatches them.
-class Cloudfoundry::Uaa::Cli
+class CF::UAA::Cli
 
   attr_reader   :command
   attr_reader   :options
@@ -32,7 +32,7 @@ class Cloudfoundry::Uaa::Cli
     @options = {}
     @result = nil
     @command = nil
-    @dispatcher = Cloudfoundry::Uaa::Dispatcher.new
+    @dispatcher = CF::UAA::Dispatcher.new
     @terminal = HighLine.new
   end
 
@@ -54,7 +54,7 @@ class Cloudfoundry::Uaa::Cli
   # error.
   def run
 
-    @command, @command_args, @options, result = Cloudfoundry::Uaa::OptParser.parse(@args)
+    @command, @command_args, @options, result = CF::UAA::OptParser.parse(@args)
     if @options[:verbose] then
       puts "Command: #{@command}"
       puts "Args: #{@command_args}"
@@ -64,7 +64,7 @@ class Cloudfoundry::Uaa::Cli
 
     begin
       execute()
-    rescue Cloudfoundry::Uaa::PromptRequiredError => bang
+    rescue CF::UAA::PromptRequiredError => bang
       retry if prompt_for_missing_options(bang.prompts)
     end
 
@@ -89,7 +89,7 @@ class Cloudfoundry::Uaa::Cli
         echo = true
         if prompt[0]=="password" then
           echo = "*"
-        end 
+        end
         value = @terminal.ask("#{prompt[1]}: ") { |q| q.echo = echo }
         @options[key] = value
       end

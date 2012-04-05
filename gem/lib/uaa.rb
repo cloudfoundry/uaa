@@ -11,11 +11,6 @@
 # subcomponent's license, as noted in the LICENSE file.
 #++
 
-module Cloudfoundry
-  module Uaa
-  end
-end
-
 require "uaa/version"
 require "uaa/client"
 require "uaa/token_issuer"

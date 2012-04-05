@@ -17,9 +17,9 @@
 
 require 'uaa/http'
 
-class Cloudfoundry::Uaa::IdToken
+class CF::UAA::IdToken
 
-  include Cloudfoundry::Uaa::Http
+  include CF::UAA::Http
 
   def initialize(target, client_id, client_secret, scope)
   end

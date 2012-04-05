@@ -15,7 +15,12 @@ require "base64"
 require "openssl"
 require "json/pure"
 
-module Cloudfoundry; module Uaa; end; end
+module CF
+  module UAA
+    class DecodeError < RuntimeError; end
+    class AuthError < RuntimeError; end
+  end
+end
 
 # This class is for OAuth Resource Servers.
 
@@ -28,10 +33,7 @@ module Cloudfoundry; module Uaa; end; end
 # the signature.  The Authorization Server may also have given the
 # Resource Server an id, in which case it must verify a matching value
 # is in the access token.
-class Cloudfoundry::Uaa::TokenCoder
-
-  class DecodeError < RuntimeError; end
-  class AuthError < RuntimeError; end
+class CF::UAA::TokenCoder
 
   def self.sign(algorithm, msg, signing_secret)
     raise DecodeError, "unsupported signing method" unless ["HS256", "HS384", "HS512"].include?(algorithm)
@@ -59,7 +61,7 @@ class Cloudfoundry::Uaa::TokenCoder
   def self.decode(token, signing_secret)
     segments = token.split('.')
     unless (segments.length == 2 || segments.length == 3)
-      raise DecodeError, "Not enough or too many segments"
+      raise CF::UAA::DecodeError, "Not enough or too many segments"
     end
     header_segment, payload_segment, crypto_segment = segments
     signing_input = [header_segment, payload_segment].join('.')
@@ -68,14 +70,14 @@ class Cloudfoundry::Uaa::TokenCoder
       payload = JSON.parse(base64url_decode(payload_segment), :symbolize_names => true)
       signature = base64url_decode(crypto_segment)
     rescue JSON::ParserError
-      raise DecodeError, "Invalid segment encoding"
+      raise CF::UAA::DecodeError, "Invalid segment encoding"
     end
     algo = header['alg']
     unless ["HS256", "HS384", "HS512"].include?(algo)
-      raise DecodeError, "Algorithm not supported"
+      raise CF::UAA::DecodeError, "Algorithm not supported"
     end
     unless signature == sign(algo, [header_segment, payload_segment].join('.'), signing_secret)
-      raise AuthError, "Signature verification failed"
+      raise CF::UAA::AuthError, "Signature verification failed"
     end
     payload
   end
@@ -109,14 +111,14 @@ class Cloudfoundry::Uaa::TokenCoder
   # will also be an AuthError.
   def decode(auth_header)
     unless auth_header && (tkn = auth_header.split).length == 2 && tkn[0] =~ /bearer/i
-      raise DecodeError, "invalid authentication header: #{auth_header}"
+      raise CF::UAA::DecodeError, "invalid authentication header: #{auth_header}"
     end
     reply = self.class.decode(tkn[1], @secret)
     unless reply[:resource_ids] && reply[:resource_ids].include?(@resource_id)
-      raise AuthError, "invalid resource audience: #{reply[:resource_ids]}"
+      raise CF::UAA::AuthError, "invalid resource audience: #{reply[:resource_ids]}"
     end
     unless reply[:expires_at].is_a?(Integer) && reply[:expires_at] > Time.now.to_i
-      raise AuthError, "token expired"
+      raise CF::UAA::AuthError, "token expired"
     end
     reply
   end

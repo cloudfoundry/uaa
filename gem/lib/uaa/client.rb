@@ -18,9 +18,9 @@ require 'uaa/token_coder'
 
 # Utility API for client of the UAA server.  Provides convenience
 # methods to obtain and decode OAuth2 access tokens.
-class Cloudfoundry::Uaa::Client
+class CF::UAA::Client
 
-  include Cloudfoundry::Uaa::Http
+  include CF::UAA::Http
 
   # The target (base url) of calls to the UAA server.  Default is "http://uaa.cloudfoundry.com".
   attr_writer :target
@@ -97,7 +97,7 @@ class Cloudfoundry::Uaa::Client
   # +password+ if those are provided.
   #
   # If +credentials+ are not provided, or if +username+ is provided
-  # without a +password+ then a Cloudfoundry::Uaa::PromptRequiredError
+  # without a +password+ then a CF::UAA::PromptRequiredError
   # is raised.
   def login(opts={})
 
@@ -114,12 +114,12 @@ class Cloudfoundry::Uaa::Client
 
     case grant_type
     when "password"
-      raise Cloudfoundry::Uaa::PromptRequiredError.new(default_prompts) if (username.nil? || password.nil?)
+      raise CF::UAA::PromptRequiredError.new(default_prompts) if (username.nil? || password.nil?)
     when "implicit"
       if prompts_require_username_and_password? && username && password then
         opts[:credentials] = {:username=>username, :password=>password}
       end
-      raise Cloudfoundry::Uaa::PromptRequiredError.new(prompts) unless opts[:credentials]
+      raise CF::UAA::PromptRequiredError.new(prompts) unless opts[:credentials]
     end
 
     # make sure they don't get used as request or form params unless we want them to
@@ -183,7 +183,7 @@ class Cloudfoundry::Uaa::Client
   # we overload the option with that name for the purpose of this
   # call.
   def decode_jwt_token(token=nil, opts={})
-    Cloudfoundry::Uaa::TokenCoder.decode(token || @token, opts[:token_key])
+    CF::UAA::TokenCoder.decode(token || @token, opts[:token_key])
   end
 
   # Decode the contents of an opaque token obtained from the target
@@ -245,7 +245,7 @@ class Cloudfoundry::Uaa::Client
     email = options[:email]
     name = options[:name]
 
-    raise Cloudfoundry::Uaa::PromptRequiredError.new(registration_prompts) if (username.nil? || password.nil? || family_name.nil? || given_name.nil? || email.nil?)
+    raise CF::UAA::PromptRequiredError.new(registration_prompts) if (username.nil? || password.nil? || family_name.nil? || given_name.nil? || email.nil?)
 
     name ||= "#{given_name} #{family_name}"
 
