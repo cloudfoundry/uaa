@@ -15,12 +15,12 @@ require 'spec_helper'
 require 'uaa/user_account'
 require 'stub_server'
 
-describe Cloudfoundry::Uaa::UserAccount do
+describe CF::UAA::UserAccount do
 
-  subject { Cloudfoundry::Uaa::UserAccount.new(StubServer.url, 'Bearer example_access_token') }
+  subject { CF::UAA::UserAccount.new(StubServer.url, 'Bearer example_access_token') }
 
   before :each do
-    subject.trace = false
+    subject.trace = true
     StubServer.use_fiber = subject.async = true
     StubServer.responder do |request, reply|
       reply.headers[:content_type] = "application/json;charset=UTF-8"
@@ -49,9 +49,9 @@ describe Cloudfoundry::Uaa::UserAccount do
   end
 
   it "should not be possible to register a user without an access token" do
-    subject = Cloudfoundry::Uaa::UserAccount.new(StubServer.url, nil)
+    subject = CF::UAA::UserAccount.new(StubServer.url, nil)
     expect { subject.create("jdoe", "password", "jdoe@example.org", nil) }
-        .to raise_exception(Cloudfoundry::Uaa::UserAccount::AuthError)
+        .to raise_exception(CF::UAA::AuthError)
   end
 
   it "should complain of bad response if a new user is not assigned an id" do
@@ -62,7 +62,7 @@ describe Cloudfoundry::Uaa::UserAccount do
     end
     StubServer.request do
       expect { subject.create("jdoe", "password", "jdoe@example.org") }
-          .to raise_exception(Cloudfoundry::Uaa::UserAccount::BadResponse)
+          .to raise_exception(CF::UAA::BadResponse)
     end
   end
 
@@ -83,7 +83,7 @@ describe Cloudfoundry::Uaa::UserAccount do
     StubServer.responder { |request, reply| reply.status = 200; reply }
     StubServer.request do
       expect { subject.change_password("testUserId", "newPassw0rd") }
-        .to raise_exception(Cloudfoundry::Uaa::UserAccount::BadResponse)
+        .to raise_exception(CF::UAA::BadResponse)
     end
   end
 
@@ -124,7 +124,7 @@ describe Cloudfoundry::Uaa::UserAccount do
     StubServer.responder { |request, reply| reply.status = 404; reply }
     StubServer.request do
       expect { subject.delete(@user_id) }
-        .to raise_exception(Cloudfoundry::Uaa::UserAccount::NotFound)
+        .to raise_exception(CF::UAA::NotFound)
     end
   end
 
@@ -133,7 +133,7 @@ describe Cloudfoundry::Uaa::UserAccount do
     StubServer.responder { |request, reply| reply.status = 401; reply }
     StubServer.request do
       expect { subject.delete(@user_id) }
-        .to raise_exception(Cloudfoundry::Uaa::UserAccount::BadResponse)
+        .to raise_exception(CF::UAA::BadResponse)
     end
   end
 
@@ -143,31 +143,88 @@ describe Cloudfoundry::Uaa::UserAccount do
       request.headers[:authorization].should == 'Bearer example_access_token'
       request.headers[:accept].should =~ /application\/json/
       request.method.should == :get
-      request.path.should == "/Users?attributes=id&filter=username+eq+%27#{@username}%27"
+      request.path.should == "/Users?attributes=id%2Cactive&filter=username+eq+%27#{@username}%27"
       reply.headers[:content_type] = "application/json;charset=UTF-8"
       reply.body = %<{"resources":[],"startIndex":1,"itemsPerPage":100,"totalResults":0,"schemas":["urn:scim:schemas:core:1.0"]}>
       reply
     end
     StubServer.request do
       expect { subject.delete_by_name(@username) }
-        .to raise_exception(Cloudfoundry::Uaa::UserAccount::NotFound)
+        .to raise_exception(CF::UAA::NotFound)
     end
   end
 
-  #it "should get user info from a user id" do
-    # get
-  #end
+  it "should get user info from a user id" do
+    @user_id = 'Test_User_Id4'
+    StubServer.responder do |request, reply|
+      request.headers[:authorization].should == 'Bearer example_access_token'
+      request.headers[:accept].should =~ /application\/json/
+      request.method.should == :get
+      request.path.should == "/User/#{@user_id}"
+      reply.headers[:content_type] = "application/json;charset=UTF-8"
+      reply.body = %<{ "id":"#{@user_id}", "userName":"sam",
+          "name":{"familyName":"sam","givenName":"sam"},
+          "emails":[{"value":"joe@example.com"}], "userType":"User", "active":true,
+          "meta":{"version":0,"created":"2012-03-30T19:57:38.290Z","lastModified":"2012-03-30T19:57:38.474Z"},
+          "schemas":["urn:scim:schemas:core:1.0"] }>
+      reply
+    end
+    StubServer.request do
+      output = subject.get @user_id
+      output[:id].should == @user_id
+      output[:userName].should == "sam"
+      output[:userType].should == "User"
+      output[:name][:givenName].should == "sam"
+      puts output.inspect
+    end
+  end
 
-  #it "should get user info from a user name" do
-    # get_by_name
-  #end
+  it "should get user info from a user name" do
+    @user_name = 'Test_User_5'
+    @user_id = 'Test_User_Id_5'
+    StubServer.responder do |request, reply|
+      request.headers[:authorization].should == 'Bearer example_access_token'
+      request.headers[:accept].should =~ /application\/json/
+      request.method.should == :get
+      reply.headers[:content_type] = "application/json;charset=UTF-8"
+      if request.path == "/Users?attributes=id%2Cactive&filter=username+eq+%27#{@user_name}%27"
+        reply.body = %<{"resources":[{"id":"#{@user_id}", "active":true}],"startIndex":1,"itemsPerPage":100,"totalResults":1,"schemas":["urn:scim:schemas:core:1.0"]}>
+      elsif request.path == "/User/#{@user_id}"
+        reply.body = %<{ "id":"#{@user_id}", "active":true, "userName":"#{@user_name}"}>
+      else
+        fail "bad request path"
+      end
+      reply
+    end
+    StubServer.request do
+      output = subject.get_by_name @user_name
+      output[:id].should == @user_id
+      output[:userName].should == @user_name
+      puts output.inspect
+    end
+  end
 
-  #it "should list all users" do
-    # list
-  #end
-
-  #it "should get change password by user name" do
-    # change password by name
-  #end
+  it "should change password by user name" do
+    @user_name = 'Test_User_6'
+    @user_id = 'Test_User_Id_6'
+    StubServer.responder do |request, reply|
+      reply.headers[:content_type] = "application/json;charset=UTF-8"
+      if request.path == "/Users?attributes=id%2Cactive&filter=username+eq+%27#{@user_name}%27"
+        reply.body = %<{"resources":[{"id":"#{@user_id}", "active":true}],"startIndex":1,"itemsPerPage":100,"totalResults":1,"schemas":["urn:scim:schemas:core:1.0"]}>
+      elsif request.path == "/User/#{@user_id}/password"
+        request.headers[:authorization].should == 'Bearer example_access_token'
+        request.headers[:accept].should =~ /application\/json/
+        request.method.should == :put
+        request.body.should == %<{"password":"new&password"}>
+        reply.status = 204
+      else
+        fail "bad request path"
+      end
+      reply
+    end
+    StubServer.request do
+      subject.change_password_by_name(@user_name, "new&password").should == true
+    end
+  end
 
 end

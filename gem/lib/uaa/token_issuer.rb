@@ -23,9 +23,25 @@ require 'base64'
 require 'securerandom'
 require 'uaa/http'
 
-class Cloudfoundry::Uaa::TokenIssuer
+class CF::UAA::Token
 
-  include Cloudfoundry::Uaa::Http
+  # info hash MUST include access_token, token_type and scope (if
+  # granted scope differs from requested scop). It should include expires_in.
+  # It may include refresh_token, scope, and other values from the auth server.
+  attr_reader :info
+
+  def initialize(info)
+    @info = info
+  end
+
+  def auth_header
+    "#{info[:token_type]} #{info[:access_token]}"
+  end
+end
+
+class CF::UAA::TokenIssuer
+
+  include CF::UAA::Http
 
   def initialize(target, client_id, client_secret, scope, resource_ids)
     @target, @client_id, @client_secret = target, client_id, client_secret
@@ -34,10 +50,14 @@ class Cloudfoundry::Uaa::TokenIssuer
 
   # login prompts for use by app to collect credentials for implicit grant
   def prompts
-    return @prompts if @prompts || (response = json_get('/login')) && (@prompts = response[:prompts])
-    raise BadTarget, "No prompts in response. Is the server running at #{@target}?"
+    reply = json_get '/login'
+    return reply[:prompts] if reply && reply[:prompts]
+    raise CF::UAA::BadResponse, "No prompts in response from target #{@target}"
   end
 
+  # credentials should be an object such as a hash that will respond to a
+  # to_json method to product a json representation of the credential
+  # name/value pairs retrieved by #prompts
   def implicit_grant(credentials)
     # this manufactured redirect_uri is a convention here, not part of OAuth2
     redirect_uri = "http://uaa.cloudfoundry.com/redirect/#{@client_id}"
@@ -47,46 +67,43 @@ class Cloudfoundry::Uaa::TokenIssuer
     uri = "/oauth/authorize?#{URI.encode_www_form(params)}"
     headers = {content_type: "application/x-www-form-urlencoded"}
     body = URI.encode_www_form(credentials: credentials.to_json)
-    status, body, headers = request(:post, uri, body)
+    status, body, headers = request(:post, uri, body, headers)
     begin
-      raise BadResponse unless status == 302
+      raise CF::UAA::BadResponse unless status == 302
       loc = headers[:location].split('#')
-      raise BadResponse unless loc.length == 2 && URI.parse(loc[0]) == URI.parse(redirect_uri)
-      @parsed_reply = self.class.decode_oauth_parameters(loc[1])
-      raise BadResponse unless @parsed_reply[:state] == state
-    rescue URI::InvalidURIError, ArgumentError, BadResponse
-      raise BadResponse, "received invalid response from target #{@target}"
+      raise CF::UAA::BadResponse unless loc.length == 2 && URI.parse(loc[0]) == URI.parse(redirect_uri)
+      reply = self.class.decode_oauth_parameters(loc[1])
+      raise CF::UAA::BadResponse unless reply[:state] == state && reply[:token_type] && reply[:access_token]
+    rescue URI::InvalidURIError, ArgumentError, CF::UAA::BadResponse
+      raise CF::UAA::BadResponse, "received invalid response from target #{@target}"
     end
-    token_auth_header
+    CF::UAA::Token.new reply
   end
 
-  # constructs a uri that the client is to return to the browser to redirect the user
-  # to the authorization server to get an authcode. The callback_uri is embedded in
-  # the redirect_uri so the authorization server can redirect the user back to the
-  # client app.
-  def authcode_redirect_uri(callback_uri)
-    @authcode_state = SecureRandom.uuid
-    @authcode_callback_uri = callback_uri
+  # constructs a uri that the client is to return to the browser to direct
+  # the user to the authorization server to get an authcode. The redirect_uri
+  # is embedded in the returned authcode_uri so the authorization server can
+  # redirect the user back to the client app.
+  def authcode_uri(redirect_uri)
     params = {client_id: @client_id, response_type: "code", scope: @scope,
-        redirect_uri: callback_uri, state: @authcode_state}
+        redirect_uri: redirect_uri, state: SecureRandom.uuid}
     "#{@target}/oauth/authorize?#{URI.encode_www_form(params)}"
   end
 
-  def authcode_grant(callback_query)
-    unless @authcode_state && @authcode_callback_uri
-      raise ArgumentError, "authcode redirect must happen before authcode grant"
-    end
-    authcode = nil
+  def authcode_grant(authcode_uri, callback_query)
     begin
+      ac_params = self.class.decode_oauth_parameters(URI.parse(authcode_uri).query)
+      unless ac_params[:state] && ac_params[:redirect_uri]
+        raise ArgumentError, "authcode redirect must happen before authcode grant"
+      end
       params = self.class.decode_oauth_parameters(callback_query)
-      raise BadResponse unless params[:state] == @authcode_state
       authcode = params[:code]
-      raise BadResponse unless authcode
-      @authcode_state = nil
-    rescue URI::InvalidURIError, ArgumentError, BadResponse
-      raise BadResponse, "received invalid response from target #{@target}"
+      raise CF::UAA::BadResponse unless params[:state] == ac_params[:state] && authcode
+    rescue URI::InvalidURIError, ArgumentError, CF::UAA::BadResponse
+      raise CF::UAA::BadResponse, "received invalid response from target #{@target}"
     end
-    request_token(grant_type: "authorization_code", code: authcode, redirect_uri: @authcode_callback_uri)
+    request_token(grant_type: "authorization_code", code: authcode,
+        redirect_uri: ac_params[:redirect_uri])
   end
 
   def owner_password_grant(username, password)
@@ -101,13 +118,6 @@ class Cloudfoundry::Uaa::TokenIssuer
     request_token(grant_type: "refresh_token", refresh_token: refresh_token)
   end
 
-  # returned info hash MUST include access_token, token_type and scope (if
-  # granted scope differs from requested scop). It should include expires_in.
-  # It may include refresh_token, scope, and other values from the auth server.
-  def info
-    @parsed_reply ||= {}
-  end
-
   private
 
   # returns a string suitable for use in an authorization header in a
@@ -116,17 +126,11 @@ class Cloudfoundry::Uaa::TokenIssuer
   def request_token(params)
     headers = {'Content-Type'=> "application/x-www-form-urlencoded",
         'Accept'=>"application/json",
-        'Authorization' => "Basic " + Base64::strict_encode64("#{@client_id}:#{@client_secret}") }
+        'Authorization' => self.class.client_auth_header(@client_id, @client_secret) }
     body = URI.encode_www_form(params.merge(scope: @scope))
-    @parsed_reply = json_parse_reply(*request(:post, '/oauth/token', body, headers))
-    token_auth_header
-  end
-
-  def token_auth_header
-    unless @parsed_reply[:token_type] && @parsed_reply[:access_token]
-      raise TargetError.new(@parsed_reply), "no access token and type from target #{@target}"
-    end
-    "#{@parsed_reply[:token_type]} #{@parsed_reply[:access_token]}"
+    reply = json_parse_reply(*request(:post, '/oauth/token', body, headers))
+    raise CF::UAA::BadResponse unless reply[:token_type] && reply[:access_token]
+    CF::UAA::Token.new reply
   end
 
   # Takes an x-www-form-urlencoded string and returns a hash of symbol => value.
@@ -140,6 +144,10 @@ class Cloudfoundry::Uaa::TokenIssuer
       args[k] = p[1]
     end
     args
+  end
+
+  def self.client_auth_header(id, secret)
+    "Basic " + Base64::strict_encode64("#{id}:#{secret}")
   end
 
 end

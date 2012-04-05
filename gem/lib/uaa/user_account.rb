@@ -15,21 +15,21 @@ require 'uaa/http'
 
 # This class is for apps that need to manage User Accounts.
 # It provides access to the SCIM endpoints on the UAA.
-class Cloudfoundry::Uaa::UserAccount
+class CF::UAA::UserAccount
 
-  include Cloudfoundry::Uaa::Http
+  include CF::UAA::Http
 
-  # the authorization parameter refers to a string that can be used in an
+  # the auth_header parameter refers to a string that can be used in an
   # authorization header. For oauth with jwt tokens this would be something
   # like "bearer xxxx.xxxx.xxxx". The TokenIssuer methods return a string
   # in the expected form.
-  def initialize(target, authorization)
-    @target, @authorization = target, authorization
+  def initialize(target, auth_header)
+    @target, @auth_header = target, auth_header
   end
 
   def create(username, password, email_addresses = nil, given_name = username, family_name = username)
-    unless @authorization
-      raise AuthError, "No authorization provided. You must login first to get a token."
+    unless @auth_header
+      raise CF::UAA::AuthError, "No authorization provided. You must login first to get a token."
     end
 
     emails = []
@@ -42,39 +42,45 @@ class Cloudfoundry::Uaa::UserAccount
     request = { userName: username, password: password, emails: emails,
         name: { givenName: given_name, familyName: family_name }}
     user = json_parse_reply(*http_post("/User", request.to_json,
-        "application/json", @authorization))
+        "application/json", @auth_header))
     return user if user[:id]
-    raise BadResponse, "no user id returned by create user: target #{@target}"
+    raise CF::UAA::BadResponse, "no user id returned by create user: target #{@target}"
   end
 
   def change_password(user_id, new_password)
     password_request = { password: new_password }
     status, body, headers = http_put("/User/#{user_id}/password",
-        password_request.to_json, "application/json", @authorization)
-    return true if status == 204
-    raise BadResponse, "Change password error: target #{@target}, status #{status}"
+        password_request.to_json, "application/json", @auth_header)
+    case status
+      when 204 then return true
+      when 401 then raise CF::UAA::NotFound
+      when 404 then raise CF::UAA::AuthError
+      else raise CF::UAA::BadResponse, "Change password error: target #{@target}, status #{status}"
+    end
   end
 
-  def query_by_value(attribute, filter_attribute, filter_value)
-    query = { attributes: attribute, filter: "#{filter_attribute} eq '#{filter_value}'" }
-    json_get("/Users?#{URI.encode_www_form(query)}", @authorization)
+  def query(attributes = nil, filter = nil)
+    query = {}
+    query[:attributes] = attributes.respond_to?(:join) ? attributes.join(","): attributes.to_s if attributes
+    query[:filter] = filter if filter
+    json_get("/Users?#{URI.encode_www_form(query)}", @auth_header)
+  end
+
+  def query_by_value(attributes, filter_attribute, filter_value)
+    query(attributes, %<#{filter_attribute} eq '#{filter_value}'>)
   end
 
   def get(user_id)
-    json_get("/User/#{URI.encode(user_id)}", @authorization)
+    json_get("/User/#{URI.encode(user_id)}", @auth_header)
   end
 
   def get_by_name(name)
-    json_get("/User/#{URI.encode(user_id_from_name(name))}", @authorization)
-  end
-
-  def list
-    json_get("/Users?attributes=userName", @authorization)
+    get user_id_from_name(name)
   end
 
   def delete(user_id)
-    unless (status = http_delete("/User/#{user_id}", @authorization)) == 200
-      raise (status == 404 ? NotFound : BadResponse), "invalid response from #{@target}: #{status}"
+    unless (status = http_delete("/User/#{user_id}", @auth_header)) == 200
+      raise (status == 404 ? CF::UAA::NotFound : CF::UAA::BadResponse), "invalid response from #{@target}: #{status}"
     end
   end
 
@@ -89,9 +95,10 @@ class Cloudfoundry::Uaa::UserAccount
   private
 
   def user_id_from_name(name)
-    qinfo = query_by_value(:id, :username, name)
-    unless qinfo && qinfo[:resources] && qinfo[:resources][0] && qinfo[:resources][0][:id]
-      raise NotFound, "user #{name} not found in #{@target}"
+    qinfo = query_by_value([:id, :active], :username, name)
+    unless qinfo && qinfo[:resources] && qinfo[:resources][0] &&
+        qinfo[:resources][0][:id] && qinfo[:resources][0][:active] == true
+      raise CF::UAA::NotFound, "user #{name} not found in #{@target}"
     end
     qinfo[:resources][0][:id]
   end

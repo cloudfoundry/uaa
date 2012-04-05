@@ -18,6 +18,7 @@ if ENV['COVERAGE']
     SimpleCov.formatter = SimpleCov::Formatter::RcovFormatter
   end
   SimpleCov.add_filter "^#{File.dirname(__FILE__)}" if ENV['COVERAGE'] =~ /exclude-spec/
+  SimpleCov.add_filter "^#{File.expand_path(File.join(File.dirname(__FILE__), "..", "vendor"))}" if ENV['COVERAGE'] =~ /exclude-vendor/
   SimpleCov.start
 end
 
@@ -30,8 +31,4 @@ end
 RSpec.configure do |config|
   #only run examples with 'integration' specified in metadata
   config.filter_run(:integration => true) if integration_test?
-end
-
-def spec_asset(filename)
-  File.expand_path(File.join(File.dirname(__FILE__), "assets", filename))
 end

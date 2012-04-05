@@ -18,22 +18,24 @@ require 'eventmachine'
 require 'em-http'
 require 'fiber'
 
-module Cloudfoundry; module Uaa; end; end
-
-# Utility accessors and methods for objects that want to access JSON web APIs.
-module Cloudfoundry::Uaa::Http
-
-  class BadTarget < RuntimeError; end
-  class NotFound < RuntimeError; end
-  class BadResponse < RuntimeError; end
-  class HTTPException < RuntimeError; end
-  class AuthError < RuntimeError; end
-  class TargetError < RuntimeError
-    attr_reader :info
-    def initialize(error_info = {})
-      @info = error_info
+module CF
+  module UAA
+    class BadTarget < RuntimeError; end
+    class NotFound < RuntimeError; end
+    class BadResponse < RuntimeError; end
+    class HTTPException < RuntimeError; end
+    class AuthError < RuntimeError; end
+    class TargetError < RuntimeError
+      attr_reader :info
+      def initialize(error_info = {})
+        @info = error_info
+      end
     end
   end
+end
+
+# Utility accessors and methods for objects that want to access JSON web APIs.
+module CF::UAA::Http
 
   attr_accessor :trace, :proxy, :async, :logger
   attr_reader :target
@@ -50,18 +52,18 @@ module Cloudfoundry::Uaa::Http
 
   def json_parse_reply(status, body, headers)
     unless [200, 201, 400].include? status
-      raise (status == 404 ? NotFound : BadResponse), "invalid status response from #{@target}: #{status}"
+      raise (status == 404 ? CF::UAA::NotFound : CF::UAA::BadResponse), "invalid status response from #{@target}: #{status}"
     end
     if headers && headers[:content_type] !~ /application\/json/i
-      raise BadResponse, "received invalid response content type from #{@target}"
+      raise CF::UAA::BadResponse, "received invalid response content type from #{@target}"
     end
     parsed_reply = (JSON.parse(body, :symbolize_names => true) if body)
     if status == 400
-      raise TargetError.new(parsed_reply), "error response from #{@target}"
+      raise CF::UAA::TargetError.new(parsed_reply), "error response from #{@target}"
     end
     parsed_reply
   rescue JSON::ParserError
-    raise BadResponse, "invalid JSON response from #{@target}"
+    raise CF::UAA::BadResponse, "invalid JSON response from #{@target}"
   end
 
   # HTTP helpers
@@ -93,7 +95,7 @@ module Cloudfoundry::Uaa::Http
       headers['Accept'] = headers['Content-Type'] unless headers['Accept']
     end
 
-    raise BadTarget, "Missing target. Target must be set before executing a request" unless @target
+    raise CF::UAA::BadTarget, "Missing target. Target must be set before executing a request" unless @target
 
     req = {
       :method => method, :url => "#{@target}#{path}",
@@ -133,9 +135,9 @@ module Cloudfoundry::Uaa::Http
     result
 
   rescue URI::Error, SocketError, SystemCallError => e
-    raise BadTarget, "Cannot access target (#{e.message})"
+    raise CF::UAA::BadTarget, "Cannot access target (#{e.message})"
   rescue RestClient::Exception, Net::HTTPBadResponse => e
-    raise HTTPException, "HTTP exception: #{e.class}: #{e}"
+    raise CF::UAA::HTTPException, "HTTP exception: #{e.class}: #{e}"
   end
 
   def perform_ahttp_request(req)
@@ -145,7 +147,7 @@ module Cloudfoundry::Uaa::Http
 
     # This condition only works with em-http-request 1.0.0.beta.3
     if connection.is_a? EventMachine::FailedConnection
-      raise BadTarget, "HTTP connection setup error: #{client.error}"
+      raise CF::UAA::BadTarget, "HTTP connection setup error: #{client.error}"
     end
 
     client.callback {
@@ -155,8 +157,8 @@ module Cloudfoundry::Uaa::Http
     client.errback { f.resume [:error, client.error] }
     result = Fiber.yield
     if result[0] == :error
-      raise BadTarget, "connection failed" unless result[1] && result[1] != ""
-      raise HTTPException, result[1]
+      raise CF::UAA::BadTarget, "connection failed" unless result[1] && result[1] != ""
+      raise CF::UAA::HTTPException, result[1]
     end
     result
   end

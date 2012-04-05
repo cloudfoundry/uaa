@@ -14,9 +14,9 @@
 require 'spec_helper'
 require 'uaa/id_token'
 
-describe Cloudfoundry::Uaa::IdToken do
+describe CF::UAA::IdToken do
 
-  subject { Cloudfoundry::Uaa::IdToken.new("http://localhost:8080/uaa", "test_app", "test_secret", "read") }
+  subject { CF::UAA::IdToken.new("http://localhost:8080/uaa", "test_app", "test_secret", "read") }
 
   before :each do
     if !integration_test?

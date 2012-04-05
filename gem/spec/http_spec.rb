@@ -15,12 +15,12 @@ require 'spec_helper'
 require 'uaa/http'
 require 'stub_server'
 
-describe Cloudfoundry::Uaa::Http do
+describe CF::UAA::Http do
 
-  include Cloudfoundry::Uaa::Http
+  include CF::UAA::Http
 
   before :each do
-    @trace = false
+    @trace = true
     @target = StubServer.url
     StubServer.responder { <<-REPLY.gsub(/^ +/, '') }
       HTTP/1.0 200 OK
@@ -32,14 +32,6 @@ describe Cloudfoundry::Uaa::Http do
 
       Foo
     REPLY
-  end
-
-  it "should get something from stub server on a thread" do
-    StubServer.thread_request do
-      resp = RestClient.get target
-      resp.code.should == 200
-      resp.body.should match(/Foo/)
-    end
   end
 
   it "should get something from stub server on a fiber" do
@@ -57,26 +49,34 @@ describe Cloudfoundry::Uaa::Http do
     end
   end
 
+  it "should get something from stub server on a thread" do
+    StubServer.thread_request do
+      resp = RestClient.get target
+      resp.code.should == 200
+      resp.body.should match(/Foo/)
+    end
+  end
+
   shared_examples_for "http client" do
 
     it "fail cleanly for a failed dns lookup" do
       StubServer.request do
         @target = "http://bad.example.bad"
-        expect { http_get("/") }.to raise_exception(Cloudfoundry::Uaa::Http::BadTarget)
+        expect { http_get("/") }.to raise_exception(CF::UAA::BadTarget)
       end
     end
 
     it "fail cleanly for a get operation, no connection to address" do
       StubServer.request do
         @target = "http://127.0.0.1:30000"
-        expect { http_get("/") }.to raise_exception(Cloudfoundry::Uaa::Http::BadTarget)
+        expect { http_get("/") }.to raise_exception(CF::UAA::BadTarget)
       end
     end
 
     it "fail cleanly for a get operation with bad response" do
       StubServer.responder { "badly formatted http response" }
       StubServer.request do
-        expect { http_get("/") }.to raise_exception(Cloudfoundry::Uaa::Http::HTTPException)
+        expect { http_get("/") }.to raise_exception(CF::UAA::HTTPException)
       end
     end
 
@@ -86,6 +86,23 @@ describe Cloudfoundry::Uaa::Http do
         status.should == 200
         body.should == "Foo"
       end
+    end
+
+    it "should send debug information to a custom logger" do
+      class CustomLogger
+        attr_reader :log
+        def initialize
+          @log = ""
+        end
+        def debug(str)
+          @log << str
+        end
+      end
+      @trace = true
+      @logger = clog = CustomLogger.new
+      clog.log.should be_empty
+      StubServer.request { http_get("/") }
+      clog.log.should_not be_empty
     end
 
   end
@@ -98,23 +115,6 @@ describe Cloudfoundry::Uaa::Http do
   context "on a thread" do
     before(:all) { StubServer.use_fiber = @async = false }
     it_should_behave_like "http client"
-  end
-
-  it "should send debug information to a custom logger" do
-    class CustomLogger
-      attr_reader :log
-      def initialize
-        @log = ""
-      end
-      def debug(str)
-        @log << str
-      end
-    end
-    @trace = true
-    @logger = clog = CustomLogger.new
-    clog.log.should be_empty
-    StubServer.request { http_get("/") }
-    clog.log.should_not be_empty
   end
 
 end

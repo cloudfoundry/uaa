@@ -19,11 +19,11 @@ require 'stringio'
 describe "Uaa cli wrapper" do
 
   before :each do
-    @dispatcher = mock(Cloudfoundry::Uaa::Dispatcher)
+    @dispatcher = mock(CF::UAA::Dispatcher)
   end
 
   def cli(args)
-    cli = Cloudfoundry::Uaa::Cli.new(args.split)
+    cli = CF::UAA::Cli.new(args.split)
     cli.dispatcher = @dispatcher
     cli
   end
@@ -99,7 +99,7 @@ describe "Uaa cli wrapper" do
   end
 
   def prompts_error
-    Cloudfoundry::Uaa::PromptRequiredError.new({:username=>["text", "Username"],:password=>["password", "Password"]})
+    CF::UAA::PromptRequiredError.new({:username=>["text", "Username"],:password=>["password", "Password"]})
   end
 
 end

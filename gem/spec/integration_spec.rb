@@ -29,11 +29,11 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
     end
 
     it "should report the uaa client version" do
-      Cloudfoundry::Uaa::VERSION.should =~ /\d.\d.\d/
+      CF::UAA::VERSION.should =~ /\d.\d.\d/
     end
 
     it "makes sure the server is there by getting the prompts for an implicit grant" do
-      toki = Cloudfoundry::Uaa::TokenIssuer.new(@target, @client_id,
+      toki = CF::UAA::TokenIssuer.new(@target, @client_id,
           @client_secret, "write", "scim")
       puts toki.prompts
     end
@@ -41,11 +41,9 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
     context "with a client credentials grant, " do
 
       before :all do
-        toki = Cloudfoundry::Uaa::TokenIssuer.new(@target, @client_id,
-            @client_secret, "read write password", "scim")
+        toki = CF::UAA::TokenIssuer.new(@target, @client_id, @client_secret, "read write password", "scim")
         toki.trace = true
-        tokn = toki.client_credentials_grant
-        @user_acct = Cloudfoundry::Uaa::UserAccount.new(@target, tokn)
+        @user_acct = CF::UAA::UserAccount.new(@target, toki.client_credentials_grant.auth_header)
         @user_acct.trace = true
         @username = "sam_#{Time.now.to_i}"
       end
@@ -75,19 +73,19 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
       end
 
       it "lists all users" do
-        user_info = @user_acct.list
+        user_info = @user_acct.query
         puts JSON.pretty_generate(user_info)
       end
 
       it "deletes the user by name" do
         @user_acct.delete_by_name(@username)
         expect { @user_acct.get_by_name(@username) }
-            .to raise_exception(Cloudfoundry::Uaa::UserAccount::NotFound)
+            .to raise_exception(CF::UAA::NotFound)
       end
 
       it "complains about an attempt to delete a non-existent user" do
         expect { @user_acct.delete_by_name("non-existent-user") }
-            .to raise_exception(Cloudfoundry::Uaa::UserAccount::NotFound)
+            .to raise_exception(CF::UAA::NotFound)
       end
 
     end

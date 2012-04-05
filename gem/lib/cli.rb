@@ -11,8 +11,8 @@
 # subcomponent's license, as noted in the LICENSE file.
 #++
 
-module Cloudfoundry
-  module Uaa
+module CF
+  module UAA
     autoload :Cli,         "cli/cli"
     autoload :Dispatcher,  "cli/dispatcher"
   end

@@ -17,12 +17,12 @@ require "uaa/version"
 
 Gem::Specification.new do |s|
   s.name        = "cf-uaa-client"
-  s.version     = Cloudfoundry::Uaa::VERSION
+  s.version     = CF::UAA::VERSION
   s.authors     = ["Dave Syer"]
   s.email       = ["dsyer@vmware.com"]
   s.homepage    = ""
-  s.summary     = %q{Client and resource library for Cloudfoundry UAA}
-  s.description = %q{Client library and command line tools for interacting with  the Cloudfoundry User Account and Authorization (UAA) server.  The UAA is an OAuth2 Authorization Server so it can be used by webapps and command line apps to obtain access tokens to act on behalf of users.  The tokens can then be used to access protected resources in a Resource Server.  This library can be used by clients (as a convenient wrapper for mainstream oauth gems) or by resource servers.}
+  s.summary     = %q{Client and resource library for CloudFoundry UAA}
+  s.description = %q{Client library and command line tools for interacting with the CloudFoundry User Account and Authorization (UAA) server.  The UAA is an OAuth2 Authorization Server so it can be used by webapps and command line apps to obtain access tokens to act on behalf of users.  The tokens can then be used to access protected resources in a Resource Server.  This library can be used by clients (as a convenient wrapper for mainstream oauth gems) or by resource servers.}
 
   s.rubyforge_project = "cf-uaa-client"
 
@@ -35,7 +35,6 @@ Gem::Specification.new do |s|
   s.add_development_dependency "bundler"
   s.add_development_dependency "rake"
   s.add_development_dependency "rspec"
-  s.add_development_dependency "webmock"
   s.add_development_dependency "simplecov"
   s.add_development_dependency "simplecov-rcov"
   s.add_development_dependency "highline"
