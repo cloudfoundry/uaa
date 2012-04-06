@@ -14,9 +14,9 @@
 require 'spec_helper'
 require 'uaa'
 
-#ENV["UAA_CLIENT_ID"] = "admin"
-#ENV["UAA_CLIENT_SECRET"] = "adminclientsecret"
-#ENV["UAA_CLIENT_TARGET"] = "http://localhost:8080/uaa"
+ENV["UAA_CLIENT_ID"] = "admin"
+ENV["UAA_CLIENT_SECRET"] = "adminclientsecret"
+ENV["UAA_CLIENT_TARGET"] = "http://localhost:8080/uaa"
 
 if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
 
@@ -45,11 +45,11 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
         toki.trace = true
         @user_acct = CF::UAA::UserAccount.new(@target, toki.client_credentials_grant.auth_header)
         @user_acct.trace = true
-        @username = "sam_#{Time.now.to_i}"
+        ENV["UAA_USER_NAME"] = @username = "sam_#{Time.now.to_i}"
       end
 
       it "creates a user" do
-        usr = @user_acct.create(@username, "joe's password", "joe@example.com")
+        usr = @user_acct.create(@username, "sam's password", "sam@example.com")
         puts usr
         ENV["UAA_USER_ID"] = usr[:id] # need a better way
         puts usr[:id]
@@ -77,17 +77,35 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
         puts JSON.pretty_generate(user_info)
       end
 
-      it "deletes the user by name" do
-        @user_acct.delete_by_name(@username)
-        expect { @user_acct.get_by_name(@username) }
-            .to raise_exception(CF::UAA::NotFound)
+      #it "deletes the user by name" do
+        #@user_acct.delete_by_name(@username)
+        #expect { @user_acct.get_by_name(@username) }
+            #.to raise_exception(CF::UAA::NotFound)
+      #end
+
+      #it "complains about an attempt to delete a non-existent user" do
+        #expect { @user_acct.delete_by_name("non-existent-user") }
+            #.to raise_exception(CF::UAA::NotFound)
+      #end
+
+    end
+
+    context "with implicit grant, " do
+
+      before :all do
+        @toki = CF::UAA::TokenIssuer.new(@target, "vmc", nil, "read write openid password", "password")
+        @toki.trace = true
       end
 
-      it "complains about an attempt to delete a non-existent user" do
-        expect { @user_acct.delete_by_name("non-existent-user") }
-            .to raise_exception(CF::UAA::NotFound)
+      it "verifies that prompts for the implicit grant are username and password" do
+        prompts = @toki.prompts
+        puts prompts.inspect
       end
 
+      it "gets a token by an implicit grant" do
+        token = @toki.implicit_grant(username: ENV["UAA_USER_NAME"], password: "newpassword")
+        puts token.inspect
+      end
     end
 
   end

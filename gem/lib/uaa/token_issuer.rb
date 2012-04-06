@@ -37,6 +37,7 @@ class CF::UAA::Token
   def auth_header
     "#{info[:token_type]} #{info[:access_token]}"
   end
+
 end
 
 class CF::UAA::TokenIssuer
@@ -65,8 +66,19 @@ class CF::UAA::TokenIssuer
     params = {client_id: @client_id, response_type: "token", scope: @scope,
         redirect_uri: redirect_uri, state: state}
     uri = "/oauth/authorize?#{URI.encode_www_form(params)}"
+
+    # required for current UAA implementation
     headers = {content_type: "application/x-www-form-urlencoded"}
-    body = URI.encode_www_form(credentials: credentials.to_json)
+    body = "credentials=#{URI.encode(credentials.to_json)}"
+
+    # consistent with the rest of the OAuth calls
+    # headers = {content_type: "application/x-www-form-urlencoded"}
+    # body = URI.encode_www_form(credentials)
+
+    # more flexible and at least consistently json
+    # headers = {content_type: "application/json"}
+    # body = URI.encode_www_form(credentials)
+
     status, body, headers = request(:post, uri, body, headers)
     begin
       raise CF::UAA::BadResponse unless status == 302
