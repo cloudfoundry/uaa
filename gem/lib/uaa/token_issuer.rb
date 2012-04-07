@@ -65,7 +65,7 @@ class CF::UAA::TokenIssuer
     uri = authorize_path_args("token", redir_uri, scope, state = SecureRandom.uuid)
 
     # required for current UAA implementation
-    headers = {content_type: "application/x-www-form-urlencoded"}
+    headers = {'Content-Type' => "application/x-www-form-urlencoded"}
     body = "credentials=#{URI.encode(credentials.to_json)}"
 
     # consistent with the rest of the OAuth calls
