@@ -126,7 +126,7 @@ class CF::UAA::TokenIssuer
     request_token(grant_type: "client_credentials")
   end
 
-  def refresh_token_grant(refresh_token = info[:refresh_token])
+  def refresh_token_grant(refresh_token)
     request_token(grant_type: "refresh_token", refresh_token: refresh_token)
   end
 
