@@ -161,7 +161,7 @@ Deploy as normal in Tomcat or your container of choice, or execute
 `mvn tomcat:run` to run it directly from `uaa` directory in the source tree.
 When running with maven it listen on port 8080.
 
-It supports the APIs defined in the UAA-APIs document. To summarise:
+It supports the APIs defined in the [UAA-APIs document](http://apidocs.cloudfoundry.com/http-varz/uaa). To summarise:
 
 1. The OAuth2 /authorize and /token endpoints
 
