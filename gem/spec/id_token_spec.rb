@@ -16,20 +16,14 @@ require 'uaa/id_token'
 
 describe CF::UAA::IdToken do
 
-  subject { CF::UAA::IdToken.new("http://localhost:8080/uaa", "test_app", "test_secret", "read") }
+  subject { CF::UAA::IdToken.new("http://localhost:8080/uaa") }
 
   before :each do
-    if !integration_test?
-      subject.stub!(:perform_http_request) do |req|
-        @input = req
-        @response
-      end
-    end
-    subject.trace = true
+    subject.trace = false
   end
 
-  it "should do something", :integration=>false do
-      subject.trace.should_not be_nil
-    end
+  it "should do something" do
+    subject.trace.should_not be_nil
+  end
 
 end

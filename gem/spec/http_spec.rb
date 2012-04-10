@@ -20,7 +20,7 @@ describe CF::UAA::Http do
   include CF::UAA::Http
 
   before :each do
-    @trace = true
+    @trace = false
     @target = StubServer.url
     StubServer.responder { <<-REPLY.gsub(/^ +/, '') }
       HTTP/1.0 200 OK

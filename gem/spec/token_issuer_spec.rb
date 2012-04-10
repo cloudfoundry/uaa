@@ -17,10 +17,10 @@ require 'stub_server'
 
 describe CF::UAA::TokenIssuer do
 
-  subject { CF::UAA::TokenIssuer.new(StubServer.url, "test_app", "test_secret", "read", "test_resource") }
+  subject { CF::UAA::TokenIssuer.new(StubServer.url, "test_app", "test_secret", "read") }
 
   before :all do
-    subject.trace = true
+    subject.trace = false
     StubServer.use_fiber = subject.async = true
   end
 
@@ -150,7 +150,7 @@ describe CF::UAA::TokenIssuer do
       end
       StubServer.request do
         subject.prompts.should_not be_empty
-        puts subject.prompts # perhaps some better checks for valid prompts here?
+        #puts subject.prompts # TODO: some better checks for valid prompts here?
       end
     end
 
@@ -165,11 +165,12 @@ describe CF::UAA::TokenIssuer do
     end
 
 
-    it "should get an access token via an implicit grant" do
+    it "should get an access token" do
       StubServer.responder do |request, reply|
         request.method.should == :post
         request.headers[:content_type].should == "application/x-www-form-urlencoded"
-        request.body.should == URI.encode_www_form(credentials: {username: 'joe', password: 'joes password'}.to_json)
+        # request.body.should == URI.encode_www_form(credentials: {username: 'joe', password: 'joes password'}.to_json)
+        request.body.should == "credentials=#{URI.encode({username: 'joe', password: 'joes password'}.to_json)}"
         request.path.should =~ %r{^/oauth/authorize\?}
         qparams = subject.class.decode_oauth_parameters(URI.parse(request.path).query)
         qparams[:response_type].should == "token"

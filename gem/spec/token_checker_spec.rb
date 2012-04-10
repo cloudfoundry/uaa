@@ -20,7 +20,7 @@ describe CF::UAA::TokenChecker do
   subject { CF::UAA::TokenChecker.new(StubServer.url, "test_resource", "test_secret") }
 
   before :each do
-    subject.trace = true
+    subject.trace = false
     StubServer.use_fiber = subject.async = true
   end
 
