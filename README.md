@@ -28,12 +28,12 @@ from the command line (or run integration tests).
 
 ### Demo of command line usage
 
-First run the uaa server as described above:
+First run the UAA server as described above:
 
     $ cd uaa
     $ mvn tomcat:run
 
-Then start another terminal and from the project base directory, and ask
+Then start another terminal and from the project base directory,  ask
 the login endpoint to tell you about the system:
 
     $ curl -H "Accept: application/json" localhost:8080/uaa/login
@@ -48,9 +48,9 @@ the login endpoint to tell you about the system:
 Then you can try logging in with the UAA ruby gem.  Make sure you have
 ruby 1.9, and bundler installed, then
 
-    $ (cd gem/; bundle)
-    $ ./gem/bin/uaa target localhost:8080/uaa
-    $ ./gem/bin/uaa login marissa koala
+    $ cd gem/; bundle
+    $ ./bin/uaa target localhost:8080/uaa
+    $ ./bin/uaa login marissa koala
 
 (or leave out the username / password to be prompted).
 
@@ -59,10 +59,44 @@ the OAuth2 implicit grant, similar to the approach intended for a
 client like VMC. The token is returned in stdout, so copy paste the
 value into this next command:
 
-    $ ./gem/bin/uaa --client-id=admin --client-secret=adminclientsecret decode
+    $ ./bin/uaa --client-id=admin --client-secret=adminclientsecret decode [token]
     
-and you should see your username and the client id of the original
-token grant on stdout.
+and you should see your username and the client id of the original token grant on stdout.
+
+	{
+	  "id":"17a99e38-c5fd-46a3-9d37-6b12db0937c9",
+	  "resource_ids":["cloud_controller","password"],
+	  "expires_at":1334117495,
+	  "scope":["read"],
+	  "email":"marissa@test.org",
+	  "client_authorities":["ROLE_UNTRUSTED"],
+	  "expires_in":43171,
+	  "user_authorities":["ROLE_USER"],
+	  "user_id":"marissa",
+	  "client_id":"vmc"
+	}
+
+### Demo of command line usage against e.g. cloudfoundry.com
+
+The same command line example should work against a UAA running on cloudfoundry.com. In this case, there is no need to run a local uaa server, so simply ask the external login endpoint to tell you about the system:
+
+    $ curl -H "Accept: application/json" uaa.cloudfoundry.com/login
+    {
+      "prompts":{"username":["text","Username"],
+        "password":["password","Password"]
+      }
+    }
+    
+You can then try logging in with the UAA ruby gem.  Make sure you have ruby 1.9, and bundler installed, then
+
+    $ cd gem/; bundle
+    $ ./bin/uaa target uaa.cloudfoundry.com
+    $ ./bin/uaa login [yourusername] [yourpassword]
+
+(or leave out the username / password to be prompted).
+
+This authenticates and obtains an access token from the server using the OAuth2 implicit
+grant, similar to the approach intended for a client like VMC. 
 
 ## Integration tests
 
@@ -228,7 +262,7 @@ In CloudFoundry terms
 The authentication service is `uaa`. It's a plain Spring MVC webapp.
 Deploy as normal in Tomcat or your container of choice, or execute
 `mvn tomcat:run` to run it directly from `uaa` directory in the source tree.
-When running with maven it listen on port 8080.
+When running with maven it listens on port 8080.
 
 It supports the APIs defined in the UAA-APIs document. To summarise:
 
