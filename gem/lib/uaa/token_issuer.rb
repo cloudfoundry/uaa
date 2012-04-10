@@ -44,9 +44,9 @@ class CF::UAA::TokenIssuer
 
   include CF::UAA::Http
 
-  def initialize(target, client_id, client_secret, scope, resource_ids)
+  def initialize(target, client_id, client_secret, default_scope)
     @target, @client_id, @client_secret = target, client_id, client_secret
-    @scope, @resource_ids = scope, resource_ids
+    @default_scope = normalize_scope(default_scope)
   end
 
   # login prompts for use by app to collect credentials for implicit grant
@@ -59,13 +59,10 @@ class CF::UAA::TokenIssuer
   # credentials should be an object such as a hash that will respond to a
   # to_json method to product a json representation of the credential
   # name/value pairs retrieved by #prompts
-  def implicit_grant(credentials)
+  def implicit_grant(credentials, scope = nil)
     # this manufactured redirect_uri is a convention here, not part of OAuth2
-    redirect_uri = "http://uaa.cloudfoundry.com/redirect/#{@client_id}"
-    state = SecureRandom.uuid
-    params = {client_id: @client_id, response_type: "token", scope: @scope,
-        redirect_uri: redirect_uri, state: state}
-    uri = "/oauth/authorize?#{URI.encode_www_form(params)}"
+    redir_uri = "http://uaa.cloudfoundry.com/redirect/#{@client_id}"
+    uri = authorize_path_args("token", redir_uri, scope, state = SecureRandom.uuid)
 
     # required for current UAA implementation
     headers = {content_type: "application/x-www-form-urlencoded"}
@@ -83,7 +80,7 @@ class CF::UAA::TokenIssuer
     begin
       raise CF::UAA::BadResponse unless status == 302
       loc = headers[:location].split('#')
-      raise CF::UAA::BadResponse unless loc.length == 2 && URI.parse(loc[0]) == URI.parse(redirect_uri)
+      raise CF::UAA::BadResponse unless loc.length == 2 && URI.parse(loc[0]) == URI.parse(redir_uri)
       reply = self.class.decode_oauth_parameters(loc[1])
       raise CF::UAA::BadResponse unless reply[:state] == state && reply[:token_type] && reply[:access_token]
     rescue URI::InvalidURIError, ArgumentError, CF::UAA::BadResponse
@@ -96,10 +93,8 @@ class CF::UAA::TokenIssuer
   # the user to the authorization server to get an authcode. The redirect_uri
   # is embedded in the returned authcode_uri so the authorization server can
   # redirect the user back to the client app.
-  def authcode_uri(redirect_uri)
-    params = {client_id: @client_id, response_type: "code", scope: @scope,
-        redirect_uri: redirect_uri, state: SecureRandom.uuid}
-    "#{@target}/oauth/authorize?#{URI.encode_www_form(params)}"
+  def authcode_uri(redirect_uri, scope = nil)
+    @target + authorize_path_args("code", redirect_uri, scope)
   end
 
   def authcode_grant(authcode_uri, callback_query)
@@ -115,19 +110,19 @@ class CF::UAA::TokenIssuer
       raise CF::UAA::BadResponse, "received invalid response from target #{@target}"
     end
     request_token(grant_type: "authorization_code", code: authcode,
-        redirect_uri: ac_params[:redirect_uri])
+        redirect_uri: ac_params[:redirect_uri], scope: ac_params[:scope])
   end
 
-  def owner_password_grant(username, password)
-    request_token(grant_type: "password", username: username, password: password)
+  def owner_password_grant(username, password, scope = nil)
+    request_token(grant_type: "password", username: username, password: password, scope: scope)
   end
 
-  def client_credentials_grant
-    request_token(grant_type: "client_credentials")
+  def client_credentials_grant(scope = nil)
+    request_token(grant_type: "client_credentials", scope: scope)
   end
 
-  def refresh_token_grant(refresh_token)
-    request_token(grant_type: "refresh_token", refresh_token: refresh_token)
+  def refresh_token_grant(refresh_token, scope = nil)
+    request_token(grant_type: "refresh_token", refresh_token: refresh_token, scope: scope)
   end
 
   private
@@ -136,13 +131,32 @@ class CF::UAA::TokenIssuer
   # request to a resource server. Specific values from the authorization
   # server included with the token can be retrieved from the info method.
   def request_token(params)
+    params[:scope] = normalize_scope(params[:scope]).join(' ')
     headers = {'Content-Type'=> "application/x-www-form-urlencoded",
         'Accept'=>"application/json",
         'Authorization' => self.class.client_auth_header(@client_id, @client_secret) }
-    body = URI.encode_www_form(params.merge(scope: @scope))
+    body = URI.encode_www_form(params)
     reply = json_parse_reply(*request(:post, '/oauth/token', body, headers))
     raise CF::UAA::BadResponse unless reply[:token_type] && reply[:access_token]
     CF::UAA::Token.new reply
+  end
+
+  def normalize_scope(scope)
+    return @default_scope unless scope
+    return scope.split(' ') if scope.respond_to?(:split)
+    return scope if scope.respond_to?(:join)
+    raise ArgumentError, "scope arg must respond to split (String) or join (Array)"
+  end
+
+  def authorize_path_args(response_type, redirect_uri, scope, state = SecureRandom.uuid)
+    scope = normalize_scope(scope)
+    params = {client_id: @client_id, response_type: response_type,
+        scope: scope.join(' '), redirect_uri: redirect_uri, state: state}
+    if scope.include? "openid"
+      params[:nonce] = state
+      params[:response_type] = "#{response_type} id_token"
+    end
+    "/oauth/authorize?#{URI.encode_www_form(params)}"
   end
 
   # Takes an x-www-form-urlencoded string and returns a hash of symbol => value.

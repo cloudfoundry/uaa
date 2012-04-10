@@ -20,7 +20,7 @@ describe CF::UAA::UserAccount do
   subject { CF::UAA::UserAccount.new(StubServer.url, 'Bearer example_access_token') }
 
   before :each do
-    subject.trace = true
+    subject.trace = false
     StubServer.use_fiber = subject.async = true
     StubServer.responder do |request, reply|
       reply.headers[:content_type] = "application/json;charset=UTF-8"

@@ -14,9 +14,9 @@
 require 'spec_helper'
 require 'uaa'
 
-ENV["UAA_CLIENT_ID"] = "admin"
-ENV["UAA_CLIENT_SECRET"] = "adminclientsecret"
-ENV["UAA_CLIENT_TARGET"] = "http://localhost:8080/uaa"
+#ENV["UAA_CLIENT_ID"] = "admin"
+#ENV["UAA_CLIENT_SECRET"] = "adminclientsecret"
+#ENV["UAA_CLIENT_TARGET"] = "http://localhost:8080/uaa"
 
 if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
 
@@ -33,15 +33,14 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
     end
 
     it "makes sure the server is there by getting the prompts for an implicit grant" do
-      toki = CF::UAA::TokenIssuer.new(@target, @client_id,
-          @client_secret, "write", "scim")
+      toki = CF::UAA::TokenIssuer.new(@target, @client_id, @client_secret, "write")
       puts toki.prompts
     end
 
     context "with a client credentials grant, " do
 
       before :all do
-        toki = CF::UAA::TokenIssuer.new(@target, @client_id, @client_secret, "read write password", "scim")
+        toki = CF::UAA::TokenIssuer.new(@target, @client_id, @client_secret, "read write password")
         toki.trace = true
         @user_acct = CF::UAA::UserAccount.new(@target, toki.client_credentials_grant.auth_header)
         @user_acct.trace = true
@@ -93,7 +92,7 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
     context "with implicit grant, " do
 
       before :all do
-        @toki = CF::UAA::TokenIssuer.new(@target, "vmc", nil, "read write openid password", "password")
+        @toki = CF::UAA::TokenIssuer.new(@target, "vmc", nil, "read write openid password")
         @toki.trace = true
       end
 
@@ -104,7 +103,11 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
 
       it "gets a token by an implicit grant" do
         token = @toki.implicit_grant(username: ENV["UAA_USER_NAME"], password: "newpassword")
-        puts token.inspect
+        puts JSON.pretty_generate(token.info)
+        idt = CF::UAA::IdToken.new(@target)
+        idt.trace = true
+        info = idt.user_info(token.info[:access_token])
+        puts JSON.pretty_generate(info)
       end
     end
 
