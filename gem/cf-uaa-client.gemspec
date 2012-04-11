@@ -38,6 +38,7 @@ Gem::Specification.new do |s|
   s.add_development_dependency "simplecov"
   s.add_development_dependency "simplecov-rcov"
   s.add_development_dependency "highline"
+  s.add_development_dependency "ci_reporter"
   s.add_runtime_dependency "rest-client"
   s.add_runtime_dependency "json_pure"
   s.add_runtime_dependency "eventmachine"

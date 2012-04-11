@@ -13,12 +13,15 @@
 require "rspec/core/rake_task"
 #require "bundler/gem_tasks" # only available in bundler >= 1.0.15
 require "rdoc/task"
+require "ci/reporter/rake/rspec"
+
+ENV['CI_REPORTS'] = File.expand_path("spec_reports")
 
 task :default => [:cover]
 
-RSpec::Core::RakeTask.new("test") do |test|
-  test.rspec_opts = ["--format", "documentation", "--colour"]
-  test.pattern = "spec/**/*_spec.rb"
+RSpec::Core::RakeTask.new("test") do |t|
+  t.rspec_opts = ["--format", "documentation", "--colour"]
+  t.pattern = "spec/**/*_spec.rb"
 end
 
 RDoc::Task.new do |rd|
@@ -26,14 +29,15 @@ RDoc::Task.new do |rd|
   rd.rdoc_dir = "doc"
 end
 
-task :ci => [:pre_coverage, :rcov_reports, :test]
+task :ci => [:pre_coverage, :rcov_reports, "ci:setup:rspec", :test]
 task :cov => [:pre_coverage, :test, :view_coverage]
-task :cover => [:pre_coverage, :test]
 task :coverage => [:pre_coverage, :test]
+
 task :pre_coverage do
   rm_rf "coverage"
   ENV['COVERAGE'] = "exclude-spec exclude-vendor"
 end
+
 task :rcov_reports do
   ENV['COVERAGE'] += " rcov"
 end
