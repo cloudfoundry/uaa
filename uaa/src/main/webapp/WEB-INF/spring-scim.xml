@@ -4,8 +4,7 @@
 	This product includes a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents 
 	is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file. -->
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
-	xmlns:sec="http://www.springframework.org/schema/security"
-	xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
+	xmlns:sec="http://www.springframework.org/schema/security" xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
 	xmlns:aop="http://www.springframework.org/schema/aop"
 	xsi:schemaLocation="http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.1.xsd
 		http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2.xsd
@@ -14,6 +13,10 @@
 
 	<bean id="scimUserProvisioning" class="org.cloudfoundry.identity.uaa.scim.JdbcScimUserProvisioning">
 		<constructor-arg ref="jdbcTemplate" />
+		<!-- Password validation turned off to match cloud controller policies -->
+		<property name="passwordValidator">
+			<bean class="org.cloudfoundry.identity.uaa.scim.NullPasswordValidator" />
+		</property>
 	</bean>
 
 	<!-- Add a handler adapter with special knowledge of the ScimUser endpoints -->
@@ -32,7 +35,7 @@
 			</map>
 		</property>
 		<property name="messageConverters">
-			<bean class="org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter"/>
+			<bean class="org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter" />
 		</property>
 	</bean>
 
@@ -67,13 +70,6 @@
 	</bean>
 
 	<beans profile="default">
-
-		<bean id="scimUserProvisioning" class="org.cloudfoundry.identity.uaa.scim.JdbcScimUserProvisioning">
-			<constructor-arg ref="jdbcTemplate" />
-			<property name="passwordValidator">
-				<bean class="org.cloudfoundry.identity.uaa.scim.NullPasswordValidator" />
-			</property>
-		</bean>
 
 		<bean id="scimUserBootstrap" class="org.cloudfoundry.identity.uaa.scim.ScimUserBootstrap">
 			<constructor-arg ref="scimUserProvisioning" />
