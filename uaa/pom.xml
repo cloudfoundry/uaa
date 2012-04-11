@@ -43,6 +43,13 @@
 			</properties>
 		</profile>
 		<profile>
+			<id>local</id>
+			<properties>
+				<CLOUD_FOUNDRY_CONFIG_PATH>src/test/resources/test/profiles/local</CLOUD_FOUNDRY_CONFIG_PATH>
+				<uaa.path>/</uaa.path>
+			</properties>
+		</profile>
+		<profile>
 			<id>integration</id>
 			<build>
 				<plugins>

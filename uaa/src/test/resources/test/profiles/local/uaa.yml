@@ -1,13 +1,12 @@
 uaa.integration.test: true
-spring_profiles: postgresql,vcap
 
 uaa:
   test:
-    username: vcap_tester@vmware.com
-    email: vcap_tester@vmware.com
-    password: dr0wssaPH@ck
-  host: uaa.${VCAP_BVT_TARGET:vcap.me}
-  port: 80
+    username: marissa
+    email: marissa@test.org
+    password: koala
+  host: localhost
+  port: 8080
   path: /
 
 cloud_controller:
@@ -19,13 +18,6 @@ cloud_controller:
 
 oauth:
   clients:
-    admin:
-      authorized-grant-types: client_credentials
-      scope: read,write,password
-      authorities: ROLE_CLIENT,ROLE_ADMIN
-      id: admin
-      secret: adminsecret
-      resource-ids: scim,password,tokens,clients,openid
     vmc:    
       id: vmc
       authorized-grant-types: implicit
