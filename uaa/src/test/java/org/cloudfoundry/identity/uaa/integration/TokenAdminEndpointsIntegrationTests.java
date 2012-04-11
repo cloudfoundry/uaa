@@ -79,7 +79,7 @@ public class TokenAdminEndpointsIntegrationTests {
 		ResponseEntity<String> result = serverRunning.getForString("/oauth/users/" + testAccounts.getUserName()
 				+ "/tokens");
 		assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
-		assertTrue(result.getBody().contains("invalid_token"));
+		assertTrue(result.getBody().contains("unauthorized"));
 
 	}
 
@@ -148,7 +148,7 @@ public class TokenAdminEndpointsIntegrationTests {
 
 		ResponseEntity<String> result = serverRunning.getForString("/oauth/clients/scim/tokens/");
 		assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
-		assertTrue(result.getBody().contains("invalid_token"));
+		assertTrue(result.getBody().contains("unauthorized"));
 
 	}
 

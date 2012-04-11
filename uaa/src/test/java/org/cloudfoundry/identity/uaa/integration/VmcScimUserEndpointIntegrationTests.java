@@ -127,7 +127,7 @@ public class VmcScimUserEndpointIntegrationTests {
 		@SuppressWarnings("unchecked")
 		Map<String, String> error = response.getBody();
 		// System.err.println(error);
-		assertEquals("invalid_token", error.get("error"));
+		assertEquals("unauthorized", error.get("error"));
 	}
 
 	@Test
