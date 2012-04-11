@@ -193,7 +193,7 @@ public class UaaTestAccounts implements TestAccounts {
 		parameters.put("credentials", String.format("{\"username\":\"%s\",\"password\":\"%s\"}", username, password));
 		resource.setClientAuthenticationScheme(AuthenticationScheme.header);
 		resource.setAccessTokenUri(server.getAuthorizationUri());
-		resource.setScope(Arrays.asList("read", "password"));
+		resource.setScope(Arrays.asList("read", "password", "openid"));
 		String redirectUri = environment.getProperty(clientPrefix + ".redirect-uri", defaultRedirectUri);
 		resource.setPreEstablishedRedirectUri(redirectUri);
 		return resource;

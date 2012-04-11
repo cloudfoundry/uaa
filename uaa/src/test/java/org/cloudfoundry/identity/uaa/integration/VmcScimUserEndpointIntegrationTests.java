@@ -53,21 +53,21 @@ public class VmcScimUserEndpointIntegrationTests {
 
 	@Rule
 	public ServerRunning serverRunning = ServerRunning.isRunning();
-	
-	private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);	
 
-	@Rule
-	public OAuth2ContextSetup context = OAuth2ContextSetup.withTestAccounts(serverRunning, testAccounts);
+	private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
 
 	@Rule
 	public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
+
+	@Rule
+	public OAuth2ContextSetup context = OAuth2ContextSetup.withTestAccounts(serverRunning, testAccounts);
 	
 	@BeforeOAuth2Context
 	@OAuth2ContextConfiguration(OAuth2ContextConfiguration.ClientCredentials.class)
 	public void setUpUserAccounts() {
 
 		// If running against vcap we don't want to run these tests because they create new user accounts
-		Assume.assumeTrue(!testAccounts.isProfileActive("vcap"));		
+		Assume.assumeTrue(!testAccounts.isProfileActive("vcap"));
 
 		RestOperations client = serverRunning.getRestTemplate();
 
@@ -76,7 +76,8 @@ public class VmcScimUserEndpointIntegrationTests {
 		user.setName(new ScimUser.Name("Joe", "User"));
 		user.addEmail("joe@blah.com");
 
-		ResponseEntity<ScimUser> newuser = client.postForEntity(serverRunning.getUrl(userEndpoint), user, ScimUser.class);
+		ResponseEntity<ScimUser> newuser = client.postForEntity(serverRunning.getUrl(userEndpoint), user,
+				ScimUser.class);
 
 		joe = newuser.getBody();
 		assertEquals(JOE, joe.getUserName());
@@ -85,12 +86,13 @@ public class VmcScimUserEndpointIntegrationTests {
 		change.setPassword("password");
 
 		HttpHeaders headers = new HttpHeaders();
-		ResponseEntity<Void> result = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password", HttpMethod.PUT,
-				new HttpEntity<PasswordChangeRequest>(change, headers), null, joe.getId());
+		ResponseEntity<Void> result = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password",
+				HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers), null, joe.getId());
 		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
 
 		// The implicit grant for vmc requires extra parameters in the authorization request
-		context.setParameters(Collections.singletonMap("credentials", testAccounts.getJsonCredentials(joe.getUserName(), "password")));
+		context.setParameters(Collections.singletonMap("credentials",
+				testAccounts.getJsonCredentials(joe.getUserName(), "password")));
 
 	}
 
@@ -98,8 +100,8 @@ public class VmcScimUserEndpointIntegrationTests {
 	private ResponseEntity<Map> deleteUser(RestOperations client, String id, int version) {
 		HttpHeaders headers = new HttpHeaders();
 		headers.add("If-Match", "\"" + version + "\"");
-		return client.exchange(serverRunning.getUrl(userEndpoint + "/{id}"), HttpMethod.DELETE, new HttpEntity<Void>(headers),
-				Map.class, id);
+		return client.exchange(serverRunning.getUrl(userEndpoint + "/{id}"), HttpMethod.DELETE, new HttpEntity<Void>(
+				headers), Map.class, id);
 	}
 
 	@Test
@@ -111,9 +113,20 @@ public class VmcScimUserEndpointIntegrationTests {
 
 		HttpHeaders headers = new HttpHeaders();
 		RestOperations client = serverRunning.getRestTemplate();
-		ResponseEntity<Void> result = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password", HttpMethod.PUT,
-				new HttpEntity<PasswordChangeRequest>(change, headers), null, joe.getId());
+		ResponseEntity<Void> result = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password",
+				HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers), null, joe.getId());
 		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+
+	}
+
+	@Test
+	public void userInfoSucceeds() throws Exception {
+
+		HttpHeaders headers = new HttpHeaders();
+		RestOperations client = serverRunning.getRestTemplate();
+		ResponseEntity<Void> result = client.exchange(serverRunning.getUrl("/userinfo"), HttpMethod.GET,
+				new HttpEntity<Void>(null, headers), null, joe.getId());
+		assertEquals(HttpStatus.OK, result.getStatusCode());
 
 	}
 

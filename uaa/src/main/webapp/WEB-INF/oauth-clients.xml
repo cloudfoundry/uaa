@@ -92,7 +92,7 @@
 							<entry key="authorized-grant-types" value="implicit" />
 							<entry key="scope" value="read,write,openid,password" />
 							<entry key="authorities" value="ROLE_UNTRUSTED" />
-							<entry key="resource-ids" value="password,cloud_controller" />
+							<entry key="resource-ids" value="password,cloud_controller,openid" />
 						</map>
 					</entry>
 					<entry key="app">

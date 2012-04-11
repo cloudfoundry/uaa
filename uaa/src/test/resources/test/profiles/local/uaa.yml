@@ -21,9 +21,9 @@ oauth:
     vmc:    
       id: vmc
       authorized-grant-types: implicit
-      scope: read,write,password
+      scope: read,write,password,openid
       authorities: ROLE_UNTRUSTED
-      resource-ids: password,cloud_controller
+      resource-ids: password,cloud_controller,openid
       redirect-uri: http://uaa.cloudfoundry.com/redirect/vmc
     cloud_controller:    
       id: cloud_controller
