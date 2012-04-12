@@ -16,7 +16,6 @@ package org.cloudfoundry.identity.uaa.scim.job;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 import javax.sql.DataSource;
 
@@ -27,14 +26,14 @@ import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
- * Item processor that transforms Cloud Controller user records into Uaa user records.
+ * Item processor that transforms Uaa user records into Cloud Controller user records.
  * 
  * @author Dave Syer
  * 
  */
-public class CloudControllerUserItemProcessor implements ItemProcessor<Map<String, ?>, Map<String, ?>> {
+public class UaaUserItemProcessor implements ItemProcessor<Map<String, ?>, Map<String, ?>> {
 
-	private static Log logger = LogFactory.getLog(CloudControllerUserItemProcessor.class);
+	private static Log logger = LogFactory.getLog(UaaUserItemProcessor.class);
 	
 	private boolean filterExisting = false;
 	
@@ -58,40 +57,28 @@ public class CloudControllerUserItemProcessor implements ItemProcessor<Map<Strin
 
 		Map<String, Object> map = new HashMap<String, Object>();
 
-		Integer id = (Integer) item.get("ID");
-		map.put("id", UUID.randomUUID().toString());
+		map.put("CREATED_AT", getDate((Date) item.get("created")));
+		map.put("UPDATED_AT", getDate((Date) item.get("lastModified")));
 
-		// The cloud_controller database seems not to use the active field so the values are not reliable
-		// map.put("active", item.get("ACTIVE"));
-		
-		map.put("created", getDate((Date) item.get("CREATED_AT")));
-		map.put("lastModified", getDate((Date) item.get("UPDATED_AT")));
+		String email = getEmail((String) item.get("email"));
+		map.put("EMAIL", email);
 
-		String email = getEmail(id, (String) item.get("EMAIL"));
-		map.put("email", email);
-		// UAA has lower-case usernames...
-		map.put("userName", email.toLowerCase());
+		map.put("CRYPTED_PASSWORD", item.get("password"));
 
-		map.put("password", item.get("CRYPTED_PASSWORD"));
-
-		String[] names = getNames(email);
-		map.put("givenName", names[0]);
-		map.put("familyName", names[1]);
-		
 		if (filterExisting) {
-			if (jdbcTemplate.queryForInt("select count(id) from users where userName=?", email)>0) {
+			if (jdbcTemplate.queryForInt("select count(id) from users where email=?", email)>0) {
 				// Filter this item
 				return null;
 			}
 		}
-
+		
 		return map;
 
 	}
 
-	private String getEmail(Integer id, String email) {
+	private String getEmail(String email) {
 		if (email == null || !email.contains("@")) {
-			String msg = "Email invalid for id=" + id + ": " + email;
+			String msg = "Email invalid for: " + email;
 			logger.info(msg);
 			throw new InvalidEmailException(msg);
 		}
@@ -100,14 +87,6 @@ public class CloudControllerUserItemProcessor implements ItemProcessor<Map<Strin
 
 	private Date getDate(Date date) {
 		return date == null ? new Date() : date;
-	}
-
-	private String[] getNames(String email) {
-		String[] split = email.split("@");
-		if (split.length == 1) {
-			return new String[] { "", email };
-		}
-		return split;
 	}
 
 }

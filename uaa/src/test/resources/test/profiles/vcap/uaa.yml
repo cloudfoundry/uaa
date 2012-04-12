@@ -13,7 +13,7 @@ uaa:
 cloud_controller:
   database:
     driverClassName: org.postgresql.Driver
-    url: jdbc:postgresql:cloud_controller
+    url: jdbc:postgresql://basic/cloud_controller
     username: root
     password: changeme
 
