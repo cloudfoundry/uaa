@@ -56,7 +56,7 @@ logger.info("Tomcat JVM args: #{maven_opts}")
 # The form of this next bit is very sensitive.  We need the PID for
 # logging so we need to exec from the shell to stay in the same
 # process...
-pid = spawn("export MAVEN_OPTS=\"#{maven_opts}\" && exec mvn tomcat7:run -P vcap", {:chdir=>root})
+pid = spawn("export MAVEN_OPTS=\"#{maven_opts}\" && exec mvn tomcat:run -P vcap", {:chdir=>root})
 
 logger.info("Tomcat PID = #{pid}")
 

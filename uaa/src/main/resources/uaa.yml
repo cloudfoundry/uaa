@@ -24,8 +24,8 @@ cloud_controller:
       password: changeme
       
 batch:
-  username: batch
-  password: batchsecret
+  username: batch_user
+  password: batch_password
 
 oauth:
   clients:
@@ -34,5 +34,5 @@ oauth:
       scope: read,write,password
       authorities: ROLE_CLIENT,ROLE_ADMIN
       id: admin
-      secret: adminclientsecret
+      secret: adminsecret
       resource-ids: clients
