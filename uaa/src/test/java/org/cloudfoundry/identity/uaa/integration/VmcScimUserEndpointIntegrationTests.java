@@ -135,12 +135,12 @@ public class VmcScimUserEndpointIntegrationTests {
 		RestOperations client = serverRunning.getRestTemplate();
 		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> response = deleteUser(client, joe.getId(), joe.getVersion());
-		// It's unauthorized because the resource ids mismatch - arguably it should be FORBIDDEN
-		assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+		// It's unauthorized because the resource ids mismatch it should be FORBIDDEN
+		assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
 		@SuppressWarnings("unchecked")
 		Map<String, String> error = response.getBody();
 		// System.err.println(error);
-		assertEquals("unauthorized", error.get("error"));
+		assertEquals("access_denied", error.get("error"));
 	}
 
 	@Test
@@ -149,8 +149,8 @@ public class VmcScimUserEndpointIntegrationTests {
 		ResponseEntity<Map> response = serverRunning.getForObject(usersEndpoint, Map.class);
 		@SuppressWarnings("unchecked")
 		Map<String, Object> results = response.getBody();
-		// It's unauthorized because the resource ids mismatch - arguably it should be FORBIDDEN
-		assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+		// It's unauthorized because the resource ids mismatch it should be FORBIDDEN
+		assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
 		assertNotNull("There should be an error", results.get("error"));
 	}
 

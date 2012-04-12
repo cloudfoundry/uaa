@@ -76,10 +76,12 @@ public class TokenAdminEndpointsIntegrationTests {
 						.exchange(serverRunning.getUrl("/oauth/users/{user}/tokens/{token}"), HttpMethod.DELETE,
 								request, Void.class, testAccounts.getUserName(), hash).getStatusCode());
 
+		// The token was revoked so if we trya nd use it again it should come back unauthorized
 		ResponseEntity<String> result = serverRunning.getForString("/oauth/users/" + testAccounts.getUserName()
 				+ "/tokens");
 		assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
-		assertTrue(result.getBody().contains("unauthorized"));
+		String body = result.getBody();
+		assertTrue("Wrong body: " + body, body.contains("invalid_token"));
 
 	}
 
@@ -146,9 +148,11 @@ public class TokenAdminEndpointsIntegrationTests {
 						.exchange(serverRunning.getUrl("/oauth/clients/scim/tokens/" + hash), HttpMethod.DELETE,
 								request, Void.class).getStatusCode());
 
+		// The token was revoked so if we trya nd use it again it should come back unauthorized
 		ResponseEntity<String> result = serverRunning.getForString("/oauth/clients/scim/tokens/");
 		assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
-		assertTrue(result.getBody().contains("unauthorized"));
+		String body = result.getBody();
+		assertTrue("Wrong body: " + body, body.contains("invalid_token"));
 
 	}
 
