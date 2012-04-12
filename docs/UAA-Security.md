@@ -14,11 +14,11 @@ the access decisions taken by the UAA are used as an example.
 
 User accounts are either of type "user" or type "admin" (using the
 SCIM `type` field from the core schema).  These translate into Spring
-Security granted authorities `[ROLE_USER]` or `[ROLE_ADMIN,ROLE_USER]`
-for the purposes of access decisions within the UAA (i.e. admin users
-also have the user role).  Granted authorities are available to
-Resource Servers via the `/check_token` endpoint, or by decoding the
-access token.
+Security granted authorities, `[ROLE_USER]` or
+`[ROLE_ADMIN,ROLE_USER]` respectively, for the purposes of access
+decisions within the UAA (i.e. admin users also have the user role).
+Granted authorities are available to Resource Servers via the
+`/check_token` endpoint, or by decoding the access token.
 
 Resource Servers may choose to use this information as part of an
 access decision, but in general they will need to maintain their own
@@ -52,11 +52,30 @@ an access decision, and by the Authorization Server (the UAA itself)
 to decide whether to grant an access token.  UAA client applications
 have the following meta data (all are optional):
 
-* authorized-grant-types: a list of OAuth2 grant types.  Used by the Authorization Server to deny a token grant if it is not on the list
-* scope: a list of permitted scopes for this client.  Used by the Authorization Server to deny a token requested for a scope not on the list.  Used by Resource Servers to deny access to a resource if a token has insufficient scope.
-* authorities: a list of granted authorities for the client (standard Spring Security format, e.g. `ROLE_CLIENT,ROLE_ADMIN`).  Can be used by Resource Servers to restrict access by clients with insufficient authority.
-* secret: the shared secret used to authenticate token grant requests and token decoding operations (not revealed to Resource Server).
-* resource-ids: white list of resource ids to be included in the decoded tokens granted to this client.  Resource Servers should reject requests carrying tokens that do not include their own id.  The values are not used by the Authorization Server.
+* authorized-grant-types: a comman separated list of OAuth2 grant
+  types, as defined in the spec: choose from `client_credentials`,
+  `password`, `implicit`, `refresh_token`, `authorization_code`.  Used
+  by the Authorization Server to deny a token grant if it is not on
+  the list
+* scope: a list of permitted scopes for this client.  The values are
+  arbitrary strings, but are a contract between a client and a
+  Resource Server, so in cases where UAA acts as a Resource Server
+  there are some "standard" values (`read`, `write`, `passsword`,
+  `openid`) whose usage and meaning is described below.  Scopes are
+  used by the Authorization Server to deny a token requested for a
+  scope not on the list.  They can and should be used by Resource
+  Servers to deny access to a resource if a token has insufficient
+  scope.
+* authorities: a list of granted authorities for the client (standard
+  Spring Security format, e.g. `ROLE_CLIENT,ROLE_ADMIN`).  Can be used
+  by Resource Servers to restrict access by clients with insufficient
+  authority.
+* secret: the shared secret used to authenticate token grant requests
+  and token decoding operations (not revealed to Resource Server).
+* resource-ids: white list of resource ids to be included in the
+  decoded tokens granted to this client.  Resource Servers should
+  reject requests carrying tokens that do not include their own id.
+  The values are not used by the Authorization Server.
 
 ### Bootstrap
 
@@ -81,8 +100,14 @@ Cloud Foundry use cases (`vmc` and `cloud_controller`).  If the `vcap`
 Spring profile is active in the integration tests, no additional
 accounts will be created.
 
+Clients are bootstrapped from config if they are not present in the
+backend when the system starts up (i.e. once the system has started up
+once config changes will not affect the client registrations for
+existing clients).
+
 The `admin` client has the following properties (in the default
-`uaa.yml` always present on the classpath):
+`uaa.yml` always present on the classpath but overriddable by
+specifying all the values again in a custom config file):
 
       authorized-grant-types: client_credentials
       scope: read,write,password
@@ -92,9 +117,10 @@ The `admin` client has the following properties (in the default
       resource-ids: clients
 
 The admin client can be used to bootstrap the system by adding
-additional clients (it can't really be used for much else in fact).
-In particular, user accounts cannot be provisioned until a client with
-access to the `scim` resource is added.
+additional clients (the intention is that it can't really be used for
+much else in fact).  In particular, user accounts cannot be
+provisioned until a client with access to the `scim` resource is
+added.
 
 ### Demo Environment
 
