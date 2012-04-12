@@ -29,6 +29,19 @@
 		<step id="migrateAdminUsers" parent="adminUsersStep" />
 	</job>
 
+	<job id="userDataBackwardsJob" xmlns="http://www.springframework.org/schema/batch">
+		<step id="copyBackwardsDataStep">
+			<tasklet>
+				<chunk reader="uaaUserReader" processor="uaaUserProcessor" writer="cloudControllerUserWriter"
+					commit-interval="100" skip-limit="100">
+					<skippable-exception-classes>
+						<include class="org.cloudfoundry.identity.uaa.scim.job.InvalidEmailException" />
+					</skippable-exception-classes>
+				</chunk>
+			</tasklet>
+		</step>
+	</job>
+
 	<job id="updateAdminUsersJob" xmlns="http://www.springframework.org/schema/batch">
 		<step id="updateAdminUsers" parent="adminUsersStep" />
 	</job>
@@ -80,6 +93,27 @@
 		</property>
 	</bean>
 
+	<bean id="uaaUserReader" class="org.springframework.batch.item.database.JdbcPagingItemReader" scope="step">
+		<property name="dataSource" ref="uaaDataSource" />
+		<property name="parameterValues">
+			<map>
+				<entry key="created" value="#{jobParameters['start.date']?:0}" />
+			</map>
+		</property>
+		<property name="queryProvider">
+			<bean class="org.springframework.batch.item.database.support.SqlPagingQueryProviderFactoryBean">
+				<property name="dataSource" ref="uaaDataSource" />
+				<property name="selectClause" value="*" />
+				<property name="fromClause" value="users" />
+				<property name="whereClause" value="created>=:created" />
+				<property name="sortKey" value="created" />
+			</bean>
+		</property>
+		<property name="rowMapper">
+			<bean class="org.springframework.jdbc.core.ColumnMapRowMapper" />
+		</property>
+	</bean>
+
 	<bean id="cloudControllerUserSyncReader" class="org.springframework.batch.item.database.JdbcPagingItemReader"
 		scope="step">
 		<property name="dataSource" ref="cloudControllerDataSource" />
@@ -107,6 +141,11 @@
 		<property name="filterExisting" value="true" />
 	</bean>
 
+	<bean id="uaaUserProcessor" class="org.cloudfoundry.identity.uaa.scim.job.UaaUserItemProcessor" scope="step">
+		<property name="dataSource" ref="cloudControllerDataSource" />
+		<property name="filterExisting" value="true" />
+	</bean>
+
 	<bean id="lastModifiedFilter" class="org.cloudfoundry.identity.uaa.scim.job.CloudControllerLastModifiedFilterProcessor">
 		<property name="dataSource" ref="uaaDataSource" />
 	</bean>
@@ -118,6 +157,20 @@
 				(id,created,lastModified,userName,email,password,givenName,familyName)
 				values
 				(:id,:created,:lastModified,:userName,:email,:password,:givenName,:familyName)
+			</value>
+		</property>
+		<property name="itemSqlParameterSourceProvider">
+			<bean class="org.cloudfoundry.identity.uaa.scim.job.MapItemSqlParameterSourceProvider" />
+		</property>
+	</bean>
+
+	<bean id="cloudControllerUserWriter" class="org.springframework.batch.item.database.JdbcBatchItemWriter">
+		<property name="dataSource" ref="cloudControllerDataSource" />
+		<property name="sql">
+			<value>insert into users
+				(created_at,updated_at,email,crypted_password)
+				values
+				(:CREATED_AT,:UPDATED_AT,:EMAIL,:CRYPTED_PASSWORD)
 			</value>
 		</property>
 		<property name="itemSqlParameterSourceProvider">

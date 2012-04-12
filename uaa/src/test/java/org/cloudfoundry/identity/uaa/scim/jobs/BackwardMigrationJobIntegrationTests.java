@@ -15,7 +15,6 @@ import static org.junit.Assert.assertEquals;
 import java.util.Date;
 import java.util.Iterator;
 
-import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.junit.Test;
 import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.Job;
@@ -32,30 +31,26 @@ import org.springframework.test.context.ContextConfiguration;
  * 
  */
 @ContextConfiguration
-public class UserMigrationJobIntegrationTests extends AbstractJobIntegrationTests {
+public class BackwardMigrationJobIntegrationTests extends AbstractJobIntegrationTests {
 
 	@Autowired
-	@Qualifier("userDataMigrationJob")
+	@Qualifier("userDataBackwardsJob")
 	private Job job;
 
 	@Test
 	public void testJobRuns() throws Exception {
-		new JdbcTemplate(cloudControllerDataSource)
-		.update("insert into users (id, active, email, crypted_password, created_at, updated_at) values (?, ?, ?, ?, ?, ?)",
-				4, true, "invalid", "ENCRYPT_ME", new Date(), new Date());
-		JobExecution execution = jobLauncher.run(job,
-				new JobParametersBuilder().addString("users", "marissa@test.org,vcap_tester@vmware.com")
-						.toJobParameters());
+		new JdbcTemplate(uaaDataSource)
+				.update("insert into users (id, active, userName, email, password, familyName, givenName, created, lastModified) values (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+						"FOO", true, "uniqua", "uniqua@test.org", "ENCRYPT_ME", "Una", "Uniqua", new Date(),
+						new Date());
+		JobExecution execution = jobLauncher.run(job, new JobParametersBuilder().addDate("start.date", new Date(0L))
+				.toJobParameters());
 		assertEquals(BatchStatus.COMPLETED, execution.getStatus());
 		Iterator<StepExecution> iterator = execution.getStepExecutions().iterator();
-		assertEquals(3, iterator.next().getWriteCount());
-		assertEquals(2, iterator.next().getWriteCount());
-		JdbcTemplate jdbcTemplate = new JdbcTemplate(uaaDataSource);
-		assertEquals(3, jdbcTemplate.queryForInt("select count(*) from users"));
-		assertEquals(
-				2,
-				jdbcTemplate.queryForInt("select count(*) from users where authority=?",
-						UaaAuthority.ROLE_ADMIN.value()));
+		StepExecution step = iterator.next();
+		assertEquals(1, step.getReadCount());
+		assertEquals(1, step.getWriteCount());
+		JdbcTemplate jdbcTemplate = new JdbcTemplate(cloudControllerDataSource);
+		assertEquals(4, jdbcTemplate.queryForInt("select count(*) from users"));
 	}
-
 }
