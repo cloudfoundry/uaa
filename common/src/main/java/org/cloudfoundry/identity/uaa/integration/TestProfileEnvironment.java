@@ -13,10 +13,12 @@
 package org.cloudfoundry.identity.uaa.integration;
 
 import java.util.Enumeration;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.config.EnvironmentPropertiesFactoryBean;
 import org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.PropertiesPropertySource;
@@ -33,50 +35,54 @@ public class TestProfileEnvironment {
 
 	private static final Log logger = LogFactory.getLog(TestProfileEnvironment.class);
 
-	private static final String[] DEFAULT_PROFILE_CONFIG_FILE_LOCATIONS = new String[] { "${UAA_CONFIG_URL}",
-		"file:${UAA_CONFIG_FILE}", "file:${CLOUD_FOUNDRY_CONFIG_PATH}/uaa.yml" };
+	private static final String[] DEFAULT_PROFILE_CONFIG_FILE_LOCATIONS = new String[] { "classpath:uaa.yml",
+			"file:${CLOUD_FOUNDRY_CONFIG_PATH}/uaa.yml", "file:${UAA_CONFIG_FILE}", "${UAA_CONFIG_URL}" };
 
 	private StandardEnvironment environment = new StandardEnvironment();
 
 	private static TestProfileEnvironment instance = new TestProfileEnvironment();
-	
+
 	private ResourceLoader recourceLoader = new DefaultResourceLoader();
 
 	private TestProfileEnvironment() {
 
 		Resource resource = null;
 
+		Properties properties = new Properties();
+
 		for (String location : DEFAULT_PROFILE_CONFIG_FILE_LOCATIONS) {
-			location =  environment.resolvePlaceholders(location);
+			location = environment.resolvePlaceholders(location);
 			resource = recourceLoader.getResource(location);
 			if (resource != null && resource.exists()) {
-				break;
+				YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
+				factory.setResource(resource);
+				factory.setIgnoreResourceNotFound(true);
+				properties.putAll(factory.getObject());
 			}
 		}
-		
-		if (resource != null) {
-			YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
-			factory.setResource(resource);
-			factory.setIgnoreResourceNotFound(true);
-			Properties properties = factory.getObject();
-			logger.debug("Decoding environment properties: " + properties.size());
-			if (!properties.isEmpty()) {
-				for (Enumeration<?> names = properties.propertyNames(); names.hasMoreElements();) {
-					String name = (String) names.nextElement();
-					String value = properties.getProperty(name);
-					if (value != null) {
-						properties.setProperty(name, environment.resolvePlaceholders(value));
-					}
+
+		logger.debug("Decoding environment properties: " + properties.size());
+		if (!properties.isEmpty()) {
+			for (Enumeration<?> names = properties.propertyNames(); names.hasMoreElements();) {
+				String name = (String) names.nextElement();
+				String value = properties.getProperty(name);
+				if (value != null) {
+					properties.setProperty(name, environment.resolvePlaceholders(value));
 				}
-				logger.debug("Environment properties: " + properties);
-				if (properties.containsKey("spring_profiles")) {
-					properties.setProperty(StandardEnvironment.ACTIVE_PROFILES_PROPERTY_NAME,
-							properties.getProperty("spring_profiles"));
-				}
-				// System properties should override the ones in the config file, so add it last
-				environment.getPropertySources().addLast(new PropertiesPropertySource("uaa.yml", properties));
 			}
+			if (properties.containsKey("spring_profiles")) {
+				properties.setProperty(StandardEnvironment.ACTIVE_PROFILES_PROPERTY_NAME,
+						properties.getProperty("spring_profiles"));
+			}
+			// System properties should override the ones in the config file, so add it last
+			environment.getPropertySources().addLast(new PropertiesPropertySource("uaa.yml", properties));
 		}
+
+		EnvironmentPropertiesFactoryBean factory = new EnvironmentPropertiesFactoryBean();
+		factory.setEnvironment(environment);
+		factory.setDefaultProperties(properties);
+		Map<String, ?> debugProperties = factory.getObject();
+		logger.debug("Environment properties: " + debugProperties);
 	}
 
 	/**

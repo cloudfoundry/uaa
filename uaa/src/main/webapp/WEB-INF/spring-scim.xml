@@ -60,10 +60,10 @@
 	</http>
 
 	<oauth:resource-server id="passwordResourceAuthenticationFilter" token-services-ref="tokenServices"
-		resource-id="password" />
+		resource-id="password" entry-point-ref="oauthAuthenticationEntryPoint"/>
 
 	<oauth:resource-server id="scimResourceAuthenticationFilter" token-services-ref="tokenServices"
-		resource-id="scim" />
+		resource-id="scim" entry-point-ref="oauthAuthenticationEntryPoint"/>
 
 	<bean id="userEndPointRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
 		<constructor-arg value="/User" />

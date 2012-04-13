@@ -47,10 +47,10 @@
 	</http>
 
 	<oauth:resource-server id="tokensResourceAuthenticationFilter" token-services-ref="tokenServices"
-		resource-id="tokens" />
+		resource-id="tokens" entry-point-ref="oauthAuthenticationEntryPoint"/>
 
 	<oauth:resource-server id="clientResourceAuthenticationFilter" token-services-ref="tokenServices"
-		resource-id="clients" />
+		resource-id="clients" entry-point-ref="oauthAuthenticationEntryPoint"/>
 
 	<bean id="clientDetails" class="org.springframework.security.oauth2.provider.JdbcClientDetailsService">
 		<constructor-arg ref="dataSource" />

@@ -30,7 +30,7 @@
 
 	<profiles>
 		<profile>
-			<id>cloud</id>
+			<id>devuaa</id>
 			<properties>
 				<CLOUD_FOUNDRY_CONFIG_PATH>src/test/resources/test/profiles/devuaa</CLOUD_FOUNDRY_CONFIG_PATH>
 			</properties>

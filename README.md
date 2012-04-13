@@ -54,9 +54,10 @@ ruby 1.9, and bundler installed, then
 
 (or leave out the username / password to be prompted).
 
-This authenticates and obtains an access token from the server using the OAuth2 implicit
-grant, similar to the approach intended for a client like VMC. The token is
-returned in stdout, so copy paste the value into this next command:
+This authenticates and obtains an access token from the server using
+the OAuth2 implicit grant, similar to the approach intended for a
+client like VMC. The token is returned in stdout, so copy paste the
+value into this next command:
 
     $ ./gem/bin/uaa --client-id=admin --client-secret=adminclientsecret decode
     
@@ -68,15 +69,39 @@ token grant on stdout.
 With all apps deployed into a running server on port 8080 the tests
 will include integration tests (a check is done before each test that
 the app is running).  You can deploy them in your IDE or using the
-command line with `mvn tomcat:run -P integration`.
+command line with `mvn tomcat:run` and then run the tests as normal.
 
 For individual modules, or for the whole project, you can also run
-integration tests from the command line in one go with
+integration tests and the server from the command line in one go with
 
     $ mvn test -P integration
 
 (This might require an initial `mvn install` from the parent directory
 to get the wars in your local repo first.)
+
+To make the tests work in various environments you can modify the
+configuration of the server and the tests (e.g. the admin client)
+using a variety of mechanisms. The simplest is to provide additional
+Maven profiles on the command line, e.g.
+
+    $ (cd uaa; mvn test -P vcap)
+    
+will run the integration tests against a uaa server running in a local
+vcap, so for example the service URL is set to `uaa.vcap.me` (by
+default).  There are several Maven profiles to play with, and they can
+be used to run the server, or the tests or both:
+
+* `local`: runs the server on the ROOT context `http://localhost:8080/`
+
+* `vcap`: also runs the server on the ROOT context and points the
+  tests at `uaa.vcap.me`.
+  
+* `devuaa`: points the tests at `http://devuaa.cloudfoundry.com` (an
+  instance of UAA deployed on cloudfoundry).
+  
+All these profiles set the `CLOUD_FOUNDRY_CONFIG_PATH` to pick up a
+`uaa.yml` and (if appropriate) set the context root for running the
+server (see below for more detail on that).
 
 ### BVTs
 
@@ -88,6 +113,13 @@ Typical usage for a local (`uaa.vcap.me`) instance:
     $ cd vcap/tests
     $ rake bvt:run_uaa
 
+You can change the most common important settings with environment
+variables (see below), or with a custom `uaa.yml`. N.B. `MAVEN_OPTS`
+cannot be used to set JVM system properties for the tests, but it can
+be used to set memory limits for the process etc.
+
+### Custom YAML Configuration
+
 To modify the runtime parameters you can provide a `uaa.yml`, e.g.
 
     $ cat > /tmp/uaa.yml
@@ -97,34 +129,71 @@ To modify the runtime parameters you can provide a `uaa.yml`, e.g.
         username: dev@cloudfoundry.org # defaults to vcap_tester@vmware.com
         password: changeme
         email: dev@cloudfoundry.org
+
+then from `vcap-tests`
+
     $ CLOUD_FOUNDRY_CONFIG_PATH=/tmp rake bvt:run_uaa
     
-The integration tests look for a Yaml file in the following locations,
-and the webapp does the same when it starts up so you can use the same
-config file for both:
+or from `uaa/uaa`
 
-    ${UAA_CONFIG_URL}
-    file:${UAA_CONFIG_FILE}
-    file:${CLOUD_FOUNDRY_CONFIG_PATH}/uaa.yml
+    $ CLOUD_FOUNDRY_CONFIG_PATH=/tmp mvn test
     
-To test against a vcap instance use the Maven profile `vcap`:
+The integration tests look for a Yaml file in the following locations
+(later entries override earlier ones), and the webapp does the same
+when it starts up so you can use the same config file for both:
+
+    classpath:uaa.yml
+    file:${CLOUD_FOUNDRY_CONFIG_PATH}/uaa.yml
+    file:${UAA_CONFIG_FILE}
+    ${UAA_CONFIG_URL}
+
+### Using Maven with Cloud Foundry or VCAP
+
+To test against a vcap instance use the Maven profile `vcap` (it
+switches off some of the tests that create random client and user
+accounts):
 
     $ (cd uaa; mvn test -P vcap)
-    
+
 To change the target server it should suffice to set
 `VCAP_BVT_TARGET` (the tests prefix it with `uaa.` to form the
 server url), e.g.
 
-    $ VCAP_BVT_TARGET=appcloud21.dev.mozycloud rake bvt:run_uaa
+    $ VCAP_BVT_TARGET=appcloud21.dev.mozycloud mvn test -P vcap
 
-You can also change individual properties on the command line with
-`UAA_ARGS`, which are passed on to the mvn command line, or with
-MAVEN_OPTS which are passed on to the shell executing mvn, e.g.
+You can also override some of the other most important default
+settings using environment variables.  The defaults as usual come from
+`uaa.yml` but tests will search first in an environment variable:
 
-    $ UAA_ARGS=-Duaa=uaa.appcloud21.dev.mozycloud rake bvt:run_uaa
+* `UAA_ADMIN_CLIENT_ID` the client id for bootstrapping client
+  registrations needed for the rest of the tests.
 
-N.B. MAVEN_OPTS cannot be used to set JVM system properties for the
-tests, but it can be used to set memory limits for the process etc.
+* `UAA_ADMIN_CLIENT_SECRET` the client secret for boottrapping client
+  registrations
+  
+All other settings from `uaa.yml` can be overriden individually as
+system properties.  Running in an IDE this is easy just using whatever
+features allow you to modify the JVM in test runs, but using Maven you
+have to use the `argLine` property to get settings passed onto the
+test JVM, e.g.
+
+    $ mvn -DargLine=-Duaa.test.username=foo test
+    
+will create an account with `userName=foo` for testing (instead using
+the default setting from `uaa.yml`).
+
+If you prefer environment variables to system properties you can use a
+custom `uaa.yml` with placeholders for your environment variables,
+e.g.
+
+    uaa:
+      test:
+        username: ${UAA_TEST_USERNAME:marissa}
+
+will look for an environment variable (or system property)
+`UAA_TEST_USERNAME` before defaulting to `marissa`.  This is the trick
+used to expose `UAA_ADMIN_CLIENT_SECRET` etc. in the standard
+configuration.
 
 ## Inventory
 

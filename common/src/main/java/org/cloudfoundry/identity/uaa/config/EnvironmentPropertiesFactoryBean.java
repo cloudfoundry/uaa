@@ -18,6 +18,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.core.env.ConfigurableEnvironment;
@@ -33,6 +35,8 @@ import org.springframework.core.env.StandardEnvironment;
  * 
  */
 public class EnvironmentPropertiesFactoryBean implements FactoryBean<Map<String,?>>, EnvironmentAware {
+	
+	private static Log logger = LogFactory.getLog(EnvironmentPropertiesFactoryBean.class);
 
 	private static final Collection<String> STATIC_PROPERTY_SOURCES = Arrays.asList(
 			StandardEnvironment.SYSTEM_PROPERTIES_PROPERTY_SOURCE_NAME,
@@ -59,8 +63,10 @@ public class EnvironmentPropertiesFactoryBean implements FactoryBean<Map<String,
 		for (Object key : defaultProperties .keySet()) {
 			String name = (String) key;
 			if (environment!=null && environment.containsProperty(name)) {
+				logger.debug("From Environment: " + name + "=" + environment.getProperty(name));
 				result.put(name, environment.getProperty(name));
 			} else {
+				logger.debug("From Defaults: " + name + "=" + defaultProperties.getProperty(name));
 				result.put(name, defaultProperties.get(key));
 			}
 		}

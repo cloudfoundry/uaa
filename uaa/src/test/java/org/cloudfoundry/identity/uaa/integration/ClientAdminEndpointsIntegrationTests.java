@@ -48,7 +48,7 @@ public class ClientAdminEndpointsIntegrationTests {
 
 	@Rule
 	public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
-	
+
 	@Before
 	public void setUp() {
 		Assume.assumeTrue(!testAccounts.isProfileActive("vcap"));
@@ -57,7 +57,7 @@ public class ClientAdminEndpointsIntegrationTests {
 	@Test
 	public void testGetClient() throws Exception {
 
-		OAuth2AccessToken token = getClientCredentialsAccessToken("read", "admin", "adminclientsecret");
+		OAuth2AccessToken token = getClientCredentialsAccessToken("read");
 
 		HttpHeaders headers = getAuthenticatedHeaders(token);
 		ResponseEntity<String> result = serverRunning.getForString("/oauth/clients/vmc", headers);
@@ -69,7 +69,7 @@ public class ClientAdminEndpointsIntegrationTests {
 	@Test
 	public void testCreateClient() throws Exception {
 
-		OAuth2AccessToken token = getClientCredentialsAccessToken("read,write", "admin", "adminclientsecret");
+		OAuth2AccessToken token = getClientCredentialsAccessToken("read,write");
 
 		HttpHeaders headers = getAuthenticatedHeaders(token);
 		BaseClientDetails client = new BaseClientDetails("", "foo,bar", "client_credentials", "ROLE_CLIENT");
@@ -83,18 +83,18 @@ public class ClientAdminEndpointsIntegrationTests {
 	@Test
 	public void testUpdateClient() throws Exception {
 
-		OAuth2AccessToken token = getClientCredentialsAccessToken("read,write", "admin", "adminclientsecret");
+		OAuth2AccessToken token = getClientCredentialsAccessToken("read,write");
 
 		HttpHeaders headers = getAuthenticatedHeaders(token);
-		
+
 		BaseClientDetails client = new BaseClientDetails("", "foo,bar", "client_credentials", "ROLE_CLIENT");
 		client.setClientId(new RandomValueStringGenerator().generate());
 		ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
 				HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
 		assertEquals(HttpStatus.CREATED, result.getStatusCode());
-		
+
 		client.setResourceIds(Collections.singleton("foo"));
-		
+
 		result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients/{client}"),
 				HttpMethod.PUT, new HttpEntity<BaseClientDetails>(client, headers), Void.class, client.getClientId());
 		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
@@ -104,20 +104,21 @@ public class ClientAdminEndpointsIntegrationTests {
 	@Test
 	public void testDeleteClient() throws Exception {
 
-		OAuth2AccessToken token = getClientCredentialsAccessToken("read,write", "admin", "adminclientsecret");
+		OAuth2AccessToken token = getClientCredentialsAccessToken("read,write");
 
 		HttpHeaders headers = getAuthenticatedHeaders(token);
-		
+
 		BaseClientDetails client = new BaseClientDetails("", "foo,bar", "client_credentials", "ROLE_CLIENT");
 		client.setClientId(new RandomValueStringGenerator().generate());
 		ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
 				HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
 		assertEquals(HttpStatus.CREATED, result.getStatusCode());
-		
+
 		client.setResourceIds(Collections.singleton("foo"));
-		
-		result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients/{client}"),
-				HttpMethod.DELETE, new HttpEntity<BaseClientDetails>(client, headers), Void.class, client.getClientId());
+
+		result = serverRunning.getRestTemplate()
+				.exchange(serverRunning.getUrl("/oauth/clients/{client}"), HttpMethod.DELETE,
+						new HttpEntity<BaseClientDetails>(client, headers), Void.class, client.getClientId());
 		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
 
 	}
@@ -130,8 +131,10 @@ public class ClientAdminEndpointsIntegrationTests {
 		return headers;
 	}
 
-	private OAuth2AccessToken getClientCredentialsAccessToken(String scope, String clientId, String clientSecret)
-			throws Exception {
+	private OAuth2AccessToken getClientCredentialsAccessToken(String scope) throws Exception {
+
+		String clientId = testAccounts.getAdminClientId();
+		String clientSecret = testAccounts.getAdminClientSecret();
 
 		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
 		formData.add("grant_type", "client_credentials");

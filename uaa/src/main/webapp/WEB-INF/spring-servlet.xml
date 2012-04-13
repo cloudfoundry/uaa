@@ -172,7 +172,7 @@
 	<oauth:web-expression-handler id="oauthWebExpressionHandler" />
 
 	<oauth:resource-server id="openidResourceAuthenticationFilter" token-services-ref="tokenServices"
-		resource-id="openid" />
+		resource-id="openid" entry-point-ref="oauthAuthenticationEntryPoint"/>
 
 	<context:mbean-server id="mbeanServer" />
 

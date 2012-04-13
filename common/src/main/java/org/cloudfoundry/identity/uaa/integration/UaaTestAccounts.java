@@ -114,7 +114,7 @@ public class UaaTestAccounts implements TestAccounts {
 
 	public String getAdminClientSecret() {
 		return environment.getProperty("UAA_ADMIN_CLIENT_SECRET",
-				environment.getProperty("oauth.clients.admin.secret", "adminclientsecret"));
+				environment.getProperty("oauth.clients.admin.secret", "adminsecret"));
 	}
 
 	/**
@@ -131,7 +131,7 @@ public class UaaTestAccounts implements TestAccounts {
 	}
 
 	public String getBatchAuthorizationHeader() {
-		return getAuthorizationHeader("batch", "batch", "batchsecret");
+		return getAuthorizationHeader("batch", "batch_user", "batch_password");
 	}
 
 	public String getAuthorizationHeader(String prefix, String defaultUsername, String defaultPassword) {
