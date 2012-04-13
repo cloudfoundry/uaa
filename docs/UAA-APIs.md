@@ -558,10 +558,10 @@ OAuth2 proected resources which deal with listing and revoking access tokens.  T
         HTTP/1.1 200 OK
         {
           id : foo,
-          scope : comma,separated,
-          resource-ids : cloud_controller,scim
-          authorities : ROLE_CLIENT,ROLE_ADMIN
-          authorized-grant-types : client_credentials
+          scope : [read,write],
+          resource-ids : [cloud_controller,scim],
+          authorities : [ROLE_CLIENT,ROLE_ADMIN],
+          authorized-grant-types : [client_credentials]
         }
 
 ### Register Client
@@ -580,10 +580,10 @@ Example:
     {
       id : foo,
       secret : fooclientsecret, // optional for untrusted clients
-      scope : comma,separated,
-      resource-ids : cloud_controller,scim
-      authorities : ROLE_CLIENT,ROLE_ADMIN
-      authorized-grant-types : client_credentials
+      scope : [read,write],
+      resource-ids : [cloud_controller,scim],
+      authorities : [ROLE_CLIENT,ROLE_ADMIN],
+      authorized-grant-types : [client_credentials],
     }
 
 ### Update Client
@@ -602,10 +602,10 @@ Example:
     {
       id : foo,
       secret : fooclientsecret, // optional for untrusted clients
-      scope : comma,separated,
-      resource-ids : cloud_controller,scim
-      authorities : ROLE_CLIENT,ROLE_ADMIN
-      authorized-grant-types : client_credentials
+      scope : [read,write],
+      resource-ids : [cloud_controller,scim],
+      authorities : [ROLE_CLIENT,ROLE_ADMIN],
+      authorized-grant-types : [client_credentials]
     }
 
 ### Delete Client
