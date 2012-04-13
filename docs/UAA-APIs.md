@@ -557,11 +557,11 @@ OAuth2 proected resources which deal with listing and revoking access tokens.  T
 
         HTTP/1.1 200 OK
         {
-          id : foo,
-          scope : comma,separated,
-          resource-ids : cloud_controller,scim
-          authorities : ROLE_CLIENT,ROLE_ADMIN
-          authorized-grant-types : client_credentials
+          client_id : foo,
+          scope : [read,write],
+          resource_ids : [cloud_controller,scim],
+          authorities : [ROLE_CLIENT,ROLE_ADMIN],
+          authorized_grant_types : [client_credentials]
         }
 
 ### Register Client
@@ -576,14 +576,14 @@ OAuth2 proected resources which deal with listing and revoking access tokens.  T
         
 Example:
 
-    PUT /oauth/clients/foo
+    POST /oauth/clients/foo
     {
-      id : foo,
-      secret : fooclientsecret, // optional for untrusted clients
-      scope : comma,separated,
-      resource-ids : cloud_controller,scim
-      authorities : ROLE_CLIENT,ROLE_ADMIN
-      authorized-grant-types : client_credentials
+      client_id : foo,
+      client_secret : fooclientsecret, // optional for untrusted clients
+      scope : [read,write],
+      resource_ids : [cloud_controller,scim],
+      authorities : [ROLE_CLIENT,ROLE_ADMIN],
+      authorized_grant_types : [client_credentials],
     }
 
 ### Update Client
@@ -600,12 +600,12 @@ Example:
 
     PUT /oauth/clients/foo
     {
-      id : foo,
+      client_id : foo,
       secret : fooclientsecret, // optional for untrusted clients
-      scope : comma,separated,
-      resource-ids : cloud_controller,scim
-      authorities : ROLE_CLIENT,ROLE_ADMIN
-      authorized-grant-types : client_credentials
+      scope : [read,write],
+      resource-ids : [cloud_controller,scim],
+      authorities : [ROLE_CLIENT,ROLE_ADMIN],
+      authorized-grant-types : [client_credentials]
     }
 
 ### Delete Client
