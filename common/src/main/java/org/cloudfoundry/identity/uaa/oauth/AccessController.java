@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.SessionAttributes;
 
 /**
  * Controller for retrieving the model for and displaying the confirmation page for access to a protected resource.
- *
+ * 
  * @author Dave Syer
  */
 @Controller
@@ -43,19 +43,21 @@ public class AccessController {
 	}
 
 	@RequestMapping("/oauth/confirm_access")
-	public String confirm(@ModelAttribute AuthorizationRequest clientAuth, Map<String, Object> model, final HttpServletRequest request)
-			throws Exception {
+	public String confirm(@ModelAttribute AuthorizationRequest clientAuth, Map<String, Object> model,
+			final HttpServletRequest request) throws Exception {
 
 		if (clientAuth == null) {
 			model.put(
 					"error",
-					"No client authentication token is present in the request, so we cannot confirm access (we don't know what you are asking for).");
+					"No authorizatioun request is present, so we cannot confirm access (we don't know what you are asking for).");
 			// response.sendError(HttpServletResponse.SC_BAD_REQUEST);
-		} else {
+		}
+		else {
 			ClientDetails client = clientDetailsService.loadClientByClientId(clientAuth.getClientId());
 			model.put("auth_request", clientAuth);
 			model.put("client", client);
-			model.put("message", "To confirm or deny access POST to the following locations with the parameters requested.");
+			model.put("message",
+					"To confirm or deny access POST to the following locations with the parameters requested.");
 			Map<String, Object> options = new HashMap<String, Object>() {
 				{
 					put("confirm", new HashMap<String, String>() {
@@ -87,7 +89,7 @@ public class AccessController {
 	}
 
 	private String getLocation(HttpServletRequest request, String path) {
-		return "http://" + request.getHeader("Host") + request.getContextPath() + "/" + path;
+		return request.getScheme() + "://" + request.getHeader("Host") + request.getContextPath() + "/" + path;
 	}
 
 }
