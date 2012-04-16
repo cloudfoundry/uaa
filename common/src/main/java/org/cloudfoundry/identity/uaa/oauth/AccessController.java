@@ -37,6 +37,22 @@ public class AccessController {
 
 	private ClientDetailsService clientDetailsService;
 
+	private Boolean useSsl;
+
+	/**
+	 * Explicitly requests caller to point back to an authorization endpoint on "https", even if the incoming request is
+	 * "http" (e.g. when downstream of the SSL termination behind a load balancer).
+	 * 
+	 * @param useSsl the flag to set (null to use the incoming request to determine the URL scheme)
+	 */
+	public void setUseSsl(Boolean useSsl) {
+		this.useSsl = useSsl;
+	}
+
+	public void setClientDetailsService(ClientDetailsService clientDetailsService) {
+		this.clientDetailsService = clientDetailsService;
+	}
+
 	@ModelAttribute("identity")
 	public String getIdentity(HttpSession session) {
 		return null;
@@ -47,8 +63,7 @@ public class AccessController {
 			final HttpServletRequest request) throws Exception {
 
 		if (clientAuth == null) {
-			model.put(
-					"error",
+			model.put("error",
 					"No authorizatioun request is present, so we cannot confirm access (we don't know what you are asking for).");
 			// response.sendError(HttpServletResponse.SC_BAD_REQUEST);
 		}
@@ -84,12 +99,12 @@ public class AccessController {
 
 	}
 
-	public void setClientDetailsService(ClientDetailsService clientDetailsService) {
-		this.clientDetailsService = clientDetailsService;
+	protected String getLocation(HttpServletRequest request, String path) {
+		return extractScheme(request) + "://" + request.getHeader("Host") + request.getContextPath() + "/" + path;
 	}
 
-	private String getLocation(HttpServletRequest request, String path) {
-		return request.getScheme() + "://" + request.getHeader("Host") + request.getContextPath() + "/" + path;
+	protected String extractScheme(HttpServletRequest request) {
+		return useSsl != null && useSsl ? "https" : request.getScheme();
 	}
 
 }
