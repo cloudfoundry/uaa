@@ -26,12 +26,10 @@ cloud_controller:
 batch:
   username: batch_user
   password: batch_password
-  
-endpoints:
-  authorize:
-   ssl: # set this to "true" to force https to be used by the user approval page 
 
 oauth:
+  authorize:
+   ssl: # set this to "true" to force https to be used by the user approval page 
   clients:
     admin:    
       authorized-grant-types: client_credentials
