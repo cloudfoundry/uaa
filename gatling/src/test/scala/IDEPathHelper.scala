@@ -25,6 +25,6 @@ object IDEPathHelper {
 	val dataFolder = mavenResourcesDir / "data"
 	val requestBodiesFolder = mavenResourcesDir / "request-bodies"
 
-	val recorderOutputFolder = mavenSourcesDir / Path("${package}".split("."))
+	val recorderOutputFolder = mavenSourcesDir
 	val resultsFolder = mavenTargetDir / "gatling-results"
 }
