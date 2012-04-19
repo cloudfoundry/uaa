@@ -11,9 +11,5 @@
 # subcomponent's license, as noted in the LICENSE file.
 #++
 
-module CF
-  module UAA
-    autoload :Cli,         "cli/cli"
-    autoload :Dispatcher,  "cli/dispatcher"
-  end
-end
+require "cli/tcli"
+require "cli/cli"

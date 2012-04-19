@@ -32,13 +32,18 @@ describe CF::UAA::Http do
 
       Foo
     REPLY
+    #StubServer.responder do |request, reply|
+      #reply.headers[:content_type] = "text/plain"
+      #reply.body = "Foo"
+      #reply
+    #end
   end
 
   it "should get something from stub server on a fiber" do
     StubServer.fiber_request do
       f = Fiber.current
       http = EM::HttpRequest.new(@target).get
-      http.errback { f.resume "error"}
+      http.errback { f.resume "error" }
       http.callback {
         http.response_header.http_status.should == 200
         http.response.should match(/Foo/)

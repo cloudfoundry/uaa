@@ -102,7 +102,8 @@ describe CF::UAA::UserAccount do
     end
     StubServer.request do
       output = subject.query_by_value(@keyattr, @attrname, @attrvalue)
-      output[:totalResults].should == 1
+      puts output.inspect
+      output[:totalresults].should == 1
       output[:resources][0][:id].should be
       # puts output.inspect
     end
@@ -172,10 +173,9 @@ describe CF::UAA::UserAccount do
     StubServer.request do
       output = subject.get @user_id
       output[:id].should == @user_id
-      output[:userName].should == "sam"
-      output[:userType].should == "User"
-      output[:name][:givenName].should == "sam"
-      # puts output.inspect
+      output[:username].should == "sam"
+      output[:usertype].should == "User"
+      output[:name][:givenname].should == "sam"
     end
   end
 
@@ -199,7 +199,7 @@ describe CF::UAA::UserAccount do
     StubServer.request do
       output = subject.get_by_name @user_name
       output[:id].should == @user_id
-      output[:userName].should == @user_name
+      output[:username].should == @user_name
       # puts output.inspect
     end
   end

@@ -23,8 +23,8 @@ class CF::UAA::UserAccount
   # authorization header. For oauth with jwt tokens this would be something
   # like "bearer xxxx.xxxx.xxxx". The TokenIssuer methods return a string
   # in the expected form.
-  def initialize(target, auth_header)
-    @target, @auth_header = target, auth_header
+  def initialize(target, auth_header, trace = false)
+    @target, @auth_header, @trace = target, auth_header, trace
   end
 
   def create(username, password, email_addresses = nil, given_name = username, family_name = username)
@@ -90,6 +90,10 @@ class CF::UAA::UserAccount
 
   def change_password_by_name(username, new_password)
     change_password(user_id_from_name(username), new_password)
+  end
+
+  def user_info
+    json_get("/userinfo?schema=openid", @auth_header)
   end
 
   private
