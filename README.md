@@ -23,8 +23,8 @@ Each module has a `mvn tomcat:run` target to run individually, or you
 could import them as projects into STS (use 2.8.0 or better if you
 can).  The apps all work together the apps running on the same port
 (8080) as `/uaa`, `/app` and `/api`.  You can probably use Maven 2.2.1
-to build the code, but you need to use Maven 3 if you want to run it
-from the command line (or run integration tests).
+to build the code, but you need to use Maven 3 if you want to run the
+server from the command line (or run integration tests).
 
 ### Demo of command line usage
 
@@ -227,10 +227,12 @@ In CloudFoundry terms
 
 The authentication service is `uaa`. It's a plain Spring MVC webapp.
 Deploy as normal in Tomcat or your container of choice, or execute
-`mvn tomcat:run` to run it directly from `uaa` directory in the source tree.
-When running with maven it listen on port 8080.
+`mvn tomcat:run` to run it directly from `uaa` directory in the source
+tree (make sure the common jar is installed first using `mvn install`
+from the common subdirectory or from the top level directory).  When
+running with maven it listens on port 8080.
 
-It supports the APIs defined in the UAA-APIs document. To summarise:
+The UAA Server supports the APIs defined in the UAA-APIs document. To summarise:
 
 1. The OAuth2 /authorize and /token endpoints
 
@@ -251,7 +253,8 @@ UAA-API doc).  There is an `ImplicitAccessTokenProvider` in Spring
 Security OAuth that can do the heavy lifting if your client is Java.
 
 By default `uaa` will launch with a context root `/uaa`. There is a
-Maven profile `vcap` to launch with context root `/`.
+Maven profile `local` to launch with context root `/`, and another
+called `vcap` to launch at `/` with a postgresql backend.
 
 ### Configuration
 
@@ -259,7 +262,7 @@ There is a `uaa.yml` in the application which provides defaults to the
 placeholders in the Spring XML.  Wherever you see
 `${placeholder.name}` in the XML there is an opportunity to override
 it either by providing a System property (`-D` to JVM) with the same
-name, or a custom `uaa.yml` (as desceibed above).
+name, or a custom `uaa.yml` (as described above).
 
 All passwords and client secrets in the config files are plain text,
 but they will be inserted into the UAA database encrypted with BCrypt.
