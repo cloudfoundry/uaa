@@ -24,7 +24,8 @@ describe CF::UAA::Client do
       end
     end
     subject.target = "http://localhost:8080/uaa"
-    subject.trace = false
+    subject.debug = false
+    subject.async = false
     @username = "marissa"
     @password = "koala"
   end

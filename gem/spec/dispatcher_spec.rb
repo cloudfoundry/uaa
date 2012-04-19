@@ -24,9 +24,9 @@ describe "Uaa cli dispatcher" do
     @client.stub!(:target).and_return("http://anywhere.com")
   end
 
-  it "should set the trace flag on the client when verbose option is set" do
+  it "should set the debug trace flag on the client when verbose option is set" do
     dispatcher = CF::UAA::Dispatcher.new(:client=>@client)
-    @client.should_receive(:trace=)
+    @client.should_receive(:debug=)
     begin
       dispatcher.dispatch(:foo, [], {:verbose=>true})
     rescue StandardError

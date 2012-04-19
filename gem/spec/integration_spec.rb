@@ -41,9 +41,9 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
 
       before :all do
         toki = CF::UAA::TokenIssuer.new(@target, @client_id, @client_secret, "read write password")
-        toki.trace = true
+        toki.debug = true
         @user_acct = CF::UAA::UserAccount.new(@target, toki.client_credentials_grant.auth_header)
-        @user_acct.trace = true
+        @user_acct.debug = true
         ENV["UAA_USER_NAME"] = @username = "sam_#{Time.now.to_i}"
       end
 
@@ -93,7 +93,7 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
 
       before :all do
         @toki = CF::UAA::TokenIssuer.new(@target, "vmc", nil, "read write openid password")
-        @toki.trace = true
+        @toki.debug = true
       end
 
       it "verifies that prompts for the implicit grant are username and password" do
@@ -105,7 +105,7 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
         token = @toki.implicit_grant(username: ENV["UAA_USER_NAME"], password: "newpassword")
         puts JSON.pretty_generate(token.info)
         idt = CF::UAA::IdToken.new(@target)
-        idt.trace = true
+        idt.debug = true
         info = idt.user_info(token.info[:access_token])
         puts JSON.pretty_generate(info)
       end

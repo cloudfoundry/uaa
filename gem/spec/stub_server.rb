@@ -69,7 +69,7 @@ end
 
 class StubServer
 
-  PORT = 8088
+  PORT = 8089
   HOST = "127.0.0.1"
 
   module Server
@@ -87,6 +87,7 @@ class StubServer
 
   def initialize(&blk)
     @sig = EM.start_server(HOST, PORT, Server) { |s| s.responder = blk }
+    #puts @sig
     #@port = Socket.unpack_sockaddr_in(EM.get_sockname(@sig))[0]
   end
 

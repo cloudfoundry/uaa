@@ -36,8 +36,8 @@ class CF::UAA::TokenChecker
   # * secret - the shared secret owned by the Resource Server and used
   # to authenticate with the /check_token endpoint.
   #
-  def initialize(target, resource_id, secret)
-    @target, @resource_id, @secret = target, resource_id, secret
+  def initialize(target, resource_id, secret, debug = false)
+    @target, @resource_id, @secret, @debug = target, resource_id, secret, debug
   end
 
   # Returns hash of values from the Authorization Server that are associated

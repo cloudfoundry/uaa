@@ -36,7 +36,7 @@ class CF::UAA::Dispatcher
       @client.target = fix_target(options[:target])
     end
 
-    @client.trace = true if options[:verbose]
+    @client.debug = true if options[:verbose]
     save_token = options[:save_token]
 
     options = options.dup
