@@ -23,6 +23,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.crypto.password.StandardPasswordEncoder;
+import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.token.ConsumerTokenServices;
@@ -104,7 +105,8 @@ public class TokenAdminEndpoints {
 
 	private Collection<OAuth2AccessToken> enhance(Collection<OAuth2AccessToken> tokens) {
 		Collection<OAuth2AccessToken> result = new ArrayList<OAuth2AccessToken>();
-		for (OAuth2AccessToken token : tokens) {
+		for (OAuth2AccessToken prototype : tokens) {
+			DefaultOAuth2AccessToken token = new DefaultOAuth2AccessToken(prototype);
 			Map<String, Object> map = new HashMap<String, Object>(token.getAdditionalInformation());
 			if (!map.containsKey("token_id")) {
 				// The token doesn't have an ID in the token service, but we need one for the endpoint, so add one here
