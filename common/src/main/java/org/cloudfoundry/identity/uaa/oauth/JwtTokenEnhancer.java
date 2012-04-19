@@ -17,11 +17,11 @@ import java.util.Collections;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.security.jwt.JwtHelper;
 import org.springframework.security.jwt.crypto.sign.MacSigner;
+import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
-import org.springframework.security.oauth2.common.OAuth2RefreshToken;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
-import org.springframework.security.oauth2.provider.token.RandomValueTokenServices;
+import org.springframework.security.oauth2.provider.token.TokenEnhancer;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -29,21 +29,21 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 /**
  * OAuth2 token services that produces JWT encoded token values.
- *
+ * 
  * @author Dave Syer
  */
-public class JwtTokenServices extends RandomValueTokenServices {
+public class JwtTokenEnhancer implements TokenEnhancer {
 
 	private AccessTokenConverter tokenConverter = new DefaultTokenConverter();
 
 	private ObjectMapper objectMapper = new ObjectMapper();
 
 	private String key = new RandomValueStringGenerator().generate();
-
+	
 	/**
 	 * @return the key used when signing tokens
 	 */
-	@RequestMapping(value = "/token_key", method=RequestMethod.GET)
+	@RequestMapping(value = "/token_key", method = RequestMethod.GET)
 	@ResponseBody
 	public String getKey() {
 		return key;
@@ -52,24 +52,20 @@ public class JwtTokenServices extends RandomValueTokenServices {
 	/**
 	 * @param key the key to use when signing tokens
 	 */
-	@RequestMapping(value = "/token_key", method=RequestMethod.POST)
+	@RequestMapping(value = "/token_key", method = RequestMethod.POST)
 	@ResponseBody
 	public void setKey(@RequestParam String key) {
 		this.key = key;
 	}
-
-	@Override
-	public void afterPropertiesSet() throws Exception {
-		super.afterPropertiesSet();
+	
+	public OAuth2AccessToken enhance(OAuth2AccessToken accessToken, OAuth2Authentication authentication) {
+		DefaultOAuth2AccessToken result = new DefaultOAuth2AccessToken(accessToken);
+		String tokenId = result.getValue();
+		result.setAdditionalInformation(Collections.<String, Object> singletonMap("token_id", tokenId));
+		return result.setValue(createAccessTokenValue(accessToken, authentication));
 	}
 
-	@Override
-	protected OAuth2AccessToken createAccessToken(OAuth2Authentication authentication, OAuth2RefreshToken refreshToken) {
-
-		OAuth2AccessToken accessToken = super.createAccessToken(authentication, refreshToken);
-		String tokenId = accessToken.getValue();
-		accessToken.setAdditionalInformation(Collections.<String,Object>singletonMap("token_id", tokenId));
-
+	protected String createAccessTokenValue(OAuth2AccessToken accessToken, OAuth2Authentication authentication) {
 		String content;
 		try {
 			content = objectMapper.writeValueAsString(tokenConverter.convertAccessToken(accessToken, authentication));
@@ -78,13 +74,7 @@ public class JwtTokenServices extends RandomValueTokenServices {
 			throw new IllegalStateException("Cannot convert access token to JSON", e);
 		}
 		String token = JwtHelper.encode(content, new MacSigner(key)).getEncoded();
-		OAuth2AccessToken result = new OAuth2AccessToken(token);
-		result.setScope(accessToken.getScope());
-		result.setExpiration(accessToken.getExpiration());
-		result.setRefreshToken(refreshToken);
-
-		return result;
-
+		return token;
 	}
 
 }

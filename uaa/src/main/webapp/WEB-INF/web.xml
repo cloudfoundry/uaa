@@ -107,6 +107,16 @@
 	</servlet-mapping>
 
 	<servlet-mapping>
+		<servlet-name>varz</servlet-name>
+		<url-pattern>/healthz</url-pattern>
+	</servlet-mapping>
+
+	<servlet-mapping>
+		<servlet-name>varz</servlet-name>
+		<url-pattern>/healthz/*</url-pattern>
+	</servlet-mapping>
+
+	<servlet-mapping>
 		<servlet-name>batch</servlet-name>
 		<url-pattern>/batch/*</url-pattern>
 	</servlet-mapping>

@@ -14,6 +14,8 @@
 	<context:property-placeholder properties-ref="applicationProperties"/>
 
 	<context:mbean-server id="mbeanServer" />
+	
+	<security:http pattern="/healthz/**" security="none"/>
 
 	<http pattern="/varz/**" create-session="stateless" entry-point-ref="authenticationEntryPoint"
 		xmlns="http://www.springframework.org/schema/security">
@@ -46,6 +48,7 @@
 	<!-- Override the default mapping so that domain names with periods can be used -->
 	<bean class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping">
 		<property name="useSuffixPatternMatch" value="false"/>
+		<property name="alwaysUseFullPath" value="true"/>
 		<property name="order" value="-1"/>
 	</bean>
 

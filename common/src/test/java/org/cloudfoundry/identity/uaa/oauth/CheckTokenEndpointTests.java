@@ -22,12 +22,13 @@ import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
 import org.junit.Test;
+import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.security.oauth2.provider.token.DefaultTokenServices;
 import org.springframework.security.oauth2.provider.token.InMemoryTokenStore;
-import org.springframework.security.oauth2.provider.token.RandomValueTokenServices;
 
 /**
  * @author Dave Syer
@@ -46,10 +47,10 @@ public class CheckTokenEndpointTests {
 	public CheckTokenEndpointTests() {
 		authentication = new OAuth2Authentication(new AuthorizationRequest("client", Collections.singleton("read"), null, null),
 				UaaAuthenticationTestFactory.getAuthentication("12345", "olds", "olds@vmware.com"));
-		RandomValueTokenServices tokenServices = new RandomValueTokenServices();
+		DefaultTokenServices tokenServices = new DefaultTokenServices();
 		tokenServices.setTokenStore(tokenStore);
 		endpoint.setTokenServices(tokenServices);
-		OAuth2AccessToken token = new OAuth2AccessToken("FOO");
+		DefaultOAuth2AccessToken token = new DefaultOAuth2AccessToken("FOO");
 		token.setExpiration(new Date(System.currentTimeMillis()+100000));
 		expiresIn = token.getExpiresIn();
 		tokenStore.storeAccessToken(token, authentication);
@@ -87,7 +88,7 @@ public class CheckTokenEndpointTests {
 	
 	@Test(expected=InvalidTokenException.class)
 	public void testExpiredToken() throws Exception {
-		OAuth2AccessToken token = new OAuth2AccessToken("FOO");
+		DefaultOAuth2AccessToken token = new DefaultOAuth2AccessToken("FOO");
 		token.setExpiration(new Date(System.currentTimeMillis()-100000));
 		expiresIn = token.getExpiresIn();
 		tokenStore.storeAccessToken(token, authentication);
@@ -98,10 +99,10 @@ public class CheckTokenEndpointTests {
 	@Test
 	public void testClientOnly() {
 		authentication = new OAuth2Authentication(new AuthorizationRequest("client", Collections.singleton("read"), null, null), null);
-		RandomValueTokenServices tokenServices = new RandomValueTokenServices();
+		DefaultTokenServices tokenServices = new DefaultTokenServices();
 		tokenServices.setTokenStore(tokenStore);
 		endpoint.setTokenServices(tokenServices);
-		OAuth2AccessToken token = new OAuth2AccessToken("FOO");
+		OAuth2AccessToken token = new DefaultOAuth2AccessToken("FOO");
 		tokenStore.storeAccessToken(token, authentication);
 		Map<String, Object> result = endpoint.checkToken("FOO");
 		assertEquals("client", result.get("client_id"));
