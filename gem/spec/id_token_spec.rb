@@ -16,7 +16,7 @@ require 'uaa/id_token'
 
 describe CF::UAA::IdToken do
 
-  subject { CF::UAA::IdToken.new("http://localhost:8080/uaa") }
+  subject { CF::UAA::IdToken.new("http://localhost:8080/uaa", "test token") }
 
   before :each do
     subject.trace = false

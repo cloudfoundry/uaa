@@ -44,9 +44,22 @@ class CF::UAA::TokenIssuer
 
   include CF::UAA::Http
 
-  def initialize(target, client_id, client_secret, default_scope)
+  # Takes an x-www-form-urlencoded string and returns a hash of symbol => value.
+  # It raises an ArgumentError if a key occurs more than once, which is a
+  # restriction of OAuth query strings. See draft-ietf-oauth-v2-23 section 3.1.
+  def self.decode_oauth_parameters(url_encoded_pairs)
+    args = {}
+    URI.decode_www_form(url_encoded_pairs).each do |p|
+      k = p[0].downcase.to_sym
+      raise ArgumentError, "duplicate keys in oauth form parameters" if args[k]
+      args[k] = p[1]
+    end
+    args
+  end
+
+  def initialize(target, client_id, client_secret = nil, default_scope = nil, trace = false)
     @target, @client_id, @client_secret = target, client_id, client_secret
-    @default_scope = normalize_scope(default_scope)
+    @default_scope, @trace = normalize_scope(default_scope), trace
   end
 
   # login prompts for use by app to collect credentials for implicit grant
@@ -65,7 +78,7 @@ class CF::UAA::TokenIssuer
     uri = authorize_path_args("token", redir_uri, scope, state = SecureRandom.uuid)
 
     # required for current UAA implementation
-    headers = {'Content-Type' => "application/x-www-form-urlencoded"}
+    headers = {content_type: "application/x-www-form-urlencoded"}
     body = "credentials=#{URI.encode(credentials.to_json)}"
 
     # consistent with the rest of the OAuth calls
@@ -80,11 +93,14 @@ class CF::UAA::TokenIssuer
     begin
       raise CF::UAA::BadResponse unless status == 302
       loc = headers[:location].split('#')
+      puts "here #{loc.length} #{loc[0]} #{redir_uri}"
       raise CF::UAA::BadResponse unless loc.length == 2 && URI.parse(loc[0]) == URI.parse(redir_uri)
       reply = self.class.decode_oauth_parameters(loc[1])
-      raise CF::UAA::BadResponse unless reply[:state] == state && reply[:token_type] && reply[:access_token]
+      raise CF::UAA::BadResponse unless reply[:state] == state
+      raise CF::UAA::TargetError.new(reply), "error response from #{@target}" if reply[:error]
+      raise CF::UAA::BadResponse unless reply[:token_type] && reply[:access_token]
     rescue URI::InvalidURIError, ArgumentError, CF::UAA::BadResponse
-      raise CF::UAA::BadResponse, "received invalid response from target #{@target}"
+      raise CF::UAA::BadResponse, "bad response from #{@target}, status #{status}"
     end
     CF::UAA::Token.new reply
   end
@@ -131,10 +147,13 @@ class CF::UAA::TokenIssuer
   # request to a resource server. Specific values from the authorization
   # server included with the token can be retrieved from the info method.
   def request_token(params)
-    params[:scope] = normalize_scope(params[:scope]).join(' ')
-    headers = {'Content-Type'=> "application/x-www-form-urlencoded",
-        'Accept'=>"application/json",
-        'Authorization' => self.class.client_auth_header(@client_id, @client_secret) }
+    if scope = normalize_scope(params[:scope])
+      params[:scope] = scope.join(' ')
+    else
+      params.delete(:scope)
+    end
+    headers = {content_type: "application/x-www-form-urlencoded", accept: "application/json",
+        authorization: self.class.client_auth_header(@client_id, @client_secret) }
     body = URI.encode_www_form(params)
     reply = json_parse_reply(*request(:post, '/oauth/token', body, headers))
     raise CF::UAA::BadResponse unless reply[:token_type] && reply[:access_token]
@@ -149,27 +168,13 @@ class CF::UAA::TokenIssuer
   end
 
   def authorize_path_args(response_type, redirect_uri, scope, state = SecureRandom.uuid)
-    scope = normalize_scope(scope)
-    params = {client_id: @client_id, response_type: response_type,
-        scope: scope.join(' '), redirect_uri: redirect_uri, state: state}
-    if scope.include? "openid"
+    params = {client_id: @client_id, response_type: response_type, redirect_uri: redirect_uri, state: state}
+    params[:scope] = scope = scope.join(' ') if scope = normalize_scope(scope)
+    if scope && scope.include?("openid")
       params[:nonce] = state
       params[:response_type] = "#{response_type} id_token"
     end
     "/oauth/authorize?#{URI.encode_www_form(params)}"
-  end
-
-  # Takes an x-www-form-urlencoded string and returns a hash of symbol => value.
-  # It raises an ArgumentError if a key occurs more than once, which is a
-  # restriction of OAuth query strings. See draft-ietf-oauth-v2-23 section 3.1.
-  def self.decode_oauth_parameters(url_encoded_pairs)
-    args = {}
-    URI.decode_www_form(url_encoded_pairs).each do |p|
-      k = p[0].to_sym
-      raise ArgumentError, "duplicate keys in oauth form parameters" if args[k]
-      args[k] = p[1]
-    end
-    args
   end
 
   def self.client_auth_header(id, secret)

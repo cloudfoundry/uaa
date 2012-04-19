@@ -76,7 +76,7 @@ class CF::UAA::TokenCoder
     unless ["HS256", "HS384", "HS512"].include?(algo)
       raise CF::UAA::DecodeError, "Algorithm not supported"
     end
-    unless signature == sign(algo, [header_segment, payload_segment].join('.'), signing_secret)
+    unless signing_secret.nil? || signature == sign(algo, [header_segment, payload_segment].join('.'), signing_secret)
       raise CF::UAA::AuthError, "Signature verification failed"
     end
     payload
@@ -90,6 +90,12 @@ class CF::UAA::TokenCoder
   # the key so that we can verify its source. The Authorization Server
   # shares this secret with its trusted Resource Servers.
   def initialize(resource_id, signing_secret)
+    # check signing_secret here because we want to ensure that instances validate
+    # signatures. The signing_secret is optional for the class decode method
+    # because it's useful to decode tokens in some cases without validating.
+    unless resource_id && signing_secret
+      raise ArgumentError, "TokenCoder requires a resource_id and signing_secret"
+    end
     @resource_id, @secret = resource_id, signing_secret
   end
 
@@ -110,7 +116,7 @@ class CF::UAA::TokenCoder
   # caller there will be an AuthError. If the token has expired there
   # will also be an AuthError.
   def decode(auth_header)
-    unless auth_header && (tkn = auth_header.split).length == 2 && tkn[0] =~ /bearer/i
+    unless auth_header && (tkn = auth_header.split).length == 2 && tkn[0] =~ /^bearer$/i
       raise CF::UAA::DecodeError, "invalid authentication header: #{auth_header}"
     end
     reply = self.class.decode(tkn[1], @secret)

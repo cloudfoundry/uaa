@@ -21,36 +21,32 @@ class CF::UAA::UserAccount
 
   # the auth_header parameter refers to a string that can be used in an
   # authorization header. For oauth with jwt tokens this would be something
-  # like "bearer xxxx.xxxx.xxxx". The TokenIssuer methods return a string
-  # in the expected form.
-  def initialize(target, auth_header)
-    @target, @auth_header = target, auth_header
+  # like "bearer xxxx.xxxx.xxxx". The Token class returned by TokenIssuer
+  # provides an auth_header method for this purpose.
+  def initialize(target, auth_header, trace = false)
+    unless target && auth_header
+      raise CF::UAA::AuthError, "No target and authorization provided. You must login first to get a token."
+    end
+    @target, @auth_header, @trace = target, auth_header, trace
   end
 
   def create(username, password, email_addresses = nil, given_name = username, family_name = username)
-    unless @auth_header
-      raise CF::UAA::AuthError, "No authorization provided. You must login first to get a token."
-    end
-
     emails = []
     if email_addresses.respond_to?(:each)
       email_addresses.each { |email| emails.unshift({:value => email}) }
     else
       emails = [{:value => (email_addresses || username) }]
     end
-
     request = { userName: username, password: password, emails: emails,
         name: { givenName: given_name, familyName: family_name }}
-    user = json_parse_reply(*http_post("/User", request.to_json,
-        "application/json", @auth_header))
+    user = json_parse_reply(*json_post("/User", request, @auth_header))
     return user if user[:id]
     raise CF::UAA::BadResponse, "no user id returned by create user: target #{@target}"
   end
 
   def change_password(user_id, new_password)
     password_request = { password: new_password }
-    status, body, headers = http_put("/User/#{user_id}/password",
-        password_request.to_json, "application/json", @auth_header)
+    status, body, headers = json_put("/User/#{user_id}/password", password_request, @auth_header)
     case status
       when 204 then return true
       when 401 then raise CF::UAA::NotFound

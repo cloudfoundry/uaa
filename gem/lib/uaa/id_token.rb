@@ -21,8 +21,12 @@ class CF::UAA::IdToken
 
   include CF::UAA::Http
 
-  def initialize(target)
-    @target = target
+  # the auth_header parameter refers to a string that can be used in an
+  # authorization header. For oauth with jwt tokens this would be something
+  # like "bearer xxxx.xxxx.xxxx". The Token class returned by TokenIssuer
+  # provides an auth_header method for this purpose.
+  def initialize(target, auth_header, trace = false)
+    @target, @auth_header, @trace = target, auth_header, trace
   end
 
   def authen_info(id_token)
@@ -62,9 +66,8 @@ class CF::UAA::IdToken
 
   end
 
-  def user_info(access_token)
-  # => {user_id, name, email, verified, given_name, family_name, ... }
-    reply = json_get("/userinfo?schema=openid", "Bearer #{access_token}")
+  def user_info
+    json_get("/userinfo?schema=openid", @auth_header)
   end
 
 end
