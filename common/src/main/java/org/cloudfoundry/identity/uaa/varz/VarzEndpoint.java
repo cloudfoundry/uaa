@@ -80,6 +80,13 @@ public class VarzEndpoint implements EnvironmentAware {
 		this.server = server;
 	}
 
+	@RequestMapping("/healthz")
+	@ResponseBody
+	public String getHealthz() throws Exception {
+		return "ok\n";
+	}
+	
+	
 	@RequestMapping(value = { "/", "/varz" })
 	@ResponseBody
 	public Map<String, ?> getVarz(@ModelAttribute("baseUrl") String baseUrl) throws Exception {
@@ -165,7 +172,7 @@ public class VarzEndpoint implements EnvironmentAware {
 		return wrapper.get(path);
 	}
 
-	@RequestMapping("/env")
+	@RequestMapping("/varz/env")
 	@ResponseBody
 	public Map<String, ?> getEnv() throws Exception {
 		Map<String, Object> result = new LinkedHashMap<String, Object>(statix);
@@ -176,7 +183,7 @@ public class VarzEndpoint implements EnvironmentAware {
 		return result;
 	}
 
-	@RequestMapping("/{domain}")
+	@RequestMapping("/varz/{domain}")
 	@ResponseBody
 	public Map<String, ?> getDomain(@PathVariable String domain,
 			@RequestParam(required = false, defaultValue = "*") String pattern) throws Exception {
@@ -253,7 +260,7 @@ public class VarzEndpoint implements EnvironmentAware {
 
 	}
 
-	@RequestMapping("/domains")
+	@RequestMapping("/varz/domains")
 	@ResponseBody
 	public Set<String> getMBeanDomains() throws IOException {
 		Set<String> result = new HashSet<String>();

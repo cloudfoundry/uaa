@@ -46,6 +46,11 @@ public class VarzEndpointTests {
 	}
 
 	@Test
+	public void testGetHealthz() throws Exception {
+		assertEquals("ok\n", endpoint.getHealthz());
+	}
+
+	@Test
 	public void testGetConfiguredBaseUrl() throws Exception {
 		endpoint.setBaseUrl("http://uaa.cloudfoundry.com");
 		assertEquals("http://uaa.cloudfoundry.com", endpoint.getBaseUrl(request));
