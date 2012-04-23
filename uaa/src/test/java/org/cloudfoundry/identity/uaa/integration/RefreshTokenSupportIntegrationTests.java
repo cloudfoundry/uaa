@@ -23,6 +23,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.codec.Base64;
+import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -60,7 +61,7 @@ public class RefreshTokenSupportIntegrationTests {
 		assertEquals("no-store", response.getHeaders().getFirst("Cache-Control"));
 
 		@SuppressWarnings("unchecked")
-		OAuth2AccessToken accessToken = OAuth2AccessToken.valueOf(response.getBody());
+		OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(response.getBody());
 
 		// now use the refresh token to get a new access token.
 		assertNotNull(accessToken.getRefreshToken());
@@ -71,7 +72,7 @@ public class RefreshTokenSupportIntegrationTests {
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		assertEquals("no-store", response.getHeaders().getFirst("Cache-Control"));
 		@SuppressWarnings("unchecked")
-		OAuth2AccessToken newAccessToken = OAuth2AccessToken.valueOf(response.getBody());
+		OAuth2AccessToken newAccessToken = DefaultOAuth2AccessToken.valueOf(response.getBody());
 		assertFalse("TODO: This occasionally fails because the expiry time has 1 second accuracy.", newAccessToken.getValue()
 				.equals(accessToken.getValue()));
 

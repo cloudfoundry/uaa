@@ -26,6 +26,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.crypto.password.StandardPasswordEncoder;
+import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
@@ -51,7 +52,7 @@ public class TokenAdminEndpointsTests {
 	@Test
 	public void testListTokensForOAuth2User() throws Exception {
 		Mockito.when(tokenServices.findTokensByUserName("marissa")).thenReturn(
-				Collections.singleton(new OAuth2AccessToken("FOO")));
+				Collections.<OAuth2AccessToken> singleton(new DefaultOAuth2AccessToken("FOO")));
 		Collection<OAuth2AccessToken> tokens = endpoints.listTokensForUser("marissa", new OAuth2Authentication(
 				authorizationRequest, new TestingAuthenticationToken("marissa", "")));
 		assertEquals(1, tokens.size());
@@ -61,7 +62,7 @@ public class TokenAdminEndpointsTests {
 	@Test
 	public void testListTokensForOAuth2UserWithClientId() throws Exception {
 		Mockito.when(tokenServices.findTokensByUserName("marissa")).thenReturn(
-				Collections.singleton(new OAuth2AccessToken("FOO")));
+				Collections.<OAuth2AccessToken> singleton(new DefaultOAuth2AccessToken("FOO")));
 		Mockito.when(tokenServices.getClientId("FOO")).thenReturn("foo");
 		Collection<OAuth2AccessToken> tokens = endpoints.listTokensForUser("marissa", new OAuth2Authentication(
 				authorizationRequest, new TestingAuthenticationToken("marissa", "")));
@@ -86,7 +87,7 @@ public class TokenAdminEndpointsTests {
 	@Test
 	public void testRevokeTokenForUser() throws Exception {
 		Mockito.when(tokenServices.findTokensByUserName("marissa")).thenReturn(
-				Collections.singleton(new OAuth2AccessToken("FOO")));
+				Collections.<OAuth2AccessToken> singleton(new DefaultOAuth2AccessToken("FOO")));
 		Mockito.when(tokenServices.revokeToken("FOO")).thenReturn(true);
 		ResponseEntity<Void> result = endpoints.revokeUserToken("marissa", new StandardPasswordEncoder().encode("FOO"),
 				new TestingAuthenticationToken("marissa", ""));
@@ -95,18 +96,19 @@ public class TokenAdminEndpointsTests {
 
 	@Test
 	public void testRevokeTokenForUserWithTokenId() throws Exception {
-		OAuth2AccessToken token = new OAuth2AccessToken("FOO");
+		DefaultOAuth2AccessToken token = new DefaultOAuth2AccessToken("FOO");
 		token.setAdditionalInformation(Collections.<String, Object> singletonMap("token_id", "BAR"));
-		Mockito.when(tokenServices.findTokensByUserName("marissa")).thenReturn(Collections.singleton(token));
+		Mockito.when(tokenServices.findTokensByUserName("marissa")).thenReturn(
+				Collections.<OAuth2AccessToken> singleton(token));
 		Mockito.when(tokenServices.revokeToken("FOO")).thenReturn(true);
-		ResponseEntity<Void> result = endpoints.revokeUserToken("marissa", "BAR",
-				new TestingAuthenticationToken("marissa", ""));
+		ResponseEntity<Void> result = endpoints.revokeUserToken("marissa", "BAR", new TestingAuthenticationToken(
+				"marissa", ""));
 		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
 	}
 
 	@Test
 	public void testRevokeInvalidTokenForUser() throws Exception {
-		OAuth2AccessToken token = new OAuth2AccessToken("BAR");
+		OAuth2AccessToken token = new DefaultOAuth2AccessToken("BAR");
 		Mockito.when(tokenServices.findTokensByUserName("marissa")).thenReturn(Collections.singleton(token));
 		ResponseEntity<Void> result = endpoints.revokeUserToken("marissa", "FOO", new TestingAuthenticationToken(
 				"marissa", ""));
@@ -151,7 +153,7 @@ public class TokenAdminEndpointsTests {
 	@Test
 	public void testRevokeTokenForClient() throws Exception {
 		Mockito.when(tokenServices.findTokensByClientId("foo")).thenReturn(
-				Collections.singleton(new OAuth2AccessToken("FOO")));
+				Collections.<OAuth2AccessToken> singleton(new DefaultOAuth2AccessToken("FOO")));
 		Mockito.when(tokenServices.revokeToken("FOO")).thenReturn(true);
 		ResponseEntity<Void> result = endpoints.revokeClientToken("foo", new StandardPasswordEncoder().encode("FOO"),
 				new TestingAuthenticationToken("foo", ""));
