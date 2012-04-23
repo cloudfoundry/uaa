@@ -235,24 +235,25 @@ Used for Single Sign On (OpenID Connect lite).  Resource ID = `openid`.  Rules:
   
 ### Token Client Resources
 
-The UAA uses HTTP Basic authentication for these resources.  In all
-cases the client must have a secret (so `vmc` and other implicit grant
-clients need not apply).
+The UAA uses HTTP Basic authentication for these resources, so they
+are no OAuth2 protected resources.  In all cases the client must have
+a secret (so `vmc` and other implicit grant clients need not apply).
 
-* Obtain access token
+* Obtain access token at `/oauth/token`
   * Client is authenticated
+  * If grant type is `authorization_code` client must have the code
   
-* Inspect access token
+* Inspect access token at `/check_token`
   * Client is authenticated
-  * Client has `ROLE_CLIENT`
+  * Client has `ROLE_RESOURCE`
   
-* Obtain token key (for decoding JWT tokens locally)
+* Obtain token key (for decoding JWT tokens locally) at `/token_key`
   * Client is authenticated
-  * Client has `ROLE_CLIENT`
+  * Client has `ROLE_RESOURCE`
   
-* Change token key
+* Change token key at `/token_key`
   * Client is authenticated
-  * Client has `ROLE_ADMIN`
+  * Client has `ROLE_RESOURCE` and `ROLE_ADMIN`
 
 ### Management Information
 
