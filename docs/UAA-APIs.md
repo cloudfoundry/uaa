@@ -601,11 +601,11 @@ Example:
     PUT /oauth/clients/foo
     {
       client_id : foo,
-      secret : fooclientsecret, // optional for untrusted clients
+      client_secret : fooclientsecret, // optional for untrusted clients
       scope : [read,write],
       resource-ids : [cloud_controller,scim],
       authorities : [ROLE_CLIENT,ROLE_ADMIN],
-      authorized-grant-types : [client_credentials]
+      authorized_grant_types : [client_credentials]
     }
 
 ### Delete Client

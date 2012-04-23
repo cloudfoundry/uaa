@@ -1,1 +1,2 @@
 language: java
+install: mvn -U install --quiet -DskipTests=true
