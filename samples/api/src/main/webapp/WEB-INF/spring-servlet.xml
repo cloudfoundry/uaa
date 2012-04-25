@@ -73,6 +73,7 @@
 		<property name="mediaTypes">
 			<map>
 				<entry key="/apps" value="application/json" />
+				<entry key="/info" value="application/json" />
 			</map>
 		</property>
 	</bean>

@@ -264,4 +264,8 @@ public class UaaTestAccounts implements TestAccounts {
 				getUserName(), getPassword());
 	}
 
+	public String getCloudControllerUrl() {
+		return environment.getProperty("uaa.test.cloud_controller.url", "http://localhost:8080/api");
+	}
+
 }

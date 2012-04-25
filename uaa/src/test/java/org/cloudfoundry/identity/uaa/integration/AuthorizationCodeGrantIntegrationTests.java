@@ -89,5 +89,5 @@ public class AuthorizationCodeGrantIntegrationTests {
 		location = result.getHeaders().getLocation().toString();
 		assertTrue(location.matches("http://anywhere.*code=.+"));
 	}
-
+	
 }
