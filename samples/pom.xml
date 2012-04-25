@@ -2,7 +2,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 	<parent>
-		<groupId>org.cloudfoundry.runtime</groupId>
+		<groupId>org.cloudfoundry.identity</groupId>
 		<artifactId>cloudfoundry-identity-parent</artifactId>
 		<version>1.0.0.BUILD-SNAPSHOT</version>
 		<relativePath>..</relativePath>
@@ -29,6 +29,13 @@
 		  <configurationDir>${java.io.tmpdir}/uaa/tomcat</configurationDir>
 		</configuration>
 	  </plugin>
+      <plugin>
+        <!--skip deploy (this is just a test module) -->
+        <artifactId>maven-deploy-plugin</artifactId>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
+      </plugin>
 	</plugins>
   </build>
 
