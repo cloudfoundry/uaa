@@ -64,8 +64,8 @@ Access Control Manager
 
 The Access Control Manager (ACM) `source code repository`__ contains a `detailed API document`__.
 
-__ https://github.com/vmware-ac/acm
-__ https://github.com/vmware-ac/acm/blob/master/docs/Access-Control-Manager-APIs.rst
+__ https://github.com/cloudfoundry/acm
+__ https://github.com/cloudfoundry/acm/blob/master/docs/Access-Control-Manager-APIs.rst
 
 Overview
 ----------

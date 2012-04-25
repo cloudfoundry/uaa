@@ -46,7 +46,7 @@ import org.springframework.util.Assert;
  * <p>
  * If the parameter is not present, the filter will have no effect.
  *
- * See <a href="https://github.com/vmware-ac/poc-identity/blob/master/docs/UAA-APIs.md">UUA API Docs</a>
+ * See <a href="https://github.com/cloudfoundry/uaa/blob/master/docs/UAA-APIs.md">UUA API Docs</a>
  */
 public class AuthzAuthenticationFilter implements Filter {
 	private final Log logger = LogFactory.getLog(getClass());
