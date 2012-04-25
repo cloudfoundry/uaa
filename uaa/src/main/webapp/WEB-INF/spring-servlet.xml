@@ -159,7 +159,8 @@
 		</bean>
 		
 	<bean id="jwtTokenEnhancer" class="org.cloudfoundry.identity.uaa.oauth.JwtTokenEnhancer">
-		<property name="key" value="${jwt.token.key:tokenkey}" />
+		<property name="signingKey" value="${jwt.token.signing-key:tokenkey}" />
+		<property name="verifierKey" value="${jwt.token.verification-key:tokenkey}" />
 	</bean>
 
 	<oauth:authorization-server client-details-service-ref="clientDetails" token-services-ref="tokenServices"
