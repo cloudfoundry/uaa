@@ -44,6 +44,7 @@ File.exist?(cfg_file) && File.open(cfg_file) do |f|
 end
 config["varz"]["username"] ||= VCAP.secure_uuid
 config["varz"]["password"] ||= VCAP.secure_uuid
+config["varz"]["uuid"] ||= VCAP.secure_uuid
 
 logger.info("Launching tomcat from PID=#{Process.pid}")
 
@@ -71,12 +72,16 @@ logger.info("Preparing to launch NATS from #{pid}")
 
 router_msg = { :host => config["uaa"]["host"]||"localhost", :port => config["uaa"]["port"]||8080, :uris => config["uaa"]["uris"]||["uaa.vcap.me", "login.vcap.me"], :tags => {:component => "UAA"} }
 router_json = Yajl::Encoder.encode(router_msg)
+
+# If there was more than one node the uuid should be #{index}-#{constant}
 discover_msg = { :type => 'UAA',
   :host => "%s:%s" % [config["uaa"]["host"]||"localhost",  config["uaa"]["port"]||8080],
   :index => 0,
-  :credentials => [config["varz"]["username"], config["varz"]["password"]]
+  :credentials => [config["varz"]["username"], config["varz"]["password"]],
+  :uuid => "0-#{config["varz"]["uuid"]}"
 }
 discover_json = Yajl::Encoder.encode(discover_msg)
+
 logger.info("Sending Router info to NATS: json="+router_json)
 mbus = config["mbus"] || "nats://localhost:4222/"
 

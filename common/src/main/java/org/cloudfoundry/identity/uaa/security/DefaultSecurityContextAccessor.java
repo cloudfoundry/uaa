@@ -46,5 +46,16 @@ public class DefaultSecurityContextAccessor implements SecurityContextAccessor {
 		Authentication a = SecurityContextHolder.getContext().getAuthentication();
 		return ((UaaPrincipal) a.getPrincipal()).getId();
 	}
+	
+	@Override
+	public String getClientId() {
+		Authentication a = SecurityContextHolder.getContext().getAuthentication();
+
+		if (!(a instanceof OAuth2Authentication)) {
+			throw new IllegalStateException("Must be an OAuth2Authentication to check if user is a client");
+		}
+
+		return ((OAuth2Authentication) a).getAuthorizationRequest().getClientId();
+	}
 
 }

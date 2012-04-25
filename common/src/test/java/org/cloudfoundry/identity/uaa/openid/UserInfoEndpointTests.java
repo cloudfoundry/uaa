@@ -46,7 +46,7 @@ public class UserInfoEndpointTests {
 		UaaUser user = userDatabase.retrieveUserByName("olds");
 		UaaAuthentication authentication = UaaAuthenticationTestFactory.getAuthentication(user.getId(), "olds", "olds@vmware.com");
 		Map<String, String> map = endpoint.loginInfo(new OAuth2Authentication(null, authentication));
-		assertEquals("olds", map.get("user_id"));
+		assertEquals("olds", map.get("user_name"));
 		assertEquals("Dale Olds", map.get("name"));
 		assertEquals("olds@vmware.com", map.get("email"));
 	}
@@ -55,7 +55,7 @@ public class UserInfoEndpointTests {
 	public void testMissingUser() {
 		UaaAuthentication authentication = UaaAuthenticationTestFactory.getAuthentication("12345", "Dale", "olds@vmware.com");
 		Map<String, String> map = endpoint.loginInfo(new OAuth2Authentication(null, authentication));
-		assertEquals("olds", map.get("user_id"));
+		assertEquals("olds", map.get("user_name"));
 		assertEquals("Dale Olds", map.get("name"));
 		assertEquals("olds@vmware.com", map.get("email"));
 	}

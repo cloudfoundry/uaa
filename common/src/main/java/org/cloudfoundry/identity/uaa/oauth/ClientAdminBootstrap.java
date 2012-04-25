@@ -18,6 +18,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -38,12 +39,32 @@ public class ClientAdminBootstrap implements InitializingBean {
 
 	private ClientRegistrationService clientRegistrationService;
 
+	private Set<String> clientsToOverride = Collections.emptySet();
+
+	private boolean override = false;
+	
+	/**
+	 * @param override the override to set
+	 */
+	public void setOverride(boolean override) {
+		this.override = override;
+	}
+
 	/**
 	 * @param clients the clients to set
 	 */
 	public void setClients(Map<String, Map<String, Object>> clients) {
 		this.clients = clients == null ? Collections.<String, Map<String, Object>> emptyMap()
 				: new HashMap<String, Map<String, Object>>(clients);
+	}
+
+	/**
+	 * A set of client ids to attempt an update if they already exist (overriding changes made online)
+	 * 
+	 * @param clientsToOverride the clients to override to set
+	 */
+	public void setClientsToOverride(Set<String> clientsToOverride) {
+		this.clientsToOverride = clientsToOverride;
 	}
 
 	/**
@@ -70,6 +91,13 @@ public class ClientAdminBootstrap implements InitializingBean {
 				clientRegistrationService.addClientDetails(client);
 			}
 			catch (ClientAlreadyExistsException e) {
+				if (clientsToOverride.contains(clientId)) {
+					if (override) {
+						logger.info("Overriding client details for " + clientId);
+						clientRegistrationService.updateClientDetails(client);
+						return;
+					}
+				}
 				// ignore it
 				logger.debug(e.getMessage());
 			}

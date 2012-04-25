@@ -202,6 +202,12 @@
 			<groupId>edu.vt.middleware</groupId>
 			<artifactId>vt-password</artifactId>
 			<version>3.1.1</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.bouncycastle</groupId>
+					<artifactId>bcprov-jdk15</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 
 		<dependency>

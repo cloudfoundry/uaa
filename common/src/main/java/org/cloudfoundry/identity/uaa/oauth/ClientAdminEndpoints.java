@@ -12,6 +12,10 @@
  */
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
@@ -23,32 +27,38 @@ import org.springframework.security.oauth2.provider.ClientRegistrationService;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
- * Controller for listing and manipulating OAUth2 clients.
+ * Controller for listing and manipulating OAuth2 clients.
  * 
  * @author Dave Syer
  */
 @Controller
 public class ClientAdminEndpoints {
 
+	private final Log logger = LogFactory.getLog(getClass());
+
 	private ClientRegistrationService clientRegistrationService;
 
 	private ClientDetailsService clientDetailsService;
-	
+
+	private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
+
 	/**
 	 * @param clientRegistrationService the clientRegistrationService to set
 	 */
 	public void setClientRegistrationService(ClientRegistrationService clientRegistrationService) {
 		this.clientRegistrationService = clientRegistrationService;
 	}
-	
+
 	/**
 	 * @param clientDetailsService the clientDetailsService to set
 	 */
@@ -56,7 +66,11 @@ public class ClientAdminEndpoints {
 		this.clientDetailsService = clientDetailsService;
 	}
 
-	@RequestMapping(value="/oauth/clients/{client}", method=RequestMethod.GET)
+	void setSecurityContextAccessor(SecurityContextAccessor securityContextAccessor) {
+		this.securityContextAccessor = securityContextAccessor;
+	}
+
+	@RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.GET)
 	@ResponseBody
 	public ClientDetails getClientDetails(@PathVariable String client) throws Exception {
 		try {
@@ -67,26 +81,86 @@ public class ClientAdminEndpoints {
 		}
 	}
 
-	@RequestMapping(value="/oauth/clients", method=RequestMethod.POST)
+	@RequestMapping(value = "/oauth/clients", method = RequestMethod.POST)
 	public ResponseEntity<Void> createClientDetails(@RequestBody BaseClientDetails details) throws Exception {
 		clientRegistrationService.addClientDetails(details);
 		return new ResponseEntity<Void>(HttpStatus.CREATED);
 	}
 
-	@RequestMapping(value="/oauth/clients/{client}", method=RequestMethod.PUT)
-	public ResponseEntity<Void> updateClientDetails(@RequestBody BaseClientDetails details, @PathVariable String client) throws Exception {
-		Assert.state(client.equals(details.getClientId()), String.format("The client id (%s) does not match the URL (%s)", details.getClientId(), client));
+	@RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.PUT)
+	public ResponseEntity<Void> updateClientDetails(@RequestBody BaseClientDetails details, @PathVariable String client)
+			throws Exception {
+		Assert.state(client.equals(details.getClientId()),
+				String.format("The client id (%s) does not match the URL (%s)", details.getClientId(), client));
 		clientRegistrationService.updateClientDetails(details);
 		return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
 	}
 
-	@RequestMapping(value="/oauth/clients/{client}", method=RequestMethod.DELETE)
+	@RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.DELETE)
 	public ResponseEntity<Void> removeClientDetails(@PathVariable String client) throws Exception {
 		ClientDetails details = clientDetailsService.loadClientByClientId(client);
 		clientRegistrationService.removeClientDetails(details);
 		return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
 	}
-	
+
+	@RequestMapping(value = "/oauth/clients/{client}/password", method = RequestMethod.PUT)
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void changeSecret(@PathVariable String client, @RequestBody SecretChangeRequest change) {
+
+		ClientDetails clientDetails;
+		try {
+			clientDetails = clientDetailsService.loadClientByClientId(client);
+		}
+		catch (InvalidClientException e) {
+			throw new NoSuchClientException("No such client: " + client);
+		}
+
+		checkPasswordChangeIsAllowed(clientDetails, change.getOldSecret());
+
+		BaseClientDetails updated = new BaseClientDetails(clientDetails);
+		updated.setClientSecret(change.getSecret());
+		clientRegistrationService.updateClientDetails(updated);
+
+	}
+
+	private void checkPasswordChangeIsAllowed(ClientDetails clientDetails, String oldSecret) {
+
+		if (!securityContextAccessor.isClient()) {
+			// Trusted client (not acting on behalf of user)
+			throw new IllegalStateException("Only a client can change client secret");
+		}
+
+		String clientId = clientDetails.getClientId();
+
+		// Call is by client
+		String currentClientId = securityContextAccessor.getClientId();
+
+		if (securityContextAccessor.isAdmin()) {
+
+			// even an admin needs to provide the old value to change password
+			if (clientId.equals(currentClientId) && !StringUtils.hasText(oldSecret)) {
+				throw new IllegalStateException("Previous secret is required even for admin");
+			}
+
+		}
+		else {
+
+			if (!clientId.equals(currentClientId)) {
+				logger.warn("Client with id " + currentClientId + " attempting to change password for client "
+						+ clientId);
+				// TODO: This should be audited when we have non-authentication events in the log
+				throw new IllegalStateException("Bad request. Not permitted to change another client's secret");
+			}
+
+			// Client is changing their own secret, old password is required
+			if (!StringUtils.hasText(oldSecret)) {
+				throw new IllegalStateException("Previous secret is required");
+			}
+
+		}
+
+	}
+
 	@ExceptionHandler(NoSuchClientException.class)
 	public ResponseEntity<Void> handleNoSuchClient(NoSuchClientException e) {
 		return new ResponseEntity<Void>(HttpStatus.NOT_FOUND);

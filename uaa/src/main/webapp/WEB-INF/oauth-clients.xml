@@ -27,6 +27,14 @@
 		<expression-handler ref="oauthWebExpressionHandler" />
 	</http>
 
+	<http pattern="/oauth/clients/*/password" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
+		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
+		xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/oauth/clients/*/password" access="IS_AUTHENTICATED_FULLY,SCOPE_PASSWORD" />
+		<custom-filter ref="clientSecretResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
+		<access-denied-handler ref="oauthAccessDeniedHandler" />
+	</http>
+
 	<http pattern="/oauth/clients/**" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"
 		use-expressions="true" authentication-manager-ref="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**"
@@ -46,11 +54,14 @@
 		<expression-handler ref="oauthWebExpressionHandler" />
 	</http>
 
+	<oauth:resource-server id="clientSecretResourceAuthenticationFilter" token-services-ref="tokenServices"
+		entry-point-ref="oauthAuthenticationEntryPoint" />
+
 	<oauth:resource-server id="tokensResourceAuthenticationFilter" token-services-ref="tokenServices"
-		resource-id="tokens" entry-point-ref="oauthAuthenticationEntryPoint"/>
+		resource-id="tokens" entry-point-ref="oauthAuthenticationEntryPoint" />
 
 	<oauth:resource-server id="clientResourceAuthenticationFilter" token-services-ref="tokenServices"
-		resource-id="clients" entry-point-ref="oauthAuthenticationEntryPoint"/>
+		resource-id="clients" entry-point-ref="oauthAuthenticationEntryPoint" />
 
 	<bean id="clientDetails" class="org.springframework.security.oauth2.provider.JdbcClientDetailsService">
 		<constructor-arg ref="dataSource" />
@@ -79,6 +90,8 @@
 	<bean id="clientAdminBootstrap" class="org.cloudfoundry.identity.uaa.oauth.ClientAdminBootstrap">
 		<property name="clientRegistrationService" ref="clientDetails" />
 		<property name="clients" value="#{@config['oauth']?.clients}" />
+		<property name="clientsToOverride" value="admin" />
+		<property name="override" value="${oauth.client.override:false}" />
 	</bean>
 
 	<beans profile="default">
@@ -98,10 +111,11 @@
 					<entry key="app">
 						<map>
 							<entry key="id" value="app" />
-							<entry key="secret" value="appclientsecret"/>
+							<entry key="secret" value="appclientsecret" />
 							<entry key="authorized-grant-types" value="password,authorization_code,refresh_token" />
 							<entry key="scope" value="read,openid" />
-							<entry key="authorities" value="ROLE_CLIENT" />
+							<entry key="authorities" value="ROLE_CLIENT,ROLE_RESOURCE" />
+							<entry key="resource-ids" value="password,cloud_controller,openid,api" />
 						</map>
 					</entry>
 				</map>

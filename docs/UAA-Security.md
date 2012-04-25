@@ -204,6 +204,17 @@ Resource ID = `clients`.  Rules:
   * Client has `ROLE_ADMIN`
   * If token represents user, user has `ROLE_ADMIN`
   * Token has scope `read`
+  
+### Client Secret Mangagement
+
+Resource ID null (so all clients can change their password).  Rule:
+
+* Change secret
+  * Token represents a client (not a user)
+  * Token has scope `password`
+  * Either client has `ROLE_ADMIN` or it can oly change its own secret
+  * Either client has `ROLE_ADMIN` or it provides the old secret
+  * If client is `ROLE_ADMIN` it must provide the old value to change its own secret
 
 ### Password Change
 

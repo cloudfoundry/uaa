@@ -123,7 +123,7 @@ public class TestAccountSetup extends TestWatchman {
 
 	private void createAppClient(RestOperations client) {
 		BaseClientDetails clientDetails = new BaseClientDetails(null, "read,openid",
-				"password,authorization_code,refresh_token", "ROLE_CLIENT");
+				"password,authorization_code,refresh_token", "ROLE_RESOURCE,ROLE_CLIENT");
 		clientDetails.setClientId("app");
 		clientDetails.setClientSecret("appclientsecret");
 		createClient(client, testAccounts.getClientDetails("oauth.clients.app", clientDetails));

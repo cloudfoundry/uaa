@@ -32,5 +32,14 @@ public interface SecurityContextAccessor {
 	 */
 	boolean isAdmin();
 
+	/**
+	 * @return the current user identifier (not primary key)
+	 */
 	String getUserId();
+	
+	/**
+	 * @return the current client identifier or null
+	 */
+	String getClientId();
+
 }

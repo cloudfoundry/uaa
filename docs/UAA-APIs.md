@@ -404,7 +404,8 @@ See [SCIM - Changing Password](http://www.simplecloud.info/specs/draft-scim-rest
 
         {
           "schemas":["urn:scim:schemas:core:1.0"],
-          "password": "newpassword"
+          "password": "newpassword",
+          "oldPassword": "oldpassword"
         }
 
 * Response Body: Empty
@@ -618,6 +619,24 @@ Example:
 
         HTTP/1.1 204 NO_CONTENT
 
+
+### Change Client Secret
+
+* Request: `PUT /oauth/clients/:client_id/password`
+* Access: allowed by clients or users with `ROLE_ADMIN` and `scope=password`
+* Request body: secret change request
+* Reponse code: 204 (NO_CONTENT) if successful
+* Response body: empty
+
+        HTTP/1.1 204 NO_CONTENT
+        
+Example:
+
+    PUT /oauth/clients/foo/password
+    {
+      oldSecret: : fooclientsecret,
+      secret: newclientsceret
+    }
 
 ## UI Endpoints
 

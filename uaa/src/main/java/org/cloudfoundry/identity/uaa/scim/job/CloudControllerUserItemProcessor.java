@@ -79,7 +79,7 @@ public class CloudControllerUserItemProcessor implements ItemProcessor<Map<Strin
 		map.put("familyName", names[1]);
 		
 		if (filterExisting) {
-			if (jdbcTemplate.queryForInt("select count(id) from users where userName=?", email)>0) {
+			if (jdbcTemplate.queryForInt("select count(id) from users where email=?", email)>0) {
 				// Filter this item
 				return null;
 			}

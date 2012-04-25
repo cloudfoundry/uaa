@@ -72,7 +72,8 @@ public class UserInfoEndpoint implements InitializingBean {
 				return null;
 			}
 		};
-		response.put(UserInfo.USER_ID, user.getUsername());
+		response.put(UserInfo.USER_ID, user.getId());
+		response.put(UserInfo.USER_NAME, user.getUsername());
 		response.put(UserInfo.GIVEN_NAME, user.getGivenName());
 		response.put(UserInfo.FAMILY_NAME, user.getFamilyName());
 		response.put(UserInfo.NAME, (user.getGivenName() != null ? user.getGivenName() : "")

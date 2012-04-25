@@ -27,10 +27,15 @@ package org.cloudfoundry.identity.uaa.openid;
 public abstract class UserInfo {
 
 	/**
+	 * A unique id which is never re-assigned.
+	 */
+	public static final String USER_ID = "user_id";
+
+	/**
 	 * A user's unique identifier - the thing that he remembers and types into an authentication prompt, not a system
 	 * primary key.
 	 */
-	public static final String USER_ID = "user_id";
+	public static final String USER_NAME = "user_name";
 
 	/**
 	 * A user's full name as he would prefer to see it formatted.

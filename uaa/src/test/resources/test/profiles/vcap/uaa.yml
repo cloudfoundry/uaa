@@ -6,6 +6,8 @@ uaa:
     username: vcap_tester@vmware.com
     email: vcap_tester@vmware.com
     password: dr0wssaPH@ck
+    cloud_controller:
+      url: http://api.${VCAP_BVT_TARGET:vcap.me}
   host: uaa.${VCAP_BVT_TARGET:vcap.me}
   port: 80
   path: /

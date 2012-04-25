@@ -19,6 +19,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 
+import org.cloudfoundry.identity.uaa.oauth.SecretChangeRequest;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
@@ -98,6 +99,31 @@ public class ClientAdminEndpointsIntegrationTests {
 
 		result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients/{client}"),
 				HttpMethod.PUT, new HttpEntity<BaseClientDetails>(client, headers), Void.class, client.getClientId());
+		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+
+	}
+
+	@Test
+	public void testChangeSecret() throws Exception {
+
+		OAuth2AccessToken token = getClientCredentialsAccessToken("read,write,password");
+
+		HttpHeaders headers = getAuthenticatedHeaders(token);
+
+		BaseClientDetails client = new BaseClientDetails("", "foo,bar", "client_credentials", "ROLE_CLIENT");
+		client.setClientId(new RandomValueStringGenerator().generate());
+		client.setClientSecret("secret");
+		ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
+				HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
+		assertEquals(HttpStatus.CREATED, result.getStatusCode());
+
+		client.setResourceIds(Collections.singleton("foo"));
+
+		SecretChangeRequest change = new SecretChangeRequest();
+		change.setOldSecret(client.getClientSecret());
+		change.setSecret("newsecret");
+		result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients/{client}/password"),
+				HttpMethod.PUT, new HttpEntity<SecretChangeRequest>(change , headers), Void.class, client.getClientId());
 		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
 
 	}
