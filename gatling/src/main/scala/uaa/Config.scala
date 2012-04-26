@@ -13,18 +13,57 @@
 package uaa
 
 import com.excilys.ebi.gatling.http.Predef.httpConfig
+import java.io.File
+import io.Source
 
 /**
  */
 object Config {
-	val urlBase = sys.env.getOrElse("GATLING_UAA_BASE", "http://localhost:8080/uaa")
+  // Number of base data users to create
+  val nUsers = 1000
 
-  val uaa_admin_user = "admin"
-  val uaa_admin_password = "admin"
+  def yetiTarget = for {
+    userHome <- sys.props.get("user.home")
+    yetiFile  = new File(userHome + "/.bvt/config.yml")
+    if (yetiFile.exists())
+    content = Source.fromFile(yetiFile).getLines().toSeq
+    if (content.length > 1)
+    target <- "target: api\\.(.*)".r.findPrefixMatchOf(content(1)).map(_.group(1).trim)
+  } yield {
+    "http://uaa." + target
+  }
 
-  val scim_client_id = "scim"
-  val scim_client_password = "scimsecret"
+  def urlBase = (sys.env.get("VCAP_BVT_TARGET") orElse
+                  yetiTarget).getOrElse("http://localhost:8080/uaa")
 
-	def uaaHttpConfig = httpConfig.baseURL(urlBase)
+  // The bootstrap admin user
+  val admin_client_id = sys.env.getOrElse("VCAP_BVT_ADMIN_CLIENT", "admin")
+  val admin_client_secret = sys.env.getOrElse("VCAP_BVT_ADMIN_SECRET", "adminsecret")
+
+  // "Varz" client
+  val varz_client_id = sys.env.getOrElse("GATLING_UAA_VARZ_CLIENT", "varz")
+  val varz_client_secret = sys.env.getOrElse("GATLING_UAA_VARZ_SECRET", "varzclientsecret")
+
+  // Client to mimic a registered application for authorization code flows etc.
+  val appClient = Client(
+      id = "app_client",
+      secret= "app_client_secret",
+      scopes = Seq("read"),
+      redirectUri = Some("http://localhost:8080/app"),
+      resources = Seq("cloud_controller"),
+      authorities = Seq("ROLE_CLIENT"),
+      grants = Seq("client_credentials", "authorization_code", "refresh_token"))
+
+  // Scim client which is registered by the admin user in order to create users
+  val scimClient = Client("scim_client", "scim_client_secret",
+    Seq("read", "write", "password"), Seq("cloud_controller","scim", "password"), Seq("ROLE_CLIENT","ROLE_ADMIN"))
+
+  // The base user data
+  val users: Seq[User] = (1 to nUsers).map(i => User("shaun" + i, "password"))
+
+  def uaaHttpConfig = {
+    println("Targeting UAA at: " + urlBase)
+    httpConfig.baseURL(urlBase).disableFollowRedirect.disableAutomaticReferer
+  }
 
 }

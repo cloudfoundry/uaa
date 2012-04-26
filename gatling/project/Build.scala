@@ -11,7 +11,7 @@ object GatlingPlugin {
   val gatlingConfigFile = SettingKey[String]("gatling-config-file")
 
   lazy val gatlingSettings = Seq(
-    gatlingVersion := "1.1.1-SNAPSHOT",
+    gatlingVersion := "1.2.5",
     fullClasspath in gatling <<= fullClasspath or (fullClasspath in Runtime),
     gatlingResultsDirectory <<= target(_.getAbsolutePath + "/gatling-results"),
     gatlingDataDirectory <<= (resourceDirectory in Compile).apply(_.getAbsolutePath),
@@ -23,7 +23,7 @@ object GatlingPlugin {
       "com.excilys.ebi.gatling.highcharts" % "gatling-charts-highcharts" % gv)
     },
 
-    gatling <<= (streams, gatlingResultsDirectory, gatlingDataDirectory, gatlingConfigFile, fullClasspath in gatling, classDirectory in Compile, runner in run)
+    gatling <<= (streams, gatlingResultsDirectory, gatlingDataDirectory, gatlingConfigFile, fullClasspath in gatling, classDirectory in Compile, runner)
         map { (s, grd, gdd, gcf, cp, cd, runner) => {
           val args = Array("--results-folder", grd,
                         "--data-folder", gdd,
@@ -40,7 +40,7 @@ object UaaGatlingBuild extends Build {
 
     import GatlingPlugin._
 
-//    val mavenLocalRepo = "Local Maven Repository" at "file://" + Path.userHome.absolutePath +"/.m2/repository"
+    val mavenLocalRepo = "Local Maven Repository" at "file://" + Path.userHome.absolutePath +"/.m2/repository"
 
     val excilysReleaseRepo = "Excilys Release Repo" at "http://repository.excilys.com/content/repositories/releases"
     val excilys3rdPartyRepo = "Excilys 3rd Party Repo" at "http://repository.excilys.com/content/repositories/thirdparty"
@@ -50,9 +50,9 @@ object UaaGatlingBuild extends Build {
 
     val buildSettings = Defaults.defaultSettings ++ gatlingSettings ++ Seq (
       scalaVersion := "2.9.1",
-      gatlingVersion := "1.1.1",
+      gatlingVersion := "1.2.5",
       version      := "0.1-SNAPSHOT",
-      resolvers ++= Seq(excilysReleaseRepo, excilys3rdPartyRepo, jenkinsRepo, typesafeRepo, twitterRepo))
+      resolvers ++= Seq(mavenLocalRepo, excilysReleaseRepo, excilys3rdPartyRepo, jenkinsRepo, typesafeRepo, twitterRepo))
 
     lazy val gatling = Project("gatling", file("."), settings = buildSettings)
 }
