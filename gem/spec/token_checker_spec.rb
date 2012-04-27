@@ -13,7 +13,7 @@
 
 require 'spec_helper'
 require 'uaa/token_checker'
-require 'stub_server'
+require 'cli/stub_server'
 
 describe CF::UAA::TokenChecker do
 

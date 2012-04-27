@@ -76,30 +76,26 @@ class CF::UAA::TokenIssuer
     # this manufactured redirect_uri is a convention here, not part of OAuth2
     redir_uri = "http://uaa.cloudfoundry.com/redirect/#{@client_id}"
     uri = authorize_path_args("token", redir_uri, scope, state = SecureRandom.uuid)
+    headers = {content_type: "application/x-www-form-urlencoded"}
 
     # required for current UAA implementation
-    headers = {content_type: "application/x-www-form-urlencoded"}
     body = "credentials=#{URI.encode(credentials.to_json)}"
 
-    # consistent with the rest of the OAuth calls
-    # headers = {content_type: "application/x-www-form-urlencoded"}
-    # body = URI.encode_www_form(credentials)
-
-    # more flexible and at least consistently json
-    # headers = {content_type: "application/json"}
+    # TODO: the above can be changed to the following to be consistent with
+    # the other OAuth APIs when CFID-239 is done:
     # body = URI.encode_www_form(credentials)
 
     status, body, headers = request(:post, uri, body, headers)
     begin
-      raise CF::UAA::BadResponse unless status == 302
+      raise CF::UAA::BadResponse, "status #{status}" unless status == 302
       loc = headers[:location].split('#')
-      raise CF::UAA::BadResponse unless loc.length == 2 && URI.parse(loc[0]) == URI.parse(redir_uri)
+      raise CF::UAA::BadResponse, "bad location header" unless loc.length == 2 && URI.parse(loc[0]) == URI.parse(redir_uri)
       reply = self.class.decode_oauth_parameters(loc[1])
-      raise CF::UAA::BadResponse unless reply[:state] == state
+      raise CF::UAA::BadResponse, "mismatched state" unless reply[:state] == state
       raise CF::UAA::TargetError.new(reply), "error response from #{@target}" if reply[:error]
-      raise CF::UAA::BadResponse unless reply[:token_type] && reply[:access_token]
-    rescue URI::InvalidURIError, ArgumentError, CF::UAA::BadResponse
-      raise CF::UAA::BadResponse, "bad response from #{@target}, status #{status}"
+      raise CF::UAA::BadResponse, "no type and token" unless reply[:token_type] && reply[:access_token]
+    rescue URI::InvalidURIError, ArgumentError, CF::UAA::BadResponse => e
+      raise CF::UAA::BadResponse, "bad response from #{@target}, #{e.message}"
     end
     CF::UAA::Token.new reply
   end

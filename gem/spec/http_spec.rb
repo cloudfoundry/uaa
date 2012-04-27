@@ -13,7 +13,7 @@
 
 require 'spec_helper'
 require 'uaa/http'
-require 'stub_server'
+require 'cli/stub_server'
 
 describe CF::UAA::Http do
 

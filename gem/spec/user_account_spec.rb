@@ -13,7 +13,7 @@
 
 require 'spec_helper'
 require 'uaa/user_account'
-require 'stub_server'
+require 'cli/stub_server'
 
 describe CF::UAA::UserAccount do
 

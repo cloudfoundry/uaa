@@ -13,9 +13,9 @@
 
 require 'thor'
 require 'yaml'
-require 'uaa/http'
+require 'uaa/util'
 
-class CliCfg
+class CF::UAA::Config
   CONFIG_FILE = "#{ENV['HOME']}/.uaac.yml"
 
   def self.start
@@ -49,10 +49,18 @@ class CliCfg
     save
   end
 
-  def self.clear_target(url, client_id)
-    tgt = "#{normalize_url(url)} #{client_id}".to_sym
-    @curtgt = nil if tgt == @curtgt
-    @config.delete(tgt)
+  def self.set_target_by_index(index)
+    tgt = @config.each_with_index { |(k, v), i| break k if i == index }
+    raise ArgumentError, "invalid target index" unless tgt.is_a? Symbol
+    @config[@curtgt].delete(:current_target) if @curtgt
+    @curtgt = tgt
+    @config[@curtgt][:current_target] = true
+    save
+  end
+
+  def self.clear_target
+    @config.delete(@curtgt)
+    @curtgt = nil
     save
   end
 
@@ -73,10 +81,15 @@ class CliCfg
     @config[@curtgt]
   end
 
-  def self.dump
-    pp @config
+  def self.dump(all)
+    @config.each_with_index do |(t, d), i|
+      next unless all || t == @curtgt
+      puts "[#{i}] [#{CF::UAA.unrubyize_key(t)}]"
+      d.each { |k, v| puts "    #{CF::UAA::unrubyize_key(k)}: #{CF::UAA::truncate(v)}" }
+      puts "\n"
+    end
   end
 
 end
 
-CliCfg.start
+CF::UAA::Config.start

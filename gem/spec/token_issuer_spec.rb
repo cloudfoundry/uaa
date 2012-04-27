@@ -13,7 +13,7 @@
 
 require 'spec_helper'
 require 'uaa/token_issuer'
-require 'stub_server'
+require 'cli/stub_server'
 
 describe CF::UAA::TokenIssuer do
 
