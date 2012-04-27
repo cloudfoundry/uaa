@@ -13,11 +13,13 @@
 
 require 'spec_helper'
 require 'uaa/token_checker'
-require 'stub_server'
+require 'cli/stub_server'
 
-describe CF::UAA::TokenChecker do
+module CF::UAA
 
-  subject { CF::UAA::TokenChecker.new(StubServer.url, "test_resource", "test_secret") }
+describe TokenChecker do
+
+  subject { TokenChecker.new(StubServer.url, "test_resource", "test_secret") }
 
   before :each do
     subject.debug = false
@@ -25,8 +27,8 @@ describe CF::UAA::TokenChecker do
   end
 
   it "should raise an auth error if the given auth header is bad" do
-    expect { subject.decode(nil) }.to raise_exception(CF::UAA::AuthError)
-    expect { subject.decode("one two three") }.to raise_exception(CF::UAA::AuthError)
+    expect { subject.decode(nil) }.to raise_exception(AuthError)
+    expect { subject.decode("one two three") }.to raise_exception(AuthError)
   end
 
   it "should raise a bad response error if the response is not json" do
@@ -36,7 +38,7 @@ describe CF::UAA::TokenChecker do
       reply
     end
     StubServer.request do
-      expect { subject.decode("TestTokType TestToken")}.should raise_exception(CF::UAA::BadResponse)
+      expect { subject.decode("TestTokType TestToken")}.should raise_exception(BadResponse)
     end
   end
 
@@ -50,7 +52,7 @@ describe CF::UAA::TokenChecker do
       reply
     end
     StubServer.request do
-      expect { subject.decode("one two")}.should raise_exception(CF::UAA::TargetError)
+      expect { subject.decode("one two")}.should raise_exception(TargetError)
     end
   end
 
@@ -77,8 +79,23 @@ describe CF::UAA::TokenChecker do
       reply
     end
     StubServer.request do
-      expect { subject.decode("TestTokType TestToken")}.to raise_exception(CF::UAA::AuthError)
+      expect { subject.decode("TestTokType TestToken")}.to raise_exception(AuthError)
     end
   end
+
+  it "should get the validation key" do
+    vkey = "---validation---key---"
+    StubServer.responder do |request, reply|
+      request.path.should == "/token_key"
+      reply.headers[:content_type] = "text/plain"
+      reply.body = vkey
+      reply
+    end
+    StubServer.request do
+      subject.validation_key.should == vkey
+    end
+  end
+
+end
 
 end
