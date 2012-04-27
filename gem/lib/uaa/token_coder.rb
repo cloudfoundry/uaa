@@ -14,16 +14,13 @@
 require "base64"
 require "openssl"
 require "json/pure"
+require "uaa/util"
 
-module CF
-  module UAA
-    class DecodeError < RuntimeError; end
-    class AuthError < RuntimeError; end
-  end
-end
+module CF::UAA
+
+class DecodeError < RuntimeError; end
 
 # This class is for OAuth Resource Servers.
-
 # Resource Servers get tokens and need to validate and decode them,
 # but they do not obtain them from the Authorization Server. This
 # class it for Resource Servers which accept Bearer JWT tokens.  An
@@ -33,81 +30,94 @@ end
 # the signature.  The Authorization Server may also have given the
 # Resource Server an id, in which case it must verify a matching value
 # is in the access token.
-class CF::UAA::TokenCoder
+class TokenCoder
 
-  def self.sign(algorithm, msg, signing_secret)
-    raise DecodeError, "unsupported signing method" unless ["HS256", "HS384", "HS512"].include?(algorithm)
-    OpenSSL::HMAC.digest(OpenSSL::Digest::Digest.new(algorithm.sub('HS', 'sha')), signing_secret, msg)
+  def self.init_digest(algo)
+    OpenSSL::Digest::Digest.new(algo.sub('HS', 'sha').sub('RS', 'sha'))
   end
 
   def self.base64url_decode(str)
+    return nil unless str
     str += '=' * (4 - str.length.modulo(4))
     Base64.decode64(str.gsub("-", "+").gsub("_", "/"))
   end
 
   def self.base64url_encode(str)
+    return nil unless str
     Base64.encode64(str).gsub("+", "-").gsub("/", "_").gsub("\n", "").gsub('=', '')
   end
 
-  # takes a token_body (the middle section of the jwt) and returns a signed access_token
-  def self.encode(token_body, signing_secret)
-    algorithm = 'HS256'
-    segments = [base64url_encode({"typ" => "JWT", "alg" => algorithm}.to_json)]
+  # takes a token_body (the middle section of the jwt) and returns a signed token
+  def self.encode(token_body, skey, pkey = nil, algo = 'HS256')
+    segments = [base64url_encode({"typ" => "JWT", "alg" => algo}.to_json)]
     segments << base64url_encode(token_body.to_json)
-    segments << base64url_encode(sign(algorithm, segments.join('.'), signing_secret))
+    if ["HS256", "HS384", "HS512"].include?(algo)
+      sig = OpenSSL::HMAC.digest(init_digest(algo), skey, segments.join('.'))
+    elsif ["RS256", "RS384", "RS512"].include?(algo)
+      sig = pkey.sign(init_digest(algo), segments.join('.'))
+    elsif algo == "none"
+      sig = ""
+    else
+      raise ArgumentError, "unsupported signing method"
+    end
+    segments << base64url_encode(sig)
     segments.join('.')
   end
 
-  def self.decode(token, signing_secret)
+  def self.decode(token, skey, pkey = nil, verify = true)
     segments = token.split('.')
-    unless (segments.length == 2 || segments.length == 3)
-      raise CF::UAA::DecodeError, "Not enough or too many segments"
-    end
+    raise DecodeError, "Not enough or too many segments" unless [2,3].include? segments.length
     header_segment, payload_segment, crypto_segment = segments
     signing_input = [header_segment, payload_segment].join('.')
     begin
       header = JSON.parse(base64url_decode(header_segment))
-      payload = JSON.parse(base64url_decode(payload_segment), :symbolize_names => true)
-      signature = base64url_decode(crypto_segment)
+      payload = JSON.parse(base64url_decode(payload_segment), symbolize_names: true)
+      signature = base64url_decode(crypto_segment) if verify
     rescue JSON::ParserError
-      raise CF::UAA::DecodeError, "Invalid segment encoding"
+      raise DecodeError, "Invalid segment encoding"
     end
-    algo = header['alg']
-    unless ["HS256", "HS384", "HS512"].include?(algo)
-      raise CF::UAA::DecodeError, "Algorithm not supported"
+    return payload if !verify || (algo = header['alg']) == "none"
+    if ["HS256", "HS384", "HS512"].include?(algo)
+      raise DecodeError, "Signature verification failed" unless
+          signature == OpenSSL::HMAC.digest(init_digest(algo), skey, signing_input)
+    elsif ["RS256", "RS384", "RS512"].include?(algo)
+      raise DecodeError, "Signature verification failed" unless
+          pkey.verify(init_digest(algo), signature, signing_input)
+    else
+      raise DecodeError, "Algorithm not supported"
     end
-    return payload if signing_secret.nil? ||
-        signature == sign(algo, [header_segment, payload_segment].join('.'), signing_secret)
-    raise CF::UAA::AuthError, "Signature verification failed"
+    payload
   end
 
-  # Create a new token coder for the resource id and signing secret
-  # provided. The resource id expresses the audience of an access
-  # token and will be compared with tokens as they are decoded to
-  # ensure that the token was intenbded for this resource. The signing
-  # secret is used by the token granter (Authorization Server) to sign
-  # the key so that we can verify its source. The Authorization Server
-  # shares this secret with its trusted Resource Servers.
-  def initialize(resource_id, signing_secret)
-    # check signing_secret here because we want to ensure that instances validate
-    # signatures. The signing_secret is optional for the class decode method
-    # because it's useful to decode tokens in some cases without validating.
-    unless resource_id && signing_secret
-      raise ArgumentError, "TokenCoder requires a resource_id and signing_secret"
-    end
-    @resource_id, @secret = resource_id, signing_secret
+  # Create a new token en/decoder for a service that is associated with
+  # the the audience_ids, the symmetrical token validation key, and the
+  # public and/or private keys. pkey may be a string or File which includes
+  # public and/or private key data in PEM or DER formats.
+  # The audience_ids may be an array or space separated strings and should
+  # indicate values which indicate the token is intended for this service
+  # instance. It will be compared with tokens as they are decoded to
+  # ensure that the token was intended for this resource. The skey
+  # is used by the token granter (Authorization Server) to sign
+  # the token using symetrical key algoruthms, while the public key
+  # is used to validate signatures for public/private key algorithms.
+  def initialize(audience_ids, skey, pkey)
+    @audience_ids, @skey, @pkey = Util.arglist(audience_ids), skey, pkey
+    @pkey = OpenSSL::PKey::RSA.new(pkey) unless pkey.nil? || pkey.is_a?(OpenSSL::PKey::PKey)
   end
 
   # Encode a JWT token. Takes a hash of values to use as the token body.
   # Returns a signed token in JWT format (header, body, signature).
-  def encode(token_body = {})
-    unless token_body[:resource_ids] || token_body["resource_ids"]
-      token_body[:resource_ids] = [@resource_id]
+  # Algorithm may be HS256, HS384, HS512, RS256, RS384, RS512, or none --
+  # assuming the TokenCoder instance is configured with the appropriate
+  # key -- i.e. pkey must include a private key for the RS algorithms.
+  def encode(token_body = {}, algorithm = 'HS256')
+    unless token_body[:aud] || token_body["aud"]
+      token_body[:aud] = @audience_ids
     end
-    unless token_body[:expires_at] || token_body["expires_at"]
-      token_body[:expires_at] = Time.now.to_i + 7 * 24 * 60 * 60
+    unless token_body[:exp] || token_body["exp"]
+      token_body[:exp] = Time.now.to_i + 7 * 24 * 60 * 60
     end
-    self.class.encode(token_body, @secret)
+    self.class.encode(token_body, @skey, @pkey, algorithm)
   end
 
   # Returns hash of values decoded from the token contents. If the
@@ -116,16 +126,19 @@ class CF::UAA::TokenCoder
   # will also be an AuthError.
   def decode(auth_header)
     unless auth_header && (tkn = auth_header.split).length == 2 && tkn[0] =~ /^bearer$/i
-      raise CF::UAA::DecodeError, "invalid authentication header: #{auth_header}"
+      raise DecodeError, "invalid authentication header: #{auth_header}"
     end
-    reply = self.class.decode(tkn[1], @secret)
-    unless reply[:resource_ids] && reply[:resource_ids].include?(@resource_id)
-      raise CF::UAA::AuthError, "invalid resource audience: #{reply[:resource_ids]}"
+    reply = self.class.decode(tkn[1], @skey, @pkey)
+    auds = Util.arglist(reply[:aud])
+    if auds && @audience_ids && (auds & @audience_ids).empty?
+      raise AuthError, "invalid audience: #{reply[:aud]}"
     end
-    unless reply[:expires_at].is_a?(Integer) && reply[:expires_at] > Time.now.to_i
-      raise CF::UAA::AuthError, "token expired"
+    unless reply[:exp].is_a?(Integer) && reply[:exp] > Time.now.to_i
+      raise AuthError, "token expired"
     end
     reply
   end
+
+end
 
 end

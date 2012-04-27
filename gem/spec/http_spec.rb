@@ -13,19 +13,21 @@
 
 require 'spec_helper'
 require 'uaa/http'
-require 'stub_server'
+require 'cli/stub_server'
 
-describe CF::UAA::Http do
+module CF::UAA
 
-  include CF::UAA::Http
+describe Http do
+
+  include Http
 
   before :each do
     @debug = false
     @target = StubServer.url
     StubServer.responder { <<-REPLY.gsub(/^ +/, '') }
-      HTTP/1.0 200 OK
+      HTTP/1.1 200 OK
       Connection: close
-      Server: nginx/0.7.65
+      Server: http/specs
       Date: Thu, 03 Mar 2011 19:38:32 GMT
       Content-Type: text/plain
       Content-Length: 3
@@ -46,11 +48,31 @@ describe CF::UAA::Http do
       http.errback { f.resume "error" }
       http.callback {
         http.response_header.http_status.should == 200
-        http.response.should match(/Foo/)
-        f.resume "good"
+        f.resume http.response
       }
       res = Fiber.yield
-      res.should == "good"
+      res.should == "Foo"
+    end
+  end
+
+  it "should be able to use persistent connections from stubserver" do
+    StubServer.responder do |request, reply|
+      reply.headers[:content_type] = "text/plain"
+      reply.body = "Foo"
+      reply
+    end
+    StubServer.fiber_request do
+      f = Fiber.current
+      conn = EM::HttpRequest.new(@target)
+      req1 = conn.get keepalive: true
+      req1.errback { f.resume "error1" }
+      req1.callback {
+        req2 = conn.get
+        req2.errback { f.resume req2.error }
+        req2.callback { f.resume req2.response }
+       }
+      res = Fiber.yield
+      res.should == "Foo"
     end
   end
 
@@ -64,24 +86,38 @@ describe CF::UAA::Http do
 
   shared_examples_for "http client" do
 
+    # the following is intended to test that a failed dns lookup will fail the
+    # same way on the buggy em-http-request 1.0.0.beta3 client as it does on
+    # the rest-client. However, some networks (such as the one I am on now)
+    # configure the dhcp client with a dns server that will resolve
+    # every name as a valid address, e.g. bad.example.bad returns an address
+    # to a service signup screen. I have tried stubbing the code in various
+    # ways:
+     # EventMachine.stub(:connect) { raise EventMachine::ConnectionError, "fake error for bad dns lookup" }
+     # EventMachine.unstub(:connect)
+     # Socket.stub(:gethostbyname) { raise SocketError, "getaddrinfo: Name or service not known" }
+     # Socket.unstub(:gethostbyname)
+    # This has had varied success but seems rather brittle. Currently I have opted
+    # to just make the domain name invalid with tildes, but this may not test
+    # the desired code paths
     it "fail cleanly for a failed dns lookup" do
       StubServer.request do
-        @target = "http://bad.example.bad"
-        expect { http_get("/") }.to raise_exception(CF::UAA::BadTarget)
+        @target = "http://bad~host~name/"
+        expect { http_get("/") }.to raise_exception(BadTarget)
       end
     end
 
     it "fail cleanly for a get operation, no connection to address" do
       StubServer.request do
         @target = "http://127.0.0.1:30000"
-        expect { http_get("/") }.to raise_exception(CF::UAA::BadTarget)
+        expect { http_get("/") }.to raise_exception(BadTarget)
       end
     end
 
     it "fail cleanly for a get operation with bad response" do
       StubServer.responder { "badly formatted http response" }
       StubServer.request do
-        expect { http_get("/") }.to raise_exception(CF::UAA::HTTPException)
+        expect { http_get("/") }.to raise_exception(HTTPException)
       end
     end
 
@@ -121,5 +157,7 @@ describe CF::UAA::Http do
     before(:all) { StubServer.use_fiber = @async = false }
     it_should_behave_like "http client"
   end
+
+end
 
 end

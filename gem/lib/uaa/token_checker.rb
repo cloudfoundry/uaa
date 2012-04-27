@@ -11,8 +11,9 @@
 # subcomponent's license, as noted in the LICENSE file.
 #++
 
-require 'base64'
 require 'uaa/http'
+
+module CF::UAA
 
 # This class is for Resource Servers to decode an access token through
 # an HTTP endpoint on the Authorization Server.
@@ -21,9 +22,9 @@ require 'uaa/http'
 # them. This class is for Resource Servers which can accept an opaque
 # token from the Authorization Server and can make a call to the
 # /check_token endpoint to validate the token.
-class CF::UAA::TokenChecker
+class TokenChecker
 
-  include CF::UAA::Http
+  include Http
 
   # Create a new instance of the token checker. Attributes:
   #
@@ -44,12 +45,19 @@ class CF::UAA::TokenChecker
   # with the opaque token.
   def decode(auth_header)
     unless auth_header && (tkn = auth_header.split).length == 2
-      raise CF::UAA::AuthError, "invalid authentication header: #{auth_header}"
+      raise AuthError, "invalid authentication header: #{auth_header}"
     end
-    res_auth = "Basic " + Base64::strict_encode64("#{@resource_id}:#{@secret}")
-    reply = json_get("/check_token?token_type=#{tkn[0]}&token=#{tkn[1]}", res_auth)
+    reply = json_get("/check_token?token_type=#{tkn[0]}&token=#{tkn[1]}", Http.basic_auth(@resource_id, @secret))
     return reply if reply[:resource_ids].include?(@resource_id)
-    raise CF::UAA::AuthError, "invalid resource audience: #{reply[:resource_ids]}"
+    raise AuthError, "invalid resource audience: #{reply[:resource_ids]}"
   end
+
+  def validation_key
+    status, body, headers = http_get("/token_key", "text/plain", Http.basic_auth(@resource_id, @secret))
+    raise BadResponse, "#{@target} returned status #{status}" unless status == 200
+    body
+  end
+
+end
 
 end

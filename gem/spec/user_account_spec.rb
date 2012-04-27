@@ -13,11 +13,13 @@
 
 require 'spec_helper'
 require 'uaa/user_account'
-require 'stub_server'
+require 'cli/stub_server'
 
-describe CF::UAA::UserAccount do
+module CF::UAA
 
-  subject { CF::UAA::UserAccount.new(StubServer.url, 'Bearer example_access_token') }
+describe UserAccount do
+
+  subject { UserAccount.new(StubServer.url, 'Bearer example_access_token') }
 
   before :each do
     subject.debug = false
@@ -49,7 +51,7 @@ describe CF::UAA::UserAccount do
   end
 
   it "should not be possible to access user accounts without an access token" do
-    expect { CF::UAA::UserAccount.new(StubServer.url, nil) }.to raise_exception(CF::UAA::AuthError)
+    expect { UserAccount.new(StubServer.url, nil) }.to raise_exception(AuthError)
   end
 
   it "should complain of bad response if a new user is not assigned an id" do
@@ -59,8 +61,7 @@ describe CF::UAA::UserAccount do
       reply
     end
     StubServer.request do
-      expect { subject.create("jdoe", "password", "jdoe@example.org") }
-          .to raise_exception(CF::UAA::BadResponse)
+      expect { subject.create("jdoe", "password", "jdoe@example.org") }.to raise_exception(BadResponse)
     end
   end
 
@@ -80,8 +81,7 @@ describe CF::UAA::UserAccount do
   it "should raise an error for anything other than a 204 reply" do
     StubServer.responder { |request, reply| reply.status = 200; reply }
     StubServer.request do
-      expect { subject.change_password("testUserId", "newPassw0rd") }
-        .to raise_exception(CF::UAA::BadResponse)
+      expect { subject.change_password("testUserId", "newPassw0rd") }.to raise_exception(BadResponse)
     end
   end
 
@@ -122,8 +122,7 @@ describe CF::UAA::UserAccount do
     @user_id = 'Test_User_Id2'
     StubServer.responder { |request, reply| reply.status = 404; reply }
     StubServer.request do
-      expect { subject.delete(@user_id) }
-        .to raise_exception(CF::UAA::NotFound)
+      expect { subject.delete(@user_id) }.to raise_exception(NotFound)
     end
   end
 
@@ -131,8 +130,7 @@ describe CF::UAA::UserAccount do
     @user_id = 'Test_User_Id3'
     StubServer.responder { |request, reply| reply.status = 401; reply }
     StubServer.request do
-      expect { subject.delete(@user_id) }
-        .to raise_exception(CF::UAA::BadResponse)
+      expect { subject.delete(@user_id) }.to raise_exception(BadResponse)
     end
   end
 
@@ -148,8 +146,7 @@ describe CF::UAA::UserAccount do
       reply
     end
     StubServer.request do
-      expect { subject.delete_by_name(@username) }
-        .to raise_exception(CF::UAA::NotFound)
+      expect { subject.delete_by_name(@username) }.to raise_exception(NotFound)
     end
   end
 
@@ -224,5 +221,7 @@ describe CF::UAA::UserAccount do
       subject.change_password_by_name(@user_name, "new&password").should == true
     end
   end
+
+end
 
 end
