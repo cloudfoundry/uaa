@@ -4,4 +4,4 @@ $:.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
 
 require 'cli'
 
-CF::UAA::TCli.start
+CF::UAA::TCli.run "#{ENV['HOME']}/.uaac.yml"

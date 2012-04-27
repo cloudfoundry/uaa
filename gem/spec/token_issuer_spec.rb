@@ -13,11 +13,13 @@
 
 require 'spec_helper'
 require 'uaa/token_issuer'
-require 'stub_server'
+require 'cli/stub_server'
 
-describe CF::UAA::TokenIssuer do
+module CF::UAA
 
-  subject { CF::UAA::TokenIssuer.new(StubServer.url, "test_app", "test_secret", "read") }
+describe TokenIssuer do
+
+  subject { TokenIssuer.new(StubServer.url, "test_app", "test_secret", "read") }
 
   before :all do
     subject.debug = false
@@ -44,7 +46,7 @@ describe CF::UAA::TokenIssuer do
     it "should get a token with client credentials" do
       StubServer.responder do |request, reply|
         request.path.should == '/oauth/token'
-        request.headers[:authorization].should == CF::UAA::TokenIssuer.client_auth_header("test_app", "test_secret")
+        request.headers[:authorization].should == Http.basic_auth("test_app", "test_secret")
         request.headers[:content_type].should == "application/x-www-form-urlencoded"
         request.headers[:accept].should == "application/json"
         reply.headers[:content_type] = "application/json"
@@ -63,7 +65,7 @@ describe CF::UAA::TokenIssuer do
         reply
       end
       StubServer.request do
-        expect { subject.client_credentials_grant }.should raise_exception(CF::UAA::BadResponse)
+        expect { subject.client_credentials_grant }.should raise_exception(BadResponse)
       end
     end
 
@@ -74,7 +76,7 @@ describe CF::UAA::TokenIssuer do
         reply
       end
       StubServer.request do
-        expect { subject.client_credentials_grant }.should raise_exception(CF::UAA::BadResponse)
+        expect { subject.client_credentials_grant }.should raise_exception(BadResponse)
       end
     end
 
@@ -90,7 +92,7 @@ describe CF::UAA::TokenIssuer do
         begin
           subject.client_credentials_grant
           fail "TargetError exception not raised"
-        rescue CF::UAA::TargetError => e
+        rescue TargetError => e
           e.info[:error].should == "invalid_scope"
           e.info[:error_description].should == "Err!"
           e.info[:error_uri].should == "http://error.example.com"
@@ -107,7 +109,7 @@ describe CF::UAA::TokenIssuer do
       @userpwd = "?joe's%password$@ "
       StubServer.responder do |request, reply|
         request.path.should == '/oauth/token'
-        request.headers[:authorization].should == CF::UAA::TokenIssuer.client_auth_header("test_app", "test_secret")
+        request.headers[:authorization].should == Http.basic_auth("test_app", "test_secret")
         request.headers[:content_type].should == "application/x-www-form-urlencoded"
         request.headers[:accept].should == "application/json"
         request.body.should == URI.encode_www_form({grant_type: 'password', username: @username, password: @userpwd, scope: 'read'})
@@ -161,7 +163,7 @@ describe CF::UAA::TokenIssuer do
             "other json info": ["perhaps", "an", "array"]}>
         reply
       end
-      StubServer.request { expect { subject.prompts}.to raise_exception(CF::UAA::BadResponse) }
+      StubServer.request { expect { subject.prompts}.to raise_exception(BadResponse) }
     end
 
 
@@ -185,7 +187,7 @@ describe CF::UAA::TokenIssuer do
         reply
       end
       StubServer.request do
-        token = subject.implicit_grant(username: "joe", password: "joes password")
+        token = subject.implicit_grant_with_creds(username: "joe", password: "joes password")
         token.auth_header.should == "TokTypE good.access.token"
         token.info[:access_token].should == "good.access.token"
         token.info[:token_type].should == "TokTypE"
@@ -204,8 +206,8 @@ describe CF::UAA::TokenIssuer do
         reply
       end
       StubServer.request do
-        expect { subject.implicit_grant(username: "joe", password: "joes password") }
-            .to raise_exception(CF::UAA::BadResponse)
+        expect { subject.implicit_grant_with_creds(username: "joe", password: "joes password") }
+            .to raise_exception(BadResponse)
       end
     end
 
@@ -221,7 +223,7 @@ describe CF::UAA::TokenIssuer do
         # { headers: {"Location" => loc}, status: 302 }
       #end
       #expect { subject.implicit_grant(username: "n/a", password: "n/a") }
-          #.to raise_exception(CF::UAA::TargetError)
+          #.to raise_exception(TargetError)
     end
 
   end
@@ -244,7 +246,7 @@ describe CF::UAA::TokenIssuer do
       @redir_uri = "http://call.back/uri_path"
       StubServer.responder do |request, reply|
         request.path.should == '/oauth/token'
-        request.headers[:authorization].should == CF::UAA::TokenIssuer.client_auth_header("test_app", "test_secret")
+        request.headers[:authorization].should == Http.basic_auth("test_app", "test_secret")
         request.headers[:content_type].should == "application/x-www-form-urlencoded"
         request.headers[:accept].should == "application/json"
         request.body.should == URI.encode_www_form(
@@ -264,8 +266,10 @@ describe CF::UAA::TokenIssuer do
     it "should reject an access token with an invalid state" do
       authcode_uri = subject.authcode_uri "http://call.back/uri_path"
       expect { subject.authcode_grant(authcode_uri, "code=good.auth.code&state=invalid-state") }
-        .to raise_exception(CF::UAA::BadResponse)
+        .to raise_exception(BadResponse)
     end
   end
+
+end
 
 end

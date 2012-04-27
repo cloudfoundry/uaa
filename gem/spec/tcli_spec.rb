@@ -12,21 +12,30 @@
 #++
 
 require 'spec_helper'
-require 'uaa/id_token'
+require 'stringio'
+require 'cli'
 
 module CF::UAA
 
-describe IdToken do
+describe TCli do
 
-  subject { IdToken.new("http://localhost:8080/uaa", "test token") }
-
-  before :each do
-    subject.debug = false
+  def do_stdio(stdin_str = '')
+    o_stdin, o_stdout, o_stderr = $stdin, $stdout, $stderr
+    $stdin, $stdout, $stderr = StringIO.new(stdin_str), StringIO.new, StringIO.new
+    yield
+    [$stdout.string, $stderr.string]
+  ensure
+    $stdin, $stdout, $stderr = o_stdin, o_stdout, o_stderr
   end
 
-  it "should do something" do
-    subject.debug.should_not be_nil
+  ["-v", "version", "--version", "v"].each do |opt|
+    it "should display a version with #{opt}" do
+      stdout, stderr = do_stdio { TCli.run("", [opt]) }
+      stdout.should match VERSION
+    end
   end
+
+
 
 end
 

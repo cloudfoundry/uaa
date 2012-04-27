@@ -17,9 +17,11 @@
 
 require 'uaa/http'
 
-class CF::UAA::IdToken
+module CF::UAA
 
-  include CF::UAA::Http
+class IdToken
+
+  include Http
 
   # the auth_header parameter refers to a string that can be used in an
   # authorization header. For oauth with jwt tokens this would be something
@@ -69,5 +71,7 @@ class CF::UAA::IdToken
   def user_info
     json_get("/userinfo?schema=openid", @auth_header)
   end
+
+end
 
 end
