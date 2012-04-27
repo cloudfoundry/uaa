@@ -11,19 +11,15 @@
 # subcomponent's license, as noted in the LICENSE file.
 #++
 
-module CF
+module CF::UAA
 
-  module UAA
-
-    # Error to indicate that the caller should prompt for credentials and
-    # try again.
-    class PromptRequiredError < RuntimeError
-      attr_reader :prompts
-      def initialize(prompts)
-        @prompts = prompts
-      end
+  # Error to indicate that the caller should prompt for credentials and
+  # try again.
+  class PromptRequiredError < RuntimeError
+    attr_reader :prompts
+    def initialize(prompts)
+      @prompts = prompts
     end
-
   end
 
 end

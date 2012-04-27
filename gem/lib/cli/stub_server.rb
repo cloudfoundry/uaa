@@ -12,7 +12,9 @@ class StubsRequest
   # adds data to the request, returns true if request is complete
   def complete?(str)
     if @state == :complete
-     add_lines @body.byteslice(@content_length, @body.bytesize - @content_length)
+      # byeslice is available in ruby 1.9.3
+      str = @content_length >= @body.bytesize ? str : @body.respond_to?(:byteslice) ?
+          @body.byteslice(@content_length, @body.bytesize - @content_length) + str : @body[@content_length..-1] + str
     end
     add_lines str
     if @state == :body
@@ -54,8 +56,7 @@ class StubsReply
     @body = ""
   end
   def to_s
-    reply = "HTTP/1.0 #{@status} OK\r\n"
-    headers[:connection] = "close"
+    reply = "HTTP/1.1 #{@status} OK\r\n"
     headers[:server] = "stub server"
     headers[:date] = DateTime.now.httpdate
     headers[:content_length] = @body.bytesize unless @body.empty?
@@ -75,8 +76,15 @@ class StubServer
   module Server
     def receive_data(data)
       if @request.complete? data
-        send_data @responder.call(@request, StubsReply.new).to_s
-        close_connection_after_writing
+        reply = @responder.call @request, StubsReply.new
+        if reply.is_a? StubsReply
+          reply.headers[:connection] ||= @request.headers[:connection] if @request.headers[:connection]
+          send_data reply.to_s
+          close_connection_after_writing if reply.headers[:connection] =~ /^close$/i
+        else
+          send_data reply.to_s
+          close_connection_after_writing
+        end
       end
     end
     def responder=(blk)
@@ -87,7 +95,7 @@ class StubServer
 
   def initialize(&blk)
     @sig = EM.start_server(HOST, PORT, Server) { |s| s.responder = blk }
-    #puts @sig
+    #puts "stub server started, #{@sig}"
     #@port = Socket.unpack_sockaddr_in(EM.get_sockname(@sig))[0]
   end
 
