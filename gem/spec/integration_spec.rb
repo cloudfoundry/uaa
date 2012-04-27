@@ -18,6 +18,8 @@ require 'uaa'
 #ENV["UAA_CLIENT_SECRET"] = "adminclientsecret"
 #ENV["UAA_CLIENT_TARGET"] = "http://localhost:8080/uaa"
 
+module CF::UAA
+
 if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
 
   describe "UAA Integration:" do
@@ -29,20 +31,20 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
     end
 
     it "should report the uaa client version" do
-      CF::UAA::VERSION.should =~ /\d.\d.\d/
+      VERSION.should =~ /\d.\d.\d/
     end
 
     it "makes sure the server is there by getting the prompts for an implicit grant" do
-      toki = CF::UAA::TokenIssuer.new(@target, @client_id, @client_secret, "write")
+      toki = TokenIssuer.new(@target, @client_id, @client_secret, "write")
       puts toki.prompts
     end
 
     context "with a client credentials grant, " do
 
       before :all do
-        toki = CF::UAA::TokenIssuer.new(@target, @client_id, @client_secret, "read write password")
+        toki = TokenIssuer.new(@target, @client_id, @client_secret, "read write password")
         toki.debug = true
-        @user_acct = CF::UAA::UserAccount.new(@target, toki.client_credentials_grant.auth_header)
+        @user_acct = UserAccount.new(@target, toki.client_credentials_grant.auth_header)
         @user_acct.debug = true
         ENV["UAA_USER_NAME"] = @username = "sam_#{Time.now.to_i}"
       end
@@ -79,12 +81,12 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
       #it "deletes the user by name" do
         #@user_acct.delete_by_name(@username)
         #expect { @user_acct.get_by_name(@username) }
-            #.to raise_exception(CF::UAA::NotFound)
+            #.to raise_exception(NotFound)
       #end
 
       #it "complains about an attempt to delete a non-existent user" do
         #expect { @user_acct.delete_by_name("non-existent-user") }
-            #.to raise_exception(CF::UAA::NotFound)
+            #.to raise_exception(NotFound)
       #end
 
     end
@@ -92,7 +94,7 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
     context "with implicit grant, " do
 
       before :all do
-        @toki = CF::UAA::TokenIssuer.new(@target, "vmc", nil, "read write openid password")
+        @toki = TokenIssuer.new(@target, "vmc", nil, "read write openid password")
         @toki.debug = true
       end
 
@@ -102,9 +104,9 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
       end
 
       it "gets a token by an implicit grant" do
-        token = @toki.implicit_grant(username: ENV["UAA_USER_NAME"], password: "newpassword")
+        token = @toki.implicit_grant_with_creds(username: ENV["UAA_USER_NAME"], password: "newpassword")
         puts JSON.pretty_generate(token.info)
-        idt = CF::UAA::IdToken.new(@target)
+        idt = IdToken.new(@target)
         idt.debug = true
         info = idt.user_info(token.info[:access_token])
         puts JSON.pretty_generate(info)
@@ -112,5 +114,7 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
     end
 
   end
+
+end
 
 end

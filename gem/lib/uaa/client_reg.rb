@@ -13,10 +13,12 @@
 
 require 'uaa/http'
 
-# This class is for apps that need to manage Client registrations within the UAA.
-class CF::UAA::ClientReg
+module CF::UAA
 
-  include CF::UAA::Http
+# This class is for apps that need to manage Client registrations within the UAA.
+class ClientReg
+
+  include Http
 
   # the auth_header parameter refers to a string that can be used in an
   # authorization header. For oauth with jwt tokens this would be something
@@ -32,10 +34,10 @@ class CF::UAA::ClientReg
         authorized_grant_types: arglist(grant_types), authorities: arglist(roles) }
     request[:redirect_uri] = arglist(redirect_uris) if redirect_uris
 
-    request[:client_sercet] = secret # TODO: remove this after uaa is fixed.
+    # request[:client_sercet] = secret # TODO: remove this after uaa is fixed.
 
     status, body, headers = json_post("/oauth/clients", request, @auth_header)
-    raise CF::UAA::BadResponse, "invalid response from #{@target}: #{status}" unless status == 201
+    raise BadResponse, "invalid response from #{@target}: #{status}" unless status == 201
   end
 
   def update(id, secret, scopes, resource_ids, grant_types, roles, redirect_uris = nil)
@@ -55,7 +57,7 @@ class CF::UAA::ClientReg
 
   def delete(id)
     unless (status = http_delete("/oauth/clients/#{URI.encode(id)}", @auth_header)) == 200
-      raise (status == 404 ? CF::UAA::NotFound : CF::UAA::BadResponse), "invalid response from #{@target}: #{status}"
+      raise (status == 404 ? NotFound : BadResponse), "invalid response from #{@target}: #{status}"
     end
   end
 
@@ -66,5 +68,7 @@ class CF::UAA::ClientReg
     return arg if arg.respond_to?(:join)
     raise ArgumentError, "argument list must be array or space delimited strings"
   end
+
+end
 
 end

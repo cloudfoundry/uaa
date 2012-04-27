@@ -14,9 +14,11 @@
 require 'spec_helper'
 require 'uaa/id_token'
 
-describe CF::UAA::IdToken do
+module CF::UAA
 
-  subject { CF::UAA::IdToken.new("http://localhost:8080/uaa", "test token") }
+describe IdToken do
+
+  subject { IdToken.new("http://localhost:8080/uaa", "test token") }
 
   before :each do
     subject.debug = false
@@ -25,5 +27,7 @@ describe CF::UAA::IdToken do
   it "should do something" do
     subject.debug.should_not be_nil
   end
+
+end
 
 end

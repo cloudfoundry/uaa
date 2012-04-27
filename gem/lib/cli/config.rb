@@ -11,57 +11,51 @@
 # subcomponent's license, as noted in the LICENSE file.
 #++
 
-require 'thor'
 require 'yaml'
-require 'uaa/http'
+require 'uaa/util'
 
-class CliCfg
-  CONFIG_FILE = "#{ENV['HOME']}/.uaac.yml"
+module CF::UAA
 
-  def self.start
-    @config = File.exists?(CONFIG_FILE) ? CF::UAA.rubyize_keys(YAML.load_file(CONFIG_FILE)) : {}
+class Config
+
+  # if a yaml string is provided, config is loaded from the string, otherwise
+  # config is assumed to be a file name to read and store config.
+  # config can be retrieved in yaml form from Config.yaml
+  def self.start(config = nil)
+    @yaml = (config if config =~ /^--- / || config == "")
+    @config_file = (config unless @yaml)
+    cfg = @config_file? (YAML.load_file(@config_file) if File.exists?(@config_file)): (YAML.load(@yaml) if @yaml)
+    @config = Util.rubyize_keys(cfg) || {}
     @curtgt = nil
     @config.each {|k, v| @curtgt ||= k if v[:current_target] }
   end
 
   def self.save
-    File.open(CONFIG_FILE, 'w') { |f| YAML.dump(CF::UAA.unrubyize_keys(@config), f) }
+    return @yaml = YAML.dump(Util.unrubyize_keys(@config)) unless @config_file
+    File.open(@config_file, 'w') { |f| YAML.dump(Util.unrubyize_keys(@config), f) }
   end
 
-  def self.pp(obj)
-    #puts JSON.pretty_generate(CF::UAA.unrubyize_keys(obj))
-    puts YAML.dump(CF::UAA.unrubyize_keys(obj))
-  end
-
-  def self.normalize_url url
-    raise ArgumentError, "invalid whitespace in target url" if url =~ /\s/
-    uri = URI.parse(url =~ /^https?:\/\// ? url: "https://#{url}")
-    uri.host.downcase!
-    uri.to_s
-  end
-
-  def self.set_target(url, client_id)
-    raise ArgumentError, "invalid target and client" unless url && client_id
+  # tgt can by an integer index of the desired target, or the key (symbol)
+  def self.target=(tgt)
+    if tgt.is_a? Integer
+      tgt = @config.each_with_index { |(k, v), i| break k if i == tgt }
+    end
+    raise ArgumentError, "invalid target" unless tgt.is_a? Symbol
     @config[@curtgt].delete(:current_target) if @curtgt
-    @curtgt = "#{normalize_url(url)} #{client_id}".to_sym
-    @config[@curtgt] ||= {}
-    @config[@curtgt][:current_target] = true
+    @config[tgt] ||= {}
+    @config[tgt][:current_target] = true
+    @curtgt = tgt
     save
   end
 
-  def self.clear_target(url, client_id)
-    tgt = "#{normalize_url(url)} #{client_id}".to_sym
-    @curtgt = nil if tgt == @curtgt
-    @config.delete(tgt)
+  def self.target; @curtgt end
+  def self.yaml; @yaml; end
+  def self.config; @config; end
+
+  def self.delete_target
+    @config.delete(@curtgt)
+    @curtgt = nil
     save
-  end
-
-  def self.target
-    @curtgt.to_s.split[0] if @curtgt
-  end
-
-  def self.client_id
-    @curtgt.to_s.split[1] if @curtgt
   end
 
   def self.opts(hash = nil)
@@ -73,10 +67,6 @@ class CliCfg
     @config[@curtgt]
   end
 
-  def self.dump
-    pp @config
-  end
-
 end
 
-CliCfg.start
+end

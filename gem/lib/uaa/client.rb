@@ -161,7 +161,7 @@ class CF::UAA::Client
     end
     return token if token
 
-    json = CF::UAA.json_parse(body)
+    json = CF::UAA::Util.json_parse(body)
     return json if !json
 
     return json[:access_token]
@@ -206,7 +206,7 @@ class CF::UAA::Client
       'Authorization'=>client_auth(opts)}
     token ||= @token
     status, body, headers = request(:get, "/check_token?token=#{token}", nil, headers)
-    result = CF::UAA.json_parse(body)
+    result = CF::UAA::Util.json_parse(body)
   end
 
   def decode_token(token=nil, opts={})
@@ -262,7 +262,7 @@ class CF::UAA::Client
     }
 
    status, body, headers = http_post("/User", request.to_json, "application/json", "Bearer #{token}")
-    user = CF::UAA.json_parse(body)
+    user = CF::UAA::Util.json_parse(body)
 
     id = user[:id]
     password_request = {:password=>password}

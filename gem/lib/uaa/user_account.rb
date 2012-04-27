@@ -13,11 +13,13 @@
 
 require 'uaa/http'
 
+module CF::UAA
+
 # This class is for apps that need to manage User Accounts.
 # It provides access to the SCIM endpoints on the UAA.
-class CF::UAA::UserAccount
+class UserAccount
 
-  include CF::UAA::Http
+  include Http
 
   # the auth_header parameter refers to a string that can be used in an
   # authorization header. For oauth with jwt tokens this would be something
@@ -25,7 +27,7 @@ class CF::UAA::UserAccount
   # provides an auth_header method for this purpose.
   def initialize(target, auth_header, debug = false)
     unless target && auth_header
-      raise CF::UAA::AuthError, "No target and authorization provided. You must login first to get a token."
+      raise AuthError, "No target and authorization provided. You must login first to get a token."
     end
     @target, @auth_header, @debug = target, auth_header, debug
   end
@@ -41,7 +43,7 @@ class CF::UAA::UserAccount
         name: { givenName: given_name, familyName: family_name }}
     user = json_parse_reply(*json_post("/User", request, @auth_header))
     return user if user[:id]
-    raise CF::UAA::BadResponse, "no user id returned by create user: target #{@target}"
+    raise BadResponse, "no user id returned by create user: target #{@target}"
   end
 
   def change_password(user_id, new_password)
@@ -49,9 +51,9 @@ class CF::UAA::UserAccount
     status, body, headers = json_put("/User/#{user_id}/password", password_request, @auth_header)
     case status
       when 204 then return true
-      when 401 then raise CF::UAA::NotFound
-      when 404 then raise CF::UAA::AuthError
-      else raise CF::UAA::BadResponse, "Change password error: target #{@target}, status #{status}"
+      when 401 then raise NotFound
+      when 404 then raise AuthError
+      else raise BadResponse, "Change password error: target #{@target}, status #{status}"
     end
   end
 
@@ -76,7 +78,7 @@ class CF::UAA::UserAccount
 
   def delete(user_id)
     unless (status = http_delete("/User/#{user_id}", @auth_header)) == 200
-      raise (status == 404 ? CF::UAA::NotFound : CF::UAA::BadResponse), "invalid response from #{@target}: #{status}"
+      raise (status == 404 ? NotFound : BadResponse), "invalid response from #{@target}: #{status}"
     end
   end
 
@@ -94,9 +96,11 @@ class CF::UAA::UserAccount
     qinfo = query_by_value([:id, :active], :username, name)
     unless qinfo && qinfo[:resources] && qinfo[:resources][0] &&
         qinfo[:resources][0][:id] && qinfo[:resources][0][:active] == true
-      raise CF::UAA::NotFound, "user #{name} not found in #{@target}"
+      raise NotFound, "user #{name} not found in #{@target}"
     end
     qinfo[:resources][0][:id]
   end
+
+end
 
 end
