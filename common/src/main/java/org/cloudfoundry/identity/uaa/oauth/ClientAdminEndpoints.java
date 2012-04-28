@@ -12,6 +12,10 @@
  */
 package org.cloudfoundry.identity.uaa.oauth;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
@@ -83,6 +87,7 @@ public class ClientAdminEndpoints {
 
 	@RequestMapping(value = "/oauth/clients", method = RequestMethod.POST)
 	public ResponseEntity<Void> createClientDetails(@RequestBody BaseClientDetails details) throws Exception {
+		validateClient(details);
 		clientRegistrationService.addClientDetails(details);
 		return new ResponseEntity<Void>(HttpStatus.CREATED);
 	}
@@ -90,6 +95,7 @@ public class ClientAdminEndpoints {
 	@RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.PUT)
 	public ResponseEntity<Void> updateClientDetails(@RequestBody BaseClientDetails details, @PathVariable String client)
 			throws Exception {
+		validateClient(details);
 		Assert.state(client.equals(details.getClientId()),
 				String.format("The client id (%s) does not match the URL (%s)", details.getClientId(), client));
 		clientRegistrationService.updateClientDetails(details);
@@ -161,6 +167,11 @@ public class ClientAdminEndpoints {
 
 	}
 
+	@ExceptionHandler(InvalidClientDetailsException.class)
+	public ResponseEntity<String> handleInvalidClientDetails(InvalidClientDetailsException e) {
+		return new ResponseEntity<String>(e.getMessage(), HttpStatus.BAD_REQUEST);
+	}
+
 	@ExceptionHandler(NoSuchClientException.class)
 	public ResponseEntity<Void> handleNoSuchClient(NoSuchClientException e) {
 		return new ResponseEntity<Void>(HttpStatus.NOT_FOUND);
@@ -169,6 +180,26 @@ public class ClientAdminEndpoints {
 	@ExceptionHandler(ClientAlreadyExistsException.class)
 	public ResponseEntity<Void> handleClientAlreadyExists(ClientAlreadyExistsException e) {
 		return new ResponseEntity<Void>(HttpStatus.CONFLICT);
+	}
+
+	private void validateClient(ClientDetails client) {
+		final Set<String> VALID_GRANTS = new HashSet<String>(Arrays.asList("implicit", "password", "client_credentials", "authorization_code", "refresh_token"));
+
+		for (String grant: client.getAuthorizedGrantTypes()) {
+			if (!VALID_GRANTS.contains(grant)) {
+				throw new InvalidClientDetailsException(grant + " is not an allowed grant type. Must be one of: " + VALID_GRANTS.toString());
+			}
+		}
+
+		if (client.getAuthorizedGrantTypes().size() == 1 && client.getAuthorizedGrantTypes().contains("implicit")) {
+			if (StringUtils.hasText(client.getClientSecret())) {
+				throw new InvalidClientDetailsException("implicit grant does not require a client_secret");
+			}
+		} else {
+			if (!StringUtils.hasText(client.getClientSecret())) {
+				throw new InvalidClientDetailsException("client_secret is required for non-implicit grant types");
+			}
+		}
 	}
 
 	private ClientDetails removeSecret(ClientDetails client) {
