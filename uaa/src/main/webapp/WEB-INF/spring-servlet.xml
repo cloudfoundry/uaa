@@ -117,7 +117,7 @@
 	<sec:http pattern="/varz/**" security="none"/>
 	<sec:http pattern="/healthz/**" security="none"/>
 
-	<http access-denied-page="/" authentication-manager-ref="authzAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
+	<http request-matcher-ref="uiRequestMatcher" access-denied-page="/" authentication-manager-ref="authzAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
 		<!-- machine API access to the authorization process itself is allowed -->
 		<intercept-url pattern="/login**" access="IS_AUTHENTICATED_ANONYMOUSLY" />
 		<intercept-url pattern="/oauth/authorize" access="IS_AUTHENTICATED_ANONYMOUSLY" />
@@ -127,6 +127,29 @@
 			username-parameter="username" password-parameter="password" authentication-details-source-ref="authenticationDetailsSource" />
 		<logout logout-success-url="/" logout-url="/logout.do" />
 	</http>
+
+	<bean id="uiRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.DelegatingRequestMatcher">
+		<constructor-arg>
+			<list>
+				<bean class="org.springframework.security.web.util.AntPathRequestMatcher">
+					<constructor-arg value="/"/>
+				</bean>
+				<bean class="org.springframework.security.web.util.AntPathRequestMatcher">
+					<constructor-arg value="/oauth/**"/>
+				</bean>
+				<bean class="org.springframework.security.web.util.AntPathRequestMatcher">
+					<constructor-arg value="/login**"/>
+				</bean>
+			</list>
+		</constructor-arg>
+	</bean>
+
+	<!-- Deny-all "buffer" which a request will hit if it isn't matched by any of the other filter chains -->
+	<sec:http use-expressions="true" entry-point-ref="http403EntryPoint" authentication-manager-ref="emptyAuthenticationManager">
+		<sec:intercept-url pattern="/**" access="denyAll" />
+	</sec:http>
+
+	<bean id="http403EntryPoint" class="org.springframework.security.web.authentication.Http403ForbiddenEntryPoint" />
 
 	<authentication-manager id="clientAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
 		<authentication-provider user-service-ref="clientDetailsUserService">
