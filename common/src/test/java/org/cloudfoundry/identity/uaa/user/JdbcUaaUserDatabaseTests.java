@@ -64,7 +64,6 @@ public class JdbcUaaUserDatabaseTests {
 		TestUtils.assertNoSuchUser(template, "userName", "jo@foo.com");
 
 		db = new JdbcUaaUserDatabase(template);
-		TestUtils.createSchema(dataSource);
 		template.execute("insert into users (id, username, password, email, givenName, familyName) " + "values ('"
 				+ JOE_ID + "', 'joe','joespassword','joe@joe.com','Joe','User')");
 		template.execute("insert into users (id, username, password, email, givenName, familyName) " + "values ('"

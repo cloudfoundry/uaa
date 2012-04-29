@@ -26,11 +26,11 @@ CREATE TABLE USERS (
    constraint unique_uk_1 unique(username)
 ) $!{VOODOO};
 
-ALTER TABLE USERS ADD COLUMN active BOOLEAN not null default true;
-ALTER TABLE USERS #not_null ("created" ${TIMESTAMP});
-ALTER TABLE USERS #not_null ("lastModified" ${TIMESTAMP});
-ALTER TABLE USERS #not_null ("version set" ${TIMESTAMP});
-ALTER TABLE USERS #not_null ("authority" ${TIMESTAMP});
+ALTER TABLE USERS ADD COLUMN active BOOLEAN default true;
+ALTER TABLE USERS #notnull ("created");
+ALTER TABLE USERS #notnull ("lastModified");
+ALTER TABLE USERS #notnull ("version");
+ALTER TABLE USERS #notnull ("authority");
 
 CREATE TABLE SEC_AUDIT (
    principal_id char(36) not null,
@@ -50,3 +50,5 @@ CREATE TABLE OAUTH_CLIENT_DETAILS (
   authorities ${VARCHAR}(256),
   access_token_validity INTEGER
 ) $!{VOODOO};
+
+ALTER TABLE OAUTH_CLIENT_DETAILS ADD COLUMN refresh_token_validity INTEGER default 0;

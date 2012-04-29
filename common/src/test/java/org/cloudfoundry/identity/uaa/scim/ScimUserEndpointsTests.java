@@ -85,7 +85,9 @@ public class ScimUserEndpointsTests {
 
 	@AfterClass
 	public static void tearDown() throws Exception {
-		database.shutdown();
+		if (database != null) {
+			database.shutdown();
+		}
 	}
 
 	@After
