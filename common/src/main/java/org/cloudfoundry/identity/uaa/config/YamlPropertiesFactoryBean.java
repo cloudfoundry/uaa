@@ -161,6 +161,9 @@ public class YamlPropertiesFactoryBean implements FactoryBean<Properties> {
 	}
 
 	private void assignProperties(Properties properties, Map<String, Object> input, String path) {
+		if (input == null) {
+			return;
+		}
 		for (Entry<String, Object> entry : input.entrySet()) {
 			String key = entry.getKey();
 			if (StringUtils.hasText(path)) {

@@ -1,0 +1,105 @@
+#availabilityIndicator {
+	margin-left: 1em;
+	font-weight: bold;
+}
+
+#availabilityIndicator.available {
+	color: green;
+}
+
+#availabilityIndicator.unavailable {
+	color: red;
+}
+
+#micro .flash {
+	color: red;
+}
+
+#micro .nonce {
+	background: white;
+	padding: .4em 1em;
+	-webkit-box-shadow: 0 0 15px rgba(0, 0, 0, .25);
+	-moz-box-shadow: 0 0 15px rgba(0, 0, 0, .25);
+	border-radius: .25em;
+	margin-left: 0.5em;
+	font-size: 1.25em;
+}
+
+#micro table td {
+	padding: 0.3em 0.5em;
+	vertical-align: middle;
+}
+
+#micro hr {
+	margin: 2em auto;
+}
+
+#micro .prominent {
+	font-size: 1.75em;
+}
+
+#micro .domains .buttons {
+	margin: 0;
+}
+
+#micro .note {
+	font-size: 0.8em;
+}
+
+#micro ul.errors {
+	color: red;
+	margin-bottom: 0.25em;
+}
+
+#micro .domains {
+	margin-bottom: 1em;
+}
+
+#micro .button-alt {
+	font-size: 110%;
+}
+
+#micro .footnote {
+	font-size: 60%;
+}
+
+#micro .learnmore li {
+	font-size: 120%;
+}
+
+#micro .error {
+	font-size: 80%;
+	margin-top: 1em;
+}
+
+label {
+  font-weight: bold;
+  display: block;
+  margin-top: 1em;
+  color: #48b8ea;
+}
+
+label.checkbox {
+  display: inline;
+  font-weight: normal;
+  font-size: 80%;
+}
+
+input[type=text],
+input[type=email],
+input[type=password] {
+  width: 100%;
+  margin: 0.5em 0;
+  border: 1px solid #999;
+  background: #FFF;
+}
+
+#terms {
+  padding: 1em;
+  background: white;
+  height: 10em;
+  overflow: auto;
+  outline: 1px solid #999;
+  margin: 1em 0;
+  font-size: 0.8em;
+}
