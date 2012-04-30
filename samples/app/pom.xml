@@ -16,6 +16,12 @@
 	<properties>
 		<m2eclipse.wtp.contextRoot>/app</m2eclipse.wtp.contextRoot>
 		<maven.test.failure.ignore>true</maven.test.failure.ignore>
+		<!-- Brain dead install plugin (Maven 3) cannot extract this stuff from its own configuration -->
+		<file>target/${project.artifactId}-${project.version}.war</file>
+		<groupId>${project.groupId}</groupId>
+		<artifactId>app</artifactId>
+		<version>${project.version}</version>
+		<packaging>war</packaging>
 	</properties>
 
 	<profiles>
@@ -108,6 +114,27 @@
 							<exclude>**/Abstract*.java</exclude>
 						</excludes>
 					</configuration>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-install-plugin</artifactId>
+					<executions>
+						<execution>
+							<id></id>
+							<phase>install</phase>
+							<goals>
+								<goal>install-file</goal>
+							</goals>
+							<inherited>false</inherited>
+							<configuration>
+								<file>target/${project.artifactId}-${project.version}.war</file>
+								<groupId>${project.groupId}</groupId>
+								<artifactId>app</artifactId>
+								<version>${project.version}</version>
+								<packaging>war</packaging>
+							</configuration>
+						</execution>
+					</executions>
 				</plugin>
 			</plugins>
 		</pluginManagement>

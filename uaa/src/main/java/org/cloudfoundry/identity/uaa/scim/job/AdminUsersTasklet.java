@@ -28,6 +28,8 @@ import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
+ * Tasklet to change users' granted authorities.
+ * 
  * @author Dave Syer
  *
  */

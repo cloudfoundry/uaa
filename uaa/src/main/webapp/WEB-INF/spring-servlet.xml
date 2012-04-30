@@ -42,6 +42,7 @@
 		authentication-manager-ref="authzAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<custom-filter ref="authzAuthenticationFilter" position="FORM_LOGIN_FILTER" />
+		<anonymous enabled="false"/>
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
 
@@ -120,9 +121,9 @@
 	<http request-matcher-ref="uiRequestMatcher" access-denied-page="/" authentication-manager-ref="authzAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
 		<!-- machine API access to the authorization process itself is allowed -->
 		<intercept-url pattern="/login**" access="IS_AUTHENTICATED_ANONYMOUSLY" />
-		<intercept-url pattern="/oauth/authorize" access="IS_AUTHENTICATED_ANONYMOUSLY" />
-		<intercept-url pattern="/oauth/**" access="ROLE_USER" />
+		<intercept-url pattern="/oauth/**" access="ROLE_USER,ROLE_CLIENT" />
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+		<custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
 		<form-login authentication-failure-url="/login?error=true" login-page="/login" login-processing-url="/login.do"
 			username-parameter="username" password-parameter="password" authentication-details-source-ref="authenticationDetailsSource" />
 		<logout logout-success-url="/" logout-url="/logout.do" />
@@ -199,6 +200,9 @@
 
 	<oauth:resource-server id="openidResourceAuthenticationFilter" token-services-ref="tokenServices"
 		resource-id="openid" entry-point-ref="oauthAuthenticationEntryPoint"/>
+
+	<oauth:resource-server id="oauthResourceAuthenticationFilter" token-services-ref="tokenServices"
+		resource-id="oauth" entry-point-ref="oauthAuthenticationEntryPoint"/>
 
 	<context:mbean-server id="mbeanServer" />
 

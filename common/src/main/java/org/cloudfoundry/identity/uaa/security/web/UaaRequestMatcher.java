@@ -78,22 +78,22 @@ public final class UaaRequestMatcher implements RequestMatcher {
 			return false;
 		}
 
-		boolean parameterMatch = false;
+		boolean parameterMatch = parameters.isEmpty();
 		for (String key : parameters.keySet()) {
 			String value = request.getParameter(key);
 			parameterMatch = value != null ? value.startsWith(parameters.get(key)) : false;
 		}
-		if (accept == null || parameterMatch) {
+		if (accept == null && parameterMatch) {
 			return true;
 		}
 
-		if (request.getHeader("Accept") == null) {
+		if (request.getHeader("Accept") == null && parameterMatch) {
 			return true;
 		}
 		
 		// TODO: Use mime-type priorities
 		for (MediaType acceptHeader : MediaType.parseMediaTypes(request.getHeader("Accept"))) {
-			return acceptHeader.includes(accept);
+			return acceptHeader.includes(accept) && parameterMatch;
 		}
 		
 		return false;
