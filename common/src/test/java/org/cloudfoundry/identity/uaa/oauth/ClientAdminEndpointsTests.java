@@ -78,7 +78,7 @@ public class ClientAdminEndpointsTests {
 	@Test
 	public void testChangeSecret() throws Exception {
 
-		when(clientDetailsService.loadClientByClientId(details.getClientId())).thenReturn(details);		
+		when(clientDetailsService.loadClientByClientId(details.getClientId())).thenReturn(details);
 
 		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
 		when(sca.getClientId()).thenReturn(details.getClientId());
@@ -98,7 +98,7 @@ public class ClientAdminEndpointsTests {
 	@Test
 	public void testChangeSecretDeniedForUser() throws Exception {
 
-		when(clientDetailsService.loadClientByClientId(details.getClientId())).thenReturn(details);		
+		when(clientDetailsService.loadClientByClientId(details.getClientId())).thenReturn(details);
 
 		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
 		when(sca.getClientId()).thenReturn(details.getClientId());
@@ -117,7 +117,7 @@ public class ClientAdminEndpointsTests {
 	@Test
 	public void testChangeSecretDeniedForNonAdmin() throws Exception {
 
-		when(clientDetailsService.loadClientByClientId(details.getClientId())).thenReturn(details);		
+		when(clientDetailsService.loadClientByClientId(details.getClientId())).thenReturn(details);
 
 		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
 		when(sca.getClientId()).thenReturn("bar");
@@ -136,7 +136,7 @@ public class ClientAdminEndpointsTests {
 	@Test
 	public void testChangeSecretDeniedWhenOldSecretNotProvided() throws Exception {
 
-		when(clientDetailsService.loadClientByClientId(details.getClientId())).thenReturn(details);		
+		when(clientDetailsService.loadClientByClientId(details.getClientId())).thenReturn(details);
 
 		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
 		when(sca.getClientId()).thenReturn(details.getClientId());
@@ -155,7 +155,7 @@ public class ClientAdminEndpointsTests {
 	@Test
 	public void testChangeSecretDeniedWhenOldSecretNotProvidedEvenFormAdmin() throws Exception {
 
-		when(clientDetailsService.loadClientByClientId(details.getClientId())).thenReturn(details);		
+		when(clientDetailsService.loadClientByClientId(details.getClientId())).thenReturn(details);
 
 		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
 		when(sca.getClientId()).thenReturn(details.getClientId());
@@ -174,7 +174,7 @@ public class ClientAdminEndpointsTests {
 	@Test
 	public void testChangeSecretByAdmin() throws Exception {
 
-		when(clientDetailsService.loadClientByClientId(details.getClientId())).thenReturn(details);		
+		when(clientDetailsService.loadClientByClientId(details.getClientId())).thenReturn(details);
 
 		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
 		when(sca.getClientId()).thenReturn("admin");
@@ -201,6 +201,27 @@ public class ClientAdminEndpointsTests {
 		Mockito.verify(clientRegistrationService).removeClientDetails(details);
 	}
 
+	@Test(expected = InvalidClientDetailsException.class)
+	public void implicitClientWithNonEmptySecretIsRejected() throws Exception {
+		details.setAuthorizedGrantTypes(Arrays.asList("implicit"));
+		details.setClientSecret("hello");
+		endpoints.createClientDetails(details);
+	}
+
+
+	@Test(expected = InvalidClientDetailsException.class)
+	public void nonImplicitClientWithEmptySecretIsRejected() throws Exception {
+		details.setAuthorizedGrantTypes(Arrays.asList("client_credentials"));
+		details.setClientSecret("");
+		endpoints.createClientDetails(details);
+	}
+
+	@Test(expected = InvalidClientDetailsException.class)
+	public void invalidGrantTypeIsRejected() throws Exception {
+		details.setAuthorizedGrantTypes(Arrays.asList("not_a_grant_type"));
+		endpoints.createClientDetails(details);
+	}
+
 	@Test
 	public void testHandleNoSuchClient() throws Exception {
 		ResponseEntity<Void> result = endpoints.handleNoSuchClient(new NoSuchClientException("No such client: foo"));
@@ -212,5 +233,6 @@ public class ClientAdminEndpointsTests {
 		ResponseEntity<Void> result = endpoints.handleClientAlreadyExists(new ClientAlreadyExistsException("No such client: foo"));
 		assertEquals(HttpStatus.CONFLICT, result.getStatusCode());
 	}
+
 
 }

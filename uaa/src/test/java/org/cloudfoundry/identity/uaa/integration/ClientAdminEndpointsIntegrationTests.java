@@ -40,6 +40,7 @@ import org.springframework.util.MultiValueMap;
 
 /**
  * @author Dave Syer
+ * @author Luke Taylor
  */
 public class ClientAdminEndpointsIntegrationTests {
 
@@ -75,11 +76,31 @@ public class ClientAdminEndpointsIntegrationTests {
 
 		HttpHeaders headers = getAuthenticatedHeaders(token);
 		BaseClientDetails client = new BaseClientDetails("", "foo,bar", "client_credentials", "ROLE_CLIENT");
+		client.setClientSecret("clientSecret");
 		client.setClientId(new RandomValueStringGenerator().generate());
 		ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
 				HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
 		assertEquals(HttpStatus.CREATED, result.getStatusCode());
 
+	}
+
+	@Test
+	public void nonImplicitGrantClientWithoutSecretIsRejected() throws Exception {
+		OAuth2AccessToken token = getClientCredentialsAccessToken("read,write");
+		HttpHeaders headers = getAuthenticatedHeaders(token);
+		BaseClientDetails client = new BaseClientDetails("", "foo,bar", "client_credentials", "ROLE_CLIENT");
+		client.setClientId(new RandomValueStringGenerator().generate());
+		ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
+				HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
+		assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
+
+		// Check implicit is allowed
+		client = new BaseClientDetails("", "foo,bar", "implicit", "ROLE_CLIENT");
+		client.setClientId(new RandomValueStringGenerator().generate());
+		result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
+				HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
+
+		assertEquals(HttpStatus.CREATED, result.getStatusCode());
 	}
 
 	@Test
@@ -90,6 +111,7 @@ public class ClientAdminEndpointsIntegrationTests {
 		HttpHeaders headers = getAuthenticatedHeaders(token);
 
 		BaseClientDetails client = new BaseClientDetails("", "foo,bar", "client_credentials", "ROLE_CLIENT");
+		client.setClientSecret("clientSecret");
 		client.setClientId(new RandomValueStringGenerator().generate());
 		ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
 				HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
@@ -136,6 +158,7 @@ public class ClientAdminEndpointsIntegrationTests {
 		HttpHeaders headers = getAuthenticatedHeaders(token);
 
 		BaseClientDetails client = new BaseClientDetails("", "foo,bar", "client_credentials", "ROLE_CLIENT");
+		client.setClientSecret("clientSecret");
 		client.setClientId(new RandomValueStringGenerator().generate());
 		ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
 				HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
