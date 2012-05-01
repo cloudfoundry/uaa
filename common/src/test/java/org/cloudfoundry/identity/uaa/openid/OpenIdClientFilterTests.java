@@ -48,7 +48,8 @@ public class OpenIdClientFilterTests {
 			public <T> T getForObject(String url, Class<T> responseType, Object... urlVariables)
 					throws RestClientException {
 				HashMap<String, String> map = new HashMap<String, String>();
-				map.put("user_id", "foo");
+				map.put("user_id", "12345");
+				map.put("user_name", "foo");
 				map.put("email", "foo@bar.com");
 				return (T) map;
 			}

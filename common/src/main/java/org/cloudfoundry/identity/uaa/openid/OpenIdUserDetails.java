@@ -28,7 +28,7 @@ public class OpenIdUserDetails extends User {
     private String name;
     private boolean newUser;
 
-    public OpenIdUserDetails(String id, Collection<GrantedAuthority> authorities) {
+    public OpenIdUserDetails(String id, Collection<? extends GrantedAuthority> authorities) {
         super(id, "unused", authorities);
     }
 

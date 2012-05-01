@@ -13,7 +13,6 @@
 package org.cloudfoundry.identity.uaa.openid;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -21,12 +20,11 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.client.http.AccessTokenRequiredException;
 import org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter;
 import org.springframework.web.client.RestOperations;
@@ -73,9 +71,9 @@ public class OpenIdClientFilter extends AbstractAuthenticationProcessingFilter {
 		if (!map.containsKey("user_id")) {
 			throw new BadCredentialsException("User info does not contain user_id");
 		}
-		String userId = map.get("user_id");
-		List<GrantedAuthority> authorities = Arrays.<GrantedAuthority> asList(new SimpleGrantedAuthority("ROLE_USER"));
-		OpenIdUserDetails user = new OpenIdUserDetails(userId, authorities);
+		String userName = map.get("user_name");
+		List<UaaAuthority> authorities = UaaAuthority.USER_AUTHORITIES;
+		OpenIdUserDetails user = new OpenIdUserDetails(userName, authorities);
 		if (map.containsKey("email")) {
 			user.setEmail(map.get("email"));
 		}
