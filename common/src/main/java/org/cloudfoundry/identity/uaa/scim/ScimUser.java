@@ -231,6 +231,10 @@ public final class ScimUser {
 	public String getPassword() {
 		return password;
 	}
+	
+	protected void setPassword(String password) {
+		this.password = password;
+	}
 
 	public void setUserName(String userName) {
 		this.userName = userName.toLowerCase();
