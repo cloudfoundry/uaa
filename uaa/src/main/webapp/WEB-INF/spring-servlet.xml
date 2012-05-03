@@ -27,7 +27,7 @@
 
 	<authentication-manager id="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security" />
 
-	<bean id="accessDecisionManager" class="org.springframework.security.access.vote.UnanimousBased" xmlns="http://www.springframework.org/schema/beans">
+	<bean id="accessDecisionManager" class="org.springframework.security.access.vote.UnanimousBased">
 		<constructor-arg>
 			<list>
 				<bean class="org.springframework.security.oauth2.provider.vote.ScopeVoter" />
@@ -76,7 +76,7 @@
 
 	<http pattern="/token_key" create-session="stateless" entry-point-ref="basicAuthenticationEntryPoint"
 		authentication-manager-ref="clientAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/**" access="ROLE_ADMIN,ROLE_RESOURCE" method="POST" />
+		<intercept-url pattern="/**" access="ROLE_ADMIN,ROLE_RESOURCE" method="POST" /> <!-- admin *and* resource -->
 		<intercept-url pattern="/**" access="ROLE_RESOURCE" method="GET" />
 		<anonymous enabled="false" />
 		<custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
@@ -127,7 +127,7 @@
 		xmlns="http://www.springframework.org/schema/security">
 		<!-- machine API access to the authorization process itself is allowed -->
 		<intercept-url pattern="/login**" access="IS_AUTHENTICATED_ANONYMOUSLY" />
-		<intercept-url pattern="/oauth/**" access="ROLE_USER,ROLE_CLIENT" />
+		<intercept-url pattern="/oauth/**" access="IS_AUTHENTICATED_FULLY" /> <!-- user *or* client -->
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
 		<form-login authentication-failure-url="/login?error=true" login-page="/login" login-processing-url="/login.do"
