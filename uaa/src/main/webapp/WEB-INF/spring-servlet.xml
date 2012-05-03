@@ -42,13 +42,18 @@
 		authentication-manager-ref="authzAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<custom-filter ref="authzAuthenticationFilter" position="FORM_LOGIN_FILTER" />
-		<anonymous enabled="false"/>
+		<anonymous enabled="false" />
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
 
 	<bean id="oauthAuthorizeRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
 		<constructor-arg value="/oauth/authorize" />
-		<property name="accept" value="application/json" />
+		<property name="accept">
+			<list>
+				<value>application/json</value>
+				<value>application/x-www-form-urlencoded</value>
+			</list>
+		</property>
 		<property name="parameters">
 			<map>
 				<entry key="response_type" value="token" />
@@ -115,10 +120,11 @@
 	<bean id="oauthAccessDeniedHandler" class="org.springframework.security.oauth2.provider.error.OAuth2AccessDeniedHandler" />
 
 	<!-- We need this even though /varz is in a different servlet because the default security filter applies to all requests -->
-	<sec:http pattern="/varz/**" security="none"/>
-	<sec:http pattern="/healthz/**" security="none"/>
+	<sec:http pattern="/varz/**" security="none" />
+	<sec:http pattern="/healthz/**" security="none" />
 
-	<http request-matcher-ref="uiRequestMatcher" access-denied-page="/" authentication-manager-ref="authzAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
+	<http request-matcher-ref="uiRequestMatcher" access-denied-page="/" authentication-manager-ref="authzAuthenticationMgr"
+		xmlns="http://www.springframework.org/schema/security">
 		<!-- machine API access to the authorization process itself is allowed -->
 		<intercept-url pattern="/login**" access="IS_AUTHENTICATED_ANONYMOUSLY" />
 		<intercept-url pattern="/oauth/**" access="ROLE_USER,ROLE_CLIENT" />
@@ -133,13 +139,13 @@
 		<constructor-arg>
 			<list>
 				<bean class="org.springframework.security.web.util.AntPathRequestMatcher">
-					<constructor-arg value="/"/>
+					<constructor-arg value="/" />
 				</bean>
 				<bean class="org.springframework.security.web.util.AntPathRequestMatcher">
-					<constructor-arg value="/oauth/**"/>
+					<constructor-arg value="/oauth/**" />
 				</bean>
 				<bean class="org.springframework.security.web.util.AntPathRequestMatcher">
-					<constructor-arg value="/login**"/>
+					<constructor-arg value="/login**" />
 				</bean>
 			</list>
 		</constructor-arg>
@@ -179,9 +185,9 @@
 	<bean id="tokenServices" class="org.springframework.security.oauth2.provider.token.DefaultTokenServices">
 		<property name="supportRefreshToken" value="true" />
 		<property name="tokenStore" ref="tokenStore" />
-		<property name="tokenEnhancer" ref="jwtTokenEnhancer"/>
-		</bean>
-		
+		<property name="tokenEnhancer" ref="jwtTokenEnhancer" />
+	</bean>
+
 	<bean id="jwtTokenEnhancer" class="org.cloudfoundry.identity.uaa.oauth.JwtTokenEnhancer">
 		<property name="signingKey" value="${jwt.token.signing-key:tokenkey}" />
 		<property name="verifierKey" value="${jwt.token.verification-key:tokenkey}" />
@@ -195,14 +201,14 @@
 		<oauth:client-credentials />
 		<oauth:password authentication-manager-ref="authzAuthenticationMgr" />
 	</oauth:authorization-server>
-	
+
 	<oauth:web-expression-handler id="oauthWebExpressionHandler" />
 
 	<oauth:resource-server id="openidResourceAuthenticationFilter" token-services-ref="tokenServices"
-		resource-id="openid" entry-point-ref="oauthAuthenticationEntryPoint"/>
+		resource-id="openid" entry-point-ref="oauthAuthenticationEntryPoint" />
 
 	<oauth:resource-server id="oauthResourceAuthenticationFilter" token-services-ref="tokenServices"
-		resource-id="oauth" entry-point-ref="oauthAuthenticationEntryPoint"/>
+		resource-id="oauth" entry-point-ref="oauthAuthenticationEntryPoint" />
 
 	<context:mbean-server id="mbeanServer" />
 
@@ -269,7 +275,8 @@
 	<bean id="accessController" class="org.cloudfoundry.identity.uaa.oauth.AccessController">
 		<property name="clientDetailsService" ref="clientDetails" />
 		<!-- Always use HTTPS if deployed on cloudfoundry -->
-		<property name="useSsl" value="#{applicationProperties['oauth.authorize.ssl']?:(T(java.lang.System).getenv('VCAP_APPLICATION')!=null ? true : null)}"/>
+		<property name="useSsl"
+			value="#{applicationProperties['oauth.authorize.ssl']?:(T(java.lang.System).getenv('VCAP_APPLICATION')!=null ? true : null)}" />
 	</bean>
 
 	<bean id="homeController" class="org.cloudfoundry.identity.uaa.home.HomeController" />
