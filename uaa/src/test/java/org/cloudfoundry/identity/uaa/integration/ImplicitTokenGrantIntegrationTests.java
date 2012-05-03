@@ -99,8 +99,9 @@ public class ImplicitTokenGrantIntegrationTests {
 		formData.add("credentials", credentials);
 		ResponseEntity<Void> result = serverRunning.postForResponse(implicitUrl(), headers, formData);
 
-		assertNotNull(result.getHeaders().getLocation());
-		assertTrue(result.getHeaders().getLocation().toString()
+		URI location = result.getHeaders().getLocation();
+		assertNotNull(location);
+		assertTrue("Wrong location: " + location, location.toString()
 				.matches("http://uaa.cloudfoundry.com/redirect/vmc#access_token=.+"));
 
 	}

@@ -12,7 +12,9 @@
  */
 package org.cloudfoundry.identity.uaa.security.web;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
@@ -36,7 +38,7 @@ public final class UaaRequestMatcher implements RequestMatcher {
 
 	private final String path;
 
-	private MediaType accept;
+	private List<MediaType> accepts;
 
 	private Map<String, String> parameters = new HashMap<String, String>();
 
@@ -52,10 +54,10 @@ public final class UaaRequestMatcher implements RequestMatcher {
 	 * A media type that should be present in the accept header for a request to match. Optional (if null then all
 	 * values match).
 	 * 
-	 * @param accept the accept header value to set
+	 * @param accepts the accept header value to set
 	 */
-	public void setAccept(MediaType accept) {
-		this.accept = accept;
+	public void setAccept(List<MediaType> accepts) {
+		this.accepts = Collections.unmodifiableList(accepts);
 	}
 
 	/**
@@ -71,7 +73,7 @@ public final class UaaRequestMatcher implements RequestMatcher {
 	public boolean matches(HttpServletRequest request) {
 		if (logger.isDebugEnabled()) {
 			logger.debug("Checking match of request : '" + request.getRequestURI() + "'; against '"
-					+ request.getContextPath() + path + "'");
+					+ request.getContextPath() + path + "' with parameters=" + parameters);
 		}
 
 		if (!request.getRequestURI().startsWith(request.getContextPath() + path)) {
@@ -83,19 +85,23 @@ public final class UaaRequestMatcher implements RequestMatcher {
 			String value = request.getParameter(key);
 			parameterMatch = value != null ? value.startsWith(parameters.get(key)) : false;
 		}
-		if (accept == null && parameterMatch) {
+		if (accepts == null && parameterMatch) {
 			return true;
 		}
 
 		if (request.getHeader("Accept") == null && parameterMatch) {
 			return true;
 		}
-		
+
 		// TODO: Use mime-type priorities
 		for (MediaType acceptHeader : MediaType.parseMediaTypes(request.getHeader("Accept"))) {
-			return acceptHeader.includes(accept) && parameterMatch;
+			for (MediaType accept : accepts) {
+				if (acceptHeader.includes(accept) && parameterMatch) {
+					return true;
+				}
+			}
 		}
-		
+
 		return false;
 	}
 
@@ -109,18 +115,18 @@ public final class UaaRequestMatcher implements RequestMatcher {
 			return false;
 		}
 
-		if (this.accept == null) {
+		if (this.accepts == null) {
 			return true;
 		}
 
-		return this.accept.equals(other.accept);
+		return this.accepts.equals(other.accepts);
 	}
 
 	@Override
 	public int hashCode() {
 		int code = 31 ^ path.hashCode();
-		if (accept != null) {
-			code ^= accept.hashCode();
+		if (accepts != null) {
+			code ^= accepts.hashCode();
 		}
 		return code;
 	}
@@ -130,8 +136,8 @@ public final class UaaRequestMatcher implements RequestMatcher {
 		StringBuilder sb = new StringBuilder();
 		sb.append("UAAPath ['").append(path).append("'");
 
-		if (accept != null) {
-			sb.append(", ").append(accept);
+		if (accepts != null) {
+			sb.append(", ").append(accepts);
 		}
 
 		sb.append("]");
