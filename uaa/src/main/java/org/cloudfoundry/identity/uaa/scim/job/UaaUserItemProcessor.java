@@ -34,18 +34,20 @@ import org.springframework.jdbc.core.JdbcTemplate;
 public class UaaUserItemProcessor implements ItemProcessor<Map<String, ?>, Map<String, ?>> {
 
 	private static Log logger = LogFactory.getLog(UaaUserItemProcessor.class);
-	
+
 	private boolean filterExisting = false;
-	
+
+	private int count = 0;
+
 	private JdbcOperations jdbcTemplate;
-	
+
 	public void setDataSource(DataSource dataSource) {
 		jdbcTemplate = new JdbcTemplate(dataSource);
 	}
-	
+
 	/**
 	 * Filter out records where there is already an account in the target database.
-	 *  
+	 * 
 	 * @param filterExisting the flag to set
 	 */
 	public void setFilterExisting(boolean filterExisting) {
@@ -66,12 +68,20 @@ public class UaaUserItemProcessor implements ItemProcessor<Map<String, ?>, Map<S
 		map.put("CRYPTED_PASSWORD", item.get("password"));
 
 		if (filterExisting) {
-			if (jdbcTemplate.queryForInt("select count(id) from users where email=?", email)>0) {
+			if (jdbcTemplate.queryForInt("select count(id) from users where email=?", email) > 0) {
 				// Filter this item
 				return null;
 			}
 		}
-		
+
+		count++;
+		if (count <= 1000) {
+			logger.debug("User account processed (" + count + "): " + map);
+			if (count == 1000) {
+				logger.debug("Logging of user accounts processed stopped");
+			}
+		}
+
 		return map;
 
 	}
