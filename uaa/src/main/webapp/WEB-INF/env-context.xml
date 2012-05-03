@@ -12,11 +12,11 @@
 		<property name="propertiesArray">
 			<list>
 				<bean class="org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean">
-					<property name="resource" value="classpath:/uaa.yml" />
-					<property name="keyReplacements">
+					<property name="resources" value="classpath:/uaa.yml" />
+					<property name="documentMatchers">
 						<map>
-							<entry key="databases.#{@platform}" value="database" />
-							<entry key="cloud_controller.databases.#{@platform}" value="cloud_controller.database" />
+							<entry key="platform" value="default" />
+							<entry key="platform" value-ref="platform" />
 						</map>
 					</property>
 				</bean>

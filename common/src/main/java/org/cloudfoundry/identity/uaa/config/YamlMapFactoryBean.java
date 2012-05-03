@@ -12,15 +12,11 @@
  */
 package org.cloudfoundry.identity.uaa.config;
 
-import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Properties;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.FactoryBean;
-import org.springframework.core.io.Resource;
-import org.yaml.snakeyaml.Yaml;
 
 /**
  * Factory for Map that reads from a YAML source. YAML is a nice human-readable format for configuration, and it has
@@ -29,72 +25,18 @@ import org.yaml.snakeyaml.Yaml;
  * @author Dave Syer
  * 
  */
-public class YamlMapFactoryBean implements FactoryBean<Map<String, Object>> {
-
-	private static final Log logger = LogFactory.getLog(YamlMapFactoryBean.class);
-
-	public static enum ResolutionMethod {
-		OVERRIDE, OVERRIDE_AND_IGNORE, FIRST_FOUND
-	}
-
-	private ResolutionMethod resolutionMethod = ResolutionMethod.OVERRIDE;
-
-	private Resource[] resources = new Resource[0];
-
-	/**
-	 * Method to use for resolving resources. Each resource will be converted to a Map, so this property is used to
-	 * decide which map entries to keep in the final output from this factory. Possible values:
-	 * <ul>
-	 * <li><code>OVERRIDE</code> for replacing values from earlier in the list</li>
-	 * <li><code>FIRST_FOUND</code> if you want to take the first resource in the list that exists and use just that. If
-	 * this is set it implies {@link #setIgnoreResourceNotFound(boolean) ignoreResourceNotFound} is true (there's no
-	 * need to set both).</li>
-	 * </ul>
-	 * 
-	 * 
-	 * @param resolutionMethod the resolution method to set. Defaults to OVERRIDE.
-	 */
-	public void setResolutionMethod(ResolutionMethod resolutionMethod) {
-		this.resolutionMethod = resolutionMethod;
-	}
-
-	/**
-	 * @param resource the resource to set
-	 */
-	public void setResources(Resource[] resources) {
-		this.resources = resources;
-	}
+public class YamlMapFactoryBean extends YamlProcessor implements FactoryBean<Map<String, Object>> {
 
 	@Override
-	public Map<String, Object> getObject() throws Exception {
-		Yaml yaml = new Yaml();
-		Map<String, Object> result = new LinkedHashMap<String, Object>();
-		boolean found = false;
-		for (Resource resource : resources) {
-			try {
-				logger.info("Loading map from YAML: " + resource);
-				@SuppressWarnings("unchecked")
-				Map<String, Object> map = (Map<String, Object>) yaml.load(resource.getInputStream());
-				if (resolutionMethod != ResolutionMethod.FIRST_FOUND || !found) {
-					result.putAll(map);
-					found = true;
-				}
-				else {
-					break; // no need to load any more
-				}
+	public Map<String, Object> getObject() {
+		final Map<String, Object> result = new LinkedHashMap<String, Object>();
+		MatchCallback callback = new MatchCallback() {
+			@Override
+			public void process(Properties properties, Map<String, Object> map) {
+				result.putAll(map);
 			}
-			catch (IOException e) {
-				if (resolutionMethod == ResolutionMethod.FIRST_FOUND
-						|| resolutionMethod == ResolutionMethod.OVERRIDE_AND_IGNORE) {
-					if (logger.isWarnEnabled()) {
-						logger.warn("Could not load map from " + resource + ": " + e.getMessage());
-					}
-				}
-				else {
-					throw e;
-				}
-			}
-		}
+		};
+		process(callback);
 		return result;
 	}
 

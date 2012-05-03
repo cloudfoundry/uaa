@@ -19,6 +19,7 @@ import java.util.Properties;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.config.EnvironmentPropertiesFactoryBean;
+import org.cloudfoundry.identity.uaa.config.YamlProcessor.ResolutionMethod;
 import org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.PropertiesPropertySource;
@@ -55,8 +56,8 @@ public class TestProfileEnvironment {
 			resource = recourceLoader.getResource(location);
 			if (resource != null && resource.exists()) {
 				YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
-				factory.setResource(resource);
-				factory.setIgnoreResourceNotFound(true);
+				factory.setResources(new Resource[] {resource});
+				factory.setResolutionMethod(ResolutionMethod.OVERRIDE_AND_IGNORE);
 				properties.putAll(factory.getObject());
 			}
 		}

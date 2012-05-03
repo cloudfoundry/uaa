@@ -15,12 +15,11 @@ package org.cloudfoundry.identity.uaa.config;
 
 import static org.junit.Assert.assertEquals;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 
-import org.cloudfoundry.identity.uaa.config.YamlMapFactoryBean.ResolutionMethod;
+import org.cloudfoundry.identity.uaa.config.YamlProcessor.ResolutionMethod;
 import org.junit.Test;
 import org.springframework.core.io.AbstractResource;
 import org.springframework.core.io.ByteArrayResource;
@@ -42,7 +41,7 @@ public class YamlMapFactoryBeanTests {
 		assertEquals(0, factory.getObject().size());
 	}
 
-	@Test(expected=FileNotFoundException.class)
+	@Test(expected=IllegalStateException.class)
 	public void testSetBarfOnResourceNotFound() throws Exception {
 		factory.setResources(new FileSystemResource[] {new FileSystemResource("non-exsitent-file.yml")});
 		assertEquals(0, factory.getObject().size());

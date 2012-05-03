@@ -18,6 +18,7 @@ import java.util.Properties;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
 
+import org.cloudfoundry.identity.uaa.config.YamlProcessor.ResolutionMethod;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.PropertiesPropertySource;
@@ -81,8 +82,8 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 		try {
 			servletContext.log("Loading YAML environment properties from location: " + resource);
 			YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
-			factory.setIgnoreResourceNotFound(true);
-			factory.setResource(resource);
+			factory.setResolutionMethod(ResolutionMethod.OVERRIDE_AND_IGNORE);
+			factory.setResources(new Resource[] { resource });
 			Properties properties = factory.getObject();
 			applySpringProfiles(properties, applicationContext.getEnvironment(), servletContext);
 			applyLog4jConfiguration(properties, applicationContext.getEnvironment(), servletContext);

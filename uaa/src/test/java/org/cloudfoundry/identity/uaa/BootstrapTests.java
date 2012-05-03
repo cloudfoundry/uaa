@@ -27,6 +27,7 @@ import org.springframework.batch.admin.service.JobService;
 import org.springframework.context.support.GenericXmlApplicationContext;
 import org.springframework.core.env.PropertiesPropertySource;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -35,23 +36,23 @@ import org.springframework.util.StringUtils;
 
 /**
  * @author Dave Syer
- *
+ * 
  */
 public class BootstrapTests {
-	
+
 	private GenericXmlApplicationContext context;
-	
+
 	@Before
 	public void setup() throws Exception {
-		System.clearProperty("spring.profiles.active");		
+		System.clearProperty("spring.profiles.active");
 	}
-	
+
 	@After
 	public void cleanup() throws Exception {
-		System.clearProperty("spring.profiles.active");		
+		System.clearProperty("spring.profiles.active");
 		System.clearProperty("CLOUD_FOUNDRY_CONFIG_PATH");
 		System.clearProperty("UAA_CONFIG_FILE");
-		if (context!=null) {
+		if (context != null) {
 			if (context.containsBean("scimEndpoints")) {
 				TestUtils.deleteFrom(context.getBean("dataSource", DataSource.class), "users", "sec_audit");
 			}
@@ -98,39 +99,42 @@ public class BootstrapTests {
 
 	@Test
 	public void testOverrideYmlConfigPath() throws Exception {
-		context = getServletContext("hsqldb", "file:./src/main/webapp/WEB-INF/spring-servlet.xml", "classpath:/test/config/test-override.xml");
+		context = getServletContext("hsqldb", "file:./src/main/webapp/WEB-INF/spring-servlet.xml",
+				"classpath:/test/config/test-override.xml");
 		assertEquals("different", context.getBean("foo", String.class));
 	}
 
 	private GenericXmlApplicationContext getServletContext(String... resources) {
-		
+
 		String profiles = null;
 		String[] resourcesToLoad = resources;
 		if (!resources[0].endsWith(".xml")) {
 			profiles = resources[0];
-			resourcesToLoad = new String[resources.length-1];
+			resourcesToLoad = new String[resources.length - 1];
 			System.arraycopy(resources, 1, resourcesToLoad, 0, resourcesToLoad.length);
 		}
 
-		GenericXmlApplicationContext parent = new GenericXmlApplicationContext("file:./src/main/webapp/WEB-INF/applicationContext.xml");
+		GenericXmlApplicationContext parent = new GenericXmlApplicationContext(
+				"file:./src/main/webapp/WEB-INF/applicationContext.xml");
 
 		GenericXmlApplicationContext context = new GenericXmlApplicationContext();
 		context.setParent(parent);
 		context.load(resourcesToLoad);
 
-		if (profiles!=null) {
+		if (profiles != null) {
 			context.getEnvironment().setActiveProfiles(StringUtils.commaDelimitedListToStringArray(profiles));
 		}
 
 		// Simulate what happens in the webapp when the YamlServletProfileInitializer kicks in
 		YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
-		factory.setResource(new FileSystemResource("./src/test/resources/test/config/uaa.yml"));
-		context.getEnvironment().getPropertySources().addLast(new PropertiesPropertySource("servletProperties", factory.getObject()));
+		factory.setResources(new Resource[] { new FileSystemResource("./src/test/resources/test/config/uaa.yml") });
+		context.getEnvironment().getPropertySources()
+				.addLast(new PropertiesPropertySource("servletProperties", factory.getObject()));
 
 		context.refresh();
 
 		return context;
-		
+
 	}
 
 }
