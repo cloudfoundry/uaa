@@ -191,6 +191,9 @@ EOF
         opts.on('-g', '--grant_type TYPE', '--grant-type TYPE', 'Set the grant type of the token request (available as supported by server for this client)') do |grant_type|
           @options[:grant_type] = grant_type
         end
+        opts.on('-r', '--redirect_uri URI', '--redirect-uri URI', 'Set the redirect uri') do |uri|
+          @options[:redirect_uri] = uri
+        end
         @options[:save_token] = true
         opts.on('-s', '--[no-]save-token', 'If set (') do |save_token|
           @options[:save_token] = save_token
