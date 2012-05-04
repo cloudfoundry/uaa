@@ -46,6 +46,15 @@
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
 
+	<http request-matcher-ref="loginAuthorizeRequestMatcher" entry-point-ref="oauthAuthenticationEntryPoint"
+		authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+		<custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
+		<custom-filter ref="loginAuthenticationFilter" position="FORM_LOGIN_FILTER" />
+		<anonymous enabled="false"/>
+		<access-denied-handler ref="oauthAccessDeniedHandler" />
+	</http>
+
 	<bean id="oauthAuthorizeRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
 		<constructor-arg value="/oauth/authorize" />
 		<property name="accept">
@@ -62,8 +71,23 @@
 		</property>
 	</bean>
 
+	<bean id="loginAuthorizeRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
+		<constructor-arg value="/oauth/authorize" />
+		<property name="accept" value="application/json" />
+		<property name="parameters">
+			<map>
+				<entry key="login" value="{" />
+			</map>
+		</property>
+	</bean>
+
 	<bean id="authzAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationFilter">
 		<constructor-arg ref="authzAuthenticationMgr" />
+	</bean>
+
+	<bean id="loginAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationFilter">
+		<constructor-arg ref="loginAuthenticationMgr" />
+		<property name="parameterName" value="login" />
 	</bean>
 
 	<http pattern="/check_token" create-session="stateless" entry-point-ref="basicAuthenticationEntryPoint"
@@ -129,7 +153,6 @@
 		<intercept-url pattern="/login**" access="IS_AUTHENTICATED_ANONYMOUSLY" />
 		<intercept-url pattern="/oauth/**" access="IS_AUTHENTICATED_FULLY" /> <!-- user *or* client -->
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
-		<custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
 		<form-login authentication-failure-url="/login?error=true" login-page="/login" login-processing-url="/login.do"
 			username-parameter="username" password-parameter="password" authentication-details-source-ref="authenticationDetailsSource" />
 		<logout logout-success-url="/" logout-url="/logout.do" />
@@ -247,7 +270,7 @@
 			</map>
 		</property>
 		<property name="viewResolvers">
-			<bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+			<bean class="org.cloudfoundry.identity.uaa.web.ForwardAwareInternalResourceViewResolver">
 				<property name="prefix" value="/WEB-INF/jsp/" />
 				<property name="suffix" value=".jsp" />
 			</bean>
@@ -294,6 +317,10 @@
 				<property name="lockoutPeriodSeconds" value="300" />
 			</bean>
 		</property>
+	</bean>
+
+	<bean id="loginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LoginAuthenticationManager">
+		<property name="scimUserBootstrap" ref="scimUserBootstrap"/>
 	</bean>
 
 </beans>
