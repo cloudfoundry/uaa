@@ -1,0 +1,6 @@
+uaa:
+  url: https://uaa.cloudfoundry.com
+  token:
+    url: https://uaa.cloudfoundry.com/oauth/token
+  login:
+    url: https://uaa.cloudfoundry.com/login.do

@@ -1,0 +1,673 @@
+/*
+html5doctor.com Reset Stylesheet
+v1.6.1
+Last Updated:  2010-09-17
+Author:  Richard Clark - http: //richclarkdesign.com
+Twitter:  @rich_clark
+*/
+
+html, body, div, span, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+abbr, address, cite, code,
+del, dfn, em, img, ins, kbd, q, samp,
+small, strong, sub, sup, var,
+b, i,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, figcaption, figure,
+footer, header, hgroup, menu, nav, section, summary,
+time, mark, audio, video {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  font-size: 100%;
+  vertical-align: baseline;
+  background: transparent;
+}
+
+body {
+  line-height: 1;
+}
+
+article, aside, details, figcaption, figure,
+footer, header, hgroup, menu, nav, section {
+  display: block;
+}
+
+nav ul,
+nav li {
+  list-style: none;
+  margin: 0;
+}
+
+blockquote, q {
+  quotes: none;
+}
+
+blockquote:before, blockquote:after,
+q:before, q:after {
+  content: '';
+  content: none;
+}
+
+a {
+  margin: 0;
+  padding: 0;
+  font-size: 100%;
+  vertical-align: baseline;
+  background: transparent;
+}
+
+/* change colours to suit your needs */
+ins {
+  background-color: #ff9;
+  color: #000;
+  text-decoration: none;
+}
+
+/* change colours to suit your needs */
+mark {
+  background-color: #ff9;
+  color: #000;
+  font-style: italic;
+  font-weight: bold;
+}
+
+del {
+  text-decoration:  line-through;
+}
+
+abbr[title], dfn[title] {
+  border-bottom: 1px dotted;
+  cursor: help;
+}
+
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+/* change border colour to suit your needs */
+hr {
+  display: block;
+  height: 1px;
+  border: 0;
+  border-top: 1px solid #cccccc;
+  margin: 1em 0;
+  padding: 0;
+}
+
+input, select {
+  vertical-align: middle;
+}
+
+/* end reset sytle sheet */
+
+/* oocss headings */
+h1, .h1, h2, .h2, h3, .h3, h4, .h4, h5, .h5, h6, .h6 {
+  font-weight: normal;
+}
+
+h1, .h1 { font-size: 196%;   }
+h2, .h2 { font-size: 167%;   }
+h3, .h3 { font-size: 146.5%; }
+h4, .h4 { font-size: 123.1%; }
+h5, .h5 { font-size: 108%;   }
+h6, .h6 { font-size: 108%;   }
+
+/* oocss grids */
+.line:after,.lastUnit:after{clear:both;display:block;visibility:hidden;overflow:hidden;height:0 !important;line-height:0;font-size:xx-large;content:" x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x ";}
+.line{*zoom:1;}
+.unit{float:left;}
+.unit .unitContainer {margin-left:0.5em;margin-right:0.5em;}
+.unit.first .unitContainer {margin-left:0;margin-right:0.5em}
+.unit.last .unitContainer {margin-left:0.5em;margin-right:0}
+.size1of1{float:none;}
+.size1of2{width:50%;}
+.size1of3{width:33.33333%;}
+.size2of3{width:66.66666%;}
+.size1of4{width:25%;}
+.size3of4{width:75%;}
+.size1of5{width:20%;}
+.size2of5{width:40%;}
+.size3of5{width:60%;}
+.size4of5{width:80%;}
+.size1of10{width:10%;}
+.size3of10{width:30%;}
+.size7of10{width:70%;}
+.size9of10{width:90%;}
+.lastUnit{display:table-cell;float:none;width:auto;*display:block;*zoom:1;_position:relative;_left:-3px;_margin-right:-3px;}
+
+
+
+
+/* base styles... */
+/* fluid images and objects */
+img, object, embed { max-width:100%; }
+
+/* selection */
+::selection      { background: #48b8ea; color: white; }
+::-moz-selection { background: #48b8ea; color: white; }
+
+img::selection      { background: transparent; }
+img::-moz-selection { background: transparent; }
+
+@media only screen and (max-device-width: 480px) {
+	html { -webkit-text-size-adjust: none; }
+	a    { -webkit-tap-highlight-color: rgba(200,0,0,0.4); }
+}
+
+
+/* for font sizing percentages developer.yahoo.com/yui/3/cssfonts */
+body { font:13px/1.231 sans-serif; *font-size:small; } /* hack retained to preserve specificity */
+select, input, textarea, button { font:99% sans-serif; }
+pre, code, kbd, samp { font-family: monospace, sans-serif; }
+
+
+body, select, input, textarea {
+  color: #444;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+/* accessible focus treatment: http://j.mp/4LqUR */
+a:hover, a:active { outline: none; }
+
+a, a:active, a:visited { color: #607890; text-decoration: none; border-bottom: 1px solid #607890; }
+a:hover                { color: #036; }
+
+ul, ol { margin-left: 1.8em; }
+ol { list-style-type: decimal; }
+
+small { font-size: 85%; }
+strong, th { font-weight: bold; }
+
+td, td img { vertical-align: top; }
+
+sub { vertical-align: sub;   font-size: smaller; }
+sup { vertical-align: super; font-size: smaller; }
+
+pre {
+  padding: 15px;
+  white-space: pre;
+  white-space: pre-wrap;
+  white-space: pre-line;
+  word-wrap: break-word;
+}
+
+textarea { overflow: auto; }
+
+/* hand cursor on clickable input elements */
+label, input[type=button], input[type=submit], button { cursor: pointer; }
+
+/* webkit browsers add a 2px margin outside the chrome of form elements */
+button, input, select, textarea { margin: 0; }
+
+/* colors for form validity */
+input:valid, textarea:valid   {  }
+input:invalid, textarea:invalid {
+      border-radius: 1px;
+    -moz-box-shadow: 0px 0px 5px red;
+ -webkit-box-shadow: 0px 0px 5px red;
+         box-shadow: 0px 0px 5px red;
+}
+
+/* IE... */
+.ie6 legend, .ie7 legend { margin-left: -7px; }
+
+/* make buttons play nice in IE: http://j.mp/gajWbQ */
+button {  width: auto; overflow: visible; }
+
+/* bicubic resizing for non-native sized IMG: http://j.mp/gZsu6A */
+.ie7 img { -ms-interpolation-mode: bicubic; }
+/* ...IE */
+/* ...base styles */
+
+/*
+light grey   : #ededed
+medium grey  : #717074
+cute blue    : #48b8ea
+medium green : #149947
+*/
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: #ededed;
+}
+
+.cloud { margin-right: .25em; }
+
+.small-word {
+  font-family: times, serif;
+  font-style: italic;
+  font-weight: normal;
+}
+
+/* layout... */
+.container,
+#home header[role=banner] hgroup,
+#home #intro,
+footer[role=contentinfo] {
+/*  width: 80%;*/
+/*  max-width: 960px;*/
+  width: 960px;
+
+  margin-left:  auto;
+  margin-right: auto;
+}
+/* ...layout */
+
+/* header... */
+header[role=banner] nav#secondary,
+header[role=banner] nav#welcome {
+  background: #eee;
+  border-bottom: 0;
+  text-align: right;
+}
+
+header[role=banner] nav#welcome {
+  padding-bottom: 0;
+}
+
+header[role=banner] nav#secondary li,
+header[role=banner] nav#welcome li {
+  margin: 0;
+  padding: 0;
+  display: inline;
+}
+
+header[role=banner] nav {
+  width: 100%;
+  padding: 16px 0;
+  background: #ccc;
+  border-bottom: 3px solid #bbb;
+}
+
+header[role=banner] h1,
+header[role=banner] h2 {
+  font-size: 18px;
+  height: 16px;
+  margin: 0;
+}
+
+header[role=banner] h1 a {
+  border-bottom: none;
+}
+
+header[role=banner] h1,
+header[role=banner] h2 {
+  color: #666;
+}
+
+header[role=banner] h1 a {
+  color: black;
+  font-weight: bold;
+}
+
+#secondary {
+  font-size: 150%;
+}
+
+header[role="banner"] nav#secondary li a {
+  margin-left: .5em;
+  display: inline-block;
+  color: black;
+}
+
+header[role="banner"] nav#secondary li a:hover {
+  color: #67CDF1;
+  border-bottom: 1px solid #67CDF1;
+}
+
+#vmware {
+  float: right;
+  margin: 0 0 0 16px;
+  text-indent: -999em;
+  background: url(../images/vmware.png) no-repeat right bottom;
+  width: 100px;
+  height: 16px;
+  border: none;
+}
+/* ... header */
+
+/* footer... */
+footer[role=contentinfo] {
+  margin-top:    9em;
+  margin-bottom: 2em;
+  background: none;
+}
+
+footer[role=contentinfo] ul,
+footer[role=contentinfo] li {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  text-align: right;
+  color: #717074;
+  font-size: 10px;
+}
+
+footer[role=contentinfo] li:first-child {
+  float: left;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+footer[role=contentinfo] li {
+  display: inline;
+  border-right: 1px solid #a1a0a4;
+  padding-right: .5em;
+  margin-right:  .5em;
+}
+
+footer[role=contentinfo] li:last-child {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+/* ...footer */
+
+/* ie banner... */
+.old_ie #ie {
+  background: yellow;
+  padding: 2em 0;
+}
+
+.old_ie #ie h1 {
+  font-weight: bold;
+}
+
+.old_ie #ie p {
+  margin-bottom: .5em;
+}
+
+.old_ie #ie ul {
+  margin: 0;
+}
+
+.old_ie #ie li {
+  display: inline;
+  font-size: 125%;
+  margin-right: .5em;
+}
+
+.old_ie #beta {
+  display: none;
+}
+/* ...ie banner */
+
+
+/* beta... */
+#beta {
+  text-indent: -999em;
+  background: url(../images/beta.png) no-repeat;
+  position: fixed;
+  top:  0;
+  left: 0;
+  height: 207px;
+  width:  207px;
+}
+
+
+
+.beta {
+  font-weight: normal;
+  opacity: .5;
+  text-shadow: none;
+  font-size: 12px;
+}
+/* ...beta */
+
+dt {
+  font-size: 250%;
+  font-weight: bold;
+  margin-top: 1em;
+}
+
+#captcha_div,
+label {
+  display: block;
+  margin-top: 1em;
+}
+
+label.checkbox {
+  display: inline;
+}
+
+section h1 {
+  font-weight: bold;
+  margin-bottom: .25em;
+}
+
+section h2 {
+  color: #48b8ea;
+  margin: .5em 0 .25em 0;
+}
+
+/* thanks and signup... */
+article h1 {
+  font-size: 4em;
+}
+
+article {
+  margin: 2em auto;
+}
+
+ol,
+p {
+  font-size: 175%;
+  margin-bottom: 1em;
+}
+
+#intro b {
+  padding: .1em .2em;
+  line-height: 150%;
+}
+/* ...thanks and signup */
+
+/* form... */
+form {
+  margin: 1em 0;
+  font-size: 200%;
+}
+
+label {
+  font-weight: bold;
+  display: block;
+  margin-top: 1em;
+  color: #48b8ea;
+}
+
+label.checkbox {
+  display: inline;
+  font-weight: normal;
+  font-size: 80%;
+}
+
+input[type=text],
+input[type=url],
+input[type=email],
+input[type=password] {
+  width: 100%;
+  margin-left: -3px;
+}
+
+#terms {
+  padding: 1em;
+  background: white;
+  height: 10em;
+  overflow: auto;
+  outline: 1px solid #999;
+  font-size: .3em;
+  margin: 3em 0 2em 0;
+}
+
+#terms p {
+}
+
+#terms + p.note {
+  font-size: 12px;
+  color: #666;
+}
+
+.buttons {
+  margin-top: 1em;
+}
+
+.buttons.normalSize form {
+	font-size: 100%;
+	display: inline-block;
+	margin: 0;
+}
+
+.buttons .button,
+.buttons button {
+  display: inline-block;
+  zoom: 1; /* zoom and *display = ie7 hack for display:inline-block */
+  *display: inline;
+  vertical-align: baseline;
+  margin: 0 2px;
+  outline: none;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  padding: .5em 2em .55em;
+  text-shadow: 0 1px 1px rgba(0,0,0,.3);
+  -webkit-box-shadow: 0 1px 2px rgba(0,0,0,.2);
+  -moz-box-shadow:    0 1px 2px rgba(0,0,0,.2);
+  box-shadow:         0 1px 2px rgba(0,0,0,.2);
+  -webkit-border-radius: 2em;
+  -moz-border-radius:    2em;
+  border-radius:         2em;
+  color: white;
+  border: solid 1px #538312;
+  background: #64991e;
+  background: -webkit-gradient(linear, left top, left bottom, from(#7db72f), to(#4e7d0e));
+  background: -moz-linear-gradient(top, #7db72f, #4e7d0e);
+}
+.buttons .button:hover,
+.buttons button:hover {
+  text-decoration: none;
+  background: #538018;
+  background: -webkit-gradient(linear, left top, left bottom, from(#6b9d28), to(#436b0c));
+  background: -moz-linear-gradient(top, #6b9d28, #436b0c);
+}
+.buttons .button:active,
+.buttons button:active {
+  position: relative;
+  top: 1px;
+  color: white;
+  background: -webkit-gradient(linear, left top, left bottom, from(#4e7d0e), to(#7db72f));
+  background: -moz-linear-gradient(top, #4e7d0e, #7db72f);
+}
+.buttons .button[disabled],
+.buttons button[disabled] {
+  border-color: #666666;
+  background: #999999 !important;
+  background: -webkit-gradient(linear, left top, left bottom, from(#b7b7b7), to(#7d7d7d)) !important;
+  background: -moz-linear-gradient(top, #b7b7b7, #7d7d7d) !important;
+}
+
+.buttons .button.caution,
+.buttons button.caution {
+  border-color: #bfa51a;
+  background: #d4ba2a;
+  background: -webkit-gradient(linear, left top, left bottom, from(#ceb73e), to(#baa015));
+  background: -moz-linear-gradient(top, #ceb73e, #baa015);
+}
+.buttons .button.caution:hover,
+.buttons button.caution:hover {
+  background: #b9a223;
+  background: -webkit-gradient(linear, left top, left bottom, from(#ceb73e), to(#a68f13));
+  background: -moz-linear-gradient(top, #ceb73e, #a68f13);
+}
+.buttons .button.caution:active,
+.buttons button.caution:active {
+  background: #999999;
+  background: -webkit-gradient(linear, left top, left bottom, from(#baa015), to(#d5c25b));
+  background: -moz-linear-gradient(top, #baa015, #d5c25b);
+}
+
+.buttons .button.warn,
+.buttons button.warn {
+  border-color: #921f14;
+  background: #aa2e21;
+  background: -webkit-gradient(linear, left top, left bottom, from(#c94134), to(#8c1a10));
+  background: -moz-linear-gradient(top, #c94134, #8c1a10);
+}
+.buttons .button.warn:hover,
+.buttons button.warn:hover {
+  background: #8e251b;
+  background: -webkit-gradient(linear, left top, left bottom, from(#ad372c), to(#78170d));
+  background: -moz-linear-gradient(top, #ad372c, #78170d);
+}
+.buttons .button.warn:active,
+.buttons button.warn:active {
+  background: -webkit-gradient(linear, left top, left bottom, from(#8c1a10), to(#c94134));
+  background: -moz-linear-gradient(top, #8c1a10, #c94134);
+}
+
+.buttons .button.nav,
+.buttons button.nav {
+  border-color: #1740a6;
+  background: #244db9;
+  background: -webkit-gradient(linear, left top, left bottom, from(#3e67cd), to(#123da1));
+  background: -moz-linear-gradient(top, #3e67cd, #123da1);
+}
+.buttons .button.nav:hover,
+.buttons button.nav:hover {
+  background: #1f44a2;
+  background: -webkit-gradient(linear, left top, left bottom, from(#3058bc), to(#103391));
+  background: -moz-linear-gradient(top, #3058bc, #103391);
+}
+.buttons .button.nav:active,
+.buttons button.nav:active {
+  background: -webkit-gradient(linear, left top, left bottom, from(#123da1), to(#3e67cd));
+  background: -moz-linear-gradient(top, #123da1, #3e67cd);
+}
+/* ...form */
+
+
+/* shared buttons... */
+.button.big,
+button.big {
+  font-size: 200%;
+  display: block;
+}
+/* ...shared buttons */
+
+/* signup... */
+p#scroll {
+  margin-top: 2em;
+  margin-bottom: 0;
+  font-size: .66em;
+  color: #666;
+  text-align: right;
+}
+/* ...signup */
+
+.new:after {
+  content: "New!";
+  color: #ff8920;
+  font-size: 60%;
+  vertical-align: super;
+  padding-left: 0.2em;
+}
+
+nav hgroup + hgroup {
+	margin-top: 1em;
+}
+
+.right {
+	text-align: right;
+}
+
+.center {
+	text-align: center;
+}
+

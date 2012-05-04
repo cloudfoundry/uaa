@@ -1,0 +1,99 @@
+* html .column, * html .span-1, * html .span-2, * html .span-3, * html .span-4, * html .span-5, * html .span-6, * html .span-7, * html .span-8, * html .span-9, * html .span-10, * html .span-11, * html .span-12, * html .span-13, * html .span-14, * html .span-15, * html .span-16, * html .span-17, * html .span-18, * html .span-19, * html .span-20, * html .span-21, * html .span-22, * html .span-23, * html .span-24 {
+	display: inline;
+	overflow-x: hidden;
+}
+/* .clearfix, .container {
+	display: inline-block;
+}
+* html .clearfix, * html .container, * html .container-wrap {
+	height: 1%;
+} */
+input.button-submit:focus {background: transparent !important;}
+
+/* Add CSS3PIE behavior to show CSS3 styles in IE6-8 */
+#supernav,
+#supernav ul,
+#main-nav li a,
+#main-nav li.selected:hover a,	
+#main-nav li span,
+#main-nav li.selected:hover span,
+.content-wrap,
+#sidebar .callout,
+.orange-button a,
+.gray-button a,
+.blue-button a,
+.form-wrap,
+.form-wrap input.button-submit,
+#featured {
+	position: relative;
+    behavior: url(PIE.htc);
+}
+
+
+/* Adjust gradient style to show CSS3PIE version. 
+The filter property needs to be removed from some rules to make it work */
+#supernav ul {
+    -pie-background: linear-gradient(top, #ffffff 0%,#e5e5e5 100%);
+	filter: none;
+	}
+#main-nav {
+    -pie-background: linear-gradient(top, #f5f5f5 0%,#d5d8da 100%);
+	}
+#main-nav li:hover {
+    -pie-background: linear-gradient(top, #e7ebee 0%,#b8bbbf 100%);
+	}
+#main-nav li.selected {
+    -pie-background: linear-gradient(top, #cdcdcd 0%,#e0e0e0 20%,#f5f5f5 100%);
+	} 
+
+#main-nav li a,
+#main-nav li.selected:hover a,
+#main-nav li span,
+#main-nav li.selected:hover span {
+	filter: none;
+}
+
+.orange-button a {
+    -pie-background: linear-gradient(top, #ff8d30 0%,#ff7300 100%);
+	filter: none;
+}
+.orange-button a:hover {
+    -pie-background: linear-gradient(top, #ff7300 0%,#ff8d30 100%);
+	filter: none;
+}
+.gray-button a {
+    -pie-background: linear-gradient(top, #ffffff 0%,#cdcdcd 100%);
+	filter: none;
+}
+.gray-button a:hover {
+    -pie-background: linear-gradient(top, #cdcdcd 0%,#ffffff 100%);
+	filter: none;
+}
+.blue-button a {
+    -pie-background: linear-gradient(top, #0094d3 0%,#0073a5 100%);
+	filter: none;
+}
+.blue-button a:hover {
+    -pie-background: linear-gradient(top, #0073a5 0%,#0094d3 100%);
+	filter: none;
+}
+.manage .item .gray-button a {
+    -pie-background: url('../images/button_regenerate.png') 7% 10px no-repeat, linear-gradient(top, #ffffff 0%,#cdcdcd 100%);
+	filter: none;
+}
+.manage .item .gray-button a:hover {
+    -pie-background: url('../images/button_regenerate.png') 7% 10px no-repeat, linear-gradient(top, #cdcdcd 0%,#ffffff 100%);
+	filter: none;
+}
+.form-wrap.login input.button-submit,
+.manage .form-wrap input.button-submit
+{
+    -pie-background: linear-gradient(top, #0094d3 0%,#0073a5 100%);
+	filter: none;
+}
+.form-wrap.login input.button-submit:hover,
+.manage .form-wrap input.button-submit:hover
+{
+    -pie-background: linear-gradient(top, #0073a5 0%,#0094d3 100%);
+	filter: none;
+}

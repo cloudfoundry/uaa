@@ -1,0 +1,6 @@
+uaa:
+  url: http://uaa.vcap.me
+  token:
+    url: http://uaa.vcap.me/oauth/token
+  login:
+    url: http://uaa.vcap.me/login.do

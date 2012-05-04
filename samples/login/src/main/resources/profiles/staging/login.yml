@@ -1,0 +1,6 @@
+uaa:
+  url: https://uaa.cf01.qa.las01.vcsops.com
+  token:
+    url: https://uaa.cf01.qa.las01.vcsops.com/oauth/token
+  login:
+    url: https://uaa.cf01.qa.las01.vcsops.com/login.do

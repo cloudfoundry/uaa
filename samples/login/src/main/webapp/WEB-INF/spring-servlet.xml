@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- Cloud Foundry 2012.02.03 Beta Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved. This product is licensed to 
+	you under the Apache License, Version 2.0 (the "License"). You may not use this product except in compliance with the License. 
+	This product includes a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents 
+	is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file. -->
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns="http://www.springframework.org/schema/beans" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:sec="http://www.springframework.org/schema/security" xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-1.0.xsd
+		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-3.1.xsd
+		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.1.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.1.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+
+	<!-- The data source has to be defined first -->
+	<import resource="env-context.xml" />
+
+	<context:property-placeholder properties-ref="applicationProperties" />
+
+	<sec:http pattern="/resources/**" security="none" />
+	<sec:http pattern="/favicon.ico" security="none" />
+	<sec:http pattern="/login" security="none" />
+	<sec:http pattern="/login_info" security="none" />
+	<sec:http pattern="/oauth/token" security="none" />
+
+	<!-- Version of the /authorize endpoint for stateless clients such as VMC -->
+	<http request-matcher-ref="oauthAuthorizeRequestMatcher" create-session="stateless" security="none"
+		xmlns="http://www.springframework.org/schema/security" />
+
+	<bean id="oauthAuthorizeRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
+		<constructor-arg value="/oauth/authorize" />
+		<property name="accept" value="application/json" />
+		<property name="parameters">
+			<map>
+				<entry key="response_type" value="token" />
+				<entry key="credentials" value="{" />
+			</map>
+		</property>
+	</bean>
+
+	<http pattern="/log*.do" xmlns="http://www.springframework.org/schema/security" authentication-manager-ref="remoteAuthenticationManager">
+		<intercept-url pattern="/login.do" access="IS_AUTHENTICATED_ANONYMOUSLY" />
+		<intercept-url pattern="/logout.do" access="IS_AUTHENTICATED_ANONYMOUSLY" />
+		<anonymous enabled="true" />
+		<form-login login-page="/login" username-parameter="username" password-parameter="password"
+			login-processing-url="/login.do" />
+		<!-- TODO: add form login with remote password authentication -->
+		<logout logout-success-url="/" logout-url="/logout.do" />
+	</http>
+
+	<http xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+		<openid-login login-page="/login" user-service-ref="openIdUserDetailsService" authentication-failure-url="/login?error=true">
+			<attribute-exchange identifier-match="https://www.google.com/.*">
+				<openid-attribute name="email" type="http://axschema.org/contact/email" required="true" count="1" />
+				<openid-attribute name="firstname" type="http://axschema.org/namePerson/first" required="true" />
+				<openid-attribute name="lastname" type="http://axschema.org/namePerson/last" required="true" />
+			</attribute-exchange>
+			<attribute-exchange identifier-match=".*yahoo.com.*">
+				<openid-attribute name="email" type="http://axschema.org/contact/email" required="true" />
+				<openid-attribute name="fullname" type="http://axschema.org/namePerson" required="true" />
+			</attribute-exchange>
+			<attribute-exchange identifier-match=".*myopenid.com.*">
+				<openid-attribute name="email" type="http://schema.openid.net/contact/email" required="true" />
+				<openid-attribute name="fullname" type="http://schema.openid.net/namePerson" required="true" />
+			</attribute-exchange>
+		</openid-login>
+		<anonymous enabled="false" />
+	</http>
+
+	<bean id="openIdUserDetailsService" class="org.cloudfoundry.identity.uaa.openid2.OpenIdUserDetailsService" />
+	
+	<authentication-manager xmlns="http://www.springframework.org/schema/security"/>
+
+	<bean id="remoteAuthenticationManager" class="org.cloudfoundry.identity.uaa.login.RemoteUaaAuthenticationManager">
+		<property name="loginUrl" value="${uaa.login.url:http://localhost:8080/uaa/login.do}" />
+	</bean>
+
+	<mvc:resources location="/resources/" mapping="/resources/**" />
+
+	<mvc:annotation-driven />
+
+	<mvc:default-servlet-handler />
+
+	<bean id="viewResolver" class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
+		<property name="mediaTypes">
+			<map>
+				<entry key="html" value="text/html" />
+				<entry key="json" value="application/json" />
+			</map>
+		</property>
+		<property name="viewResolvers">
+			<bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+				<property name="prefix" value="/WEB-INF/jsp/" />
+				<property name="suffix" value=".jsp" />
+			</bean>
+		</property>
+		<property name="defaultViews">
+			<bean class="org.springframework.web.servlet.view.json.MappingJacksonJsonView" />
+		</property>
+	</bean>
+
+	<bean id="homeController" class="org.cloudfoundry.identity.uaa.login.HomeController" />
+
+	<bean id="uaaController" class="org.cloudfoundry.identity.uaa.login.RemoteUaaController">
+		<property name="uaaBaseUrl" value="${uaa.url:http://localhost:8080/uaa}" />
+		<property name="authorizationTemplate">
+			<bean class="org.springframework.security.oauth2.client.OAuth2RestTemplate">
+				<constructor-arg ref="uaa" />
+			</bean>
+		</property>
+	</bean>
+
+	<oauth:resource id="uaa" access-token-uri="${uaa.token.url:http://localhost:8080/uaa/oauth/token}"
+		client-id="login" client-secret="${LOGIN_SECRET:loginsecret}" type="client_credentials" />
+
+</beans>
