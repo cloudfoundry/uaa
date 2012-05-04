@@ -118,6 +118,15 @@
 							<entry key="resource-ids" value="password,cloud_controller,openid,api" />
 						</map>
 					</entry>
+					<entry key="login">
+						<map>
+							<entry key="id" value="login" />
+							<entry key="secret" value="loginsecret" />
+							<entry key="authorized-grant-types" value="client_credentials" />
+							<entry key="authorities" value="ROLE_CLIENT,ROLE_RESOURCE" />
+							<entry key="resource-ids" value="oauth" />
+						</map>
+					</entry>
 				</map>
 			</property>
 		</bean>
