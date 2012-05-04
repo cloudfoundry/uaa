@@ -10,12 +10,14 @@
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  */
-package org.cloudfoundry.identity.uaa.integration;
+package org.cloudfoundry.identity.api.web;
 
 import static org.junit.Assert.assertNotNull;
 
 import org.cloudfoundry.client.lib.CloudFoundryClient;
 import org.cloudfoundry.client.lib.CloudInfo;
+import org.cloudfoundry.identity.uaa.integration.TestAccountSetup;
+import org.cloudfoundry.identity.uaa.integration.UaaTestAccounts;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
