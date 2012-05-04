@@ -93,4 +93,10 @@ public class UaaUser {
 		return new UaaUser(id, username, password, email, authority, givenName, familyName, created, modified);
 	}
 
+	@Override
+	public String toString() {
+		return "[UaaUser {id=" + id + ", username=" + username + ", email=" + email + ", givenName=" + givenName
+				+ ", familyName=" + familyName + "}]";
+	}
+	
 }

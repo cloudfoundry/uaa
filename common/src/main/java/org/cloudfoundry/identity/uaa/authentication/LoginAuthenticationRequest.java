@@ -14,7 +14,6 @@ package org.cloudfoundry.identity.uaa.authentication;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.security.core.Authentication;
@@ -27,31 +26,24 @@ import org.springframework.util.Assert;
  * This token is not used to represent an authenticated user.
  *
  * @author Luke Taylor
- * @author Dave Syer
  */
-public class AuthzAuthenticationRequest implements Authentication {
-
+public class LoginAuthenticationRequest implements Authentication {
+	private final String username;
+	private final String password;
 	private final UaaAuthenticationDetails details;
-	private final Map<String, String> info;
 
-	public AuthzAuthenticationRequest(Map<String,String> info, UaaAuthenticationDetails details) {
-		this.info = Collections.unmodifiableMap(info);
+	public LoginAuthenticationRequest(Map<String,String> loginInfo, UaaAuthenticationDetails details) {
+		// Currently only support username/password authentication
+		this(loginInfo.get("username"), loginInfo.get("password"), details);
 		Assert.notNull(details);
-		this.details = details;
 	}
 
-	public AuthzAuthenticationRequest(String username, String password, UaaAuthenticationDetails details) {
+	public LoginAuthenticationRequest(String username, String password, UaaAuthenticationDetails details) {
 		Assert.hasText("username", "username cannot be empty");
 		Assert.hasText("password", "password cannot be empty");
-		HashMap<String, String> info = new HashMap<String, String>();
-		info.put("username", username.trim());
-		info.put("password", password.trim());
-		this.info = Collections.unmodifiableMap(info);
+		this.username = username.trim();
+		this.password = password.trim();
 		this.details = details;
-	}
-	
-	public Map<String, String> getInfo() {
-		return info;
 	}
 
 	public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -59,11 +51,11 @@ public class AuthzAuthenticationRequest implements Authentication {
 	}
 
 	public String getPrincipal() {
-		return info.get("username");
+		return username;
 	}
 
 	public String getCredentials() {
-		return info.get("password");
+		return password;
 	}
 
 	public Object getDetails() {
@@ -81,6 +73,6 @@ public class AuthzAuthenticationRequest implements Authentication {
 	}
 
 	public String getName() {
-		return getPrincipal();
+		return username;
 	}
 }
