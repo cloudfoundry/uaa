@@ -89,9 +89,10 @@
 				<value>classpath:/application.properties</value>
 				<value>classpath:/#{T(java.lang.System).getenv('VCAP_APPLICATION')!=null ?'application-cloud.properties':'empty.properties'}
 				</value>
-				<value>classpath:/#{T(java.lang.System).getenv('UAA_PROD')=='true' ?'application-prod.properties':'empty.properties'}</value>
+				<value>classpath:/application-${UAA_PROFILE}.properties</value>
 			</list>
 		</property>
+		<property name="ignoreResourceNotFound" value="true"></property>
 	</bean>
 
 </beans>

@@ -1,0 +1,6 @@
+uaa:
+  url: https://devuaa.cloudfoundry.com
+  token:
+    url: https://devuaa.cloudfoundry.com/oauth/token
+  login:
+    url: https://devuaa.cloudfoundry.com/login.do

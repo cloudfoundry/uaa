@@ -1,0 +1,36 @@
+
+label {
+  font-weight: bold;
+  display: block;
+  margin-top: 1em;
+  color: #48b8ea;
+}
+
+label.checkbox {
+  display: inline;
+  font-weight: normal;
+  font-size: 80%;
+}
+
+input[type=text],
+input[type=email],
+input[type=password] {
+  width: 40%;
+  margin: 0.5em 0;
+  border: 1px solid #999;
+  background: #FFF;
+}
+
+#terms {
+  padding: 1em;
+  background: white;
+  height: 10em;
+  overflow: auto;
+  outline: 1px solid #999;
+  margin: 1em 0;
+  font-size: 0.8em;
+}
+
+iframe[src='about:blank'] {
+	display: none;
+}
