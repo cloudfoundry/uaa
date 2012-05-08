@@ -39,7 +39,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  */
 @ContextConfiguration("classpath:/test-data-source.xml")
 @RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "" , "hsqldb", "test,postgresql" })
+@IfProfileValue(name = "spring.profiles.active", values = { "" , "hsqldb", "test,postgresql", "empty,postgresql" })
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class JdbcUaaUserDatabaseTests {
 

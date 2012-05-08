@@ -19,8 +19,6 @@
 		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
 		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
 		
-	<context:property-placeholder location="test.properties"/>
-
 	<bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
 		<property name="driverClassName" value="${database.driverClassName:org.hsqldb.jdbcDriver}" />
 		<property name="url" value="${database.url:jdbc:hsqldb:mem:jdbcUaaTests}" />
@@ -37,12 +35,14 @@
 	</jdbc:initialize-database>
 
 	<beans profile="default,hsqldb">
+		<context:property-placeholder location="hsqldb.properties"/>
 		<bean id="platform" class="java.lang.String">
 			<constructor-arg value="hsqldb" />
 		</bean>
 	</beans>
 
 	<beans profile="postgresql">
+		<context:property-placeholder location="postgresql.properties"/>
 		<bean id="platform" class="java.lang.String">
 			<constructor-arg value="postgresql" />
 		</bean>

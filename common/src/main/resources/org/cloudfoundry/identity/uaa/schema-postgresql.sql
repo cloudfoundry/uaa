@@ -14,23 +14,18 @@
 
 CREATE TABLE USERS (
    id char(36) not null primary key,
-   created TIMESTAMP default current_timestamp,
-   lastModified TIMESTAMP default current_timestamp,
-   version BIGINT default 0,
+   created TIMESTAMP default current_timestamp not null,
+   lastModified TIMESTAMP default current_timestamp not null,
+   version BIGINT default 0 not null,
    username VARCHAR(255) not null,
    password VARCHAR(255) not null,
    email VARCHAR(255) not null,
-   authority BIGINT default 0,
+   authority BIGINT default 0 not null,
    givenName VARCHAR(255) not null,
    familyName VARCHAR(255) not null,
+   active BOOLEAN default true not null,
    constraint unique_uk_1 unique(username)
 ) ;
-
-ALTER TABLE USERS ADD COLUMN active BOOLEAN default true;
-ALTER TABLE USERS ALTER COLUMN created SET NOT NULL;
-ALTER TABLE USERS ALTER COLUMN lastModified SET NOT NULL;
-ALTER TABLE USERS ALTER COLUMN version SET NOT NULL;
-ALTER TABLE USERS ALTER COLUMN authority SET NOT NULL;
 
 CREATE TABLE SEC_AUDIT (
    principal_id char(36) not null,
@@ -48,7 +43,6 @@ CREATE TABLE OAUTH_CLIENT_DETAILS (
   authorized_grant_types VARCHAR(256),
   web_server_redirect_uri VARCHAR(1024),
   authorities VARCHAR(256),
-  access_token_validity INTEGER
+  access_token_validity INTEGER default 0,
+  refresh_token_validity INTEGER default 0
 ) ;
-
-ALTER TABLE OAUTH_CLIENT_DETAILS ADD COLUMN refresh_token_validity INTEGER default 0;

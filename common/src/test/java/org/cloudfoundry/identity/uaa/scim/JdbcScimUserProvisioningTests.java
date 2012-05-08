@@ -42,7 +42,7 @@ import static org.junit.Assert.*;
  */
 @ContextConfiguration("classpath:/test-data-source.xml")
 @RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "", "test,postgresql", "hsqldb" })
+@IfProfileValue(name = "spring.profiles.active", values = { "", "test,postgresql", "hsqldb", "empty,postgresql" })
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class JdbcScimUserProvisioningTests {
 

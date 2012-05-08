@@ -33,11 +33,11 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Meta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Name;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.dao.OptimisticLockingFailureException;
-import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
@@ -157,7 +157,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		where = makeCaseInsensitive(where, coPattern, "%slower(%s) like :?%s", "%%%s%%", values);
 		where = makeCaseInsensitive(where, swPattern, "%slower(%s) like :?%s", "%s%%", values);
 		where = makeCaseInsensitive(where, eqPattern, "%slower(%s) = :?%s", "%s", values);
-		where = makeCaseInsensitive(where, boPattern, "%s%s = :?%s", "%s", values);
+		where = makeBooleans(where, boPattern, "%s%s = :?%s", values);
 		where = prPattern.matcher(where).replaceAll(" is not null$1");
 		where = gtPattern.matcher(where).replaceAll(" > ");
 		where = gePattern.matcher(where).replaceAll(" >= ");
@@ -178,7 +178,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 			return new JdbcPagingList<ScimUser>(jdbcTemplate, ALL_USERS + " WHERE " + where + " ORDER BY created",
 					values, mapper, 200);
 		}
-		catch (BadSqlGrammarException e) {
+		catch (DataAccessException e) {
 			logger.debug("Filter '" + filter + "' generated invalid SQL", e);
 			throw new IllegalArgumentException("Invalid filter: " + filter);
 		}
@@ -216,6 +216,20 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		int count = values.size();
 		while (matcher.matches()) {
 			values.put("value" + count, String.format(valueTemplate, matcher.group(3).toLowerCase()));
+			String query = template.replace("?", "value" + count);
+			output = matcher.replaceFirst(String.format(query, matcher.group(1), matcher.group(2), matcher.group(4)));
+			matcher = pattern.matcher(output);
+			count++;
+		}
+		return output;
+	}
+
+	private String makeBooleans(String where, Pattern pattern, String template, Map<String, Object> values) {
+		String output = where;
+		Matcher matcher = pattern.matcher(output);
+		int count = values.size();
+		while (matcher.matches()) {
+			values.put("value" + count, Boolean.valueOf(matcher.group(3).toLowerCase()));
 			String query = template.replace("?", "value" + count);
 			output = matcher.replaceFirst(String.format(query, matcher.group(1), matcher.group(2), matcher.group(4)));
 			matcher = pattern.matcher(output);

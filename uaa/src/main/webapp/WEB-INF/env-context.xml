@@ -15,7 +15,6 @@
 					<property name="resources" value="classpath:/uaa.yml" />
 					<property name="documentMatchers">
 						<map>
-							<entry key="platform" value="default" />
 							<entry key="platform" value-ref="platform" />
 						</map>
 					</property>
@@ -26,13 +25,28 @@
 	</bean>
 
 	<beans profile="default,hsqldb">
+		<description>Profile for hsqldb scripts on an empty database</description>
 		<bean id="platform" class="java.lang.String">
+			<constructor-arg value="hsqldb" />
+		</bean>
+		<bean id="scripts" class="java.lang.String">
 			<constructor-arg value="hsqldb" />
 		</bean>
 	</beans>
 
 	<beans profile="postgresql">
+		<description>Profile for postgresql scripts on an existing database</description>
 		<bean id="platform" class="java.lang.String">
+			<constructor-arg value="postgresql" />
+		</bean>
+		<bean id="scripts" class="java.lang.String">
+			<constructor-arg value="cloudfoundry" />
+		</bean>
+	</beans>
+
+	<beans profile="empty">
+		<description>Profile for testing the postgresql scripts on an empty database</description>
+		<bean id="scripts" class="java.lang.String">
 			<constructor-arg value="postgresql" />
 		</bean>
 	</beans>

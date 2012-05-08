@@ -39,7 +39,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = { "file:./src/main/webapp/WEB-INF/applicationContext.xml",
 		"file:./src/main/webapp/WEB-INF/batch-servlet.xml", "classpath*:/META-INF/spring/batch/jobs/jobs.xml" }, loader = ParentContextLoader.class)
 @RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "", "test,postgresql", "hsqldb" })
+@IfProfileValue(name = "spring.profiles.active", values = { "", "test,postgresql", "hsqldb", "empty,postgresql" })
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public abstract class AbstractJobIntegrationTests {
 
