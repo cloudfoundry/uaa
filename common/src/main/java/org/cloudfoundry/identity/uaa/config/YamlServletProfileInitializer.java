@@ -55,6 +55,7 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 
 		for (String location : DEFAULT_PROFILE_CONFIG_FILE_LOCATIONS) {
 			location = applicationContext.getEnvironment().resolvePlaceholders(location);
+			servletContext.log("Testing for YAML resources at: " + location);
 			resource = applicationContext.getResource(location);
 			if (resource != null && resource.exists()) {
 				break;

@@ -44,7 +44,7 @@ public class YamlServletProfileInitializerTests {
 	private ServletConfig servletConfig = Mockito.mock(ServletConfig.class);
 
 	private ServletContext servletContext = Mockito.mock(ServletContext.class);
-	
+
 	private String activeProfiles;
 
 	@Before
@@ -69,9 +69,10 @@ public class YamlServletProfileInitializerTests {
 		System.clearProperty("LOG_FILE");
 		System.clearProperty("LOG_PATH");
 		Log4jConfigurer.initLogging("classpath:log4j.properties");
-		if (activeProfiles!=null) {
+		if (activeProfiles != null) {
 			System.setProperty("spring.profiles.active", activeProfiles);
-		} else {
+		}
+		else {
 			System.clearProperty("spring.profiles.active");
 		}
 	}
@@ -79,7 +80,7 @@ public class YamlServletProfileInitializerTests {
 	@Test
 	public void testLoadDefaultResource() throws Exception {
 
-		Mockito.when(context.getResource(Matchers.eq("file:${CLOUD_FOUNDRY_CONFIG_PATH}/uaa.yml"))).thenReturn(
+		Mockito.when(context.getResource(Matchers.endsWith("/uaa.yml"))).thenReturn(
 				new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
 
 		initializer.initialize(context);
@@ -91,7 +92,7 @@ public class YamlServletProfileInitializerTests {
 
 	@Test
 	public void testActiveProfiles() throws Exception {
-		
+
 		System.setProperty("spring.profiles.active", "foo");
 
 		Mockito.when(context.getResource(Matchers.anyString())).thenReturn(
