@@ -6,6 +6,7 @@
 	<name>CloudFoundry Identity - Parent</name>
 	<packaging>pom</packaging>
 	<version>1.0.0.BUILD-SNAPSHOT</version>
+    <url>http://github.com/cloudfoundry/uaa</url>
 	<modules>
 		<module>common</module>
 		<module>uaa</module>
@@ -14,7 +15,7 @@
 	<properties>
 		<spring.version>3.1.1.RELEASE</spring.version>
 		<spring.security.version>3.1.0.RELEASE</spring.security.version>
-		<spring.security.oauth.version>1.0.0.BUILD-SNAPSHOT</spring.security.oauth.version>
+		<spring.security.oauth.version>1.0.0.M6a</spring.security.oauth.version>
 		<spring.security.jwt.version>1.0.0.m2</spring.security.jwt.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -250,6 +251,43 @@
         </snapshots>
       </pluginRepository>
 	</pluginRepositories>
+    <scm>
+      <url>http://github.com/cloudfoundry/uaa</url>
+      <connection>scm:git:ssh://git@github.com/cloudfoundry/uaa.git</connection>
+      <developerConnection>scm:git:git://github.com/cloudfoundry/uau.git</developerConnection>
+    </scm>
+    <issueManagement>
+      <system>JIRA</system>
+      <url>https://cloudfoundry.atlassian.net/browse/CF</url>
+    </issueManagement>
+    <developers>
+      <developer>
+        <id>dsyer</id>
+        <name>Dave Syer</name>
+        <email>dsyer@vmware.com</email>
+      </developer>
+      <developer>
+        <id>tekul</id>
+        <name>Luke Taylor</name>
+        <email>ltaylor@vmware.com</email>
+      </developer>
+      <developer>
+        <id>jdsa</id>
+        <name>Joel D'Sa</name>
+        <email>jdsa@vmware.com</email>
+      </developer>
+      <developer>
+        <id>olds</id>
+        <name>Dale Olds</name>
+        <email>olds@vmware.com</email>
+      </developer>
+    </developers>
+    <licenses>
+      <license>
+        <name>Apache 2.0</name>
+        <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      </license>
+    </licenses>
 	<distributionManagement>
 		<repository>
 			<id>spring-milestone</id>
