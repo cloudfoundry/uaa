@@ -79,10 +79,12 @@ public class ScimUserTests {
 		user.setUserName("joe");
 		user.getMeta().setCreated(new SimpleDateFormat("yyyy-MM-dd").parse("2011-11-30"));
 		user.addEmail("joe@test.org");
+		user.addPhoneNumber("+1-222-1234567");
 
 		String json = mapper.writeValueAsString(user);
 		// System.err.println(json);
 		assertTrue(json.contains("\"emails\":"));
+		assertTrue(json.contains("\"phoneNumbers\":"));
 
 	}
 

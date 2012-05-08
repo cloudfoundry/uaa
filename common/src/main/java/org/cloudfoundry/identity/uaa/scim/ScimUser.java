@@ -27,23 +27,28 @@ import org.springframework.util.Assert;
 
 /**
  * Object to hold SCIM data for Jackson to map to and from JSON
- *
+ * 
  * See the <a href="http://www.simplecloud.info/specs/draft-scim-core-schema-02.html">SCIM user schema</a>.
- *
+ * 
  * @author Luke Taylor
  */
-@JsonSerialize (include = JsonSerialize.Inclusion.NON_NULL)
+@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public final class ScimUser {
 
-	public static final String[] SCHEMAS = new String[] {"urn:scim:schemas:core:1.0"};
+	public static final String[] SCHEMAS = new String[] { "urn:scim:schemas:core:1.0" };
 
-	@JsonSerialize (include = JsonSerialize.Inclusion.NON_NULL)
+	@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 	public static final class Name {
 		String formatted;
+
 		String familyName;
+
 		String givenName;
+
 		String middleName;
+
 		String honorificPrefix;
+
 		String honorificSuffix;
 
 		public Name() {
@@ -105,11 +110,13 @@ public final class ScimUser {
 
 	}
 
-	@JsonSerialize (include = JsonSerialize.Inclusion.NON_DEFAULT)
+	@JsonSerialize(include = JsonSerialize.Inclusion.NON_DEFAULT)
 	public static final class Email {
 		private String value;
+
 		// this should probably be an enum
 		private String type;
+
 		private boolean primary = false;
 
 		public String getValue() {
@@ -137,10 +144,37 @@ public final class ScimUser {
 		}
 	}
 
-	@JsonSerialize (include = JsonSerialize.Inclusion.NON_NULL)
+	@JsonSerialize(include = JsonSerialize.Inclusion.NON_DEFAULT)
+	public static final class PhoneNumber {
+		private String value;
+
+		// this should probably be an enum
+		private String type;
+
+		public String getValue() {
+			return value;
+		}
+
+		public void setValue(String value) {
+			this.value = value;
+		}
+
+		public String getType() {
+			return type;
+		}
+
+		public void setType(String type) {
+			this.type = type;
+		}
+
+	}
+
+	@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 	public static final class Meta {
 		private int version = 0;
+
 		private Date created = new Date();
+
 		private Date lastModified = null;
 
 		public Meta() {
@@ -152,22 +186,22 @@ public final class ScimUser {
 			this.version = version;
 		}
 
-		@JsonSerialize(using=JsonDateSerializer.class, include = JsonSerialize.Inclusion.NON_NULL)
+		@JsonSerialize(using = JsonDateSerializer.class, include = JsonSerialize.Inclusion.NON_NULL)
 		public Date getCreated() {
 			return created;
 		}
 
-		@JsonDeserialize(using=JsonDateDeserializer.class)
+		@JsonDeserialize(using = JsonDateDeserializer.class)
 		public void setCreated(Date created) {
 			this.created = created;
 		}
 
-		@JsonSerialize(using=JsonDateSerializer.class, include = JsonSerialize.Inclusion.NON_NULL)
+		@JsonSerialize(using = JsonDateSerializer.class, include = JsonSerialize.Inclusion.NON_NULL)
 		public Date getLastModified() {
 			return lastModified;
 		}
 
-		@JsonDeserialize(using=JsonDateDeserializer.class)
+		@JsonDeserialize(using = JsonDateDeserializer.class)
 		public void setLastModified(Date lastModified) {
 			this.lastModified = lastModified;
 		}
@@ -182,20 +216,37 @@ public final class ScimUser {
 	}
 
 	private String id;
+
 	private String externalId;
+
 	private String userName;
+
 	private Name name;
+
 	private List<Email> emails;
+
+	private List<PhoneNumber> phoneNumbers;
+
 	private String displayName;
+
 	private String nickName;
+
 	private String profileUrl;
+
 	private String title;;
+
 	private String userType;
+
 	private String preferredLanguage;
+
 	private String locale;
+
 	private String timezone;
+
 	private boolean active = true;
+
 	private Meta meta = new Meta();
+
 	@JsonProperty
 	private String password;
 
@@ -231,7 +282,7 @@ public final class ScimUser {
 	public String getPassword() {
 		return password;
 	}
-	
+
 	protected void setPassword(String password) {
 		this.password = password;
 	}
@@ -254,6 +305,14 @@ public final class ScimUser {
 
 	public void setEmails(List<Email> emails) {
 		this.emails = emails;
+	}
+
+	public List<PhoneNumber> getPhoneNumbers() {
+		return phoneNumbers;
+	}
+
+	public void setPhoneNumbers(List<PhoneNumber> phoneNumbers) {
+		this.phoneNumbers = phoneNumbers;
 	}
 
 	public String getDisplayName() {
@@ -404,6 +463,28 @@ public final class ScimUser {
 		Email e = new Email();
 		e.setValue(newEmail);
 		emails.add(e);
+	}
+
+	/**
+	 * Adds a new phone number with null type.
+	 * 
+	 * @param newPhoneNumber
+	 */
+	public void addPhoneNumber(String newPhoneNumber) {
+		Assert.hasText(newPhoneNumber);
+
+		if (phoneNumbers == null) {
+			phoneNumbers = new ArrayList<PhoneNumber>(1);
+		}
+		for (PhoneNumber email : phoneNumbers) {
+			if (email.value.equals(newPhoneNumber) && email.getType() == null) {
+				throw new IllegalArgumentException("Already contains phoneNumber " + newPhoneNumber);
+			}
+		}
+
+		PhoneNumber e = new PhoneNumber();
+		e.setValue(newPhoneNumber);
+		phoneNumbers.add(e);
 	}
 
 	/**
