@@ -24,6 +24,7 @@ CREATE TABLE USERS (
    givenName ${VARCHAR}(255) not null,
    familyName ${VARCHAR}(255) not null,
    active BOOLEAN default true not null,
+   phoneNumber ${VARCHAR}(255),
    constraint unique_uk_1 unique(username)
 ) $!{VOODOO};
 
