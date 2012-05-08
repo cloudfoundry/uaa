@@ -72,8 +72,10 @@ public class OpenIdClientFilter extends AbstractAuthenticationProcessingFilter {
 			throw new BadCredentialsException("User info does not contain user_id");
 		}
 		String userName = map.get("user_name");
+		String userId = map.get("user_id");
 		List<UaaAuthority> authorities = UaaAuthority.USER_AUTHORITIES;
 		OpenIdUserDetails user = new OpenIdUserDetails(userName, authorities);
+		user.setId(userId);
 		if (map.containsKey("email")) {
 			user.setEmail(map.get("email"));
 		}

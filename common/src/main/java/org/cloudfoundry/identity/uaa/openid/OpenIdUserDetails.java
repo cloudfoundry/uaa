@@ -27,14 +27,23 @@ public class OpenIdUserDetails extends User {
     private String email;
     private String name;
     private boolean newUser;
+	private String id;
 
-    public OpenIdUserDetails(String id, Collection<? extends GrantedAuthority> authorities) {
-        super(id, "unused", authorities);
+    public OpenIdUserDetails(String username, Collection<? extends GrantedAuthority> authorities) {
+        super(username, "unused", authorities);
     }
 
     public String getEmail() {
         return email;
     }
+    
+	public String getId() {
+		return id;
+	}
+	
+	public void setId(String id) {
+		this.id = id;
+	}
 
     public void setEmail(String email) {
         this.email = email;

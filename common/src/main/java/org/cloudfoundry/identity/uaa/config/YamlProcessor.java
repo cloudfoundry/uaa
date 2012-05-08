@@ -137,6 +137,7 @@ public class YamlProcessor {
 						if (map != null) {
 							process(map, callback);
 							found = true;
+							logger.debug("Loaded from YAML: " + map);
 						}
 					}
 				}
