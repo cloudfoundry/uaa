@@ -48,16 +48,19 @@ config["varz"]["uuid"] ||= VCAP.secure_uuid
 
 logger.info("Launching tomcat from PID=#{Process.pid}")
 
-maven_opts = "-DPID=$$"
-config["jvm_args"] && maven_opts += " " + config["jvm_args"]
-config["spring_profiles"] && maven_opts += " -Dspring.profiles.active=" + config["spring_profiles"]
-maven_opts += """ -Dvarz.username=#{config["varz"]["username"]} -Dvarz.password=#{config["varz"]["password"]}"""
-logger.info("Tomcat JVM args: #{maven_opts}")
+pre_installed_tomcat = ENV['UAA_TOMCAT']
+jre_opts = "-DPID=$$"
+config["jvm_args"] && jre_opts += " " + config["jvm_args"]
+config["spring_profiles"] && jre_opts += " -Dspring.profiles.active=" + config["spring_profiles"]
+jre_opts += """ -Dvarz.username=#{config["varz"]["username"]} -Dvarz.password=#{config["varz"]["password"]}"""
+logger.info("Tomcat JVM args: #{jre_opts}")
 
 # The form of this next bit is very sensitive.  We need the PID for
 # logging so we need to exec from the shell to stay in the same
 # process...
-pid = spawn("export MAVEN_OPTS=\"#{maven_opts}\" && exec mvn tomcat:run -P vcap", {:chdir=>root})
+pid = spawn("export MAVEN_OPTS=\"#{jre_opts}\" && exec mvn tomcat:run -P vcap", {:chdir=>root}) unless pre_installed_tomcat
+pid = spawn("export JAVA_OPTS=\"#{jre_opts}\" && exec #{pre_installed_tomcat}/bin/catalina.sh run", {:chdir=>root}) if pre_installed_tomcat
+
 
 logger.info("Tomcat PID = #{pid}")
 
