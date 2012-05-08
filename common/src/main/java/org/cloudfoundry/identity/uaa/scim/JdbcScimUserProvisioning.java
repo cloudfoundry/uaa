@@ -55,12 +55,12 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	private final Log logger = LogFactory.getLog(getClass());
 
-	public static final String USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName,active,authority";
+	public static final String USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName,active,authority,phoneNumber";
 
 	public static final String CREATE_USER_SQL = "insert into users (" + USER_FIELDS
-			+ ",password) values (?,?,?,?,?,?,?,?,?,?,?)";
+			+ ",password) values (?,?,?,?,?,?,?,?,?,?,?,?)";
 
-	public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, email=?, givenName=?, familyName=?, active=?, authority=? where id=? and version=?";
+	public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, email=?, givenName=?, familyName=?, active=?, authority=?, phoneNumber=? where id=? and version=?";
 
 	public static final String DELETE_USER_SQL = "update users set active=false where id=?";
 
@@ -79,6 +79,8 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	 */
 
 	static final Pattern emailsValuePattern = Pattern.compile("emails\\.value", Pattern.CASE_INSENSITIVE);
+
+	static final Pattern phoneNumbersValuePattern = Pattern.compile("phoneNumbers\\.value", Pattern.CASE_INSENSITIVE);
 
 	static final Pattern coPattern = Pattern.compile("(.*?)([a-z0-9]*) co '(.*?)'([\\s]*.*)", Pattern.CASE_INSENSITIVE);
 
@@ -151,6 +153,8 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 		// There is only one email address for now...
 		where = StringUtils.arrayToDelimitedString(emailsValuePattern.split(where), "email");
+		// There is only one phone number for now...
+		where = StringUtils.arrayToDelimitedString(phoneNumbersValuePattern.split(where), "phoneNumber");
 
 		Map<String, Object> values = new HashMap<String, Object>();
 
@@ -172,6 +176,10 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 		if (where.contains("emails.")) {
 			throw new UnsupportedOperationException("Filters on email address fields other than 'value' not supported");
+		}
+
+		if (where.contains("phoneNumbers.")) {
+			throw new UnsupportedOperationException("Filters on phone number fields other than 'value' not supported");
 		}
 
 		try {
@@ -261,8 +269,11 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 					ps.setString(8, user.getName().getFamilyName());
 					ps.setBoolean(9, user.isActive());
 					ps.setLong(10, UaaAuthority.fromUserType(user.getUserType()).value());
-					ps.setString(11, passwordEncoder.encode(password));
+					String phoneNumber = extractPhoneNumber(user);
+					ps.setString(11, phoneNumber);
+					ps.setString(12, passwordEncoder.encode(password));
 				}
+
 			});
 		}
 		catch (DuplicateKeyException e) {
@@ -279,6 +290,14 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		}
 	}
 
+	private String extractPhoneNumber(final ScimUser user) {
+		String phoneNumber = null;
+		if (user.getPhoneNumbers()!=null && !user.getPhoneNumbers().isEmpty()) {
+			phoneNumber = user.getPhoneNumbers().get(0).getValue();
+		}
+		return phoneNumber;
+	}
+
 	@Override
 	public ScimUser updateUser(final String id, final ScimUser user) throws InvalidUserException {
 		validateUsername(user);
@@ -293,8 +312,9 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 				ps.setString(5, user.getName().getFamilyName());
 				ps.setBoolean(6, user.isActive());
 				ps.setLong(7, UaaAuthority.fromUserType(user.getUserType()).value());
-				ps.setString(8, id);
-				ps.setInt(9, user.getVersion());
+				ps.setString(8, extractPhoneNumber(user));
+				ps.setString(9, id);
+				ps.setInt(10, user.getVersion());
 			}
 		});
 		ScimUser result = retrieveUser(id);
@@ -402,6 +422,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 			String familyName = rs.getString(8);
 			boolean active = rs.getBoolean(9);
 			long authority = rs.getLong(10);
+			String phoneNumber = rs.getString(11);
 			ScimUser user = new ScimUser();
 			user.setId(id);
 			Meta meta = new Meta();
@@ -411,6 +432,9 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 			user.setMeta(meta);
 			user.setUserName(userName);
 			user.addEmail(email);
+			if (phoneNumber!=null) {
+				user.addPhoneNumber(phoneNumber);
+			}
 			Name name = new Name();
 			name.setGivenName(givenName);
 			name.setFamilyName(familyName);

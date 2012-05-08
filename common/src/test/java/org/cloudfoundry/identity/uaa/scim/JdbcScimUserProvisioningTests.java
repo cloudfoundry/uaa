@@ -70,8 +70,8 @@ public class JdbcScimUserProvisioningTests {
 
 		db = new JdbcScimUserProvisioning(template);
 		BCryptPasswordEncoder pe = new BCryptPasswordEncoder(4);
-		template.execute("insert into users (id, username, password, email, givenName, familyName) " + "values ('"
-				+ JOE_ID + "', 'joe','" + pe.encode("joespassword") + "','joe@joe.com','Joe','User')");
+		template.execute("insert into users (id, username, password, email, givenName, familyName, phoneNumber) " + "values ('"
+				+ JOE_ID + "', 'joe','" + pe.encode("joespassword") + "','joe@joe.com','Joe','User','+1-222-1234567')");
 		template.execute("insert into users (id, username, password, email, givenName, familyName) " + "values ('"
 				+ MABEL_ID + "', 'mabel','" + pe.encode("mabelspassword") + "','mabel@mabel.com','Mabel','User')");
 	}
@@ -259,6 +259,11 @@ public class JdbcScimUserProvisioningTests {
 	}
 
 	@Test
+	public void canRetrieveUsersWithPhoneNumberFilter() {
+		assertEquals(1, db.retrieveUsers("phoneNumbers.value sw '+1-222'").size());
+	}
+
+	@Test
 	public void canRetrieveUsersWithMetaVersionFilter() {
 		assertEquals(1, db.retrieveUsers("userName eq 'joe' and meta.version eq 0").size());
 	}
@@ -291,6 +296,11 @@ public class JdbcScimUserProvisioningTests {
 	@Test(expected = UnsupportedOperationException.class)
 	public void cannotRetrieveUsersWithIllegalFilterField() {
 		assertEquals(2, db.retrieveUsers("emails.type eq 'bar'").size());
+	}
+
+	@Test(expected = UnsupportedOperationException.class)
+	public void cannotRetrieveUsersWithIllegalPhoneNumberFilterField() {
+		assertEquals(2, db.retrieveUsers("phoneNumbers.type eq 'bar'").size());
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -360,6 +370,7 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals("User", joe.getFamilyName());
 		assertEquals("joe@joe.com", joe.getPrimaryEmail());
 		assertEquals("joe", joe.getUserName());
+		assertEquals("+1-222-1234567", joe.getPhoneNumbers().get(0).getValue());
 	}
 
 }
