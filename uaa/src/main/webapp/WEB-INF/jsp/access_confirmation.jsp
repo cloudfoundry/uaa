@@ -147,7 +147,7 @@ img.gsc-branding-img,img.gsc-branding-img-noclear,img.gcsc-branding-img,img.gcsc
 								protected resources in scope ${auth_request.scope}.</p>
 
 							<form id="confirmationForm" name="confirmationForm"
-								action="${options.confirm.location}" method="POST">
+								action="${options.confirm.path}" method="POST">
 								<input name="${options.confirm.key}"
 									value="${options.confirm.value}" type="hidden" />
 								<div class="buttons">
@@ -155,7 +155,7 @@ img.gsc-branding-img,img.gsc-branding-img-noclear,img.gcsc-branding-img,img.gcsc
 								</div>
 							</form>
 							<form id="denialForm" name="denialForm"
-								action="${options.deny.location}" method="POST">
+								action="${options.deny.path}" method="POST">
 								<input name="${options.deny.key}" value="${options.deny.value}"
 									type="hidden" />
 								<div class="buttons">
