@@ -28,32 +28,26 @@
 							<target>
 								<typedef resource="foundrylogic/vpp/typedef.properties" />
 								<taskdef resource="foundrylogic/vpp/taskdef.properties" />
-								<vppcopy todir="${basedir}/target/generated-resources" overwrite="true">
-									<config>
-										<context>
-											<property key="includes" value="src/main/sql" />
-											<property file="${basedir}/src/main/sql/hsqldb.properties" />
-										</context>
-										<engine>
-											<property key="velocimacro.library" value="src/main/sql/hsqldb.vpp" />
-										</engine>
-									</config>
-									<fileset dir="${basedir}/src/main/sql" includes="schema*.sql.vpp" />
-									<mapper type="glob" from="*.sql.vpp" to="*-hsqldb.sql" />
-								</vppcopy>
-								<vppcopy todir="${basedir}/target/generated-resources" overwrite="true">
-									<config>
-										<context>
-											<property key="includes" value="src/main/sql" />
-											<property file="${basedir}/src/main/sql/postgresql.properties" />
-										</context>
-										<engine>
-											<property key="velocimacro.library" value="src/main/sql/postgresql.vpp" />
-										</engine>
-									</config>
-									<fileset dir="${basedir}/src/main/sql" includes="schema*.sql.vpp" />
-									<mapper type="glob" from="*.sql.vpp" to="*-postgresql.sql" />
-								</vppcopy>
+								<macrodef name="sql-script">
+									<attribute name="platform" />
+									<sequential>
+										<vppcopy todir="${basedir}/target/generated-resources" overwrite="true">
+											<config>
+												<context>
+													<property key="includes" value="src/main/sql" />
+													<property file="${basedir}/src/main/sql/@{platform}.properties" />
+												</context>
+												<engine>
+													<property key="velocimacro.library" value="src/main/sql/@{platform}.vpp" />
+												</engine>
+											</config>
+											<fileset dir="${basedir}/src/main/sql" includes="schema*.sql.vpp" />
+											<mapper type="glob" from="*.sql.vpp" to="*-@{platform}.sql" />
+										</vppcopy>
+									</sequential>
+								</macrodef>
+								<sql-script platform="hsqldb" />
+								<sql-script platform="postgresql" />
 							</target>
 						</configuration>
 						<goals>
