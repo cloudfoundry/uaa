@@ -1,5 +1,4 @@
 uaa:
-  integration.test: true
   test:
     username: marissa
     password: dr0WssaPH@ck

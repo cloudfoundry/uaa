@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beansProjectDescription>
 	<version>1</version>
-	<pluginVersion><![CDATA[2.8.0.201110170010-RELEASE]]></pluginVersion>
+	<pluginVersion><![CDATA[2.9.1.201203220057-RELEASE]]></pluginVersion>
 	<configSuffixes>
 		<configSuffix><![CDATA[xml]]></configSuffix>
 	</configSuffixes>
@@ -12,7 +12,6 @@
 		<config>src/main/webapp/WEB-INF/oauth-clients.xml</config>
 		<config>src/main/webapp/WEB-INF/spring-data-source.xml</config>
 		<config>src/main/webapp/WEB-INF/spring-scim.xml</config>
-		<config>src/test/resources/test-data-source.xml</config>
 		<config>src/test/resources/test/config/test-override.xml</config>
 	</configs>
 	<configSets>

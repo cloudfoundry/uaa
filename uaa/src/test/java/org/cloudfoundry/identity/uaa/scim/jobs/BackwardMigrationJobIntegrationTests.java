@@ -24,13 +24,11 @@ import org.springframework.batch.core.StepExecution;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ContextConfiguration;
 
 /**
  * @author Dave Syer
  * 
  */
-@ContextConfiguration
 public class BackwardMigrationJobIntegrationTests extends AbstractJobIntegrationTests {
 
 	@Autowired
@@ -39,10 +37,11 @@ public class BackwardMigrationJobIntegrationTests extends AbstractJobIntegration
 
 	@Test
 	public void testJobRuns() throws Exception {
-		new JdbcTemplate(uaaDataSource)
-				.update("insert into users (id, active, userName, email, password, familyName, givenName, created, lastModified) values (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-						"FOO", true, "uniqua", "uniqua@test.org", "ENCRYPT_ME", "Una", "Uniqua", new Date(),
-						new Date());
+		JdbcTemplate uaaTemplate = new JdbcTemplate(uaaDataSource);
+		uaaTemplate.update("insert into users "
+				+ "(id, active, userName, email, password, familyName, givenName, created, lastModified) "
+				+ "values (?, ?, ?, ?, ?, ?, ?, ?, ?)", "FOO", true, "uniqua", "uniqua@test.org", "ENCRYPT_ME", "Una",
+				"Uniqua", new Date(), new Date());
 		JobExecution execution = jobLauncher.run(job, new JobParametersBuilder().addDate("start.date", new Date(0L))
 				.toJobParameters());
 		assertEquals(BatchStatus.COMPLETED, execution.getStatus());
