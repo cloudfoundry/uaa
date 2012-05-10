@@ -132,12 +132,13 @@ public class YamlProcessor {
 				logger.info("Loading from YAML: " + resource);
 				for (Object object : yaml.loadAll(resource.getInputStream())) {
 					if (resolutionMethod != ResolutionMethod.FIRST_FOUND || !found) {
+						int count = 0;
 						@SuppressWarnings("unchecked")
 						Map<String, Object> map = (Map<String, Object>) object;
 						if (map != null) {
 							process(map, callback);
 							found = true;
-							logger.debug("Loaded from YAML: " + map);
+							logger.debug("Loaded " + (count++) + " documents from YAML: " + resource);
 						}
 					}
 				}

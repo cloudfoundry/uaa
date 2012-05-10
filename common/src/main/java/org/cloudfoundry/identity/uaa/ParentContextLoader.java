@@ -13,6 +13,7 @@
 
 package org.cloudfoundry.identity.uaa;
 
+import org.cloudfoundry.identity.uaa.integration.TestProfileEnvironment;
 import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.context.support.GenericXmlApplicationContext;
 import org.springframework.test.context.support.GenericXmlContextLoader;
@@ -35,7 +36,10 @@ public class ParentContextLoader extends GenericXmlContextLoader {
 
 	@Override
 	protected void customizeContext(GenericApplicationContext context) {
-		GenericXmlApplicationContext parent = new GenericXmlApplicationContext(parentLocation);
+		GenericXmlApplicationContext parent = new GenericXmlApplicationContext();
+		parent.setEnvironment(TestProfileEnvironment.getEnvironment());
+		parent.load(parentLocation);
+		parent.refresh();
 		super.customizeContext(context);
 		context.setParent(parent);
 	}

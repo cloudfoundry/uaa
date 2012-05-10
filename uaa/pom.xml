@@ -18,7 +18,6 @@
 	<properties>
 		<m2eclipse.wtp.contextRoot>/uaa</m2eclipse.wtp.contextRoot>
 		<uaa.path>/uaa</uaa.path>
-		<CLOUD_FOUNDRY_CONFIG_PATH></CLOUD_FOUNDRY_CONFIG_PATH>
 		<!-- Brain dead install plugin (Maven 3) cannot extract this stuff from its own configuration -->
 		<file>target/${project.artifactId}-${project.version}.war</file>
 		<groupId>${project.groupId}</groupId>
@@ -150,6 +149,7 @@
 							<exclude>**/Abstract*.java</exclude>
 						</excludes>
 						<systemPropertyVariables>
+							<spring.profiles.active>${SPRING_PROFILES_ACTIVE}</spring.profiles.active>
 							<CLOUD_FOUNDRY_CONFIG_PATH>${CLOUD_FOUNDRY_CONFIG_PATH}</CLOUD_FOUNDRY_CONFIG_PATH>
 						</systemPropertyVariables>
 					</configuration>

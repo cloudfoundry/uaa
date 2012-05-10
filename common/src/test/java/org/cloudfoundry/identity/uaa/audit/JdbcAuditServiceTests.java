@@ -12,16 +12,16 @@
  */
 package org.cloudfoundry.identity.uaa.audit;
 
-import java.sql.Timestamp;
-import java.util.List;
-import javax.sql.DataSource;
-
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.sql.Timestamp;
+import java.util.List;
+
+import javax.sql.DataSource;
+
 import org.cloudfoundry.identity.uaa.NullSafeSystemProfileValueSource;
-import org.cloudfoundry.identity.uaa.TestUtils;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.junit.Before;
@@ -40,7 +40,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  */
 @ContextConfiguration ("classpath:/test-data-source.xml")
 @RunWith (SpringJUnit4ClassRunner.class)
-@IfProfileValue (name = "spring.profiles.active", values = { "" , "hsqldb" })
+@IfProfileValue (name = "spring.profiles.active", values = { "" , "hsqldb", "test,postgresql" })
 @ProfileValueSourceConfiguration (NullSafeSystemProfileValueSource.class)
 public class JdbcAuditServiceTests {
 
@@ -56,8 +56,8 @@ public class JdbcAuditServiceTests {
 	@Before
 	public void createService() throws Exception {
 		template = new JdbcTemplate(dataSource);
-		TestUtils.createSchema(dataSource);
 		auditService = new JdbcAuditService(dataSource);
+		template.execute("DELETE FROM SEC_AUDIT WHERE principal_id='1' or principal_id='clientA' or principal_id='clientB'");
 
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setRemoteAddr("1.1.1.1");

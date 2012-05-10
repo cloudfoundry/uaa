@@ -12,7 +12,10 @@
  */
 package org.cloudfoundry.identity.uaa.integration;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -21,7 +24,7 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.config.EnvironmentPropertiesFactoryBean;
 import org.cloudfoundry.identity.uaa.config.YamlProcessor.ResolutionMethod;
 import org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean;
-import org.springframework.core.env.Environment;
+import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.PropertiesPropertySource;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.DefaultResourceLoader;
@@ -47,20 +50,22 @@ public class TestProfileEnvironment {
 
 	private TestProfileEnvironment() {
 
-		Resource resource = null;
-
-		Properties properties = new Properties();
+		List<Resource> resources = new ArrayList<Resource>();
 
 		for (String location : DEFAULT_PROFILE_CONFIG_FILE_LOCATIONS) {
 			location = environment.resolvePlaceholders(location);
-			resource = recourceLoader.getResource(location);
+			Resource resource = recourceLoader.getResource(location);
 			if (resource != null && resource.exists()) {
-				YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
-				factory.setResources(new Resource[] {resource});
-				factory.setResolutionMethod(ResolutionMethod.OVERRIDE_AND_IGNORE);
-				properties.putAll(factory.getObject());
+				resources.add(resource);
 			}
 		}
+
+		YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
+		factory.setResources(resources.toArray(new Resource[resources.size()]));
+		factory.setDocumentMatchers(Collections.singletonMap("platform",
+				environment.acceptsProfiles("postgresql") ? "postgresql" : "hsqldb"));
+		factory.setResolutionMethod(ResolutionMethod.OVERRIDE_AND_IGNORE);
+		Properties properties = factory.getObject();
 
 		logger.debug("Decoding environment properties: " + properties.size());
 		if (!properties.isEmpty()) {
@@ -79,17 +84,17 @@ public class TestProfileEnvironment {
 			environment.getPropertySources().addLast(new PropertiesPropertySource("uaa.yml", properties));
 		}
 
-		EnvironmentPropertiesFactoryBean factory = new EnvironmentPropertiesFactoryBean();
-		factory.setEnvironment(environment);
-		factory.setDefaultProperties(properties);
-		Map<String, ?> debugProperties = factory.getObject();
+		EnvironmentPropertiesFactoryBean environmentProperties = new EnvironmentPropertiesFactoryBean();
+		environmentProperties.setEnvironment(environment);
+		environmentProperties.setDefaultProperties(properties);
+		Map<String, ?> debugProperties = environmentProperties.getObject();
 		logger.debug("Environment properties: " + debugProperties);
 	}
 
 	/**
 	 * @return the environment
 	 */
-	public static Environment getEnvironment() {
+	public static ConfigurableEnvironment getEnvironment() {
 		return instance.environment;
 	}
 

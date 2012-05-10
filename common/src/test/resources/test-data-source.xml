@@ -42,7 +42,7 @@
 	</beans>
 
 	<beans profile="postgresql">
-		<context:property-placeholder location="postgresql.properties"/>
+		<context:property-placeholder location="${POSTGRESQL_PROPERTIES:postgresql.properties}"/>
 		<bean id="platform" class="java.lang.String">
 			<constructor-arg value="postgresql" />
 		</bean>
