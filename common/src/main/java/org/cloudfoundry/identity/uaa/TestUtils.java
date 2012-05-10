@@ -18,6 +18,8 @@ import java.sql.Connection;
 
 import javax.sql.DataSource;
 
+import org.cloudfoundry.identity.uaa.integration.TestProfileEnvironment;
+import org.springframework.core.env.Environment;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceUtils;
@@ -26,11 +28,16 @@ import org.springframework.jdbc.datasource.init.ScriptStatementFailedException;
 
 /**
  * Common methods for DB manipulation and so on.
- *
+ * 
  * @author Luke Taylor
+ * @author Dave Syer
+ * 
  */
 public class TestUtils {
-	private static String platform = System.getProperty("PLATFORM", "hsqldb");
+
+	private static Environment environment = TestProfileEnvironment.getEnvironment();
+
+	private static String platform = environment.acceptsProfiles("postgresql") ? "postgresql" : "hsqldb";
 
 	public static void runScript(DataSource dataSource, String stem) throws Exception {
 		ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
@@ -38,9 +45,11 @@ public class TestUtils {
 		Connection connection = dataSource.getConnection();
 		try {
 			populator.populate(connection);
-		} catch (ScriptStatementFailedException e) {
+		}
+		catch (ScriptStatementFailedException e) {
 			// ignore
-		} finally {
+		}
+		finally {
 			DataSourceUtils.releaseConnection(connection, dataSource);
 		}
 	}
@@ -55,13 +64,12 @@ public class TestUtils {
 
 	public static void deleteFrom(DataSource dataSource, String... tables) throws Exception {
 		for (String table : tables) {
-			new JdbcTemplate(dataSource).update("delete from " + table);			
+			new JdbcTemplate(dataSource).update("delete from " + table);
 		}
 	}
 
 	public static void assertNoSuchUser(JdbcTemplate template, String column, String value) {
-		assertEquals(0, template.queryForInt("select count(id) from users where " + column +"='"+value+"'"));
+		assertEquals(0, template.queryForInt("select count(id) from users where " + column + "='" + value + "'"));
 	}
-
 
 }

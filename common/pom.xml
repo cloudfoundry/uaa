@@ -71,6 +71,9 @@
 						<excludes>
 							<exclude>**/Abstract*.java</exclude>
 						</excludes>
+						<systemPropertyVariables>
+							<spring.profiles.active>${SPRING_PROFILES_ACTIVE}</spring.profiles.active>
+						</systemPropertyVariables>
 					</configuration>
 				</plugin>
 			</plugins>

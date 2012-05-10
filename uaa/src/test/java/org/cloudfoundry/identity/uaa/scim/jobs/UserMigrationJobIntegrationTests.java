@@ -25,13 +25,11 @@ import org.springframework.batch.core.StepExecution;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ContextConfiguration;
 
 /**
  * @author Dave Syer
  * 
  */
-@ContextConfiguration
 public class UserMigrationJobIntegrationTests extends AbstractJobIntegrationTests {
 
 	@Autowired
