@@ -1,2 +1,15 @@
 language: java
+
+before_script:
+  - if [ "$CLOUD_FOUNDRY_CONFIG_PATH" != "" ]; then psql -c 'create database cloud_controller;' -U postgres; fi
+  - if [ "$CLOUD_FOUNDRY_CONFIG_PATH" != "" ]; then psql -c 'create database uaa;' -U postgres; fi
+  - if [ "$CLOUD_FOUNDRY_CONFIG_PATH" != "" ]; then psql -c 'create role root NOSUPERUSER LOGIN INHERIT CREATEDB;' -U postgres; fi
+  - if [ "$CLOUD_FOUNDRY_CONFIG_PATH" != "" ]; then psql -c "alter role root with password 'changeme';" -U postgres; fi
+
 install: mvn -U install --quiet -DskipTests=true
+script: mvn clean test
+
+env:
+  - 
+  - CLOUD_FOUNDRY_CONFIG_PATH=src/test/resources/test/profiles/postgresql SPRING_PROFILES_ACTIVE=test,postgresql
+
