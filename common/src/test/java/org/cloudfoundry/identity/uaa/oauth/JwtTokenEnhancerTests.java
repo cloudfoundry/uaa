@@ -50,7 +50,7 @@ public class JwtTokenEnhancerTests {
 
 	@Test
 	public void rsaKeyCreatesValidRsaSignedTokens() throws Exception {
-		String rsaKey = " -----BEGIN RSA PRIVATE KEY-----  \n" +
+		String rsaKey = "-----BEGIN RSA PRIVATE KEY-----  \n" +
 				"  MIIBywIBAAJhAOTeb4AZ+NwOtPh+ynIgGqa6UWNVe6JyJi+loPmPZdpHtzoqubnC \n" +
 				" wEs6JSiSZ3rButEAw8ymgLV6iBY02hdjsl3h5Z0NWaxx8dzMZfXe4EpfB04ISoqq\n" +
 				"    hZCxchvuSDP4eQIDAQABAmEAqUuYsuuDWFRQrZgsbGsvC7G6zn3HLIy/jnM4NiJK\n" +
