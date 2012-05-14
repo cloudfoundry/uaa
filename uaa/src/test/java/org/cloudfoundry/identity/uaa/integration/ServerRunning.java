@@ -250,8 +250,12 @@ public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper 
 		return getForString(path, new HttpHeaders());
 	}
 
+	public <T> ResponseEntity<T> getForObject(String path, Class<T> type, final HttpHeaders headers) {
+		return client.exchange(getUrl(path), HttpMethod.GET, new HttpEntity<Void>((Void) null, headers), type);
+	}
+
 	public <T> ResponseEntity<T> getForObject(String path, Class<T> type) {
-		return client.exchange(getUrl(path), HttpMethod.GET, new HttpEntity<Void>((Void) null), type);
+		return getForObject(path, type, new HttpHeaders());
 	}
 
 	public ResponseEntity<String> getForString(String path, final HttpHeaders headers) {

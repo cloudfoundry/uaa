@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.integration;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
@@ -40,13 +41,10 @@ public class CheckTokenEndpointIntegrationTests {
 
 	@Rule
 	public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
-	
-	/**
-	 * tests a happy-day flow of the <code>/check_token</code> endpoint
-	 */
+
 	@Test
-	public void testHappyDay() throws Exception {
-		
+	public void testDecodeToken() throws Exception {
+
 		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
 		formData.add("grant_type", "password");
 		formData.add("username", testAccounts.getUserName());
@@ -73,6 +71,24 @@ public class CheckTokenEndpointIntegrationTests {
 		Map<String, String> map = response.getBody();
 		assertEquals(testAccounts.getUserName(), map.get("user_id"));
 		assertEquals(testAccounts.getEmail(), map.get("email"));
+
+	}
+
+	@Test
+	public void testTokenKey() throws Exception {
+
+		HttpHeaders headers = new HttpHeaders();
+		headers.set("Authorization", "Basic " + new String(Base64.encode("app:appclientsecret".getBytes("UTF-8"))));
+		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+
+		@SuppressWarnings("rawtypes")
+		ResponseEntity<Map> response = serverRunning.getForObject("/token_key", Map.class, headers);
+		assertEquals(HttpStatus.OK, response.getStatusCode());
+		@SuppressWarnings("unchecked")
+		Map<String, String> map = response.getBody();
+		// System.err.println(map);
+		assertNotNull(map.get("alg"));
+		assertNotNull(map.get("value"));
 
 	}
 
