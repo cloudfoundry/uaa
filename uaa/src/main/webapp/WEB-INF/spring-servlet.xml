@@ -100,7 +100,6 @@
 
 	<http pattern="/token_key" create-session="stateless" entry-point-ref="basicAuthenticationEntryPoint"
 		authentication-manager-ref="clientAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/**" access="ROLE_ADMIN,ROLE_RESOURCE" method="POST" /> <!-- admin *and* resource -->
 		<intercept-url pattern="/**" access="ROLE_RESOURCE" method="GET" />
 		<anonymous enabled="false" />
 		<custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
