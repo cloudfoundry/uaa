@@ -142,6 +142,11 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	@Override
 	public List<ScimUser> retrieveUsers(String filter) {
+		return retrieveUsers(filter, null, true);
+	}
+
+	@Override
+	public List<ScimUser> retrieveUsers(String filter, String sortBy, boolean ascending) {
 		String where = filter;
 
 		// Single quotes for literals
@@ -149,6 +154,11 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 		if (unquotedEq.matcher(where).matches()) {
 			throw new IllegalArgumentException("Eq argument in filter (" + filter + ") must be quoted");
+		}
+
+		if (sortBy != null) {
+			// Need to add "asc" or "desc" explicitly to ensure that the pattern splitting below works
+			where = where + " order by " + sortBy + (ascending ? " asc" : " desc");
 		}
 
 		// There is only one email address for now...
@@ -183,8 +193,10 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		}
 
 		try {
-			return new JdbcPagingList<ScimUser>(jdbcTemplate, ALL_USERS + " WHERE " + where + " ORDER BY created",
-					values, mapper, 200);
+			// Default order is by created date descending
+			String order = sortBy == null ? " ORDER BY created desc" : "";
+			return new JdbcPagingList<ScimUser>(jdbcTemplate, ALL_USERS + " WHERE " + where + order, values, mapper,
+					200);
 		}
 		catch (DataAccessException e) {
 			logger.debug("Filter '" + filter + "' generated invalid SQL", e);
@@ -292,7 +304,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	private String extractPhoneNumber(final ScimUser user) {
 		String phoneNumber = null;
-		if (user.getPhoneNumbers()!=null && !user.getPhoneNumbers().isEmpty()) {
+		if (user.getPhoneNumbers() != null && !user.getPhoneNumbers().isEmpty()) {
 			phoneNumber = user.getPhoneNumbers().get(0).getValue();
 		}
 		return phoneNumber;
@@ -432,7 +444,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 			user.setMeta(meta);
 			user.setUserName(userName);
 			user.addEmail(email);
-			if (phoneNumber!=null) {
+			if (phoneNumber != null) {
 				user.addPhoneNumber(phoneNumber);
 			}
 			Name name = new Name();

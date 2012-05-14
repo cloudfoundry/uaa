@@ -212,12 +212,14 @@ public class ScimUserEndpoints implements InitializingBean {
 	public SearchResults<Map<String, Object>> findUsers(
 			@RequestParam(value = "attributes", required = false, defaultValue = "id") String attributesCommaSeparated,
 			@RequestParam(required = false, defaultValue = "id pr") String filter,
+			@RequestParam(required = false) String sortBy,
+			@RequestParam(required = false, defaultValue = "ascending") String sortOrder,
 			@RequestParam(required = false, defaultValue = "1") int startIndex,
 			@RequestParam(required = false, defaultValue = "100") int count) {
 
 		List<ScimUser> input;
 		try {
-			input = dao.retrieveUsers(filter);
+			input = dao.retrieveUsers(filter, sortBy, sortOrder.equals("ascending"));
 		}
 		catch (IllegalArgumentException e) {
 			throw new ScimException("Invalid filter expression: [" + filter + "]", HttpStatus.BAD_REQUEST);

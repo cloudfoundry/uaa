@@ -70,8 +70,9 @@ public class JdbcScimUserProvisioningTests {
 
 		db = new JdbcScimUserProvisioning(template);
 		BCryptPasswordEncoder pe = new BCryptPasswordEncoder(4);
-		template.execute("insert into users (id, username, password, email, givenName, familyName, phoneNumber) " + "values ('"
-				+ JOE_ID + "', 'joe','" + pe.encode("joespassword") + "','joe@joe.com','Joe','User','+1-222-1234567')");
+		template.execute("insert into users (id, username, password, email, givenName, familyName, phoneNumber) "
+				+ "values ('" + JOE_ID + "', 'joe','" + pe.encode("joespassword")
+				+ "','joe@joe.com','Joe','User','+1-222-1234567')");
 		template.execute("insert into users (id, username, password, email, givenName, familyName) " + "values ('"
 				+ MABEL_ID + "', 'mabel','" + pe.encode("mabelspassword") + "','mabel@mabel.com','Mabel','User')");
 	}
@@ -179,7 +180,7 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals(1, db.retrieveUsers("username eq 'joe' and active eq false").size());
 	}
 
-	@Test(expected=UserAlreadyExistsException.class)
+	@Test(expected = UserAlreadyExistsException.class)
 	public void canRemoveExistingUserAndThenCreateHimAgain() {
 		ScimUser joe = db.removeUser(JOE_ID, 0);
 		assertJoe(joe);
@@ -275,7 +276,17 @@ public class JdbcScimUserProvisioningTests {
 
 	@Test
 	public void canRetrieveUsersWithBooleanFilter() {
-		assertTrue(2<=db.retrieveUsers("username pr and active eq true").size());
+		assertTrue(2 <= db.retrieveUsers("username pr and active eq true").size());
+	}
+
+	@Test
+	public void canRetrieveUsersWithSortBy() {
+		assertTrue(2 <= db.retrieveUsers("username pr", "username", true).size());
+	}
+
+	@Test
+	public void canRetrieveUsersWithSortByEmail() {
+		assertTrue(2 <= db.retrieveUsers("username pr", "emails.value", true).size());
 	}
 
 	@Test
@@ -353,15 +364,16 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals(password, users.iterator().next().getId());
 	}
 
-    @Test
-    public void filterEqWithoutQuotesIsRejected() {
-        try {
-            db.retrieveUsers("username eq joe");
-            fail();
-        } catch (Exception e) {
-            assertTrue(e.getMessage().startsWith("Eq argument in filter"));
-        }
-    }
+	@Test
+	public void filterEqWithoutQuotesIsRejected() {
+		try {
+			db.retrieveUsers("username eq joe");
+			fail();
+		}
+		catch (Exception e) {
+			assertTrue(e.getMessage().startsWith("Eq argument in filter"));
+		}
+	}
 
 	private void assertJoe(ScimUser joe) {
 		assertNotNull(joe);

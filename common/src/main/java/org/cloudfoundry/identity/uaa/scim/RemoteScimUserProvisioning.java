@@ -65,6 +65,13 @@ public class RemoteScimUserProvisioning implements ScimUserProvisioning {
 	}
 
 	@Override
+	@SuppressWarnings("unchecked")
+	public List<ScimUser> retrieveUsers(String filter, String sortBy, boolean ascending) {
+		String order = ascending ? "" : "&sortOrder=descending";
+		return restTemplate.getForObject(baseUrl + "/Users?filter={filter}&sortBy={sortBy}" + order, List.class, filter, sortBy);
+	}
+
+	@Override
 	public ScimUser createUser(ScimUser user, String password) throws InvalidPasswordException, InvalidUserException {
 		user.setPassword(password);
 		return restTemplate.postForObject(baseUrl + "/User", user, ScimUser.class);

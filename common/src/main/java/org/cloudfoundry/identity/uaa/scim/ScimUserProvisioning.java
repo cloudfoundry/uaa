@@ -27,6 +27,8 @@ public interface ScimUserProvisioning {
 
 	public List<ScimUser> retrieveUsers(String filter);
 
+	public List<ScimUser> retrieveUsers(String filter, String sortBy, boolean ascending);
+
 	public ScimUser createUser(ScimUser user, String password) throws InvalidPasswordException, InvalidUserException;
 
 	public ScimUser updateUser(String id, ScimUser user) throws InvalidUserException, UserNotFoundException;

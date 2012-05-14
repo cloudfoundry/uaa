@@ -240,4 +240,14 @@ public class ScimUserEndpointIntegrationTests {
 		assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
 	}
 
+	@Test
+	public void findUsersWithSortBy() throws Exception {
+		@SuppressWarnings("rawtypes")
+		ResponseEntity<Map> response = serverRunning.getForObject(usersEndpoint + "?sortBy=emails.value", Map.class);
+		@SuppressWarnings("unchecked")
+		Map<String, Object> results = response.getBody();
+		assertEquals(HttpStatus.OK, response.getStatusCode());
+		assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
+	}
+
 }
