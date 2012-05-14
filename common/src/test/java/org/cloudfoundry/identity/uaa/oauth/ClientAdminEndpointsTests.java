@@ -18,6 +18,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
+import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.junit.Before;
@@ -29,6 +30,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
+import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
@@ -64,6 +66,13 @@ public class ClientAdminEndpointsTests {
 		ResponseEntity<Void> result = endpoints.createClientDetails(details);
 		assertEquals(HttpStatus.CREATED, result.getStatusCode());
 		Mockito.verify(clientRegistrationService).addClientDetails(details);
+	}
+
+	@Test
+	public void testFindClientDetails() throws Exception {
+		ResponseEntity<Map<String,ClientDetails>> result = endpoints.listClientDetails();
+		assertEquals(HttpStatus.OK, result.getStatusCode());
+		Mockito.verify(clientRegistrationService).listClientDetails();
 	}
 
 	@Test
@@ -198,7 +207,7 @@ public class ClientAdminEndpointsTests {
 		endpoints.createClientDetails(details);
 		ResponseEntity<Void> result = endpoints.removeClientDetails("foo");
 		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
-		Mockito.verify(clientRegistrationService).removeClientDetails(details);
+		Mockito.verify(clientRegistrationService).removeClientDetails("foo");
 	}
 
 	@Test(expected = InvalidClientDetailsException.class)

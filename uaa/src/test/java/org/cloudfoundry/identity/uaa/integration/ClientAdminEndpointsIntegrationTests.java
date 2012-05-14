@@ -65,8 +65,19 @@ public class ClientAdminEndpointsIntegrationTests {
 		HttpHeaders headers = getAuthenticatedHeaders(token);
 		ResponseEntity<String> result = serverRunning.getForString("/oauth/clients/vmc", headers);
 		assertEquals(HttpStatus.OK, result.getStatusCode());
-		System.err.println(result.getBody());
 		assertTrue(result.getBody().contains("vmc"));
+	}
+
+	@Test
+	public void testListClients() throws Exception {
+
+		OAuth2AccessToken token = getClientCredentialsAccessToken("read");
+
+		HttpHeaders headers = getAuthenticatedHeaders(token);
+		ResponseEntity<String> result = serverRunning.getForString("/oauth/clients", headers);
+		assertEquals(HttpStatus.OK, result.getStatusCode());
+		// System.err.println(result.getBody());
+		assertTrue(result.getBody().contains("vmc\":{"));
 	}
 
 	@Test
