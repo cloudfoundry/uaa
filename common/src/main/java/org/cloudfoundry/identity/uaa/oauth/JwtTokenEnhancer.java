@@ -13,18 +13,25 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.security.jwt.JwtHelper;
-import org.springframework.security.jwt.crypto.sign.*;
+import org.springframework.security.jwt.crypto.sign.InvalidSignatureException;
+import org.springframework.security.jwt.crypto.sign.MacSigner;
+import org.springframework.security.jwt.crypto.sign.RsaSigner;
+import org.springframework.security.jwt.crypto.sign.RsaVerifier;
+import org.springframework.security.jwt.crypto.sign.Signer;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.token.TokenEnhancer;
+import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -36,6 +43,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
  * @author Dave Syer
  * @author Luke Taylor
  */
+@Controller
 public class JwtTokenEnhancer implements TokenEnhancer, InitializingBean {
 	protected final Log logger = LogFactory.getLog(getClass());
 
@@ -54,8 +62,11 @@ public class JwtTokenEnhancer implements TokenEnhancer, InitializingBean {
 	 */
 	@RequestMapping(value = "/token_key", method = RequestMethod.GET)
 	@ResponseBody
-	public String getKey() {
-		return verifierKey;
+	public Map<String, String> getKey() {
+		Map<String,String> result = new LinkedHashMap<String, String>();
+		result.put("alg", signer.algorithm());
+		result.put("value", verifierKey);
+		return result;
 	}
 
 	/**
