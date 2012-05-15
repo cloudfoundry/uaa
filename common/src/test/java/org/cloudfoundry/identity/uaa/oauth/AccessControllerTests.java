@@ -53,8 +53,9 @@ public class AccessControllerTests {
 		request.addHeader("Host", "foo");
 		ModelMap model = new ModelMap();
 		controller.confirm(new AuthorizationRequest("client", null, null, null), model, request);
-		assertEquals("https://foo/oauth/authorize",
-				((Map<String, Object>) ((Map<String, Object>) model.get("options")).get("confirm")).get("location"));
+		Map<String, Object> options = (Map<String, Object>) ((Map<String, Object>) model.get("options")).get("confirm");
+		assertEquals("https://foo/oauth/authorize", options.get("location"));
+		assertEquals("/oauth/authorize", options.get("path"));
 	}
 
 }

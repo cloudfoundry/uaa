@@ -78,7 +78,7 @@ public class AccessController {
 					put("confirm", new HashMap<String, String>() {
 						{
 							put("location", getLocation(request, "oauth/authorize"));
-							put("path", getPath(request, "/oauth/authorize"));
+							put("path", getPath(request, "oauth/authorize"));
 							put("key", "user_oauth_approval");
 							put("value", "true");
 						}
@@ -87,7 +87,7 @@ public class AccessController {
 					put("deny", new HashMap<String, String>() {
 						{
 							put("location", getLocation(request, "oauth/authorize"));
-							put("path", getPath(request, "/oauth/authorize"));
+							put("path", getPath(request, "oauth/authorize"));
 							put("key", "user_oauth_approval");
 							put("value", "false");
 						}
@@ -106,7 +106,14 @@ public class AccessController {
 	}
 
 	private String getPath(HttpServletRequest request, String path) {
-		return request.getContextPath() + "/" + path;
+		String contextPath = request.getContextPath();
+		if (contextPath.endsWith("/")) {
+			contextPath = contextPath.substring(0, contextPath.lastIndexOf("/")-1);
+		}
+		if (path.startsWith("/")) {
+			path = path.substring(1);
+		}
+		return contextPath + "/" + path;
 	}
 
 	protected String extractScheme(HttpServletRequest request) {
