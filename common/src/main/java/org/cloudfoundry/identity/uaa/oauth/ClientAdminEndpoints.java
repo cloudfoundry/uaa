@@ -14,6 +14,9 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.logging.Log;
@@ -104,9 +107,18 @@ public class ClientAdminEndpoints {
 
 	@RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.DELETE)
 	public ResponseEntity<Void> removeClientDetails(@PathVariable String client) throws Exception {
-		ClientDetails details = clientDetailsService.loadClientByClientId(client);
-		clientRegistrationService.removeClientDetails(details);
+		clientRegistrationService.removeClientDetails(client);
 		return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
+	}
+
+	@RequestMapping(value = "/oauth/clients", method = RequestMethod.GET)
+	public ResponseEntity<Map<String, ClientDetails>> listClientDetails() throws Exception {
+		List<ClientDetails> details = clientRegistrationService.listClientDetails();
+		Map<String, ClientDetails> map = new LinkedHashMap<String, ClientDetails>();
+		for (ClientDetails client : details) {
+			map.put(client.getClientId(), client);
+		}
+		return new ResponseEntity<Map<String, ClientDetails>>(map, HttpStatus.OK);
 	}
 
 	@RequestMapping(value = "/oauth/clients/{client}/password", method = RequestMethod.PUT)
