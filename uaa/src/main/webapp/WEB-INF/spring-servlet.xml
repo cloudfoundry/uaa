@@ -208,6 +208,7 @@
 		<property name="supportRefreshToken" value="true" />
 		<property name="tokenStore" ref="tokenStore" />
 		<property name="tokenEnhancer" ref="jwtTokenEnhancer" />
+		<property name="clientDetailsService" ref="clientDetails" />
 	</bean>
 
 	<bean id="jwtTokenEnhancer" class="org.cloudfoundry.identity.uaa.oauth.JwtTokenEnhancer">
