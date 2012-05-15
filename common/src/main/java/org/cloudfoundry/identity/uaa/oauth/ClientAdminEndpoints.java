@@ -135,9 +135,7 @@ public class ClientAdminEndpoints {
 
 		checkPasswordChangeIsAllowed(clientDetails, change.getOldSecret());
 
-		BaseClientDetails updated = new BaseClientDetails(clientDetails);
-		updated.setClientSecret(change.getSecret());
-		clientRegistrationService.updateClientDetails(updated);
+		clientRegistrationService.updateClientSecret(client, change.getSecret());
 
 	}
 

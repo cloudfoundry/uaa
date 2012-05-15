@@ -98,9 +98,7 @@ public class ClientAdminEndpointsTests {
 		change.setOldSecret(details.getClientSecret());
 		change.setSecret("newpassword");
 		endpoints.changeSecret(details.getClientId(), change);
-		BaseClientDetails updated = new BaseClientDetails(details);
-		updated.setClientSecret(change.getSecret());
-		Mockito.verify(clientRegistrationService).updateClientDetails(updated );
+		Mockito.verify(clientRegistrationService).updateClientSecret(details.getClientId(), "newpassword");
 
 	}
 
@@ -195,9 +193,7 @@ public class ClientAdminEndpointsTests {
 		change.setOldSecret(details.getClientSecret());
 		change.setSecret("newpassword");
 		endpoints.changeSecret(details.getClientId(), change);
-		BaseClientDetails updated = new BaseClientDetails(details);
-		updated.setClientSecret(change.getSecret());
-		Mockito.verify(clientRegistrationService).updateClientDetails(updated );
+		Mockito.verify(clientRegistrationService).updateClientSecret(details.getClientId(), "newpassword");
 
 	}
 
