@@ -575,11 +575,8 @@ Request         ``POST /oauth/clients/{client_id}``
 Access          allowed by clients or users with ``ROLE_ADMIN`` and ``scope=write``
 Request body    client details
 Response code    ``201 CREATED`` if successful
-Response body   ``HTTP/1.1 201 CREATED``
+Response body   *empty*
 ==============  ===============================================
-
-.. todo: verify this request returns an empty body or a copy of the new client
-  as scim create user.
 
 Example request::
 
@@ -591,7 +588,10 @@ Example request::
       resource_ids : [cloud_controller,scim],
       authorities : [ROLE_CLIENT,ROLE_ADMIN],
       authorized_grant_types : [client_credentials],
+      access_token_validity: 43200
     }
+
+(Also available for grant types that support it: ``refresh_token_validity``.)
 
 Update Client: ``PUT /oauth/clients/{client_id}``
 ------------------------------------------------------
@@ -609,12 +609,14 @@ Example::
     PUT /oauth/clients/foo
     {
       client_id : foo,
-      client_secret : fooclientsecret, // optional for untrusted clients
       scope : [read,write],
       resource-ids : [cloud_controller,scim],
       authorities : [ROLE_CLIENT,ROLE_ADMIN],
       authorized_grant_types : [client_credentials]
     }
+
+N.B. the secret will not be changed, even if it is included in the
+request body (use the secret change endpoint instead).
 
 Delete Client: ``DELETE /oauth/clients/{client_id}``
 -------------------------------------------------------
