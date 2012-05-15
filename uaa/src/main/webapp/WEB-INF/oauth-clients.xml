@@ -27,10 +27,10 @@
 		<expression-handler ref="oauthWebExpressionHandler" />
 	</http>
 
-	<http pattern="/oauth/clients/*/password" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
+	<http pattern="/oauth/clients/*/secret" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
 		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
 		xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/oauth/clients/*/password" access="IS_AUTHENTICATED_FULLY,SCOPE_PASSWORD" />
+		<intercept-url pattern="/oauth/clients/*/secret" access="IS_AUTHENTICATED_FULLY,SCOPE_PASSWORD" />
 		<custom-filter ref="clientSecretResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>

@@ -155,7 +155,7 @@ public class ClientAdminEndpointsIntegrationTests {
 		SecretChangeRequest change = new SecretChangeRequest();
 		change.setOldSecret(client.getClientSecret());
 		change.setSecret("newsecret");
-		result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients/{client}/password"),
+		result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients/{client}/secret"),
 				HttpMethod.PUT, new HttpEntity<SecretChangeRequest>(change , headers), Void.class, client.getClientId());
 		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
 

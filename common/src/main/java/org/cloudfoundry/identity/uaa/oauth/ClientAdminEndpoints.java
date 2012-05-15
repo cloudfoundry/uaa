@@ -121,7 +121,7 @@ public class ClientAdminEndpoints {
 		return new ResponseEntity<Map<String, ClientDetails>>(map, HttpStatus.OK);
 	}
 
-	@RequestMapping(value = "/oauth/clients/{client}/password", method = RequestMethod.PUT)
+	@RequestMapping(value = "/oauth/clients/{client}/secret", method = RequestMethod.PUT)
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void changeSecret(@PathVariable String client, @RequestBody SecretChangeRequest change) {
 
