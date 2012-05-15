@@ -72,7 +72,7 @@ public class JwtTokenEnhancerTests {
 	@Test
 	public void publicKeyStringIsReturnedFromTokenKeyEndpoint() throws Exception {
 		tokenEnhancer.setVerifierKey("someKey");
-		assertEquals("someKey", tokenEnhancer.getKey());
+		assertEquals("{alg=HMACSHA256, value=someKey}", tokenEnhancer.getKey().toString());
 	}
 
 	@Test(expected=IllegalStateException.class)
