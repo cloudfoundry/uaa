@@ -15,7 +15,7 @@
 	<properties>
 		<spring.version>3.1.1.RELEASE</spring.version>
 		<spring.security.version>3.1.0.RELEASE</spring.security.version>
-		<spring.security.oauth.version>1.0.0.BUILD-SNAPSHOT</spring.security.oauth.version>
+		<spring.security.oauth.version>1.0.0.M6b</spring.security.oauth.version>
 		<spring.security.jwt.version>1.0.0.M3</spring.security.jwt.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -210,6 +210,11 @@
                   <artifactId>maven-emma-plugin</artifactId>
                   <version>1.0-alpha-3</version>
                 </plugin>
+                <plugin>
+                  <groupId>org.apache.maven.plugins</groupId>
+                  <artifactId>maven-release-plugin</artifactId>
+                  <version>2.3</version>
+                </plugin>
 			</plugins>
 		</pluginManagement>
 		<extensions>
@@ -253,8 +258,8 @@
 	</pluginRepositories>
     <scm>
       <url>http://github.com/cloudfoundry/uaa</url>
-      <connection>scm:git:ssh://git@github.com/cloudfoundry/uaa.git</connection>
-      <developerConnection>scm:git:git://github.com/cloudfoundry/uau.git</developerConnection>
+      <connection>scm:git:git://github.com/cloudfoundry/uaa.git</connection>
+      <developerConnection>scm:git:ssh://git@github.com/cloudfoundry/uau.git</developerConnection>
     </scm>
     <issueManagement>
       <system>JIRA</system>
