@@ -36,12 +36,12 @@ public class AuthenticationIntegrationTests {
 
 	@Rule
 	public ServerRunning serverRunning = ServerRunning.isRunning();
-	
-	private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);	
+
+	private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
 
 	@Rule
 	public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
-	
+
 	@Test
 	public void formLoginSucceeds() throws Exception {
 
@@ -55,7 +55,7 @@ public class AuthenticationIntegrationTests {
 		appHeaders.setAccept(Arrays.asList(MediaType.TEXT_HTML));
 
 		// *** GET /app/
-		result = serverRunning.getForResponse("/app/", appHeaders);
+		result = serverRunning.getForResponse("/", appHeaders);
 		assertEquals(HttpStatus.FOUND, result.getStatusCode());
 		location = result.getHeaders().getLocation().toString();
 
@@ -63,7 +63,7 @@ public class AuthenticationIntegrationTests {
 		assertNotNull("Expected cookie in " + result.getHeaders(), cookie);
 		appHeaders.set("Cookie", cookie);
 
-		assertTrue("Wrong location: " + location, location.contains("/app/login"));
+		assertTrue("Wrong location: " + location, location.contains("/login"));
 		// *** GET /app/login
 		result = serverRunning.getForResponse(location, appHeaders);
 		assertEquals(HttpStatus.FOUND, result.getStatusCode());
@@ -79,8 +79,8 @@ public class AuthenticationIntegrationTests {
 		assertNotNull("Expected cookie in " + result.getHeaders(), cookie);
 		uaaHeaders.set("Cookie", cookie);
 
-		assertTrue("Wrong location: " + location, location.contains("/uaa/login"));
-		location = "/uaa/login.do";
+		assertTrue("Wrong location: " + location, location.contains(serverRunning.getAuthServerUrl("/login")));
+		location = serverRunning.getAuthServerUrl("/login.do");
 
 		MultiValueMap<String, String> formData;
 		formData = new LinkedMultiValueMap<String, String>();
@@ -102,6 +102,7 @@ public class AuthenticationIntegrationTests {
 		result = serverRunning.getForResponse(location, uaaHeaders);
 
 		// If there is no token in place already for this client we get the approval page.
+		// TODO: revoke the token so we always get the approval page
 		if (result.getStatusCode() == HttpStatus.OK) {
 			location = "/uaa/oauth/authorize";
 
@@ -114,7 +115,7 @@ public class AuthenticationIntegrationTests {
 
 		location = result.getHeaders().getLocation().toString();
 
-		assertTrue("Wrong location: " + location, location.contains("app/login"));
+		assertTrue("Wrong location: " + location, location.contains(serverRunning.getUrl("/login")));
 		// *** GET /app/login
 		result = serverRunning.getForResponse(location, appHeaders);
 
@@ -122,12 +123,11 @@ public class AuthenticationIntegrationTests {
 		location = result.getHeaders().getLocation().toString();
 
 		// SUCCESS
-		assertTrue("Wrong location: " + location, location.endsWith("/app/"));
+		assertTrue("Wrong location: " + location, location.endsWith("/"));
 
 		// *** GET /app/
 		result = serverRunning.getForResponse(location, appHeaders);
 		// System.err.println(result.getHeaders());
 		assertEquals(HttpStatus.OK, result.getStatusCode());
 	}
-
 }

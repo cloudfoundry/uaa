@@ -67,7 +67,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
 						+ ". Ignoring login request.");
 				// TODO: We should perhaps have another audit event type here
 				// since this will not be logged as an authentication failure.
-				throw new BadCredentialsException("Bad credentials");
+				throw new BadCredentialsException("Login policy rejected authentication");
 			}
 
 			if (encoder.matches((CharSequence) req.getCredentials(), user.getPassword())) {

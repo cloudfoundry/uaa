@@ -1,0 +1,5 @@
+uaa.integration.test: true
+uaa:
+  path: http://devuaa.cloudfoundry.com
+app:
+  path: http://devapp.cloudfoundry.com

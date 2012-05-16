@@ -3,5 +3,3 @@ uaa:
   host: devuaa.cloudfoundry.com
   port: 80
   path: /
-# YAML values must not start with "!"
-spring_profiles: hsqldb

@@ -23,12 +23,14 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.integration.TestProfileEnvironment;
 import org.cloudfoundry.identity.uaa.integration.UrlHelper;
 import org.junit.Assume;
 import org.junit.internal.AssumptionViolatedException;
 import org.junit.rules.TestWatchman;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
+import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -74,111 +76,80 @@ public class ServerRunning extends TestWatchman implements RestTemplateHolder, U
 	private static Log logger = LogFactory.getLog(ServerRunning.class);
 
 	// Static so that we only test once on failure: speeds up test suite
-	private static Map<Integer, Boolean> serverOnline = new HashMap<Integer, Boolean>();
+	private static Map<String, Boolean> serverOnline = new HashMap<String, Boolean>();
 
-	// Static so that we only test once on failure
-	private static Map<Integer, Boolean> serverOffline = new HashMap<Integer, Boolean>();
+	private static final String DEFAULT_ROOT_PATH = "http://localhost:8080/app";
 
-	private final boolean assumeOnline;
+	private static final String DEFAULT_AUTH_SERVER_PATH = "http://localhost:8080/uaa";
 
-	private static final int DEFAULT_PORT = 8080;
-
-	private static final String DEFAULT_HOST = "localhost";
-
-	private static final String DEFAULT_AUTH_SERVER_ROOT = "/uaa";
+	private String authServerRoot = DEFAULT_AUTH_SERVER_PATH;
 	
-	private int port;
-
-	private String hostName = DEFAULT_HOST;
-	
-	private String authServerRoot = DEFAULT_AUTH_SERVER_ROOT;
+	private String rootPath = DEFAULT_ROOT_PATH;
 
 	private RestOperations client;
+
+	private ConfigurableEnvironment environment;
+
+	private Boolean integrationTest;
 
 	/**
 	 * @return a new rule that assumes an existing running broker
 	 */
 	public static ServerRunning isRunning() {
-		return new ServerRunning(true);
+		return new ServerRunning();
 	}
 
-	/**
-	 * @return a new rule that assumes there is no existing broker
-	 */
-	public static ServerRunning isNotRunning() {
-		return new ServerRunning(false);
-	}
-
-	private ServerRunning(boolean assumeOnline) {
-		this.assumeOnline = assumeOnline;
-		setPort(DEFAULT_PORT);
-	}
-
-	/**
-	 * @param port the port to set
-	 */
-	public void setPort(int port) {
-		this.port = port;
-		if (!serverOffline.containsKey(port)) {
-			serverOffline.put(port, true);
-		}
-		if (!serverOnline.containsKey(port)) {
-			serverOnline.put(port, true);
-		}
+	private ServerRunning() {
+		this.environment = TestProfileEnvironment.getEnvironment();
+		this.integrationTest = environment.getProperty("uaa.integration.test", Boolean.class, false);
+		setRootPath(environment.getProperty("app.path", DEFAULT_ROOT_PATH));
+		setAuthServerRoot(environment.getProperty("uaa.path", DEFAULT_AUTH_SERVER_PATH));
 		client = createRestTemplate();
 	}
 
-	/**
-	 * @param hostName the hostName to set
-	 */
-	public void setHostName(String hostName) {
-		this.hostName = hostName;
-	}
-	
 	/**
 	 * @param authServerRoot the authServerRoot to set
 	 */
 	public void setAuthServerRoot(String authServerRoot) {
 		this.authServerRoot = authServerRoot;
 	}
+	
+	/**
+	 * @param rootPath the rootPath to set
+	 */
+	public void setRootPath(String rootPath) {
+		this.rootPath = rootPath;
+		if (!serverOnline.containsKey(rootPath)) {
+			serverOnline.put(rootPath, true);
+		}
+	}
 
 	@Override
 	public Statement apply(Statement base, FrameworkMethod method, Object target) {
 
 		// Check at the beginning, so this can be used as a static field
-		if (assumeOnline) {
-			Assume.assumeTrue(serverOnline.get(port));
-		}
-		else {
-			Assume.assumeTrue(serverOffline.get(port));
+		if (!integrationTest) {
+			Assume.assumeTrue(serverOnline.get(rootPath));
 		}
 
 		RestTemplate client = new RestTemplate();
 		boolean online = false;
 		try {
-			client.getForEntity(new UriTemplate(getUrl("/uaa/login")).toString(), String.class);
-			client.getForEntity(new UriTemplate(getUrl("/app/login_error.jsp")).toString(), String.class);
+			client.getForEntity(new UriTemplate(getAuthServerUrl("/login")).toString(), String.class);
+			client.getForEntity(new UriTemplate(getUrl("/login_error.jsp")).toString(), String.class);
 			online = true;
 			logger.info("Basic connectivity test passed");
 		}
 		catch (RestClientException e) {
 			logger.warn(String.format(
-					"Not executing tests because basic connectivity test failed for hostName=%s, port=%d", hostName,
-					port), e);
-			if (assumeOnline) {
+					"Not executing tests because basic connectivity test failed for root=" + rootPath), e);
+			if (!integrationTest) {
 				Assume.assumeNoException(e);
 			}
 		}
 		finally {
-			if (online) {
-				serverOffline.put(port, false);
-				if (!assumeOnline) {
-					Assume.assumeTrue(serverOffline.get(port));
-				}
-
-			}
-			else {
-				serverOnline.put(port, false);
+			if (!online) {
+				serverOnline.put(rootPath, false);
 			}
 		}
 
@@ -187,31 +158,39 @@ public class ServerRunning extends TestWatchman implements RestTemplateHolder, U
 	}
 
 	public String getBaseUrl() {
-		return "http://" + hostName + ":" + port;
+		return rootPath;
 	}
-	
+
 	public String getAccessTokenUri() {
-		return getUrl(authServerRoot + "/oauth/token");
+		return getAuthServerUrl("/oauth/token");
 	}
 
 	public String getAuthorizationUri() {
-		return getUrl(authServerRoot + "/oauth/authorize");
+		return getAuthServerUrl("/oauth/authorize");
 	}
 
 	public String getClientsUri() {
-		return getUrl(authServerRoot + "/oauth/clients");
+		return getAuthServerUrl("/oauth/clients");
 	}
 
 	public String getUsersUri() {
-		return getUrl(authServerRoot + "/Users");
+		return getAuthServerUrl("/Users");
 	}
 
 	public String getUserUri() {
-		return getUrl(authServerRoot + "/User");
+		return getAuthServerUrl("/User");
+	}
+
+	public String getAuthServerUrl(String path) {
+		return getExternalUrl(authServerRoot, path);
 	}
 
 	public String getUrl(String path) {
-		if (path.startsWith("http:")) {
+		return getExternalUrl(rootPath, path);
+	}
+
+	private String getExternalUrl(String root, String path) {
+		if (path.startsWith("http")) {
 			try {
 				return URLDecoder.decode(path, "UTF-8");
 			}
@@ -222,7 +201,7 @@ public class ServerRunning extends TestWatchman implements RestTemplateHolder, U
 		if (!path.startsWith("/")) {
 			path = "/" + path;
 		}
-		return "http://" + hostName + ":" + port + path;
+		return root + path;
 	}
 
 	public ResponseEntity<String> postForString(String path, MultiValueMap<String, String> formData) {
@@ -252,7 +231,8 @@ public class ServerRunning extends TestWatchman implements RestTemplateHolder, U
 	}
 
 	public ResponseEntity<String> getForString(String path) {
-		ResponseEntity<String> exchange = client.exchange(getUrl(path), HttpMethod.GET, new HttpEntity<Void>((Void) null), String.class);
+		ResponseEntity<String> exchange = client.exchange(getUrl(path), HttpMethod.GET, new HttpEntity<Void>(
+				(Void) null), String.class);
 		logger.info("Response headers: " + exchange.getHeaders());
 		return exchange;
 	}
@@ -276,17 +256,17 @@ public class ServerRunning extends TestWatchman implements RestTemplateHolder, U
 		actualHeaders.putAll(headers);
 		actualHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-		ResponseEntity<Void> exchange = client.exchange(getUrl(path), HttpMethod.POST, new HttpEntity<MultiValueMap<String, String>>(params,
-				actualHeaders), null);
+		ResponseEntity<Void> exchange = client.exchange(getUrl(path), HttpMethod.POST,
+				new HttpEntity<MultiValueMap<String, String>>(params, actualHeaders), null);
 		logger.info("Response headers: " + exchange.getHeaders());
 		return exchange;
 	}
-	
+
 	@Override
 	public void setRestTemplate(RestOperations restTemplate) {
 		client = restTemplate;
 	}
-	
+
 	@Override
 	public RestOperations getRestTemplate() {
 		return client;
