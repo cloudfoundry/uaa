@@ -16,6 +16,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.junit.internal.matchers.StringContains.containsString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -23,9 +24,12 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
+import org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -34,13 +38,19 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabase;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.servlet.View;
 
 /**
  * @author Dave Syer
@@ -111,6 +121,38 @@ public class ScimUserEndpointsTests {
 				created.getId());
 		// Generated password...
 		assertNotNull(password);
+	}
+
+	@Test
+	public void userWithNoEmailNotAllowed() {
+		ScimUser user = new ScimUser(null, "dave", "David", "Syer");
+		endpoints.setSecurityContextAccessor(mockSecurityContext(user));
+		try {
+			endpoints.createUser(user);
+			fail("Expected InvalidUserException");
+		}
+		catch (InvalidUserException e) {
+			// expected
+			String message = e.getMessage();
+			assertTrue("Wrong message: " + message, message.contains("email"));
+		}
+		JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
+		int count = jdbcTemplate.queryForInt("select count(*) from users where userName=?", "dave");
+		assertEquals(0, count);
+	}
+
+	@Test
+	public void testHandleExceptionWithConstraintViolation() throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		endpoints.setMessageConverters(new HttpMessageConverter<?>[] { new ExceptionReportHttpMessageConverter() });
+		View view = endpoints.handleException(new DataIntegrityViolationException("foo"), request);
+		ConvertingExceptionView converted = (ConvertingExceptionView) view;
+		converted.render(Collections.<String, Object> emptyMap(), request, response);
+		String body = response.getContentAsString();
+		assertEquals(HttpStatus.BAD_REQUEST.value(), response.getStatus());
+		// System.err.println(body);
+		assertTrue("Wrong body: " + body, body.contains("message\":\"foo"));
 	}
 
 	@Test

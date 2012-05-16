@@ -17,6 +17,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Map;
 
+import org.cloudfoundry.identity.uaa.scim.InvalidUserException;
 import org.cloudfoundry.identity.uaa.scim.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -104,6 +105,23 @@ public class ScimUserEndpointIntegrationTests {
 				.getForObject(serverRunning.getUrl(userEndpoint + "/{id}"), ScimUser.class, joe1.getId());
 
 		assertEquals(joe1.getId(), joe2.getId());
+	}
+
+	@Test
+	public void createUserWithNoEmailFails() throws Exception {
+		ScimUser user = new ScimUser();
+		user.setUserName("dave");
+		user.setName(new ScimUser.Name("Dave", "Syer"));
+
+		@SuppressWarnings("rawtypes")
+		ResponseEntity<Map> response = client.postForEntity(serverRunning.getUrl(userEndpoint), user, Map.class);
+		@SuppressWarnings("unchecked")
+		Map<String, String> error = response.getBody();
+
+		System.err.println(error);
+		assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+		assertEquals(InvalidUserException.class.getName(), error.get("error"));
+
 	}
 
 	@Test

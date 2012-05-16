@@ -263,7 +263,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 			InvalidUserException {
 
 		passwordValidator.validate(password, user);
-		validateUsername(user);
+		validate(user);
 
 		logger.info("Creating new user: " + user.getUserName());
 
@@ -296,9 +296,15 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	}
 
-	private void validateUsername(final ScimUser user) throws InvalidUserException {
+	private void validate(final ScimUser user) throws InvalidUserException {
 		if (!user.getUserName().matches("[a-z0-9+-_.@]+")) {
 			throw new InvalidUserException("Username must be lower case alphanumeric with optional characters '._@'.");
+		}
+		if (user.getEmails()==null || user.getEmails().isEmpty()) {
+			throw new InvalidUserException("An email must be provided.");
+		}
+		if (user.getName()==null || user.getName().getFamilyName()==null || user.getName().getGivenName()==null) {
+			throw new InvalidUserException("A given name and a family name must be provided.");
 		}
 	}
 
@@ -312,7 +318,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	@Override
 	public ScimUser updateUser(final String id, final ScimUser user) throws InvalidUserException {
-		validateUsername(user);
+		validate(user);
 		logger.info("Updating user " + user.getUserName());
 
 		int updated = jdbcTemplate.update(UPDATE_USER_SQL, new PreparedStatementSetter() {
