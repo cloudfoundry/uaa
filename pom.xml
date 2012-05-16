@@ -5,7 +5,7 @@
 	<artifactId>cloudfoundry-identity-parent</artifactId>
 	<name>CloudFoundry Identity - Parent</name>
 	<packaging>pom</packaging>
-	<version>1.0.0.BUILD-SNAPSHOT</version>
+	<version>1.0.0.p6</version>
     <url>http://github.com/cloudfoundry/uaa</url>
 	<modules>
 		<module>common</module>
@@ -108,7 +108,7 @@
 										</goals>
 									</pluginExecutionFilter>
 									<action>
-										<ignore/>
+										<ignore />
 									</action>
 								</pluginExecution>
 								<pluginExecution>
@@ -121,7 +121,7 @@
 										</goals>
 									</pluginExecutionFilter>
 									<action>
-										<ignore/>
+										<ignore />
 									</action>
 								</pluginExecution>
 								<pluginExecution>
@@ -260,7 +260,8 @@
       <url>http://github.com/cloudfoundry/uaa</url>
       <connection>scm:git:git://github.com/cloudfoundry/uaa.git</connection>
       <developerConnection>scm:git:ssh://git@github.com/cloudfoundry/uau.git</developerConnection>
-    </scm>
+      <tag>1.0.0.p6</tag>
+  </scm>
     <issueManagement>
       <system>JIRA</system>
       <url>https://cloudfoundry.atlassian.net/browse/CF</url>
