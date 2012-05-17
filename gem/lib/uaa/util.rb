@@ -74,6 +74,4 @@ class CF::UAA::Util
     raise ArgumentError, "arg must an Array or space or comma delimited strings"
   end
 
-
-
 end

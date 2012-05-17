@@ -19,7 +19,7 @@ module CF::UAA
 
 describe TokenChecker do
 
-  subject { TokenChecker.new(StubServer.url, "test_resource", "test_secret") }
+  subject { TokenChecker.new(StubServer.url, "test_resource", "test_secret", "test_resource") }
 
   before :each do
     subject.debug = false
@@ -71,11 +71,11 @@ describe TokenChecker do
     end
   end
 
-  it "should raise an auth error if the returned token does not contain the resource id" do
+  it "should raise an auth error if the returned token does not contain the audience" do
     StubServer.responder do |request, reply|
       request.path.should == "/check_token?token_type=TestTokType&token=TestToken"
       reply.headers[:content_type] = "application/json"
-      reply.body = %<{"resource_ids": ["one_resource", "two_resource", "other_resource"],"email":"derek@gmail.com"}>
+      reply.body = %<{"aud": ["one_resource", "two_resource", "other_resource"],"email":"derek@gmail.com"}>
       reply
     end
     StubServer.request do

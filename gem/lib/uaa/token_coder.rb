@@ -91,15 +91,19 @@ class TokenCoder
 
   # Create a new token en/decoder for a service that is associated with
   # the the audience_ids, the symmetrical token validation key, and the
-  # public and/or private keys. pkey may be a string or File which includes
-  # public and/or private key data in PEM or DER formats.
-  # The audience_ids may be an array or space separated strings and should
+  # public and/or private keys. Parameters:
+  #
+  # * audience_ids - an array or space separated strings and should
   # indicate values which indicate the token is intended for this service
   # instance. It will be compared with tokens as they are decoded to
-  # ensure that the token was intended for this resource. The skey
-  # is used by the token granter (Authorization Server) to sign
-  # the token using symetrical key algoruthms, while the public key
-  # is used to validate signatures for public/private key algorithms.
+  # ensure that the token was intended for this audience.
+  #
+  # * skey - is used to sign and validate tokens using symetrical key
+  # algoruthms
+  #
+  # * pkey - pkey may be a string or File which includes public and
+  # optionally private key data in PEM or DER formats. The private key
+  # is used to sign tokens and the public key is used to validate tokens.
   def initialize(audience_ids, skey, pkey)
     @audience_ids, @skey, @pkey = Util.arglist(audience_ids), skey, pkey
     @pkey = OpenSSL::PKey::RSA.new(pkey) unless pkey.nil? || pkey.is_a?(OpenSSL::PKey::PKey)
@@ -129,11 +133,12 @@ class TokenCoder
       raise DecodeError, "invalid authentication header: #{auth_header}"
     end
     reply = self.class.decode(tkn[1], @skey, @pkey)
-    auds = Util.arglist(reply[:aud])
-    if auds && @audience_ids && (auds & @audience_ids).empty?
-      raise AuthError, "invalid audience: #{reply[:aud]}"
+    auds = Util.arglist(reply[:aud] || reply[:resource_ids])
+    if @audience_ids && (!auds || (auds & @audience_ids).empty?)
+      raise AuthError, "invalid audience: #{auds.join(' ')}"
     end
-    unless reply[:exp].is_a?(Integer) && reply[:exp] > Time.now.to_i
+    exp = reply[:exp] || reply[:expires_at]
+    unless exp.is_a?(Integer) && exp > Time.now.to_i
       raise AuthError, "token expired"
     end
     reply

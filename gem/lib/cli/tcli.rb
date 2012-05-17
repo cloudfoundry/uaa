@@ -95,9 +95,10 @@ class TCli < BaseCli
       begin
         tgt = arg.split(' ')
         raise ArgumentError, "invalid target #{arg}" if tgt.length > 2
-        Config.delete_target(Config.find_target(t[0], t[1]), key)
+        tgt = tgt[0].to_i.to_s == tgt[0] && tgt[1].nil? ? tgt[0].to_i : target_key(tgt[0], tgt[1])
+        Config.delete_target(tgt, key)
       rescue ArgumentError => e
-        puts e.message
+        puts e.message, (e.backtrace if trace?)
       end
     end
   end

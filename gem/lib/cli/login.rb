@@ -158,9 +158,8 @@ class LoginCli < BaseCli
           sleep 5
           print "."
         end
-        puts "\nsuccessfully logged in"
-        #pp tokn.info
         Config.opts token: tokn.info
+        puts "\nsuccessfully logged in"
       end
     end
     rescue Exception => e

@@ -82,10 +82,10 @@ class BaseCli < Thor
     "#{token[:token_type]} #{token[:access_token]}"
   end
 
-  def verified_pwd(prompt, pwd)
+  def verified_pwd(prompt, pwd, default = nil)
     while pwd.nil?
-      pwd_a = ask(prompt, echo: "*", forget: true)
-      pwd_b = ask("Verify #{prompt}", echo: "*", forget: true)
+      pwd_a = ask prompt, echo: "*", forget: true, default: default
+      pwd_b = ask "Verify #{prompt}", echo: "*", forget: true, default: default
       pwd = pwd_a if pwd_a == pwd_b
     end
     pwd

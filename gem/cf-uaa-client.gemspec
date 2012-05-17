@@ -48,6 +48,6 @@ Gem::Specification.new do |s|
 
   # if you change the version of em-http-request, need to fix
   # error handling in http.rb
-  s.add_runtime_dependency "em-http-request", "<= 1.0.0.beta.3", "< 1.0.1"
+  s.add_runtime_dependency "em-http-request", "<= 1.0.0.beta.3", ">= 1.0.0.beta.3"
 
 end

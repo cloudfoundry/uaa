@@ -28,6 +28,8 @@ class ClientReg
     @target, @auth_header, @debug = target, auth_header, debug
   end
 
+  # also access_token_validity, and refresh_token_validity, auto-approve-scopes
+
   def create(id, secret, scopes, resource_ids, grant_types, roles, redirect_uris = nil)
     raise ArgumentError, "uaa must have client secret on client registration" unless secret
     request = { client_id: id, secret: secret, scope: Util.arglist(scopes),
@@ -35,19 +37,17 @@ class ClientReg
         authorized_grant_types: Util.arglist(grant_types), authorities: Util.arglist(roles) }
     request[:redirect_uri] = Util.arglist(redirect_uris) if redirect_uris
 
-    request[:client_sercet] = secret # TODO: remove this after uaa is fixed.
-
     status, body, headers = json_post("/oauth/clients", request, @auth_header)
     raise BadResponse, "invalid response from #{@target}: #{status}" unless status == 201
   end
+
+  # also access_token_validity, and refresh_token_validity, auto-approve-scopes
 
   def update(id, secret, scopes, resource_ids, grant_types, roles, redirect_uris = nil)
     raise ArgumentError, "uaa must have client secret on client update" unless secret
     request = { client_id: id, secret: secret, scope: Util.arglist(scopes),
         resource_ids: Util.arglist(resource_ids),
         authorized_grant_types: Util.arglist(grant_types), authorities: Util.arglist(roles) }
-
-    request[:client_sercet] = secret # TODO: remove this after uaa is fixed.
 
     request[:redirect_uri] = Util.arglist(redirect_uris) if redirect_uris
     status, body, headers = json_put("/oauth/clients/#{URI.encode(id)}", request, @auth_header)

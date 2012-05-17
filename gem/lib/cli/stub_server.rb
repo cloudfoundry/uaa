@@ -104,6 +104,7 @@ class StubServer
   end
 
   def self.thread_request
+    stubs = nil
     cthred = Thread.current
     sthred = Thread.new do
       EM.run do
@@ -114,6 +115,7 @@ class StubServer
     Thread.stop
     yield
   ensure
+    stubs.stop if stubs
     EM.stop
     sthred.join
   end

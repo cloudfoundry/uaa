@@ -56,7 +56,7 @@ class ClientCli < BaseCli
     return help(__method__) if options[:help]
 
     # TODO: after uaa allows partial update of client, this can use the -s option
-    secret = verified_pwd("new client secret", secret == ""? nil: secret) # if secret = options[:secret]
+    secret = verified_pwd("new client secret", secret == ""? nil: secret, "") # if secret = options[:secret]
     client_reg_request do |cr|
       defaults = cr.get(name)
       scopes, resource_ids, grant_types, roles, redir_uris = client_info(defaults)

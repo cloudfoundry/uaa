@@ -55,9 +55,7 @@ module Http
       raise BadResponse, "received invalid response content type from #{@target}"
     end
     parsed_reply = Util.json_parse(body)
-    if status == 400 || status == 401 || status == 403
-      raise TargetError.new(parsed_reply), "error response from #{@target}"
-    end
+    raise TargetError.new(parsed_reply), "error response from #{@target}" if [400, 401].include? status
     parsed_reply
   rescue JSON::ParserError
     raise BadResponse, "invalid JSON response from #{@target}"

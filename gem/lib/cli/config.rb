@@ -60,7 +60,7 @@ class Config
   def self.delete_target(targt, key = nil)
     tgt = targt
     raise ArgumentError, "invalid target #{targt}" unless (tgt = find_target(tgt)) && @config[tgt]
-    key ? config[tgt].delete(key): @config.delete(key)
+    key ? config[tgt].delete(key): @config.delete(tgt)
     @curtgt = nil if tgt == @curtgt
     save
   end

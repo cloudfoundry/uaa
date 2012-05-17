@@ -100,7 +100,6 @@ describe UserAccount do
     end
     StubServer.request do
       output = subject.query_by_value(@keyattr, @attrname, @attrvalue)
-      puts output.inspect
       output[:totalresults].should == 1
       output[:resources][0][:id].should be
       # puts output.inspect

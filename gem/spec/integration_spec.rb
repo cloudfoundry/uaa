@@ -36,7 +36,7 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
 
     it "makes sure the server is there by getting the prompts for an implicit grant" do
       toki = TokenIssuer.new(@target, @client_id, @client_secret, "write")
-      puts toki.prompts
+      #puts toki.prompts
     end
 
     context "with a client credentials grant, " do
@@ -51,31 +51,31 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
 
       it "creates a user" do
         usr = @user_acct.create(@username, "sam's password", "sam@example.com")
-        puts usr
         ENV["UAA_USER_ID"] = usr[:id] # need a better way
-        puts usr[:id]
+        #TODO: check something!
       end
 
       it "finds the user by name" do
         user_info = @user_acct.query_by_value("id", "username", @username)
         puts JSON.pretty_generate(user_info)
-        puts user_info
       end
 
       it "gets the user by id" do
         user_id = ENV["UAA_USER_ID"]
         user_info = @user_acct.get(user_id)
         puts JSON.pretty_generate(user_info)
-        puts user_info[:meta][:version]
+        #TODO: check something!
       end
 
       it "changes the user's password by name" do
         @user_acct.change_password_by_name(@username, "newpassword")
+        #TODO: check something!
       end
 
       it "lists all users" do
         user_info = @user_acct.query
         puts JSON.pretty_generate(user_info)
+        #TODO: check something!
       end
 
       #it "deletes the user by name" do
@@ -101,6 +101,7 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
       it "verifies that prompts for the implicit grant are username and password" do
         prompts = @toki.prompts
         puts prompts.inspect
+        #TODO: check something!
       end
 
       it "gets a token by an implicit grant" do
@@ -110,6 +111,7 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
         idt.debug = true
         info = idt.user_info(token.info[:access_token])
         puts JSON.pretty_generate(info)
+        #TODO: check something!
       end
     end
 
