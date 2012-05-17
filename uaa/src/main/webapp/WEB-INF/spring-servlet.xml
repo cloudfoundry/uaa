@@ -153,8 +153,8 @@
 		<intercept-url pattern="/oauth/**" access="IS_AUTHENTICATED_FULLY" /> <!-- user *or* client -->
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<form-login authentication-failure-url="/login?error=true" login-page="/login" login-processing-url="/login.do"
-			username-parameter="username" password-parameter="password" authentication-details-source-ref="authenticationDetailsSource" />
-		<logout logout-success-url="/" logout-url="/logout.do" />
+			username-parameter="username" default-target-url="/" password-parameter="password" authentication-details-source-ref="authenticationDetailsSource" />
+		<logout logout-success-url="/login" logout-url="/logout.do" />
 	</http>
 
 	<bean id="uiRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.DelegatingRequestMatcher">
@@ -168,6 +168,9 @@
 				</bean>
 				<bean class="org.springframework.security.web.util.AntPathRequestMatcher">
 					<constructor-arg value="/login**" />
+				</bean>
+				<bean class="org.springframework.security.web.util.AntPathRequestMatcher">
+					<constructor-arg value="/logout.do*" />
 				</bean>
 			</list>
 		</constructor-arg>
