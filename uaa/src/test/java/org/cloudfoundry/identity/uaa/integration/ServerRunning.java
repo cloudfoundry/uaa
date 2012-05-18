@@ -162,11 +162,13 @@ public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper 
 			logger.info("Basic connectivity test passed");
 		}
 		catch (RestClientException e) {
-			logger.warn(String.format(
-					"Not executing tests because basic connectivity test failed for hostName=%s, port=%d", hostName,
-					port), e);
+			logger.warn(String.format("Basic connectivity test failed for hostName=%s, port=%d: %s", hostName, port, e));
 			if (!integrationTest) {
+				logger.warn("Tests will not be run");
 				Assume.assumeNoException(e);
+			} else {
+				logger.error(String.format("\n\n*** Integration tests will fail as 'uaa.integration.test' " +
+						"is set to 'true' and uaa host '%s' is down ***\n", hostName));
 			}
 		}
 		finally {
