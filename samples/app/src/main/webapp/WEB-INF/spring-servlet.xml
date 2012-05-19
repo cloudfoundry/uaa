@@ -67,14 +67,6 @@
 		<property name="suffix" value=".jsp" />
 	</bean>
 
-	<bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer" xmlns="http://www.springframework.org/schema/beans">
-		<property name="location">
-			<value>#{T(java.lang.System).getenv('VCAP_APPLICATION')==null ? 'classpath:/application.properties' :
-				'classpath:/application-cloud.properties'}
-			</value>
-		</property>
-	</bean>
-
 	<bean id="treeController" class="org.cloudfoundry.identity.app.web.TreeController">
 		<property name="restTemplate">
 			<oauth:rest-template resource="api" />
@@ -88,7 +80,18 @@
 	</bean>
 
 	<!--define an oauth 2 resource for api access -->
-	<oauth:resource id="api" type="authorization_code" client-id="app" client-secret="appclientsecret"
+	<oauth:resource id="api" type="authorization_code" client-id="${CLIENT_ID:app}" client-secret="${CLIENT_SECRET:appclientsecret}"
 		access-token-uri="${accessTokenUri}" user-authorization-uri="${userAuthorizationUri}" scope="read,openid" />
+
+	<bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer" xmlns="http://www.springframework.org/schema/beans">
+		<property name="locations">
+			<list>
+				<value>classpath:/application.properties</value>
+				<value>classpath:/#{T(java.lang.System).getenv('VCAP_APPLICATION')!=null ?'application-cloud.properties':'empty.properties'}
+				</value>
+				<value>classpath:/#{T(java.lang.System).getenv('UAA_PROD')=='true' ?'application-prod.properties':'empty.properties'}</value>
+			</list>
+		</property>
+	</bean>
 
 </beans>
