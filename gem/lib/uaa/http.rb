@@ -51,7 +51,7 @@ module Http
     unless [200, 201, 400, 401].include? status
       raise (status == 404 ? NotFound : BadResponse), "invalid status response from #{@target}: #{status}"
     end
-    if headers && headers[:content_type] !~ /application\/json/i
+    if body && !body.empty? && headers && headers[:content_type] !~ /application\/json/i
       raise BadResponse, "received invalid response content type from #{@target}"
     end
     parsed_reply = Util.json_parse(body)

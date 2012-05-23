@@ -28,29 +28,29 @@ class ClientReg
     @target, @auth_header, @debug = target, auth_header, debug
   end
 
-  # also access_token_validity, and refresh_token_validity, auto-approve-scopes
+  # takes a hash of fields currently supported by the uaa:
+  #     client_id (required),
+  #     secret,
+  #     scope (array of strings or space or comma separated fields),
+  #     resource_ids (array of strings or space or comma separated fields),
+  #     authorized_grant_types (array of strings or space or comma separated fields),
+  #     authorities (array of strings or space or comma separated fields),
+  #     access_token_validity (integer)
+  #     refresh_token_validity (integer)
+  #     redirect_uri (array of strings or space or comma separated fields),
 
-  def create(id, secret, scopes, resource_ids, grant_types, roles, redirect_uris = nil)
-    raise ArgumentError, "uaa must have client secret on client registration" unless secret
-    request = { client_id: id, secret: secret, scope: Util.arglist(scopes),
-        resource_ids: Util.arglist(resource_ids),
-        authorized_grant_types: Util.arglist(grant_types), authorities: Util.arglist(roles) }
-    request[:redirect_uri] = Util.arglist(redirect_uris) if redirect_uris
-
-    status, body, headers = json_post("/oauth/clients", request, @auth_header)
-    raise BadResponse, "invalid response from #{@target}: #{status}" unless status == 201
+  def create(info)
+    info = Util.rubyize_keys(info)
+    raise ArgumentError, "a client registration must specify a unique client id" unless info[:client_id]
+    info = fixup_reg_fields info
+    json_parse_reply *json_post("/oauth/clients", info, @auth_header)
   end
 
-  # also access_token_validity, and refresh_token_validity, auto-approve-scopes
-
-  def update(id, secret, scopes, resource_ids, grant_types, roles, redirect_uris = nil)
-    raise ArgumentError, "uaa must have client secret on client update" unless secret
-    request = { client_id: id, secret: secret, scope: Util.arglist(scopes),
-        resource_ids: Util.arglist(resource_ids),
-        authorized_grant_types: Util.arglist(grant_types), authorities: Util.arglist(roles) }
-
-    request[:redirect_uri] = Util.arglist(redirect_uris) if redirect_uris
-    status, body, headers = json_put("/oauth/clients/#{URI.encode(id)}", request, @auth_header)
+  def update(info)
+    info = Util.rubyize_keys(info)
+    raise ArgumentError, "a client registration update specify a unique client id" unless info[:client_id]
+    info = fixup_reg_fields info
+    json_parse_reply *json_put("/oauth/clients/#{URI.encode(info[:client_id])}", info, @auth_header)
   end
 
   def get(id)
@@ -61,6 +61,27 @@ class ClientReg
     unless (status = http_delete("/oauth/clients/#{URI.encode(id)}", @auth_header)) == 200
       raise (status == 404 ? NotFound : BadResponse), "invalid response from #{@target}: #{status}"
     end
+  end
+
+  def list
+    json_get("/oauth/clients", @auth_header)
+  end
+
+  def change_secret(id, old_secret, new_secret)
+ #PUT /oauth/clients/foo/password
+#{
+  #oldSecret: fooclientsecret,
+  #secret: newclientsceret
+#}
+  end
+
+  private
+
+  def fixup_reg_fields(info)
+    [:scope, :resource_ids, :authorized_grant_types, :authorities, :redirect_uri].each do |v|
+      info[v] = Util.arglist(info[v]) if info[v]
+    end
+    info
   end
 
 end

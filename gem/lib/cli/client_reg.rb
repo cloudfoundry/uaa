@@ -26,11 +26,31 @@ class ClientCli < BaseCli
     "#{basename} #{task.formatted_usage(self, true, subcommand)}"
   end
 
+  def self.client_info_schema
+    {
+      client_id: "Client ID",
+      client_secret: "not used prompt",
+      scope: "Scope list",
+      resource_ids: "Resource ID list",
+      authorized_grant_types: "Authorized grant type list",
+      authorities: "Role list",
+      access_token_validity: "Access token lifetime",
+      refresh_token_validity: "Refresh token lifetime",
+      redirect_uri: "Redirect URI list"
+    }
+  end
+
+  def self.client_info_options
+    client_info_schema.each do |k, v|
+      method_option k, type: :string, lazy_default: "", desc: v
+    end
+  end
+
   desc "get [name]", "get client registration info."
   map "g" => "get"
   def get(name = cur_client_id)
-    return help(__method__) if options[:help]
-    pp client_reg_request { |cr| cr.get(name) }
+    return help(__method__) if help?
+    pp client_reg_request { |cr| flatten_lists(cr.get(name)) }
   end
 
   desc "add [name]", "add client registration."
@@ -38,38 +58,45 @@ class ClientCli < BaseCli
   method_option :secret, type: :string, aliases: "-s", desc: "set client secret"
   map "a" => "add"
   def add(name = nil)
-    return help(__method__, "client") if options[:help]
-    name ||= ask("New client name")
-    secret = verified_pwd("New client secret", options['secret'])
-    clone = options[:clone]
+    return help(__method__) if help?
+    opts[:client_id] ||= name || ask("New client name")
+    opts[:client_secret] = verified_pwd("New client secret", opts[:secret])
     client_reg_request do |cr|
-      defaults = clone ? cr.get(clone) : {}
-      scopes, resource_ids, grant_types, roles, redir_uris = client_info(defaults)
-      cr.create(name, secret, scopes, resource_ids, grant_types, roles, redir_uris)
+      defaults = opts[:clone] ? cr.get(opts[:clone]) : {}
+      info = client_info(defaults)
+      cr.create(info)
     end
   end
 
   desc "update [name]", "update client registration info."
   method_option :secret, type: :string, aliases: "-s", lazy_default: "", desc: "update client secret, prompts if not given"
   map "u" => "update"
-  def update(name)
-    return help(__method__) if options[:help]
-
-    # TODO: after uaa allows partial update of client, this can use the -s option
-    secret = verified_pwd("new client secret", secret == ""? nil: secret, "") # if secret = options[:secret]
+  def update(name = cur_client_id)
+    return help(__method__) if help?
+    opts[:client_id] ||= name
+    opts[:client_secret] = verified_pwd("new client secret", opts[:secret] == ""? nil: opts[:secret], "") if opts[:secret]
     client_reg_request do |cr|
-      defaults = cr.get(name)
-      scopes, resource_ids, grant_types, roles, redir_uris = client_info(defaults)
-      cr.update(name, secret, scopes, resource_ids, grant_types, roles, redir_uris)
+      defaults = cr.get(opts[:client_id])
+      info = client_info(defaults)
+      cr.update(info)
     end
   end
 
   desc "delete [name]", "delete client registration info"
   map "d" => "delete"
   def delete(name = nil)
-    return help(__method__) if options[:help]
+    return help(__method__) if help?
     name ||= ask("Client name")
     pp client_reg_request { |cr| cr.delete(name) }
+  end
+
+  desc "list", "list client registrations"
+  map "l" => "list"
+  def list
+    return help(__method__) if help?
+    reglist =  client_reg_request { |cr| cr.list }
+    reglist.each { |k, v| reglist[k] = flatten_lists(v) }
+    pp reglist
   end
 
   private
@@ -87,12 +114,24 @@ class ClientCli < BaseCli
   end
 
   def client_info(defaults)
-    scopes = askd("Supported scopes", defaults[:scope])
-    resource_ids = askd("Authorized resource IDs", defaults[:resource_ids])
-    grant_types = askd("Authorized grant types", defaults[:authorized_grant_types])
-    roles = askd("Roles", defaults[:authorities])
-    redir_uris = askd("Authorized redirection URIs", defaults[:redirect_uri])
-    [scopes, resource_ids, grant_types, roles, redir_uris]
+    del_op = "<delete>"
+    self.class.client_info_schema.each_with_object({}) do |(k, p), info|
+      v = nil
+      if !opts.key?(k)
+        (info[k] = (v unless v == del_op)) if (v = askd(p, defaults[k]))
+      elsif opts[k] == del_op
+        info[k] = nil
+      else
+        info[k] = v if (v = (opts[k].nil? || opts[k].empty? ? defaults[k]: opts[k]))
+      end
+      info[k] = Util.arglist(info[k]) if info[k] && p =~ / list$/
+    end
+  end
+
+  def flatten_lists(reg)
+    self.class.client_info_schema.each_with_object(reg) do |(k, p), r|
+      r[k] = r[k].join(' ') if r[k] && p =~ / list$/
+    end
   end
 
 end

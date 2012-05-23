@@ -45,8 +45,11 @@ class BaseCli < Thor
       label = sprintf "%-*c", indent_size, '-'
       obj.each {|o| pp o, indent_count, indent_size, line_limit, label }
     elsif obj.is_a? Hash
-      puts Util.truncate(line, line_limit) if label
-      obj.each { |k, v| pp v, indent_count + 1, indent_size, line_limit, "#{Util.unrubyize_key(k)}: " }
+      if label
+        puts Util.truncate(line, line_limit)
+        indent_count += 1
+      end
+      obj.each { |k, v| pp v, indent_count, indent_size, line_limit, "#{Util.unrubyize_key(k)}: " }
     else
       puts Util.truncate(line << obj.to_s, line_limit)
     end
@@ -58,12 +61,24 @@ class BaseCli < Thor
 
   private
 
-  def trace?
-    options.key?('trace') ? options[:trace] : Config.opts[:trace]
+  def opts
+    return @all_options if @all_options
+    @all_options = {}
+    @all_options.merge!(options) if options
+    @all_options.merge!(parent_options) if parent_options
+    @all_options = Util.rubyize_keys(@all_options)
   end
 
-  def pp(obj)
-    self.class.pp obj
+  def trace?
+    opts.key?(:trace) ? opts[:trace] : Config.opts[:trace]
+  end
+
+  def help?
+    opts[:help]
+  end
+
+  def pp(obj, indent_count = 0)
+    self.class.pp obj, indent_count
   end
 
   def cur_target_url

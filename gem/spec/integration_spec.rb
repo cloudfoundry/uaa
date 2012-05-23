@@ -14,9 +14,9 @@
 require 'spec_helper'
 require 'uaa'
 
-#ENV["UAA_CLIENT_ID"] = "admin"
-#ENV["UAA_CLIENT_SECRET"] = "adminclientsecret"
-#ENV["UAA_CLIENT_TARGET"] = "http://localhost:8080/uaa"
+#ENV["UAA_CLIENT_ID"] = "test-client-id"
+#ENV["UAA_CLIENT_SECRET"] = "test-client-secret"
+#ENV["UAA_CLIENT_TARGET"] = "http://uaa.vcap.me"
 
 module CF::UAA
 
@@ -38,6 +38,11 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
       toki = TokenIssuer.new(@target, @client_id, @client_secret, "write")
       #puts toki.prompts
     end
+
+    #it "configures the admin client for the rest of the tests" do
+    #  toki = TokenIssuer.new(@target, @client_id, @client_secret, "write")
+    #  #puts toki.prompts
+    #end
 
     context "with a client credentials grant, " do
 

@@ -67,7 +67,7 @@ class Config
 
   def self.opts(hash = nil)
     raise ArgumentError, "target not set" unless @curtgt
-    if hash
+    unless hash.nil? || hash.empty?
       @config[@curtgt].merge! hash
       save
     end
