@@ -45,7 +45,7 @@
 		<intercept-url pattern="/logout.do" access="IS_AUTHENTICATED_ANONYMOUSLY" />
 		<anonymous enabled="true" />
 		<form-login login-page="/login" username-parameter="username" password-parameter="password"
-			login-processing-url="/login.do" />
+			login-processing-url="/login.do" authentication-failure-url="/login?error=true"/>
 		<!-- TODO: add form login with remote password authentication -->
 		<logout logout-success-url="/" logout-url="/logout.do" />
 	</http>
