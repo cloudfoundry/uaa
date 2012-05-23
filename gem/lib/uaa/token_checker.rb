@@ -53,9 +53,14 @@ class TokenChecker
   end
 
   def validation_key
-    status, body, headers = http_get("/token_key", "text/plain", Http.basic_auth(@resource_id, @secret))
+    status, body, headers = http_get("/token_key", "text/plain", Http.basic_auth(@client_id, @client_secret))
     raise BadResponse, "#{@target} returned status #{status}" unless status == 200
     body
+  	#TODO: in progress, when uaa switches to json output
+  #def validation_key(auth_header)
+    #body = json_get "/token_key", auth_header
+    #raise BadResponse, "#{@target} returned status #{status}" unless status == 200
+    #body
   end
 
 end

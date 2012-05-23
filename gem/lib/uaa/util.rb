@@ -47,7 +47,7 @@ class CF::UAA::Util
   end
 
   def self.json_parse(str)
-    rubyize_keys(JSON.parse(str)) if str
+    rubyize_keys(JSON.parse(str)) if str && !str.empty?
   end
 
   def self.truncate(obj, limit = 50)

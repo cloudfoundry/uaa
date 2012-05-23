@@ -30,25 +30,25 @@ class UserCli < BaseCli
   method_option :family_name, type: :string, aliases: "-f"
   method_option :email, type: :string, aliases: "-e"
   def add(username = nil, pwd = nil)
-    return help(__method__) if options[:help]
+    return help(__method__) if help?
     username, pwd = name_pwd(username, pwd)
-    email = options[:email] || (username if username =~ /@/)
-    gname = options[:given_name] || username
-    fname = options[:family_name] || username
+    email = opts[:email] || (username if username =~ /@/)
+    gname = opts[:given_name] || username
+    fname = opts[:family_name] || username
     pp acct_request { |ua| ua.create(username, pwd, email, gname, fname) }
   end
 
   desc "list [attributes] [filter]", "list user accounts"
   map "l" => "list"
   def list(attributes = nil, filter = nil)
-    return help(__method__) if options[:help]
+    return help(__method__) if help?
     pp acct_request { |ua| ua.query(attributes, filter) }
   end
 
   desc "delete [username]", "delete user account"
   map "d" => "delete"
   def delete(username = nil)
-    return help(__method__) if options[:help]
+    return help(__method__) if help?
     username ||= ask("User name")
     acct_request { |ua| ua.delete_by_name(username) }
   end
@@ -56,7 +56,7 @@ class UserCli < BaseCli
   desc "get [username]", "get user account information"
   map "g" => "get"
   def get(username = nil)
-    return help(__method__) if options[:help]
+    return help(__method__) if help?
     username ||= ask("User name")
     pp acct_request { |ua| ua.get_by_name(username) }
   end
@@ -64,7 +64,7 @@ class UserCli < BaseCli
   desc "password [username] [pwd]", "set password"
   map "p" => "password"
   def password(username = nil, pwd = nil)
-    return help(__method__) if options[:help]
+    return help(__method__) if help?
     username, pwd = name_pwd(username, pwd)
     acct_request { |ua| ua.change_password_by_name(username, pwd) }
   end
@@ -72,7 +72,7 @@ class UserCli < BaseCli
   desc "info", "get authenticated user information"
   map "i" => "info"
   def userinfo
-    return help(__method__) if options[:help]
+    return help(__method__) if help?
     pp id_request { |id| id.user_info }
   end
 

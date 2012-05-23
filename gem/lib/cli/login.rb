@@ -31,7 +31,7 @@ class LoginCli < BaseCli
   desc "prompts", "show prompts for credentials required for implicit grant"
   map "p" => "prompts"
   def prompts
-    return help(__method__) if options.help?
+    return help(__method__) if help?
     pp issuer_request(nil) { |ti| ti.prompts }
   end
 
@@ -39,14 +39,14 @@ class LoginCli < BaseCli
   method_option :client_secret, type: :string, aliases: "-c", desc: "registered client secret"
   map "c" => "client"
   def client
-    return help(__method__) if options.help?
+    return help(__method__) if help?
     Config.opts token: issuer_request { |ti| ti.client_credentials_grant.info }
   end
 
   desc "implicit [credentials]", "gets a token via implicit grant"
   map "i" => "implicit"
   def implicit(*args)
-    return help(__method__) if options.help?
+    return help(__method__) if help?
     Config.opts token: issuer_request("n/a") { |ti|
       prompts = ti.prompts
       creds = {}
@@ -69,7 +69,7 @@ class LoginCli < BaseCli
   map "o" => "owner_password"
   method_option :client_secret, type: :string, aliases: "-c", desc: "registered client secret"
   def owner_pwd(username = nil, pwd = nil)
-    return help(__method__) if options[:help]
+    return help(__method__) if help?
     username, pwd = name_pwd(username, pwd)
     Config.opts token: issuer_request { |ti| ti.owner_password_grant(username, pwd).info }
   end
@@ -78,7 +78,7 @@ class LoginCli < BaseCli
   map "r" => "refresh"
   method_option :client_secret, type: :string, aliases: "-c", desc: "registered client secret"
   def refresh(rtoken = Config.opts[:refresh_token])
-    return help(__method__) if options[:help]
+    return help(__method__) if help?
     Config.opts token: issuer_request { |ti| ti.refresh_token_grant(rtoken).info }
   end
 
@@ -86,7 +86,7 @@ class LoginCli < BaseCli
   method_option :client_secret, type: :string, aliases: "-c", desc: "registered client secret"
   map "a" => "authcode"
   def authcode
-    return help(__method__) if options[:help]
+    return help(__method__) if help?
     tokn = nil
     issuer_request do |ti|
       uri = ti.authcode_uri("#{StubServer.url}/callback", scope)
@@ -119,7 +119,7 @@ class LoginCli < BaseCli
   desc "browser", "gets a token using the implicit flow with browser"
   map "b" => "browser"
   def browser
-    return help(__method__) if options[:help]
+    return help(__method__) if help?
     script_page = <<-HTML.gsub(/^ +/, '')
       <html><body><script type="text/javascript">
       var fragment = location.hash.substring(1);
@@ -173,13 +173,13 @@ class LoginCli < BaseCli
   method_option :local, type: :string, aliases: "-l", desc: "parse token locally, validates if --key given"
   method_option :client_secret, type: :string, aliases: "-c", desc: "registered client secret for remote token validation"
   def token(token = nil, token_type = nil)
-    return help(__method__) if options[:help]
+    return help(__method__) if help?
     token_type = "bearer" if token && !token_type
     token ||= Config.opts[:access_token]
     token_type ||= Config.opts[:token_type]
     return puts "no token to decode" unless token && token_type
-    if options[:local]
-      Util.pp TokenCoder.decode(token, options[:key])
+    if opts[:local]
+      Util.pp TokenCoder.decode(token, opts[:key])
     else
       tkc = TokenChecker.new(cur_target_url, cur_client_id, client_secret, trace?)
       pp tkc.decode("#{Config.opts[:token_type]} #{Config.opts[:access_token]}")
@@ -190,14 +190,26 @@ class LoginCli < BaseCli
     puts e.message, (e.backtrace if trace?)
   end
 
+  desc "key", "get the UAA's token signing key(s)"
+  map "k" => "key"
+  def key
+    return help(__method__) if help?
+    tkc = TokenChecker.new(cur_target_url, cur_client_id, nil, nil, trace?)
+    pp tkc.validation_key auth_header
+  rescue TargetError => e
+    puts "#{e.message}:\n#{JSON.pretty_generate(e.info)}"
+  rescue Exception => e
+    puts e.message, (e.backtrace if trace?)
+  end
+
   private
 
   def client_secret
-    options[:client_secret] || Config.opts[:client_secret] || ask("Client secret", echo: "*", forget: true)
+    opts[:client_secret] || Config.opts[:client_secret] || ask("Client secret", echo: "*", forget: true)
   end
 
   def scope
-    options[:scope] || Config.opts[:scope]
+    opts[:scope] || Config.opts[:scope]
   end
 
   def issuer_request(csecret = client_secret)
