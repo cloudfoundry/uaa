@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.cloudfoundry.identity</groupId>
 		<artifactId>cloudfoundry-identity-parent</artifactId>
-		<version>1.0.0.p6</version>
+		<version>1.0.0.RELEASE</version>
 		<relativePath>..</relativePath>
 	</parent>
 
@@ -78,6 +78,17 @@
 			</plugins>
 		</pluginManagement>
 	</build>
+
+	<pluginRepositories>
+		<pluginRepository>
+			<id>objectstyle</id>
+			<name>ObjectStyle.org Repository</name>
+			<url>http://objectstyle.org/maven2/</url>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</pluginRepository>
+	</pluginRepositories>
 
 	<dependencies>
 

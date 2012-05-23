@@ -5,7 +5,7 @@
 	<artifactId>cloudfoundry-identity-parent</artifactId>
 	<name>CloudFoundry Identity - Parent</name>
 	<packaging>pom</packaging>
-	<version>1.0.0.p6</version>
+	<version>1.0.0.RELEASE</version>
     <url>http://github.com/cloudfoundry/uaa</url>
 	<modules>
 		<module>common</module>
@@ -229,38 +229,14 @@
 		<repository>
 			<id>spring-milestone</id>
 			<name>Spring Framework Milestone Repository</name>
-			<url>http://maven.springframework.org.s3.amazonaws.com/milestone</url>
+			<url>http://maven.springframework.org/milestone</url>
 		</repository>
-		<repository>
-			<!-- necessary for Spring Security OAuth SNAPSHOT dependency -->
-			<id>spring-snapshost</id>
-			<name>Spring Framework Maven Snapshot Repository</name>
-			<url>http://maven.springframework.org/snapshot</url>
-		</repository>
-        <repository>
-          <id>objectstyle</id>
-          <name>ObjectStyle.org Repository</name>
-          <url>http://objectstyle.org/maven2/</url>
-          <snapshots>
-            <enabled>false</enabled>
-          </snapshots>
-        </repository>
 	</repositories>
-	<pluginRepositories>
-      <pluginRepository>
-        <id>objectstyle</id>
-        <name>ObjectStyle.org Repository</name>
-        <url>http://objectstyle.org/maven2/</url>
-        <snapshots>
-          <enabled>false</enabled>
-        </snapshots>
-      </pluginRepository>
-	</pluginRepositories>
     <scm>
       <url>http://github.com/cloudfoundry/uaa</url>
       <connection>scm:git:git://github.com/cloudfoundry/uaa.git</connection>
       <developerConnection>scm:git:ssh://git@github.com/cloudfoundry/uau.git</developerConnection>
-      <tag>1.0.0.p6</tag>
+      <tag>1.0.0.RELEASE</tag>
   </scm>
     <issueManagement>
       <system>JIRA</system>
@@ -296,9 +272,9 @@
     </licenses>
 	<distributionManagement>
 		<repository>
-			<id>spring-milestone</id>
-			<name>Spring Milestone Repository</name>
-			<url>s3://maven.springframework.org/milestone</url>
+			<id>spring-release</id>
+			<name>Spring Release Repository</name>
+			<url>s3://maven.springframework.org/release</url>
 		</repository>
 		<snapshotRepository>
 			<id>spring-snapshot</id>
