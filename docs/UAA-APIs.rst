@@ -473,9 +473,15 @@ Response body     *example* ::
                     HTTP/1.1 200 OK
                     Content-Type: text/plain
 
-                    FYSDKJHfgdUydsFJSHDFKAJHDSF
+                    {alg:HMACSHA256, value:FYSDKJHfgdUydsFJSHDFKAJHDSF}
 
 ================  ==========================================
+
+The algorithm ("alg") tells the caller how to use the value (it is the
+result of algorithm method in the `Signer` implementation used in the
+token endpoint).  In this case it is an HMAC (symmetric) key, but you
+might also see an asymmetric RSA public key with algorithm
+"SHA256withRSA").
 
 Access Token Administration APIs
 =================================

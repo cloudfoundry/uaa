@@ -47,7 +47,12 @@ class TokenChecker
     unless auth_header && (tkn = auth_header.split).length == 2
       raise AuthError, "invalid authentication header: #{auth_header}"
     end
-    reply = json_get("/check_token?token_type=#{tkn[0]}&token=#{tkn[1]}", Http.basic_auth(@resource_id, @secret))
+
+    headers = {content_type: "application/x-www-form-urlencoded", accept: "application/json",
+        authorization: Http.basic_auth(@resource_id, @secret) }
+    body = URI.encode_www_form(token_type: tkn[0], token: tkn[1])
+    reply = json_parse_reply(*request(:post, '/check_token', body, headers))
+    #reply = json_get("/check_token?token_type=#{tkn[0]}&token=#{tkn[1]}", Http.basic_auth(@resource_id, @secret))
     return reply if reply[:resource_ids].include?(@resource_id)
     raise AuthError, "invalid resource audience: #{reply[:resource_ids]}"
   end

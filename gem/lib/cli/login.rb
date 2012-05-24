@@ -175,14 +175,15 @@ class LoginCli < BaseCli
   def token(token = nil, token_type = nil)
     return help(__method__) if help?
     token_type = "bearer" if token && !token_type
-    token ||= Config.opts[:access_token]
-    token_type ||= Config.opts[:token_type]
+    token_info = Config.opts[:token] || {}
+    token ||= token_info[:access_token]
+    token_type ||= token_info[:token_type]
     return puts "no token to decode" unless token && token_type
     if opts[:local]
       Util.pp TokenCoder.decode(token, opts[:key])
     else
       tkc = TokenChecker.new(cur_target_url, cur_client_id, client_secret, trace?)
-      pp tkc.decode("#{Config.opts[:token_type]} #{Config.opts[:access_token]}")
+      pp tkc.decode("#{token_type} #{token}")
     end
   rescue TargetError => e
     puts "#{e.message}:\n#{JSON.pretty_generate(e.info)}"

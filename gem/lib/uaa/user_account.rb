@@ -48,7 +48,7 @@ class UserAccount
 
   def change_password(user_id, new_password)
     password_request = { password: new_password }
-    status, body, headers = json_put("/User/#{user_id}/password", password_request, @auth_header)
+    status, body, headers = json_put("/User/#{URI.encode(user_id)}/password", password_request, @auth_header)
     case status
       when 204 then return true
       when 401 then raise NotFound
@@ -77,9 +77,7 @@ class UserAccount
   end
 
   def delete(user_id)
-    unless (status = http_delete("/User/#{user_id}", @auth_header)) == 200
-      raise (status == 404 ? NotFound : BadResponse), "invalid response from #{@target}: #{status}"
-    end
+    http_delete "/User/#{URI.encode(user_id)}", @auth_header
   end
 
   def delete_by_name(username)
@@ -88,6 +86,14 @@ class UserAccount
 
   def change_password_by_name(username, new_password)
     change_password(user_id_from_name(username), new_password)
+  end
+
+  def list_tokens(username)
+    json_get "/oauth/users/#{username}/tokens"
+  end
+
+  def revoke_token(username, token_id)
+    http_delete "/oauth/users/#{URI.encode(username)}/tokens/#{URI.encode(token_id)}", @auth_header
   end
 
   private

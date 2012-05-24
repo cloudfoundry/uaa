@@ -58,7 +58,8 @@ describe TokenChecker do
 
   it "should GET decoded token hash from the check_token endpoint" do
     StubServer.responder do |request, reply|
-      request.path.should == "/check_token?token_type=TestTokType&token=TestToken"
+      request.path.should == "/check_token"
+      request.body.should == "token_type=TestTokType&token=TestToken"
       reply.headers[:content_type] = "application/json"
       reply.body = %<{"resource_ids": ["one_resource", "test_resource", "other_resource"],"email":"derek@gmail.com"}>
       reply
@@ -73,7 +74,7 @@ describe TokenChecker do
 
   it "should raise an auth error if the returned token does not contain the resource id" do
     StubServer.responder do |request, reply|
-      request.path.should == "/check_token?token_type=TestTokType&token=TestToken"
+      request.path.should == "/check_token"
       reply.headers[:content_type] = "application/json"
       reply.body = %<{"resource_ids": ["one_resource", "two_resource", "other_resource"],"email":"derek@gmail.com"}>
       reply

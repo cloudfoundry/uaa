@@ -20,6 +20,16 @@ class ClientReg
 
   include Http
 
+  MULTI_VALUED = [:scope, :resource_ids, :authorized_grant_types, :authorities, :redirect_uri]
+
+  def self.multivalues_to_arrays!(info)
+    MULTI_VALUED.each_with_object(info) { |v, o| o[v] = Util.arglist(o[v]) if o[v] }
+  end
+
+  def self.multivalues_to_strings!(info)
+    MULTI_VALUED.each_with_object(info) { |v, o| o[v] = Util.strlist(o[v]) if o[v] }
+  end
+
   # the auth_header parameter refers to a string that can be used in an
   # authorization header. For oauth with jwt tokens this would be something
   # like "bearer xxxx.xxxx.xxxx". The Token class returned by TokenIssuer
@@ -42,46 +52,43 @@ class ClientReg
   def create(info)
     info = Util.rubyize_keys(info)
     raise ArgumentError, "a client registration must specify a unique client id" unless info[:client_id]
-    info = fixup_reg_fields info
+    info = self.class.multivalues_to_arrays! info
     json_parse_reply *json_post("/oauth/clients", info, @auth_header)
   end
 
   def update(info)
     info = Util.rubyize_keys(info)
     raise ArgumentError, "a client registration update specify a unique client id" unless info[:client_id]
-    info = fixup_reg_fields info
+    info = self.class.multivalues_to_arrays! info
     json_parse_reply *json_put("/oauth/clients/#{URI.encode(info[:client_id])}", info, @auth_header)
   end
 
   def get(id)
-    json_get("/oauth/clients/#{URI.encode(id)}", @auth_header)
+    json_get "/oauth/clients/#{URI.encode(id)}", @auth_header
   end
 
   def delete(id)
-    unless (status = http_delete("/oauth/clients/#{URI.encode(id)}", @auth_header)) == 200
-      raise (status == 404 ? NotFound : BadResponse), "invalid response from #{@target}: #{status}"
-    end
+    http_delete "/oauth/clients/#{URI.encode(id)}", @auth_header
   end
 
   def list
-    json_get("/oauth/clients", @auth_header)
+    json_get "/oauth/clients", @auth_header
+  end
+
+  def list_tokens(id)
+    json_get "/oauth/clients/#{id}/tokens"
+  end
+
+  def revoke_token(id, token_id)
+    http_delete "/oauth/clients/#{URI.encode(id)}/tokens/#{URI.encode(token_id)}"
   end
 
   def change_secret(id, old_secret, new_secret)
- #PUT /oauth/clients/foo/password
-#{
-  #oldSecret: fooclientsecret,
-  #secret: newclientsceret
-#}
-  end
-
-  private
-
-  def fixup_reg_fields(info)
-    [:scope, :resource_ids, :authorized_grant_types, :authorities, :redirect_uri].each do |v|
-      info[v] = Util.arglist(info[v]) if info[v]
+    req = { oldSecret: old_secret, secret: new_secret }
+    status = json_put("/oauth/clients/#{id}/password", req, @auth_header)
+    unless [200, 204].include?(status)
+      raise (status == 404 ? NotFound : BadResponse), "invalid response from #{@target}: #{status}"
     end
-    info
   end
 
 end
