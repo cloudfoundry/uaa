@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.user;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Locale;
 
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -47,7 +48,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
 	@Override
 	public UaaUser retrieveUserByName(String username) throws UsernameNotFoundException {
 		try {
-			return jdbcTemplate.queryForObject(USER_BY_USERNAME_QUERY, mapper, username);
+			return jdbcTemplate.queryForObject(USER_BY_USERNAME_QUERY, mapper, username.toLowerCase(Locale.US));
 		}
 		catch (EmptyResultDataAccessException e) {
 			throw new UsernameNotFoundException(username);
