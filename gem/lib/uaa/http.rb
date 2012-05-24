@@ -23,6 +23,7 @@ module CF::UAA
 class BadTarget < RuntimeError; end
 class NotFound < RuntimeError; end
 class BadResponse < RuntimeError; end
+class InvalidToken < RuntimeError; end
 class HTTPException < RuntimeError; end
 class TargetError < RuntimeError
   attr_reader :info
@@ -48,16 +49,24 @@ module Http
   end
 
   def json_parse_reply(status, body, headers)
-    unless [200, 201, 400, 401].include? status
-      raise (status == 404 ? NotFound : BadResponse), "invalid status response from #{@target}: #{status}"
+    case status
+    when 404
+      raise NotFound, "invalid status response from #{@target}: #{status}"
+    when 401
+      if header[:error_code] == "invalid token"
+        raise InvalidToken "invalid token from #{@target}: #{status}"
+      else
+        parsed_reply = Util.json_parse(body)
+        raise TargetError.new(parsed_reply), "error response from #{@target}"
+      end
+    when 400, 403
+      parsed_reply = Util.json_parse(body)
+      raise TargetError.new(parsed_reply), "error response from #{@target}"
     end
     if headers && headers[:content_type] !~ /application\/json/i
       raise BadResponse, "received invalid response content type from #{@target}"
     end
     parsed_reply = Util.json_parse(body)
-    if status == 400 || status == 401 || status == 403
-      raise TargetError.new(parsed_reply), "error response from #{@target}"
-    end
     parsed_reply
   rescue JSON::ParserError
     raise BadResponse, "invalid JSON response from #{@target}"
