@@ -71,9 +71,24 @@ class UserCli < BaseCli
 
   desc "info", "get authenticated user information"
   map "i" => "info"
-  def userinfo
+  def info
     return help(__method__) if help?
     pp id_request { |id| id.user_info }
+  end
+
+  desc "tokens [username]", "list granted tokens"
+  map "t" => "tokens"
+  def tokens(username = nil)
+    return help(__method__) if help?
+    username ||= ask("User name")
+    pp acct_request { |ua| ua.list_tokens(username) }
+  end
+
+  desc "revoke username token_id", "revoke token"
+  map "r" => "revoke"
+  def revoke(username, token_id)
+    return help(__method__) if help?
+    pp acct_request { |ua| ua.revoke_token(username, token_id) }
   end
 
   private

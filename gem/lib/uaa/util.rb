@@ -70,10 +70,13 @@ class CF::UAA::Util
   def self.arglist(arg, default_arg = nil)
     return default_arg unless arg
     return arg if arg.respond_to?(:join)
-    return arg.split(arg =~ /\s/ ? ' ' : ',') if arg.respond_to?(:split)
-    raise ArgumentError, "arg must an Array or space or comma delimited strings"
+    raise ArgumentError, "arg must be Array or space/comma delimited strings" unless arg.respond_to?(:split)
+    arg.split(/[\s\,]+/).reject { |e| e.empty? }
   end
 
-
+  # reverse of arglist, puts arrays of strings into a single, space-delimited string
+  def self.strlist(arg)
+    arg.respond_to?(:join) ? arg.join(' ') : arg.to_s
+  end
 
 end

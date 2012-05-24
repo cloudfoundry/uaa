@@ -81,9 +81,10 @@ class TCli < BaseCli
       next unless opts[:verbose] || v[:current_target]
       splat = v[:current_target] ? '*' : ' '
       v.delete(:current_target)
-      puts "[#{i}]#{splat}[#{Util.unrubyize_key(k)}]"
+      puts "", "[#{i}]#{splat}[#{Util.unrubyize_key(k)}]"
       pp v, 1
     end
+    puts ""
   end
 
   desc "remove [targets...]", "remove current or specific target tokens and settings"

@@ -29,7 +29,7 @@ class ClientCli < BaseCli
   def self.client_info_schema
     {
       client_id: "Client ID",
-      client_secret: "not used prompt",
+      client_secret: "",
       scope: "Scope list",
       resource_ids: "Resource ID list",
       authorized_grant_types: "Authorized grant type list",
@@ -42,6 +42,7 @@ class ClientCli < BaseCli
 
   def self.client_info_options
     client_info_schema.each do |k, v|
+      next if v.empty?
       method_option k, type: :string, lazy_default: "", desc: v
     end
   end
@@ -50,35 +51,35 @@ class ClientCli < BaseCli
   map "g" => "get"
   def get(name = cur_client_id)
     return help(__method__) if help?
-    pp client_reg_request { |cr| flatten_lists(cr.get(name)) }
+    pp client_reg_request { |cr| ClientReg.multivalues_to_strings!(cr.get(name)) }
   end
 
   desc "add [name]", "add client registration."
   method_option :clone, type: :string, aliases: "-c", desc: "get default client settings from existing client."
-  method_option :secret, type: :string, aliases: "-s", desc: "set client secret"
+  method_option :secret, type: :string, aliases: "-s", lazy_default: "", desc: "client secret"
+  client_info_options
   map "a" => "add"
   def add(name = nil)
     return help(__method__) if help?
     opts[:client_id] ||= name || ask("New client name")
-    opts[:client_secret] = verified_pwd("New client secret", opts[:secret])
+    opts[:client_secret] = verified_pwd("New client secret", opts[:secret] == ""? nil: opts[:secret])
     client_reg_request do |cr|
       defaults = opts[:clone] ? cr.get(opts[:clone]) : {}
-      info = client_info(defaults)
-      cr.create(info)
+      cr.create client_info(defaults)
     end
   end
 
   desc "update [name]", "update client registration info."
-  method_option :secret, type: :string, aliases: "-s", lazy_default: "", desc: "update client secret, prompts if not given"
+  method_option :secret, type: :string, aliases: "-s", lazy_default: "", desc: "client secret, prompts if not given"
+  client_info_options
   map "u" => "update"
   def update(name = cur_client_id)
     return help(__method__) if help?
     opts[:client_id] ||= name
-    opts[:client_secret] = verified_pwd("new client secret", opts[:secret] == ""? nil: opts[:secret], "") if opts[:secret]
+    opts[:client_secret] = verified_pwd("new client secret", opts[:secret] == ""? nil: opts[:secret]) if opts[:secret]
     client_reg_request do |cr|
       defaults = cr.get(opts[:client_id])
-      info = client_info(defaults)
-      cr.update(info)
+      cr.update client_info(defaults)
     end
   end
 
@@ -95,8 +96,23 @@ class ClientCli < BaseCli
   def list
     return help(__method__) if help?
     reglist =  client_reg_request { |cr| cr.list }
-    reglist.each { |k, v| reglist[k] = flatten_lists(v) }
+    reglist.each { |k, v| reglist[k] = ClientReg.multivalues_to_strings!(v) }
     pp reglist
+  end
+
+  desc "tokens [clientname]", "list tokens granted to client"
+  map "t" => "tokens"
+  def tokens(name = nil)
+    return help(__method__) if help?
+    name ||= ask("Client name")
+    pp client_reg_request { |cr| cr.list_tokens(name) }
+  end
+
+  desc "revoke client_name token_id", "revoke token"
+  map "r" => "revoke"
+  def revoke(name, token_id)
+    return help(__method__) if help?
+    pp client_reg_request { |cr| cr.revoke_token(name, token_id) }
   end
 
   private
@@ -118,19 +134,12 @@ class ClientCli < BaseCli
     self.class.client_info_schema.each_with_object({}) do |(k, p), info|
       v = nil
       if !opts.key?(k)
-        (info[k] = (v unless v == del_op)) if (v = askd(p, defaults[k]))
+        (info[k] = (v unless v == del_op)) if !p.empty? && (v = askd(p, defaults[k]))
       elsif opts[k] == del_op
         info[k] = nil
       else
         info[k] = v if (v = (opts[k].nil? || opts[k].empty? ? defaults[k]: opts[k]))
       end
-      info[k] = Util.arglist(info[k]) if info[k] && p =~ / list$/
-    end
-  end
-
-  def flatten_lists(reg)
-    self.class.client_info_schema.each_with_object(reg) do |(k, p), r|
-      r[k] = r[k].join(' ') if r[k] && p =~ / list$/
     end
   end
 

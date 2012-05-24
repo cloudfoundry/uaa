@@ -48,14 +48,14 @@ module Http
   end
 
   def json_parse_reply(status, body, headers)
-    unless [200, 201, 400, 401].include? status
+    unless [200, 201, 204, 400, 401].include? status
       raise (status == 404 ? NotFound : BadResponse), "invalid status response from #{@target}: #{status}"
     end
     if body && !body.empty? && headers && headers[:content_type] !~ /application\/json/i
       raise BadResponse, "received invalid response content type from #{@target}"
     end
     parsed_reply = Util.json_parse(body)
-    if status == 400 || status == 401 || status == 403
+    if status == 400 || status == 401
       raise TargetError.new(parsed_reply), "error response from #{@target}"
     end
     parsed_reply
@@ -89,7 +89,10 @@ module Http
   end
 
   def http_delete(path, authorization)
-    request(:delete, path, nil, authorization: authorization)[0]
+    status = request(:delete, path, nil, authorization: authorization)[0]
+    unless [200, 204].include?(status)
+      raise (status == 404 ? NotFound : BadResponse), "invalid response from #{@target}: #{status}"
+    end
   end
 
   def request(method, path, payload = nil, headers = {})
@@ -105,7 +108,7 @@ module Http
       trace "--->"
       trace "request: #{method} #{req[:url]}"
       trace "headers: #{headers}"
-      trace "body: #{Util.truncate(payload.to_s, 100)}" if payload
+      trace "body: #{Util.truncate(payload.to_s, 500)}" if payload
       trace "async: #{async.inspect}"
     end
     status, body, response_headers = async ? perform_ahttp_request(req) : perform_http_request(req)
@@ -113,7 +116,7 @@ module Http
       trace "<---"
       trace "response: #{status}"
       trace "headers: #{response_headers}"
-      trace "body: #{Util.truncate(body.to_s, 100)}" if body
+      trace "body: #{Util.truncate(body.to_s, 500)}" if body
     end
     [status, body, response_headers]
 
