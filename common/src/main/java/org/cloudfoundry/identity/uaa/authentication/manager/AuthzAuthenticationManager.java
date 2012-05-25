@@ -70,6 +70,10 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
 				throw new BadCredentialsException("Login policy rejected authentication");
 			}
 
+			if (req.getCredentials() == null) {
+				throw new BadCredentialsException("No password supplied");
+			}
+
 			if (encoder.matches((CharSequence) req.getCredentials(), user.getPassword())) {
 				logger.debug("Password successfully matched");
 				Authentication success = new UaaAuthentication(new UaaPrincipal(user),
