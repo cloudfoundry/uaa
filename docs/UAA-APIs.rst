@@ -552,6 +552,34 @@ Revoke Token by Client: ``DELETE /oauth/clients/{client_id}/tokens/{token_id}``
 Client Registration Administration APIs
 ========================================
 
+List Clients: ``GET /oauth/clients``
+-----------------------------------------------------
+
+=============== ===============================================================
+Request         ``GET /oauth/clients``
+Access          Allowed by clients or users with ``ROLE_ADMIN`` and ``scope=read``
+Request body    client details
+Response code    ``200 OK`` if successful with client details in JSON response
+Response body   *example*::
+
+                  HTTP/1.1 200 OK
+                  {foo: {
+                    client_id : foo,
+                    scope : [read,write],
+                    resource_ids : [cloud_controller,scim],
+                    authorities : [ROLE_CLIENT,ROLE_ADMIN],
+                    authorized_grant_types : [client_credentials]
+                  },
+                  bar: {
+                    client_id : bar,
+                    scope : [read,write],
+                    resource_ids : [cloud_controller,openid],
+                    authorities : [ROLE_CLIENT],
+                    authorized_grant_types : [authorization_code]
+                  }}
+
+=============== ===============================================================
+
 Inspect Client: ``GET /oauth/clients/{client_id}``
 -----------------------------------------------------
 
@@ -636,11 +664,11 @@ Response body   *empty*
 ==============  ===============================================
 
 
-Change Client Secret: ``PUT /oauth/clients/{client_id}/password``
+Change Client Secret: ``PUT /oauth/clients/{client_id}/secret``
 ------------------------------------------------------------------
 
 ==============  ===============================================
-Request         ``PUT /oauth/clients/{client_id}/password``
+Request         ``PUT /oauth/clients/{client_id}/secret``
 Access          allowed by clients or users with ``ROLE_ADMIN`` and ``scope=password``
 Request body    *secret change request*
 Reponse code    ``204 NO_CONTENT`` if successful
@@ -649,7 +677,7 @@ Response body   *empty*
 
 Example::
 
-    PUT /oauth/clients/foo/password
+    PUT /oauth/clients/foo/secret
     {
       oldSecret: fooclientsecret,
       secret: newclientsceret
