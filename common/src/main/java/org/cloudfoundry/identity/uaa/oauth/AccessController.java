@@ -101,6 +101,12 @@ public class AccessController {
 
 	}
 
+	@RequestMapping("/oauth/error")
+	public String handleError() throws Exception {
+		// There is already an error entry in the model
+		return "access_confirmation";
+	}
+
 	protected String getLocation(HttpServletRequest request, String path) {
 		return extractScheme(request) + "://" + request.getHeader("Host") + getPath(request, path);
 	}

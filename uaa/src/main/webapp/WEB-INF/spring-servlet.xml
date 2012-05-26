@@ -51,7 +51,7 @@
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
 		<custom-filter ref="loginAuthenticationFilter" position="FORM_LOGIN_FILTER" />
-		<anonymous enabled="false"/>
+		<anonymous enabled="false" />
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
 
@@ -268,18 +268,22 @@
 	<bean id="viewResolver" class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
 		<property name="mediaTypes">
 			<map>
-				<entry key="html" value="text/html" />
 				<entry key="json" value="application/json" />
 			</map>
 		</property>
 		<property name="viewResolvers">
-			<bean class="org.cloudfoundry.identity.uaa.web.ForwardAwareInternalResourceViewResolver">
-				<property name="prefix" value="/WEB-INF/jsp/" />
-				<property name="suffix" value=".jsp" />
-			</bean>
+			<list>
+				<bean class="org.cloudfoundry.identity.uaa.web.ForwardAwareInternalResourceViewResolver">
+					<property name="prefix" value="/WEB-INF/jsp/" />
+					<property name="suffix" value=".jsp" />
+				</bean>
+				<bean class="org.springframework.web.servlet.view.BeanNameViewResolver" />
+			</list>
 		</property>
 		<property name="defaultViews">
-			<bean class="org.springframework.web.servlet.view.json.MappingJacksonJsonView" />
+			<bean class="org.springframework.web.servlet.view.json.MappingJacksonJsonView">
+				<property name="extractValueFromSingleKeyModel" value="true"/>
+			</bean>
 		</property>
 	</bean>
 
@@ -323,7 +327,7 @@
 	</bean>
 
 	<bean id="loginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LoginAuthenticationManager">
-		<property name="scimUserBootstrap" ref="scimUserBootstrap"/>
+		<property name="scimUserBootstrap" ref="scimUserBootstrap" />
 	</bean>
 
 </beans>
