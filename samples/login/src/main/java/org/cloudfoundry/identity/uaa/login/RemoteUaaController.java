@@ -7,6 +7,7 @@ import java.net.URISyntaxException;
 import java.net.URLDecoder;
 import java.security.Principal;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
@@ -24,10 +25,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -38,6 +41,7 @@ import org.springframework.web.bind.support.SessionStatus;
 import org.springframework.web.client.DefaultResponseErrorHandler;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.view.RedirectView;
 
@@ -174,6 +178,13 @@ public class RemoteUaaController {
 	public ResponseEntity<byte[]> post(HttpServletRequest request, HttpEntity<byte[]> entity,
 			Map<String, Object> model, SessionStatus sessionStatus) throws Exception {
 		return passthru(request, entity, model);
+	}
+
+	@ExceptionHandler(OAuth2Exception.class)
+	public ModelAndView handleOAuth2Exception(OAuth2Exception e, ServletWebRequest webRequest) throws Exception {
+		logger.info("OAuth2 error" + e.getSummary());
+		webRequest.getResponse().setStatus(e.getHttpErrorCode());
+		return new ModelAndView("forward:/home", Collections.singletonMap("error", e));
 	}
 
 	private void saveCookie(HttpHeaders headers, Map<String, Object> model) {

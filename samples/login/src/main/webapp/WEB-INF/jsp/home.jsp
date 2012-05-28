@@ -123,17 +123,14 @@ img.gsc-branding-img,img.gsc-branding-img-noclear,img.gcsc-branding-img,img.gcsc
 						<div class='span-15 prepend-top'>
 							<h2>Home</h2>
 
-							<p>This is test page to ensure that your account login is
-								working.</p>
+							<p>Your account login is working and you are authenticated.</p>
 
-							<c:if test="${error}">
+							<c:if test="${error!=null}">
 								<div class="error">
 									<h2>Woops!</h2>
 									<p>${error}</p>
 								</div>
 							</c:if>
-
-							<h2>You are logged in</h2>
 
 						</div>
 					</div>
@@ -166,7 +163,7 @@ img.gsc-branding-img,img.gsc-branding-img-noclear,img.gcsc-branding-img,img.gcsc
 				<div class='span-5 last right'>
 					<p>
 						Copyright &copy;
-						<fmt:formatDate value="<%= new java.util.Date() %>" pattern="yyyy" />
+						<fmt:formatDate value="<%=new java.util.Date()%>" pattern="yyyy" />
 						VMware, Inc. All rights reserved.
 					</p>
 				</div>
