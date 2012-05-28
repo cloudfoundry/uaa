@@ -171,31 +171,40 @@ img.gsc-branding-img,img.gsc-branding-img-noclear,img.gcsc-branding-img,img.gcsc
 										</fieldset>
 									</form>
 
-									<form id="loginForm" name="loginForm"
-										action="<c:url value="/login.do"/>" method="POST" novalidate>
+									<c:if test="${not empty param.error}">
 										<div>
-											Alternatively, if you already registered and have a password,
-											login with your existing Cloud Foundry account credentials:
-											<c:if test="${not empty param.error}">
-												<div>
-													<span class="flash">Login failed</span> <a
-														href="http://${hostName}/passwd">Forgot password?</a>
-												</div>
-											</c:if>
-											<c:forEach items="${prompts}" var="prompt">
-												<label for="${prompt.key}">${prompt.value[1]}</label>
-												<input id='${prompt.key}' type='${prompt.value[0]}'
-													name='${prompt.key}' />
-											</c:forEach>
+											<span class="flash">Login failed</span> <a
+												href="http://${hostName}/passwd">Forgot password?</a>
 										</div>
-										<div class="buttons">
-											<button type="submit">Login</button>
-											<span class="button-alt">or <a
-												href="http://${hostName}/signup">sign up</a> for
-												CloudFoundry.com
-											</span>
+									</c:if>
+									<c:if test="${error!=null}">
+										<div class="error">
+											<p>${error}</p>
 										</div>
-									</form>
+									</c:if>
+
+									<c:if test="${not empty prompts}">
+										<form id="loginForm" name="loginForm"
+											action="<c:url value="/login.do"/>" method="POST" novalidate>
+											<div>
+												Alternatively, if you already registered and have a
+												password, login with your existing Cloud Foundry account
+												credentials:
+												<c:forEach items="${prompts}" var="prompt">
+													<label for="${prompt.key}">${prompt.value[1]}</label>
+													<input id='${prompt.key}' type='${prompt.value[0]}'
+														name='${prompt.key}' />
+												</c:forEach>
+											</div>
+											<div class="buttons">
+												<button type="submit">Login</button>
+												<span class="button-alt">or <a
+													href="http://${hostName}/signup">sign up</a> for
+													CloudFoundry.com
+												</span>
+											</div>
+										</form>
+									</c:if>
 
 									<hr />
 									<section class="learnmore">

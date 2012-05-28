@@ -134,7 +134,7 @@ img.gsc-branding-img,img.gsc-branding-img-noclear,img.gcsc-branding-img,img.gcsc
 				<div class='site-wrap'>
 					<div class='container content'>
 						<div class='span-15 prepend-top'>
-							<c:if test="${error}">
+							<c:if test="${error!=null}">
 								<div class="error">
 									<h2>Woops!</h2>
 									<p>${error}</p>

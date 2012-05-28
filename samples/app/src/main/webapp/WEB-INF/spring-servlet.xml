@@ -19,7 +19,7 @@
 	<sec:http pattern="/favicon.ico" security="none" />
 
 	<http xmlns="http://www.springframework.org/schema/security" entry-point-ref="loginEntryPoint"
-		disable-url-rewriting="true">
+		disable-url-rewriting="true" >
 		<intercept-url pattern="/**" access="ROLE_USER" />
 		<logout logout-success-url="/loggedout.jsp" />
 		<anonymous enabled="false" />
@@ -39,6 +39,11 @@
 	<bean id="openidClientFilter" class="org.cloudfoundry.identity.uaa.openid.OpenIdClientFilter">
 		<constructor-arg value="/login" />
 		<property name="authenticationManager" ref="authenticationManager" />
+		<property name="authenticationFailureHandler">
+			<bean class="org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler">
+				<constructor-arg value="/login_error.jsp"/>
+			</bean>
+		</property>
 		<property name="restTemplate">
 			<oauth:rest-template resource="api" />
 		</property>
