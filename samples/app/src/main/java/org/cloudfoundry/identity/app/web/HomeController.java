@@ -13,10 +13,14 @@
 package org.cloudfoundry.identity.app.web;
 
 import java.security.Principal;
+import java.util.List;
+import java.util.Map;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.client.RestOperations;
 
 @Controller
 public class HomeController {
@@ -25,6 +29,18 @@ public class HomeController {
 	
 	private String dataUri = "http://localhost:8080/api/apps";
 	
+	private String tokensUri = "http://localhost:8080/uaa/oauth/users/{username}/tokens";
+
+	private RestOperations restTemplate;
+	
+	public void setRestTemplate(RestOperations restTemplate) {
+		this.restTemplate = restTemplate;
+	}
+
+	public void setTokensUri(String tokensUri) {
+		this.tokensUri = tokensUri;
+	}
+
 	/**
 	 * @param userAuthorizationUri the userAuthorizationUri to set
 	 */
@@ -49,7 +65,23 @@ public class HomeController {
 	@RequestMapping("/home")
 	public String home(Model model, Principal principal) {
 		model.addAttribute("principal", principal);
+		model.addAttribute("tokens", restTemplate.getForEntity(tokensUri, List.class, principal.getName()).getBody());
 		return "home";
+	}
+
+	@RequestMapping("/revoke")
+	public String revoke(Model model, Principal principal) {
+		model.addAttribute("principal", principal);
+		@SuppressWarnings("rawtypes")
+		ResponseEntity<List> tokens = restTemplate.getForEntity(tokensUri, List.class, principal.getName());
+		@SuppressWarnings("unchecked")
+		List<Map<String,String>> body = tokens.getBody();
+		model.addAttribute("tokens", tokens.getBody());
+		if (!body.isEmpty()) {
+			Map<String,String> token = body.iterator().next();
+			restTemplate.delete(tokensUri + "/" + token.get("token_id"), principal.getName());
+		}
+		return "redirect:/j_spring_security_logout";
 	}
 
 }

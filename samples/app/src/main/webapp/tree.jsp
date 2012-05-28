@@ -45,6 +45,9 @@ Your ${name}:
       </c:forEach>
     </ul>
 
-<p><a href="j_spring_security_logout">Logout</a></p>
+	<ul>
+		<li><a href="browse">Implicit Flow Demo</a></li>
+		<li><a href="<c:url value="/"/>">Home</a></li>
+	</ul>
 </body>
 </html>

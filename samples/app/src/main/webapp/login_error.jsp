@@ -27,6 +27,7 @@ There was a problem logging you in.  Don't panic.
 <ul>
 <li><a href="apps">Apps</a></li>
 <li><a href="services">Services</a></li>
+<li><a href="j_spring_security_logout">Logout</a></li>
 <li><a href="<c:url value="/"/>">Home</a></li>
 </ul>
 		<%

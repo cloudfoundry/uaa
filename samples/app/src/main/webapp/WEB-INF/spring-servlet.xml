@@ -19,13 +19,17 @@
 	<sec:http pattern="/favicon.ico" security="none" />
 
 	<http xmlns="http://www.springframework.org/schema/security" entry-point-ref="loginEntryPoint"
-		disable-url-rewriting="true" >
+		disable-url-rewriting="true">
 		<intercept-url pattern="/**" access="ROLE_USER" />
-		<logout logout-success-url="/loggedout.jsp" />
+		<logout logout-success-url="/loggedout.jsp?cflogout=#{logoutUrl}" />
 		<anonymous enabled="false" />
 		<custom-filter ref="oauth2ClientFilter" after="EXCEPTION_TRANSLATION_FILTER" />
 		<custom-filter ref="openidClientFilter" before="FILTER_SECURITY_INTERCEPTOR" />
 	</http>
+
+	<bean id="logoutUrl" class="java.lang.String">
+		<constructor-arg value="${cloudFoundryLogoutUrl}" />
+	</bean>
 
 	<bean id="loginEntryPoint" class="org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint">
 		<constructor-arg value="/login" />
@@ -41,7 +45,7 @@
 		<property name="authenticationManager" ref="authenticationManager" />
 		<property name="authenticationFailureHandler">
 			<bean class="org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler">
-				<constructor-arg value="/login_error.jsp"/>
+				<constructor-arg value="/login_error.jsp" />
 			</bean>
 		</property>
 		<property name="restTemplate">
@@ -80,19 +84,24 @@
 	</bean>
 
 	<bean id="homeController" class="org.cloudfoundry.identity.app.web.HomeController">
+		<property name="restTemplate">
+			<oauth:rest-template resource="api" />
+		</property>
 		<property name="userAuthorizationUri" value="${userAuthorizationUri}" />
 		<property name="dataUri" value="${dataUri}" />
+		<property name="tokensUri" value="${tokensUrlPattern}" />
 	</bean>
 
 	<!--define an oauth 2 resource for api access -->
 	<oauth:resource id="api" type="authorization_code" client-id="${CLIENT_ID:app}" client-secret="${CLIENT_SECRET:appclientsecret}"
-		access-token-uri="${accessTokenUri}" user-authorization-uri="${userAuthorizationUri}" scope="read,openid" />
+		access-token-uri="${accessTokenUri}" user-authorization-uri="${userAuthorizationUri}" scope="read,write,openid" />
 
 	<bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer" xmlns="http://www.springframework.org/schema/beans">
 		<property name="locations">
 			<list>
 				<value>classpath:/application.properties</value>
-				<value>classpath:/#{T(java.lang.System).getenv('VCAP_APPLICATION')!=null ?'application-cloud.properties':'empty.properties'}
+				<value>classpath:/#{T(java.lang.System).getenv('VCAP_APPLICATION')!=null
+					?'application-cloud.properties':'empty.properties'}
 				</value>
 				<value>classpath:/application-${UAA_PROFILE}.properties</value>
 			</list>
