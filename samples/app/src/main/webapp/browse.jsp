@@ -12,6 +12,7 @@
     subcomponent's license, as noted in the LICENSE file.
 
 --%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 <%@ page session="false"%>
 <html>
 <head>
@@ -60,5 +61,10 @@
 			access, it will render JSON representation of your apps from the API Resource Server below:</p>
 		<p id="message" />
 	</div>
+<ul>
+<li><a href="apps">Apps</a></li>
+<li><a href="j_spring_security_logout">Logout</a></li>
+<li><a href="<c:url value="/"/>">Home</a></li>
+</ul>
 </body>
 </html>

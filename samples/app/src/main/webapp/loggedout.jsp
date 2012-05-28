@@ -17,14 +17,15 @@
 <html>
 <body>
 
-<h1>OpenID Sample Home Page</h1>
+	<h1>OpenID Sample Home Page</h1>
 
-<p>
-You are logged out.
-</p>
-<ul>
-<li><a href="apps">Apps</a></li>
-<li><a href="<c:url value="/"/>">Home</a></li>
-</ul>
+	<p>You are logged out of the sample app.</p>
+	<ul>
+		<c:if test="${not empty param.cflogout}">
+			<li><a href="${param.cflogout}">Logout</a> of Cloud Foundry</li>
+		</c:if>
+		<li><a href="apps">Apps</a></li>
+		<li><a href="<c:url value="/"/>">Home</a></li>
+	</ul>
 </body>
 </html>
