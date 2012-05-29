@@ -12,11 +12,13 @@
  */
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.cloudfoundry.identity.uaa.error.UaaException;
+
 /**
  * @author Luke Taylor
  */
-public class InvalidClientDetailsException extends RuntimeException {
+public class InvalidClientDetailsException extends UaaException {
 	public InvalidClientDetailsException(String message) {
-		super(message);
+		super("invalid_client", message, 400);
 	}
 }
