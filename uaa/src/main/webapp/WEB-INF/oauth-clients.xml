@@ -133,7 +133,7 @@
 							<entry key="id" value="login" />
 							<entry key="secret" value="loginsecret" />
 							<entry key="authorized-grant-types" value="client_credentials" />
-							<entry key="authorities" value="ROLE_CLIENT,ROLE_RESOURCE" />
+							<entry key="authorities" value="ROLE_LOGIN" />
 							<entry key="resource-ids" value="oauth" />
 						</map>
 					</entry>
