@@ -123,7 +123,7 @@ public class RemoteUaaController {
 		return "home";
 	}
 
-	@RequestMapping(value = "/oauth/authorize", params = "response_type")
+	@RequestMapping(value = "/oauth/authorize", params = "response_type", method = RequestMethod.GET)
 	public ModelAndView startAuthorization(HttpServletRequest request, @RequestParam Map<String, String> parameters,
 			Map<String, Object> model, @RequestHeader HttpHeaders headers, Principal principal) throws Exception {
 
