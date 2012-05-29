@@ -1,6 +1,14 @@
 <link href="https://raw.github.com/clownfart/Markdown-CSS/master/markdown.css" rel="stylesheet"></link>
 # CloudFoundry User Account and Authentication (UAA) Server
 
+The UAA is the identity management service for Cloud Foundry.  It's
+primary role is as an OAuth2 provider, issuing tokens for client
+applications to use when they act on behalf of Cloud Foundry users.
+It can also authenticate users with their Cloud Foundry credentials,
+and can act as an SSO service using those credentials (or others).  It
+has endpoints for managing user accounts and for registering OAuth2
+clients, as well as various other management functions.
+
 ## Co-ordinates
 
 * Team:
@@ -9,7 +17,7 @@
   * Luke Taylor (`ltaylor@vmware.com`)
   * Joel D'Sa (`jdsa@vmware.com`)
 * Team mailing list: `cf-id@vmware.com`
-* Docs: docs/
+* Docs: [docs/](http://github.com/cloudfoundry/uaa/docs)
 
 ## Quick Start
 
@@ -244,6 +252,8 @@ the webapps below.
 
 4. `app` (sample) is a user application that uses both of the above
 
+5. `login` (sample) is an application that performs authentication for the UAA acting as a back end service
+
 In CloudFoundry terms
 
 * `uaa` provides an authentication service plus authorized delegation for
@@ -256,6 +266,10 @@ In CloudFoundry terms
 * `app` is `code.cloudfoundry.com` or `studio.cloudfoundry.com` - a
   webapp that needs single sign on and access to the `api` service on
   behalf of users.
+  
+* `login` is where Cloud Foundry administrators set up their
+  authentication sources, e.g. LDAP/AD, SAML, OpenID (Google etc.) or
+  social.
 
 ## UAA Server
 
@@ -363,17 +377,93 @@ grants.  It authenticates with the Auth service, and then accesses
 resources in the API service.  Run it with `mvn tomcat:run` from the
 `app` directory (once all other tomcat processes have been shutdown).
 
+The application can operate in multiple different profiles according
+to the location (and presence) of the UAA server and the Login
+application.  By default it will look for a UAA on
+`localhost:8080/uaa`, but you can change this by setting an
+environment variable (or System property) called `UAA_PROFILE`.  In
+the application source code (`src/main/resources`) you will find
+multiple properties files pre-configured with different likely
+locations for those servers.  They are all in the form
+`application-<UAA_PROFILE>.properties` and the naming convention
+adopted is that the `UAA_PROFILE` is `local` for the localhost
+deployment, `vcap` for a `vcap.me` deployment, `staging` for a staging
+deployment (inside VMware VPN), etc.  The profile names are double
+barrelled (e.g. `local-vcap` when the login server is in a different
+location than the UAA server).
+
 ### Use Cases
 
 1. See all apps
 
         GET /app/apps
 
-  browser is redirected through a series of authentication and access
-  grant steps (which could be slimmed down to implicit steps not
-  requiring user at some point), and then the photos are shown.
+    browser is redirected through a series of authentication and
+    access grant steps (which could be slimmed down to implicit steps
+    not requiring user at some point), and then the photos are shown.
 
 2. See the currently logged in user details, a bag of attributes
 grabbed from the open id provider
 
         GET /app
+
+## The Login Application
+
+A user interface for authentication.  The UAA can also authenticate
+user accounts, but only if it manages them itself, and it only
+provides a basic UI.  The Login app can be branded and customized for
+non-native authentication and for more complicate UI flows, like user
+registration and password reset.
+
+The login application is actually itself an OAuth2 endpoint provider,
+but delegates those features to the UAA server.  Configuration for the
+login application therefore consists of locating the UAA through its
+OAuth2 endpoint URLs, and registering the login application itself as
+a client of the UAA.  There is a `login.yml` for the UAA locations,
+e.g. for a local `vcap` instance:
+
+    uaa:
+      url: http://uaa.vcap.me
+      token:
+        url: http://uaa.vcap.me/oauth/token
+      login:
+        url: http://uaa.vcap.me/login.do
+        
+and there is an environment variable (or Java System property),
+`LOGIN_SECRET` for the client secret that the app uses when it
+authenticates itself with the UAA.  The Login app is registered by
+default in the UAA only if there are no active Spring profiles (so not
+at all in `vcap`).  In the UAA you can find the registation in the
+`oauth-clients.xml` config file.  Here's a summary:
+
+	id: login
+	secret: loginsecret
+    authorized-grant-types: client_credentials
+	authorities: ROLE_LOGIN
+    resource-ids: oauth
+
+### Use Cases
+
+1. Authenticate
+
+        GET /login
+        
+    The sample app presents a form login interface for the backend
+    UAA, and also an OpenID widget so the user can authenticate using
+    Google etc. credentials.
+    
+2. Approve OAuth2 token grant
+
+        GET /oauth/authorize?client_id=app&response_type=code...
+        
+    Standard OAuth2 Authorization Endpoint.  Client credentials and
+    all other features are handled by the UAA in the back end, and the
+    login application is used to render the UI (see
+    `access_confirmation.jsp`).
+
+3. Obtain access token
+
+        POST /oauth/token
+        
+    Standard OAuth2 Authorization Endpoint passed through to the UAA.
+        
