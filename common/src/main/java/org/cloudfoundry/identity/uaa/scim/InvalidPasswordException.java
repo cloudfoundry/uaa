@@ -12,19 +12,21 @@
  */
 package org.cloudfoundry.identity.uaa.scim;
 
+import org.springframework.http.HttpStatus;
+
 /**
  * Checked exception signalling an invalid password.
  * 
  * @author Dave Syer
  *
  */
-public class InvalidPasswordException extends RuntimeException {
+public class InvalidPasswordException extends ScimException {
 
 	/**
 	 * @param message a message for the caller
 	 */
 	public InvalidPasswordException(String message) {
-		super(message);
+		super(message, HttpStatus.BAD_REQUEST);
 	}
 
 }
