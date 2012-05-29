@@ -116,7 +116,7 @@ public class ClientAdminEndpoints {
 		List<ClientDetails> details = clientRegistrationService.listClientDetails();
 		Map<String, ClientDetails> map = new LinkedHashMap<String, ClientDetails>();
 		for (ClientDetails client : details) {
-			map.put(client.getClientId(), client);
+			map.put(client.getClientId(), removeSecret(client));
 		}
 		return new ResponseEntity<Map<String, ClientDetails>>(map, HttpStatus.OK);
 	}
@@ -178,8 +178,8 @@ public class ClientAdminEndpoints {
 	}
 
 	@ExceptionHandler(InvalidClientDetailsException.class)
-	public ResponseEntity<String> handleInvalidClientDetails(InvalidClientDetailsException e) {
-		return new ResponseEntity<String>(e.getMessage(), HttpStatus.BAD_REQUEST);
+	public ResponseEntity<InvalidClientDetailsException> handleInvalidClientDetails(InvalidClientDetailsException e) {
+		return new ResponseEntity<InvalidClientDetailsException>(e, HttpStatus.BAD_REQUEST);
 	}
 
 	@ExceptionHandler(NoSuchClientException.class)

@@ -13,12 +13,14 @@
 package org.cloudfoundry.identity.uaa.integration;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 
+import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.oauth.SecretChangeRequest;
 import org.junit.Assume;
 import org.junit.Before;
@@ -78,6 +80,7 @@ public class ClientAdminEndpointsIntegrationTests {
 		assertEquals(HttpStatus.OK, result.getStatusCode());
 		// System.err.println(result.getBody());
 		assertTrue(result.getBody().contains("vmc\":{"));
+		assertFalse(result.getBody().contains("secret\":"));
 	}
 
 	@Test
@@ -101,14 +104,20 @@ public class ClientAdminEndpointsIntegrationTests {
 		HttpHeaders headers = getAuthenticatedHeaders(token);
 		BaseClientDetails client = new BaseClientDetails("", "foo,bar", "client_credentials", "ROLE_CLIENT");
 		client.setClientId(new RandomValueStringGenerator().generate());
-		ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
-				HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
+		ResponseEntity<UaaException> result = serverRunning.getRestTemplate().exchange(
+				serverRunning.getUrl("/oauth/clients"), HttpMethod.POST,
+				new HttpEntity<BaseClientDetails>(client, headers), UaaException.class);
 		assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
+		assertEquals("invalid_client", result.getBody().getErrorCode());
+	}
 
-		// Check implicit is allowed
-		client = new BaseClientDetails("", "foo,bar", "implicit", "ROLE_CLIENT");
+	@Test
+	public void implicitGrantClientWithoutSecretIsOk() throws Exception {
+		OAuth2AccessToken token = getClientCredentialsAccessToken("read,write");
+		HttpHeaders headers = getAuthenticatedHeaders(token);
+		BaseClientDetails client = new BaseClientDetails("", "foo,bar", "implicit", "ROLE_CLIENT");
 		client.setClientId(new RandomValueStringGenerator().generate());
-		result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
+		ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
 				HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
 
 		assertEquals(HttpStatus.CREATED, result.getStatusCode());
@@ -156,7 +165,7 @@ public class ClientAdminEndpointsIntegrationTests {
 		change.setOldSecret(client.getClientSecret());
 		change.setSecret("newsecret");
 		result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients/{client}/secret"),
-				HttpMethod.PUT, new HttpEntity<SecretChangeRequest>(change , headers), Void.class, client.getClientId());
+				HttpMethod.PUT, new HttpEntity<SecretChangeRequest>(change, headers), Void.class, client.getClientId());
 		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
 
 	}
