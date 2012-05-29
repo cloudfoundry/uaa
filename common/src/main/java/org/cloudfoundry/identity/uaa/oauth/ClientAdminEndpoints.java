@@ -178,8 +178,8 @@ public class ClientAdminEndpoints {
 	}
 
 	@ExceptionHandler(InvalidClientDetailsException.class)
-	public ResponseEntity<String> handleInvalidClientDetails(InvalidClientDetailsException e) {
-		return new ResponseEntity<String>(e.getMessage(), HttpStatus.BAD_REQUEST);
+	public ResponseEntity<InvalidClientDetailsException> handleInvalidClientDetails(InvalidClientDetailsException e) {
+		return new ResponseEntity<InvalidClientDetailsException>(e, HttpStatus.BAD_REQUEST);
 	}
 
 	@ExceptionHandler(NoSuchClientException.class)
