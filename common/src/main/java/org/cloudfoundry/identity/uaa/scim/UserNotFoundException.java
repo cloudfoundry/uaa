@@ -12,19 +12,21 @@
  */
 package org.cloudfoundry.identity.uaa.scim;
 
+import org.springframework.http.HttpStatus;
+
 /**
  * Unchecked exception signalling that a user account could not be found.
  * 
  * @author Dave Syer
  *
  */
-public class UserNotFoundException extends RuntimeException {
+public class UserNotFoundException extends ScimException {
 
 	/**
 	 * @param message a message for the caller
 	 */
 	public UserNotFoundException(String message) {
-		super(message);
+		super(message, HttpStatus.NOT_FOUND);
 	}
 
 }
