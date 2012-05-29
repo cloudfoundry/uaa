@@ -12,13 +12,22 @@
  */
 package org.cloudfoundry.identity.uaa.scim;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.util.Collection;
+import java.util.Map;
 import java.util.UUID;
 
 import javax.sql.DataSource;
 
 import org.cloudfoundry.identity.uaa.NullSafeSystemProfileValueSource;
 import org.cloudfoundry.identity.uaa.TestUtils;
+import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -33,8 +42,6 @@ import org.springframework.test.annotation.IfProfileValue;
 import org.springframework.test.annotation.ProfileValueSourceConfiguration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import static org.junit.Assert.*;
 
 /**
  * @author Luke Taylor
@@ -92,6 +99,9 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals("jo@foo.com", created.getUserName());
 		assertNotNull(created.getId());
 		assertNotSame(user.getId(), created.getId());
+		Map<String, Object> map = template.queryForMap("select * from users where id=?", created.getId());
+		assertEquals(user.getUserName(), map.get("userName"));
+		assertEquals(user.getUserType(), map.get(UaaAuthority.UAA_USER.getUserType()));
 	}
 
 	@Test(expected = InvalidUserException.class)
@@ -105,6 +115,7 @@ public class JdbcScimUserProvisioningTests {
 	public void updateModifiesExpectedData() {
 		ScimUser jo = new ScimUser(null, "josephine", "Jo", "NewUser");
 		jo.addEmail("jo@blah.com");
+		jo.setUserType(UaaAuthority.UAA_ADMIN.getUserType());
 
 		ScimUser joe = db.updateUser(JOE_ID, jo);
 
@@ -115,6 +126,7 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals("NewUser", joe.getFamilyName());
 		assertEquals(1, joe.getVersion());
 		assertEquals(JOE_ID, joe.getId());
+		assertEquals(UaaAuthority.UAA_ADMIN.getUserType(), joe.getUserType());
 	}
 
 	@Test(expected = OptimisticLockingFailureException.class)

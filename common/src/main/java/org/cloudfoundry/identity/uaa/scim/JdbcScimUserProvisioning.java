@@ -42,6 +42,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.Assert;
@@ -55,12 +56,12 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	private final Log logger = LogFactory.getLog(getClass());
 
-	public static final String USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName,active,authority,phoneNumber";
+	public static final String USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName,active,authorities,phoneNumber";
 
 	public static final String CREATE_USER_SQL = "insert into users (" + USER_FIELDS
 			+ ",password) values (?,?,?,?,?,?,?,?,?,?,?,?)";
 
-	public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, email=?, givenName=?, familyName=?, active=?, authority=?, phoneNumber=? where id=? and version=?";
+	public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, email=?, givenName=?, familyName=?, active=?, authorities=?, phoneNumber=? where id=? and version=?";
 
 	public static final String DELETE_USER_SQL = "update users set active=false where id=?";
 
@@ -266,6 +267,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		validate(user);
 
 		logger.info("Creating new user: " + user.getUserName());
+		final String authorities = getAuthorities(user);
 
 		final String id = UUID.randomUUID().toString();
 		try {
@@ -280,7 +282,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 					ps.setString(7, user.getName().getGivenName());
 					ps.setString(8, user.getName().getFamilyName());
 					ps.setBoolean(9, user.isActive());
-					ps.setLong(10, UaaAuthority.fromUserType(user.getUserType()).value());
+					ps.setString(10, authorities);
 					String phoneNumber = extractPhoneNumber(user);
 					ps.setString(11, phoneNumber);
 					ps.setString(12, passwordEncoder.encode(password));
@@ -294,6 +296,14 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		}
 		return retrieveUser(id);
 
+	}
+
+	private String getAuthorities(ScimUser user) {
+		// Simple implementation based only on uaa user type
+		String userType = user.getUserType();
+		userType = userType==null ? UaaAuthority.UAA_USER.getUserType() : userType;
+		List<UaaAuthority> list = userType.contains("admin") ? UaaAuthority.ADMIN_AUTHORITIES : UaaAuthority.USER_AUTHORITIES;
+		return StringUtils.collectionToCommaDelimitedString(AuthorityUtils.authorityListToSet(list));
 	}
 
 	private void validate(final ScimUser user) throws InvalidUserException {
@@ -320,7 +330,8 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	public ScimUser updateUser(final String id, final ScimUser user) throws InvalidUserException {
 		validate(user);
 		logger.info("Updating user " + user.getUserName());
-
+		final String authorities = getAuthorities(user);
+		
 		int updated = jdbcTemplate.update(UPDATE_USER_SQL, new PreparedStatementSetter() {
 			public void setValues(PreparedStatement ps) throws SQLException {
 				ps.setInt(1, user.getVersion() + 1);
@@ -329,7 +340,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 				ps.setString(4, user.getName().getGivenName());
 				ps.setString(5, user.getName().getFamilyName());
 				ps.setBoolean(6, user.isActive());
-				ps.setLong(7, UaaAuthority.fromUserType(user.getUserType()).value());
+				ps.setString(7, authorities);
 				ps.setString(8, extractPhoneNumber(user));
 				ps.setString(9, id);
 				ps.setInt(10, user.getVersion());
@@ -439,7 +450,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 			String givenName = rs.getString(7);
 			String familyName = rs.getString(8);
 			boolean active = rs.getBoolean(9);
-			long authority = rs.getLong(10);
+			String authorities = rs.getString(10);
 			String phoneNumber = rs.getString(11);
 			ScimUser user = new ScimUser();
 			user.setId(id);
@@ -458,7 +469,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 			name.setFamilyName(familyName);
 			user.setName(name);
 			user.setActive(active);
-			user.setUserType(UaaAuthority.valueOf((int) authority).getUserType());
+			user.setUserType(UaaAuthority.fromAuthorities(authorities).getUserType());
 			return user;
 		}
 	}

@@ -85,6 +85,7 @@ public class JdbcUaaUserDatabaseTests {
 		assertEquals("joe", joe.getUsername());
 		assertEquals("joe@joe.com", joe.getEmail());
 		assertEquals("joespassword", joe.getPassword());
+		assertEquals(UaaAuthority.USER_AUTHORITIES.toString(), joe.getAuthorities().toString());
 	}
 
 	@Test(expected = UsernameNotFoundException.class)
@@ -92,4 +93,11 @@ public class JdbcUaaUserDatabaseTests {
 		db.retrieveUserByName("jo");
 	}
 
+	@Test
+	public void getUserWithExtraAuthorities() {
+		// If the database happens to contain non-uaa authorities we pass them through
+		template.update("update users set authorities=? where id=?", "uaa/user,dash/admin", JOE_ID);
+		UaaUser joe = db.retrieveUserByName("joe");
+		assertEquals("[uaa/user, dash/admin]", joe.getAuthorities().toString());
+	}
 }

@@ -14,11 +14,14 @@ package org.cloudfoundry.identity.uaa.user;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Locale;
 
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.util.Assert;
 
@@ -28,13 +31,10 @@ import org.springframework.util.Assert;
  */
 public class JdbcUaaUserDatabase implements UaaUserDatabase {
 
-	public static final String USER_FIELDS = "id,username,password,email,authority,givenName,familyName,created,lastModified ";
+	public static final String USER_FIELDS = "id,username,password,email,authorities,givenName,familyName,created,lastModified ";
 
-	public static final String USER_BY_USERNAME_QUERY =
-			"select " + USER_FIELDS +
-			"from users " +
-			"where username = ? and active=true";
-
+	public static final String USER_BY_USERNAME_QUERY = "select " + USER_FIELDS + "from users "
+			+ "where username = ? and active=true";
 
 	private JdbcTemplate jdbcTemplate;
 
@@ -58,8 +58,12 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
 	private static final class UaaUserRowMapper implements RowMapper<UaaUser> {
 		@Override
 		public UaaUser mapRow(ResultSet rs, int rowNum) throws SQLException {
-			return new UaaUser(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getLong(5),
-							rs.getString(6), rs.getString(7), rs.getTimestamp(8), rs.getTimestamp(9));
+			String value = rs.getString(5);
+			value = value==null ? "" : value;
+			List<GrantedAuthority> authorities = AuthorityUtils.commaSeparatedStringToAuthorityList(value);
+			return new UaaUser(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4),
+					authorities, rs.getString(6), rs.getString(7),
+					rs.getTimestamp(8), rs.getTimestamp(9));
 		}
 	}
 }

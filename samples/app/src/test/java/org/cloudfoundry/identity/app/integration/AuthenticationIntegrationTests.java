@@ -104,7 +104,7 @@ public class AuthenticationIntegrationTests {
 		// If there is no token in place already for this client we get the approval page.
 		// TODO: revoke the token so we always get the approval page
 		if (result.getStatusCode() == HttpStatus.OK) {
-			location = "/uaa/oauth/authorize";
+			location = serverRunning.getAuthServerUrl("/oauth/authorize");
 
 			formData = new LinkedMultiValueMap<String, String>();
 			formData.add("user_oauth_approval", "true");

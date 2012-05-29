@@ -26,37 +26,42 @@ import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.util.StringUtils;
 
 /**
  * Tasklet to change users' granted authorities.
  * 
  * @author Dave Syer
- *
+ * 
  */
 public class AdminUsersTasklet implements Tasklet {
-	
+
 	private JdbcOperations jdbcTemplate;
-	
+
 	private Collection<String> admins = Collections.emptySet();
 
-	private int authority = 1;
-	
+	private UaaAuthority authority = UaaAuthority.UAA_ADMIN;
+
 	public void setDataSource(DataSource dataSource) {
 		jdbcTemplate = new JdbcTemplate(dataSource);
 	}
-	
+
 	public void setAdmins(Collection<String> admins) {
 		this.admins = new HashSet<String>(admins);
 	}
-	
+
 	public void setAuthority(UaaAuthority authority) {
-		this.authority = authority.value();
+		this.authority = authority;
 	}
 
 	@Override
 	public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
+		String authorities = StringUtils.collectionToCommaDelimitedString(AuthorityUtils
+				.authorityListToSet(authority == UaaAuthority.UAA_USER ? UaaAuthority.USER_AUTHORITIES
+						: UaaAuthority.ADMIN_AUTHORITIES));
 		for (String user : admins) {
-			int updated = jdbcTemplate.update("update users set authority=? where userName=?", authority , user);
+			int updated = jdbcTemplate.update("update users set authorities=? where userName=?", authorities, user);
 			contribution.incrementWriteCount(updated);
 		}
 		return RepeatStatus.FINISHED;

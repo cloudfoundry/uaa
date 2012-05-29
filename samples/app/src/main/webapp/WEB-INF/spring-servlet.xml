@@ -19,13 +19,24 @@
 	<sec:http pattern="/favicon.ico" security="none" />
 
 	<http xmlns="http://www.springframework.org/schema/security" entry-point-ref="loginEntryPoint"
-		disable-url-rewriting="true">
-		<intercept-url pattern="/**" access="ROLE_USER" />
+		disable-url-rewriting="true" access-decision-manager-ref="accessDecisionManager">
+		<intercept-url pattern="/**" access="uaa/user" />
 		<logout logout-success-url="/loggedout.jsp?cflogout=#{logoutUrl}" />
 		<anonymous enabled="false" />
 		<custom-filter ref="oauth2ClientFilter" after="EXCEPTION_TRANSLATION_FILTER" />
 		<custom-filter ref="openidClientFilter" before="FILTER_SECURITY_INTERCEPTOR" />
 	</http>
+
+	<bean id="accessDecisionManager" class="org.springframework.security.access.vote.UnanimousBased">
+		<constructor-arg>
+			<list>
+				<bean class="org.springframework.security.access.vote.RoleVoter">
+					<property name="rolePrefix" value="uaa/"/>
+				</bean>
+				<bean class="org.springframework.security.access.vote.AuthenticatedVoter" />
+			</list>
+		</constructor-arg>
+	</bean>
 
 	<bean id="logoutUrl" class="java.lang.String">
 		<constructor-arg value="${cloudFoundryLogoutUrl}" />

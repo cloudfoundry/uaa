@@ -34,13 +34,13 @@ public class UaaUser {
 	private final String familyName;
 	private final Date created;
 	private final Date modified;
-	private final long authority;
+	private final List<? extends GrantedAuthority> authorities;
 
 	public UaaUser(String username, String password, String email, String givenName, String familyName) {
-		this("NaN", username, password, email, 0, givenName, familyName, new Date(), new Date());
+		this("NaN", username, password, email, UaaAuthority.USER_AUTHORITIES, givenName, familyName, new Date(), new Date());
 	}
 
-	UaaUser(String id, String username, String password, String email, long authority, String givenName, String familyName, Date created, Date modified) {
+	UaaUser(String id, String username, String password, String email, List<? extends GrantedAuthority> authorities, String givenName, String familyName, Date created, Date modified) {
 		Assert.hasText(username, "Username cannot be empty");
 		Assert.hasText(id, "Id cannot be null");
 		Assert.hasText(email, "Email is required");
@@ -55,7 +55,7 @@ public class UaaUser {
 		this.givenName = givenName;
 		this.created = created;
 		this.modified = modified;
-		this.authority = authority;
+		this.authorities = authorities;
 	}
 
 	public String getId() {
@@ -77,20 +77,20 @@ public class UaaUser {
 	public String getGivenName() {
 		return givenName;
 	}
-
+	
 	public String getFamilyName() {
 		return familyName;
 	}
 
 	public List<? extends GrantedAuthority> getAuthorities() {
-		return authority == 1 ? UaaAuthority.ADMIN_AUTHORITIES : UaaAuthority.USER_AUTHORITIES;
+		return authorities;
 	}
 
 	public UaaUser id(String id) {
 		if (!"NaN".equals(this.id)) {
 			throw new IllegalStateException("Id already set");
 		}
-		return new UaaUser(id, username, password, email, authority, givenName, familyName, created, modified);
+		return new UaaUser(id, username, password, email, authorities, givenName, familyName, created, modified);
 	}
 
 	@Override

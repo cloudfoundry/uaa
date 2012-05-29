@@ -19,29 +19,37 @@ import java.util.List;
 import org.springframework.security.core.GrantedAuthority;
 
 /**
+ * The UAA only distinguishes 2 types of user for internal usage, denoted <code>uaa/admin</code> and
+ * <code>uaa/user</code>. Other authorities might be stored in the back end for the purposes of other resource servers,
+ * so this enumeration has convenient methods for extracting the UAA user types from authorities lists.
+ * 
  * @author Luke Taylor
  * @author Dave Syer
  */
 public enum UaaAuthority implements GrantedAuthority {
-	ROLE_ADMIN("Admin", 1),
-	ROLE_USER("User", 0);
 
-	public static final List<UaaAuthority> ADMIN_AUTHORITIES = Collections.unmodifiableList(Arrays.asList(ROLE_ADMIN, ROLE_USER));
-	public static final List<UaaAuthority> USER_AUTHORITIES = Collections.unmodifiableList(Arrays.asList(ROLE_USER));
+	UAA_ADMIN("uaa/admin", 1), UAA_USER("uaa/user", 0);
+
+	public static final List<UaaAuthority> ADMIN_AUTHORITIES = Collections.unmodifiableList(Arrays.asList(UAA_ADMIN,
+			UAA_USER));
+
+	public static final List<UaaAuthority> USER_AUTHORITIES = Collections.unmodifiableList(Arrays.asList(UAA_USER));
+
 	private final int value;
+
 	private final String userType;
-	
+
 	private UaaAuthority(String userType, int value) {
 		this.userType = userType;
 		this.value = value;
 	}
-	
+
 	public int value() {
 		return value;
 	}
-	
+
 	/**
-	 * The name of the type of user, either "admin" or "user".
+	 * The name of the type of user, either "uaa/admin" or "uaa/user".
 	 * 
 	 * @return a user type name
 	 */
@@ -50,22 +58,23 @@ public enum UaaAuthority implements GrantedAuthority {
 	}
 
 	/**
-	 * The authority granted by this value.
+	 * The authority granted by this value (same as user type).
 	 * 
-	 * @return the name of the value (ROLE_USER, etc.)
+	 * @return the name of the value (uaa/user, etc.)
 	 * @see org.springframework.security.core.GrantedAuthority#getAuthority()
 	 */
 	@Override
 	public String getAuthority() {
-		return name();
+		return userType;
 	}
 	
-	public static UaaAuthority valueOf(int value) {
-		return value==1 ? ROLE_ADMIN : ROLE_USER;
+	@Override
+	public String toString() {
+		return userType;
 	}
 
-	public static UaaAuthority fromUserType(String userType) {
-		String type = userType==null ? null : userType.toLowerCase();
-		return "admin".equals(type) || "role_admin".equals(type) ? ROLE_ADMIN : ROLE_USER;
+	public static UaaAuthority fromAuthorities(String authorities) {
+		String type = authorities == null ? "uaa/user" : authorities.toLowerCase();
+		return type.contains("uaa/admin") ? UAA_ADMIN : UAA_USER;
 	}
 }

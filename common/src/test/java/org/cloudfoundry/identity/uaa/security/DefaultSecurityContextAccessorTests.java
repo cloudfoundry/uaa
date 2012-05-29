@@ -18,7 +18,10 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.junit.After;
 import org.junit.Test;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.provider.AuthorizationRequest;
+import org.springframework.security.oauth2.provider.OAuth2Authentication;
 
 /**
  * @author Luke Taylor
@@ -33,7 +36,16 @@ public class DefaultSecurityContextAccessorTests {
 	@Test
 	public void adminUserIsAdmin() throws Exception {
 		SecurityContextHolder.getContext().setAuthentication(
-				new UsernamePasswordAuthenticationToken("user","password", UaaAuthority.ADMIN_AUTHORITIES));
+				new UsernamePasswordAuthenticationToken("user", "password", UaaAuthority.ADMIN_AUTHORITIES));
+
+		assertTrue(new DefaultSecurityContextAccessor().isAdmin());
+	}
+
+	@Test
+	public void adminClientIsAdmin() throws Exception {
+		SecurityContextHolder.getContext().setAuthentication(
+				new OAuth2Authentication(new AuthorizationRequest("admin", null, AuthorityUtils
+						.commaSeparatedStringToAuthorityList("ROLE_ADMIN"), null), null));
 
 		assertTrue(new DefaultSecurityContextAccessor().isAdmin());
 	}

@@ -97,6 +97,9 @@ public class TokenAdminEndpoints {
 	}
 
 	private String getUserName(String user) {
+		if (scimProvisioning==null) {
+			return user;
+		}
 		String username = user;
 		try {
 			// If the request came in for a user by id we should be able to retrieve the username

@@ -12,9 +12,9 @@
  */
 package org.cloudfoundry.identity.uaa.user;
 
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-
 import java.util.Date;
+
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 /**
  * @author Luke Taylor
@@ -23,15 +23,16 @@ public class MockUaaUserDatabase implements UaaUserDatabase {
 	UaaUser user;
 
 	public MockUaaUserDatabase(String id, String name, String email, String givenName, String familyName) {
-		user = new UaaUser(id, name, "", email, 0, givenName, familyName, new Date(), new Date());
+		user = new UaaUser(id, name, "", email, UaaAuthority.USER_AUTHORITIES, givenName, familyName,
+				new Date(), new Date());
 	}
-
 
 	@Override
 	public UaaUser retrieveUserByName(String username) throws UsernameNotFoundException {
 		if (user.getUsername().equals(username)) {
 			return user;
-		} else {
+		}
+		else {
 			throw new UsernameNotFoundException(username);
 		}
 	}

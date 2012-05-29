@@ -15,7 +15,7 @@
  */
 package org.cloudfoundry.identity.uaa.user;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
@@ -27,28 +27,18 @@ public class UaaAuthorityTests {
 
 	@Test
 	public void testGetAuthority() {
-		assertEquals("ROLE_USER", UaaAuthority.ROLE_USER.getAuthority());
+		assertEquals("uaa/user", UaaAuthority.UAA_USER.getAuthority());
 	}
 
 	@Test
 	public void testValueOf() {
-		assertEquals(0, UaaAuthority.ROLE_USER.value());
-		assertEquals(1, UaaAuthority.ROLE_ADMIN.value());
+		assertEquals(0, UaaAuthority.UAA_USER.value());
+		assertEquals(1, UaaAuthority.UAA_ADMIN.value());
 	}
 
 	@Test
-	public void testFromUserType() {
-		assertEquals(UaaAuthority.ROLE_USER, UaaAuthority.fromUserType("User"));
-	}
-
-	@Test
-	public void testFromUserTypeWithPrefix() {
-		assertEquals(UaaAuthority.ROLE_USER, UaaAuthority.fromUserType("ROLE_USER"));
-	}
-
-	@Test
-	public void testAdminFromUserType() {
-		assertEquals(UaaAuthority.ROLE_ADMIN, UaaAuthority.fromUserType("Admin"));
+	public void testAdminFromAuthorities() {
+		assertEquals(UaaAuthority.UAA_ADMIN, UaaAuthority.fromAuthorities("auu/user,uaa/admin"));
 	}
 
 }

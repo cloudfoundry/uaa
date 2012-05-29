@@ -15,7 +15,6 @@ import static org.junit.Assert.assertEquals;
 import java.util.Date;
 import java.util.Iterator;
 
-import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.junit.Test;
 import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.Job;
@@ -39,8 +38,8 @@ public class UserMigrationJobIntegrationTests extends AbstractJobIntegrationTest
 	@Test
 	public void testJobRuns() throws Exception {
 		new JdbcTemplate(cloudControllerDataSource)
-		.update("insert into users (id, active, email, crypted_password, created_at, updated_at) values (?, ?, ?, ?, ?, ?)",
-				4, true, "invalid", "ENCRYPT_ME", new Date(), new Date());
+				.update("insert into users (id, active, email, crypted_password, created_at, updated_at) values (?, ?, ?, ?, ?, ?)",
+						4, true, "invalid", "ENCRYPT_ME", new Date(), new Date());
 		JobExecution execution = jobLauncher.run(job,
 				new JobParametersBuilder().addString("users", "marissa@test.org,vcap_tester@vmware.com")
 						.toJobParameters());
@@ -50,10 +49,8 @@ public class UserMigrationJobIntegrationTests extends AbstractJobIntegrationTest
 		assertEquals(2, iterator.next().getWriteCount());
 		JdbcTemplate jdbcTemplate = new JdbcTemplate(uaaDataSource);
 		assertEquals(3, jdbcTemplate.queryForInt("select count(*) from users"));
-		assertEquals(
-				2,
-				jdbcTemplate.queryForInt("select count(*) from users where authority=?",
-						UaaAuthority.ROLE_ADMIN.value()));
+		assertEquals(2,
+				jdbcTemplate.queryForInt("select count(*) from users where authorities=?", "uaa/admin,uaa/user"));
 	}
 
 }

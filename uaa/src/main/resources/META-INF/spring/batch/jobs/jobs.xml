@@ -67,7 +67,7 @@
 				<property name="admins">
 					<value>#{new String(jobParameters['users']?:'').split(',')}</value>
 				</property>
-				<property name="authority" value="#{jobParameters['authority']?:'ROLE_ADMIN'}"></property>
+				<property name="authority" value="#{jobParameters['authority']?:'UAA_ADMIN'}"></property>
 			</bean>
 		</tasklet>
 	</step>
