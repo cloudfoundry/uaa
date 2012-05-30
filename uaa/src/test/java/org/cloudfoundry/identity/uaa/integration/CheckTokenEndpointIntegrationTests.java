@@ -49,7 +49,7 @@ public class CheckTokenEndpointIntegrationTests {
 		formData.add("grant_type", "password");
 		formData.add("username", testAccounts.getUserName());
 		formData.add("password", testAccounts.getPassword());
-		formData.add("scope", "read");
+		formData.add("scope", "cloud_controller.read");
 
 		HttpHeaders headers = new HttpHeaders();
 		headers.set("Authorization", "Basic " + new String(Base64.encode("app:appclientsecret".getBytes("UTF-8"))));

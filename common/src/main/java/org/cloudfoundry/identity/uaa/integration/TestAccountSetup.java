@@ -99,7 +99,7 @@ public class TestAccountSetup extends TestWatchman {
 	}
 
 	private void createTokenClient(RestOperations client) {
-		BaseClientDetails clientDetails = new BaseClientDetails("tokens", "read,write", "authorization_code,password",
+		BaseClientDetails clientDetails = new BaseClientDetails("tokens", "tokens.read,tokens.write", "authorization_code,password",
 				"ROLE_CLIENT,ROLE_ADMIN");
 		clientDetails.setClientId("token");
 		clientDetails.setClientSecret("tokenclientsecret");
@@ -107,14 +107,14 @@ public class TestAccountSetup extends TestWatchman {
 	}
 
 	private void createVmcClient(RestOperations client) {
-		BaseClientDetails clientDetails = new BaseClientDetails("cloud_controller,openid,password", "read,password",
+		BaseClientDetails clientDetails = new BaseClientDetails("cloud_controller,openid,password", "cloud_controller.read,password.write,tokens.read,tokens.write",
 				"implicit", "ROLE_UNTRUSTED", "http://uaa.cloudfoundry.com/redirect/vmc");
 		clientDetails.setClientId("vmc");
 		createClient(client, testAccounts.getClientDetails("oauth.clients.vmc", clientDetails));
 	}
 
 	private void createScimClient(RestOperations client) {
-		BaseClientDetails clientDetails = new BaseClientDetails("scim,password,tokens", "read,write,password",
+		BaseClientDetails clientDetails = new BaseClientDetails("scim,password,tokens", "scim.read,scim.write,password.write,tokens.read,tokens.write",
 				"client_credentials", "ROLE_CLIENT,ROLE_ADMIN");
 		clientDetails.setClientId("scim");
 		clientDetails.setClientSecret("scimsecret");
@@ -122,7 +122,7 @@ public class TestAccountSetup extends TestWatchman {
 	}
 
 	private void createAppClient(RestOperations client) {
-		BaseClientDetails clientDetails = new BaseClientDetails(null, "read,openid",
+		BaseClientDetails clientDetails = new BaseClientDetails(null, "cloud_controller.read,openid,password.write",
 				"password,authorization_code,refresh_token", "ROLE_RESOURCE,ROLE_CLIENT");
 		clientDetails.setClientId("app");
 		clientDetails.setClientSecret("appclientsecret");

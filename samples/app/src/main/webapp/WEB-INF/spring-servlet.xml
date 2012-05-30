@@ -60,7 +60,7 @@
 			</bean>
 		</property>
 		<property name="restTemplate">
-			<oauth:rest-template resource="api" />
+			<oauth:rest-template resource="restTemplate" />
 		</property>
 		<property name="userInfoUrl" value="${userInfoUri}" />
 	</bean>
@@ -89,14 +89,14 @@
 
 	<bean id="treeController" class="org.cloudfoundry.identity.app.web.TreeController">
 		<property name="restTemplate">
-			<oauth:rest-template resource="api" />
+			<oauth:rest-template resource="restTemplate" />
 		</property>
 		<property name="treeUrlPattern" value="${treeUrlPattern}" />
 	</bean>
 
 	<bean id="homeController" class="org.cloudfoundry.identity.app.web.HomeController">
 		<property name="restTemplate">
-			<oauth:rest-template resource="api" />
+			<oauth:rest-template resource="restTemplate" />
 		</property>
 		<property name="userAuthorizationUri" value="${userAuthorizationUri}" />
 		<property name="dataUri" value="${dataUri}" />
@@ -104,8 +104,8 @@
 	</bean>
 
 	<!--define an oauth 2 resource for api access -->
-	<oauth:resource id="api" type="authorization_code" client-id="${CLIENT_ID:app}" client-secret="${CLIENT_SECRET:appclientsecret}"
-		access-token-uri="${accessTokenUri}" user-authorization-uri="${userAuthorizationUri}" scope="read,write,openid" />
+	<oauth:resource id="restTemplate" type="authorization_code" client-id="${CLIENT_ID:app}" client-secret="${CLIENT_SECRET:appclientsecret}"
+		access-token-uri="${accessTokenUri}" user-authorization-uri="${userAuthorizationUri}" scope="cloud_controller.read,tokens.read,tokens.write,openid" />
 
 	<bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer" xmlns="http://www.springframework.org/schema/beans">
 		<property name="locations">

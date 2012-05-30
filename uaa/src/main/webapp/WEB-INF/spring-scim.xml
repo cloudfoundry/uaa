@@ -42,7 +42,7 @@
 	<http pattern="/User/*/password" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
 		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
 		xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/User/*/password" access="IS_AUTHENTICATED_FULLY,SCOPE_PASSWORD" />
+		<intercept-url pattern="/User/*/password" access="IS_AUTHENTICATED_FULLY,scope=password.write" />
 		<custom-filter ref="passwordResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
@@ -50,11 +50,11 @@
 	<http request-matcher-ref="userEndPointRequestMatcher" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
 		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
 		xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/Users*" access="ROLE_CLIENT,SCOPE_READ" method="GET" />
-		<intercept-url pattern="/User/**" access="ROLE_CLIENT,SCOPE_READ" method="GET" />
-		<intercept-url pattern="/User/**" access="ROLE_CLIENT,SCOPE_WRITE" method="DELETE" />
-		<intercept-url pattern="/User*" access="ROLE_CLIENT,SCOPE_WRITE" method="POST" />
-		<intercept-url pattern="/User/**" access="ROLE_CLIENT,SCOPE_WRITE" method="PUT" />
+		<intercept-url pattern="/Users*" access="ROLE_CLIENT,scope=scim.read" method="GET" />
+		<intercept-url pattern="/User/**" access="ROLE_CLIENT,scope=scim.read" method="GET" />
+		<intercept-url pattern="/User/**" access="ROLE_CLIENT,scope=scim.write" method="DELETE" />
+		<intercept-url pattern="/User*" access="ROLE_CLIENT,scope=scim.write" method="POST" />
+		<intercept-url pattern="/User/**" access="ROLE_CLIENT,scope=scim.write" method="PUT" />
 		<custom-filter ref="scimResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
