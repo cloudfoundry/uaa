@@ -27,7 +27,7 @@ public class UaaAuthorityTests {
 
 	@Test
 	public void testGetAuthority() {
-		assertEquals("uaa/user", UaaAuthority.UAA_USER.getAuthority());
+		assertEquals("uaa.user", UaaAuthority.UAA_USER.getAuthority());
 	}
 
 	@Test
@@ -38,7 +38,7 @@ public class UaaAuthorityTests {
 
 	@Test
 	public void testAdminFromAuthorities() {
-		assertEquals(UaaAuthority.UAA_ADMIN, UaaAuthority.fromAuthorities("auu/user,uaa/admin"));
+		assertEquals(UaaAuthority.UAA_ADMIN, UaaAuthority.fromAuthorities("uaa.user,uaa.admin"));
 	}
 
 }

@@ -13,10 +13,10 @@
 		entry-point-ref="oauthAuthenticationEntryPoint" use-expressions="true" authentication-manager-ref="emptyAuthenticationManager"
 		xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/oauth/users/([^/].*?)/tokens/.*"
-			access="(hasRole('uaa/user') or oauthIsClient()) and oauthHasScope('write')"
+			access="(hasRole('uaa.user') or oauthIsClient()) and oauthHasScope('write')"
 			method="DELETE" />
 		<intercept-url pattern="/oauth/users/.*"
-			access="(hasRole('uaa/user') or oauthIsClient()) and oauthHasScope('read')"
+			access="(hasRole('uaa.user') or oauthIsClient()) and oauthHasScope('read')"
 			method="GET" />
 		<intercept-url pattern="/oauth/clients/([^/].*?)/tokens/.*"
 			access="oauthClientHasRole('ROLE_CLIENT') and oauthIsClient() and oauthHasScope('write')" method="DELETE" />
@@ -38,16 +38,16 @@
 	<http pattern="/oauth/clients/**" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"
 		use-expressions="true" authentication-manager-ref="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**"
-			access="oauthClientHasRole('ROLE_ADMIN') and (hasRole('uaa/admin') or oauthIsClient()) and oauthHasScope('write')"
+			access="oauthClientHasRole('ROLE_ADMIN') and (hasRole('uaa.admin') or oauthIsClient()) and oauthHasScope('write')"
 			method="DELETE" />
 		<intercept-url pattern="/**"
-			access="oauthClientHasRole('ROLE_ADMIN') and (hasRole('uaa/admin') or oauthIsClient()) and oauthHasScope('write')"
+			access="oauthClientHasRole('ROLE_ADMIN') and (hasRole('uaa.admin') or oauthIsClient()) and oauthHasScope('write')"
 			method="POST" />
 		<intercept-url pattern="/**"
-			access="oauthClientHasRole('ROLE_ADMIN') and (hasRole('uaa/admin') or oauthIsClient()) and oauthHasScope('write')"
+			access="oauthClientHasRole('ROLE_ADMIN') and (hasRole('uaa.admin') or oauthIsClient()) and oauthHasScope('write')"
 			method="PUT" />
 		<intercept-url pattern="/**"
-			access="oauthClientHasRole('ROLE_ADMIN') and (hasRole('uaa/admin') or oauthIsClient()) and oauthHasScope('read')"
+			access="oauthClientHasRole('ROLE_ADMIN') and (hasRole('uaa.admin') or oauthIsClient()) and oauthHasScope('read')"
 			method="GET" />
 		<custom-filter ref="clientResourceAuthenticationFilter" before="PRE_AUTH_FILTER" />
 		<access-denied-handler ref="oauthAccessDeniedHandler" />

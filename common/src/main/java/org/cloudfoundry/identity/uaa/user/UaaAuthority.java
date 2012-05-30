@@ -19,8 +19,8 @@ import java.util.List;
 import org.springframework.security.core.GrantedAuthority;
 
 /**
- * The UAA only distinguishes 2 types of user for internal usage, denoted <code>uaa/admin</code> and
- * <code>uaa/user</code>. Other authorities might be stored in the back end for the purposes of other resource servers,
+ * The UAA only distinguishes 2 types of user for internal usage, denoted <code>uaa.admin</code> and
+ * <code>uaa.user</code>. Other authorities might be stored in the back end for the purposes of other resource servers,
  * so this enumeration has convenient methods for extracting the UAA user types from authorities lists.
  * 
  * @author Luke Taylor
@@ -28,7 +28,7 @@ import org.springframework.security.core.GrantedAuthority;
  */
 public enum UaaAuthority implements GrantedAuthority {
 
-	UAA_ADMIN("uaa/admin", 1), UAA_USER("uaa/user", 0);
+	UAA_ADMIN("uaa.admin", 1), UAA_USER("uaa.user", 0);
 
 	public static final List<UaaAuthority> ADMIN_AUTHORITIES = Collections.unmodifiableList(Arrays.asList(UAA_ADMIN,
 			UAA_USER));
@@ -49,7 +49,7 @@ public enum UaaAuthority implements GrantedAuthority {
 	}
 
 	/**
-	 * The name of the type of user, either "uaa/admin" or "uaa/user".
+	 * The name of the type of user, either "uaa.admin" or "uaa.user".
 	 * 
 	 * @return a user type name
 	 */
@@ -60,7 +60,7 @@ public enum UaaAuthority implements GrantedAuthority {
 	/**
 	 * The authority granted by this value (same as user type).
 	 * 
-	 * @return the name of the value (uaa/user, etc.)
+	 * @return the name of the value (uaa.user, etc.)
 	 * @see org.springframework.security.core.GrantedAuthority#getAuthority()
 	 */
 	@Override
@@ -74,7 +74,7 @@ public enum UaaAuthority implements GrantedAuthority {
 	}
 
 	public static UaaAuthority fromAuthorities(String authorities) {
-		String type = authorities == null ? "uaa/user" : authorities.toLowerCase();
-		return type.contains("uaa/admin") ? UAA_ADMIN : UAA_USER;
+		String type = authorities == null ? "uaa.user" : authorities.toLowerCase();
+		return type.contains("uaa.admin") ? UAA_ADMIN : UAA_USER;
 	}
 }

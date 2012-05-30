@@ -18,7 +18,9 @@ import static org.junit.Assert.assertTrue;
 
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Collections;
 
+import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Test;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
@@ -89,6 +91,18 @@ public class ScimUserTests {
 	}
 
 	@Test
+	public void userWithGroupsMapsToJson() throws Exception {
+		ScimUser user = new ScimUser();
+		user.setId("123");
+		user.setUserName("joe");
+		user.setGroups(Collections.singleton(new Group(null, "foo")));
+
+		String json = mapper.writeValueAsString(user);
+		// System.err.println(json);
+		assertTrue(json.contains("\"groups\":"));
+	}
+
+	@Test
 	public void emailsAreMappedCorrectly() throws Exception {
 		String json = "{ \"userName\":\"bjensen\"," +
 				"\"emails\": [\n" +
@@ -103,6 +117,19 @@ public class ScimUserTests {
 		assertEquals("babs@jensen.org", user.getEmails().get(2).getValue());
 		assertEquals("bjensen@example.com", user.getPrimaryEmail());
 		assertFalse(user.getEmails().get(0).isPrimary());
+//		System.out.println(mapper.writeValueAsString(user));
+	}
+
+	@Test
+	public void groupsAreMappedCorrectly() throws Exception {
+		String json = "{ \"userName\":\"bjensen\"," +
+				"\"groups\": [\n" +
+				"{\"value\": \"12345\",\"display\": \"uaa.admin\"}," +
+				"{\"value\": \"123456\",\"display\": \"dash.admin\"}" +
+				"],\n" +
+				"\"schemas\":[\"urn:scim:schemas:core:1.0\"]}";
+		ScimUser user = mapper.readValue(json, ScimUser.class);
+		assertEquals(2, user.getGroups().size());
 //		System.out.println(mapper.writeValueAsString(user));
 	}
 

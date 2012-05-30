@@ -34,9 +34,9 @@ ALTER TABLE USERS ALTER COLUMN lastModified SET NOT NULL;
 ALTER TABLE USERS ALTER COLUMN version SET NOT NULL;
 ALTER TABLE USERS ALTER COLUMN authority SET NOT NULL;
 ALTER TABLE USERS ADD COLUMN phoneNumber VARCHAR(255);
-ALTER TABLE USERS ADD COLUMN authorities VARCHAR(1024) default 'uaa/user';
-UPDATE USERS set authorities='uaa/user' where authority=0;
-UPDATE USERS set authorities='uaa/admin,uaa/user' where authority=1;
+ALTER TABLE USERS ADD COLUMN authorities VARCHAR(1024) default 'uaa.user';
+UPDATE USERS set authorities='uaa.user' where authority=0;
+UPDATE USERS set authorities='uaa.admin,uaa.user' where authority=1;
 
 CREATE TABLE SEC_AUDIT (
    principal_id char(36) not null,

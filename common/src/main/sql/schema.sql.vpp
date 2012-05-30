@@ -20,7 +20,7 @@ CREATE TABLE USERS (
    username ${VARCHAR}(255) not null,
    password ${VARCHAR}(255) not null,
    email ${VARCHAR}(255) not null,
-   authorities ${VARCHAR}(1024) default 'uaa/user' not null,
+   authorities ${VARCHAR}(1024) default 'uaa.user' not null,
    givenName ${VARCHAR}(255) not null,
    familyName ${VARCHAR}(255) not null,
    active BOOLEAN default true not null,

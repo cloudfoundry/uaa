@@ -38,7 +38,7 @@ public class DefaultSecurityContextAccessor implements SecurityContextAccessor {
 	@Override
 	public boolean isAdmin() {
 		Authentication a = SecurityContextHolder.getContext().getAuthentication();
-		String value = isClient() ? "ROLE_ADMIN" : "uaa/admin";
+		String value = isClient() ? "ROLE_ADMIN" : "uaa.admin";
 		return AuthorityUtils.authorityListToSet(a.getAuthorities()).contains(value);
 	}
 

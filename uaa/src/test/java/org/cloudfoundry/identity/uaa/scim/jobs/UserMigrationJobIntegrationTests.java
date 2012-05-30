@@ -50,7 +50,7 @@ public class UserMigrationJobIntegrationTests extends AbstractJobIntegrationTest
 		JdbcTemplate jdbcTemplate = new JdbcTemplate(uaaDataSource);
 		assertEquals(3, jdbcTemplate.queryForInt("select count(*) from users"));
 		assertEquals(2,
-				jdbcTemplate.queryForInt("select count(*) from users where authorities=?", "uaa/admin,uaa/user"));
+				jdbcTemplate.queryForInt("select count(*) from users where authorities=?", "uaa.admin,uaa.user"));
 	}
 
 }

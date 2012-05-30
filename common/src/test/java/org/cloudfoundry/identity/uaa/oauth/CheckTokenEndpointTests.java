@@ -83,7 +83,7 @@ public class CheckTokenEndpointTests {
 	@Test
 	public void testAuthoritiesInResult() {
 		Map<String, Object> result = endpoint.checkToken("FOO");
-		assertEquals(Arrays.asList("uaa/user"), result.get("user_authorities"));
+		assertEquals(Arrays.asList("uaa.user"), result.get("user_authorities"));
 	}
 	
 	@Test(expected=InvalidTokenException.class)

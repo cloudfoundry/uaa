@@ -96,8 +96,8 @@ public class JdbcUaaUserDatabaseTests {
 	@Test
 	public void getUserWithExtraAuthorities() {
 		// If the database happens to contain non-uaa authorities we pass them through
-		template.update("update users set authorities=? where id=?", "uaa/user,dash/admin", JOE_ID);
+		template.update("update users set authorities=? where id=?", "uaa.user,dash.admin", JOE_ID);
 		UaaUser joe = db.retrieveUserByName("joe");
-		assertEquals("[uaa/user, dash/admin]", joe.getAuthorities().toString());
+		assertEquals("[uaa.user, dash.admin]", joe.getAuthorities().toString());
 	}
 }
