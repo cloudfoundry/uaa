@@ -20,6 +20,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 
@@ -27,6 +28,7 @@ import javax.sql.DataSource;
 
 import org.cloudfoundry.identity.uaa.NullSafeSystemProfileValueSource;
 import org.cloudfoundry.identity.uaa.TestUtils;
+import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.junit.After;
 import org.junit.Before;
@@ -102,6 +104,7 @@ public class JdbcScimUserProvisioningTests {
 		Map<String, Object> map = template.queryForMap("select * from users where id=?", created.getId());
 		assertEquals(user.getUserName(), map.get("userName"));
 		assertEquals(user.getUserType(), map.get(UaaAuthority.UAA_USER.getUserType()));
+		assertEquals("uaa/user", created.getGroups().iterator().next().getDisplay());
 	}
 
 	@Test(expected = InvalidUserException.class)
@@ -127,6 +130,19 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals(1, joe.getVersion());
 		assertEquals(JOE_ID, joe.getId());
 		assertEquals(UaaAuthority.UAA_ADMIN.getUserType(), joe.getUserType());
+		assertEquals(2, joe.getGroups().size()); // admin added implicitly
+	}
+
+	@Test
+	public void updateModifiesGroups() {
+		ScimUser jo = new ScimUser(null, "josephine", "Jo", "NewUser");
+		jo.addEmail("jo@blah.com");
+		jo.setGroups(Collections.singleton(new Group(null, "dash/user")));
+
+		ScimUser joe = db.updateUser(JOE_ID, jo);
+
+		assertEquals(JOE_ID, joe.getId());
+		assertEquals(2, joe.getGroups().size()); // user added implicitly
 	}
 
 	@Test(expected = OptimisticLockingFailureException.class)
@@ -395,6 +411,7 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals("joe@joe.com", joe.getPrimaryEmail());
 		assertEquals("joe", joe.getUserName());
 		assertEquals("+1-222-1234567", joe.getPhoneNumbers().get(0).getValue());
+		assertEquals("uaa/user", joe.getGroups().iterator().next().getDisplay());
 	}
 
 }

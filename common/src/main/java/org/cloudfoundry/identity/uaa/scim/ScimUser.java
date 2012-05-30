@@ -14,8 +14,11 @@ package org.cloudfoundry.identity.uaa.scim;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.cloudfoundry.identity.uaa.scim.json.JsonDateDeserializer;
 import org.cloudfoundry.identity.uaa.scim.json.JsonDateSerializer;
@@ -36,6 +39,70 @@ import org.springframework.util.Assert;
 public final class ScimUser {
 
 	public static final String[] SCHEMAS = new String[] { "urn:scim:schemas:core:1.0" };
+
+	@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
+	public static final class Group {
+		String value;
+
+		String display;
+		
+		public Group() {
+		}
+		
+		public Group(String value, String display) {
+			this.value = value;
+			this.display = display;
+		}
+
+		public String getValue() {
+			return value;
+		}
+
+		public void setValue(String value) {
+			this.value = value;
+		}
+
+		public String getDisplay() {
+			return display;
+		}
+
+		public void setDisplay(String display) {
+			this.display = display;
+		}
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + ((display == null) ? 0 : display.hashCode());
+			result = prime * result + ((value == null) ? 0 : value.hashCode());
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			Group other = (Group) obj;
+			if (display == null) {
+				if (other.display != null)
+					return false;
+			}
+			else if (!display.equals(other.display))
+				return false;
+			if (value == null) {
+				if (other.value != null)
+					return false;
+			}
+			else if (!value.equals(other.value))
+				return false;
+			return true;
+		}
+	}
 
 	@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 	public static final class Name {
@@ -225,6 +292,8 @@ public final class ScimUser {
 
 	private List<Email> emails;
 
+	private Set<Group> groups;
+
 	private List<PhoneNumber> phoneNumbers;
 
 	private String displayName;
@@ -305,6 +374,14 @@ public final class ScimUser {
 
 	public void setEmails(List<Email> emails) {
 		this.emails = emails;
+	}
+
+	public Set<Group> getGroups() {
+		return groups;
+	}
+
+	public void setGroups(Collection<Group> groups) {
+		this.groups = new LinkedHashSet<Group>(groups);
 	}
 
 	public List<PhoneNumber> getPhoneNumbers() {
@@ -517,5 +594,5 @@ public final class ScimUser {
 
 		return words;
 	}
-
+	
 }

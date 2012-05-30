@@ -20,16 +20,20 @@ import java.sql.Types;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Meta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Name;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
@@ -42,7 +46,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.Assert;
@@ -299,11 +302,16 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	}
 
 	private String getAuthorities(ScimUser user) {
-		// Simple implementation based only on uaa user type
-		String userType = user.getUserType();
-		userType = userType==null ? UaaAuthority.UAA_USER.getUserType() : userType;
-		List<UaaAuthority> list = userType.contains("admin") ? UaaAuthority.ADMIN_AUTHORITIES : UaaAuthority.USER_AUTHORITIES;
-		return StringUtils.collectionToCommaDelimitedString(AuthorityUtils.authorityListToSet(list));
+		// Preserve simple implementation based only on uaa user type
+		normalizeGroups(user);
+		Set<String> set = new LinkedHashSet<String>();
+		// Augment with explicit group membership
+		if (user.getGroups()!=null) {
+			for (Group group : user.getGroups()) {
+				set.add(group.getDisplay());
+			}
+		}
+		return StringUtils.collectionToCommaDelimitedString(set);
 	}
 
 	private void validate(final ScimUser user) throws InvalidUserException {
@@ -438,6 +446,20 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		this.passwordEncoder = passwordEncoder;
 	}
 
+	private void normalizeGroups(ScimUser user) {
+		Set<Group> groups = new LinkedHashSet<Group>();
+		if (user.getGroups()!=null) {
+			groups.addAll(user.getGroups());
+		}
+		// Everyone is a user
+		groups.add(new Group(null, UaaAuthority.UAA_USER.getAuthority()));
+		if (user.getUserType()!=null && user.getUserType().contains("admin")) {
+			// Some people are also admins
+			groups.add(new Group(null, UaaAuthority.UAA_ADMIN.getAuthority()));
+		}
+		user.setGroups(new ArrayList<Group>(groups));
+	}
+
 	private static final class ScimUserRowMapper implements RowMapper<ScimUser> {
 		@Override
 		public ScimUser mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -469,8 +491,24 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 			name.setFamilyName(familyName);
 			user.setName(name);
 			user.setActive(active);
-			user.setUserType(UaaAuthority.fromAuthorities(authorities).getUserType());
+			setAuthorities(user, authorities);
 			return user;
 		}
+
+		private void setAuthorities(ScimUser user, String authorities) {
+			if (authorities==null) {
+				return;
+			}
+			user.setUserType(UaaAuthority.fromAuthorities(authorities).getUserType());
+			List<Group> groups = new ArrayList<Group>();
+			for (String group : authorities.split(",")) {
+				groups.add(new Group(null, group.trim()));
+			}
+			if (!groups.isEmpty()) {
+				user.setGroups(groups);
+			}
+		}
+
 	}
+
 }
