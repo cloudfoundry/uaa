@@ -30,7 +30,7 @@
 	<!-- TODO: make an access denied view that tells me something useful -->
 	<http access-denied-page="/denied" entry-point-ref="authenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
 		xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/apps" access="SCOPE_READ" />
+		<intercept-url pattern="/apps" access="scope=cloud_controller.read" />
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<custom-filter ref="oauth2ServiceFilter" position="PRE_AUTH_FILTER" />
 		<custom-filter ref="contentTypeFilter" after="EXCEPTION_TRANSLATION_FILTER" />
@@ -40,7 +40,9 @@
 	<bean id="accessDecisionManager" class="org.springframework.security.access.vote.UnanimousBased" xmlns="http://www.springframework.org/schema/beans">
 		<constructor-arg>
 			<list>
-				<bean class="org.springframework.security.oauth2.provider.vote.ScopeVoter" />
+				<bean class="org.springframework.security.oauth2.provider.vote.ScopeVoter">
+					<property name="scopePrefix" value="scope="/>
+				</bean>
 				<bean class="org.springframework.security.access.vote.AuthenticatedVoter" />
 			</list>
 		</constructor-arg>
@@ -78,7 +80,8 @@
 		</property>
 	</bean>
 
-	<oauth:resource-server id="oauth2ServiceFilter" resource-id="api" token-services-ref="tokenServices" />
+	<!-- We are faking out the cloud controller for demo purposes, so copy his resource id -->
+	<oauth:resource-server id="oauth2ServiceFilter" resource-id="cloud_controller" token-services-ref="tokenServices" />
 
 	<mvc:annotation-driven />
 

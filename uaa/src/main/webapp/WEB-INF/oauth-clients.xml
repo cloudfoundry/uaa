@@ -12,16 +12,14 @@
 	<http pattern="/oauth/(users|clients)/(.*?)/tokens.*" request-matcher="regex" create-session="stateless"
 		entry-point-ref="oauthAuthenticationEntryPoint" use-expressions="true" authentication-manager-ref="emptyAuthenticationManager"
 		xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/oauth/users/([^/].*?)/tokens/.*"
-			access="(hasRole('uaa.user') or oauthIsClient()) and oauthHasScope('write')"
+		<intercept-url pattern="/oauth/users/([^/].*?)/tokens/.*" access="(hasRole('uaa.user') or oauthIsClient()) and oauthHasScope('tokens.write')"
 			method="DELETE" />
-		<intercept-url pattern="/oauth/users/.*"
-			access="(hasRole('uaa.user') or oauthIsClient()) and oauthHasScope('read')"
+		<intercept-url pattern="/oauth/users/.*" access="(hasRole('uaa.user') or oauthIsClient()) and oauthHasScope('tokens.read')"
 			method="GET" />
 		<intercept-url pattern="/oauth/clients/([^/].*?)/tokens/.*"
-			access="oauthClientHasRole('ROLE_CLIENT') and oauthIsClient() and oauthHasScope('write')" method="DELETE" />
-		<intercept-url pattern="/oauth/clients/.*" access="oauthClientHasRole('ROLE_CLIENT') and oauthIsClient() and oauthHasScope('read')"
-			method="GET" />
+			access="oauthClientHasRole('ROLE_CLIENT') and oauthIsClient() and oauthHasScope('tokens.write')" method="DELETE" />
+		<intercept-url pattern="/oauth/clients/.*"
+			access="oauthClientHasRole('ROLE_CLIENT') and oauthIsClient() and oauthHasScope('tokens.read')" method="GET" />
 		<custom-filter ref="tokensResourceAuthenticationFilter" before="PRE_AUTH_FILTER" />
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
 		<expression-handler ref="oauthWebExpressionHandler" />
@@ -30,32 +28,29 @@
 	<http pattern="/oauth/clients/*/secret" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
 		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
 		xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/oauth/clients/*/secret" access="IS_AUTHENTICATED_FULLY,SCOPE_PASSWORD" />
-		<custom-filter ref="clientSecretResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
+		<intercept-url pattern="/oauth/clients/*/secret" access="IS_AUTHENTICATED_FULLY,scope=clients.secret" />
+		<custom-filter ref="clientResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
 
 	<http pattern="/oauth/clients/**" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"
 		use-expressions="true" authentication-manager-ref="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**"
-			access="oauthClientHasRole('ROLE_ADMIN') and (hasRole('uaa.admin') or oauthIsClient()) and oauthHasScope('write')"
+			access="oauthClientHasRole('ROLE_ADMIN') and (hasRole('uaa.admin') or oauthIsClient()) and oauthHasScope('clients.write')"
 			method="DELETE" />
 		<intercept-url pattern="/**"
-			access="oauthClientHasRole('ROLE_ADMIN') and (hasRole('uaa.admin') or oauthIsClient()) and oauthHasScope('write')"
+			access="oauthClientHasRole('ROLE_ADMIN') and (hasRole('uaa.admin') or oauthIsClient()) and oauthHasScope('clients.write')"
 			method="POST" />
 		<intercept-url pattern="/**"
-			access="oauthClientHasRole('ROLE_ADMIN') and (hasRole('uaa.admin') or oauthIsClient()) and oauthHasScope('write')"
+			access="oauthClientHasRole('ROLE_ADMIN') and (hasRole('uaa.admin') or oauthIsClient()) and oauthHasScope('clients.write')"
 			method="PUT" />
 		<intercept-url pattern="/**"
-			access="oauthClientHasRole('ROLE_ADMIN') and (hasRole('uaa.admin') or oauthIsClient()) and oauthHasScope('read')"
+			access="oauthClientHasRole('ROLE_ADMIN') and (hasRole('uaa.admin') or oauthIsClient()) and oauthHasScope('clients.read')"
 			method="GET" />
 		<custom-filter ref="clientResourceAuthenticationFilter" before="PRE_AUTH_FILTER" />
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
 		<expression-handler ref="oauthWebExpressionHandler" />
 	</http>
-
-	<oauth:resource-server id="clientSecretResourceAuthenticationFilter" token-services-ref="tokenServices"
-		entry-point-ref="oauthAuthenticationEntryPoint" />
 
 	<oauth:resource-server id="tokensResourceAuthenticationFilter" token-services-ref="tokenServices"
 		resource-id="tokens" entry-point-ref="oauthAuthenticationEntryPoint" />
@@ -108,7 +103,7 @@
 						<map>
 							<entry key="id" value="vmc" />
 							<entry key="authorized-grant-types" value="implicit" />
-							<entry key="scope" value="read,write,openid,password" />
+							<entry key="scope" value="cloud_controller.read,cloud_controller.write,openid,password.write,tokens.read,tokens.write" />
 							<entry key="authorities" value="ROLE_UNTRUSTED" />
 							<entry key="resource-ids" value="password,tokens,cloud_controller,openid" />
 						</map>
@@ -118,9 +113,9 @@
 							<entry key="id" value="app" />
 							<entry key="secret" value="appclientsecret" />
 							<entry key="authorized-grant-types" value="password,authorization_code,refresh_token" />
-							<entry key="scope" value="read,write,openid" />
+							<entry key="scope" value="cloud_controller.read,cloud_controller.write,openid,password.write,tokens.read,tokens.write" />
 							<entry key="authorities" value="ROLE_CLIENT,ROLE_RESOURCE" />
-							<entry key="resource-ids" value="password,tokens,cloud_controller,openid,api" />
+							<entry key="resource-ids" value="password,tokens,cloud_controller,openid" />
 						</map>
 					</entry>
 					<entry key="my">
@@ -128,15 +123,16 @@
 							<entry key="id" value="my" />
 							<entry key="secret" value="myclientsecret" />
 							<entry key="authorized-grant-types" value="implicit" />
-							<entry key="scope" value="read,openid" />
+							<entry key="scope" value="cloud_controller.read,openid" />
 							<entry key="authorities" value="ROLE_UNTRUSTED" />
-							<entry key="resource-ids" value="cloud_controller,openid,api" />
+							<entry key="resource-ids" value="cloud_controller,openid" />
 						</map>
 					</entry>
 					<entry key="login">
 						<map>
 							<entry key="id" value="login" />
 							<entry key="secret" value="loginsecret" />
+							<entry key="scope" value="oauth/login" />
 							<entry key="authorized-grant-types" value="client_credentials" />
 							<entry key="authorities" value="ROLE_LOGIN" />
 							<entry key="resource-ids" value="oauth" />

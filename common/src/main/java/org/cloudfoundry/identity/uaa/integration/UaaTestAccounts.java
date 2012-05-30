@@ -157,27 +157,36 @@ public class UaaTestAccounts implements TestAccounts {
 	}
 
 	public ClientCredentialsResourceDetails getAdminClientCredentialsResource() {
-		return getClientCredentialsResource(getAdminClientId(), getAdminClientSecret());
+		return getClientCredentialsResource(new String[] {"clients.read", "clients.write", "clients.secret"}, getAdminClientId(), getAdminClientSecret());
 	}
 
 	public ClientCredentialsResourceDetails getClientCredentialsResource(String prefix, String defaultClientId,
+			String defaultClientSecret) {
+		return getClientCredentialsResource(prefix, new String[] {"scim.read", "scim.write", "password.write", "tokens.read", "tokens.write"}, defaultClientId, defaultClientSecret);
+	}
+
+	public ClientCredentialsResourceDetails getClientCredentialsResource(String prefix, String[] scope, String defaultClientId,
 			String defaultClientSecret) {
 		if (clientDetails.containsKey(prefix)) {
 			return (ClientCredentialsResourceDetails) clientDetails.get(prefix);
 		}
 		String clientId = environment.getProperty(prefix + ".id", defaultClientId);
 		String clientSecret = environment.getProperty(prefix + ".secret", defaultClientSecret);
-		ClientCredentialsResourceDetails resource = getClientCredentialsResource(clientId, clientSecret);
+		ClientCredentialsResourceDetails resource = getClientCredentialsResource(scope, clientId, clientSecret);
 		clientDetails.put(prefix, resource);
 		return resource;
 	}
 
 	public ClientCredentialsResourceDetails getClientCredentialsResource(String clientId, String clientSecret) {
+		return getClientCredentialsResource(new String[] {"cloud_controller.read"}, clientId, clientSecret);
+	}
+
+	public ClientCredentialsResourceDetails getClientCredentialsResource(String[] scope, String clientId, String clientSecret) {
 		ClientCredentialsResourceDetails resource = new ClientCredentialsResourceDetails();
 		resource.setClientId(clientId);
 		resource.setClientSecret(clientSecret);
 		resource.setId(clientId);
-		resource.setScope(Arrays.asList("read", "write", "password"));
+		resource.setScope(Arrays.asList(scope));
 		resource.setClientAuthenticationScheme(AuthenticationScheme.header);
 		resource.setAccessTokenUri(server.getAccessTokenUri());
 		return resource;
@@ -193,7 +202,7 @@ public class UaaTestAccounts implements TestAccounts {
 		parameters.put("credentials", String.format("{\"username\":\"%s\",\"password\":\"%s\"}", username, password));
 		resource.setClientAuthenticationScheme(AuthenticationScheme.header);
 		resource.setAccessTokenUri(server.getAuthorizationUri());
-		resource.setScope(Arrays.asList("read", "password", "openid"));
+		resource.setScope(Arrays.asList("cloud_controller.read", "password.write", "openid"));
 		String redirectUri = environment.getProperty(clientPrefix + ".redirect-uri", defaultRedirectUri);
 		resource.setPreEstablishedRedirectUri(redirectUri);
 		return resource;
@@ -201,7 +210,7 @@ public class UaaTestAccounts implements TestAccounts {
 
 	public ResourceOwnerPasswordResourceDetails getResourceOwnerPasswordResource(String clientPrefix,
 			String defaultClientId, String defaultClientSecret, String username, String password) {
-		return getResourceOwnerPasswordResource(new String[] { "read", "openid" }, clientPrefix, defaultClientId,
+		return getResourceOwnerPasswordResource(new String[] { "cloud_controller.read", "openid", "password.write" }, clientPrefix, defaultClientId,
 				defaultClientSecret, username, password);
 	}
 

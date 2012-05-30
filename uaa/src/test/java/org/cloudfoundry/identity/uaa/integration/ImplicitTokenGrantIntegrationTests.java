@@ -47,7 +47,7 @@ public class ImplicitTokenGrantIntegrationTests {
 	private String implicitUrl() {
 		URI uri = serverRunning.buildUri("/oauth/authorize").queryParam("response_type", "token")
 				.queryParam("client_id", "vmc").queryParam("redirect_uri", "http://uaa.cloudfoundry.com/redirect/vmc")
-				.queryParam("scope", "read").build();
+				.queryParam("scope", "cloud_controller.read").build();
 		return uri.toString();
 	}
 
