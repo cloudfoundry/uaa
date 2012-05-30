@@ -76,7 +76,7 @@ class ClientReg
   end
 
   def list_tokens(id)
-    json_get "/oauth/clients/#{id}/tokens"
+    json_get "/oauth/clients/#{id}/tokens", @auth_header
   end
 
   def revoke_token(id, token_id)

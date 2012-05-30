@@ -119,7 +119,7 @@ describe TokenCoder do
     info = TokenCoder.decode(token, nil, nil, false)
     info[:id].should_not be_nil
     info[:email].should == "olds@vmware.com"
-    #puts Time.at(info[:expires_at].to_i)
+    #puts Time.at(info[:exp].to_i)
     #BaseCli.pp info
   end
 

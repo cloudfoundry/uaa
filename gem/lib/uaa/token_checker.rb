@@ -30,15 +30,19 @@ class TokenChecker
   #
   # * target - the target base URL of the Authorization Server
   #
-  # * resource_id - the id of the Resource Server (known to the
-  # Authorization Server), used to validate the tokens and also
-  # to authenticate with the /check_token endpoint
+  # * client_id - the id of the client or Resource Server (known to the
+  # Authorization Server), used to authenticate with the /check_token endpoint
   #
-  # * secret - the shared secret owned by the Resource Server and used
-  # to authenticate with the /check_token endpoint.
+  # * client_secret - the shared secret used to authenticate with
+  # the /check_token endpoint.
   #
-  def initialize(target, resource_id, secret, debug = false)
-    @target, @resource_id, @secret, @debug = target, resource_id, secret, debug
+  # * audience_ids - an array or space separated strings and should
+  # indicate values which indicate the token is intended for this service
+  # instance. It will be compared with tokens as they are decoded to
+  # ensure that the token was intended for this audience.
+  def initialize(target, client_id, client_secret, audience_ids, debug = false)
+    @target, @client_id, @client_secret = target, client_id, client_secret
+    @audience_ids, @debug = Util.arglist(audience_ids), debug
   end
 
   # Returns hash of values from the Authorization Server that are associated
@@ -47,25 +51,16 @@ class TokenChecker
     unless auth_header && (tkn = auth_header.split).length == 2
       raise AuthError, "invalid authentication header: #{auth_header}"
     end
-
-    headers = {content_type: "application/x-www-form-urlencoded", accept: "application/json",
-        authorization: Http.basic_auth(@resource_id, @secret) }
-    body = URI.encode_www_form(token_type: tkn[0], token: tkn[1])
-    reply = json_parse_reply(*request(:post, '/check_token', body, headers))
-    #reply = json_get("/check_token?token_type=#{tkn[0]}&token=#{tkn[1]}", Http.basic_auth(@resource_id, @secret))
-    return reply if reply[:resource_ids].include?(@resource_id)
-    raise AuthError, "invalid resource audience: #{reply[:resource_ids]}"
+    reply = json_get("/check_token?token_type=#{tkn[0]}&token=#{tkn[1]}", Http.basic_auth(@client_id, @client_secret))
+    auds = Util.arglist(reply[:aud] || reply[:resource_ids])
+    if @audience_ids && (!auds || (auds & @audience_ids).empty?)
+      raise AuthError, "invalid audience: #{auds.join(' ')}"
+    end
+    reply
   end
 
   def validation_key
-    status, body, headers = http_get("/token_key", "text/plain", Http.basic_auth(@client_id, @client_secret))
-    raise BadResponse, "#{@target} returned status #{status}" unless status == 200
-    body
-  	#TODO: in progress, when uaa switches to json output
-  #def validation_key(auth_header)
-    #body = json_get "/token_key", auth_header
-    #raise BadResponse, "#{@target} returned status #{status}" unless status == 200
-    #body
+    json_get "/token_key", Http.basic_auth(@client_id, @client_secret)
   end
 
 end

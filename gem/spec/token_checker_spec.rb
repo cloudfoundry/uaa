@@ -19,7 +19,7 @@ module CF::UAA
 
 describe TokenChecker do
 
-  subject { TokenChecker.new(StubServer.url, "test_resource", "test_secret") }
+  subject { TokenChecker.new(StubServer.url, "test_resource", "test_secret", "test_resource") }
 
   before :each do
     subject.debug = false
@@ -58,8 +58,7 @@ describe TokenChecker do
 
   it "should GET decoded token hash from the check_token endpoint" do
     StubServer.responder do |request, reply|
-      request.path.should == "/check_token"
-      request.body.should == "token_type=TestTokType&token=TestToken"
+      request.path.should == "/check_token?token_type=TestTokType&token=TestToken"
       reply.headers[:content_type] = "application/json"
       reply.body = %<{"resource_ids": ["one_resource", "test_resource", "other_resource"],"email":"derek@gmail.com"}>
       reply
@@ -72,11 +71,11 @@ describe TokenChecker do
     end
   end
 
-  it "should raise an auth error if the returned token does not contain the resource id" do
+  it "should raise an auth error if the returned token does not contain the audience" do
     StubServer.responder do |request, reply|
-      request.path.should == "/check_token"
+      request.path.should == "/check_token?token_type=TestTokType&token=TestToken"
       reply.headers[:content_type] = "application/json"
-      reply.body = %<{"resource_ids": ["one_resource", "two_resource", "other_resource"],"email":"derek@gmail.com"}>
+      reply.body = %<{"aud": ["one_resource", "two_resource", "other_resource"],"email":"derek@gmail.com"}>
       reply
     end
     StubServer.request do
@@ -85,15 +84,15 @@ describe TokenChecker do
   end
 
   it "should get the validation key" do
-    vkey = "---validation---key---"
+    vkey = %<{"alg": "my.alg", "value": "my.value"}>
     StubServer.responder do |request, reply|
       request.path.should == "/token_key"
-      reply.headers[:content_type] = "text/plain"
+      reply.headers[:content_type] = "application/json"
       reply.body = vkey
       reply
     end
     StubServer.request do
-      subject.validation_key.should == vkey
+      subject.validation_key.should == {alg: "my.alg", value: "my.value"}
     end
   end
 

@@ -22,7 +22,7 @@ describe TokenIssuer do
   subject { TokenIssuer.new(StubServer.url, "test_app", "test_secret", "read") }
 
   before :all do
-    subject.debug = true
+    subject.debug = false
     StubServer.use_fiber = subject.async = true
   end
 

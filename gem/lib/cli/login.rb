@@ -158,9 +158,8 @@ class LoginCli < BaseCli
           sleep 5
           print "."
         end
-        puts "\nsuccessfully logged in"
-        #pp tokn.info
         Config.opts token: tokn.info
+        puts "\nsuccessfully logged in"
       end
     end
     rescue Exception => e
@@ -180,7 +179,8 @@ class LoginCli < BaseCli
     token_type ||= token_info[:token_type]
     return puts "no token to decode" unless token && token_type
     if opts[:local]
-      Util.pp TokenCoder.decode(token, opts[:key])
+      #puts JSON.pretty_generate TokenCoder.decode(token, opts[:key], opts[:key], !!opts[:key])
+      pp TokenCoder.decode(token, opts[:key], opts[:key], !!opts[:key])
     else
       tkc = TokenChecker.new(cur_target_url, cur_client_id, client_secret, trace?)
       pp tkc.decode("#{token_type} #{token}")
@@ -195,8 +195,8 @@ class LoginCli < BaseCli
   map "k" => "key"
   def key
     return help(__method__) if help?
-    tkc = TokenChecker.new(cur_target_url, cur_client_id, nil, nil, trace?)
-    pp tkc.validation_key auth_header
+    tkc = TokenChecker.new(cur_target_url, cur_client_id, client_secret, nil, trace?)
+    pp tkc.validation_key
   rescue TargetError => e
     puts "#{e.message}:\n#{JSON.pretty_generate(e.info)}"
   rescue Exception => e
