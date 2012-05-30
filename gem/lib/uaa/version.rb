@@ -13,6 +13,6 @@
 
 module CF
   module UAA
-    VERSION = "0.0.12.beta.3"
+    VERSION = "0.2"
   end
 end
