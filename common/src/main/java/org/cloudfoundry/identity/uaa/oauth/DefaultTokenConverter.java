@@ -40,8 +40,8 @@ public class DefaultTokenConverter implements AccessTokenConverter {
 
 			UaaPrincipal principal = (UaaPrincipal) authentication.getUserAuthentication().getPrincipal();
 
-			response.put("id", principal.getId());
-			response.put(UserInfo.USER_ID, principal.getName());
+			response.put(UserInfo.USER_ID, principal.getId());
+			response.put(UserInfo.USER_NAME, principal.getName());
 			response.put(UserInfo.EMAIL, principal.getEmail());
 			Collection<? extends GrantedAuthority> authorities = authentication.getUserAuthentication()
 					.getAuthorities();
@@ -51,12 +51,12 @@ public class DefaultTokenConverter implements AccessTokenConverter {
 
 		}
 		response.put(OAuth2AccessToken.SCOPE, token.getScope());
-		if (token.getExpiresIn() > 0) {
-			response.put(OAuth2AccessToken.EXPIRES_IN, token.getExpiresIn());
+		if (token.getAdditionalInformation().containsKey(JwtTokenEnhancer.TOKEN_ID)) {
+			response.put(JwtTokenEnhancer.TOKEN_ID, token.getAdditionalInformation().get(JwtTokenEnhancer.TOKEN_ID));
 		}
 
 		if (token.getExpiration() != null) {
-			response.put("expires_at", token.getExpiration().getTime()/1000);
+			response.put("exp", token.getExpiration().getTime()/1000);
 		}
 		
 		response.putAll(token.getAdditionalInformation());
@@ -66,7 +66,7 @@ public class DefaultTokenConverter implements AccessTokenConverter {
 			response.put("client_authorities", getAuthorities(clientToken.getAuthorities()));
 		}
 		if (clientToken.getResourceIds() != null && !clientToken.getResourceIds().isEmpty()) {
-			response.put("resource_ids", clientToken.getResourceIds());
+			response.put("aud", clientToken.getResourceIds());
 		}
 		return response;
 	}

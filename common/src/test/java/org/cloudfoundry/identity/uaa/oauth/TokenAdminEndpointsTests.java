@@ -61,7 +61,7 @@ public class TokenAdminEndpointsTests {
 		Collection<OAuth2AccessToken> tokens = endpoints.listTokensForUser("marissa", new OAuth2Authentication(
 				authorizationRequest, new TestingAuthenticationToken("marissa", "")), false);
 		assertEquals(1, tokens.size());
-		assertNotNull(tokens.iterator().next().getAdditionalInformation().get("token_id"));
+		assertNotNull(tokens.iterator().next().getAdditionalInformation().get(JwtTokenEnhancer.TOKEN_ID));
 	}
 
 	@Test
@@ -72,7 +72,7 @@ public class TokenAdminEndpointsTests {
 		Collection<OAuth2AccessToken> tokens = endpoints.listTokensForUser("marissa", new OAuth2Authentication(
 				authorizationRequest, new TestingAuthenticationToken("marissa", "")), false);
 		assertEquals(1, tokens.size());
-		assertNotNull(tokens.iterator().next().getAdditionalInformation().get("token_id"));
+		assertNotNull(tokens.iterator().next().getAdditionalInformation().get(JwtTokenEnhancer.TOKEN_ID));
 	}
 
 	@Test
@@ -111,7 +111,7 @@ public class TokenAdminEndpointsTests {
 	@Test
 	public void testRevokeTokenForUserWithTokenId() throws Exception {
 		DefaultOAuth2AccessToken token = new DefaultOAuth2AccessToken("FOO");
-		token.setAdditionalInformation(Collections.<String, Object> singletonMap("token_id", "BAR"));
+		token.setAdditionalInformation(Collections.<String, Object> singletonMap(JwtTokenEnhancer.TOKEN_ID, "BAR"));
 		Mockito.when(tokenServices.findTokensByUserName("marissa")).thenReturn(
 				Collections.<OAuth2AccessToken> singleton(token));
 		Mockito.when(tokenServices.revokeToken("FOO")).thenReturn(true);

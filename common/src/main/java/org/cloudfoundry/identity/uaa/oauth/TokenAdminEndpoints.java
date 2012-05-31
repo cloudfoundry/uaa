@@ -99,10 +99,12 @@ public class TokenAdminEndpoints {
 	private String getUserName(String user) {
 		String username = user;
 		try {
-			// If the request came in for a user by id we should be able to retrieve the username
-			ScimUser scimUser = scimProvisioning.retrieveUser(username);
-			if (scimUser != null) {
-				username = scimUser.getUserName();
+			if (scimProvisioning != null) {
+				// If the request came in for a user by id we should be able to retrieve the username
+				ScimUser scimUser = scimProvisioning.retrieveUser(username);
+				if (scimUser != null) {
+					username = scimUser.getUserName();
+				}
 			}
 		}
 		catch (UserNotFoundException e) {
@@ -114,8 +116,8 @@ public class TokenAdminEndpoints {
 	private String getTokenValue(Collection<OAuth2AccessToken> tokens, String hash) {
 		for (OAuth2AccessToken token : tokens) {
 			try {
-				if (token.getAdditionalInformation().containsKey("token_id")
-						&& hash.equals(token.getAdditionalInformation().get("token_id"))
+				if (token.getAdditionalInformation().containsKey(JwtTokenEnhancer.TOKEN_ID)
+						&& hash.equals(token.getAdditionalInformation().get(JwtTokenEnhancer.TOKEN_ID))
 						|| encoder.matches(token.getValue(), hash)) {
 					return token.getValue();
 				}
@@ -132,9 +134,9 @@ public class TokenAdminEndpoints {
 		for (OAuth2AccessToken prototype : tokens) {
 			DefaultOAuth2AccessToken token = new DefaultOAuth2AccessToken(prototype);
 			Map<String, Object> map = new HashMap<String, Object>(token.getAdditionalInformation());
-			if (!map.containsKey("token_id")) {
+			if (!map.containsKey(JwtTokenEnhancer.TOKEN_ID)) {
 				// The token doesn't have an ID in the token service, but we need one for the endpoint, so add one here
-				map.put("token_id", encoder.encode(token.getValue()));
+				map.put(JwtTokenEnhancer.TOKEN_ID, encoder.encode(token.getValue()));
 			}
 			String clientId = tokenServices.getClientId(token.getValue());
 			if (clientId != null) {
