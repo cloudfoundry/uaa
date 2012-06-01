@@ -221,6 +221,13 @@ public class ClientAdminEndpointsTests {
 		endpoints.createClientDetails(details);
 	}
 
+	@Test
+	public void updateNonImplicitClientWithEmptySecretIsOk() throws Exception {
+		details.setAuthorizedGrantTypes(Arrays.asList("client_credentials"));
+		details.setClientSecret(null);
+		endpoints.updateClientDetails(details, details.getClientId());
+	}
+
 	@Test(expected = InvalidClientDetailsException.class)
 	public void invalidGrantTypeIsRejected() throws Exception {
 		details.setAuthorizedGrantTypes(Arrays.asList("not_a_grant_type"));
