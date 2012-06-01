@@ -15,7 +15,7 @@
 	<properties>
 		<spring.version>3.1.1.RELEASE</spring.version>
 		<spring.security.version>3.1.0.RELEASE</spring.security.version>
-		<spring.security.oauth.version>1.0.0.BUILD-SNAPSHOT</spring.security.oauth.version>
+		<spring.security.oauth.version>1.0.0.M6d</spring.security.oauth.version>
 		<spring.security.jwt.version>1.0.0.M3</spring.security.jwt.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -259,7 +259,7 @@
     <scm>
       <url>http://github.com/cloudfoundry/uaa</url>
       <connection>scm:git:git://github.com/cloudfoundry/uaa.git</connection>
-      <developerConnection>scm:git:ssh://git@github.com/cloudfoundry/uau.git</developerConnection>
+      <developerConnection>scm:git:ssh://git@github.com/cloudfoundry/uaa.git</developerConnection>
     </scm>
     <issueManagement>
       <system>JIRA</system>
@@ -295,9 +295,9 @@
     </licenses>
 	<distributionManagement>
 		<repository>
-			<id>spring-milestone</id>
-			<name>Spring Milestone Repository</name>
-			<url>s3://maven.springframework.org/milestone</url>
+			<id>spring-release</id>
+			<name>Spring Release Repository</name>
+			<url>s3://maven.springframework.org/release</url>
 		</repository>
 		<snapshotRepository>
 			<id>spring-snapshot</id>
