@@ -45,7 +45,7 @@ public class DefaultSecurityContextAccessorTests {
 	public void adminClientIsAdmin() throws Exception {
 		SecurityContextHolder.getContext().setAuthentication(
 				new OAuth2Authentication(new AuthorizationRequest("admin", null, AuthorityUtils
-						.commaSeparatedStringToAuthorityList("ROLE_ADMIN"), null), null));
+						.commaSeparatedStringToAuthorityList("uaa.admin"), null), null));
 
 		assertTrue(new DefaultSecurityContextAccessor().isAdmin());
 	}

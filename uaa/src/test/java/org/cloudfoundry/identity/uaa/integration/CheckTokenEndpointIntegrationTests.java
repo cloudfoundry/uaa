@@ -26,6 +26,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.codec.Base64;
+import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
+import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordResourceDetails;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
@@ -52,7 +54,8 @@ public class CheckTokenEndpointIntegrationTests {
 		formData.add("scope", "cloud_controller.read");
 
 		HttpHeaders headers = new HttpHeaders();
-		headers.set("Authorization", "Basic " + new String(Base64.encode("app:appclientsecret".getBytes("UTF-8"))));
+		ResourceOwnerPasswordResourceDetails app = testAccounts.getDefaultResourceOwnerPasswordResource();
+		headers.set("Authorization", testAccounts.getAuthorizationHeader(app.getClientId(), app.getClientSecret()));
 		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
 
 		@SuppressWarnings("rawtypes")
@@ -61,6 +64,8 @@ public class CheckTokenEndpointIntegrationTests {
 		String token = (String) response.getBody().get("access_token");
 
 		formData = new LinkedMultiValueMap<String, String>();
+		ClientCredentialsResourceDetails resource = testAccounts.getClientCredentialsResource("app", null, "app", "appclientsecret");
+		headers.set("Authorization", testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
 		formData.add("token", token);
 
 		response = serverRunning.postForMap("/check_token", formData, headers);
@@ -78,7 +83,8 @@ public class CheckTokenEndpointIntegrationTests {
 	public void testTokenKey() throws Exception {
 
 		HttpHeaders headers = new HttpHeaders();
-		headers.set("Authorization", "Basic " + new String(Base64.encode("app:appclientsecret".getBytes("UTF-8"))));
+		ClientCredentialsResourceDetails resource = testAccounts.getClientCredentialsResource("app", null, "app", "appclientsecret");
+		headers.set("Authorization", testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
 		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
 
 		@SuppressWarnings("rawtypes")

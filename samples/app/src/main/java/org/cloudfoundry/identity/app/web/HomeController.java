@@ -69,6 +69,13 @@ public class HomeController {
 		return "home";
 	}
 
+	// Home page with just the user id - useful for testing simplest possible use case
+	@RequestMapping("/id")
+	public String id(Model model, Principal principal) {
+		model.addAttribute("principal", principal);
+		return "home";
+	}
+
 	@RequestMapping("/revoke")
 	public String revoke(Model model, Principal principal) {
 		model.addAttribute("principal", principal);

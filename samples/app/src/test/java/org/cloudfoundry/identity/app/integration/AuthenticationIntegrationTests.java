@@ -54,8 +54,8 @@ public class AuthenticationIntegrationTests {
 		uaaHeaders.setAccept(Arrays.asList(MediaType.TEXT_HTML));
 		appHeaders.setAccept(Arrays.asList(MediaType.TEXT_HTML));
 
-		// *** GET /app/
-		result = serverRunning.getForResponse("/", appHeaders);
+		// *** GET /app/id
+		result = serverRunning.getForResponse("/id", appHeaders);
 		assertEquals(HttpStatus.FOUND, result.getStatusCode());
 		location = result.getHeaders().getLocation().toString();
 
@@ -123,9 +123,9 @@ public class AuthenticationIntegrationTests {
 		location = result.getHeaders().getLocation().toString();
 
 		// SUCCESS
-		assertTrue("Wrong location: " + location, location.endsWith("/"));
+		assertTrue("Wrong location: " + location, location.endsWith("/id"));
 
-		// *** GET /app/
+		// *** GET /app/id
 		result = serverRunning.getForResponse(location, appHeaders);
 		// System.err.println(result.getHeaders());
 		assertEquals(HttpStatus.OK, result.getStatusCode());

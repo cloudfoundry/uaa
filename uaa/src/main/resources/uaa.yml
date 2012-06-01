@@ -9,7 +9,7 @@ oauth:
     admin:    
       authorized-grant-types: client_credentials
       scope: clients.read,clients.write,clients.secret,tokens.read,tokens.write
-      authorities: ROLE_CLIENT,ROLE_ADMIN
+      authorities: uaa.admin,clients.read,clients.write,clients.secret,tokens.read,tokens.write
       id: admin
       secret: adminsecret
       resource-ids: clients

@@ -68,18 +68,18 @@ public class RemoteTokenServicesTests {
 
 	@Test
 	public void testTokenRetrievalWithClientAuthorities() throws Exception {
-		body.put("client_authorities", Collections.singleton("ROLE_CLIENT"));
+		body.put("client_authorities", Collections.singleton("uaa.none"));
 		OAuth2Authentication result = services.loadAuthentication("FOO");
 		assertNotNull(result);
-		assertEquals("[ROLE_CLIENT]", result.getAuthorizationRequest().getAuthorities().toString());
+		assertEquals("[uaa.none]", result.getAuthorizationRequest().getAuthorities().toString());
 	}
 
 	@Test
 	public void testTokenRetrievalWithUserAuthorities() throws Exception {
-		body.put("user_authorities", Collections.singleton("ROLE_USER"));
+		body.put("user_authorities", Collections.singleton("uaa.user"));
 		OAuth2Authentication result = services.loadAuthentication("FOO");
 		assertNotNull(result);
-		assertEquals("[ROLE_USER]", result.getUserAuthentication().getAuthorities().toString());
+		assertEquals("[uaa.user]", result.getUserAuthentication().getAuthorities().toString());
 	}
 
 }

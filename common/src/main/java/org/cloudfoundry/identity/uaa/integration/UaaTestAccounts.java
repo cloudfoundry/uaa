@@ -186,7 +186,9 @@ public class UaaTestAccounts implements TestAccounts {
 		resource.setClientId(clientId);
 		resource.setClientSecret(clientSecret);
 		resource.setId(clientId);
-		resource.setScope(Arrays.asList(scope));
+		if (scope!=null) {
+			resource.setScope(Arrays.asList(scope));
+		}
 		resource.setClientAuthenticationScheme(AuthenticationScheme.header);
 		resource.setAccessTokenUri(server.getAccessTokenUri());
 		return resource;
