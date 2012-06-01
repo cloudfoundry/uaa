@@ -1,0 +1,7 @@
+Code-Review+2: Luke Taylor <ltaylor@vmware.com>
+Verified+1: CI Master <cf-ci@rbcon.com>
+Submitted-by: Dave Syer <dsyer@vmware.com>
+Submitted-at: Fri, 01 Jun 2012 09:05:10 +0000
+Reviewed-on: http://reviews.cloudfoundry.org/5984
+Project: uaa
+Branch: refs/heads/scopes
