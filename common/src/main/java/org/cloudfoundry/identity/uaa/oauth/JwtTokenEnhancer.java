@@ -49,7 +49,7 @@ public class JwtTokenEnhancer implements TokenEnhancer, InitializingBean {
 	/**
 	 * Field name for token id.
 	 */
-	public static final String TOKEN_ID = "id";
+	public static final String TOKEN_ID = "jti";
 
 	protected final Log logger = LogFactory.getLog(getClass());
 
