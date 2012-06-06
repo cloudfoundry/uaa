@@ -208,6 +208,10 @@
 			</set>
 		</property>
 	</bean>
+	
+	<bean id="authorizationRequestFactory" class="org.cloudfoundry.identity.uaa.oauth.UaaAuthorizationRequestFactory">
+		<constructor-arg ref="clientDetails"/>
+	</bean>
 
 	<bean id="tokenServices" class="org.springframework.security.oauth2.provider.token.DefaultTokenServices">
 		<property name="supportRefreshToken" value="true" />
@@ -222,7 +226,7 @@
 	</bean>
 
 	<oauth:authorization-server client-details-service-ref="clientDetails" token-services-ref="tokenServices"
-		user-approval-handler-ref="userApprovalHandler">
+		user-approval-handler-ref="userApprovalHandler" authorization-request-factory-ref="authorizationRequestFactory">
 		<oauth:authorization-code />
 		<oauth:implicit />
 		<oauth:refresh-token />

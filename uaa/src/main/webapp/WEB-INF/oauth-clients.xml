@@ -97,7 +97,6 @@
 							<entry key="authorized-grant-types" value="implicit" />
 							<entry key="scope" value="cloud_controller.read,cloud_controller.write,openid,password.write,tokens.read,tokens.write" />
 							<entry key="authorities" value="uaa.none" />
-							<entry key="resource-ids" value="password,tokens,cloud_controller,openid" />
 						</map>
 					</entry>
 					<entry key="app">
@@ -107,7 +106,6 @@
 							<entry key="authorized-grant-types" value="password,authorization_code,refresh_token,client_credentials" />
 							<entry key="scope" value="cloud_controller.read,cloud_controller.write,openid,password.write,tokens.read,tokens.write" />
 							<entry key="authorities" value="uaa.resource" />
-							<entry key="resource-ids" value="password,tokens,cloud_controller,openid" />
 						</map>
 					</entry>
 					<entry key="my">
@@ -117,7 +115,6 @@
 							<entry key="authorized-grant-types" value="implicit" />
 							<entry key="scope" value="cloud_controller.read,openid" />
 							<entry key="authorities" value="uaa.none" />
-							<entry key="resource-ids" value="cloud_controller,openid" />
 						</map>
 					</entry>
 					<entry key="login">
@@ -127,7 +124,6 @@
 							<entry key="scope" value="oauth.login" />
 							<entry key="authorized-grant-types" value="client_credentials" />
 							<entry key="authorities" value="oauth.login" />
-							<entry key="resource-ids" value="oauth" />
 						</map>
 					</entry>
 				</map>
