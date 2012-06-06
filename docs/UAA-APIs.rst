@@ -49,7 +49,7 @@ The OAuth2 spec includes a ``scope`` parameter as part of the token granting req
 
 1. There is an optional step in client registration, where a client declares which scopes it will ask for, or alternatively where the Authorization Server can limit the scopes it can ask for. The Authorization Server can then check that token requests contain a valid scope (i.e. one of the set provided on registration).
 
-2. The Resource Servers can each have a unique ID (e.g. a URI). And another optional part of a client registration is to provide a set of allowed resource ids for the client in question.  The Authorization Server binds the allowed resource ids to the token and then provides the information via the ``/check_token`` endpoint, so that a Resource Server can check that its own ID is on the allowed list for the token before serving a resource.
+2. The Resource Servers can each have a unique ID (e.g. a URI). And another optional part of a client registration is to provide a set of allowed resource ids for the client in question.  The Authorization Server binds the allowed resource ids to the token and then provides the information via the ``/check_token`` endpoint (in the ``aud`` claim), so that a Resource Server can check that its own ID is on the allowed list for the token before serving a resource.
 
 Resource IDs have some of the character of a scope, except that the clients themselves don't need to know about them - it is information exchanged between the Authorization and Resource Servers.  The examples in this document use a ``scope`` parameter that indicates a resource server, e.g. a Cloud Controller instance. This is a suggested usage, but whether it is adopted by the real Cloud Controller is not crucial to the system.  Similarly any Resource Server that wants to can check the allowed resource IDs if there are any, but it is not mandatory to do so.
 
@@ -175,22 +175,22 @@ This endpoint mirrors the OpenID Connect ``/check_id`` endpoint, so not very RES
         Content-Type: application/json
 
         {
-            "id":"4657c1a8-b2d0-4304-b1fe-7bdc203d944f",
-            "resource_ids":["openid","cloud_controller"],
+            "jti":"4657c1a8-b2d0-4304-b1fe-7bdc203d944f",
+            "aud":["openid","cloud_controller"],
             "scope":["read"],
             "email":"marissa@test.org",
-            "client_authorities":["ROLE_UNTRUSTED"],
-            "expires_in":43173,
-            "user_authorities":["ROLE_USER"],
+            "exp":138943173,
+            "id":"41750ae1-b2d0-4304-b1fe-7bdc24256387",
             "user_name":"marissa",
             "client_id":"vmc"
         }
 		
 Notes:
   
-* The ``user_name`` is the same as you get from the `OpenID Connect`_ ``/userinfo`` endpoint.  The `id` field is the same as you would use to get the full user profile from ``/User``.
-* Many of the fields in the response are a courtesy, allowing the caller to avoid further round trip queries to pick up the same information (e.g. via the ``/User`` endpoint).  
-* The ``client_*`` data represent the client that the token was granted for, not the caller.  The value can be used by the caller, for example, to verify that the client has been granted permission to access a resource.
+* The ``user_name`` is the same as you get from the `OpenID Connect`_ ``/userinfo`` endpoint.  The ``id`` field is the same as you would use to get the full user profile from ``/User``.
+* Many of the fields in the response are a courtesy, allowing the caller to avoid further round trip queries to pick up the same information (e.g. via the ``/User`` endpoint).
+* The ``aud`` claim is the resource ids that are the audience for the token.  A Resource Server should check that it is on this list or else reject the token.
+* The ``client_id`` data represent the client that the token was granted for, not the caller.  The value can be used by the caller, for example, to verify that the client has been granted permission to access a resource.
 * Error Responses: see `OAuth2 Error responses <http://tools.ietf.org/html/draft-ietf-oauth-v2-26#section-5.2>`_ and this addition::
 
             HTTP/1.1 400 Bad Request
@@ -486,7 +486,7 @@ might also see an asymmetric RSA public key with algorithm
 Access Token Administration APIs
 =================================
 
-OAuth2 protected resources which deal with listing and revoking access tokens.  To revoke a token with ``DELETE`` clients need to provide a ``token_id`` (not the token value) which can be obtained from the token list via the corresponding ``GET``.  This is to prevent token values from being logged in the server (``DELETE`` does not have a body).
+OAuth2 protected resources which deal with listing and revoking access tokens.  To revoke a token with ``DELETE`` clients need to provide a ``jti`` (token identifier, not the token value) which can be obtained from the token list via the corresponding ``GET``.  This is to prevent token values from being logged in the server (``DELETE`` does not have a body).
 
 List Tokens for User: ``GET /oauth/users/{username}/tokens``
 -------------------------------------------------------------
@@ -502,16 +502,16 @@ List Tokens for User: ``GET /oauth/users/{username}/tokens``
         [
           {
             "access_token": "FYSDKJHfgdUydsFJSHDFKAJHDSF",
-            "token_id": "fkjhsdfgksafhdjg",
+            "jti": "fkjhsdfgksafhdjg",
             "expires_in": 1234,
             "client_id": "vmc"
           }
         ]
 
-Revoke Token by User: ``DELETE /oauth/users/{username}/tokens/{token_id}``
+Revoke Token by User: ``DELETE /oauth/users/{username}/tokens/{jti}``
 ----------------------------------------------------------------------------
 
-* Request: ``DELETE /oauth/users/{username}/tokens/{token_id}``
+* Request: ``DELETE /oauth/users/{username}/tokens/{jti}``
 * Access: allowed by clients with ``ROLE_ADMIN`` and for users to revoke their own tokens (as long as the client has ``ROLE_ADMIN``)
 * Request body: *empty*
 * Response code: ``204 NO_CONTENT``
@@ -531,16 +531,16 @@ List Tokens for Client: ``GET /oauth/clients/{client_id}/tokens``
         [
           {
             "access_token": "KJHDGFKDHSJFUYTGUYGHBKAJHDSF",
-            "token_id": "fkjhsdfgksafhdjg",
+            "jti": "fkjhsdfgksafhdjg",
             "expires_in": 1234,
             "client_id": "www"
           }
         ]
 
-Revoke Token by Client: ``DELETE /oauth/clients/{client_id}/tokens/{token_id}``
+Revoke Token by Client: ``DELETE /oauth/clients/{client_id}/tokens/{jti}``
 --------------------------------------------------------------------------------
 
-* Request: ``DELETE /oauth/clients/{client_id}/tokens/{token_id}``
+* Request: ``DELETE /oauth/clients/{client_id}/tokens/{jti}``
 * Access: allowed by clients with ``ROLE_CLIENT``
 * Request body: *empty*
 * Reponse code: ``204`` (NO_CONTENT)
@@ -644,7 +644,7 @@ Example::
     {
       client_id : foo,
       scope : [read,write],
-      resource-ids : [cloud_controller,scim],
+      resource_ids : [cloud_controller,scim],
       authorities : [ROLE_CLIENT,ROLE_ADMIN],
       authorized_grant_types : [client_credentials]
     }
