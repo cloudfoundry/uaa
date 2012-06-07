@@ -328,6 +328,8 @@
 	</bean>
 
 	<bean id="loginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LoginAuthenticationManager">
+		<!-- Add new user accounts automatically -->
+		<property name="addNewAccounts" value="${login.addnew:false}"/>
 		<property name="scimUserBootstrap" ref="scimUserBootstrap" />
 	</bean>
 

@@ -4,7 +4,7 @@ batch:
 
 oauth:
   authorize:
-   ssl: # set this to "true" to force https to be used by the user approval page 
+    ssl: # set this to "true" to force https to be used by the user approval page 
   clients:
     admin:    
       authorized-grant-types: client_credentials
