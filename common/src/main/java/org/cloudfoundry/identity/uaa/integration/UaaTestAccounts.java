@@ -255,8 +255,7 @@ public class UaaTestAccounts implements TestAccounts {
 				StringUtils.collectionToCommaDelimitedString(defaults.getAuthorities()));
 		String redirectUris = environment.getProperty(prefix + ".redirect-uri",
 				StringUtils.collectionToCommaDelimitedString(defaults.getRegisteredRedirectUri()));
-		BaseClientDetails result = new BaseClientDetails(resourceIds, scopes, grantTypes, authorities, redirectUris);
-		result.setClientId(clientId);
+		BaseClientDetails result = new BaseClientDetails(clientId, resourceIds, scopes, grantTypes, authorities, redirectUris);
 		result.setClientSecret(clientSecret);
 		return result;
 	}

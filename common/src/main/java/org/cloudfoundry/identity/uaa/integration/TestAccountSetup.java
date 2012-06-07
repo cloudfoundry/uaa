@@ -99,34 +99,30 @@ public class TestAccountSetup extends TestWatchman {
 	}
 
 	private void createTokenClient(RestOperations client) {
-		BaseClientDetails clientDetails = new BaseClientDetails("tokens", "tokens.read,tokens.write",
+		BaseClientDetails clientDetails = new BaseClientDetails("token", "tokens", "tokens.read,tokens.write",
 				"authorization_code,password", "tokens.read,tokens.write");
-		clientDetails.setClientId("token");
 		clientDetails.setClientSecret("tokenclientsecret");
 		createClient(client, testAccounts.getClientDetails("oauth.clients.token", clientDetails));
 	}
 
 	private void createVmcClient(RestOperations client) {
-		BaseClientDetails clientDetails = new BaseClientDetails("cloud_controller,openid,password",
+		BaseClientDetails clientDetails = new BaseClientDetails("vmc", "cloud_controller,openid,password",
 				"cloud_controller.read,password.write,tokens.read,tokens.write", "implicit", "uaa.none",
 				"http://uaa.cloudfoundry.com/redirect/vmc");
-		clientDetails.setClientId("vmc");
 		createClient(client, testAccounts.getClientDetails("oauth.clients.vmc", clientDetails));
 	}
 
 	private void createScimClient(RestOperations client) {
-		BaseClientDetails clientDetails = new BaseClientDetails("scim,password,tokens",
+		BaseClientDetails clientDetails = new BaseClientDetails("scim", "scim,password,tokens",
 				"scim.read,scim.write,password.write,tokens.read,tokens.write", "client_credentials",
 				"scim.read,scim.write,password.write,tokens.read,tokens.write");
-		clientDetails.setClientId("scim");
 		clientDetails.setClientSecret("scimsecret");
 		createClient(client, testAccounts.getClientDetails("oauth.clients.scim", clientDetails));
 	}
 
 	private void createAppClient(RestOperations client) {
-		BaseClientDetails clientDetails = new BaseClientDetails(null, "cloud_controller.read,openid,password.write",
+		BaseClientDetails clientDetails = new BaseClientDetails("app", null, "cloud_controller.read,openid,password.write",
 				"password,authorization_code,refresh_token", "uaa.none");
-		clientDetails.setClientId("app");
 		clientDetails.setClientSecret("appclientsecret");
 		createClient(client, testAccounts.getClientDetails("oauth.clients.app", clientDetails));
 	}

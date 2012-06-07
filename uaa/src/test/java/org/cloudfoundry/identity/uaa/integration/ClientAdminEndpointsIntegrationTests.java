@@ -89,9 +89,8 @@ public class ClientAdminEndpointsIntegrationTests {
 		OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write");
 
 		HttpHeaders headers = getAuthenticatedHeaders(token);
-		BaseClientDetails client = new BaseClientDetails("", "foo,bar", "client_credentials", "uaa.none");
+		BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar", "client_credentials", "uaa.none");
 		client.setClientSecret("clientSecret");
-		client.setClientId(new RandomValueStringGenerator().generate());
 		ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
 				HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
 		assertEquals(HttpStatus.CREATED, result.getStatusCode());
@@ -102,8 +101,7 @@ public class ClientAdminEndpointsIntegrationTests {
 	public void nonImplicitGrantClientWithoutSecretIsRejected() throws Exception {
 		OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write");
 		HttpHeaders headers = getAuthenticatedHeaders(token);
-		BaseClientDetails client = new BaseClientDetails("", "foo,bar", "client_credentials", "uaa.none");
-		client.setClientId(new RandomValueStringGenerator().generate());
+		BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar", "client_credentials", "uaa.none");
 		ResponseEntity<UaaException> result = serverRunning.getRestTemplate().exchange(
 				serverRunning.getUrl("/oauth/clients"), HttpMethod.POST,
 				new HttpEntity<BaseClientDetails>(client, headers), UaaException.class);
@@ -115,8 +113,7 @@ public class ClientAdminEndpointsIntegrationTests {
 	public void implicitGrantClientWithoutSecretIsOk() throws Exception {
 		OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write");
 		HttpHeaders headers = getAuthenticatedHeaders(token);
-		BaseClientDetails client = new BaseClientDetails("", "foo,bar", "implicit", "uaa.none");
-		client.setClientId(new RandomValueStringGenerator().generate());
+		BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar", "implicit", "uaa.none");
 		ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
 				HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
 
@@ -130,9 +127,8 @@ public class ClientAdminEndpointsIntegrationTests {
 
 		HttpHeaders headers = getAuthenticatedHeaders(token);
 
-		BaseClientDetails client = new BaseClientDetails("", "foo,bar", "client_credentials", "uaa.none");
+		BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar", "client_credentials", "uaa.none");
 		client.setClientSecret("clientSecret");
-		client.setClientId(new RandomValueStringGenerator().generate());
 		ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
 				HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
 		assertEquals(HttpStatus.CREATED, result.getStatusCode());
@@ -152,8 +148,7 @@ public class ClientAdminEndpointsIntegrationTests {
 
 		HttpHeaders headers = getAuthenticatedHeaders(token);
 
-		BaseClientDetails client = new BaseClientDetails("", "foo,bar", "client_credentials", "uaa.none");
-		client.setClientId(new RandomValueStringGenerator().generate());
+		BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar", "client_credentials", "uaa.none");
 		client.setClientSecret("secret");
 		ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
 				HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
@@ -177,9 +172,8 @@ public class ClientAdminEndpointsIntegrationTests {
 
 		HttpHeaders headers = getAuthenticatedHeaders(token);
 
-		BaseClientDetails client = new BaseClientDetails("", "foo,bar", "client_credentials", "uaa.none");
+		BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar", "client_credentials", "uaa.none");
 		client.setClientSecret("clientSecret");
-		client.setClientId(new RandomValueStringGenerator().generate());
 		ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
 				HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
 		assertEquals(HttpStatus.CREATED, result.getStatusCode());
