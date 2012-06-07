@@ -57,36 +57,57 @@ Then you can try logging in with the UAA ruby gem.  Make sure you have
 ruby 1.9, and bundler installed, then
 
     $ cd gem/; bundle
-    $ ./bin/uaa target localhost:8080/uaa
-    $ ./bin/uaa login marissa koala
+    $ ./bin/uaac target http://localhost:8080/uaa vmc
+    $ ./bin/uaac login implicit marissa koala
 
 (or leave out the username / password to be prompted).
 
 This authenticates and obtains an access token from the server using
 the OAuth2 implicit grant, similar to the approach intended for a
-client like VMC. The token is returned in stdout, so copy paste the
-value into this next command:
+client like VMC. The token is stored in `~/.uuac.yml`, so dig into
+that file and pull out the access token for your `vmc` target (or use
+`--verbose` on the login command line above to see it logged to your
+console).
 
-    $ ./bin/uaa --client-id=admin --client-secret=adminclientsecret decode [token]
+Then you can login as a resource server and retrieve the token
+details:
+
+    $ ./bin/uaac target http://localhost:8080/uaa app
+    $ ./bin/uaac login token [token-value-from-above]
     
-and you should see your username and the client id of the original token grant on stdout.
+You will be prompted for the client secret (`appclientsecret`), and
+then you should see your username and the client id of the original
+token grant on stdout, e.g.
 
-	{
-	  "id":"17a99e38-c5fd-46a3-9d37-6b12db0937c9",
-	  "resource_ids":["cloud_controller","password"],
-	  "expires_at":1334117495,
-	  "scope":["read"],
-	  "email":"marissa@test.org",
-	  "client_authorities":["ROLE_UNTRUSTED"],
-	  "expires_in":43171,
-	  "user_authorities":["ROLE_USER"],
-	  "user_id":"marissa",
-	  "client_id":"vmc"
-	}
+	id: 6e1ac414-f446-4869-9b41-41f1f41b96df
+    resource-ids: 
+    -   tokens
+    -   openid
+    -   cloud_controller
+    -   password
+    expires-at: 1339120767
+    scope: 
+    -   read
+    -   write
+    -   openid
+    -   password
+    email: marissa@test.org
+    client-authorities: 
+    -   ROLE_UNTRUSTED
+    expires-in: 43158
+    user-authorities: 
+    -   uaa.user
+    user-id: marissa
+    client-id: vmc
+    token-id: 90162e5c-228d-4620-b457-83e2d591eedf
 
 ### Demo of command line usage against e.g. cloudfoundry.com
 
-The same command line example should work against a UAA running on cloudfoundry.com. In this case, there is no need to run a local uaa server, so simply ask the external login endpoint to tell you about the system:
+The same command line example should work against a UAA running on
+cloudfoundry.com (except for the token decoding bit because you won't
+have the client secret). In this case, there is no need to run a local
+uaa server, so simply ask the external login endpoint to tell you
+about the system:
 
     $ curl -H "Accept: application/json" uaa.cloudfoundry.com/login
     {
@@ -98,13 +119,13 @@ The same command line example should work against a UAA running on cloudfoundry.
 You can then try logging in with the UAA ruby gem.  Make sure you have ruby 1.9, and bundler installed, then
 
     $ cd gem/; bundle
-    $ ./bin/uaa target uaa.cloudfoundry.com
-    $ ./bin/uaa login [yourusername] [yourpassword]
+    $ ./bin/uaac target uaa.cloudfoundry.com vmc
+    $ ./bin/uaac login implicit [yourusername] [yourpassword]
 
 (or leave out the username / password to be prompted).
 
 This authenticates and obtains an access token from the server using the OAuth2 implicit
-grant, similar to the approach intended for a client like VMC. 
+grant, the same as used by a client like VMC. 
 
 ## Integration tests
 
