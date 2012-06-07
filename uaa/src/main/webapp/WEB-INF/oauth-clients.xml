@@ -121,7 +121,7 @@
 						<map>
 							<entry key="id" value="login" />
 							<entry key="secret" value="loginsecret" />
-							<entry key="scope" value="oauth.login" />
+							<entry key="scope" value="uaa.none" />
 							<entry key="authorized-grant-types" value="client_credentials" />
 							<entry key="authorities" value="oauth.login" />
 						</map>
