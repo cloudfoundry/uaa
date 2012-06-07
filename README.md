@@ -17,7 +17,7 @@ clients, as well as various other management functions.
   * Luke Taylor (`ltaylor@vmware.com`)
   * Joel D'Sa (`jdsa@vmware.com`)
 * Team mailing list: `cf-id@vmware.com`
-* Docs: [docs/](http://github.com/cloudfoundry/uaa/docs)
+* Docs: [docs/](https://github.com/cloudfoundry/uaa/tree/master/docs)
 
 ## Quick Start
 
