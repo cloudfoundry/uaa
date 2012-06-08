@@ -62,9 +62,11 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, email=?, givenName=?, familyName=?, active=?, authority=?, phoneNumber=? where id=? and version=?";
 
-	public static final String DELETE_USER_SQL = "update users set active=false where id=?";
+	public static final String DEACTIVATE_USER_SQL = "update users set active=false where id=?";
 
-	public static final String ID_FOR_DELETED_USER_SQL = "select id from users where userName=? and active=false";
+    public static final String DELETE_USER_SQL = "delete from users where id=?";
+
+    public static final String ID_FOR_DELETED_USER_SQL = "select id from users where userName=? and active=false";
 
 	public static final String CHANGE_PASSWORD_SQL = "update users set lastModified=?, password=? where id=?";
 
@@ -114,6 +116,8 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	private PasswordValidator passwordValidator = new DefaultPasswordValidator();
 
 	private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
+    private boolean deactivateOnDelete = true;
 
 	private final RowMapper<ScimUser> mapper = new ScimUserRowMapper();
 
@@ -388,29 +392,53 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	@Override
 	public ScimUser removeUser(String id, int version) {
-		logger.info("Removing user: " + id);
-
 		ScimUser user = retrieveUser(id);
-		int updated;
-
-		if (version < 0) {
-			// Ignore
-			updated = jdbcTemplate.update(DELETE_USER_SQL, id);
-		}
-		else {
-			updated = jdbcTemplate.update(DELETE_USER_SQL + " and version=?", id, version);
-		}
-		if (updated == 0) {
-			throw new OptimisticLockingFailureException(String.format(
-					"Attempt to update a user (%s) with wrong version: expected=%d but found=%d", id,
-					user.getVersion(), version));
-		}
-		if (updated > 1) {
-			throw new IncorrectResultSizeDataAccessException(1);
-		}
-		user.setActive(false);
-		return user;
+        return deactivateOnDelete ? deactivateUser(user, version) : deleteUser(user, version);
 	}
+
+    private ScimUser deactivateUser(ScimUser user, int version) {
+        logger.info("Deactivating user: " + user.getId());
+        int updated;
+        if (version < 0) {
+            // Ignore
+            updated = jdbcTemplate.update(DEACTIVATE_USER_SQL, user.getId());
+        }
+        else {
+            updated = jdbcTemplate.update(DEACTIVATE_USER_SQL + " and version=?", user.getId(), version);
+        }
+        if (updated == 0) {
+            throw new OptimisticLockingFailureException(String.format(
+                    "Attempt to update a user (%s) with wrong version: expected=%d but found=%d", user.getId(),
+                    user.getVersion(), version));
+        }
+        if (updated > 1) {
+            throw new IncorrectResultSizeDataAccessException(1);
+        }
+        user.setActive(false);
+        return user;
+    }
+
+    private ScimUser deleteUser(ScimUser user, int version) {
+        logger.info("Deleting user: " + user.getId());
+        int updated;
+
+        if (version < 0) {
+            updated = jdbcTemplate.update(DELETE_USER_SQL, user.getId());
+        }
+        else {
+            updated = jdbcTemplate.update(DELETE_USER_SQL + " and version=?", user.getId(), version);
+        }
+        if (updated == 0) {
+            throw new OptimisticLockingFailureException(String.format(
+                    "Attempt to update a user (%s) with wrong version: expected=%d but found=%d", user.getId(),
+                    user.getVersion(), version));
+        }
+        return user;
+    }
+
+    public void setDeactivateOnDelete (boolean deactivateOnDelete) {
+        this.deactivateOnDelete = deactivateOnDelete;
+    }
 
 	public void setPasswordValidator(PasswordValidator passwordValidator) {
 		Assert.notNull(passwordValidator, "passwordValidator cannot be null");
