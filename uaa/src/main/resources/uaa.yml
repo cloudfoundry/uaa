@@ -4,7 +4,7 @@ batch:
 
 oauth:
   authorize:
-    ssl: # set this to "true" to force https to be used by the user approval page 
+   ssl: # set this to "true" to force https to be used by the user approval page 
   clients:
     admin:    
       authorized-grant-types: client_credentials
@@ -13,6 +13,14 @@ oauth:
       id: admin
       secret: adminsecret
       resource-ids: clients,tokens
+    mighty:
+       client-id: mighty
+       secret: mighty
+       scope: openid,password,read,write
+       resource-ids: api,clients,cloud_controller,oauth,openid,password,scim,tokens
+       authorized-grant-types: authorization_code,client_credentials,implicit,password,refresh_token
+       authorities: ROLE_ADMIN,ROLE_CLIENT,ROLE_RESOURCE,ROLE_UNTRUSTED,ROLE_LOGIN
+
 
 jwt:
    token:
@@ -38,6 +46,7 @@ database.driverClassName: org.hsqldb.jdbcDriver
 database.url: jdbc:hsqldb:mem:jdbcUaaTests
 database.username: sa
 database.password:
+database.inactivate.on.delete: false
 
 cloud_controller:
   database:

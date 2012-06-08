@@ -172,7 +172,7 @@ public class JdbcScimUserProvisioningTests {
 	}
 
 	@Test
-	public void canRemoveExistingUser() {
+	public void canInactivateExistingUser() {
 		ScimUser joe = db.removeUser(JOE_ID, 0);
 		assertJoe(joe);
 		assertEquals(1, template.queryForList("select * from users where id=? and active=false", JOE_ID).size());
@@ -181,7 +181,7 @@ public class JdbcScimUserProvisioningTests {
 	}
 
 	@Test(expected = UserAlreadyExistsException.class)
-	public void canRemoveExistingUserAndThenCreateHimAgain() {
+	public void canInactivateExistingUserAndThenCreateHimAgain() {
 		ScimUser joe = db.removeUser(JOE_ID, 0);
 		assertJoe(joe);
 		joe.setActive(true);
@@ -190,18 +190,56 @@ public class JdbcScimUserProvisioningTests {
 	}
 
 	@Test(expected = UserNotFoundException.class)
-	public void cannotRemoveNonexistentUser() {
+	public void cannotInactivateNonexistentUser() {
 		ScimUser joe = db.removeUser("9999", 0);
 		assertJoe(joe);
 	}
 
 	@Test(expected = OptimisticLockingFailureException.class)
-	public void removeWithWrongVersionIsError() {
+	public void inactivateWithWrongVersionIsError() {
 		ScimUser joe = db.removeUser(JOE_ID, 1);
 		assertJoe(joe);
 	}
 
-	@Test
+    @Test
+    public void canDeleteExistingUser() {
+        db.setInactivateOnDelete(false);
+        ScimUser joe = db.removeUser(JOE_ID, 0);
+        assertJoe(joe);
+        assertEquals(0, template.queryForList("select * from users where id=?", JOE_ID).size());
+        assertEquals(0, db.retrieveUsers("username eq 'joe'").size());
+    }
+
+    @Test //(expected = UserAlreadyExistsException.class)
+    public void canDeleteExistingUserAndThenCreateHimAgain() {
+        db.setInactivateOnDelete(false);
+        ScimUser joe = db.removeUser(JOE_ID, 0);
+        assertJoe(joe);
+        assertEquals(0, template.queryForList("select * from users where id=?", JOE_ID).size());
+
+        joe.setActive(true);
+        ScimUser user = db.createUser(joe, "foobarspam1234");
+        assertNotNull(user);
+        assertNotNull(user.getId());
+        assertNotSame(JOE_ID, user.getId());
+        assertEquals(1, db.retrieveUsers("username eq 'joe'").size());
+    }
+
+    @Test(expected = UserNotFoundException.class)
+    public void cannotDeleteNonexistentUser() {
+        db.setInactivateOnDelete(false);
+        ScimUser joe = db.removeUser("9999", 0);
+        assertJoe(joe);
+    }
+
+    @Test(expected = OptimisticLockingFailureException.class)
+    public void deleteWithWrongVersionIsError() {
+        db.setInactivateOnDelete(false);
+        ScimUser joe = db.removeUser(JOE_ID, 1);
+        assertJoe(joe);
+    }
+
+    @Test
 	public void canRetrieveUsers() {
 		assertTrue(2 <= db.retrieveUsers().size());
 	}
