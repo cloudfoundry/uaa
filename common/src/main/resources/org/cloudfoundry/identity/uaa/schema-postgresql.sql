@@ -45,5 +45,6 @@ CREATE TABLE OAUTH_CLIENT_DETAILS (
   web_server_redirect_uri VARCHAR(1024),
   authorities VARCHAR(256),
   access_token_validity INTEGER default 0,
-  refresh_token_validity INTEGER default 0
+  refresh_token_validity INTEGER default 0,
+  additional_information VARCHAR(4096)
 ) ;
