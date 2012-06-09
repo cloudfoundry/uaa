@@ -26,9 +26,9 @@ import org.springframework.security.oauth2.provider.approval.TokenServicesUserAp
 public class UaaUserApprovalHandler extends TokenServicesUserApprovalHandler {
 
 	private Collection<String> autoApproveClients = new HashSet<String>();
-	
+
 	private boolean useTokenServices = true;
-	
+
 	/**
 	 * @param useTokenServices the useTokenServices to set
 	 */
@@ -42,7 +42,6 @@ public class UaaUserApprovalHandler extends TokenServicesUserApprovalHandler {
 	public void setAutoApproveClients(Collection<String> autoApproveClients) {
 		this.autoApproveClients = autoApproveClients;
 	}
-	
 
 	/**
 	 * Allows automatic approval for a white list of clients in the implicit grant case.
@@ -59,7 +58,9 @@ public class UaaUserApprovalHandler extends TokenServicesUserApprovalHandler {
 		if (!userAuthentication.isAuthenticated()) {
 			return false;
 		}
-		return authorizationRequest.isApproved()
+		String flag = authorizationRequest.getApprovalParameters().get(AuthorizationRequest.USER_OAUTH_APPROVAL);
+		boolean approved = flag != null && flag.toLowerCase().equals("true");
+		return approved
 				|| (authorizationRequest.getResponseTypes().contains("token") && autoApproveClients
 						.contains(authorizationRequest.getClientId()));
 	}

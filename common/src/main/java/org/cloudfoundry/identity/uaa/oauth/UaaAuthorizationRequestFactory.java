@@ -80,8 +80,8 @@ public class UaaAuthorizationRequestFactory implements AuthorizationRequestFacto
 	 * java.lang.String, java.lang.String, java.util.Set)
 	 */
 	@Override
-	public AuthorizationRequest createAuthorizationRequest(Map<String, String> parameters, String clientId,
-			String grantType, Set<String> scopes) {
+	public AuthorizationRequest createAuthorizationRequest(Map<String, String> authorizationParameters,
+			Map<String, String> approvalParameters, String clientId, String grantType, Set<String> scopes) {
 		ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId);
 		validateGrantType(grantType, clientDetails);
 		if (scopes != null) {
@@ -98,7 +98,7 @@ public class UaaAuthorizationRequestFactory implements AuthorizationRequestFacto
 			}
 		}
 		Set<String> resourceIds = getResourceIds(clientDetails, scopes);
-		AuthorizationRequest request = new AuthorizationRequest(parameters, clientId, scopes,
+		AuthorizationRequest request = new AuthorizationRequest(authorizationParameters, approvalParameters, clientId, scopes,
 				clientDetails.getAuthorities(), resourceIds);
 		return request;
 
