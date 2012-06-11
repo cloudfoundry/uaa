@@ -12,8 +12,12 @@
  */
 package org.cloudfoundry.identity.uaa.security;
 
+import java.util.Collection;
+import java.util.Collections;
+
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
@@ -36,6 +40,11 @@ public class DefaultSecurityContextAccessor implements SecurityContextAccessor {
 	}
 
 	@Override
+	public boolean isUser() {
+		return SecurityContextHolder.getContext().getAuthentication()!=null && !isClient();
+	}
+
+	@Override
 	public boolean isAdmin() {
 		Authentication a = SecurityContextHolder.getContext().getAuthentication();
 		return AuthorityUtils.authorityListToSet(a.getAuthorities()).contains("uaa.admin");
@@ -46,7 +55,7 @@ public class DefaultSecurityContextAccessor implements SecurityContextAccessor {
 		Authentication a = SecurityContextHolder.getContext().getAuthentication();
 		return ((UaaPrincipal) a.getPrincipal()).getId();
 	}
-	
+
 	@Override
 	public String getClientId() {
 		Authentication a = SecurityContextHolder.getContext().getAuthentication();
@@ -56,6 +65,12 @@ public class DefaultSecurityContextAccessor implements SecurityContextAccessor {
 		}
 
 		return ((OAuth2Authentication) a).getAuthorizationRequest().getClientId();
+	}
+
+	@Override
+	public Collection<? extends GrantedAuthority> getAuthorities() {
+		Authentication a = SecurityContextHolder.getContext().getAuthentication();
+		return a == null ? Collections.<GrantedAuthority>emptySet() : a.getAuthorities();
 	}
 
 }

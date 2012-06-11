@@ -15,13 +15,13 @@ package org.cloudfoundry.identity.uaa.oauth;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
 import org.junit.Test;
+import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
@@ -45,13 +45,14 @@ public class CheckTokenEndpointTests {
 	private int expiresIn;
 
 	public CheckTokenEndpointTests() {
-		authentication = new OAuth2Authentication(new AuthorizationRequest("client", Collections.singleton("read"), null, null),
+		authentication = new OAuth2Authentication(new AuthorizationRequest("client", Collections.singleton("read"),
+				AuthorityUtils.commaSeparatedStringToAuthorityList("read,write"), null),
 				UaaAuthenticationTestFactory.getAuthentication("12345", "olds", "olds@vmware.com"));
 		DefaultTokenServices tokenServices = new DefaultTokenServices();
 		tokenServices.setTokenStore(tokenStore);
 		endpoint.setTokenServices(tokenServices);
 		DefaultOAuth2AccessToken token = new DefaultOAuth2AccessToken("FOO");
-		token.setExpiration(new Date(System.currentTimeMillis()+100000));
+		token.setExpiration(new Date(System.currentTimeMillis() + 100000));
 		expiresIn = token.getExpiresIn();
 		tokenStore.storeAccessToken(token, authentication);
 	}
@@ -81,15 +82,21 @@ public class CheckTokenEndpointTests {
 	}
 
 	@Test
-	public void testAuthoritiesInResult() {
+	public void testUserAuthoritiesNotInResult() {
 		Map<String, Object> result = endpoint.checkToken("FOO");
-		assertEquals(Arrays.asList("uaa.user"), result.get("user_authorities"));
+		assertEquals(null, result.get("user_authorities"));
 	}
-	
-	@Test(expected=InvalidTokenException.class)
+
+	@Test
+	public void testClientAuthoritiesNotInResult() {
+		Map<String, Object> result = endpoint.checkToken("FOO");
+		assertEquals(null, result.get("client_authorities"));
+	}
+
+	@Test(expected = InvalidTokenException.class)
 	public void testExpiredToken() throws Exception {
 		DefaultOAuth2AccessToken token = new DefaultOAuth2AccessToken("FOO");
-		token.setExpiration(new Date(System.currentTimeMillis()-100000));
+		token.setExpiration(new Date(System.currentTimeMillis() - 100000));
 		expiresIn = token.getExpiresIn();
 		tokenStore.storeAccessToken(token, authentication);
 		Map<String, Object> result = endpoint.checkToken("FOO");
@@ -98,7 +105,8 @@ public class CheckTokenEndpointTests {
 
 	@Test
 	public void testClientOnly() {
-		authentication = new OAuth2Authentication(new AuthorizationRequest("client", Collections.singleton("read"), null, null), null);
+		authentication = new OAuth2Authentication(new AuthorizationRequest("client", Collections.singleton("read"),
+				null, null), null);
 		DefaultTokenServices tokenServices = new DefaultTokenServices();
 		tokenServices.setTokenStore(tokenStore);
 		endpoint.setTokenServices(tokenServices);

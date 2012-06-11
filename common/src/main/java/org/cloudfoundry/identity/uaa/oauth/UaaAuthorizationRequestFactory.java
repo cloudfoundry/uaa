@@ -12,6 +12,7 @@
  */
 package org.cloudfoundry.identity.uaa.oauth;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -19,6 +20,9 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
@@ -42,8 +46,40 @@ public class UaaAuthorizationRequestFactory implements AuthorizationRequestFacto
 
 	private String scopeSeparator = ".";
 
+	private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
+
+	private Map<String, Collection<String>> includeScopes = new HashMap<String, Collection<String>>();
+
+	private Map<String, Collection<String>> excludeScopes = new HashMap<String, Collection<String>>();
+
 	public UaaAuthorizationRequestFactory(ClientDetailsService clientDetailsService) {
 		this.clientDetailsService = clientDetailsService;
+	}
+
+	/**
+	 * Map from authority name to collection of scope names. A token request on behalf of a user will contain all the
+	 * scopes mapped to his authorities (if any, or else just the authority value).
+	 * 
+	 * @param includeScopes the includeScopes to set
+	 */
+	public void setIncludeScopes(Map<String, Collection<String>> includeScopes) {
+		this.includeScopes = includeScopes;
+	}
+
+	/**
+	 * @param excludeScopes the excludeScopes to set
+	 */
+	public void setExcludeScopes(Map<String, Collection<String>> excludeScopes) {
+		this.excludeScopes = excludeScopes;
+	}
+
+	/**
+	 * A helper to pull stuff out of the current security context.
+	 * 
+	 * @param securityContextAccessor the securityContextAccessor to set
+	 */
+	public void setSecurityContextAccessor(SecurityContextAccessor securityContextAccessor) {
+		this.securityContextAccessor = securityContextAccessor;
 	}
 
 	/**
@@ -82,11 +118,14 @@ public class UaaAuthorizationRequestFactory implements AuthorizationRequestFacto
 	@Override
 	public AuthorizationRequest createAuthorizationRequest(Map<String, String> authorizationParameters,
 			Map<String, String> approvalParameters, String clientId, String grantType, Set<String> scopes) {
+
 		ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId);
 		validateGrantType(grantType, clientDetails);
+
 		if (scopes != null) {
 			validateScope(clientDetails, scopes, grantType);
 		}
+
 		if (scopes == null || scopes.isEmpty()) {
 			if (grantType.equals("client_credentials")) {
 				// The client authorities should be a list of scopes
@@ -97,10 +136,46 @@ public class UaaAuthorizationRequestFactory implements AuthorizationRequestFacto
 				scopes = clientDetails.getScope();
 			}
 		}
+
+		if (securityContextAccessor.isUser()) {
+			scopes = addUserScopes(scopes, securityContextAccessor.getAuthorities());
+		}
+
 		Set<String> resourceIds = getResourceIds(clientDetails, scopes);
-		AuthorizationRequest request = new AuthorizationRequest(authorizationParameters, approvalParameters, clientId, scopes,
-				clientDetails.getAuthorities(), resourceIds);
+		AuthorizationRequest request = new AuthorizationRequest(authorizationParameters, approvalParameters, clientId,
+				scopes, clientDetails.getAuthorities(), resourceIds);
+
 		return request;
+
+	}
+
+	/**
+	 * Add or remove scopes derived from the current authenticated user's authorities (if any)
+	 * 
+	 * @param scopes the initial set of scopes from the client registration
+	 * @param collection the users authorities
+	 * @return modified scopes adapted according to the rules specified
+	 */
+	private Set<String> addUserScopes(Set<String> scopes, Collection<? extends GrantedAuthority> authorities) {
+
+		Set<String> result = new LinkedHashSet<String>(scopes);
+		Set<String> collection = AuthorityUtils.authorityListToSet(authorities);
+
+		// Add in all includes, using the authority values themselves if no mapping is provided 
+		for (String authority : collection) {
+			Collection<String> includes = includeScopes.containsKey(authority) ? includeScopes.get(authority) : Arrays.asList(authority);
+			result.addAll(includes);
+		}
+
+		// Remove any explicit excludes 
+		for (String authority : collection) {
+			if (excludeScopes.containsKey(authority)) {
+				Collection<String> excludes = excludeScopes.get(authority);
+				result.removeAll(excludes);
+			}
+		}
+
+		return result;
 
 	}
 

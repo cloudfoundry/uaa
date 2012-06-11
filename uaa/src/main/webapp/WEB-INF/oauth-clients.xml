@@ -13,12 +13,12 @@
 		entry-point-ref="oauthAuthenticationEntryPoint" use-expressions="true" authentication-manager-ref="emptyAuthenticationManager"
 		xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/oauth/users/([^/].*?)/tokens/.*"
-			access="oauthIsUser() or (oauthIsClient() and hasRole('uaa.admin')) and oauthHasScope('tokens.write')" method="DELETE" />
+			access="hasRole('uaa.admin') or (oauthIsUser() and oauthHasScope('tokens.write'))" method="DELETE" />
 		<intercept-url pattern="/oauth/users/.*"
-			access="oauthIsUser() or (oauthIsClient() and hasRole('uaa.admin')) and oauthHasScope('tokens.read')" method="GET" />
-		<intercept-url pattern="/oauth/clients/([^/].*?)/tokens/.*" access="(hasRole('uaa.admin') or oauthIsClient()) and oauthHasScope('tokens.write')"
+			access="hasRole('uaa.admin') or (oauthIsUser() and oauthHasScope('tokens.read'))" method="GET" />
+		<intercept-url pattern="/oauth/clients/([^/].*?)/tokens/.*" access="hasRole('uaa.admin') or (oauthIsClient() and oauthHasScope('tokens.write'))"
 			method="DELETE" />
-		<intercept-url pattern="/oauth/clients/.*" access="(hasRole('uaa.admin') or oauthIsClient()) and oauthHasScope('tokens.read')"
+		<intercept-url pattern="/oauth/clients/.*" access="hasRole('uaa.admin') or (oauthIsClient() and oauthHasScope('tokens.read'))"
 			method="GET" />
 		<custom-filter ref="tokensResourceAuthenticationFilter" before="PRE_AUTH_FILTER" />
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
