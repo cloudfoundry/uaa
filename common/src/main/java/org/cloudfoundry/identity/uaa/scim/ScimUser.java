@@ -43,15 +43,17 @@ public final class ScimUser {
 	@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 	public static final class Group {
 		String value;
-
+		
 		String display;
+
+		String externalId;
 		
 		public Group() {
 		}
 		
-		public Group(String value, String display) {
+		public Group(String value, String externalId) {
 			this.value = value;
-			this.display = display;
+			this.externalId = externalId;
 		}
 
 		public String getValue() {
@@ -60,6 +62,14 @@ public final class ScimUser {
 
 		public void setValue(String value) {
 			this.value = value;
+		}
+
+		public String getExternalId() {
+			return externalId;
+		}
+
+		public void setExternalId(String externalId) {
+			this.externalId = externalId;
 		}
 
 		public String getDisplay() {
@@ -75,6 +85,7 @@ public final class ScimUser {
 			final int prime = 31;
 			int result = 1;
 			result = prime * result + ((display == null) ? 0 : display.hashCode());
+			result = prime * result + ((externalId == null) ? 0 : externalId.hashCode());
 			result = prime * result + ((value == null) ? 0 : value.hashCode());
 			return result;
 		}
@@ -93,6 +104,12 @@ public final class ScimUser {
 					return false;
 			}
 			else if (!display.equals(other.display))
+				return false;
+			if (externalId == null) {
+				if (other.externalId != null)
+					return false;
+			}
+			else if (!externalId.equals(other.externalId))
 				return false;
 			if (value == null) {
 				if (other.value != null)

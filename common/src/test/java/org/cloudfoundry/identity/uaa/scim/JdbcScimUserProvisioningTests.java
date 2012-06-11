@@ -104,7 +104,7 @@ public class JdbcScimUserProvisioningTests {
 		Map<String, Object> map = template.queryForMap("select * from users where id=?", created.getId());
 		assertEquals(user.getUserName(), map.get("userName"));
 		assertEquals(user.getUserType(), map.get(UaaAuthority.UAA_USER.getUserType()));
-		assertEquals("uaa.user", created.getGroups().iterator().next().getDisplay());
+		assertEquals("uaa.user", created.getGroups().iterator().next().getExternalId());
 	}
 
 	@Test(expected = InvalidUserException.class)
@@ -411,7 +411,7 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals("joe@joe.com", joe.getPrimaryEmail());
 		assertEquals("joe", joe.getUserName());
 		assertEquals("+1-222-1234567", joe.getPhoneNumbers().get(0).getValue());
-		assertEquals("uaa.user", joe.getGroups().iterator().next().getDisplay());
+		assertEquals("uaa.user", joe.getGroups().iterator().next().getExternalId());
 	}
 
 }
