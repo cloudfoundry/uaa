@@ -28,18 +28,30 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
 	private final Log logger = LogFactory.getLog(getClass());
 
 	private ApplicationEventPublisher eventPublisher;
-	
+
 	private ScimUserBootstrap scimUserBootstrap;
 
+	boolean addNewAccounts = false;
+
 	private RandomValueStringGenerator generator = new RandomValueStringGenerator();
+
+	/**
+	 * Flag to indicate that the scim user bootstrap (if provided) should be used to add new accounts when
+	 * authenticated.
+	 * 
+	 * @param addNewAccounts the flag to set (default false)
+	 */
+	public void setAddNewAccounts(boolean addNewAccounts) {
+		this.addNewAccounts = addNewAccounts;
+	}
 
 	@Override
 	public void setApplicationEventPublisher(ApplicationEventPublisher eventPublisher) {
 		this.eventPublisher = eventPublisher;
 	}
-	
+
 	/**
-	 * If set this boostrap helper will be used to register new accounts.
+	 * If set this bootstrap helper will be used to register new accounts.
 	 * 
 	 * @param scimUserBootstrap the scim user bootstrap to set
 	 */
@@ -65,7 +77,7 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
 			OAuth2Authentication authentication = (OAuth2Authentication) context.getAuthentication();
 			if (authentication.isClientOnly()) {
 				UaaUser user = getUser(req, info);
-				if (scimUserBootstrap!=null) {
+				if (scimUserBootstrap != null && addNewAccounts) {
 					// Register new users automatically
 					scimUserBootstrap.addUser(user);
 				}
@@ -87,16 +99,17 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
 		if (email == null) {
 			if (name.contains("@")) {
 				email = name;
-			} else {
+			}
+			else {
 				email = name + "@unknown.org";
 			}
 		}
 		String givenName = info.get("given_name");
-		if (givenName==null) {
+		if (givenName == null) {
 			givenName = email.split("@")[0];
 		}
 		String familyName = info.get("family_name");
-		if (familyName==null) {
+		if (familyName == null) {
 			familyName = email.split("@")[1];
 		}
 		return new UaaUser(name, generator.generate(), email, givenName, familyName);

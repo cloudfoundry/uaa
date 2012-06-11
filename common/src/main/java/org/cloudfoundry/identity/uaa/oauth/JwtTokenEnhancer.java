@@ -45,6 +45,12 @@ import org.springframework.web.bind.annotation.ResponseBody;
  */
 @Controller
 public class JwtTokenEnhancer implements TokenEnhancer, InitializingBean {
+
+	/**
+	 * Field name for token id.
+	 */
+	public static final String TOKEN_ID = "jti";
+
 	protected final Log logger = LogFactory.getLog(getClass());
 
 	private AccessTokenConverter tokenConverter = new DefaultTokenConverter();
@@ -115,7 +121,7 @@ public class JwtTokenEnhancer implements TokenEnhancer, InitializingBean {
 	public OAuth2AccessToken enhance(OAuth2AccessToken accessToken, OAuth2Authentication authentication) {
 		DefaultOAuth2AccessToken result = new DefaultOAuth2AccessToken(accessToken);
 		String tokenId = result.getValue();
-		result.setAdditionalInformation(Collections.<String, Object> singletonMap("token_id", tokenId));
+		result.setAdditionalInformation(Collections.<String, Object> singletonMap(TOKEN_ID, tokenId));
 		return result.setValue(createAccessTokenValue(accessToken, authentication));
 	}
 

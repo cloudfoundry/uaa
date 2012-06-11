@@ -134,6 +134,7 @@ public class ClientAdminEndpointsIntegrationTests {
 		assertEquals(HttpStatus.CREATED, result.getStatusCode());
 
 		client.setResourceIds(Collections.singleton("foo"));
+		client.setClientSecret(null);
 
 		result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients/{client}"),
 				HttpMethod.PUT, new HttpEntity<BaseClientDetails>(client, headers), Void.class, client.getClientId());

@@ -259,7 +259,7 @@
     <scm>
       <url>http://github.com/cloudfoundry/uaa</url>
       <connection>scm:git:git://github.com/cloudfoundry/uaa.git</connection>
-      <developerConnection>scm:git:ssh://git@github.com/cloudfoundry/uau.git</developerConnection>
+      <developerConnection>scm:git:ssh://git@github.com/cloudfoundry/uaa.git</developerConnection>
     </scm>
     <issueManagement>
       <system>JIRA</system>
@@ -295,9 +295,9 @@
     </licenses>
 	<distributionManagement>
 		<repository>
-			<id>spring-milestone</id>
-			<name>Spring Milestone Repository</name>
-			<url>s3://maven.springframework.org/milestone</url>
+			<id>spring-release</id>
+			<name>Spring Release Repository</name>
+			<url>s3://maven.springframework.org/release</url>
 		</repository>
 		<snapshotRepository>
 			<id>spring-snapshot</id>

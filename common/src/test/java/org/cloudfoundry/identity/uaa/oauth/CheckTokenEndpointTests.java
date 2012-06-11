@@ -60,7 +60,8 @@ public class CheckTokenEndpointTests {
 	@Test
 	public void testUserIdInResult() {
 		Map<String, Object> result = endpoint.checkToken("FOO");
-		assertEquals("olds", result.get("user_id"));
+		assertEquals("olds", result.get("user_name"));
+		assertEquals("12345", result.get("user_id"));
 	}
 
 	@Test
@@ -78,7 +79,7 @@ public class CheckTokenEndpointTests {
 	@Test
 	public void testExpiryResult() {
 		Map<String, Object> result = endpoint.checkToken("FOO");
-		assertTrue(expiresIn >= Integer.parseInt(String.valueOf(result.get("expires_in"))));
+		assertTrue(expiresIn + System.currentTimeMillis()/1000 >= Integer.parseInt(String.valueOf(result.get("exp"))));
 	}
 
 	@Test
