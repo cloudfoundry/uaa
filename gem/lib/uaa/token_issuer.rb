@@ -84,11 +84,11 @@ class TokenIssuer
     headers = {content_type: "application/x-www-form-urlencoded"}
 
     # required for current UAA implementation
-    body = "credentials=#{URI.encode(credentials.to_json)}"
+    body = URI.encode_www_form(credentials: credentials.to_json)
 
     # TODO: the above can be changed to the following to be consistent with
     # the other OAuth APIs when CFID-239 is done:
-    # body = URI.encode_www_form(credentials)
+    # body = URI.encode_www_form(credentials.merge(credentials: true))
 
     status, body, headers = request(:post, uri, body, headers)
     raise BadResponse, "status #{status}" unless status == 302

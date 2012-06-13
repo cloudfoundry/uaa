@@ -65,7 +65,7 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
         toki.debug = true
         @user_acct = UserAccount.new(@target, toki.client_credentials_grant.auth_header)
         @user_acct.debug = true
-        ENV["UAA_USER_NAME"] = @username = "sam_#{Time.now.to_i}"
+        ENV["UAA_USER_NAME"] = @username = "sam+#{Time.now.to_i}"
       end
 
       it "creates a user" do
