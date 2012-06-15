@@ -97,9 +97,7 @@ public class YamlProcessor {
 	 * decide which map entries to keep in the final output from this factory. Possible values:
 	 * <ul>
 	 * <li><code>OVERRIDE</code> for replacing values from earlier in the list</li>
-	 * <li><code>FIRST_FOUND</code> if you want to take the first resource in the list that exists and use just that. If
-	 * this is set it implies {@link #setIgnoreResourceNotFound(boolean) ignoreResourceNotFound} is true (there's no
-	 * need to set both).</li>
+	 * <li><code>FIRST_FOUND</code> if you want to take the first resource in the list that exists and use just that.</li>
 	 * </ul>
 	 * 
 	 * 
@@ -110,7 +108,7 @@ public class YamlProcessor {
 	}
 
 	/**
-	 * @param resource the resource to set
+	 * @param resources the resources to set
 	 */
 	public void setResources(Resource[] resources) {
 		this.resources = resources;
@@ -130,18 +128,22 @@ public class YamlProcessor {
 		for (Resource resource : resources) {
 			try {
 				logger.info("Loading from YAML: " + resource);
+				int count = 0;
 				for (Object object : yaml.loadAll(resource.getInputStream())) {
 					if (resolutionMethod != ResolutionMethod.FIRST_FOUND || !found) {
-						int count = 0;
 						@SuppressWarnings("unchecked")
 						Map<String, Object> map = (Map<String, Object>) object;
 						if (map != null) {
 							process(map, callback);
 							found = true;
-							logger.debug("Loaded " + (count++) + " documents from YAML: " + resource);
+							count ++;
 						}
 					}
 				}
+
+				logger.info("Loaded " + count + " document" + (count > 1 ? "s" : "")
+						+ " from YAML resource: " + resource);
+
 				if (resolutionMethod == ResolutionMethod.FIRST_FOUND && found) {
 					// No need to load any more resources
 					break;
