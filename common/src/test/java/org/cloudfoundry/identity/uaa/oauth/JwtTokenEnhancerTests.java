@@ -42,7 +42,7 @@ public class JwtTokenEnhancerTests {
 	@Test
 	public void testEnhanceAccessToken() {
 		OAuth2Authentication authentication = new OAuth2Authentication(
-				new AuthorizationRequest("foo", null, null, null), userAuthentication);
+				new AuthorizationRequest("foo", null), userAuthentication);
 		OAuth2AccessToken token = tokenEnhancer.enhance(new DefaultOAuth2AccessToken("FOO"), authentication);
 		assertNotNull(token.getValue());
 	}
@@ -64,7 +64,7 @@ public class JwtTokenEnhancerTests {
 				"-----END RSA PRIVATE KEY----- ";
 		tokenEnhancer.setSigningKey(rsaKey);
 		OAuth2Authentication authentication = new OAuth2Authentication(
-				new AuthorizationRequest("foo", null, null, null), userAuthentication);
+				new AuthorizationRequest("foo", null), userAuthentication);
 		OAuth2AccessToken token = tokenEnhancer.enhance(new DefaultOAuth2AccessToken("FOO"), authentication);
 		JwtHelper.decodeAndVerify(token.getValue(), new RsaVerifier(rsaKey));
 	}

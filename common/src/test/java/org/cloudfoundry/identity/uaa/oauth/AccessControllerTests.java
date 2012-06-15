@@ -37,7 +37,7 @@ public class AccessControllerTests {
 		InMemoryClientDetailsService clientDetailsService = new InMemoryClientDetailsService();
 		clientDetailsService.setClientDetailsStore(Collections.singletonMap("client", new BaseClientDetails()));
 		controller.setClientDetailsService(clientDetailsService);
-		String result = controller.confirm(new AuthorizationRequest("client", null, null, null), new ModelMap(),
+		String result = controller.confirm(new AuthorizationRequest("client", null), new ModelMap(),
 				new MockHttpServletRequest());
 		assertEquals("access_confirmation", result);
 	}
@@ -52,7 +52,7 @@ public class AccessControllerTests {
 		request.setScheme("https");
 		request.addHeader("Host", "foo");
 		ModelMap model = new ModelMap();
-		controller.confirm(new AuthorizationRequest("client", null, null, null), model, request);
+		controller.confirm(new AuthorizationRequest("client", null), model, request);
 		Map<String, Object> options = (Map<String, Object>) ((Map<String, Object>) model.get("options")).get("confirm");
 		assertEquals("https://foo/oauth/authorize", options.get("location"));
 		assertEquals("/oauth/authorize", options.get("path"));

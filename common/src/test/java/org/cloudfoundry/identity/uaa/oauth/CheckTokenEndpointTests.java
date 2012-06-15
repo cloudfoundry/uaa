@@ -21,7 +21,6 @@ import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
 import org.junit.Test;
-import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
@@ -45,8 +44,7 @@ public class CheckTokenEndpointTests {
 	private int expiresIn;
 
 	public CheckTokenEndpointTests() {
-		authentication = new OAuth2Authentication(new AuthorizationRequest("client", Collections.singleton("read"),
-				AuthorityUtils.commaSeparatedStringToAuthorityList("read,write"), null),
+		authentication = new OAuth2Authentication(new AuthorizationRequest("client", Collections.singleton("read")),
 				UaaAuthenticationTestFactory.getAuthentication("12345", "olds", "olds@vmware.com"));
 		DefaultTokenServices tokenServices = new DefaultTokenServices();
 		tokenServices.setTokenStore(tokenStore);
@@ -106,8 +104,7 @@ public class CheckTokenEndpointTests {
 
 	@Test
 	public void testClientOnly() {
-		authentication = new OAuth2Authentication(new AuthorizationRequest("client", Collections.singleton("read"),
-				null, null), null);
+		authentication = new OAuth2Authentication(new AuthorizationRequest("client", Collections.singleton("read")), null);
 		DefaultTokenServices tokenServices = new DefaultTokenServices();
 		tokenServices.setTokenStore(tokenStore);
 		endpoint.setTokenServices(tokenServices);

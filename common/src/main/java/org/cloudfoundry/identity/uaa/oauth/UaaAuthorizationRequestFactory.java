@@ -28,6 +28,7 @@ import org.springframework.security.oauth2.common.exceptions.InvalidGrantExcepti
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.AuthorizationRequestFactory;
+import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 
@@ -119,7 +120,7 @@ public class UaaAuthorizationRequestFactory implements AuthorizationRequestFacto
 	public AuthorizationRequest createAuthorizationRequest(Map<String, String> authorizationParameters,
 			Map<String, String> approvalParameters, String clientId, String grantType, Set<String> scopes) {
 
-		ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId);
+		BaseClientDetails clientDetails = new BaseClientDetails(clientDetailsService.loadClientByClientId(clientId));
 		validateGrantType(grantType, clientDetails);
 
 		if (scopes != null) {
@@ -142,8 +143,10 @@ public class UaaAuthorizationRequestFactory implements AuthorizationRequestFacto
 		}
 
 		Set<String> resourceIds = getResourceIds(clientDetails, scopes);
+		clientDetails.setResourceIds(resourceIds);
 		AuthorizationRequest request = new AuthorizationRequest(authorizationParameters, approvalParameters, clientId,
-				scopes, clientDetails.getAuthorities(), resourceIds);
+				scopes);
+		request = request.addClientDetails(clientDetails);
 
 		return request;
 
