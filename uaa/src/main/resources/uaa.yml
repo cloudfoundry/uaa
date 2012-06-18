@@ -14,6 +14,9 @@ oauth:
       secret: adminsecret
       resource-ids: clients,tokens
 
+scim:
+  delete:
+    deactivate: true
 
 jwt:
    token:
@@ -39,7 +42,6 @@ database.driverClassName: org.hsqldb.jdbcDriver
 database.url: jdbc:hsqldb:mem:jdbcUaaTests
 database.username: sa
 database.password:
-database.deactivate.on.delete: false
 
 cloud_controller:
   database:

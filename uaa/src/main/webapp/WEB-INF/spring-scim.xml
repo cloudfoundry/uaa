@@ -17,7 +17,7 @@
 		<property name="passwordValidator">
 			<bean class="org.cloudfoundry.identity.uaa.scim.NullPasswordValidator" />
 		</property>
-        <property name="deactivateOnDelete" value="${database.deactivate.on.delete}" />
+        <property name="deactivateOnDelete" value="${scim.delete.deactivate:true}" />
 	</bean>
 
 	<!-- Add a handler adapter with special knowledge of the ScimUser endpoints -->
