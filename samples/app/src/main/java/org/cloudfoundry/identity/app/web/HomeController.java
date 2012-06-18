@@ -79,7 +79,7 @@ public class HomeController {
 		model.addAttribute("tokens", tokens.getBody());
 		if (!body.isEmpty()) {
 			Map<String,String> token = body.iterator().next();
-			restTemplate.delete(tokensUri + "/" + token.get("token_id"), principal.getName());
+			restTemplate.delete(tokensUri + "/" + token.get("jti"), principal.getName());
 		}
 		return "redirect:/j_spring_security_logout";
 	}

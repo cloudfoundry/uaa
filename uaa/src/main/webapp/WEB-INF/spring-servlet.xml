@@ -259,7 +259,7 @@
 		<property name="registrationBehaviorName" value="REGISTRATION_REPLACE_EXISTING" />
 	</bean>
 
-	<mvc:resources location="/resources/" mapping="/resources/**" />
+	<mvc:resources location="/" mapping="/**" />
 
 	<mvc:annotation-driven />
 
