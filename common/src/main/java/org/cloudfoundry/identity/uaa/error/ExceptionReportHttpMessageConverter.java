@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.cloudfoundry.identity.uaa.util.StringUtils;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.MediaType;
@@ -91,7 +92,7 @@ public class ExceptionReportHttpMessageConverter extends AbstractHttpMessageConv
 			HttpMessageNotWritableException {
 		Exception e = report.getException();
 		Map<String, String> map = new HashMap<String, String>();
-		map.put("error", e.getClass().getName());
+		map.put("error", getErrorName(e));
 		map.put("message", e.getMessage());
 		if (report.isTrace()) {
 			StringWriter trace = new StringWriter();
@@ -108,6 +109,15 @@ public class ExceptionReportHttpMessageConverter extends AbstractHttpMessageConv
 				}
 			}
 		}
+	}
+
+	private String getErrorName(Exception e) {
+		String name = e.getClass().getSimpleName();
+		name = StringUtils.camelToUnderscore(name);
+		if (name.endsWith("_exception")) {
+			name = name.substring(0, name.lastIndexOf("_exception"));
+		}
+		return name;
 	}
 
 }

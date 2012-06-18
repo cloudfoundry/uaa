@@ -12,6 +12,13 @@
  */
 package org.cloudfoundry.identity.uaa.scim;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.util.Collection;
 import java.util.UUID;
 
@@ -33,8 +40,6 @@ import org.springframework.test.annotation.IfProfileValue;
 import org.springframework.test.annotation.ProfileValueSourceConfiguration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import static org.junit.Assert.*;
 
 /**
  * @author Luke Taylor
@@ -200,7 +205,7 @@ public class JdbcScimUserProvisioningTests {
         ScimUser deletedUser = db.removeUser(tmpUserId, 0);
         deletedUser.setActive(true);
 		try {
-        ScimUser user = db.createUser(deletedUser, "foobarspam1234");
+        db.createUser(deletedUser, "foobarspam1234");
         } catch (UserAlreadyExistsException e) {
             removeUser(tmpUserId);
             throw e;
@@ -223,7 +228,7 @@ public class JdbcScimUserProvisioningTests {
     public void canDeleteExistingUser() {
         String tmpUserId = createUserForDelete();
         db.setDeactivateOnDelete(false);
-        ScimUser deletedUser = db.removeUser(tmpUserId, 0);
+        db.removeUser(tmpUserId, 0);
         assertEquals(0, template.queryForList("select * from users where id=?", tmpUserId).size());
         assertEquals(0, db.retrieveUsers("username eq '" + tmpUserId + "'").size());
     }

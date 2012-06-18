@@ -27,6 +27,7 @@ import javax.management.openmbean.TabularDataSupport;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.util.StringUtils;
 
 import sun.management.LazyCompositeData;
 
@@ -85,7 +86,7 @@ public class MBeanMap extends AbstractMap<String, Object> {
 			for (MBeanOperationInfo operation : operations) {
 				String key = operation.getName();
 				if (key.startsWith("get") && operation.getSignature().length == 0) {
-					String attribute = MBeanMap.prettify(key.substring(3));
+					String attribute = StringUtils.camelToUnderscore(key.substring(3));
 					if (map.containsKey(attribute)) {
 						continue;
 					}
@@ -99,14 +100,6 @@ public class MBeanMap extends AbstractMap<String, Object> {
 			}
 		}
 		return map.entrySet();
-	}
-
-	public static String prettify(String key) {
-		String result = key.replace(" ", "_");
-		result = result.replaceAll("([a-z])([A-Z])", "$1_$2");
-		result = result.replace(".", "_");
-		result = result.toLowerCase();
-		return result;
 	}
 
 	private Object getCompositeWrapper(Object value) {
@@ -175,7 +168,7 @@ public class MBeanMap extends AbstractMap<String, Object> {
 	private void safePut(Map<Object, Object> map, Object key, Object value, boolean prettifyKeys) {
 		Object property = key;
 		if (key instanceof String && prettifyKeys) {
-			property = MBeanMap.prettify((String) key);
+			property = StringUtils.camelToUnderscore((String) key);
 		}
 		// Don't prettify system property keys in case user has added upper case properties
 		map.put(property, getCompositeWrapper(value, prettifyKeys && !key.equals("SystemProperties")));

@@ -25,6 +25,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.util.StringUtils;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.context.expression.MapAccessor;
 import org.springframework.core.env.Environment;
@@ -227,13 +228,13 @@ public class VarzEndpoint implements EnvironmentAware {
 
 			String type = name.getKeyProperty("type");
 			if (type != null) {
-				type = MBeanMap.prettify(type);
+				type = StringUtils.camelToUnderscore(type);
 				objects = getMap(objects, type);
 			}
 
 			String key = name.getKeyProperty("name");
 			if (key != null) {
-				key = MBeanMap.prettify(key);
+				key = StringUtils.camelToUnderscore(key);
 				objects = getMap(objects, key);
 			}
 
@@ -241,7 +242,7 @@ public class VarzEndpoint implements EnvironmentAware {
 				if (property.equals("type") || property.equals("name")) {
 					continue;
 				}
-				key = MBeanMap.prettify(property);
+				key = StringUtils.camelToUnderscore(property);
 				objects = getMap(objects, key);
 				String value = name.getKeyProperty(property);
 				objects = getMap(objects, value);

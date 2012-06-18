@@ -17,11 +17,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Map;
 
-import org.cloudfoundry.identity.uaa.scim.InvalidUserException;
 import org.cloudfoundry.identity.uaa.scim.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.UserAlreadyExistsException;
-import org.cloudfoundry.identity.uaa.scim.UserNotFoundException;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
@@ -120,7 +117,7 @@ public class ScimUserEndpointIntegrationTests {
 
 		System.err.println(error);
 		assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-		assertEquals(InvalidUserException.class.getName(), error.get("error"));
+		assertEquals("invalid_user", error.get("error"));
 
 	}
 
@@ -196,7 +193,7 @@ public class ScimUserEndpointIntegrationTests {
 		Map<String, String> error = response.getBody();
 
 		// System.err.println(error);
-		assertEquals(UserAlreadyExistsException.class.getName(), error.get("error"));
+		assertEquals("user_already_exists", error.get("error"));
 
 	}
 
@@ -209,7 +206,7 @@ public class ScimUserEndpointIntegrationTests {
 		@SuppressWarnings("unchecked")
 		Map<String, String> error = response.getBody();
 		// System.err.println(error);
-		assertEquals(UserNotFoundException.class.getName(), error.get("error"));
+		assertEquals("user_not_found", error.get("error"));
 		assertEquals("User 9999 does not exist", error.get("message"));
 
 	}
@@ -234,7 +231,7 @@ public class ScimUserEndpointIntegrationTests {
 		@SuppressWarnings("unchecked")
 		Map<String, String> error = response.getBody();
 		assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-		assertEquals(UserNotFoundException.class.getName(), error.get("error"));
+		assertEquals("user_not_found", error.get("error"));
 		assertEquals("User 9999 does not exist", error.get("message"));
 	}
 
