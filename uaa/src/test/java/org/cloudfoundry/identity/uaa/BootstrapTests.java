@@ -18,6 +18,7 @@ import static org.junit.Assert.assertNotNull;
 import javax.sql.DataSource;
 
 import org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean;
+import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.varz.VarzEndpoint;
 import org.junit.After;
