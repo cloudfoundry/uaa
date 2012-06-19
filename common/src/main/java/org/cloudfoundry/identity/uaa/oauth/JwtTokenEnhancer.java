@@ -139,6 +139,8 @@ public class JwtTokenEnhancer implements TokenEnhancer, InitializingBean {
 
 	@Override
 	public void afterPropertiesSet() throws Exception {
+    logger.debug("Using verification key " + verifierKey);
+    logger.debug("Using signing key " + signingKey);
 		// Check the signing and verification keys match
 		if (signer instanceof RsaSigner) {
 			RsaVerifier verifier;
