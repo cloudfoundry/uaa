@@ -65,7 +65,7 @@ public class VarzEndpoint implements EnvironmentAware {
 	 * @param environmentProperties the environment properties to set
 	 */
 	public void setEnvironmentProperties(Properties environmentProperties) {
-		this.environmentProperties = environmentProperties;
+		this.environmentProperties = hidePasswords(environmentProperties);
 	}
 
 	@Override
@@ -292,6 +292,21 @@ public class VarzEndpoint implements EnvironmentAware {
 			logger.warn("Could not obtain OS environment", e);
 		}
 		return env;
+	}
+
+	/**
+	 * @param properties
+	 * @return new properties with no plaintext passwords
+	 */
+	private Properties hidePasswords(Properties properties) {
+		Properties result = new Properties();
+		result.putAll(properties);
+		for (String key : properties.stringPropertyNames()) {
+			if (key.endsWith("password") || key.endsWith("secret")) {
+				result.put(key, "#");
+			}
+		}
+		return result;
 	}
 
 	class MapWrapper {
