@@ -136,13 +136,13 @@ public class YamlProcessor {
 						if (map != null) {
 							process(map, callback);
 							found = true;
-							count ++;
+							count++;
 						}
 					}
 				}
 
-				logger.info("Loaded " + count + " document" + (count > 1 ? "s" : "")
-						+ " from YAML resource: " + resource);
+				logger.info("Loaded " + count + " document" + (count > 1 ? "s" : "") + " from YAML resource: "
+						+ resource);
 
 				if (resolutionMethod == ResolutionMethod.FIRST_FOUND && found) {
 					// No need to load any more resources
@@ -167,11 +167,10 @@ public class YamlProcessor {
 		Properties properties = new Properties();
 		assignProperties(properties, map, null);
 		if (documentMatchers.isEmpty()) {
-			logger.debug("Merging document (no matchers set)");
+			logger.debug("Merging document (no matchers set)" + map);
 			callback.process(properties, map);
 		}
 		else {
-			logger.debug("Matching document: " + map);
 			boolean keyFound = false;
 			boolean valueFound = false;
 			for (Entry<String, String> entry : documentMatchers.entrySet()) {
@@ -181,7 +180,8 @@ public class YamlProcessor {
 					keyFound = true;
 					String value = properties.getProperty(key);
 					if (value.matches(pattern)) {
-						logger.debug("Matched document with " + key + "=" + value + " (pattern=/" + pattern + "/)");
+						logger.debug("Matched document with " + key + "=" + value + " (pattern=/" + pattern + "/): "
+								+ map);
 						callback.process(properties, map);
 						valueFound = true;
 						// No need to check for more matches
