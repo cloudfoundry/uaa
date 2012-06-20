@@ -21,8 +21,8 @@ import java.util.List;
 
 import javax.sql.DataSource;
 
-import org.cloudfoundry.identity.uaa.NullSafeSystemProfileValueSource;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
+import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.junit.Before;
 import org.junit.Test;

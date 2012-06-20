@@ -78,7 +78,7 @@
 		<property name="loginUrl" value="${uaa.login.url:http://localhost:8080/uaa/login.do}" />
 	</bean>
 
-	<mvc:resources location="/resources/" mapping="/resources/**" />
+	<mvc:resources location="/" mapping="/**" />
 
 	<mvc:annotation-driven />
 

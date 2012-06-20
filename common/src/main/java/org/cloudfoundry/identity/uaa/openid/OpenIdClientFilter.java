@@ -25,12 +25,15 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.oauth2.client.OAuth2RestTemplate;
 import org.springframework.security.oauth2.client.http.AccessTokenRequiredException;
 import org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter;
 import org.springframework.web.client.RestOperations;
 
 /**
- * A filter that can authenticate with a remote OpenId Connect provider.
+ * A filter that can authenticate with a remote OpenId Connect(ish) provider. Works only with the UAA "lite" variant of
+ * the OpenId <code>/userinfo</code> endpoint: makes assumptions about the fields it gets in the response from the
+ * endpoint, and doesn't ask for or expect an id token.
  * 
  * @author Dave Syer
  * 
@@ -42,7 +45,9 @@ public class OpenIdClientFilter extends AbstractAuthenticationProcessingFilter {
 	private String userInfoUrl;
 
 	/**
-	 * A rest template to be used to contact the remote user info endpoint.
+	 * A rest template to be used to contact the remote user info endpoint. Normally would be an instance of
+	 * {@link OAuth2RestTemplate}, but there is no need for that dependency to be explicit, and there are advantages in
+	 * making it implicit (e.g. for testing purposes).
 	 * 
 	 * @param restTemplate a rest template
 	 */
@@ -51,7 +56,7 @@ public class OpenIdClientFilter extends AbstractAuthenticationProcessingFilter {
 	}
 
 	/**
-	 * The remote URL of the OpenId Connect /userinfo endpoint.
+	 * The remote URL of the OpenId Connect <code>/userinfo</code> endpoint.
 	 * 
 	 * @param userInfoUrl
 	 */

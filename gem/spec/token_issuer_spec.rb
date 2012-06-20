@@ -176,8 +176,9 @@ describe TokenIssuer do
       StubServer.responder do |request, reply|
         request.method.should == :post
         request.headers[:content_type].should == "application/x-www-form-urlencoded"
-        # request.body.should == URI.encode_www_form(credentials: {username: 'joe', password: 'joes password'}.to_json)
-        request.body.should == "credentials=#{URI.encode({username: 'joe', password: 'joes password'}.to_json)}"
+        request.body.should == URI.encode_www_form(credentials: {username: 'joe+admin', password: "joe's password"}.to_json)
+        request.body.should == "credentials=%7B%22username%22%3A%22joe%2Badmin%22%2C%22password%22%3A%22joe%27s+password%22%7D"
+        #request.body.should == "credentials=#{URI.encode({username: 'joe+admin', password: "joe's password"}.to_json)}"
         request.path.should =~ %r{^/oauth/authorize\?}
         qparams = subject.class.decode_oauth_parameters(URI.parse(request.path).query)
         qparams[:response_type].should == "token"
@@ -192,7 +193,7 @@ describe TokenIssuer do
         reply
       end
       StubServer.request do
-        token = subject.implicit_grant_with_creds(username: "joe", password: "joes password")
+        token = subject.implicit_grant_with_creds(username: "joe+admin", password: "joe's password")
         token.auth_header.should == "TokTypE good.access.token"
         token.info[:access_token].should == "good.access.token"
         token.info[:token_type].should == "TokTypE"

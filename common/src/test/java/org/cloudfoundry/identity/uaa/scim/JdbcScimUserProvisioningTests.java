@@ -26,9 +26,9 @@ import java.util.UUID;
 
 import javax.sql.DataSource;
 
-import org.cloudfoundry.identity.uaa.NullSafeSystemProfileValueSource;
-import org.cloudfoundry.identity.uaa.TestUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
+import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
+import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.junit.After;
 import org.junit.Before;
@@ -66,25 +66,38 @@ public class JdbcScimUserProvisioningTests {
 
 	private static final String MABEL_ID = UUID.randomUUID().toString();
 
-	private static final String SQL_INJECTION_FIELDS = "password,version,created,lastModified,username,email,givenName,familyName";
+    private static final String SQL_INJECTION_FIELDS = "password,version,created,lastModified,username,email,givenName,familyName";
+
+    private static final String addUserSqlFormat = "insert into users (id, username, password, email, givenName, familyName, phoneNumber) values ('%s','%s','%s','%s','%s','%s','%s')";
+
+    private static final String deleteUserSqlFormat = "delete from users where id='%s'";
 
 	@Before
 	public void createDatasource() throws Exception {
 
-		template = new JdbcTemplate(dataSource);
-
-		TestUtils.assertNoSuchUser(template, "id", JOE_ID);
-		TestUtils.assertNoSuchUser(template, "id", MABEL_ID);
-		TestUtils.assertNoSuchUser(template, "userName", "jo@foo.com");
+        template = new JdbcTemplate(dataSource);
 
 		db = new JdbcScimUserProvisioning(template);
 		BCryptPasswordEncoder pe = new BCryptPasswordEncoder(4);
-		template.execute("insert into users (id, username, password, email, givenName, familyName, phoneNumber) "
-				+ "values ('" + JOE_ID + "', 'joe','" + pe.encode("joespassword")
-				+ "','joe@joe.com','Joe','User','+1-222-1234567')");
-		template.execute("insert into users (id, username, password, email, givenName, familyName) " + "values ('"
-				+ MABEL_ID + "', 'mabel','" + pe.encode("mabelspassword") + "','mabel@mabel.com','Mabel','User')");
+
+        addUser(JOE_ID, "joe", pe.encode("joespassword"), "joe@joe.com", "Joe", "User", "+1-222-1234567");
+        addUser(MABEL_ID, "mabel", pe.encode("mabelspassword"), "mabel@mabel.com", "Mabel", "User", "");
 	}
+
+    private String createUserForDelete() {
+        String tmpUserId = UUID.randomUUID().toString();
+        addUser(tmpUserId, tmpUserId, "password", tmpUserId + "@delete.com", "ToDelete", "User", "+1-234-5678910");
+        return tmpUserId;
+    }
+
+    private void addUser(String id, String username, String password, String email, String givenName, String familyName, String phoneNumber) {
+        TestUtils.assertNoSuchUser(template, "id", id);
+        template.execute(String.format(addUserSqlFormat, id, username, password, email, givenName, familyName, phoneNumber));
+    }
+
+    private void removeUser (String id) {
+        template.execute(String.format(deleteUserSqlFormat, id));
+    }
 
 	@After
 	public void clear() throws Exception {
@@ -200,36 +213,80 @@ public class JdbcScimUserProvisioningTests {
 	}
 
 	@Test
-	public void canRemoveExistingUser() {
-		ScimUser joe = db.removeUser(JOE_ID, 0);
-		assertJoe(joe);
-		assertEquals(1, template.queryForList("select * from users where id=? and active=false", JOE_ID).size());
-		assertFalse(joe.isActive());
-		assertEquals(1, db.retrieveUsers("username eq 'joe' and active eq false").size());
+	public void canDeactivateExistingUser() {
+        String tmpUserId = createUserForDelete();
+        ScimUser deletedUser = db.removeUser(tmpUserId, 0);
+		assertEquals(1, template.queryForList("select * from users where id=? and active=false", tmpUserId).size());
+		assertFalse(deletedUser.isActive());
+		assertEquals(1, db.retrieveUsers("username eq '" + tmpUserId + "' and active eq false").size());
+        removeUser(tmpUserId);
 	}
 
 	@Test(expected = UserAlreadyExistsException.class)
-	public void canRemoveExistingUserAndThenCreateHimAgain() {
-		ScimUser joe = db.removeUser(JOE_ID, 0);
-		assertJoe(joe);
-		joe.setActive(true);
-		ScimUser user = db.createUser(joe, "foobarspam1234");
-		assertEquals(JOE_ID, user.getId());
+	public void cannotDeactivateExistingUserAndThenCreateHimAgain() {
+        String tmpUserId = createUserForDelete();
+        ScimUser deletedUser = db.removeUser(tmpUserId, 0);
+        deletedUser.setActive(true);
+		try {
+        db.createUser(deletedUser, "foobarspam1234");
+        } catch (UserAlreadyExistsException e) {
+            removeUser(tmpUserId);
+            throw e;
+        }
 	}
 
 	@Test(expected = UserNotFoundException.class)
-	public void cannotRemoveNonexistentUser() {
+	public void cannotDeactivateNonexistentUser() {
 		ScimUser joe = db.removeUser("9999", 0);
 		assertJoe(joe);
 	}
 
 	@Test(expected = OptimisticLockingFailureException.class)
-	public void removeWithWrongVersionIsError() {
+	public void deactivateWithWrongVersionIsError() {
 		ScimUser joe = db.removeUser(JOE_ID, 1);
 		assertJoe(joe);
 	}
 
-	@Test
+    @Test
+    public void canDeleteExistingUser() {
+        String tmpUserId = createUserForDelete();
+        db.setDeactivateOnDelete(false);
+        db.removeUser(tmpUserId, 0);
+        assertEquals(0, template.queryForList("select * from users where id=?", tmpUserId).size());
+        assertEquals(0, db.retrieveUsers("username eq '" + tmpUserId + "'").size());
+    }
+
+    @Test //(expected = UserAlreadyExistsException.class)
+    public void canDeleteExistingUserAndThenCreateHimAgain() {
+        String tmpUserId = createUserForDelete();
+        db.setDeactivateOnDelete(false);
+        ScimUser deletedUser = db.removeUser(tmpUserId, 0);
+        assertEquals(0, template.queryForList("select * from users where id=?", tmpUserId).size());
+
+        deletedUser.setActive(true);
+        ScimUser user = db.createUser(deletedUser, "foobarspam1234");
+        assertNotNull(user);
+        assertNotNull(user.getId());
+        assertNotSame(tmpUserId, user.getId());
+        assertEquals(1, db.retrieveUsers("username eq '" + tmpUserId + "'").size());
+        removeUser(user.getId());
+    }
+
+    @Test(expected = UserNotFoundException.class)
+    public void cannotDeleteNonexistentUser() {
+        db.setDeactivateOnDelete(false);
+        ScimUser joe = db.removeUser("9999", 0);
+        assertJoe(joe);
+    }
+
+    @Test(expected = OptimisticLockingFailureException.class)
+    public void deleteWithWrongVersionIsError() {
+        db.setDeactivateOnDelete(false);
+        ScimUser joe = db.removeUser(JOE_ID, 1);
+        assertJoe(joe);
+    }
+
+    @Test
 	public void canRetrieveUsers() {
 		assertTrue(2 <= db.retrieveUsers().size());
 	}

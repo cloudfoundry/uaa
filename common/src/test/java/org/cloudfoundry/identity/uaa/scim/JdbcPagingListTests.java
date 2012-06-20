@@ -23,7 +23,7 @@ import java.util.Set;
 
 import javax.sql.DataSource;
 
-import org.cloudfoundry.identity.uaa.NullSafeSystemProfileValueSource;
+import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

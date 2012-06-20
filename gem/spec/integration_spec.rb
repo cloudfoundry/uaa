@@ -65,7 +65,7 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
         toki.debug = true
         @user_acct = UserAccount.new(@target, toki.client_credentials_grant.auth_header)
         @user_acct.debug = true
-        ENV["UAA_USER_NAME"] = @username = "sam_#{Time.now.to_i}"
+        ENV["UAA_USER_NAME"] = @username = "sam+#{Time.now.to_i}"
       end
 
       it "creates a user" do
@@ -97,16 +97,26 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
         #TODO: check something!
       end
 
-      #it "deletes the user by name" do
-        #@user_acct.delete_by_name(@username)
-        #expect { @user_acct.get_by_name(@username) }
-            #.to raise_exception(NotFound)
-      #end
+      it "deletes the user by name" do
+        usr = @user_acct.create("user_to_delete_#{Time.now.to_i}", "user_to_delete_pwd", "user_#{Time.now.to_i}@delete.com")
+        @user_acct.delete_by_name(usr[:username])
+        expect { @user_acct.get_by_name(usr[:username]) }
+            .to raise_exception(NotFound)
+      end
 
-      #it "complains about an attempt to delete a non-existent user" do
-        #expect { @user_acct.delete_by_name("non-existent-user") }
-            #.to raise_exception(NotFound)
-      #end
+      it "complains about an attempt to delete a non-existent user" do
+        expect { @user_acct.delete_by_name("non-existent-user") }
+           .to raise_exception(NotFound)
+      end
+
+      it "deletes a user and re-creates another user with same username" do
+        usr1 = @user_acct.create("user_to_delete_#{Time.now.to_i}", "user_to_delete_pwd", "user_#{Time.now.to_i}@delete.com")
+        @user_acct.delete_by_name(usr1[:username])
+        expect { @user_acct.get_by_name(usr1[:username]) }
+            .to raise_exception(NotFound)
+        usr2 = @user_acct.create(usr1[:username], usr1[:username], usr1[:username])
+        usr2[:id].should_not == usr1[:id]
+      end
 
     end
 

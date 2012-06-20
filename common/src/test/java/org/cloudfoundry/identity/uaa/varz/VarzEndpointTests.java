@@ -14,8 +14,10 @@ package org.cloudfoundry.identity.uaa.varz;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Map;
+import java.util.Properties;
 
 import javax.management.MBeanServerConnection;
 
@@ -24,11 +26,14 @@ import org.junit.Test;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.jmx.support.MBeanServerFactoryBean;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.util.StringUtils;
 
 public class VarzEndpointTests {
 
 	private MBeanServerConnection server;
+
 	private VarzEndpoint endpoint;
+
 	private MockHttpServletRequest request;
 
 	@Before
@@ -76,6 +81,21 @@ public class VarzEndpointTests {
 		Map<String, ?> varz = endpoint.getVarz("http://uua.vcap.me");
 		// System.err.println(varz);
 		assertNotNull(varz.get("mem"));
+	}
+
+	@Test
+	public void testVarzWithConfig() throws Exception {
+		Properties properties = StringUtils.splitArrayElementsIntoProperties(
+				StringUtils.commaDelimitedListToStringArray("foo=bar,password=spam,client.secret=baz"), "=");
+		endpoint.setEnvironmentProperties(properties);
+		Map<String, ?> varz = endpoint.getVarz("http://uua.vcap.me");
+		// System.err.println(varz);
+		@SuppressWarnings("unchecked")
+		Map<String, ?> map = (Map<String, ?>) varz.get("config");
+		assertNotNull(map);
+		assertTrue(map.containsKey("foo"));
+		assertEquals("#", map.get("password"));
+		assertEquals("#", map.get("client.secret"));
 	}
 
 	@Test

@@ -14,20 +14,26 @@ the access decisions taken by the UAA are used as an example.
 
 User accounts are either of type "user" or type "admin" (using the
 SCIM `type` field from the core schema).  These translate into granted
-authorities, `[uaa.user]` or `[uaa.admin,uaa.user]` respectively,
-for the purposes of access decisions within the UAA (i.e. admin users
-also have the user role).  Granted authorities are available to
-Resource Servers via the `/check_token` endpoint, or by decoding the
-access token.
+authorities, `[uaa.user]` or `[uaa.admin,uaa.user]` respectively, for
+the purposes of access decisions within the UAA (i.e. admin users also
+have the user role).  Granted authorities are not directly visible to
+Resource Servers, but by default they show up as scopes in the access
+tokens.
 
 Resource Servers may choose to use this information as part of an
-access decision, but in general they will need to maintain their own
-granted authorities data (or similar) since admin roles on UAA don't
-necessarily correspond to the same thing on a Resource Server.
+access decision, and this may be good enough for simple use cases
+(e.g. users belong to a small number of relatively static roles), but
+in general they will need to maintain their own acess decision data
+since roles on UAA don't necessarily correspond to the same thing on a
+Resource Server.
 
-Support for SCIM groups is not currently provided, but could be in
-future, potentially allowing Resource Servers to use that information
-to infer granted authorities for their own purposes.
+Support for SCIM groups is currently provided only through the
+authorities attribute of the user object.  Resource Servers that are
+also SCIM clients can modify this attribute themselves, but it might
+be better (and safer) if the data don't change much to have an admin
+user or client do the role assignments.  In any case it is recommended
+that Resource Servers have sensible defaults for new users that have
+not yet been assigned a role that makes sense to them.
 
 ### Bootstrap
 
@@ -49,28 +55,35 @@ registered.
 
 Client application meta data can be used by Resource Servers to make
 an access decision, and by the Authorization Server (the UAA itself)
-to decide whether to grant an access token.  UAA client applications
-have the following meta data (all are optional):
+to decide whether to grant an access token.  
 
-* authorized-grant-types: a comman separated list of OAuth2 grant
+Scope values are arbitrary strings, but are a contract between a
+client and a Resource Server, so in cases where UAA acts as a Resource
+Server there are some "standard" values (`scim.read`, `scim.write`,
+`passsword.write`, `openid`, etc.) whose usage and meaning is
+described below.  Scopes are used by the Authorization Server to deny
+a token requested for a scope not on the list, and should be used by a
+Resource Server to deny access to a resource if the token has
+insufficient scope.
+
+UAA client applications have the following meta data (all are
+optional, but to prevent mistakes it is usually better to use a
+default value):
+
+* authorized-grant-types: a comma-separated list of OAuth2 grant
   types, as defined in the spec: choose from `client_credentials`,
   `password`, `implicit`, `refresh_token`, `authorization_code`.  Used
   by the Authorization Server to deny a token grant if it is not on
   the list
 * scope: a list of permitted scopes for this client to obtain on
-  behalf of a user (no not relevant to `client_credentials` grants).
-  The values are arbitrary strings, but are a contract between a
-  client and a Resource Server, so in cases where UAA acts as a
-  Resource Server there are some "standard" values (`scim.read`,
-  `scim.write`, `passsword.write`, `openid`, etc.) whose usage and
-  meaning is described below.  Scopes are used by the Authorization
-  Server to deny a token requested for a scope not on the list.  They
-  can and should be used by Resource Servers to deny access to a
-  resource if a token has insufficient scope.
+  behalf of a user (so not relevant to `client_credentials` grants).
+  Also used as the default scopes for a token where the client does
+  not explicitly specify scopes in the authorization request.
 * authorities: a list of granted authorities for the client
   (e.g. `uaa.admin` or any valid scope value).  The authorities are
-  used to limit the scopes that can be assigned to a token in a
-  `client_credentials` grant.
+  used to define the default scopes that are assigned to a token in a
+  `client_credentials` grant, and to limit the legal values if
+  explicit scopes are requested.
 * secret: the shared secret used to authenticate token grant requests
   and token decoding operations (not revealed to Resource Server).
 * resource-ids: white list of resource ids to be included in the
@@ -109,21 +122,21 @@ accounts will be created.
 Clients are bootstrapped from config if they are not present in the
 backend when the system starts up (i.e. once the system has started up
 once config changes will not affect the client registrations for
-existing clients).
+existing clients).  Certain fields (e.g. secret) can be reset if the
+bootstrap component is configured to do so (it is not by default).
 
 The `admin` client has the following properties (in the default
 `uaa.yml` always present on the classpath but overriddable by
 specifying all the values again in a custom config file):
 
+      id: admin
+      secret: adminsecret
       authorized-grant-types: client_credentials
       scope: none
       authorities: uaa.admin,clients.read,clients.write,clients.secret
-      id: admin
-      secret: adminclientsecret
 
 The admin client can be used to bootstrap the system by adding
-additional clients (the intention is that it can't really be used for
-much else in fact).  In particular, user accounts cannot be
+additional clients.  In particular, user accounts cannot be
 provisioned until a client with access to the `scim` resource is
 added.
 
@@ -143,7 +156,7 @@ after a fresh clone from github for demo purposes:
       id: app
       secret: appclientsecret
       authorized-grant-types: password,authorization_code,refresh_token
-      scope: cloud_controller.read,openid
+      scope: cloud_controller.read,cloud_controller.write,openid,password.write,tokens.read,tokens.write
       authorities: uaa.none
       resource-ids: none
 
@@ -182,19 +195,21 @@ have a resource id (e.g. those with simple HTTP Basic authentication).
 Resource ID = `tokens`.  Rules:
 
 * Revoke user token: 
-  * If token represents a client, it has scope `uaa.admin`
-  * If token represents user, user is authenticated and is the owner of the token to be revoked
-  * Token has scope `tokens.write`
+  * Token has scope `uaa.admin`, or
+  * If token represents user, user is authenticated and is the owner
+    of the token to be revoked, and token has scope `tokens.write`
 * List user tokens:
-  * If token represents a client, it has scope `uaa.admin`
-  * If token represents user, user is authenticated and is the owner of the token to be read
-  * Token has scope `tokens.read`
+  * Token has scope `uaa.admin` or
+  * If token represents user, user is authenticated and is the owner
+    of the token to be read, and token has scope `tokens.read`
 * Revoke client token:
-  * Token has scope `uaa.admin` or represents the client in the token to be revoked
-  * Token has scope `tokens.write`
+  * Token has scope `uaa.admin` or
+  * Token represents the client in the token to be revoked, and token
+    has scope `tokens.write`
 * List client tokens:
-  * Token has scope `uaa.admin` or represents the client in the token to be revoked
-  * Token has scope `tokens.read`
+  * Token has scope `uaa.admin` or
+  * Token represents the client in the token to be revoked, and token
+    has scope `tokens.read`
 
 ### Client Registration
 
@@ -241,11 +256,13 @@ Used for Single Sign On (OpenID Connect lite).  Resource ID = `openid`.  Rules:
 * Obtain user profile data
   * Token has scope `openid`
   
-### Token Client Resources
+### Token Resources for Providers
 
 The UAA uses HTTP Basic authentication for these resources, so they
-are no OAuth2 protected resources.  In all cases the client must have
-a secret (so `vmc` and other implicit grant clients need not apply).
+are no OAuth2 protected resources, but to simplify the security data
+client registrations are used, so only registered clients can access
+them.  The caller must have a secret (so `vmc` and other implicit
+grant clients need not apply).
 
 * Obtain access token at `/oauth/token`
   * Client is authenticated
