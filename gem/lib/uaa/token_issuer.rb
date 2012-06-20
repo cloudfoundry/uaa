@@ -44,25 +44,24 @@ end
 class TokenIssuer
 
   include Http
+  attr_accessor :default_scope
 
   # Takes an x-www-form-urlencoded string and returns a hash of symbol => value.
   # It raises an ArgumentError if a key occurs more than once, which is a
   # restriction of OAuth query strings. See draft-ietf-oauth-v2-23 section 3.1.
   def self.decode_oauth_parameters(url_encoded_pairs)
-    args = {}
-    URI.decode_www_form(url_encoded_pairs).each do |p|
+    URI.decode_www_form(url_encoded_pairs).each_with_object({}) do |p, o|
       k = p[0].downcase.to_sym
-      raise ArgumentError, "duplicate keys in oauth form parameters" if args[k]
-      args[k] = p[1]
+      raise ArgumentError, "duplicate keys in oauth form parameters" if o[k]
+      o[k] = p[1]
     end
-    args
   rescue Exception => e
     raise ArgumentError, e.message
   end
 
   def initialize(target, client_id, client_secret = nil, default_scope = nil, debug = false)
     @target, @client_id, @client_secret = target, client_id, client_secret
-    @default_scope, @debug = Util.arglist(default_scope), debug
+    @default_scope, @debug = default_scope, debug
   end
 
   # login prompts for use by app to collect credentials for implicit grant
@@ -84,11 +83,11 @@ class TokenIssuer
     headers = {content_type: "application/x-www-form-urlencoded"}
 
     # required for current UAA implementation
-    body = URI.encode_www_form(credentials: credentials.to_json)
+    body = "credentials=#{URI.encode(credentials.to_json)}"
 
     # TODO: the above can be changed to the following to be consistent with
     # the other OAuth APIs when CFID-239 is done:
-    # body = URI.encode_www_form(credentials.merge(credentials: true))
+    # body = URI.encode_www_form(credentials)
 
     status, body, headers = request(:post, uri, body, headers)
     raise BadResponse, "status #{status}" unless status == 302

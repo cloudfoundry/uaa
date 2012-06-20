@@ -91,6 +91,8 @@ class LoginCli < BaseCli
     issuer_request do |ti|
       uri = ti.authcode_uri("#{StubServer.url}/callback", scope)
       StubServer.responder do |request, reply|
+        puts "got request #{request.path}" if trace?
+        #return reply.status = 404 unless request.path.starts_with("/callback")
         reply.headers[:content_type] = "text/plain"
         begin
           tokn = ti.authcode_grant(uri, URI.parse(request.path).query)
@@ -100,18 +102,21 @@ class LoginCli < BaseCli
         rescue Exception => e
           reply.body = "#{e.message}\r\n#{e.backtrace if trace?}"
         end
+        puts "returning \"#{reply}\" to browser" if trace?
         reply
       end
       StubServer.thread_request do
+        puts "launching browser with #{uri}" if trace?
         Launchy.open(uri, debug: true, dry_run: false)
         print "waiting for token "
         until tokn
           sleep 5
           print "."
         end
-        puts "\nGot token:"
-        pp tokn.info
         Config.opts token: tokn.info
+        puts "\nGot token:" if trace?
+        pp tokn.info if trace?
+        puts "\nsuccessfully logged in"
       end
     end
   end
@@ -139,9 +144,11 @@ class LoginCli < BaseCli
         begin
           reply.headers[:content_type] = "text/plain"
           if request.method == :post
+            puts "got post of fragment from redirect url" if trace?
             tokn = ti.implicit_grant(uri, request.body)
             reply.body = "Successfully retrieved token, you are logged in"
           else
+            puts "got redirect from UAA after authentication" if trace?
             reply.headers[:content_type] = "text/html"
             reply.body = script_page
           end
@@ -152,7 +159,8 @@ class LoginCli < BaseCli
         reply
       end
       StubServer.thread_request do
-        Launchy.open(uri, debug: true, dry_run: false)
+        #Launchy.open(uri, debug: false, dry_run: false)
+        Launchy.open(uri)
         print "waiting for token "
         until tokn
           sleep 5

@@ -66,10 +66,10 @@ class CF::UAA::Util
 
   # many parameters in these classes can be given as arrays, or as a list of
   # arguments separated by spaces or commas. This method handles the possible
-  # inputs and returns an array or arguments.
+  # inputs and returns an array of arguments.
   def self.arglist(arg, default_arg = nil)
-    return default_arg unless arg
-    return arg if arg.respond_to?(:join)
+    arg = default_arg unless arg
+    return arg if arg.nil? || arg.respond_to?(:join)
     raise ArgumentError, "arg must be Array or space/comma delimited strings" unless arg.respond_to?(:split)
     arg.split(/[\s\,]+/).reject { |e| e.empty? }
   end

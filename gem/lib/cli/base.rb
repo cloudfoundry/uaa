@@ -13,7 +13,7 @@
 
 require 'thor'
 require 'interact'
-require "highline/system_extensions"
+require 'highline/system_extensions'
 require 'cli/config'
 
 module CF::UAA

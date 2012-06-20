@@ -64,7 +64,7 @@ class TokenCoder
     segments.join('.')
   end
 
-  def self.decode(token, skey, pkey = nil, verify = true)
+  def self.decode(token, skey = nil, pkey = nil, verify = true)
     segments = token.split('.')
     raise DecodeError, "Not enough or too many segments" unless [2,3].include? segments.length
     header_segment, payload_segment, crypto_segment = segments

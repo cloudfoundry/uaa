@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
-$:.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
+$:.unshift File.expand_path File.join __FILE__, '..', '..', 'lib'
 
 require 'cli'
 
-CF::UAA::Cli.run(ARGV.dup)
+CF::UAA::TCli.run "#{ENV['HOME']}/.uaa.yml"

@@ -13,11 +13,43 @@
 
 require 'spec_helper'
 require 'uaa/user_account'
-require 'cli/stub_server'
+require 'stub_uaa'
 
 module CF::UAA
 
 describe UserAccount do
+
+  before :all do
+    @debug = false
+    @stub_uaa = Stub::Server.new(StubUAA, @debug).run_on_thread
+    @issuer = TokenIssuer.new(@stub_uaa.url, "test_client", "test_secret")
+    @token = @issuer.client_credentials_grant
+    @user_acct = UserAccount.new(@stub_uaa.url, @token.auth_header, @debug)
+    @user_acct.async = @async = false
+  end
+
+  after :all do @stub_uaa.stop; sleep 0.1 end
+  subject { @user_acct }
+
+  def request
+    return yield unless @async
+    cthred = Thread.current
+    EM.schedule { Fiber.new { yield; cthred.run }.resume }
+    Thread.stop
+  end
+
+  it "should create a user account" do
+    @email_addrs = '"jdoe@example.org"'
+    request do
+      result = subject.create("jdoe", "password", "jdoe@example.org", "John", "Doe")
+      #puts result.inspect
+      result[:id].should_not be_nil
+      # TODO: result[:emails].should =~ ["jdoe@example.org"]
+      # TODO: result[:password].should_not be
+    end
+  end
+
+=begin
 
   subject { UserAccount.new(StubServer.url, 'Bearer example_access_token') }
 
@@ -220,6 +252,8 @@ describe UserAccount do
       subject.change_password_by_name(@user_name, "new&password").should == true
     end
   end
+
+=end
 
 end
 

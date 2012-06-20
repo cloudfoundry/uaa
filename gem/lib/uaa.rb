@@ -12,7 +12,6 @@
 #++
 
 require "uaa/version"
-require "uaa/client"
 require "uaa/token_issuer"
 require "uaa/token_coder"
 require "uaa/token_checker"

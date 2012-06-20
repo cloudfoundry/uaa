@@ -110,7 +110,7 @@ module Http
       trace "--->"
       trace "request: #{method} #{req[:url]}"
       trace "headers: #{headers}"
-      trace "body: #{Util.truncate(payload.to_s, 500)}" if payload
+      trace "body: #{Util.truncate(payload.to_s, 50000)}" if payload
       trace "async: #{async.inspect}"
     end
     status, body, response_headers = async ? perform_ahttp_request(req) : perform_http_request(req)
@@ -118,7 +118,7 @@ module Http
       trace "<---"
       trace "response: #{status}"
       trace "headers: #{response_headers}"
-      trace "body: #{Util.truncate(body.to_s, 500)}" if body
+      trace "body: #{Util.truncate(body.to_s, 50000)}" if body
     end
     [status, body, response_headers]
 

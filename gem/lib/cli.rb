@@ -12,4 +12,3 @@
 #++
 
 require "cli/tcli"
-require "cli/cli"

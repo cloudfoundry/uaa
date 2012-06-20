@@ -34,8 +34,8 @@ class ClientReg
   # authorization header. For oauth with jwt tokens this would be something
   # like "bearer xxxx.xxxx.xxxx". The Token class returned by TokenIssuer
   # provides an auth_header method for this purpose.
-  def initialize(target, auth_header, debug = false)
-    @target, @auth_header, @debug = target, auth_header, debug
+  def initialize(target, auth_header, debug = false, async = false)
+    @target, @auth_header, @debug, @async = target, auth_header, debug, async
   end
 
   # takes a hash of fields currently supported by the uaa:
