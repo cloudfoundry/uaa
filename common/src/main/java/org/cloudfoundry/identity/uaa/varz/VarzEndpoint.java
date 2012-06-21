@@ -25,7 +25,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.util.StringUtils;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.context.expression.MapAccessor;
 import org.springframework.core.env.Environment;
@@ -65,7 +65,7 @@ public class VarzEndpoint implements EnvironmentAware {
 	 * @param environmentProperties the environment properties to set
 	 */
 	public void setEnvironmentProperties(Properties environmentProperties) {
-		this.environmentProperties = hidePasswords(environmentProperties);
+		this.environmentProperties = UaaStringUtils.hidePasswords(environmentProperties);
 	}
 
 	@Override
@@ -228,13 +228,13 @@ public class VarzEndpoint implements EnvironmentAware {
 
 			String type = name.getKeyProperty("type");
 			if (type != null) {
-				type = StringUtils.camelToUnderscore(type);
+				type = UaaStringUtils.camelToUnderscore(type);
 				objects = getMap(objects, type);
 			}
 
 			String key = name.getKeyProperty("name");
 			if (key != null) {
-				key = StringUtils.camelToUnderscore(key);
+				key = UaaStringUtils.camelToUnderscore(key);
 				objects = getMap(objects, key);
 			}
 
@@ -242,7 +242,7 @@ public class VarzEndpoint implements EnvironmentAware {
 				if (property.equals("type") || property.equals("name")) {
 					continue;
 				}
-				key = StringUtils.camelToUnderscore(property);
+				key = UaaStringUtils.camelToUnderscore(property);
 				objects = getMap(objects, key);
 				String value = name.getKeyProperty(property);
 				objects = getMap(objects, value);
@@ -292,21 +292,6 @@ public class VarzEndpoint implements EnvironmentAware {
 			logger.warn("Could not obtain OS environment", e);
 		}
 		return env;
-	}
-
-	/**
-	 * @param properties
-	 * @return new properties with no plaintext passwords
-	 */
-	private Properties hidePasswords(Properties properties) {
-		Properties result = new Properties();
-		result.putAll(properties);
-		for (String key : properties.stringPropertyNames()) {
-			if (key.endsWith("password") || key.endsWith("secret")) {
-				result.put(key, "#");
-			}
-		}
-		return result;
 	}
 
 	class MapWrapper {

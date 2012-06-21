@@ -22,6 +22,7 @@ import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.core.io.Resource;
 import org.springframework.util.StringUtils;
 import org.yaml.snakeyaml.Yaml;
@@ -167,7 +168,7 @@ public class YamlProcessor {
 		Properties properties = new Properties();
 		assignProperties(properties, map, null);
 		if (documentMatchers.isEmpty()) {
-			logger.debug("Merging document (no matchers set)" + map);
+			logger.debug("Merging document (no matchers set)" + UaaStringUtils.hidePasswords(map));
 			callback.process(properties, map);
 		}
 		else {
@@ -181,7 +182,7 @@ public class YamlProcessor {
 					String value = properties.getProperty(key);
 					if (value.matches(pattern)) {
 						logger.debug("Matched document with " + key + "=" + value + " (pattern=/" + pattern + "/): "
-								+ map);
+								+ UaaStringUtils.hidePasswords(map));
 						callback.process(properties, map);
 						valueFound = true;
 						// No need to check for more matches
@@ -190,7 +191,7 @@ public class YamlProcessor {
 				}
 			}
 			if (!keyFound && matchDefault) {
-				logger.debug("Matched document with default matcher");
+				logger.debug("Matched document with default matcher: " + UaaStringUtils.hidePasswords(map));
 				callback.process(properties, map);
 			}
 			else if (!valueFound) {
