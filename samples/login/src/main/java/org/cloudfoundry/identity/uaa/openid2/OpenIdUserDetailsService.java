@@ -8,11 +8,12 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.openid.OpenIDAttribute;
 import org.springframework.security.openid.OpenIDAuthenticationToken;
+import org.springframework.util.StringUtils;
 
 /**
  * Custom UserDetailsService which accepts any OpenID user, "registering" new users in a map so they can be welcomed
  * back to the site on subsequent logins.
- *
+ * 
  * @author Luke Taylor
  * @author Dave Syer
  * 
@@ -20,54 +21,61 @@ import org.springframework.security.openid.OpenIDAuthenticationToken;
  */
 public class OpenIdUserDetailsService implements AuthenticationUserDetailsService<OpenIDAuthenticationToken> {
 
-    private RandomValueStringGenerator generator = new RandomValueStringGenerator();
-    
-   /**
-     * Implementation of {@code AuthenticationUserDetailsService} which allows full access to the submitted
-     * {@code Authentication} object. Used by the OpenIDAuthenticationProvider.
-     */
-    public UserDetails loadUserDetails(OpenIDAuthenticationToken token) {
-        // String id = token.getIdentityUrl();
+	private RandomValueStringGenerator generator = new RandomValueStringGenerator();
 
-        String email = null;
-        String firstName = null;
-        String lastName = null;
-        String fullName = null;
+	/**
+	 * Implementation of {@code AuthenticationUserDetailsService} which allows full access to the submitted
+	 * {@code Authentication} object. Used by the OpenIDAuthenticationProvider.
+	 */
+	public UserDetails loadUserDetails(OpenIDAuthenticationToken token) {
+		// String id = token.getIdentityUrl();
 
-        List<OpenIDAttribute> attributes = token.getAttributes();
+		String email = null;
+		String firstName = null;
+		String lastName = null;
+		String fullName = null;
 
-        for (OpenIDAttribute attribute : attributes) {
-            if (attribute.getName().equals("email")) {
-                email = attribute.getValues().get(0);
-            }
+		List<OpenIDAttribute> attributes = token.getAttributes();
 
-            if (attribute.getName().equals("firstname")) {
-                firstName = attribute.getValues().get(0);
-            }
+		for (OpenIDAttribute attribute : attributes) {
+			if (attribute.getName().equals("email")) {
+				email = attribute.getValues().get(0);
+			}
 
-            if (attribute.getName().equals("lastname")) {
-                lastName = attribute.getValues().get(0);
-            }
+			if (attribute.getName().equals("firstname")) {
+				firstName = attribute.getValues().get(0);
+			}
 
-            if (attribute.getName().equals("fullname")) {
-                fullName = attribute.getValues().get(0);
-            }
-        }
+			if (attribute.getName().equals("lastname")) {
+				lastName = attribute.getValues().get(0);
+			}
 
-        if (fullName == null) {
-            StringBuilder fullNameBldr = new StringBuilder();
+			if (attribute.getName().equals("fullname")) {
+				fullName = attribute.getValues().get(0);
+			}
+		}
 
-            if (firstName != null) {
-                fullNameBldr.append(firstName);
-            }
+		if (firstName == null && StringUtils.hasText(fullName)) {
+			String[] names = fullName.split(" ");
+			firstName = names[0];
+		}
 
-            if (lastName != null) {
-                fullNameBldr.append(" ").append(lastName);
-            }
-            fullName = fullNameBldr.toString();
-        }
+		if (lastName == null && StringUtils.hasText(fullName)) {
+			String[] names = fullName.split(" ");
+			lastName = names.length > 1 ? names[1] : "User";
+		}
+
+		if (firstName == null && StringUtils.hasText(email)) {
+			String[] names = email.split("@");
+			firstName = names[0];
+		}
+
+		if (lastName == null && StringUtils.hasText(email)) {
+			String[] names = email.split("@");
+			lastName = names.length > 1 ? names[1] : "User";
+		}
 
 		UaaUser user = new UaaUser(email, generator.generate(), email, firstName, lastName);
-        return new UaaUserDetails(user);
-    }
+		return new UaaUserDetails(user);
+	}
 }
