@@ -101,11 +101,42 @@ public class ClientAdminEndpoints {
 		validateClient(details, false);
 		Assert.state(client.equals(details.getClientId()),
 				String.format("The client id (%s) does not match the URL (%s)", details.getClientId(), client));
+        try {
+            ClientDetails existingClientConfig = getClientDetails(client);
+            details = syncWithExisting(existingClientConfig, details);
+        } catch (Exception e) {
+            logger.warn("Couldn't fetch client config for client_id: " + client, e);
+        }
 		clientRegistrationService.updateClientDetails(details);
 		return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
 	}
 
-	@RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.DELETE)
+    private BaseClientDetails syncWithExisting(ClientDetails existingClientConfig, BaseClientDetails details) {
+        if (details.getAccessTokenValiditySeconds() == 0) {
+            details.setAccessTokenValiditySeconds(existingClientConfig.getAccessTokenValiditySeconds());
+        }
+        if (details.getRefreshTokenValiditySeconds() == 0) {
+            details.setRefreshTokenValiditySeconds(existingClientConfig.getRefreshTokenValiditySeconds());
+        }
+        if (details.getAuthorities() == null || details.getAuthorities().isEmpty()) {
+            details.setAuthorities(existingClientConfig.getAuthorities());
+        }
+        if (details.getAuthorizedGrantTypes() == null || details.getAuthorizedGrantTypes().isEmpty()) {
+            details.setAuthorizedGrantTypes(existingClientConfig.getAuthorizedGrantTypes());
+        }
+        if (details.getRegisteredRedirectUri() == null || details.getRegisteredRedirectUri().isEmpty()) {
+            details.setRegisteredRedirectUri(existingClientConfig.getRegisteredRedirectUri());
+        }
+        if (details.getResourceIds() == null || details.getResourceIds().isEmpty()) {
+            details.setResourceIds(existingClientConfig.getResourceIds());
+        }
+        if (details.getScope() == null || details.getScope().isEmpty()) {
+            details.setScope(existingClientConfig.getScope());
+        }
+        return details;
+    }
+
+    @RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.DELETE)
 	public ResponseEntity<Void> removeClientDetails(@PathVariable String client) throws Exception {
 		clientRegistrationService.removeClientDetails(client);
 		return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
