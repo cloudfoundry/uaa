@@ -302,7 +302,7 @@ public class VarzEndpoint implements EnvironmentAware {
 		Properties result = new Properties();
 		result.putAll(properties);
 		for (String key : properties.stringPropertyNames()) {
-			if (key.endsWith("password") || key.endsWith("secret")) {
+			if (key.endsWith("password") || key.endsWith("secret") || key.endsWith("signing-key")) {
 				result.put(key, "#");
 			}
 		}
