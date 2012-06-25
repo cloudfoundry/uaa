@@ -98,7 +98,7 @@ public class VarzEndpoint implements EnvironmentAware {
 		result.put("links", links);
 
 		Map<String, ?> memory = pullUpMap("java.lang", "type=Memory");
-		result.put("mem", getValueFromMap(memory, "memory.heap_memory_usage.used"));
+		result.put("mem", getValueFromMap(memory, "memory.heap_memory_usage.used", Long.class)/1024);
 		result.put("memory", getValueFromMap(memory, "memory"));
 
 		Map<String, ?> spring = pullUpMap("spring.application", "*");
@@ -165,6 +165,12 @@ public class VarzEndpoint implements EnvironmentAware {
 		@SuppressWarnings("unchecked")
 		Map<String, ?> map = (Map<String, ?>) getMBeans(domain, pattern).get(domain);
 		return map == null ? Collections.<String, Object> emptyMap() : map;
+	}
+
+	private <T> T getValueFromMap(Map<String, ?> map, String path, Class<T> type) throws Exception {
+		@SuppressWarnings("unchecked")
+		T result = (T) getValueFromMap(map, path);
+		return result;
 	}
 
 	private Object getValueFromMap(Map<String, ?> map, String path) throws Exception {
