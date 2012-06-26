@@ -14,6 +14,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.Date;
 
+import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.junit.Test;
 import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.Job;
@@ -35,6 +36,7 @@ public class UserSyncJobIntegrationTests extends AbstractJobIntegrationTests {
 	private Job job;
 
 	public void setUpModifiedUaaData(Date modified) throws Exception {
+		TestUtils.deleteFrom(uaaDataSource, "users");
 		JdbcTemplate template = new JdbcTemplate(uaaDataSource);
 		template.update(
 				"insert into users (id, version, active, email, password, created, lastModified, userName, givenName, familyName) "

@@ -15,6 +15,7 @@ import static org.junit.Assert.assertEquals;
 import java.util.Date;
 import java.util.Iterator;
 
+import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.junit.Test;
 import org.springframework.batch.core.BatchStatus;
@@ -38,22 +39,25 @@ public class UserMigrationJobIntegrationTests extends AbstractJobIntegrationTest
 
 	@Test
 	public void testJobRuns() throws Exception {
+		TestUtils.deleteFrom(cloudControllerDataSource, "users");
+		TestUtils.deleteFrom(uaaDataSource, "users");
 		new JdbcTemplate(cloudControllerDataSource)
-		.update("insert into users (id, active, email, crypted_password, created_at, updated_at) values (?, ?, ?, ?, ?, ?)",
-				4, true, "invalid", "ENCRYPT_ME", new Date(), new Date());
+				.update("insert into users (id, active, email, crypted_password, created_at, updated_at) values (?, ?, ?, ?, ?, ?)",
+						4, true, "invalid", "ENCRYPT_ME", new Date(), new Date());
+		new JdbcTemplate(cloudControllerDataSource)
+				.update("insert into users (id, active, email, crypted_password, created_at, updated_at) values (?, ?, ?, ?, ?, ?)",
+						4, true, "vcap_tester@vmware.com", "ENCRYPT_ME", new Date(), new Date());
 		JobExecution execution = jobLauncher.run(job,
 				new JobParametersBuilder().addString("users", "marissa@test.org,vcap_tester@vmware.com")
 						.toJobParameters());
 		assertEquals(BatchStatus.COMPLETED, execution.getStatus());
 		Iterator<StepExecution> iterator = execution.getStepExecutions().iterator();
-		assertEquals(3, iterator.next().getWriteCount());
-		assertEquals(2, iterator.next().getWriteCount());
+		assertEquals(1, iterator.next().getWriteCount());
+		assertEquals(1, iterator.next().getWriteCount());
 		JdbcTemplate jdbcTemplate = new JdbcTemplate(uaaDataSource);
-		assertEquals(3, jdbcTemplate.queryForInt("select count(*) from users"));
-		assertEquals(
-				2,
-				jdbcTemplate.queryForInt("select count(*) from users where authority=?",
-						UaaAuthority.ROLE_ADMIN.value()));
+		assertEquals(1, jdbcTemplate.queryForInt("select count(*) from users"));
+		assertEquals(1,
+				jdbcTemplate.queryForInt("select count(*) from users where authority=?", UaaAuthority.ROLE_ADMIN.value()));
 	}
 
 }

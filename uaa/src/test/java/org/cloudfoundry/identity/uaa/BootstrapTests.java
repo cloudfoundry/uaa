@@ -55,22 +55,10 @@ public class BootstrapTests {
 		System.clearProperty("UAA_CONFIG_FILE");
 		if (context != null) {
 			if (context.containsBean("scimEndpoints")) {
-				TestUtils.deleteFrom(context.getBean("dataSource", DataSource.class), "users", "sec_audit");
+				TestUtils.deleteFrom(context.getBean("dataSource", DataSource.class), "sec_audit");
 			}
 			context.close();
 		}
-	}
-
-	@Test
-	public void testRootContextWithJdbcUsers() throws Exception {
-		context = getServletContext("hsqldb", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
-		assertNotNull(context.getBean("userDatabase", JdbcUaaUserDatabase.class));
-	}
-
-	@Test
-	public void testRootContextDefaults() throws Exception {
-		context = getServletContext("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
-		assertNotNull(context.getBean("userDatabase", JdbcUaaUserDatabase.class));
 	}
 
 	@Test
@@ -86,7 +74,7 @@ public class BootstrapTests {
 	}
 
 	@Test
-	public void testRootContextWithJdbcSecureUsers() throws Exception {
+	public void testRootContextDefaults() throws Exception {
 		context = getServletContext("hsqldb", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
 		assertNotNull(context.getBean("userDatabase", JdbcUaaUserDatabase.class));
 		FilterChainProxy filterChain = context.getBean(FilterChainProxy.class);
