@@ -18,60 +18,101 @@ module CF::UAA
 
 class Config
 
+  class << self
+    attr_reader :target, :context
+  end
+
+  def self.config; @config ? @config.dup : {} end
+  def self.yaml; YAML.dump(Util.hash_keys(@config, :tostr)) end
+  def self.target?(tgt); tgt if @config[tgt = subhash_key(@config, tgt)] end
+
   # if a yaml string is provided, config is loaded from the string, otherwise
   # config is assumed to be a file name to read and store config.
   # config can be retrieved in yaml form from Config.yaml
-  def self.start(config = nil)
-    @yaml = (config if config =~ /^--- / || config == "")
-    @config_file = (config unless @yaml)
-    cfg = @config_file? (YAML.load_file(@config_file) if File.exists?(@config_file)): (YAML.load(@yaml) if @yaml)
-    @config = Util.rubyize_keys(cfg) || {}
-    @curtgt = nil
-    @config.each {|k, v| @curtgt ||= k if v[:current_target] }
+  def self.load(config = nil)
+    @config ||= {}
+    return unless config
+    if config =~ /^---/ || config == ""
+      @config = config == "" ? {} : YAML.load(config)
+      @config_file = nil
+    elsif File.exists?(@config_file = config)
+      @config = YAML.load_file(@config_file)
+    end
+    @config = Util.hash_keys(@config, :tosym)
+    @context = current_subhash(@config[@target][:contexts]) if @target = current_subhash(@config)
   end
 
   def self.save
-    return @yaml = YAML.dump(Util.unrubyize_keys(@config)) unless @config_file
-    File.open(@config_file, 'w') { |f| YAML.dump(Util.unrubyize_keys(@config), f) }
+    File.open(@config_file, 'w') { |f| YAML.dump(Util.hash_keys(@config, :tostr), f) } if @config_file
+    nil
   end
 
-  # tgt can by an integer index of the desired target, or the key (symbol)
-  def self.find_target(targt)
-    tgt = targt
-    tgt = @config.each_with_index { |(k, v), i| break k if i == tgt } if tgt.is_a? Integer
-    raise ArgumentError, "invalid target #{targt}" unless tgt.is_a? Symbol
-    tgt
-  end
-
-  # tgt can by an integer index of the desired target, or the key (symbol)
   def self.target=(tgt)
-    tgt = find_target(tgt)
-    @config[@curtgt].delete(:current_target) if @curtgt
-    @config[tgt] ||= {}
-    @config[tgt][:current_target] = true
-    @curtgt = tgt
+    raise ArgumentError, "invalid target, #{tgt}" unless t = set_current_subhash(@config, tgt, @target)
+    @context = current_subhash(@config[t][:contexts])
     save
+    @target = t
   end
 
-  def self.target; @curtgt end
-  def self.yaml; @yaml; end
-  def self.config; @config.dup; end
-
-  def self.delete_target(targt, key = nil)
-    tgt = targt
-    raise ArgumentError, "invalid target #{targt}" unless (tgt = find_target(tgt)) && @config[tgt]
-    key ? config[tgt].delete(key): @config.delete(tgt)
-    @curtgt = nil if tgt == @curtgt
+  def self.context=(ctx)
+    raise ArgumentError, "target not set" unless @target
+    raise ArgumentError, "invalid context, #{ctx}" unless c = set_current_subhash(@config[@target][:contexts] ||= {}, ctx, @context)
     save
+    @context = c
   end
 
-  def self.opts(hash = nil)
-    raise ArgumentError, "target not set" unless @curtgt
-    unless hash.nil? || hash.empty?
-      @config[@curtgt].merge! hash
-      save
+  def self.delete(tgt = nil, ctx = nil)
+    if tgt && ctx
+      @config[tgt][:contexts].delete(ctx)
+      @context = nil if tgt == @target && ctx == @context
+    elsif tgt
+      @config.delete(tgt)
+      @target = @context = nil if tgt == @target
+    else
+      @target, @context, @config = nil, nil, {}
     end
-    @config[@curtgt]
+    save
+  end
+
+  def self.add_opts(hash)
+    raise ArgumentError, "target and context not set" unless @target && @context
+    return unless hash and !hash.empty?
+    @config[@target][:contexts][@context].merge! hash
+    save
+  end
+
+  def self.value(attr)
+    raise ArgumentError, "target and context not set" unless @target && @context
+    @config[@target][:contexts][@context][attr]
+  end
+
+  def self.delete_attr(attr)
+    raise ArgumentError, "target and context not set" unless @target && @context
+    @config[@target][:contexts][@context].delete(attr)
+  end
+
+  def self.current_subhash(hash)
+    return unless hash
+    key = nil
+    hash.each { |k, v| key ? v.delete(:current) : (key = k if v[:current]) }
+    key
+  end
+
+  # key can be an integer index of the desired subhash or the key symbol or string
+  def self.subhash_key(hash, key)
+    case key
+    when Integer then hash.each_with_index { |(k, v), i| return k if i == key }; nil
+    when String then key.to_sym
+    when Symbol then key
+    else nil
+    end
+  end
+
+  def self.set_current_subhash(hash, newcurrent, oldcurrent)
+    return unless k = subhash_key(hash, newcurrent)
+    hash[oldcurrent].delete(:current) if oldcurrent
+    (hash[k] ||= {}).merge!(current: true)
+    k
   end
 
 end

@@ -13,9 +13,7 @@
 
 require 'eventmachine'
 require 'date'
-
-# only needed for Reply.html -- is it worth it?
-require 'erb'
+require 'logger'
 require 'pp'
 
 module Stub
@@ -52,11 +50,11 @@ class Request
       elsif @state == :body
         # TODO: figure out how to byteslice from ln to eos, append to @body, return
         @body << ln
-      elsif ln.chomp!.empty?
+      elsif (ln = ln.chomp).empty?
         @state = :body
       else
         key, sep, val = ln.partition(/:\s+/)
-        @headers[key.downcase!.gsub('-', '_').to_sym] = val
+        @headers[key.downcase.gsub('-', '_').to_sym] = val
       end
     end
   end
@@ -88,21 +86,19 @@ class Reply
     @body = info.pretty_inspect
     nil
   end
-  def html(info, status = nil)
-    @status = status if status
-    headers[:content_type] = "text/html"
-    @body = "<html><body>#{ERB::Util.html_escape(info.pretty_inspect)}</body></html>"
-    nil
-  end
+  #def html(info, status = nil)
+    #@status = status if status
+    #headers[:content_type] = "text/html"
+    #@body = "<html><body>#{ERB::Util.html_escape(info.pretty_inspect)}</body></html>"
+    #nil
+  #end
 end
 
 #------------------------------------------------------------------------------
 # request handler logic -- server is initialized with a class derived from this.
 # there will be one instance of this object per connection.
 class Base
-  attr_accessor :request, :reply, :match
-  attr_writer :debug
-  def debug?; @debug end
+  attr_accessor :request, :reply, :match, :server
 
   def self.route(http_methods, matcher, &handler)
     fail unless !EM.reactor_running? || EM.reactor_thread?
@@ -127,18 +123,19 @@ class Base
     [nil, :default_route]
   end
 
-  def initialize(debug = false)
-    @request, @reply, @match, @debug = Request.new, Reply.new, nil, debug
+  def initialize(server)
+    @server, @request, @reply, @match = server, Request.new, Reply.new, nil
   end
 
   def process
     @match, handler = self.class.find_route(request)
-    puts "processing request to path #{request.path} for route #{@match ? @match.regexp : 'default'}" if debug?
+    server.logger.debug "processing request to path #{request.path} for route #{@match ? @match.regexp : 'default'}"
     send handler
     reply.headers[:connection] ||= request.headers[:connection] if request.headers[:connection]
-    puts "replying to path #{request.path} with #{reply.body.length} bytes of #{reply.headers[:content_type]}" if debug?
+    server.logger.debug "replying to path #{request.path} with #{reply.body.length} bytes of #{reply.headers[:content_type]}"
   rescue Exception => e
-    puts "exception from route handler: #{e.message}", e.backtrace if debug?
+    server.logger.debug "exception from route handler: #{e.message}"
+    server.trace { e.backtrace }
     reply_in_kind e, 500
   end
 
@@ -158,62 +155,65 @@ end
 
 #------------------------------------------------------------------------------
 module Connection
-  attr_writer :server, :req_handler
-  def unbind; @server.delete_connection(self) end
+  attr_accessor :req_handler
+  def unbind; req_handler.server.delete_connection(self) end
 
   def receive_data(data)
-    return unless @req_handler.request.complete? data
-    @req_handler.process
-    send_data @req_handler.reply.to_s
-    if @req_handler.reply.headers[:connection] =~ /^close$/i || !@server.running?
+    #req_handler.server.logger.debug "got #{data.bytesize} bytes: #{data.inspect}"
+    return unless req_handler.request.complete? data
+    req_handler.process
+    send_data req_handler.reply.to_s
+    if req_handler.reply.headers[:connection] =~ /^close$/i || req_handler.server.status != :running
       close_connection_after_writing
     end
   rescue Exception => e
-    puts "exception from receive_data: #{e.message}", e.backtrace
+    req_handler.server.logger.debug "exception from receive_data: #{e.message}"
+    req_handler.server.trace { e.backtrace }
     close_connection
   end
 end
 
 #--------------------------------------------------------------------------
 class Server
-  attr_writer :debug
-  def debug?; @debug end
-  def running?; @running end
+  attr_reader :host, :port, :status, :logger
+  attr_accessor :info
   def url; "http://#{@host}:#{@port}" end
+  def trace(msg = nil, &blk); logger.trace(msg, &blk) if logger.respond_to?(:trace) end
 
-  def initialize(req_handler, debug = false)
-    @req_handler, @debug = req_handler, debug
-    @connections, @running, @sig, @em_thread = [], false, nil, nil
+  def initialize(req_handler, logger = Logger.new($stdout), info = nil)
+    @req_handler, @logger, @info = req_handler, logger, info
+    @connections, @status, @sig, @em_thread = [], :stopped, nil, nil
   end
 
   def start(hostname = "localhost", port = 0)
-    raise ArgumentError, "attempt to start a server that's already running" if running?
+    raise ArgumentError, "attempt to start a server that's already running" unless @status == :stopped
     @host = hostname
-    puts "starting #{self.class} server #{@host}" if debug?
+    logger.debug "starting #{self.class} server #{@host}"
     EM.schedule do
       @sig = EM.start_server(@host, port, Connection) { |c| initialize_connection(c) }
       @port = Socket.unpack_sockaddr_in(EM.get_sockname(@sig))[0]
-      puts "#{self.class} server started at #{url}, signature #{@sig}" if debug?
+      logger.debug "#{self.class} server started at #{url}, signature #{@sig}"
     end
-    @running = true
+    @status = :running
     self
   end
 
   def run_on_thread(hostname = "localhost", port = 0)
     raise ArgumentError, "can't run on thread, EventMachine already running" if EM.reactor_running?
-    puts "starting eventmachine on thread" if debug?
+    logger.debug { "starting eventmachine on thread" }
     cthred = Thread.current
     @em_thread = Thread.new do
       begin
         EM.run { start(hostname, port); cthred.run }
-        puts "server thread done" if debug?
+        logger.debug "server thread done"
       rescue Exception => e
-        puts "unhandled exception on stub server thread: #{e.message}", e.backtrace
+        logger.debug { "unhandled exception on stub server thread: #{e.message}" }
+        trace { e.backtrace }
         raise
       end
     end
     Thread.stop
-    puts "running on thread" if debug?
+    logger.debug "running on thread"
     self
   end
 
@@ -221,20 +221,26 @@ class Server
     raise ArgumentError, "can't run, EventMachine already running" if EM.reactor_running?
     @em_thread = Thread.current
     EM.run { start(hostname, port) }
-    puts "server and event machine done" if debug?
+    logger.debug "server and event machine done"
   end
 
+  # if on reactor thread, start shutting down but return if connections still
+  # in process, and let them disconnect when complete -- server is not really
+  # done until it's status is stopped.
+  # if not on reactor thread, wait until everything's cleaned up and stopped
   def stop
-    @running = false
+    logger.debug "stopping server"
+    @status = :stopping
     EM.stop_server @sig
     done if @connections.empty?
+    sleep 0.1 while @status != :stopped unless EM.reactor_thread?
   end
 
   def delete_connection(conn)
-    puts "deleting connection" if debug?
+    logger.debug "deleting connection"
     fail unless EM.reactor_thread?
     @connections.delete(conn)
-    done if !running? && @connections.empty?
+    done if @status != :running && @connections.empty?
   end
 
   private
@@ -242,15 +248,17 @@ class Server
   def done
     fail unless @connections.empty?
     EM.stop if @em_thread && EM.reactor_running?
-    initialize(debug?)
+    @connections, @status, @sig, @em_thread = [], :stopped, nil, nil
+    sleep 0.1 unless EM.reactor_thread? # give EM a chance to stop
+    logger.debug EM.reactor_running? ?
+        "server done but EM still running" : "server really done"
   end
 
   def initialize_connection(conn)
-    puts "starting connection" if debug?
+    logger.debug "starting connection"
     fail unless EM.reactor_thread?
     @connections << conn
-    conn.server = self
-    conn.req_handler = @req_handler.new(debug?)
+    conn.req_handler = @req_handler.new(self)
     conn.comm_inactivity_timeout = 30
   end
 

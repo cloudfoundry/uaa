@@ -21,15 +21,21 @@ module CF::UAA
 describe ClientReg do
 
   before :all do
-    @debug = false
-    @stub_uaa = Stub::Server.new(StubUAA, @debug).run_on_thread
-    @issuer = TokenIssuer.new(@stub_uaa.url, "test_client", "test_secret")
+    #Util.default_logger(:trace)
+    @stub_uaa = StubUAA.new.run_on_thread
+    admin_group = @stub_uaa.scim.add(:group, {display_name: "client_admin"})
+    @stub_uaa.scim.add(:group, {display_name: "foo"})
+    @stub_uaa.scim.add(:group, {display_name: "bar"})
+    @stub_uaa.scim.add(:client, {display_name: "test_client", password: "test_secret",
+        authorized_grant_types: ["client_credentials", "authorization_code"],
+        groups: [admin_group[:id]], access_token_validity: 60 * 60 * 24 * 7 })
+    @issuer = TokenIssuer.new(@stub_uaa.url, "test_client", "test_secret", nil)
     @token = @issuer.client_credentials_grant
-    @client_reg = ClientReg.new(@stub_uaa.url, @token.auth_header, @debug)
+    @client_reg = ClientReg.new(@stub_uaa.url, @token.auth_header)
     @client_reg.async = @async = false
   end
 
-  after :all do @stub_uaa.stop; sleep 0.1 end
+  after :all do @stub_uaa.stop if @stub_uaa end
   subject { @client_reg }
 
   def request
@@ -40,8 +46,8 @@ describe ClientReg do
   end
 
   it "should register a client" do
-    new_client = { client_id: "new_client", secret: "new_client_secret",
-      scope: "foo bar", authorized_grant_types: "client_credentials authorization_code",
+    new_client = { client_id: "new_client", client_secret: "new_client_secret",
+      authorities: "foo bar", authorized_grant_types: "client_credentials authorization_code",
       access_token_validity: 60 * 60 * 24 * 7 }
     request do
       subject.create(new_client).should be_nil
@@ -52,7 +58,7 @@ describe ClientReg do
     request do
       result = subject.get "new_client"
       result[:client_id].should == "new_client"
-      result[:scope].should include "bar"
+      result[:authorities].should include "bar"
       result[:authorized_grant_types].should include "authorization_code"
     end
   end

@@ -11,4 +11,4 @@
 # subcomponent's license, as noted in the LICENSE file.
 #++
 
-require "cli/tcli"
+require "cli/runner"

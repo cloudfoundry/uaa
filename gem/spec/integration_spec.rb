@@ -14,22 +14,35 @@
 require 'spec_helper'
 require 'uaa'
 require 'cli/base'
+require 'stub_uaa'
+require 'pp'
 
-#ENV["UAA_CLIENT_ID"] = "admin"
-#ENV["UAA_CLIENT_SECRET"] = "adminsecret"
+# Example config for integration tests below:
+ENV["UAA_CLIENT_ID"] ||= "admin"
+ENV["UAA_CLIENT_SECRET"] ||= "adminsecret"
 #ENV["UAA_CLIENT_TARGET"] = "http://localhost:8080/uaa"
 
 module CF::UAA
+
+#TODO: finish this
+#unless ENV["UAA_CLIENT_TARGET"]
+  #stub_uaa = StubUAA.new.run_on_thread
+  #admin_group = stub_uaa.scim.add(:group, {display_name: "client_admin"})
+  #stub_uaa.scim.add(:client, {display_name: "admin", password: "adminsecret",
+      #authorized_grant_types: ["client_credentials"],
+      #groups: [admin_group[:id]], access_token_validity: 60 * 60 * 24 * 7 })
+  #ENV["UAA_CLIENT_TARGET"] = stub_uaa.url # if not configured, use internal stub server
+#end
 
 if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
 
   describe "UAA Integration:" do
 
     before :all do
+      Util.default_logger(:trace)
       @target = ENV["UAA_CLIENT_TARGET"]
       @client_id = ENV["UAA_CLIENT_ID"]
       @client_secret = ENV["UAA_CLIENT_SECRET"]
-      @debug = false
     end
 
     it "should report the uaa client version" do
@@ -37,23 +50,23 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
     end
 
     it "makes sure the server is there by getting the prompts for an implicit grant" do
-      prompts = TokenIssuer.new(@target, @client_id, @client_secret, nil, @debug).prompts
+      prompts = TokenIssuer.new(@target, @client_id, @client_secret).prompts
       prompts.should_not be_nil
       #BaseCli.pp prompts
     end
 
     it "configures the admin client for the rest of the tests" do
-      toki = TokenIssuer.new(@target, @client_id, @client_secret, nil, @debug)
-      cr = ClientReg.new(@target, toki.client_credentials_grant.auth_header, @debug)
+      toki = TokenIssuer.new(@target, @client_id, @client_secret)
+      cr = ClientReg.new(@target, toki.client_credentials_grant.auth_header)
       admin_reg = cr.get(@client_id)
       admin_reg[:scope] = (admin_reg[:scope] || [] ) | ["openid", "read", "write", "password"]
-      admin_reg[:resource_ids] = (admin_reg[:resource_ids] || [] ) | ["scim", "clients", "openid", "cloud_controller", "password", "tokens"]
+      admin_reg[:resource_ids] = admin_reg[:resource_ids] = ["scim", "clients", "openid", "cloud_controller", "password", "tokens"]
       admin_reg[:authorities] = (admin_reg[:authorities] || [] ) | ["ROLE_RESOURCE", "ROLE_CLIENT", "ROLE_ADMIN"]
       admin_reg[:client_secret] = @client_secret
       admin_reg[:authorized_grant_types] = (admin_reg[:authorized_grant_types] || [] ) | ["authorization_code"]
       cr.update(admin_reg)
       admin_reg = cr.get(@client_id)
-      BaseCli.pp admin_reg
+      pp admin_reg
       admin_reg[:scope].should include("openid")
       admin_reg[:resource_ids].should include("scim")
       admin_reg[:authorities].should include("ROLE_RESOURCE")
@@ -63,9 +76,7 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
 
       before :all do
         toki = TokenIssuer.new(@target, @client_id, @client_secret)
-        toki.debug = true
         @user_acct = UserAccount.new(@target, toki.client_credentials_grant.auth_header)
-        @user_acct.debug = true
         ENV["UAA_USER_NAME"] = @username = "sam_#{Time.now.to_i}"
       end
 
@@ -114,7 +125,7 @@ if ENV["UAA_CLIENT_ID"] && ENV["UAA_CLIENT_SECRET"] && ENV["UAA_CLIENT_TARGET"]
     context "with implicit grant, " do
 
       before :all do
-        @toki = TokenIssuer.new(@target, "vmc", nil, "read write openid password", @debug)
+        @toki = TokenIssuer.new(@target, "vmc", nil, "read write openid password")
       end
 
       it "verifies that prompts for the implicit grant are username and password" do

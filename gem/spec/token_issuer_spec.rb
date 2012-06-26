@@ -20,15 +20,24 @@ module CF::UAA
 describe TokenIssuer do
 
   before :all do
-    @debug = false
-    @stub_uaa = Stub::Server.new(StubUAA, @debug).run_on_thread
-    @issuer = TokenIssuer.new(@stub_uaa.url, "test_client", "test_secret", "read-logs", @debug)
+    #Util.default_logger(:trace)
+    @stub_uaa = StubUAA.new.run_on_thread
+    admin_group = @stub_uaa.scim.add(:group, {display_name: "client_admin"})
+    readers = @stub_uaa.scim.add(:group, {display_name: "read_logs"})
+    openid = @stub_uaa.scim.add(:group, {display_name: "openid"})
+    @stub_uaa.scim.add(:client, {display_name: "test_client", password: "test_secret",
+        authorized_grant_types: ["client_credentials", "authorization_code", "password"],
+        groups: [admin_group[:id], readers[:id], openid[:id]],
+        access_token_validity: 60 * 60 * 24 * 7 })
+    @stub_uaa.scim.add(:user, {user_name: "joe+admin", password: "?joe's%password$@ ",
+        groups: [openid[:id]]})
+    @issuer = TokenIssuer.new(@stub_uaa.url, "test_client", "test_secret", "read_logs")
     @issuer.async = @async = false
   end
 
-  after :all do @stub_uaa.stop; sleep 0.1 end
+  after :all do @stub_uaa.stop if @stub_uaa end
   subject { @issuer }
-  before :each do StubUAA.reply_badly = :none end
+  before :each do @stub_uaa.reply_badly = :none end
 
   def request
     return yield unless @async
@@ -54,13 +63,13 @@ describe TokenIssuer do
 
     it "should get a token with client credentials" do
       request do
-        check_good_token subject.client_credentials_grant, "read-logs", "test_client"
+        check_good_token subject.client_credentials_grant, "read_logs", "test_client"
       end
     end
 
     it "should get all granted scopes if none specified" do
       request do
-        all_scopes = ["read", "write", "test", "read-logs", "client_admin", "user_admin"].sort!
+        all_scopes = ["read_logs", "client_admin", "openid"].sort!
         subject.default_scope = nil
         token = subject.client_credentials_grant
         Util.arglist(token.info[:scope]).sort!.should == all_scopes
@@ -70,14 +79,14 @@ describe TokenIssuer do
     end
 
     it "should raise a bad response error if response content type is not json" do
-      StubUAA.reply_badly = :non_json
+      @stub_uaa.reply_badly = :non_json
       request do
         expect { subject.client_credentials_grant }.should raise_exception(BadResponse)
       end
     end
 
     it "should raise a bad response error if the response is not proper json" do
-      StubUAA.reply_badly = :bad_json
+      @stub_uaa.reply_badly = :bad_json
       request do
         expect { subject.client_credentials_grant }.should raise_exception(BadResponse)
       end
@@ -166,7 +175,7 @@ describe TokenIssuer do
         # request.body.should == URI.encode_www_form(credentials: {username: 'joe', password: 'joes password'}.to_json)
         request.body.should == "credentials=#{URI.encode({username: 'joe', password: 'joes password'}.to_json)}"
         request.path.should =~ %r{^/oauth/authorize\?}
-        qparams = subject.class.decode_oauth_parameters(URI.parse(request.path).query)
+        qparams = Util.decode_form_to_hash(URI.parse(request.path).query)
         qparams[:response_type].should == "token"
         qparams[:client_id].should == "test_app"
         qparams[:scope].should == "read"
@@ -204,7 +213,7 @@ describe TokenIssuer do
 
     it "should reject an access token with no type" do
       StubServer.responder do |request, reply|
-        qparams = subject.class.decode_oauth_parameters(URI.parse(request.path).query)
+        qparams = Util.decode_form_to_hash(URI.parse(request.path).query)
         rparams = {access_token: "good.access.token", expires_in: 3, scope: "read-logs", state: qparams[:state]}
         reply.status = 302
         reply.headers[:location] = "http://uaa.cloudfoundry.com/redirect/test_app##{URI.encode_www_form(rparams)}"
@@ -224,7 +233,7 @@ describe TokenIssuer do
       redir_uri = "http://call.back/uri_path"
       uri_parts = subject.authcode_uri(redir_uri).split('?')
       uri_parts[0].should == "#{StubServer.url}/oauth/authorize"
-      params = subject.class.decode_oauth_parameters(uri_parts[1])
+      params = Util.decode_form_to_hash(uri_parts[1])
       params[:response_type].should == "code"
       params[:client_id].should == "test_app"
       params[:scope].should == "read"
@@ -248,7 +257,7 @@ describe TokenIssuer do
       end
       StubServer.request do
         authcode_uri = subject.authcode_uri(@redir_uri)
-        params = subject.class.decode_oauth_parameters(URI.parse(authcode_uri).query)
+        params = Util.decode_form_to_hash(URI.parse(authcode_uri).query)
         check_good_token subject.authcode_grant(authcode_uri, "code=good.auth.code&state=#{params[:state]}")
       end
     end

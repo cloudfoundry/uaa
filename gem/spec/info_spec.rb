@@ -12,12 +12,12 @@
 #++
 
 require 'spec_helper'
-require 'uaa/token_checker'
+require 'uaa/misc'
 require 'stub_uaa'
 
 module CF::UAA
 
-describe TokenChecker do
+describe Misc do
 
 =begin
 
