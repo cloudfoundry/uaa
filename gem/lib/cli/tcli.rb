@@ -81,7 +81,7 @@ class TCli < BaseCli
       next unless opts[:verbose] || v[:current_target]
       splat = v[:current_target] ? '*' : ' '
       v.delete(:current_target)
-      puts "", "[#{i}]#{splat}[#{Util.unrubyize_key(k)}]"
+      puts "", "[#{i}]#{splat}[#{k}]"
       pp v, 1
     end
     puts ""

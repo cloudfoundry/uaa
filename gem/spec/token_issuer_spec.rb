@@ -20,15 +20,24 @@ module CF::UAA
 describe TokenIssuer do
 
   before :all do
-    @debug = false
-    @stub_uaa = Stub::Server.new(StubUAA, @debug).run_on_thread
-    @issuer = TokenIssuer.new(@stub_uaa.url, "test_client", "test_secret", "read-logs", @debug)
+    @stub_uaa = StubUAA.new.run_on_thread
+    @stub_uaa.debug = @debug = true
+    admin_group = @stub_uaa.scim.add(:group, {display_name: "client_admin"})
+    readers = @stub_uaa.scim.add(:group, {display_name: "read_logs"})
+    openid = @stub_uaa.scim.add(:group, {display_name: "openid"})
+    @stub_uaa.scim.add(:client, {display_name: "test_client", password: "test_secret",
+        authorized_grant_types: ["client_credentials", "authorization_code", "password"],
+        groups: [admin_group[:id], readers[:id], openid[:id]],
+        access_token_validity: 60 * 60 * 24 * 7 })
+    @stub_uaa.scim.add(:user, {user_name: "joe+admin", password: "?joe's%password$@ ",
+        groups: [openid[:id]]})
+    @issuer = TokenIssuer.new(@stub_uaa.url, "test_client", "test_secret", "read_logs", @debug)
     @issuer.async = @async = false
   end
 
-  after :all do @stub_uaa.stop; sleep 0.1 end
+  after :all do @stub_uaa.stop end
   subject { @issuer }
-  before :each do StubUAA.reply_badly = :none end
+  before :each do @stub_uaa.reply_badly = :none end
 
   def request
     return yield unless @async
@@ -43,6 +52,7 @@ describe TokenIssuer do
     token.info[:scope].should == scope
     token.info[:expires_in].should == 3600
     contents = TokenCoder.decode(token.info[:access_token])
+    puts contents.inspect
     contents[:aud].should == scope
     contents[:scope].should == scope
     contents[:jti].should_not be_nil
@@ -54,13 +64,13 @@ describe TokenIssuer do
 
     it "should get a token with client credentials" do
       request do
-        check_good_token subject.client_credentials_grant, "read-logs", "test_client"
+        check_good_token subject.client_credentials_grant, "read_logs", "test_client"
       end
     end
 
     it "should get all granted scopes if none specified" do
       request do
-        all_scopes = ["read", "write", "test", "read-logs", "client_admin", "user_admin"].sort!
+        all_scopes = ["read_logs", "client_admin", "openid"].sort!
         subject.default_scope = nil
         token = subject.client_credentials_grant
         Util.arglist(token.info[:scope]).sort!.should == all_scopes
@@ -70,14 +80,14 @@ describe TokenIssuer do
     end
 
     it "should raise a bad response error if response content type is not json" do
-      StubUAA.reply_badly = :non_json
+      @stub_uaa.reply_badly = :non_json
       request do
         expect { subject.client_credentials_grant }.should raise_exception(BadResponse)
       end
     end
 
     it "should raise a bad response error if the response is not proper json" do
-      StubUAA.reply_badly = :bad_json
+      @stub_uaa.reply_badly = :bad_json
       request do
         expect { subject.client_credentials_grant }.should raise_exception(BadResponse)
       end

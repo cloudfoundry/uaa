@@ -40,7 +40,7 @@ class ClientReg
 
   # takes a hash of fields currently supported by the uaa:
   #     client_id (required),
-  #     secret,
+  #     client_secret,
   #     scope (array of strings or space or comma separated fields),
   #     resource_ids (array of strings or space or comma separated fields),
   #     authorized_grant_types (array of strings or space or comma separated fields),
@@ -50,14 +50,14 @@ class ClientReg
   #     redirect_uri (array of strings or space or comma separated fields),
 
   def create(info)
-    info = Util.rubyize_keys(info)
+    info = Util.hash_keys(info, :tosym)
     raise ArgumentError, "a client registration must specify a unique client id" unless info[:client_id]
     info = self.class.multivalues_to_arrays! info
     json_parse_reply *json_post("/oauth/clients", info, @auth_header)
   end
 
   def update(info)
-    info = Util.rubyize_keys(info)
+    info = Util.hash_keys(info, :tosym)
     raise ArgumentError, "a client registration update specify a unique client id" unless info[:client_id]
     info = self.class.multivalues_to_arrays! info
     json_parse_reply *json_put("/oauth/clients/#{URI.encode(info[:client_id])}", info, @auth_header)

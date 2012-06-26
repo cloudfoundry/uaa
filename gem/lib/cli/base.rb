@@ -13,7 +13,6 @@
 
 require 'thor'
 require 'interact'
-require 'highline/system_extensions'
 require 'cli/config'
 
 module CF::UAA
@@ -28,12 +27,12 @@ class BaseCli < Thor
   end
 
   def self.terminal_columns
+    puts __FILE__ + __LINE__
     return @terminal_columns if @terminal_columns
     return @terminal_columns = 0 unless $stdout.isatty
-    cols, rows = HighLine::SystemExtensions.terminal_size
-    @terminal_columns = !cols || cols < 4 ? 0 : cols
-  rescue Exception
-    @terminal_columns = 0
+    cols = ENV['COLUMNS'] ? ENV['COLUMNS'].to_i :
+        (`stty size 2>/dev/null`.split[1].to_i rescue `tput cols 2>/dev/null`.to_i rescue 0)
+    @terminal_columns = !cols || cols < 8 ? 0 : cols
   end
 
   def self.pp(obj, indent_count = 0, indent_size = 4, line_limit = terminal_columns, label = nil)
@@ -49,7 +48,7 @@ class BaseCli < Thor
         puts Util.truncate(line, line_limit)
         indent_count += 1
       end
-      obj.each { |k, v| pp v, indent_count, indent_size, line_limit, "#{Util.unrubyize_key(k)}: " }
+      obj.each { |k, v| pp v, indent_count, indent_size, line_limit, "#{k}: " }
     else
       puts Util.truncate(line << obj.to_s, line_limit)
     end
@@ -66,7 +65,7 @@ class BaseCli < Thor
     @all_options = {}
     @all_options.merge!(options) if options
     @all_options.merge!(parent_options) if parent_options
-    @all_options = Util.rubyize_keys(@all_options)
+    @all_options = Util.hash_keys(@all_options, :tosym)
   end
 
   def trace?

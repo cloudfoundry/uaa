@@ -19,11 +19,8 @@ require 'cli/stub_server'
 module CF::UAA
 
 class StubHttp < Stub::Base
-
-  route :get, '/' do
-    reply_in_kind "welcome to stub http, version #{VERSION}"
-  end
-
+  route(:get, '/') { reply_in_kind "welcome to stub http, version #{VERSION}" }
+  route( :get, '/bad') { reply.headers[:location] = ":;+)(\/"; reply_in_kind "bad http status code", 3 }
 end
 
 describe Http do
@@ -31,25 +28,36 @@ describe Http do
   include Http
 
   before :all do
-    @debug = false
+    @debug = true
     @stub_http = Stub::Server.new(StubHttp, @debug).run_on_thread
     @target = @stub_http.url
   end
 
-  after :all do @stub_http.stop; sleep 0.1 end
+  after :all do @stub_http.stop end
 
-  def frequest
-    return yield unless @async
+  def capture_exception
+    yield
+  rescue Exception => e
+    puts "here #{e}"
+    e
+  end
+
+  # runs given block on a thread or fiber and returns result
+  # if eventmachine is running on another thread, the fiber
+  # must be on the same thread, hence EM.schedule and the
+  # restriction that the given block cannot include rspec matchers.
+  def frequest(&blk)
+    return capture_exception(&blk) unless @async
     result = nil
     cthred = Thread.current
-    EM.schedule { Fiber.new { result = yield; cthred.run }.resume }
+    EM.schedule { Fiber.new { result = capture_exception(&blk); cthred.run }.resume }
     Thread.stop
     result
   end
 
   it "should get something from stub server on a fiber" do
     @async = true
-    result = frequest do
+    frequest {
       f = Fiber.current
       http = EM::HttpRequest.new("#{target}/").get
       http.errback { f.resume "error" }
@@ -58,13 +66,12 @@ describe Http do
         f.resume http.response
       }
       Fiber.yield
-    end
-    result.should match /welcome to stub http/
+    }.should match /welcome to stub http/
   end
 
   it "should be able to use persistent connections from stubserver" do
     @async = true
-    result = frequest do
+    frequest {
       f = Fiber.current
       conn = EM::HttpRequest.new("#{target}/")
       req1 = conn.get keepalive: true
@@ -75,19 +82,15 @@ describe Http do
         req2.callback { f.resume req2.response }
       }
       Fiber.yield
-    end
-    result.should match /welcome to stub http/
+    }.should match /welcome to stub http/
   end
 
   it "should get something from stub server on a thread" do
     @async = false
-    puts "","#{@stub_http.url}/",""
     resp = RestClient.get("#{@stub_http.url}/")
     resp.code.should == 200
     resp.body.should match /welcome to stub http/
   end
-
-=begin
 
   shared_examples_for "http client" do
 
@@ -106,43 +109,38 @@ describe Http do
     # to just make the domain name invalid with tildes, but this may not test
     # the desired code paths
     it "fail cleanly for a failed dns lookup" do
-      frequest do
+      result = frequest {
         @target = "http://bad~host~name/"
-        expect { http_get("/") }.to raise_exception(BadTarget)
-      end
+        http_get("/")
+      }
+      puts "here" + result.to_s + result.class.to_s
+      result.should be_an_instance_of BadTarget
     end
 
     it "fail cleanly for a get operation, no connection to address" do
-      frequest do
+      result = frequest {
         @target = "http://127.0.0.1:30000"
-        expect { http_get("/") }.to raise_exception(BadTarget)
-      end
+        http_get("/")
+      }
+      puts "uuuuuuuuuuuuuuuuuuuuu " + result.class.to_s
+      result.should be_an_instance_of BadTarget
     end
 
     it "fail cleanly for a get operation with bad response" do
-      # TODO: set response { "badly formatted http response" }
-      frequest do
-        expect { http_get("/bad") }.to raise_exception(HTTPException)
-      end
+      frequest { http_get("/bad") }.should be_an_instance_of HTTPException
     end
 
     it "work for a get operation to a valid address" do
-      frequest do
-        status, body, headers = http_get("/")
-        status.should == 200
-        body.should match /^welcome to stub http/
-      end
+      status, body, headers = frequest { http_get("/") }
+      status.should == 200
+      body.should match /welcome to stub http/
     end
 
     it "should send debug information to a custom logger" do
       class CustomLogger
         attr_reader :log
-        def initialize
-          @log = ""
-        end
-        def debug(str)
-          @log << str
-        end
+        def initialize; @log = "" end
+        def debug(str); @log << str end
       end
       @debug = true
       @logger = clog = CustomLogger.new
@@ -150,7 +148,6 @@ describe Http do
       frequest { http_get("/") }
       clog.log.should_not be_empty
     end
-
   end
 
   context "on a fiber" do
@@ -162,8 +159,6 @@ describe Http do
     before(:all) { @async = false }
     it_should_behave_like "http client"
   end
-
-=end
 
 end
 

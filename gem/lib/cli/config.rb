@@ -25,14 +25,14 @@ class Config
     @yaml = (config if config =~ /^--- / || config == "")
     @config_file = (config unless @yaml)
     cfg = @config_file? (YAML.load_file(@config_file) if File.exists?(@config_file)): (YAML.load(@yaml) if @yaml)
-    @config = Util.rubyize_keys(cfg) || {}
+    @config = Util.hash_keys(cfg, :tosym) || {}
     @curtgt = nil
     @config.each {|k, v| @curtgt ||= k if v[:current_target] }
   end
 
   def self.save
-    return @yaml = YAML.dump(Util.unrubyize_keys(@config)) unless @config_file
-    File.open(@config_file, 'w') { |f| YAML.dump(Util.unrubyize_keys(@config), f) }
+    return @yaml = YAML.dump(@config) unless @config_file
+    File.open(@config_file, 'w') { |f| YAML.dump(@config, f) }
   end
 
   # tgt can by an integer index of the desired target, or the key (symbol)

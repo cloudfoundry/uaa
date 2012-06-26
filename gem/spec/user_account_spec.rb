@@ -20,15 +20,21 @@ module CF::UAA
 describe UserAccount do
 
   before :all do
-    @debug = false
-    @stub_uaa = Stub::Server.new(StubUAA, @debug).run_on_thread
-    @issuer = TokenIssuer.new(@stub_uaa.url, "test_client", "test_secret")
+    @debug = true
+    @stub_uaa = StubUAA.new(@debug).run_on_thread
+
+    admin_group = @stub_uaa.scim.add(:group, {display_name: "user_admin"})
+    @stub_uaa.scim.add(:client, {display_name: "test_client", password: "test_secret",
+        authorized_grant_types: ["client_credentials"], groups: [admin_group[:id]],
+        access_token_validity: 60 * 60 * 24 * 7 })
+
+    @issuer = TokenIssuer.new(@stub_uaa.url, "test_client", "test_secret", nil, @debug)
     @token = @issuer.client_credentials_grant
     @user_acct = UserAccount.new(@stub_uaa.url, @token.auth_header, @debug)
     @user_acct.async = @async = false
   end
 
-  after :all do @stub_uaa.stop; sleep 0.1 end
+  after :all do @stub_uaa.stop if @stub_uaa end
   subject { @user_acct }
 
   def request

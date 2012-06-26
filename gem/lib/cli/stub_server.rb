@@ -100,7 +100,7 @@ end
 # request handler logic -- server is initialized with a class derived from this.
 # there will be one instance of this object per connection.
 class Base
-  attr_accessor :request, :reply, :match
+  attr_accessor :request, :reply, :match, :server
   attr_writer :debug
   def debug?; @debug end
 
@@ -127,8 +127,8 @@ class Base
     [nil, :default_route]
   end
 
-  def initialize(debug = false)
-    @request, @reply, @match, @debug = Request.new, Reply.new, nil, debug
+  def initialize(server, debug = false)
+    @server, @request, @reply, @match, @debug = server, Request.new, Reply.new, nil, debug
   end
 
   def process
@@ -158,14 +158,14 @@ end
 
 #------------------------------------------------------------------------------
 module Connection
-  attr_writer :server, :req_handler
-  def unbind; @server.delete_connection(self) end
+  attr_accessor :req_handler
+  def unbind; req_handler.server.delete_connection(self) end
 
   def receive_data(data)
-    return unless @req_handler.request.complete? data
-    @req_handler.process
-    send_data @req_handler.reply.to_s
-    if @req_handler.reply.headers[:connection] =~ /^close$/i || !@server.running?
+    return unless req_handler.request.complete? data
+    req_handler.process
+    send_data req_handler.reply.to_s
+    if req_handler.reply.headers[:connection] =~ /^close$/i || !req_handler.server.running?
       close_connection_after_writing
     end
   rescue Exception => e
@@ -243,14 +243,14 @@ class Server
     fail unless @connections.empty?
     EM.stop if @em_thread && EM.reactor_running?
     initialize(debug?)
+    sleep 0.1 unless EM.reactor_thread? # give EM a chance to stop
   end
 
   def initialize_connection(conn)
     puts "starting connection" if debug?
     fail unless EM.reactor_thread?
     @connections << conn
-    conn.server = self
-    conn.req_handler = @req_handler.new(debug?)
+    conn.req_handler = @req_handler.new(self, debug?)
     conn.comm_inactivity_timeout = 30
   end
 
