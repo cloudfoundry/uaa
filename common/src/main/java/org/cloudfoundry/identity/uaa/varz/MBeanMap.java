@@ -27,7 +27,7 @@ import javax.management.openmbean.TabularDataSupport;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.util.StringUtils;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 
 import sun.management.LazyCompositeData;
 
@@ -86,7 +86,7 @@ public class MBeanMap extends AbstractMap<String, Object> {
 			for (MBeanOperationInfo operation : operations) {
 				String key = operation.getName();
 				if (key.startsWith("get") && operation.getSignature().length == 0) {
-					String attribute = StringUtils.camelToUnderscore(key.substring(3));
+					String attribute = UaaStringUtils.camelToUnderscore(key.substring(3));
 					if (map.containsKey(attribute)) {
 						continue;
 					}
@@ -168,7 +168,7 @@ public class MBeanMap extends AbstractMap<String, Object> {
 	private void safePut(Map<Object, Object> map, Object key, Object value, boolean prettifyKeys) {
 		Object property = key;
 		if (key instanceof String && prettifyKeys) {
-			property = StringUtils.camelToUnderscore((String) key);
+			property = UaaStringUtils.camelToUnderscore((String) key);
 		}
 		// Don't prettify system property keys in case user has added upper case properties
 		map.put(property, getCompositeWrapper(value, prettifyKeys && !key.equals("SystemProperties")));

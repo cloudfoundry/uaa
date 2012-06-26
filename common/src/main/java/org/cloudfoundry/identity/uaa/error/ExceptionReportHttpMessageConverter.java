@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.cloudfoundry.identity.uaa.util.StringUtils;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.MediaType;
@@ -113,7 +113,7 @@ public class ExceptionReportHttpMessageConverter extends AbstractHttpMessageConv
 
 	private String getErrorName(Exception e) {
 		String name = e.getClass().getSimpleName();
-		name = StringUtils.camelToUnderscore(name);
+		name = UaaStringUtils.camelToUnderscore(name);
 		if (name.endsWith("_exception")) {
 			name = name.substring(0, name.lastIndexOf("_exception"));
 		}

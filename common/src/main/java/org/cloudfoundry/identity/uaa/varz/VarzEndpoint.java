@@ -25,10 +25,11 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.util.StringUtils;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.context.expression.MapAccessor;
 import org.springframework.core.env.Environment;
+import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.stereotype.Controller;
@@ -53,6 +54,17 @@ public class VarzEndpoint implements EnvironmentAware {
 
 	private Properties environmentProperties = new Properties();
 
+	private Properties buildProperties = new Properties();
+
+	public VarzEndpoint() {
+		try {
+			buildProperties = PropertiesLoaderUtils.loadAllProperties("build.properties");
+		}
+		catch (IOException e) {
+			// Ignore
+		}
+	}
+
 	/**
 	 * Hard-coded baseUrl for absolute links.
 	 * @param baseUrl the baseUrl to set
@@ -65,7 +77,7 @@ public class VarzEndpoint implements EnvironmentAware {
 	 * @param environmentProperties the environment properties to set
 	 */
 	public void setEnvironmentProperties(Properties environmentProperties) {
-		this.environmentProperties = hidePasswords(environmentProperties);
+		this.environmentProperties = UaaStringUtils.hidePasswords(environmentProperties);
 	}
 
 	@Override
@@ -98,8 +110,12 @@ public class VarzEndpoint implements EnvironmentAware {
 		result.put("links", links);
 
 		Map<String, ?> memory = pullUpMap("java.lang", "type=Memory");
-		result.put("mem", getValueFromMap(memory, "memory.heap_memory_usage.used"));
+		result.put("mem", getValueFromMap(memory, "memory.heap_memory_usage.used", Long.class)/1024);
 		result.put("memory", getValueFromMap(memory, "memory"));
+		
+		if (!buildProperties.isEmpty()) {
+			result.put("app", UaaStringUtils.getMapFromProperties(buildProperties, "build."));			
+		}
 
 		Map<String, ?> spring = pullUpMap("spring.application", "*");
 		if (spring != null) {
@@ -167,6 +183,12 @@ public class VarzEndpoint implements EnvironmentAware {
 		return map == null ? Collections.<String, Object> emptyMap() : map;
 	}
 
+	private <T> T getValueFromMap(Map<String, ?> map, String path, Class<T> type) throws Exception {
+		@SuppressWarnings("unchecked")
+		T result = (T) getValueFromMap(map, path);
+		return result;
+	}
+
 	private Object getValueFromMap(Map<String, ?> map, String path) throws Exception {
 		@SuppressWarnings("unchecked")
 		MapWrapper wrapper = new MapWrapper((Map<String, Object>) map);
@@ -228,13 +250,13 @@ public class VarzEndpoint implements EnvironmentAware {
 
 			String type = name.getKeyProperty("type");
 			if (type != null) {
-				type = StringUtils.camelToUnderscore(type);
+				type = UaaStringUtils.camelToUnderscore(type);
 				objects = getMap(objects, type);
 			}
 
 			String key = name.getKeyProperty("name");
 			if (key != null) {
-				key = StringUtils.camelToUnderscore(key);
+				key = UaaStringUtils.camelToUnderscore(key);
 				objects = getMap(objects, key);
 			}
 
@@ -242,7 +264,7 @@ public class VarzEndpoint implements EnvironmentAware {
 				if (property.equals("type") || property.equals("name")) {
 					continue;
 				}
-				key = StringUtils.camelToUnderscore(property);
+				key = UaaStringUtils.camelToUnderscore(property);
 				objects = getMap(objects, key);
 				String value = name.getKeyProperty(property);
 				objects = getMap(objects, value);
@@ -292,21 +314,6 @@ public class VarzEndpoint implements EnvironmentAware {
 			logger.warn("Could not obtain OS environment", e);
 		}
 		return env;
-	}
-
-	/**
-	 * @param properties
-	 * @return new properties with no plaintext passwords
-	 */
-	private Properties hidePasswords(Properties properties) {
-		Properties result = new Properties();
-		result.putAll(properties);
-		for (String key : properties.stringPropertyNames()) {
-			if (key.endsWith("password") || key.endsWith("secret")) {
-				result.put(key, "#");
-			}
-		}
-		return result;
 	}
 
 	class MapWrapper {

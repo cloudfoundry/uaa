@@ -6,13 +6,13 @@
 	<parent>
 		<groupId>org.cloudfoundry.identity</groupId>
 		<artifactId>cloudfoundry-identity-parent</artifactId>
-		<version>1.0.0.BUILD-SNAPSHOT</version>
+		<version>1.0.3.BUILD-SNAPSHOT</version>
 		<relativePath>..</relativePath>
 	</parent>
 
 	<artifactId>cloudfoundry-identity-uaa</artifactId>
 	<packaging>war</packaging>
-	<name>User Account and Authentication Service</name>
+	<name>UAA</name>
 	<description>User Account and Authentication Service</description>
 
 	<properties>
@@ -93,6 +93,12 @@
 	</profiles>
 
 	<build>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering>
+			</resource>
+		</resources>
 		<plugins>
 			<plugin>
 				<groupId>pl.project13.maven</groupId>

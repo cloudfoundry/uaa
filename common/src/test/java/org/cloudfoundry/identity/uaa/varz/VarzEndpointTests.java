@@ -81,6 +81,7 @@ public class VarzEndpointTests {
 		Map<String, ?> varz = endpoint.getVarz("http://uua.vcap.me");
 		// System.err.println(varz);
 		assertNotNull(varz.get("mem"));
+		assertTrue((Long)varz.get("mem")<1024*1024); // kB, so less than 1GB
 	}
 
 	@Test

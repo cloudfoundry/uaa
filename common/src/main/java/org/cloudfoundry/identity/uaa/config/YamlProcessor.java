@@ -22,6 +22,7 @@ import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.core.io.Resource;
 import org.springframework.util.StringUtils;
 import org.yaml.snakeyaml.Yaml;
@@ -136,13 +137,13 @@ public class YamlProcessor {
 						if (map != null) {
 							process(map, callback);
 							found = true;
-							count ++;
+							count++;
 						}
 					}
 				}
 
-				logger.info("Loaded " + count + " document" + (count > 1 ? "s" : "")
-						+ " from YAML resource: " + resource);
+				logger.info("Loaded " + count + " document" + (count > 1 ? "s" : "") + " from YAML resource: "
+						+ resource);
 
 				if (resolutionMethod == ResolutionMethod.FIRST_FOUND && found) {
 					// No need to load any more resources
@@ -167,11 +168,10 @@ public class YamlProcessor {
 		Properties properties = new Properties();
 		assignProperties(properties, map, null);
 		if (documentMatchers.isEmpty()) {
-			logger.debug("Merging document (no matchers set)");
+			logger.debug("Merging document (no matchers set)" + UaaStringUtils.hidePasswords(map));
 			callback.process(properties, map);
 		}
 		else {
-			logger.debug("Matching document: " + map);
 			boolean keyFound = false;
 			boolean valueFound = false;
 			for (Entry<String, String> entry : documentMatchers.entrySet()) {
@@ -181,7 +181,8 @@ public class YamlProcessor {
 					keyFound = true;
 					String value = properties.getProperty(key);
 					if (value.matches(pattern)) {
-						logger.debug("Matched document with " + key + "=" + value + " (pattern=/" + pattern + "/)");
+						logger.debug("Matched document with " + key + "=" + value + " (pattern=/" + pattern + "/): "
+								+ UaaStringUtils.hidePasswords(map));
 						callback.process(properties, map);
 						valueFound = true;
 						// No need to check for more matches
@@ -190,7 +191,7 @@ public class YamlProcessor {
 				}
 			}
 			if (!keyFound && matchDefault) {
-				logger.debug("Matched document with default matcher");
+				logger.debug("Matched document with default matcher: " + UaaStringUtils.hidePasswords(map));
 				callback.process(properties, map);
 			}
 			else if (!valueFound) {
