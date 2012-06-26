@@ -39,6 +39,15 @@ public class UaaStringUtils {
 		return result;
 	}
 
+	public static String getErrorName(Exception e) {
+		String name = e.getClass().getSimpleName();
+		name = UaaStringUtils.camelToUnderscore(name);
+		if (name.endsWith("_exception")) {
+			name = name.substring(0, name.lastIndexOf("_exception"));
+		}
+		return name;
+	}
+
 	/**
 	 * Hide the passwords and secrets in a config map (e.g. for logging).
 	 * 

@@ -18,13 +18,20 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jmx.export.annotation.ManagedMetric;
+import org.springframework.jmx.export.annotation.ManagedResource;
+import org.springframework.jmx.support.MetricType;
 import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
@@ -49,7 +56,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * @author Dave Syer
  */
 @Controller
-public class ClientAdminEndpoints {
+@ManagedResource
+public class ClientAdminEndpoints implements InitializingBean {
 
 	private final Log logger = LogFactory.getLog(getClass());
 
@@ -58,6 +66,14 @@ public class ClientAdminEndpoints {
 	private ClientDetailsService clientDetailsService;
 
 	private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
+
+	private final Map<String, AtomicInteger> errorCounts = new ConcurrentHashMap<String, AtomicInteger>();
+
+	private AtomicInteger clientUpdates = new AtomicInteger();
+
+	private AtomicInteger clientDeletes = new AtomicInteger();
+
+	private AtomicInteger clientSecretChanges = new AtomicInteger();
 
 	/**
 	 * @param clientRegistrationService the clientRegistrationService to set
@@ -75,6 +91,37 @@ public class ClientAdminEndpoints {
 
 	void setSecurityContextAccessor(SecurityContextAccessor securityContextAccessor) {
 		this.securityContextAccessor = securityContextAccessor;
+	}
+	
+	@ManagedMetric(metricType = MetricType.COUNTER, displayName = "Client Registration Count")
+	public int getTotalClients() {
+		return clientRegistrationService.listClientDetails().size();
+	}
+
+	@ManagedMetric(metricType = MetricType.COUNTER, displayName = "Client Update Count (Since Startup)")
+	public int getClientUpdates() {
+		return clientUpdates.get();
+	}
+
+	@ManagedMetric(metricType = MetricType.COUNTER, displayName = "Client Delete Count (Since Startup)")
+	public int getClientDeletes() {
+		return clientDeletes.get();
+	}
+
+	@ManagedMetric(metricType = MetricType.COUNTER, displayName = "Client Secret Change Count (Since Startup)")
+	public int getClientSecretChanges() {
+		return clientSecretChanges.get();
+	}
+
+	@ManagedMetric(displayName = "Errors Since Startup")
+	public Map<String, AtomicInteger> getErrorCounts() {
+		return errorCounts;
+	}
+
+	@Override
+	public void afterPropertiesSet() throws Exception {
+		Assert.state(clientRegistrationService!=null, "A ClientRegistrationService must be provided");
+		Assert.state(clientDetailsService!=null, "A ClientDetailsService must be provided");
 	}
 
 	@RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.GET)
@@ -108,14 +155,15 @@ public class ClientAdminEndpoints {
             logger.warn("Couldn't fetch client config for client_id: " + client, e);
         }
 		clientRegistrationService.updateClientDetails(details);
+		clientUpdates.incrementAndGet();
 		return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
 	}
 
     private BaseClientDetails syncWithExisting(ClientDetails existingClientConfig, BaseClientDetails details) {
-        if (details.getAccessTokenValiditySeconds() == 0) {
+        if (details.getAccessTokenValiditySeconds() == null) {
             details.setAccessTokenValiditySeconds(existingClientConfig.getAccessTokenValiditySeconds());
         }
-        if (details.getRefreshTokenValiditySeconds() == 0) {
+        if (details.getRefreshTokenValiditySeconds() == null) {
             details.setRefreshTokenValiditySeconds(existingClientConfig.getRefreshTokenValiditySeconds());
         }
         if (details.getAuthorities() == null || details.getAuthorities().isEmpty()) {
@@ -139,6 +187,7 @@ public class ClientAdminEndpoints {
     @RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.DELETE)
 	public ResponseEntity<Void> removeClientDetails(@PathVariable String client) throws Exception {
 		clientRegistrationService.removeClientDetails(client);
+		clientDeletes.incrementAndGet();
 		return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
 	}
 
@@ -168,6 +217,7 @@ public class ClientAdminEndpoints {
 
 		clientRegistrationService.updateClientSecret(client, change.getSecret());
 
+		clientSecretChanges.incrementAndGet();
 	}
 
 	private void checkPasswordChangeIsAllowed(ClientDetails clientDetails, String oldSecret) {
@@ -210,17 +260,35 @@ public class ClientAdminEndpoints {
 
 	@ExceptionHandler(InvalidClientDetailsException.class)
 	public ResponseEntity<InvalidClientDetailsException> handleInvalidClientDetails(InvalidClientDetailsException e) {
+		incrementErrorCounts(e);
 		return new ResponseEntity<InvalidClientDetailsException>(e, HttpStatus.BAD_REQUEST);
 	}
 
 	@ExceptionHandler(NoSuchClientException.class)
 	public ResponseEntity<Void> handleNoSuchClient(NoSuchClientException e) {
+		incrementErrorCounts(e);
 		return new ResponseEntity<Void>(HttpStatus.NOT_FOUND);
 	}
 
 	@ExceptionHandler(ClientAlreadyExistsException.class)
 	public ResponseEntity<Void> handleClientAlreadyExists(ClientAlreadyExistsException e) {
+		incrementErrorCounts(e);
 		return new ResponseEntity<Void>(HttpStatus.CONFLICT);
+	}
+
+	private void incrementErrorCounts(Exception e) {
+		String series = UaaStringUtils.getErrorName(e);
+		AtomicInteger value = errorCounts.get(series);
+		if (value==null) {
+			synchronized (errorCounts) {
+				value = errorCounts.get(series);
+				if (value==null) {
+					value = new AtomicInteger();
+					errorCounts.put(series, value);
+				}
+			}
+		}
+		value.incrementAndGet();
 	}
 
 	private void validateClient(ClientDetails client, boolean create) {

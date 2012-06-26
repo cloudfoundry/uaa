@@ -23,7 +23,7 @@
 	<!-- Add a handler adapter with special knowledge of the ScimUser endpoints -->
 	<bean class="org.cloudfoundry.identity.uaa.config.HandlerAdapterFactoryBean" />
 
-	<bean id="scimEndpoints" class="org.cloudfoundry.identity.uaa.scim.ScimUserEndpoints">
+	<bean id="scimUserEndpoints" class="org.cloudfoundry.identity.uaa.scim.ScimUserEndpoints">
 		<property name="scimUserProvisioning" ref="scimUserProvisioning" />
 		<property name="statuses">
 			<map key-type="java.lang.Class" value-type="org.springframework.http.HttpStatus">
