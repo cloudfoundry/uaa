@@ -18,6 +18,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
@@ -28,6 +30,8 @@ import org.junit.rules.ExpectedException;
 import org.mockito.Mockito;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -48,17 +52,27 @@ public class ClientAdminEndpointsTests {
 	private ClientDetailsService clientDetailsService = Mockito.mock(ClientDetailsService.class);
 
 	private ClientRegistrationService clientRegistrationService = Mockito.mock(ClientRegistrationService.class);
-	
+
 	@Rule
 	public ExpectedException expected = ExpectedException.none();
 
 	@Before
-	public void setUp() {
+	public void setUp() throws Exception {
 		endpoints.setClientDetailsService(clientDetailsService);
 		endpoints.setClientRegistrationService(clientRegistrationService);
 		details.setClientId("foo");
 		details.setClientSecret("secret");
-		details.setAuthorizedGrantTypes(Arrays.asList("password"));
+		details.setAuthorizedGrantTypes(Arrays.asList("authorization_code"));
+		endpoints.afterPropertiesSet();
+	}
+
+	@Test
+	public void testStatistics() throws Exception {
+		assertEquals(0, endpoints.getClientDeletes());
+		assertEquals(0, endpoints.getClientSecretChanges());
+		assertEquals(0, endpoints.getClientUpdates());
+		assertEquals(0, endpoints.getErrorCounts().size());
+		assertEquals(0, endpoints.getTotalClients());
 	}
 
 	@Test
@@ -70,7 +84,8 @@ public class ClientAdminEndpointsTests {
 
 	@Test
 	public void testFindClientDetails() throws Exception {
-		ResponseEntity<Map<String,ClientDetails>> result = endpoints.listClientDetails();
+		Mockito.when(clientRegistrationService.listClientDetails()).thenReturn(Arrays.<ClientDetails> asList(details));
+		ResponseEntity<Map<String, ClientDetails>> result = endpoints.listClientDetails();
 		assertEquals(HttpStatus.OK, result.getStatusCode());
 		Mockito.verify(clientRegistrationService).listClientDetails();
 	}
@@ -79,6 +94,16 @@ public class ClientAdminEndpointsTests {
 	public void testUpdateClientDetails() throws Exception {
 		endpoints.createClientDetails(details);
 		details.setScope(Arrays.asList("read"));
+		ResponseEntity<Void> result = endpoints.updateClientDetails(details, "foo");
+		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+		Mockito.verify(clientRegistrationService).updateClientDetails(details);
+	}
+
+	@Test
+	public void testPartialUpdateClientDetails() throws Exception {
+		Mockito.when(clientDetailsService.loadClientByClientId(details.getClientId())).thenReturn(details);
+		endpoints.createClientDetails(details);
+		details.setScope(null);
 		ResponseEntity<Void> result = endpoints.updateClientDetails(details, "foo");
 		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
 		Mockito.verify(clientRegistrationService).updateClientDetails(details);
@@ -207,23 +232,116 @@ public class ClientAdminEndpointsTests {
 	}
 
 	@Test(expected = InvalidClientDetailsException.class)
+	public void testScopeIsRestrictedByCaller() throws Exception {
+		BaseClientDetails caller = new BaseClientDetails("caller", null, "none", "client_credentials,implicit",
+				"uaa.none");
+		when(clientDetailsService.loadClientByClientId("caller")).thenReturn(caller);
+		endpoints.setSecurityContextAccessor(new StubSecurityContextAccessor() {
+			@Override
+			public String getClientId() {
+				return "caller";
+			}
+		});
+		details.setScope(Arrays.asList("some"));
+		details.setAuthorizedGrantTypes(Arrays.asList("implicit"));
+		details.setClientSecret(null);
+		endpoints.createClientDetails(details);
+	}
+
+	@Test
+	public void testValidScopeIsNotRestrictedByCaller() throws Exception {
+		BaseClientDetails caller = new BaseClientDetails("caller", null, "none", "client_credentials,implicit",
+				"uaa.none");
+		when(clientDetailsService.loadClientByClientId("caller")).thenReturn(caller);
+		endpoints.setSecurityContextAccessor(new StubSecurityContextAccessor() {
+			@Override
+			public String getClientId() {
+				return "caller";
+			}
+		});
+		details.setScope(Arrays.asList("none"));
+		details.setAuthorizedGrantTypes(Arrays.asList("implicit"));
+		details.setClientSecret(null);
+		endpoints.createClientDetails(details);
+	}
+
+	@Test(expected = InvalidClientDetailsException.class)
+	public void testAuthorityIsRestrictedByCaller() throws Exception {
+		BaseClientDetails caller = new BaseClientDetails("caller", null, "none", "client_credentials,implicit",
+				"uaa.none");
+		when(clientDetailsService.loadClientByClientId("caller")).thenReturn(caller);
+		endpoints.setSecurityContextAccessor(new StubSecurityContextAccessor() {
+			@Override
+			public String getClientId() {
+				return "caller";
+			}
+		});
+		details.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.some"));
+		endpoints.createClientDetails(details);
+	}
+
+	@Test
+	public void testAuthorityAllowedByCaller() throws Exception {
+		BaseClientDetails caller = new BaseClientDetails("caller", null, "none", "client_credentials,implicit",
+				"uaa.none");
+		when(clientDetailsService.loadClientByClientId("caller")).thenReturn(caller);
+		endpoints.setSecurityContextAccessor(new StubSecurityContextAccessor() {
+			@Override
+			public String getClientId() {
+				return "caller";
+			}
+		});
+		details.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none"));
+		endpoints.createClientDetails(details);
+	}
+
+	@Test(expected = InvalidClientDetailsException.class)
+	public void cannotExpandScope() throws Exception {
+		BaseClientDetails caller = new BaseClientDetails();
+		caller.setScope(Arrays.asList("none"));
+		when(clientDetailsService.loadClientByClientId("caller")).thenReturn(caller);
+		details.setAuthorizedGrantTypes(Arrays.asList("implicit"));
+		details.setClientSecret("hello");
+		endpoints.createClientDetails(details);
+	}
+
+	@Test(expected = InvalidClientDetailsException.class)
 	public void implicitClientWithNonEmptySecretIsRejected() throws Exception {
 		details.setAuthorizedGrantTypes(Arrays.asList("implicit"));
 		details.setClientSecret("hello");
 		endpoints.createClientDetails(details);
 	}
 
+	@Test(expected = InvalidClientDetailsException.class)
+	public void implicitAndAuthorizationCodeClientIsRejected() throws Exception {
+		details.setAuthorizedGrantTypes(Arrays.asList("implicit", "authorization_code"));
+		details.setClientSecret("hello");
+		endpoints.createClientDetails(details);
+	}
+
+	@Test
+	public void implicitAndAuthorizationCodeClientIsOkForAdmin() throws Exception {
+		endpoints.setSecurityContextAccessor(new StubSecurityContextAccessor() {
+			@Override
+			public boolean isAdmin() {
+				return true;
+			}
+		});
+		details.setAuthorizedGrantTypes(Arrays.asList("implicit", "authorization_code"));
+		details.setClientSecret("hello");
+		endpoints.createClientDetails(details);
+	}
 
 	@Test(expected = InvalidClientDetailsException.class)
 	public void nonImplicitClientWithEmptySecretIsRejected() throws Exception {
-		details.setAuthorizedGrantTypes(Arrays.asList("client_credentials"));
+		details.setAuthorizedGrantTypes(Arrays.asList("authorization_code"));
 		details.setClientSecret("");
 		endpoints.createClientDetails(details);
 	}
 
 	@Test
 	public void updateNonImplicitClientWithEmptySecretIsOk() throws Exception {
-		details.setAuthorizedGrantTypes(Arrays.asList("client_credentials"));
+		details.setAuthorizedGrantTypes(Arrays.asList("authorization_code"));
 		details.setClientSecret(null);
 		endpoints.updateClientDetails(details, details.getClientId());
 	}
@@ -242,9 +360,51 @@ public class ClientAdminEndpointsTests {
 
 	@Test
 	public void testHandleClientAlreadyExists() throws Exception {
-		ResponseEntity<Void> result = endpoints.handleClientAlreadyExists(new ClientAlreadyExistsException("No such client: foo"));
+		ResponseEntity<Void> result = endpoints.handleClientAlreadyExists(new ClientAlreadyExistsException(
+				"No such client: foo"));
 		assertEquals(HttpStatus.CONFLICT, result.getStatusCode());
 	}
 
+	@Test
+	public void testErrorHandler() throws Exception {
+		ResponseEntity<InvalidClientDetailsException> result = endpoints
+				.handleInvalidClientDetails(new InvalidClientDetailsException("No such client: foo"));
+		assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
+		assertEquals(1, endpoints.getErrorCounts().size());
+	}
+
+	private static class StubSecurityContextAccessor implements SecurityContextAccessor {
+
+		@Override
+		public boolean isClient() {
+			return false;
+		}
+
+		@Override
+		public boolean isUser() {
+			return false;
+		}
+
+		@Override
+		public boolean isAdmin() {
+			return false;
+		}
+
+		@Override
+		public String getUserId() {
+			return null;
+		}
+
+		@Override
+		public String getClientId() {
+			return null;
+		}
+
+		@Override
+		public Collection<? extends GrantedAuthority> getAuthorities() {
+			return Collections.emptySet();
+		}
+
+	}
 
 }

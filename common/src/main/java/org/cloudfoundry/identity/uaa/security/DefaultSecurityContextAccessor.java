@@ -47,13 +47,13 @@ public class DefaultSecurityContextAccessor implements SecurityContextAccessor {
 	@Override
 	public boolean isAdmin() {
 		Authentication a = SecurityContextHolder.getContext().getAuthentication();
-		return AuthorityUtils.authorityListToSet(a.getAuthorities()).contains("uaa.admin");
+		return a!=null && AuthorityUtils.authorityListToSet(a.getAuthorities()).contains("uaa.admin");
 	}
 
 	@Override
 	public String getUserId() {
 		Authentication a = SecurityContextHolder.getContext().getAuthentication();
-		return ((UaaPrincipal) a.getPrincipal()).getId();
+		return a==null ? null : ((UaaPrincipal) a.getPrincipal()).getId();
 	}
 
 	@Override
@@ -61,7 +61,7 @@ public class DefaultSecurityContextAccessor implements SecurityContextAccessor {
 		Authentication a = SecurityContextHolder.getContext().getAuthentication();
 
 		if (!(a instanceof OAuth2Authentication)) {
-			throw new IllegalStateException("Must be an OAuth2Authentication to check if user is a client");
+			return null;
 		}
 
 		return ((OAuth2Authentication) a).getAuthorizationRequest().getClientId();

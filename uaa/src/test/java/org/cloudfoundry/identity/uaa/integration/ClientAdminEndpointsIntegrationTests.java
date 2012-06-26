@@ -110,6 +110,18 @@ public class ClientAdminEndpointsIntegrationTests {
 	}
 
 	@Test
+	public void implicitAndAuthCodeGrantClient() throws Exception {
+		OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write");
+		HttpHeaders headers = getAuthenticatedHeaders(token);
+		BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar", "implicit,authorization_code", "uaa.none");
+		ResponseEntity<UaaException> result = serverRunning.getRestTemplate().exchange(
+				serverRunning.getUrl("/oauth/clients"), HttpMethod.POST,
+				new HttpEntity<BaseClientDetails>(client, headers), UaaException.class);
+		assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
+		assertEquals("invalid_client", result.getBody().getErrorCode());
+	}
+
+	@Test
 	public void implicitGrantClientWithoutSecretIsOk() throws Exception {
 		OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write");
 		HttpHeaders headers = getAuthenticatedHeaders(token);

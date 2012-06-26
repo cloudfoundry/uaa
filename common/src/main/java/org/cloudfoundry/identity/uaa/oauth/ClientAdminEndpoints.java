@@ -32,6 +32,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.jmx.export.annotation.ManagedMetric;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.jmx.support.MetricType;
+import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
@@ -60,6 +61,12 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class ClientAdminEndpoints implements InitializingBean {
 
 	private final Log logger = LogFactory.getLog(getClass());
+
+	private static final Set<String> ADMIN_VALID_GRANTS = new HashSet<String>(Arrays.asList("implicit", "password",
+			"client_credentials", "authorization_code", "refresh_token"));
+
+	private static final Set<String> NON_ADMIN_VALID_GRANTS = new HashSet<String>(Arrays.asList("implicit",
+			"authorization_code", "refresh_token"));
 
 	private ClientRegistrationService clientRegistrationService;
 
@@ -92,7 +99,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 	void setSecurityContextAccessor(SecurityContextAccessor securityContextAccessor) {
 		this.securityContextAccessor = securityContextAccessor;
 	}
-	
+
 	@ManagedMetric(metricType = MetricType.COUNTER, displayName = "Client Registration Count")
 	public int getTotalClients() {
 		return clientRegistrationService.listClientDetails().size();
@@ -120,8 +127,8 @@ public class ClientAdminEndpoints implements InitializingBean {
 
 	@Override
 	public void afterPropertiesSet() throws Exception {
-		Assert.state(clientRegistrationService!=null, "A ClientRegistrationService must be provided");
-		Assert.state(clientDetailsService!=null, "A ClientDetailsService must be provided");
+		Assert.state(clientRegistrationService != null, "A ClientRegistrationService must be provided");
+		Assert.state(clientDetailsService != null, "A ClientDetailsService must be provided");
 	}
 
 	@RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.GET)
@@ -148,43 +155,19 @@ public class ClientAdminEndpoints implements InitializingBean {
 		validateClient(details, false);
 		Assert.state(client.equals(details.getClientId()),
 				String.format("The client id (%s) does not match the URL (%s)", details.getClientId(), client));
-        try {
-            ClientDetails existingClientConfig = getClientDetails(client);
-            details = syncWithExisting(existingClientConfig, details);
-        } catch (Exception e) {
-            logger.warn("Couldn't fetch client config for client_id: " + client, e);
-        }
+		try {
+			ClientDetails existingClientConfig = getClientDetails(client);
+			details = syncWithExisting(existingClientConfig, details);
+		}
+		catch (Exception e) {
+			logger.warn("Couldn't fetch client config for client_id: " + client, e);
+		}
 		clientRegistrationService.updateClientDetails(details);
 		clientUpdates.incrementAndGet();
 		return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
 	}
 
-    private BaseClientDetails syncWithExisting(ClientDetails existingClientConfig, BaseClientDetails details) {
-        if (details.getAccessTokenValiditySeconds() == null) {
-            details.setAccessTokenValiditySeconds(existingClientConfig.getAccessTokenValiditySeconds());
-        }
-        if (details.getRefreshTokenValiditySeconds() == null) {
-            details.setRefreshTokenValiditySeconds(existingClientConfig.getRefreshTokenValiditySeconds());
-        }
-        if (details.getAuthorities() == null || details.getAuthorities().isEmpty()) {
-            details.setAuthorities(existingClientConfig.getAuthorities());
-        }
-        if (details.getAuthorizedGrantTypes() == null || details.getAuthorizedGrantTypes().isEmpty()) {
-            details.setAuthorizedGrantTypes(existingClientConfig.getAuthorizedGrantTypes());
-        }
-        if (details.getRegisteredRedirectUri() == null || details.getRegisteredRedirectUri().isEmpty()) {
-            details.setRegisteredRedirectUri(existingClientConfig.getRegisteredRedirectUri());
-        }
-        if (details.getResourceIds() == null || details.getResourceIds().isEmpty()) {
-            details.setResourceIds(existingClientConfig.getResourceIds());
-        }
-        if (details.getScope() == null || details.getScope().isEmpty()) {
-            details.setScope(existingClientConfig.getScope());
-        }
-        return details;
-    }
-
-    @RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.DELETE)
+	@RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.DELETE)
 	public ResponseEntity<Void> removeClientDetails(@PathVariable String client) throws Exception {
 		clientRegistrationService.removeClientDetails(client);
 		clientDeletes.incrementAndGet();
@@ -218,6 +201,104 @@ public class ClientAdminEndpoints implements InitializingBean {
 		clientRegistrationService.updateClientSecret(client, change.getSecret());
 
 		clientSecretChanges.incrementAndGet();
+	}
+
+	@ExceptionHandler(InvalidClientDetailsException.class)
+	public ResponseEntity<InvalidClientDetailsException> handleInvalidClientDetails(InvalidClientDetailsException e) {
+		incrementErrorCounts(e);
+		return new ResponseEntity<InvalidClientDetailsException>(e, HttpStatus.BAD_REQUEST);
+	}
+
+	@ExceptionHandler(NoSuchClientException.class)
+	public ResponseEntity<Void> handleNoSuchClient(NoSuchClientException e) {
+		incrementErrorCounts(e);
+		return new ResponseEntity<Void>(HttpStatus.NOT_FOUND);
+	}
+
+	@ExceptionHandler(ClientAlreadyExistsException.class)
+	public ResponseEntity<Void> handleClientAlreadyExists(ClientAlreadyExistsException e) {
+		incrementErrorCounts(e);
+		return new ResponseEntity<Void>(HttpStatus.CONFLICT);
+	}
+
+	private void incrementErrorCounts(Exception e) {
+		String series = UaaStringUtils.getErrorName(e);
+		AtomicInteger value = errorCounts.get(series);
+		if (value == null) {
+			synchronized (errorCounts) {
+				value = errorCounts.get(series);
+				if (value == null) {
+					value = new AtomicInteger();
+					errorCounts.put(series, value);
+				}
+			}
+		}
+		value.incrementAndGet();
+	}
+
+	private void validateClient(ClientDetails client, boolean create) {
+
+		Set<String> requestedGrantTypes = client.getAuthorizedGrantTypes();
+
+		Set<String> validGrants = NON_ADMIN_VALID_GRANTS;
+		if (securityContextAccessor.isAdmin()) {
+			validGrants = ADMIN_VALID_GRANTS;
+		}
+		else {
+
+			// Not admin, so be strict with grant types and scopes
+			if (requestedGrantTypes.contains("implicit")
+					&& (requestedGrantTypes.contains("authorization_code") || requestedGrantTypes
+							.contains("refresh_token"))) {
+				throw new InvalidClientDetailsException(
+						"Not allowed: implicit grant type is not allowed together with authorization_code or refresh_token");
+			}
+
+			String callerId = securityContextAccessor.getClientId();
+			if (callerId != null) {
+
+				ClientDetails caller = clientDetailsService.loadClientByClientId(callerId);
+				Set<String> validScope = caller.getScope();
+				for (String scope : client.getScope()) {
+					if (!validScope.contains(scope)) {
+						throw new InvalidClientDetailsException(scope + " is not an allowed scope. Must be one of: "
+								+ validScope.toString());
+					}
+				}
+
+				Set<String> validAuthorities = AuthorityUtils.authorityListToSet(caller.getAuthorities());
+				for (String authority : AuthorityUtils.authorityListToSet(client.getAuthorities())) {
+					if (!validAuthorities.contains(authority)) {
+						throw new InvalidClientDetailsException(authority
+								+ " is not an allowed authority. Must be one of: " + validAuthorities.toString());
+					}
+				}
+
+			}
+
+		}
+
+		for (String grant : requestedGrantTypes) {
+			if (!validGrants.contains(grant)) {
+				throw new InvalidClientDetailsException(grant + " is not an allowed grant type. Must be one of: "
+						+ validGrants.toString());
+			}
+		}
+
+		if (create) {
+			// Only check for missing secret if client is being created.
+			if (requestedGrantTypes.size() == 1 && requestedGrantTypes.contains("implicit")) {
+				if (StringUtils.hasText(client.getClientSecret())) {
+					throw new InvalidClientDetailsException("implicit grant does not require a client_secret");
+				}
+			}
+			else {
+				if (!StringUtils.hasText(client.getClientSecret())) {
+					throw new InvalidClientDetailsException("client_secret is required for non-implicit grant types");
+				}
+			}
+		}
+
 	}
 
 	private void checkPasswordChangeIsAllowed(ClientDetails clientDetails, String oldSecret) {
@@ -258,65 +339,6 @@ public class ClientAdminEndpoints implements InitializingBean {
 
 	}
 
-	@ExceptionHandler(InvalidClientDetailsException.class)
-	public ResponseEntity<InvalidClientDetailsException> handleInvalidClientDetails(InvalidClientDetailsException e) {
-		incrementErrorCounts(e);
-		return new ResponseEntity<InvalidClientDetailsException>(e, HttpStatus.BAD_REQUEST);
-	}
-
-	@ExceptionHandler(NoSuchClientException.class)
-	public ResponseEntity<Void> handleNoSuchClient(NoSuchClientException e) {
-		incrementErrorCounts(e);
-		return new ResponseEntity<Void>(HttpStatus.NOT_FOUND);
-	}
-
-	@ExceptionHandler(ClientAlreadyExistsException.class)
-	public ResponseEntity<Void> handleClientAlreadyExists(ClientAlreadyExistsException e) {
-		incrementErrorCounts(e);
-		return new ResponseEntity<Void>(HttpStatus.CONFLICT);
-	}
-
-	private void incrementErrorCounts(Exception e) {
-		String series = UaaStringUtils.getErrorName(e);
-		AtomicInteger value = errorCounts.get(series);
-		if (value==null) {
-			synchronized (errorCounts) {
-				value = errorCounts.get(series);
-				if (value==null) {
-					value = new AtomicInteger();
-					errorCounts.put(series, value);
-				}
-			}
-		}
-		value.incrementAndGet();
-	}
-
-	private void validateClient(ClientDetails client, boolean create) {
-		final Set<String> VALID_GRANTS = new HashSet<String>(Arrays.asList("implicit", "password",
-				"client_credentials", "authorization_code", "refresh_token"));
-
-		for (String grant : client.getAuthorizedGrantTypes()) {
-			if (!VALID_GRANTS.contains(grant)) {
-				throw new InvalidClientDetailsException(grant + " is not an allowed grant type. Must be one of: "
-						+ VALID_GRANTS.toString());
-			}
-		}
-
-		if (create) {
-			// Only check for missing secret if client is being created.
-			if (client.getAuthorizedGrantTypes().size() == 1 && client.getAuthorizedGrantTypes().contains("implicit")) {
-				if (StringUtils.hasText(client.getClientSecret())) {
-					throw new InvalidClientDetailsException("implicit grant does not require a client_secret");
-				}
-			}
-			else {
-				if (!StringUtils.hasText(client.getClientSecret())) {
-					throw new InvalidClientDetailsException("client_secret is required for non-implicit grant types");
-				}
-			}
-		}
-	}
-
 	private ClientDetails removeSecret(ClientDetails client) {
 		BaseClientDetails details = new BaseClientDetails();
 		details.setClientId(client.getClientId());
@@ -326,6 +348,31 @@ public class ClientAdminEndpoints implements InitializingBean {
 		details.setRegisteredRedirectUri(client.getRegisteredRedirectUri());
 		details.setAuthorities(client.getAuthorities());
 		details.setAccessTokenValiditySeconds(client.getAccessTokenValiditySeconds());
+		return details;
+	}
+
+	private BaseClientDetails syncWithExisting(ClientDetails existingClientConfig, BaseClientDetails details) {
+		if (details.getAccessTokenValiditySeconds() == null) {
+			details.setAccessTokenValiditySeconds(existingClientConfig.getAccessTokenValiditySeconds());
+		}
+		if (details.getRefreshTokenValiditySeconds() == null) {
+			details.setRefreshTokenValiditySeconds(existingClientConfig.getRefreshTokenValiditySeconds());
+		}
+		if (details.getAuthorities() == null || details.getAuthorities().isEmpty()) {
+			details.setAuthorities(existingClientConfig.getAuthorities());
+		}
+		if (details.getAuthorizedGrantTypes() == null || details.getAuthorizedGrantTypes().isEmpty()) {
+			details.setAuthorizedGrantTypes(existingClientConfig.getAuthorizedGrantTypes());
+		}
+		if (details.getRegisteredRedirectUri() == null || details.getRegisteredRedirectUri().isEmpty()) {
+			details.setRegisteredRedirectUri(existingClientConfig.getRegisteredRedirectUri());
+		}
+		if (details.getResourceIds() == null || details.getResourceIds().isEmpty()) {
+			details.setResourceIds(existingClientConfig.getResourceIds());
+		}
+		if (details.getScope() == null || details.getScope().isEmpty()) {
+			details.setScope(existingClientConfig.getScope());
+		}
 		return details;
 	}
 
