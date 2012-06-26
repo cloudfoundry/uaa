@@ -46,7 +46,7 @@ public class ScimUserEndpointsIntegrationTests {
 
 	private final String DELETE_ME = "deleteme_" + new RandomValueStringGenerator().generate().toLowerCase();
 
-	private final String userEndpoint = "/User";
+	private final String userEndpoint = "/Users";
 
 	private final String usersEndpoint = "/Users";
 
