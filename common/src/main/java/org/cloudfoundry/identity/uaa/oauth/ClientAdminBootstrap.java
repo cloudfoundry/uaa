@@ -138,6 +138,14 @@ public class ClientAdminBootstrap implements InitializingBean {
 			newClient.setScope(userScopes);
 			newClient.setAuthorities(AuthorityUtils.createAuthorityList(clientScopes.toArray(new String[clientScopes
 					.size()])));
+			Integer validity = newClient.getAccessTokenValiditySeconds();
+			if (validity!=null && validity==0) {
+				newClient.setAccessTokenValiditySeconds(null);
+			}
+			validity = newClient.getRefreshTokenValiditySeconds();
+			if (validity!=null && validity==0) {
+				newClient.setRefreshTokenValiditySeconds(null);
+			}
 			logger.info("Converted: " + newClient);
 			clientRegistrationService.updateClientDetails(newClient);
 
@@ -202,6 +210,10 @@ public class ClientAdminBootstrap implements InitializingBean {
 			Integer validity = (Integer) map.get("access-token-validity");
 			if (validity != null) {
 				client.setAccessTokenValiditySeconds(validity);
+			}
+			validity = (Integer) map.get("refresh-token-validity");
+			if (validity != null) {
+				client.setRefreshTokenValiditySeconds(validity);
 			}
 			try {
 				clientRegistrationService.addClientDetails(client);
