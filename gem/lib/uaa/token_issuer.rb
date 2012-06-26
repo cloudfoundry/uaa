@@ -46,22 +46,9 @@ class TokenIssuer
   include Http
   attr_accessor :default_scope
 
-  # Takes an x-www-form-urlencoded string and returns a hash of symbol => value.
-  # It raises an ArgumentError if a key occurs more than once, which is a
-  # restriction of OAuth query strings. See draft-ietf-oauth-v2-23 section 3.1.
-  def self.decode_oauth_parameters(url_encoded_pairs)
-    URI.decode_www_form(url_encoded_pairs).each_with_object({}) do |p, o|
-      k = p[0].downcase.to_sym
-      raise ArgumentError, "duplicate keys in oauth form parameters" if o[k]
-      o[k] = p[1]
-    end
-  rescue Exception => e
-    raise ArgumentError, e.message
-  end
-
-  def initialize(target, client_id, client_secret = nil, default_scope = nil, debug = false)
+  def initialize(target, client_id, client_secret = nil, default_scope = nil)
     @target, @client_id, @client_secret = target, client_id, client_secret
-    @default_scope, @debug = default_scope, debug
+    @default_scope = default_scope
   end
 
   # login prompts for use by app to collect credentials for implicit grant
@@ -82,17 +69,17 @@ class TokenIssuer
     uri = authorize_path_args("token", redir_uri, scope, state = SecureRandom.uuid)
     headers = {content_type: "application/x-www-form-urlencoded"}
 
-    # required for current UAA implementation
-    body = "credentials=#{URI.encode(credentials.to_json)}"
+     # required for current UAA implementation
+    body = URI.encode_www_form(credentials: credentials.to_json)
 
     # TODO: the above can be changed to the following to be consistent with
     # the other OAuth APIs when CFID-239 is done:
-    # body = URI.encode_www_form(credentials)
+    # body = URI.encode_www_form(credentials.merge(credentials: true))
 
     status, body, headers = request(:post, uri, body, headers)
     raise BadResponse, "status #{status}" unless status == 302
     loc = headers[:location].split('#')
-    raise BadResponse, "bad location header" unless loc.length == 2 && URI.parse(loc[0]) == URI.parse(redir_uri)
+    # raise BadResponse, "bad location header" unless loc.length == 2 && URI.parse(loc[0]) == URI.parse(redir_uri)
     parse_implicit_params loc[1], state
   end
 
@@ -105,7 +92,7 @@ class TokenIssuer
   end
 
   def implicit_grant(implicit_uri, callback_query)
-    in_params = self.class.decode_oauth_parameters(URI.parse(implicit_uri).query)
+    in_params = Util.decode_form_to_hash(URI.parse(implicit_uri).query)
     unless in_params[:state] && in_params[:redirect_uri]
       raise ArgumentError, "redirect must happen before implicit grant"
     end
@@ -121,12 +108,12 @@ class TokenIssuer
   end
 
   def authcode_grant(authcode_uri, callback_query)
-    ac_params = self.class.decode_oauth_parameters(URI.parse(authcode_uri).query)
+    ac_params = Util.decode_form_to_hash(URI.parse(authcode_uri).query)
     unless ac_params[:state] && ac_params[:redirect_uri]
       raise ArgumentError, "authcode redirect must happen before authcode grant"
     end
     begin
-      params = self.class.decode_oauth_parameters(callback_query)
+      params = Util.decode_form_to_hash(callback_query)
       authcode = params[:code]
       raise BadResponse unless params[:state] == ac_params[:state] && authcode
     rescue URI::InvalidURIError, ArgumentError, BadResponse
@@ -151,8 +138,8 @@ class TokenIssuer
   private
 
   def parse_implicit_params(encoded_params, state)
-    params = self.class.decode_oauth_parameters(encoded_params)
-    raise BadResponse, "mismatched state" unless params[:state] == state
+    params = Util.decode_form_to_hash(encoded_params)
+    raise BadResponse, "mismatched state" unless state && params.delete(:state) == state
     raise TargetError.new(params), "error response from #{@target}" if params[:error]
     raise BadResponse, "no type and token" unless params[:token_type] && params[:access_token]
     Token.new params

@@ -25,22 +25,23 @@ class UserAccount
   # authorization header. For oauth with jwt tokens this would be something
   # like "bearer xxxx.xxxx.xxxx". The Token class returned by TokenIssuer
   # provides an auth_header method for this purpose.
-  def initialize(target, auth_header, debug = false)
+  def initialize(target, auth_header)
     unless target && auth_header
       raise AuthError, "No target and authorization provided. You must login first to get a token."
     end
-    @target, @auth_header, @debug = target, auth_header, debug
+    @target, @auth_header = target, auth_header
   end
 
-  def create(username, password, email_addresses = nil, given_name = username, family_name = username)
+  def create(name, password, email_addresses = nil, given_name = name, family_name = name, groups = nil)
     emails = []
     if email_addresses.respond_to?(:each)
       email_addresses.each { |email| emails.unshift({:value => email}) }
     else
-      emails = [{:value => (email_addresses || username) }]
+      emails = [{:value => (email_addresses || name) }]
     end
-    request = { userName: username, password: password, emails: emails,
+    request = { userName: name, password: password, emails: emails,
         name: { givenName: given_name, familyName: family_name }}
+    request[:groups] = Util.arglist(groups) if groups
     user = json_parse_reply(*json_post("/User", request, @auth_header))
     return user if user[:id]
     raise BadResponse, "no user id returned by create user: target #{@target}"
@@ -48,13 +49,7 @@ class UserAccount
 
   def change_password(user_id, new_password)
     password_request = { password: new_password }
-    status, body, headers = json_put("/User/#{URI.encode(user_id)}/password", password_request, @auth_header)
-    case status
-      when 204 then return true
-      when 401 then raise NotFound
-      when 404 then raise AuthError
-      else raise BadResponse, "Change password error: target #{@target}, status #{status}"
-    end
+    json_parse_reply(*json_put("/User/#{URI.encode(user_id)}/password", password_request, @auth_header))
   end
 
   def query(attributes = nil, filter = nil)
@@ -68,35 +63,20 @@ class UserAccount
     query(attributes, %<#{filter_attribute} eq '#{filter_value}'>)
   end
 
-  def get(user_id)
-    json_get("/User/#{URI.encode(user_id)}", @auth_header)
+  def get(user_id); json_get("/User/#{URI.encode(user_id)}", @auth_header) end
+  def get_by_name(name); get user_id_from_name(name) end
+  def delete(user_id); http_delete "/User/#{URI.encode(user_id)}", @auth_header end
+  def delete_by_name(name); delete user_id_from_name(name) end
+
+  def change_password_by_name(name, new_password)
+    change_password(user_id_from_name(name), new_password)
   end
 
-  def get_by_name(name)
-    get user_id_from_name(name)
-  end
+  #def list_tokens(name); json_get "/oauth/users/#{name}/tokens" end
 
-  def delete(user_id)
-    http_delete "/User/#{URI.encode(user_id)}", @auth_header
-  end
-
-  def delete_by_name(username)
-    delete user_id_from_name(username)
-  end
-
-  def change_password_by_name(username, new_password)
-    change_password(user_id_from_name(username), new_password)
-  end
-
-  def list_tokens(username)
-    json_get "/oauth/users/#{username}/tokens"
-  end
-
-  def revoke_token(username, token_id)
-    http_delete "/oauth/users/#{URI.encode(username)}/tokens/#{URI.encode(token_id)}", @auth_header
-  end
-
-  private
+  #def revoke_token(name, token_id)
+    #http_delete "/oauth/users/#{URI.encode(name)}/tokens/#{URI.encode(token_id)}", @auth_header
+  #end
 
   def user_id_from_name(name)
     qinfo = query_by_value([:id, :active], :username, name)

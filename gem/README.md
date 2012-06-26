@@ -5,45 +5,53 @@ Client gem for interacting with the CloudFoundry UAA server.
 
 Set up a local ruby environment (so sudo not required):
 
-    $ rvm use 1.9.2
+  $ rvm use 1.9.2
+
+or
+
+  $ rbenv global 1.9.2-p180
+
+see: https://rvm.io/ or http://rbenv.org/
 
 Build the gem
 
-    $ bundle install
-    $ rake build
+  $ bundle install
+  $ gem build cf-uaa-client.gemspec
 
 Install it
 
-    $ rake install
+  $ gem install cf-uaa-client*.gem
 
 Run it
 
-    $ uaa
-      Usage: uaa [options] command [<args>] [command_options]
-         or: uaa help command
-    $ uaa login vcap_tester@vmware.com tester
-    LSAJDHF873e8feDKJHLK
-    $ uaa --client_id app --client_secret appclientsecret decode LSAJDHF873e8feDKJHLK
-    {"user_id":"vcap_tester@vmware.com","client_id":"app","scope":["read"]...}
+  $ uaac help
+  $ uaac target uaa.cloudfoundry.com
+  $ uaac token get <your-cf-username>
+  $ uaac token decode
 
 Use the gem:
 
-    #!/usr/bin/env ruby
-    require 'uaa/client'
-    client = CF::UAA::Client.new
-    token_info = client.decode_token "LSAJDHF873e8feDKJHLK"
+  #!/usr/bin/env ruby
+  require 'uaa'
+  token_issuer = CF::UAA::TokenIssuer.new("https://uaa.cloudfoundry.com", "vmc")
+  puts token_issuer.prompts.inspect
+  token = token_issuer.implicit_grant_with_creds(username: "<your_username>", password: "<your_password>")
+  token_info = TokenCoder.decode(token.info[:access_token], nil, nil, false) #token signature not verified
+  puts token_info[:user_name]
 
 ## Tests
 
 Run the tests with rake:
 
-    $ rake
+  $ bundle exec rake test
 
-Use an env var to get coverage reports:
+Run the tests and see a fancy coverage report:
 
-    $ COVERAGE=true rake
+  $ bundle exec rake cov
 
-Use an env var to run integration tests (using a server at
-`uaa.vcap.me`):
+Run integration tests (on a server running on localhost:8080/uaa):
 
-    $ INTEGRATION_TEST=true rake
+  $ export UAA_CLIENT_ID="admin"
+  $ export UAA_CLIENT_SECRET="adminsecret"
+  $ export UAA_CLIENT_TARGET="http://localhost:8080/uaa"
+  $ bundle exec rspec spec/integration_spec.rb

@@ -19,21 +19,22 @@ require 'uaa/http'
 
 module CF::UAA
 
-class IdToken
+# everything is miscellaneous
+#
+# this class provides interfaces to UAA endpoints that are not in the context
+# of an overall class of operations, like "user accounts" or "tokens". It's
+# also for some apis like "change user password" or "change client secret" that
+# use different forms of authentication than other operations on those types
+# of resources.
+class Misc
 
-  include Http
-
-  # the auth_header parameter refers to a string that can be used in an
-  # authorization header. For oauth with jwt tokens this would be something
-  # like "bearer xxxx.xxxx.xxxx". The Token class returned by TokenIssuer
-  # provides an auth_header method for this purpose.
-  def initialize(target, auth_header, debug = false)
-    @target, @auth_header, @debug = target, auth_header, debug
+  class << self
+    include Http
   end
 
-  def authen_info(id_token)
-  # => {user_id, expires_on, auth_time, ...}
-    reply = json_get("/check_id", "Bearer #{id_token}")
+  def self.check_id(target, token)
+    @target = target
+    reply = json_get("/check_id", "Bearer #{token}")
 
   # To verify the validity of the Token response, the Client MUST do the following:
 
@@ -63,13 +64,50 @@ class IdToken
   #   too far away from the current time, limiting the amount of time that
   #   nonces must be stored to prevent attacks. The acceptable range is Client
   #   specific.
-
     reply
-
   end
 
-  def user_info
-    json_get("/userinfo?schema=openid", @auth_header)
+  def self.whoami(target, auth_header)
+    @target = target
+    json_get("/userinfo?schema=openid", auth_header)
+  end
+
+  def self.server(target)
+    @target = target
+    reply = json_get '/login'
+    return reply if reply && reply[:prompts]
+    raise BadResponse, "Invalid response from target #{target}"
+  end
+
+  def self.validation_key(target, client_id = nil, client_secret = nil)
+    @target = target
+    json_get("/token_key", (client_id ? Http.basic_auth(client_id, client_secret) : nil))
+  end
+
+  # Returns hash of values from the Authorization Server that are associated
+  # with the opaque token.
+  def self.decode_token(target, client_id, client_secret, token, token_type = "bearer", audience_ids = nil)
+    @target = target
+    reply = json_get("/check_token?token_type=#{token_type}&token=#{token}", Http.basic_auth(client_id, client_secret))
+    auds = Util.arglist(reply[:aud] || reply[:resource_ids])
+    if audience_ids && (!auds || (auds & audience_ids).empty?)
+      raise AuthError, "invalid audience: #{auds.join(' ')}"
+    end
+    reply
+  end
+
+  # this is an unauthenticated request so a client can change their secret if
+  # they have the current secret.
+  def self.change_secret(target, client_id, old_secret, new_secret)
+    req = { oldSecret: old_secret, secret: new_secret }
+    json_parse_reply(*json_put("/oauth/clients/#{client_id}/password", req))
+  end
+
+  # this is an unauthenticated request so a user can change their password if
+  # they have the current password.
+  def self.change_password(user_id, old_password, new_password)
+    req = { password: new_password, oldPassword: old_password }
+    json_parse_reply(*json_put("/User/#{URI.encode(user_id)}/password", req))
   end
 
 end
