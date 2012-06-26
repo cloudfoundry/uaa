@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -37,9 +38,17 @@ public class LoginInfoEndpoint {
 
 	private Properties gitProperties = new Properties();
 
+	private Properties buildProperties = new Properties();
+
 	public LoginInfoEndpoint() {
 		try {
 			gitProperties = PropertiesLoaderUtils.loadAllProperties("git.properties");
+		}
+		catch (IOException e) {
+			// Ignore
+		}
+		try {
+			buildProperties = PropertiesLoaderUtils.loadAllProperties("build.properties");
 		}
 		catch (IOException e) {
 			// Ignore
@@ -65,6 +74,7 @@ public class LoginInfoEndpoint {
 				"timestamp",
 				gitProperties.getProperty("git.commit.time",
 						new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date())));
+		model.addAttribute("app", UaaStringUtils.getMapFromProperties(buildProperties, "build."));
 
 		if (principal == null) {
 			return "login";

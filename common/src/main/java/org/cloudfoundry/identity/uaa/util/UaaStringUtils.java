@@ -13,6 +13,7 @@
 
 package org.cloudfoundry.identity.uaa.util;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -72,6 +73,24 @@ public class UaaStringUtils {
 		for (String key : properties.stringPropertyNames()) {
 			if (isPassword(key)) {
 				result.put(key, "#");
+			}
+		}
+		return result;
+	}
+
+	/**
+	 * Extract a Map from some properties by removing a prefix from the key names.
+	 * 
+	 * @param properties the properties to use
+	 * @param prefix the prefix to strip from key names
+	 * @return a map of String values
+	 */
+	public static Map<String, ?> getMapFromProperties(Properties properties, String prefix) {
+		Map<String, Object> result = new HashMap<String, Object>();
+		for (String key : properties.stringPropertyNames()) {
+			if (key.startsWith(prefix)) {
+				String name = key.substring(prefix.length());
+				result.put(name, properties.getProperty(key));
 			}
 		}
 		return result;

@@ -29,6 +29,7 @@ import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.context.expression.MapAccessor;
 import org.springframework.core.env.Environment;
+import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.stereotype.Controller;
@@ -52,6 +53,17 @@ public class VarzEndpoint implements EnvironmentAware {
 	private String baseUrl;
 
 	private Properties environmentProperties = new Properties();
+
+	private Properties buildProperties = new Properties();
+
+	public VarzEndpoint() {
+		try {
+			buildProperties = PropertiesLoaderUtils.loadAllProperties("build.properties");
+		}
+		catch (IOException e) {
+			// Ignore
+		}
+	}
 
 	/**
 	 * Hard-coded baseUrl for absolute links.
@@ -100,6 +112,10 @@ public class VarzEndpoint implements EnvironmentAware {
 		Map<String, ?> memory = pullUpMap("java.lang", "type=Memory");
 		result.put("mem", getValueFromMap(memory, "memory.heap_memory_usage.used", Long.class)/1024);
 		result.put("memory", getValueFromMap(memory, "memory"));
+		
+		if (!buildProperties.isEmpty()) {
+			result.put("app", UaaStringUtils.getMapFromProperties(buildProperties, "build."));			
+		}
 
 		Map<String, ?> spring = pullUpMap("spring.application", "*");
 		if (spring != null) {
