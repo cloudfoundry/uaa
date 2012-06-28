@@ -47,6 +47,8 @@ public class ClientAdminEndpointsTests {
 
 	private ClientAdminEndpoints endpoints = new ClientAdminEndpoints();
 
+	private BaseClientDetails input = new BaseClientDetails();
+
 	private BaseClientDetails details = new BaseClientDetails();
 
 	private ClientDetailsService clientDetailsService = Mockito.mock(ClientDetailsService.class);
@@ -60,9 +62,12 @@ public class ClientAdminEndpointsTests {
 	public void setUp() throws Exception {
 		endpoints.setClientDetailsService(clientDetailsService);
 		endpoints.setClientRegistrationService(clientRegistrationService);
-		details.setClientId("foo");
-		details.setClientSecret("secret");
-		details.setAuthorizedGrantTypes(Arrays.asList("authorization_code"));
+		input.setClientId("foo");
+		input.setClientSecret("secret");
+		input.setAuthorizedGrantTypes(Arrays.asList("authorization_code"));
+		details = new BaseClientDetails(input);
+		details.setResourceIds(Arrays.asList("none"));
+		details.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none"));
 		endpoints.afterPropertiesSet();
 	}
 
@@ -77,7 +82,48 @@ public class ClientAdminEndpointsTests {
 
 	@Test
 	public void testCreateClientDetails() throws Exception {
-		ResponseEntity<Void> result = endpoints.createClientDetails(details);
+		ResponseEntity<Void> result = endpoints.createClientDetails(input);
+		assertEquals(HttpStatus.CREATED, result.getStatusCode());
+		Mockito.verify(clientRegistrationService).addClientDetails(details);
+	}
+
+	@Test(expected = InvalidClientDetailsException.class)
+	public void testCreateClientDetailsWithReservedId() throws Exception {
+		input.setClientId("uaa");
+		ResponseEntity<Void> result = endpoints.createClientDetails(input);
+		assertEquals(HttpStatus.CREATED, result.getStatusCode());
+		Mockito.verify(clientRegistrationService).addClientDetails(details);
+	}
+
+	@Test(expected = InvalidClientDetailsException.class)
+	public void testCreateClientDetailsWithNoGrantType() throws Exception {
+		input.setAuthorizedGrantTypes(Collections.<String>emptySet());
+		ResponseEntity<Void> result = endpoints.createClientDetails(input);
+		assertEquals(HttpStatus.CREATED, result.getStatusCode());
+		Mockito.verify(clientRegistrationService).addClientDetails(details);
+	}
+
+	@Test
+	public void testCreateClientDetailsWithClientCredentials() throws Exception {
+		input.setAuthorizedGrantTypes(Arrays.asList("client_credentials"));
+		details.setAuthorizedGrantTypes(input.getAuthorizedGrantTypes());
+		ResponseEntity<Void> result = endpoints.createClientDetails(input);
+		assertEquals(HttpStatus.CREATED, result.getStatusCode());
+		Mockito.verify(clientRegistrationService).addClientDetails(details);
+	}
+
+	@Test
+	public void testResourceServerCreation() throws Exception {
+		details.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.resource"));
+		details.setScope(Arrays.asList(details.getClientId() + ".some"));
+		details.setAuthorizedGrantTypes(Arrays.asList("client_credentials"));
+		endpoints.createClientDetails(details);
+	}
+
+	@Test(expected = InvalidClientDetailsException.class)
+	public void testCreateClientDetailsWithPasswordGrant() throws Exception {
+		input.setAuthorizedGrantTypes(Arrays.asList("password"));
+		ResponseEntity<Void> result = endpoints.createClientDetails(input);
 		assertEquals(HttpStatus.CREATED, result.getStatusCode());
 		Mockito.verify(clientRegistrationService).addClientDetails(details);
 	}
@@ -90,23 +136,38 @@ public class ClientAdminEndpointsTests {
 		Mockito.verify(clientRegistrationService).listClientDetails();
 	}
 
+	@Test(expected = InvalidClientDetailsException.class)
+	public void testUpdateClientDetailsWithNullCallerAndInvalidScope() throws Exception {
+		endpoints.createClientDetails(input);
+		input.setScope(Arrays.asList("read"));
+		ResponseEntity<Void> result = endpoints.updateClientDetails(input, input.getClientId());
+		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+		details.setScope(Arrays.asList("read"));
+		Mockito.verify(clientRegistrationService).updateClientDetails(details);
+	}
+
 	@Test
 	public void testUpdateClientDetails() throws Exception {
-		endpoints.createClientDetails(details);
-		details.setScope(Arrays.asList("read"));
-		ResponseEntity<Void> result = endpoints.updateClientDetails(details, "foo");
+		endpoints.createClientDetails(input);
+		input.setScope(Arrays.asList(input.getClientId() + ".read"));
+		ResponseEntity<Void> result = endpoints.updateClientDetails(input, input.getClientId());
 		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+		details.setScope(Arrays.asList(input.getClientId() + ".read"));
 		Mockito.verify(clientRegistrationService).updateClientDetails(details);
 	}
 
 	@Test
 	public void testPartialUpdateClientDetails() throws Exception {
-		Mockito.when(clientDetailsService.loadClientByClientId(details.getClientId())).thenReturn(details);
-		endpoints.createClientDetails(details);
-		details.setScope(null);
-		ResponseEntity<Void> result = endpoints.updateClientDetails(details, "foo");
+		BaseClientDetails updated = new BaseClientDetails(details);
+		input = new BaseClientDetails();
+		input.setClientId("foo");
+		Mockito.when(clientDetailsService.loadClientByClientId(input.getClientId())).thenReturn(details);
+		input.setScope(Arrays.asList("foo.write"));
+		updated.setScope(input.getScope());
+		updated.setClientSecret(null);
+		ResponseEntity<Void> result = endpoints.updateClientDetails(input, input.getClientId());
 		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
-		Mockito.verify(clientRegistrationService).updateClientDetails(details);
+		Mockito.verify(clientRegistrationService).updateClientDetails(updated);
 	}
 
 	@Test
@@ -243,8 +304,6 @@ public class ClientAdminEndpointsTests {
 			}
 		});
 		details.setScope(Arrays.asList("some"));
-		details.setAuthorizedGrantTypes(Arrays.asList("implicit"));
-		details.setClientSecret(null);
 		endpoints.createClientDetails(details);
 	}
 
@@ -260,8 +319,21 @@ public class ClientAdminEndpointsTests {
 			}
 		});
 		details.setScope(Arrays.asList("none"));
-		details.setAuthorizedGrantTypes(Arrays.asList("implicit"));
-		details.setClientSecret(null);
+		endpoints.createClientDetails(details);
+	}
+
+	@Test
+	public void testClientPrefixScopeIsNotRestrictedByClient() throws Exception {
+		BaseClientDetails caller = new BaseClientDetails("caller", null, "none", "client_credentials,implicit",
+				"uaa.none");
+		when(clientDetailsService.loadClientByClientId("caller")).thenReturn(caller);
+		endpoints.setSecurityContextAccessor(new StubSecurityContextAccessor() {
+			@Override
+			public String getClientId() {
+				return "caller";
+			}
+		});
+		details.setScope(Arrays.asList(details.getClientId() + ".read"));
 		endpoints.createClientDetails(details);
 	}
 
@@ -319,8 +391,8 @@ public class ClientAdminEndpointsTests {
 		endpoints.createClientDetails(details);
 	}
 
-	@Test
-	public void implicitAndAuthorizationCodeClientIsOkForAdmin() throws Exception {
+	@Test(expected = InvalidClientDetailsException.class)
+	public void implicitAndAuthorizationCodeClientIsRejectedForAdmin() throws Exception {
 		endpoints.setSecurityContextAccessor(new StubSecurityContextAccessor() {
 			@Override
 			public boolean isAdmin() {

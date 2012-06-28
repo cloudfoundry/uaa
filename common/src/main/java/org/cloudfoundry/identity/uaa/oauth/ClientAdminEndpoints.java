@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -62,11 +63,12 @@ public class ClientAdminEndpoints implements InitializingBean {
 
 	private final Log logger = LogFactory.getLog(getClass());
 
-	private static final Set<String> ADMIN_VALID_GRANTS = new HashSet<String>(Arrays.asList("implicit", "password",
+	private static final Set<String> VALID_GRANTS = new HashSet<String>(Arrays.asList("implicit", "password",
 			"client_credentials", "authorization_code", "refresh_token"));
 
-	private static final Set<String> NON_ADMIN_VALID_GRANTS = new HashSet<String>(Arrays.asList("implicit",
-			"authorization_code", "refresh_token"));
+	private static final Collection<String> NON_ADMIN_INVALID_GRANTS = new HashSet<String>(Arrays.asList("password"));
+
+	private static final Collection<String> NON_ADMIN_VALID_AUTHORITIES = new HashSet<String>(Arrays.asList("uaa.none"));
 
 	private ClientRegistrationService clientRegistrationService;
 
@@ -81,6 +83,8 @@ public class ClientAdminEndpoints implements InitializingBean {
 	private AtomicInteger clientDeletes = new AtomicInteger();
 
 	private AtomicInteger clientSecretChanges = new AtomicInteger();
+
+	private Set<String> reservedClientIds = StringUtils.commaDelimitedListToSet("uaa");
 
 	/**
 	 * @param clientRegistrationService the clientRegistrationService to set
@@ -143,25 +147,26 @@ public class ClientAdminEndpoints implements InitializingBean {
 	}
 
 	@RequestMapping(value = "/oauth/clients", method = RequestMethod.POST)
-	public ResponseEntity<Void> createClientDetails(@RequestBody BaseClientDetails details) throws Exception {
-		validateClient(details, true);
+	public ResponseEntity<Void> createClientDetails(@RequestBody ClientDetails client) throws Exception {
+		ClientDetails details = validateClient(client, true);
 		clientRegistrationService.addClientDetails(details);
 		return new ResponseEntity<Void>(HttpStatus.CREATED);
 	}
 
 	@RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.PUT)
-	public ResponseEntity<Void> updateClientDetails(@RequestBody BaseClientDetails details, @PathVariable String client)
-			throws Exception {
-		validateClient(details, false);
-		Assert.state(client.equals(details.getClientId()),
-				String.format("The client id (%s) does not match the URL (%s)", details.getClientId(), client));
+	public ResponseEntity<Void> updateClientDetails(@RequestBody ClientDetails client,
+			@PathVariable("client") String clientId) throws Exception {
+		Assert.state(clientId.equals(client.getClientId()),
+				String.format("The client id (%s) does not match the URL (%s)", client.getClientId(), clientId));
+		ClientDetails details = client;
 		try {
-			ClientDetails existingClientConfig = getClientDetails(client);
-			details = syncWithExisting(existingClientConfig, details);
+			ClientDetails existing = getClientDetails(clientId);
+			details = syncWithExisting(existing, client);
 		}
 		catch (Exception e) {
-			logger.warn("Couldn't fetch client config for client_id: " + client, e);
+			logger.warn("Couldn't fetch client config for client_id: " + clientId, e);
 		}
+		details = validateClient(details, false);
 		clientRegistrationService.updateClientDetails(details);
 		clientUpdates.incrementAndGet();
 		return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
@@ -236,17 +241,38 @@ public class ClientAdminEndpoints implements InitializingBean {
 		value.incrementAndGet();
 	}
 
-	private void validateClient(ClientDetails client, boolean create) {
+	private ClientDetails validateClient(ClientDetails prototype, boolean create) {
+
+		BaseClientDetails client = new BaseClientDetails(prototype);
+
+		String clientId = client.getClientId();
+		if (create && reservedClientIds.contains(clientId)) {
+			throw new InvalidClientDetailsException("Not allowed: " + clientId + " is a reserved client_id");
+		}
 
 		Set<String> requestedGrantTypes = client.getAuthorizedGrantTypes();
 
-		Set<String> validGrants = NON_ADMIN_VALID_GRANTS;
-		if (securityContextAccessor.isAdmin()) {
-			validGrants = ADMIN_VALID_GRANTS;
+		if (requestedGrantTypes.isEmpty()) {
+			throw new InvalidClientDetailsException("An authorized grant type must be provided. Must be one of: "
+					+ VALID_GRANTS.toString());
 		}
-		else {
+		for (String grant : requestedGrantTypes) {
+			if (!VALID_GRANTS.contains(grant)) {
+				throw new InvalidClientDetailsException(grant + " is not an allowed grant type. Must be one of: "
+						+ VALID_GRANTS.toString());
+			}
+		}
+
+		if (!securityContextAccessor.isAdmin()) {
 
 			// Not admin, so be strict with grant types and scopes
+			for (String grant : requestedGrantTypes) {
+				if (NON_ADMIN_INVALID_GRANTS.contains(grant)) {
+					throw new InvalidClientDetailsException(grant
+							+ " is not an allowed grant type for non-admin caller.");
+				}
+			}
+
 			if (requestedGrantTypes.contains("implicit")
 					&& (requestedGrantTypes.contains("authorization_code") || requestedGrantTypes
 							.contains("refresh_token"))) {
@@ -257,39 +283,66 @@ public class ClientAdminEndpoints implements InitializingBean {
 			String callerId = securityContextAccessor.getClientId();
 			if (callerId != null) {
 
+				// New scopes are allowed if they are for the caller or the new client.
+				String callerPrefix = callerId + ".";
+				String clientPrefix = clientId + ".";
+
 				ClientDetails caller = clientDetailsService.loadClientByClientId(callerId);
 				Set<String> validScope = caller.getScope();
 				for (String scope : client.getScope()) {
+					if (scope.startsWith(callerPrefix) || scope.startsWith(clientPrefix)) {
+						// Allowed
+						continue;
+					}
 					if (!validScope.contains(scope)) {
 						throw new InvalidClientDetailsException(scope + " is not an allowed scope for caller="
-								+ callerId + ". Must be one of: " + validScope.toString());
-					}
-				}
-
-				Set<String> validAuthorities = AuthorityUtils.authorityListToSet(caller.getAuthorities());
-				for (String authority : AuthorityUtils.authorityListToSet(client.getAuthorities())) {
-					if (!validAuthorities.contains(authority)) {
-						throw new InvalidClientDetailsException(authority + " is not an allowed authority for caller="
-								+ callerId + ". Must be one of: " + validAuthorities.toString());
+								+ callerId + ". Must have prefix in [" + callerPrefix + "," + clientPrefix
+								+ "] or be one of: " + validScope.toString());
 					}
 				}
 
 			}
+			else { // No client caller. Shouldn't happen in practice, but let's be defensive
 
-		}
+				// New scopes are allowed if they are for the caller or the new client.
+				String clientPrefix = clientId + ".";
 
-		for (String grant : requestedGrantTypes) {
-			if (!validGrants.contains(grant)) {
-				throw new InvalidClientDetailsException(grant + " is not an allowed grant type. Must be one of: "
-						+ validGrants.toString());
+				for (String scope : client.getScope()) {
+					if (!scope.startsWith(clientPrefix)) {
+						throw new InvalidClientDetailsException(scope
+								+ " is not an allowed scope for null caller and client_id=" + clientId
+								+ ". Must start with '" + clientPrefix + "'");
+					}
+				}
 			}
+
+			Set<String> validAuthorities = new HashSet<String>(NON_ADMIN_VALID_AUTHORITIES);
+			if (requestedGrantTypes.contains("client_credentials")) {
+				// If client_credentials is used then the client might be a resource server
+				validAuthorities.add("uaa.resource");
+			}
+
+			for (String authority : AuthorityUtils.authorityListToSet(client.getAuthorities())) {
+				if (!validAuthorities.contains(authority)) {
+					throw new InvalidClientDetailsException(authority + " is not an allowed authority for caller="
+							+ callerId + ". Must be one of: " + validAuthorities.toString());
+				}
+			}
+
+			if (client.getAuthorities().isEmpty()) {
+				client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none"));
+			}
+
 		}
+
+		// The UAA does not allow or require resource ids to be registered because they are determined dynamically
+		client.setResourceIds(StringUtils.commaDelimitedListToSet("none"));
 
 		if (create) {
 			// Only check for missing secret if client is being created.
-			if (requestedGrantTypes.size() == 1 && requestedGrantTypes.contains("implicit")) {
+			if (requestedGrantTypes.contains("implicit")) {
 				if (StringUtils.hasText(client.getClientSecret())) {
-					throw new InvalidClientDetailsException("implicit grant does not require a client_secret");
+					throw new InvalidClientDetailsException("Implicit grant should not have a client_secret");
 				}
 			}
 			else {
@@ -298,6 +351,8 @@ public class ClientAdminEndpoints implements InitializingBean {
 				}
 			}
 		}
+
+		return client;
 
 	}
 
@@ -351,27 +406,28 @@ public class ClientAdminEndpoints implements InitializingBean {
 		return details;
 	}
 
-	private BaseClientDetails syncWithExisting(ClientDetails existingClientConfig, BaseClientDetails details) {
+	private ClientDetails syncWithExisting(ClientDetails existing, ClientDetails input) {
+		BaseClientDetails details = new BaseClientDetails(input);
 		if (details.getAccessTokenValiditySeconds() == null) {
-			details.setAccessTokenValiditySeconds(existingClientConfig.getAccessTokenValiditySeconds());
+			details.setAccessTokenValiditySeconds(existing.getAccessTokenValiditySeconds());
 		}
 		if (details.getRefreshTokenValiditySeconds() == null) {
-			details.setRefreshTokenValiditySeconds(existingClientConfig.getRefreshTokenValiditySeconds());
+			details.setRefreshTokenValiditySeconds(existing.getRefreshTokenValiditySeconds());
 		}
 		if (details.getAuthorities() == null || details.getAuthorities().isEmpty()) {
-			details.setAuthorities(existingClientConfig.getAuthorities());
+			details.setAuthorities(existing.getAuthorities());
 		}
 		if (details.getAuthorizedGrantTypes() == null || details.getAuthorizedGrantTypes().isEmpty()) {
-			details.setAuthorizedGrantTypes(existingClientConfig.getAuthorizedGrantTypes());
+			details.setAuthorizedGrantTypes(existing.getAuthorizedGrantTypes());
 		}
 		if (details.getRegisteredRedirectUri() == null || details.getRegisteredRedirectUri().isEmpty()) {
-			details.setRegisteredRedirectUri(existingClientConfig.getRegisteredRedirectUri());
+			details.setRegisteredRedirectUri(existing.getRegisteredRedirectUri());
 		}
 		if (details.getResourceIds() == null || details.getResourceIds().isEmpty()) {
-			details.setResourceIds(existingClientConfig.getResourceIds());
+			details.setResourceIds(existing.getResourceIds());
 		}
 		if (details.getScope() == null || details.getScope().isEmpty()) {
-			details.setScope(existingClientConfig.getScope());
+			details.setScope(existing.getScope());
 		}
 		return details;
 	}
