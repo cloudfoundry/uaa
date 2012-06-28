@@ -261,16 +261,16 @@ public class ClientAdminEndpoints implements InitializingBean {
 				Set<String> validScope = caller.getScope();
 				for (String scope : client.getScope()) {
 					if (!validScope.contains(scope)) {
-						throw new InvalidClientDetailsException(scope + " is not an allowed scope. Must be one of: "
-								+ validScope.toString());
+						throw new InvalidClientDetailsException(scope + " is not an allowed scope for caller="
+								+ callerId + ". Must be one of: " + validScope.toString());
 					}
 				}
 
 				Set<String> validAuthorities = AuthorityUtils.authorityListToSet(caller.getAuthorities());
 				for (String authority : AuthorityUtils.authorityListToSet(client.getAuthorities())) {
 					if (!validAuthorities.contains(authority)) {
-						throw new InvalidClientDetailsException(authority
-								+ " is not an allowed authority. Must be one of: " + validAuthorities.toString());
+						throw new InvalidClientDetailsException(authority + " is not an allowed authority for caller="
+								+ callerId + ". Must be one of: " + validAuthorities.toString());
 					}
 				}
 
