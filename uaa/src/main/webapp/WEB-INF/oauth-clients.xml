@@ -73,7 +73,7 @@
 		<property name="clientDetailsService" ref="clientDetails" />
 	</bean>
 
-	<!-- This is for the oauth client bootstrap -->
+	<!-- This is for the oauth client bootstrap.  If someone edits web.xml they can load yml from other locations for the environment and it won't be picked up here. -->
 	<bean id="config" class="org.cloudfoundry.identity.uaa.config.YamlMapFactoryBean">
 		<property name="resources">
 			<list>

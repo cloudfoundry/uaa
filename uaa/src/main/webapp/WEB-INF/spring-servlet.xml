@@ -200,11 +200,7 @@
 
 	<bean id="userApprovalHandler" class="org.cloudfoundry.identity.uaa.oauth.UaaUserApprovalHandler">
 		<property name="tokenServices" ref="tokenServices" />
-		<property name="autoApproveClients">
-			<set>
-				<value>vmc</value>
-			</set>
-		</property>
+		<property name="autoApproveClients" value="#{@config['oauth']==null?'vmc':(@config['oauth']['client']?.autoapprove?:'vmc')}" />
 	</bean>
 
 	<bean id="tokenServices" class="org.springframework.security.oauth2.provider.token.DefaultTokenServices">

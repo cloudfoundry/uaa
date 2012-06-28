@@ -18,6 +18,7 @@ import static org.junit.Assert.assertNotNull;
 import javax.sql.DataSource;
 
 import org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean;
+import org.cloudfoundry.identity.uaa.oauth.UaaUserApprovalHandler;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.varz.VarzEndpoint;
@@ -33,6 +34,7 @@ import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.web.FilterChainProxy;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.StringUtils;
 
 /**
@@ -88,13 +90,16 @@ public class BootstrapTests {
 
 	@Test
 	public void testOverrideYmlConfigPath() throws Exception {
+		System.setProperty("UAA_CONFIG_PATH", "./src/test/resources/test/config");
 		context = getServletContext("hsqldb", "file:./src/main/webapp/WEB-INF/spring-servlet.xml",
 				"classpath:/test/config/test-override.xml");
 		assertEquals("different", context.getBean("foo", String.class));
+		assertEquals("[vmc, my, support]",
+				ReflectionTestUtils.getField(context.getBean(UaaUserApprovalHandler.class), "autoApproveClients")
+						.toString());
 	}
 
 	private GenericXmlApplicationContext getServletContext(String... resources) {
-
 		String profiles = null;
 		String[] resourcesToLoad = resources;
 		if (!resources[0].endsWith(".xml")) {
@@ -115,15 +120,17 @@ public class BootstrapTests {
 		}
 
 		// Simulate what happens in the webapp when the YamlServletProfileInitializer kicks in
-		YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
-		factory.setResources(new Resource[] { new FileSystemResource("./src/test/resources/test/config/uaa.yml") });
-		context.getEnvironment().getPropertySources()
-				.addLast(new PropertiesPropertySource("servletProperties", factory.getObject()));
+		String yaml = System.getProperty("UAA_CONFIG_PATH");
+		if (yaml != null) {
+			YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
+			factory.setResources(new Resource[] { new FileSystemResource(yaml + "/uaa.yml") });
+			context.getEnvironment().getPropertySources()
+					.addLast(new PropertiesPropertySource("servletProperties", factory.getObject()));
+		}
 
 		context.refresh();
 
 		return context;
-
 	}
 
 }

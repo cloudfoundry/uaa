@@ -12,6 +12,7 @@
  */
 package org.cloudfoundry.identity.uaa.oauth;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 
@@ -26,9 +27,9 @@ import org.springframework.security.oauth2.provider.approval.TokenServicesUserAp
 public class UaaUserApprovalHandler extends TokenServicesUserApprovalHandler {
 
 	private Collection<String> autoApproveClients = new HashSet<String>();
-	
+
 	private boolean useTokenServices = true;
-	
+
 	/**
 	 * @param useTokenServices the useTokenServices to set
 	 */
@@ -39,10 +40,9 @@ public class UaaUserApprovalHandler extends TokenServicesUserApprovalHandler {
 	/**
 	 * @param autoApproveClients the auto approve clients to set
 	 */
-	public void setAutoApproveClients(Collection<String> autoApproveClients) {
-		this.autoApproveClients = autoApproveClients;
+	public void setAutoApproveClients(String[] autoApproveClients) {
+		this.autoApproveClients = Arrays.asList(autoApproveClients);
 	}
-	
 
 	/**
 	 * Allows automatic approval for a white list of clients in the implicit grant case.
@@ -59,9 +59,7 @@ public class UaaUserApprovalHandler extends TokenServicesUserApprovalHandler {
 		if (!userAuthentication.isAuthenticated()) {
 			return false;
 		}
-		return authorizationRequest.isApproved()
-				|| (authorizationRequest.getResponseTypes().contains("token") && autoApproveClients
-						.contains(authorizationRequest.getClientId()));
+		return authorizationRequest.isApproved() || autoApproveClients.contains(authorizationRequest.getClientId());
 	}
 
 }
