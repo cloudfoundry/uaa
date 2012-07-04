@@ -42,12 +42,10 @@
 <meta content='all' name='robots' />
 <link href='${baseUrl}/stylesheets/print.css' media='print'
 	rel='stylesheet' type='text/css' />
-<link href='${baseUrl}/stylesheets/master.css' media='screen'
+<link href='${baseUrl}/stylesheets/login.css' media='screen'
 	rel='stylesheet' type='text/css' />
 <!--[if lt IE 9 ]> <link href="${baseUrl}/stylesheets/ie.css" media="screen" rel="stylesheet" type="text/css" /> <![endif]-->
 <!--[if lt IE 8 ]> <link href="${baseUrl}/stylesheets/ie7.css" media="screen" rel="stylesheet" type="text/css" /> <![endif]-->
-<link href='${baseUrl}/stylesheets/master-cf.css' media='screen'
-	rel='stylesheet' type='text/css' />
 <style media='screen' type='text/css'>
 .js-hide {
 	display: none;
@@ -76,103 +74,43 @@ img.gsc-branding-img,img.gsc-branding-img-noclear,img.gcsc-branding-img,img.gcsc
 <script type="text/javascript" src="${baseUrl}/javascripts/jquery.js"></script>
 </head>
 <body id="micro">
-	<div class='wrapper'>
-		<div class='container' id='header'>
-			<div class='site-wrap'>
-				<div class='container'>
-					<div class='span-6 logo-wrap'>
-						<a href='http://${hostName}/'> <img
-							alt="Cloud Foundry: The Industry's Open Platform As A Service"
-							src='${baseUrl}/images/logo_header_cloudfoundry.png' width='373'
-							height='70'> <span class='replaced'>Cloud Foundry:
-								The Industry's Open Platform As A Service</span> </img>
-						</a>
-					</div>
-					<div class='span-9 last'>
-						<div class='right'>
-							<form action='http://${hostName}/search' class='search-form'
-								method='get'>
-								<input autocomplete='off' class='search-input' name='q'
-									placeholder='search' type='text' value='' />
-							</form>
-							<ul class='super-nav'>
-								<li><span>Welcome <strong>${fn:escapeXml(pageContext.request.userPrincipal.name)}</strong></span>
-									/ <c:url value="/logout.do" var="url" /> <a
-									href="${fn:escapeXml(url)}">Logout</a> &nbsp;</li>
-							</ul>
-						</div>
-						<div id='nav'>
-							<ul>
-								<li><a href='http://start.cloudfoundry.com/'>Get
-										Started</a></li>
-								<li><a href='http://${hostName}/getinvolved'>Get
-										Involved</a></li>
-								<li><a href='http://${hostName}/partners'>Partners</a></li>
-								<li><a href='http://blog.cloudfoundry.com'>Blog</a></li>
-								<li><a href='http://${hostName}/about'>About</a></li>
-							</ul>
-						</div>
-					</div>
-				</div>
+    <div class="splash">
+         <a href='http://${hostName}/'><img
+            alt="Cloud Foundry: The Industry's Open Platform As A Service"
+            class="logo"
+            src='${baseUrl}/images/logo_header_cloudfoundry.png' width='373'
+            height='70'></img>
+		 </a>
+		 <div style="float:right;">
+            <ul class='super-nav'>
+                <li><span>Welcome <strong>${fn:escapeXml(pageContext.request.userPrincipal.name)}</strong></span>
+                    / <c:url value="/logout.do" var="url" /> <a
+                    href="${fn:escapeXml(url)}">Logout</a> &nbsp;</li>
+            </ul>
+		 </div>
+         <div class="splash-box">
+					<div class="container">
+            <h2>Home</h2>
+
+            <p>This is test page to ensure that your account login is
+                working.</p>
+
+            <c:if test="${error}">
+                <div class="error">
+                    <h2>Woops!</h2>
+                    <p>${error}</p>
+                </div>
+            </c:if>
+
+            <h2>You are logged in</h2>
 			</div>
 		</div>
-		<div class='container' id='main'>
-			<div class='content-wrap'>
-				<div class='site-wrap'>
-					<div class='container content'>
-						<div class='span-15 prepend-top'>
-							<h2>Home</h2>
-
-							<p>This is test page to ensure that your account login is
-								working.</p>
-
-							<c:if test="${error}">
-								<div class="error">
-									<h2>Woops!</h2>
-									<p>${error}</p>
-								</div>
-							</c:if>
-
-							<h2>You are logged in</h2>
-
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
-	<div class='container' id='footer'>
-		<div class='site-wrap'>
-			<div class='row'>
-				<div class='span-3 social-icons'>
-					<a class='twitter replaced'
-						href='http://twitter.com/#!cloudfoundry' rel='external'
-						target='_blank'>Twitter</a> <a class='facebook replaced'
-						href='http://facebook.com/cloudfoundry' rel='external'
-						target='_blank'>Facebook</a> <a class='youtube replaced'
-						href='http://www.youtube.com/cloudfoundry' rel='external'
-						target='_blank'>YouTube</a>
-				</div>
-				<div class='prepend-2 span-5'>
-					<p>
-						<a href='http://${hostName}/faq'>FAQ</a> | <a
-							href='http://support.cloudfoundry.com' target='_blank'>Forums</a>
-						| <a href='http://blog.cloudfoundry.com'>Blog</a> | <a
-							href='http://${hostName}/jobs'>Jobs</a> | <a
-							href='http://${hostName}/legal'>Legal</a> | <a
-							href='http://www.vmware.com/help/privacy.html' target='_blank'>Privacy</a>
-					</p>
-				</div>
-				<div class='span-5 last right'>
-					<p>
-						Copyright &copy;
-						<fmt:formatDate value="<%= new java.util.Date() %>" pattern="yyyy" />
-						VMware, Inc. All rights reserved.
-					</p>
-				</div>
-			</div>
-		</div>
-	</div>
+         <div class="footer" title="Commit: ${commit_id}, Timestamp: ${timestamp}">
+            Copyright &copy;
+            <fmt:formatDate value="<%=new java.util.Date()%>" pattern="yyyy" />
+            VMware, Inc. All rights reserved.
+         </div>
+    </div>
 	<script>
 		var _gaq = _gaq || [];
 		_gaq.push([ '_setAccount', 'UA-22181585-1' ]);
