@@ -19,42 +19,92 @@ import org.springframework.security.core.userdetails.User;
 
 /**
  * Customized {@code UserDetails} implementation.
- *
+ * 
  * @author Luke Taylor
  * @author Dave Syer
  */
 public class SocialClientUserDetails extends User {
 
+	public static class Source {
+
+		public static String CLOUD_FOUNDRY = "cloudfoundry";
+
+		public static String GITHUB = "github";
+
+		public static String FACEBOOK = "facebook";
+
+		public static String TWITTER = "twitter";
+
+		public static String LINKEDIN = "linkedin";
+
+		public static String classify(String userInfoUrl) {
+			String key = userInfoUrl.toLowerCase().replaceAll(".*//([a-z.]*)/.*", "$1");
+			if (userInfoUrl.contains("cloudfoundry.com")) {
+				key = CLOUD_FOUNDRY;
+			}
+			else if (userInfoUrl.contains("github.com")) {
+				key = GITHUB;
+			}
+			else if (userInfoUrl.contains("twitter.com")) {
+				key = TWITTER;
+			}
+			else if (userInfoUrl.contains("linkedin.com")) {
+				key = LINKEDIN;
+			}
+			else {
+				String[] keys = key.split("\\.");
+				if (keys.length > 1) {
+					key = keys[keys.length - 2];
+				}
+				if ("co".equals(key) && keys.length>2) {
+					key = keys[keys.length - 3];					
+				}
+			}
+			return key;
+		}
+	}
+
 	private String email;
-    private String name;
- 	private Object id;
 
-    public SocialClientUserDetails(String username, Collection<? extends GrantedAuthority> authorities) {
-        super(username, "unused", authorities);
-    }
+	private String name;
 
-    public String getEmail() {
-        return email;
-    }
-    
+	private Object id;
+
+	private String source;
+
+	public SocialClientUserDetails(String username, Collection<? extends GrantedAuthority> authorities) {
+		super(username, "unused", authorities);
+	}
+
+	public String getEmail() {
+		return email;
+	}
+
 	public Object getExternalId() {
 		return id;
 	}
-	
+
 	public void setExternalId(Object id) {
 		this.id = id;
 	}
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
+	public void setEmail(String email) {
+		this.email = email;
+	}
 
-    public String getName() {
-        return name;
-    }
+	public String getName() {
+		return name;
+	}
 
-    public void setName(String name) {
-        this.name = name;
-    }
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public String getSource() {
+		return source;
+	}
+
+	public void setSource(String source) {
+		this.source = source;
+	}
 }
-

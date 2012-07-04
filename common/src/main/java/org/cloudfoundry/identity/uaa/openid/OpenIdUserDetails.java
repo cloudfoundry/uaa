@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.openid;
 
 import java.util.Collection;
 
+import org.cloudfoundry.identity.uaa.social.SocialClientUserDetails;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 
@@ -22,7 +23,11 @@ import org.springframework.security.core.userdetails.User;
  *
  * @author Luke Taylor
  * @author Dave Syer
+ * 
+ * @deprecated in favour of {@link SocialClientUserDetails}
+ * 
  */
+@Deprecated
 public class OpenIdUserDetails extends User {
     private String email;
     private String name;

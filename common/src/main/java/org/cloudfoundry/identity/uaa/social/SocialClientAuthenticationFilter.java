@@ -21,6 +21,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.cloudfoundry.identity.uaa.social.SocialClientUserDetails.Source;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -95,6 +96,7 @@ public class SocialClientAuthenticationFilter extends AbstractAuthenticationProc
 		}
 		List<UaaAuthority> authorities = UaaAuthority.USER_AUTHORITIES;
 		SocialClientUserDetails user = new SocialClientUserDetails(userName, authorities);
+		user.setSource(Source.classify(userInfoUrl));
 		user.setExternalId(getUserId(map));
 		String fullName = getFullName(map);
 		if (fullName!=null) {
