@@ -28,12 +28,14 @@ import org.springframework.security.core.GrantedAuthority;
  */
 public enum UaaAuthority implements GrantedAuthority {
 
-	UAA_ADMIN("uaa.admin", 1), UAA_USER("uaa.user", 0);
+	UAA_ADMIN("uaa.admin", 1), UAA_USER("uaa.user", 0), UAA_NONE("uaa.none", -1);
 
 	public static final List<UaaAuthority> ADMIN_AUTHORITIES = Collections.unmodifiableList(Arrays.asList(UAA_ADMIN,
 			UAA_USER));
 
 	public static final List<UaaAuthority> USER_AUTHORITIES = Collections.unmodifiableList(Arrays.asList(UAA_USER));
+
+	public static final List<UaaAuthority> NONE_AUTHORITIES = Collections.unmodifiableList(Arrays.asList(UAA_NONE));
 
 	private final int value;
 
