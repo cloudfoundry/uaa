@@ -97,3 +97,16 @@ The filter property needs to be removed from some rules to make it work */
     -pie-background: linear-gradient(top, #0073a5 0%,#0094d3 100%);
 	filter: none;
 }
+
+body {
+  margin:0;
+  padding:0;
+  background-image:none;
+  filter: progid:DXImageTransform.Microsoft.AlphaImageLoader(
+  src='/resources/images/bg-plain.png',
+  sizingMethod='scale');
+
+  -ms-filter: "progid:DXImageTransform.Microsoft.AlphaImageLoader(
+  src='/resources/images/bg-plain.png',
+  sizingMethod='scale')";
+}
