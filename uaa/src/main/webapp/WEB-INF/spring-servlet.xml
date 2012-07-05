@@ -145,6 +145,7 @@
 	<!-- We need this even though /varz is in a different servlet because the default security filter applies to all requests -->
 	<sec:http pattern="/varz/**" security="none" />
 	<sec:http pattern="/healthz/**" security="none" />
+	<sec:http pattern="/password" security="none" />
 
 	<http request-matcher-ref="uiRequestMatcher" access-denied-page="/" authentication-manager-ref="authzAuthenticationMgr"
 		xmlns="http://www.springframework.org/schema/security">
