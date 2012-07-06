@@ -20,6 +20,10 @@
 
 	<context:property-placeholder properties-ref="applicationProperties" />
 
+	<bean id="messageSource" class="org.springframework.context.support.ResourceBundleMessageSource">
+		<property name="basename" value="messages" />
+	</bean>
+
 	<sec:http pattern="/resources/**" security="none" />
 	<sec:http pattern="/favicon.ico" security="none" />
 	<sec:http pattern="/index.html" security="none" />
