@@ -12,7 +12,9 @@
  */
 package org.cloudfoundry.identity.uaa.oauth;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
@@ -71,6 +73,8 @@ public class AccessController {
 			ClientDetails client = clientDetailsService.loadClientByClientId(clientAuth.getClientId());
 			model.put("auth_request", clientAuth);
 			model.put("client", client);
+			model.put("redirect_uri", getRedirectUri(client, clientAuth));
+			model.put("scopes", getScopes(client, clientAuth));
 			model.put("message",
 					"To confirm or deny access POST to the following locations with the parameters requested.");
 			Map<String, Object> options = new HashMap<String, Object>() {
@@ -101,6 +105,46 @@ public class AccessController {
 
 	}
 
+	private List<Map<String,String>> getScopes(ClientDetails client, AuthorizationRequest clientAuth) {
+		List<Map<String, String>> result = new ArrayList<Map<String,String>>();
+		for (String scope: clientAuth.getScope()) {
+			if (scope.equals("openid")) {
+				HashMap<String, String> map = new HashMap<String,String>();
+				map.put("code", scope);
+				map.put("text", "Access your profile including email address");
+				result.add(map);
+			} else {
+				for (String resource : client.getResourceIds()) {
+					HashMap<String, String> map = new HashMap<String,String>();
+					String value = resource + "." + scope;
+					map.put("code", value);
+					map.put("text", "Access your '" + resource + "' resources with scope '" + scope + "'");
+					result.add(map);
+				}
+			}
+		}
+		return result;
+	}
+
+	private String getRedirectUri(ClientDetails client, AuthorizationRequest clientAuth) {
+		String result = null;
+		if (clientAuth.getRedirectUri() != null) {
+			result = clientAuth.getRedirectUri();
+		}
+		if (client.getRegisteredRedirectUri() != null && !client.getRegisteredRedirectUri().isEmpty() && result == null) {
+			result = client.getRegisteredRedirectUri().iterator().next();
+		}
+		if (result != null) {
+			if (result.contains("?")) {
+				result = result.substring(0, result.indexOf("?"));
+			}
+			if (result.contains("#")) {
+				result = result.substring(0, result.indexOf("#"));
+			}
+		}
+		return result;
+	}
+
 	@RequestMapping("/oauth/error")
 	public String handleError() throws Exception {
 		// There is already an error entry in the model
@@ -114,7 +158,7 @@ public class AccessController {
 	private String getPath(HttpServletRequest request, String path) {
 		String contextPath = request.getContextPath();
 		if (contextPath.endsWith("/")) {
-			contextPath = contextPath.substring(0, contextPath.lastIndexOf("/")-1);
+			contextPath = contextPath.substring(0, contextPath.lastIndexOf("/") - 1);
 		}
 		if (path.startsWith("/")) {
 			path = path.substring(1);
