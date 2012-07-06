@@ -101,7 +101,7 @@
 			<list>
 				<value>classpath:/application.properties</value>
 				<value>classpath:/#{T(java.lang.System).getenv('VCAP_APPLICATION')!=null
-					?'application-cloud.properties':'empty.properties'}
+					?'application-devuaa.properties':'empty.properties'}
 				</value>
 				<value>classpath:/application-${UAA_PROFILE}.properties</value>
 			</list>
