@@ -85,57 +85,66 @@ img.gsc-branding-img,img.gsc-branding-img-noclear,img.gcsc-branding-img,img.gcsc
 </script>
 </head>
 <body id="micro">
-    <div class="splash">
-         <a href='http://${hostName}/'><img
-            alt="Cloud Foundry: The Industry's Open Platform As A Service"
-            class="logo"
-            src='${baseUrl}/images/logo_header_cloudfoundry.png' width='373'
-            height='70'></img>
-		 </a>
-		 <div style="float:right;">
-            <ul class='super-nav'>
-                <li><span>Welcome <strong>${fn:escapeXml(pageContext.request.userPrincipal.name)}</strong></span>
-                    / <c:url value="/logout.do" var="url" /> <a
-                    href="${fn:escapeXml(url)}">Logout</a> &nbsp;</li>
-            </ul>
-		 </div>
-         <div class="splash-box">
-            <c:if test="${error!=null}">
-                <div class="error">
-                    <h2>Woops!</h2>
-                    <p>${error}</p>
-                </div>
-            </c:if>
+	<div class="splash">
+		<a href='http://${hostName}/'><img
+			alt="Cloud Foundry: The Industry's Open Platform As A Service"
+			class="logo" src='${baseUrl}/images/logo_header_cloudfoundry.png'
+			width='373' height='70'></img> </a>
+		<div style="float: right;">
+			<ul class='super-nav'>
+				<li><span>Welcome <strong>${fn:escapeXml(pageContext.request.userPrincipal.name)}</strong></span>
+					/ <c:url value="/logout.do" var="url" /> <a
+					href="${fn:escapeXml(url)}">Logout</a> &nbsp;</li>
+			</ul>
+		</div>
+		<div class="splash-box">
+			<c:if test="${error!=null}">
+				<div class="error">
+					<h2>Sorry there was an error</h2>
+					<p>${error}</p>
+				</div>
+			</c:if>
 
-            <h2>Please Confirm</h2>
+			<h2>Please Confirm</h2>
 
-            <p>Do you authorize ${client.clientId} to access your
-                Cloud Foundry resources for ${auth_request.scope}.</p>
+			<div class="confirm">
+				<p>
+					Do you authorize the application '${client.clientId}' at <a
+						href="${redirect_uri}">${redirect_uri}</a>
+					to access your Cloud Foundry resources?
+				</p>
+				<ul>
+					<c:forEach items="${scopes}" var="scope">
+						<li>${scope['message']}</li>
+					</c:forEach>
+				</ul>
+			</div>
 
-            <form id="confirmationForm" name="confirmationForm"
-                action="${options.confirm.path}" method="POST">
-                <input name="${options.confirm.key}"
-                    value="${options.confirm.value}" type="hidden" />
-                <div class="buttons">
-                    <button class="orange-button" type="submit">Authorize</button>
-                </div>
-            </form>
-            <form id="denialForm" name="denialForm"
-                action="${options.deny.path}" method="POST">
-                <input name="${options.deny.key}" value="${options.deny.value}"
-                    type="hidden" />
-                <div class="buttons">
-                    <button class="gray-button"  type="submit">Deny</button>
-                </div>
-            </form>
+			<form id="confirmationForm" name="confirmationForm"
+				action="${options.confirm.path}" method="POST">
+				<input name="${options.confirm.key}"
+					value="${options.confirm.value}" type="hidden" />
+				<div class="buttons">
+					<button class="orange-button" type="submit">Authorize</button>
+				</div>
+			</form>
+			<form id="denialForm" name="denialForm" action="${options.deny.path}"
+				method="POST">
+				<input name="${options.deny.key}" value="${options.deny.value}"
+					type="hidden" />
+				<div class="buttons">
+					<button class="gray-button" type="submit">Deny</button>
+				</div>
+			</form>
 
-         </div>
-         <div class="footer" title="Commit: ${commit_id}, Timestamp: ${timestamp}">
-            Copyright &copy;
-            <fmt:formatDate value="<%=new java.util.Date()%>" pattern="yyyy" />
-            VMware, Inc. All rights reserved.
-         </div>
-    </div>
+		</div>
+		<div class="footer"
+			title="Commit: ${commit_id}, Timestamp: ${timestamp}">
+			Copyright &copy;
+			<fmt:formatDate value="<%=new java.util.Date()%>" pattern="yyyy" />
+			VMware, Inc. All rights reserved.
+		</div>
+	</div>
 	<script>
 		var _gaq = _gaq || [];
 		_gaq.push([ '_setAccount', 'UA-22181585-1' ]);
