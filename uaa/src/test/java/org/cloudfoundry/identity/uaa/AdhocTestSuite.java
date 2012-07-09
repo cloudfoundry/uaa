@@ -25,7 +25,7 @@ import org.junit.runners.Suite.SuiteClasses;
  * 
  */
 @RunWith(Suite.class)
-@SuiteClasses({ BackwardMigrationJobIntegrationTests.class, UserMigrationJobIntegrationTests.class })
+@SuiteClasses({ BootstrapTests.class, BackwardMigrationJobIntegrationTests.class, UserMigrationJobIntegrationTests.class })
 @Ignore
 public class AdhocTestSuite {
 

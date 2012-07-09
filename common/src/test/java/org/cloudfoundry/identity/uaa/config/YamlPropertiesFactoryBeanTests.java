@@ -41,6 +41,16 @@ public class YamlPropertiesFactoryBeanTests {
 	}
 
 	@Test
+	public void testLoadResourcesWithOverride() throws Exception {
+		YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
+		factory.setResources(new Resource[] {new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()), new ByteArrayResource("foo:\n  bar: spam".getBytes())});
+		Properties properties = factory.getObject();
+		assertEquals("bar", properties.get("foo"));
+		assertEquals("baz", properties.get("spam.foo"));
+		assertEquals("spam", properties.get("foo.bar"));
+	}
+
+	@Test
 	public void testLoadResourceWithMultipleDocuments() throws Exception {
 		YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
 		factory.setResources(new Resource[] {new ByteArrayResource("foo: bar\nspam: baz\n---\nfoo: bag".getBytes())});

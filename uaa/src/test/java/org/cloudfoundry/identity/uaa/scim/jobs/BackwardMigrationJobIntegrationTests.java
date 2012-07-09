@@ -15,6 +15,7 @@ import static org.junit.Assert.assertEquals;
 import java.util.Date;
 import java.util.Iterator;
 
+import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.batch.core.BatchStatus;
@@ -39,6 +40,8 @@ public class BackwardMigrationJobIntegrationTests extends AbstractJobIntegration
 	@Test
 	@Ignore // TODO unignore when merging back to master
 	public void testJobRuns() throws Exception {
+		TestUtils.deleteFrom(cloudControllerDataSource, "users");
+		TestUtils.deleteFrom(uaaDataSource, "users");
 		JdbcTemplate uaaTemplate = new JdbcTemplate(uaaDataSource);
 		uaaTemplate.update("insert into users "
 				+ "(id, active, userName, email, password, familyName, givenName, created, lastModified) "
@@ -52,6 +55,6 @@ public class BackwardMigrationJobIntegrationTests extends AbstractJobIntegration
 		assertEquals(1, step.getReadCount());
 		assertEquals(1, step.getWriteCount());
 		JdbcTemplate jdbcTemplate = new JdbcTemplate(cloudControllerDataSource);
-		assertEquals(4, jdbcTemplate.queryForInt("select count(*) from users"));
+		assertEquals(1, jdbcTemplate.queryForInt("select count(*) from users"));
 	}
 }

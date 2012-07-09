@@ -55,7 +55,7 @@ public class LoginInfoEndpoint {
 		}
 	}
 
-	private List<Prompt> prompts = Arrays.asList(new Prompt("username", "text", "Username"), new Prompt("password",
+	private List<Prompt> prompts = Arrays.asList(new Prompt("username", "text", "Email"), new Prompt("password",
 			"password", "Password"));
 
 	public void setPrompts(List<Prompt> prompts) {

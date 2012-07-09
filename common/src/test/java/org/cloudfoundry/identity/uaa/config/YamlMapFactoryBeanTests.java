@@ -58,7 +58,7 @@ public class YamlMapFactoryBeanTests {
 	public void testOverrideAndremoveDefaults() throws Exception {
 		factory.setResources(new ByteArrayResource[] {new ByteArrayResource("foo:\n  bar: spam".getBytes()), new ByteArrayResource("foo:\n  spam: bar".getBytes())});
 		assertEquals(1, factory.getObject().size());
-		assertEquals(1, ((Map<String, Object>) factory.getObject().get("foo")).size());
+		assertEquals(2, ((Map<String, Object>) factory.getObject().get("foo")).size());
 	}
 
 	@Test

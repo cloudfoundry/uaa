@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>org.cloudfoundry.identity</groupId>
 		<artifactId>cloudfoundry-identity-parent</artifactId>
-		<version>1.0.3.BUILD-SNAPSHOT</version>
+		<version>1.1.0.BUILD-SNAPSHOT</version>
 		<relativePath>..</relativePath>
 	</parent>
 
@@ -92,6 +92,13 @@
 			<groupId>org.springframework.security.oauth</groupId>
 			<artifactId>spring-security-oauth2</artifactId>
 			<version>${spring.security.oauth.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.security.oauth</groupId>
+			<artifactId>spring-security-oauth</artifactId>
+			<version>${spring.security.oauth.version}</version>
+			<optional>true</optional>
 		</dependency>
 
 		<dependency>
@@ -240,6 +247,13 @@
 			<artifactId>postgresql</artifactId>
 			<version>9.1-901.jdbc3</version>
 			<scope>runtime</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>eu.tekul</groupId>
+			<artifactId>szxcvbn_2.8.2</artifactId>
+			<version>0.1</version>
+			<scope>compile</scope>
 		</dependency>
 
 		<dependency>

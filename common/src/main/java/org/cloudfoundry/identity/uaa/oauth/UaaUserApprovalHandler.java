@@ -12,6 +12,7 @@
  */
 package org.cloudfoundry.identity.uaa.oauth;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 
@@ -39,8 +40,8 @@ public class UaaUserApprovalHandler extends TokenServicesUserApprovalHandler {
 	/**
 	 * @param autoApproveClients the auto approve clients to set
 	 */
-	public void setAutoApproveClients(Collection<String> autoApproveClients) {
-		this.autoApproveClients = autoApproveClients;
+	public void setAutoApproveClients(String[] autoApproveClients) {
+		this.autoApproveClients = Arrays.asList(autoApproveClients);
 	}
 
 	/**
@@ -58,11 +59,7 @@ public class UaaUserApprovalHandler extends TokenServicesUserApprovalHandler {
 		if (!userAuthentication.isAuthenticated()) {
 			return false;
 		}
-		String flag = authorizationRequest.getApprovalParameters().get(AuthorizationRequest.USER_OAUTH_APPROVAL);
-		boolean approved = flag != null && flag.toLowerCase().equals("true");
-		return approved
-				|| (authorizationRequest.getResponseTypes().contains("token") && autoApproveClients
-						.contains(authorizationRequest.getClientId()));
+		return authorizationRequest.isApproved() || autoApproveClients.contains(authorizationRequest.getClientId());
 	}
 
 }
