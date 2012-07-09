@@ -34,7 +34,16 @@ can).  The apps all work together the apps running on the same port
 to build the code, but you need to use Maven 3 if you want to run the
 server from the command line (or run integration tests).
 
-### Demo of command line usage
+### Deply to Cloud Foundry
+
+You can also build the app and push it to Cloud Foundry, e.g.
+
+    $ mvn install
+    $ vmc push myuaa --path uaa/target
+
+(If you do that, choose a unique application id, not 'myuaa'.)
+
+### Demo of command line usage on local server
 
 First run the UAA server as described above:
 
@@ -101,7 +110,7 @@ token grant on stdout, e.g.
     client-id: vmc
     token-id: 90162e5c-228d-4620-b457-83e2d591eedf
 
-### Demo of command line usage against e.g. cloudfoundry.com
+### Demo of command line usage on cloudfoundry.com
 
 The same command line example should work against a UAA running on
 cloudfoundry.com (except for the token decoding bit because you won't
