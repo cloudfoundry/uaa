@@ -110,3 +110,7 @@ body,html {
   src='/resources/images/bg-plain.jpg',
   sizingMethod='scale')";
 }
+
+#loginForm input {
+	line-height: 38px;
+}
