@@ -112,32 +112,23 @@ public class AccessController {
 	private List<Map<String, String>> getScopes(ClientDetails client, AuthorizationRequest clientAuth) {
 		List<Map<String, String>> result = new ArrayList<Map<String, String>>();
 		for (String scope : clientAuth.getScope()) {
-			if (scope.equals("openid")) {
+			if (!scope.contains(".")) {
 				HashMap<String, String> map = new HashMap<String, String>();
 				map.put("code", SCOPE_PREFIX + scope);
-				map.put("text", "Access your profile including email address");
-				result.add(map);
-			}
-			else if (scope.equals("password")) {
-				HashMap<String, String> map = new HashMap<String, String>();
-				map.put("code", SCOPE_PREFIX + scope);
-				map.put("text", "ChangeSCOPE__PREFIX +  your password");
+				map.put("text", "Access your data with scope '" + scope + "'");
 				result.add(map);
 			}
 			else {
-				for (String resource : client.getResourceIds()) {
-					if (resource.equals("password") || resource.equals("openid")) {
-						continue;
-					}
-					HashMap<String, String> map = new HashMap<String, String>();
-					String value = SCOPE_PREFIX + resource + "." + scope;
-					map.put("code", value);
-					map.put("text", "Access your '" + resource + "' resources with scope '" + scope + "'");
-					result.add(map);
-				}
+				HashMap<String, String> map = new HashMap<String, String>();
+				String value = SCOPE_PREFIX + scope;
+				String resource = scope.substring(0, scope.lastIndexOf("."));
+				String access = scope.substring(scope.lastIndexOf("."));
+				map.put("code", value);
+				map.put("text", "Access your '" + resource + "' resources with scope '" + access + "'");
+				result.add(map);
 			}
 		}
-		Collections.sort(result, new Comparator<Map<String,String>>() {
+		Collections.sort(result, new Comparator<Map<String, String>>() {
 			@Override
 			public int compare(Map<String, String> o1, Map<String, String> o2) {
 				String code1 = o1.get("code");
