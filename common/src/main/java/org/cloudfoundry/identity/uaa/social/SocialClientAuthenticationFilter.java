@@ -94,12 +94,15 @@ public class SocialClientAuthenticationFilter extends AbstractAuthenticationProc
 		if (userName == null && email != null) {
 			userName = email;
 		}
+		if (userName == null) {
+			userName = map.get("id"); // no user-friendly identifier for linked in and google
+		}
 		List<UaaAuthority> authorities = UaaAuthority.USER_AUTHORITIES;
 		SocialClientUserDetails user = new SocialClientUserDetails(userName, authorities);
 		user.setSource(Source.classify(userInfoUrl));
 		user.setExternalId(getUserId(map));
 		String fullName = getFullName(map);
-		if (fullName!=null) {
+		if (fullName != null) {
 			user.setName(fullName);
 		}
 		if (email != null) {
@@ -141,8 +144,8 @@ public class SocialClientAuthenticationFilter extends AbstractAuthenticationProc
 		if (map.containsKey("familyName")) {
 			lastName = map.get("familyName");
 		}
-		if (firstName!=null) {
-			if (lastName!=null) {
+		if (firstName != null) {
+			if (lastName != null) {
 				return firstName + " " + lastName;
 			}
 		}
@@ -159,6 +162,9 @@ public class SocialClientAuthenticationFilter extends AbstractAuthenticationProc
 
 	private String getUserName(Map<String, String> map) {
 		String key = "username";
+		if (map.containsKey(key)) {
+			return map.get(key);
+		}
 		if (userInfoUrl.contains("cloudfoundry.com")) {
 			key = "user_name";
 		}
@@ -168,16 +174,15 @@ public class SocialClientAuthenticationFilter extends AbstractAuthenticationProc
 		if (userInfoUrl.contains("twitter.com")) {
 			key = "screen_name";
 		}
-		if (userInfoUrl.contains("linkedin.com")) {
-			key = "id"; // no user-friendly identifier for linked in
-		}
-		return map.get(key);
+		String value = map.get(key);
+		return value;
 	}
 
 	@Override
 	protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response,
 			AuthenticationException failed) throws IOException, ServletException {
-		if (failed instanceof AccessTokenRequiredException || failed instanceof org.springframework.security.oauth.consumer.AccessTokenRequiredException) {
+		if (failed instanceof AccessTokenRequiredException
+				|| failed instanceof org.springframework.security.oauth.consumer.AccessTokenRequiredException) {
 			// Need to force a redirect via the OAuth client filter, so rethrow here
 			throw failed;
 		}

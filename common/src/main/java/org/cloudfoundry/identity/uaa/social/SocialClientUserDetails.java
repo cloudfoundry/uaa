@@ -37,10 +37,15 @@ public class SocialClientUserDetails extends User {
 
 		public static String LINKEDIN = "linkedin";
 
+		public static String GOOGLE = "google";
+
 		public static String classify(String userInfoUrl) {
 			String key = userInfoUrl.toLowerCase().replaceAll(".*//([a-z.]*)/.*", "$1");
 			if (userInfoUrl.contains("cloudfoundry.com")) {
 				key = CLOUD_FOUNDRY;
+			}
+			else if (userInfoUrl.contains("google.com") || userInfoUrl.contains("googleapis.com")) {
+				key = GOOGLE;
 			}
 			else if (userInfoUrl.contains("github.com")) {
 				key = GITHUB;

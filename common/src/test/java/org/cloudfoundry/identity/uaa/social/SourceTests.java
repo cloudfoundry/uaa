@@ -30,6 +30,8 @@ public class SourceTests {
 		assertEquals(Source.GITHUB, Source.classify("http://foo.github.com/userinfo"));
 		assertEquals(Source.TWITTER, Source.classify("http://foo.twitter.com/userinfo"));
 		assertEquals(Source.LINKEDIN, Source.classify("http://foo.linkedin.com/userinfo"));
+		assertEquals(Source.GOOGLE, Source.classify("http://foo.google.com/userinfo"));
+		assertEquals(Source.GOOGLE, Source.classify("http://foo.googleapis.com/userinfo"));
 	}
 
 	@Test
