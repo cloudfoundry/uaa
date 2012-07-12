@@ -122,7 +122,7 @@ public class AccessController {
 				HashMap<String, String> map = new HashMap<String, String>();
 				String value = SCOPE_PREFIX + scope;
 				String resource = scope.substring(0, scope.lastIndexOf("."));
-				String access = scope.substring(scope.lastIndexOf("."));
+				String access = scope.substring(scope.lastIndexOf(".")+1);
 				map.put("code", value);
 				map.put("text", "Access your '" + resource + "' resources with scope '" + access + "'");
 				result.add(map);

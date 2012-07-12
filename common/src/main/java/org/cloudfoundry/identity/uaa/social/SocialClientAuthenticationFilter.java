@@ -165,7 +165,7 @@ public class SocialClientAuthenticationFilter extends AbstractAuthenticationProc
 		if (map.containsKey(key)) {
 			return map.get(key);
 		}
-		if (userInfoUrl.contains("cloudfoundry.com")) {
+		if (userInfoUrl.contains("cloudfoundry.com") || userInfoUrl.endsWith("/uaa/userinfo")) {
 			key = "user_name";
 		}
 		if (userInfoUrl.contains("github.com")) {
