@@ -15,8 +15,12 @@
 		<constructor-arg ref="jdbcTemplate" />
 		<!-- Password validation turned off to match cloud controller policies -->
 		<property name="passwordValidator">
-			<bean class="org.cloudfoundry.identity.uaa.scim.NullPasswordValidator" />
-		</property>
+            <bean class="org.cloudfoundry.identity.uaa.scim.ZxcvbnPasswordValidator">
+                <property name="scoreCalculator" ref="zxcvbnScoreCalculator" />
+            </bean>
+        </property>
+
+
         <property name="deactivateOnDelete" value="${scim.delete.deactivate:true}" />
 	</bean>
 

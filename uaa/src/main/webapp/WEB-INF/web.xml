@@ -96,21 +96,7 @@
 		</init-param>
 	</servlet>
 
-	<servlet>
-		<servlet-name>password</servlet-name>
-		<servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
-		<init-param>
-			<param-name>contextInitializerClasses</param-name>
-			<param-value>org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer</param-value>
-		</init-param>
-	</servlet>
-
-	<servlet-mapping>
-		<servlet-name>password</servlet-name>
-		<url-pattern>/password/*</url-pattern>
-	</servlet-mapping>
-
-	<servlet-mapping>
+    <servlet-mapping>
 		<servlet-name>varz</servlet-name>
 		<url-pattern>/varz/*</url-pattern>
 	</servlet-mapping>

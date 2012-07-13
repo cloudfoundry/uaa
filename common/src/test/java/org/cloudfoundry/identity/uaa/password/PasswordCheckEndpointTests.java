@@ -14,6 +14,8 @@
 package org.cloudfoundry.identity.uaa.password;
 
 import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertTrue;
 
 import java.util.Map;
 
@@ -26,13 +28,15 @@ public class PasswordCheckEndpointTests {
 
 	@Test
 	public void checkReturnsExpectedScore() throws Exception {
-		PasswordCheckEndpoint pc = new PasswordCheckEndpoint(5);
+		PasswordCheckEndpoint pc = new PasswordCheckEndpoint();
+        pc.setScoreCalculator(new ZxcvbnPasswordScoreCalculator(5));
 
-		Map<String,Integer> map = pc.checkPassword("password1");
+		PasswordScore score = pc.passwordScore("password1");
 
-		assertEquals(Integer.valueOf(0), map.get("score"));
-		assertEquals(Integer.valueOf(5), map.get("required"));
+		assertTrue(score.getScore() == 0);
+		assertFalse(score.isAcceptable());
 
-		map = pc.checkPassword("password1");
+		score = pc.passwordScore("thisisasufficientlylongstring");
+        assertTrue(score.isAcceptable());
 	}
 }

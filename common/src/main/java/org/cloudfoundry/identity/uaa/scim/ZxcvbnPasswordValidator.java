@@ -11,21 +11,16 @@
  * subcomponent's license, as noted in the LICENSE file.
  */
 
-package org.cloudfoundry.identity.uaa.password;
+package org.cloudfoundry.identity.uaa.scim;
 
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.cloudfoundry.identity.uaa.password.PasswordScoreCalculator;
+import org.cloudfoundry.identity.uaa.password.PasswordScore;
 
 /**
- * Password quality check endpoint.
- *
- * @author Luke Taylor
+ * A PasswordValidator that uses the Zxcvbn Scala library to validate passwords
+ * @author vidya
  */
-@Controller
-public class PasswordCheckEndpoint {
+public class ZxcvbnPasswordValidator implements PasswordValidator {
 
     private PasswordScoreCalculator scoreCalculator;
 
@@ -33,9 +28,12 @@ public class PasswordCheckEndpoint {
         this.scoreCalculator = scoreCalculator;
     }
 
-    @RequestMapping(value = "/password/score", method = RequestMethod.POST)
-	@ResponseBody
-	public PasswordScore passwordScore(@RequestParam String password) {
-        return scoreCalculator.computeScore(password);
-	}
+    @Override
+    public void validate(String password, ScimUser user) {
+        PasswordScore score = scoreCalculator.computeScore(password);
+        if (!score.isAcceptable()) {
+            throw new InvalidPasswordException(String.format("Insufficient password strength: %d", score.getScore()));
+        }
+
+    }
 }

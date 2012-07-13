@@ -17,6 +17,7 @@
 	<!-- The data source has to be defined first -->
 	<import resource="spring-scim.xml" />
 	<import resource="oauth-clients.xml" />
+    <import resource="spring-password.xml" />
 
 	<context:property-placeholder properties-ref="applicationProperties" />
 
@@ -28,8 +29,9 @@
 	<sec:http pattern="/favicon.ico" security="none" />
 	<sec:http pattern="/index.html" security="none" />
 	<sec:http pattern="/login_info" security="none" />
+    <sec:http pattern="/password/**" security="none" />
 
-	<authentication-manager id="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security" />
+    <authentication-manager id="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security" />
 
 	<bean id="accessDecisionManager" class="org.springframework.security.access.vote.UnanimousBased">
 		<constructor-arg>
@@ -149,7 +151,6 @@
 	<!-- We need this even though /varz is in a different servlet because the default security filter applies to all requests -->
 	<sec:http pattern="/varz/**" security="none" />
 	<sec:http pattern="/healthz/**" security="none" />
-	<sec:http pattern="/password" security="none" />
 
 	<http request-matcher-ref="uiRequestMatcher" access-denied-page="/" authentication-manager-ref="authzAuthenticationMgr"
 		xmlns="http://www.springframework.org/schema/security">
