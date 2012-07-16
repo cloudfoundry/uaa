@@ -44,25 +44,24 @@ public class UaaAuthorizationRequestFactoryTests {
 
 	private Map<String, String> parameters = new HashMap<String, String>();
 
-	private Map<String, String> approvalParameters = new HashMap<String, String>();
-
 	private BaseClientDetails client = new BaseClientDetails();
 
 	{
+		parameters.put("client_id", "foo");
 		factory = new UaaAuthorizationRequestFactory(clientDetailsService);
 		Mockito.when(clientDetailsService.loadClientByClientId("foo")).thenReturn(client);
 	}
 
 	@Test
 	public void testFactoryProducesSomething() {
-		assertNotNull(factory.createAuthorizationRequest(parameters, approvalParameters, "foo", "password", null));
+		assertNotNull(factory.createAuthorizationRequest(parameters));
 	}
 
 	@Test
 	public void testScopeDefaultsToAuthoritiesForClientCredentials() {
 		client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz"));
-		AuthorizationRequest request = factory.createAuthorizationRequest(parameters, approvalParameters, "foo",
-				"client_credentials", null);
+		parameters.put("grant_type", "client_credentials");
+		AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
 		assertEquals(StringUtils.commaDelimitedListToSet("foo.bar,spam.baz"), request.getScope());
 	}
 
@@ -81,8 +80,7 @@ public class UaaAuthorizationRequestFactoryTests {
 		};
 		factory.setSecurityContextAccessor(securityContextAccessor);
 		client.setScope(StringUtils.commaDelimitedListToSet("one,two"));
-		AuthorizationRequest request = factory.createAuthorizationRequest(parameters, approvalParameters, "foo",
-				"implicit", null);
+		AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
 		assertEquals(StringUtils.commaDelimitedListToSet("one,two,foo.bar,spam.baz"),
 				new TreeSet<String>(request.getScope()));
 	}
@@ -90,8 +88,8 @@ public class UaaAuthorizationRequestFactoryTests {
 	@Test
 	public void testResourecIdsExtracted() {
 		client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz"));
-		AuthorizationRequest request = factory.createAuthorizationRequest(parameters, approvalParameters, "foo",
-				"client_credentials", null);
+		parameters.put("grant_type", "client_credentials");
+		AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
 		assertEquals(StringUtils.commaDelimitedListToSet("foo,spam"), request.getResourceIds());
 	}
 
@@ -99,8 +97,8 @@ public class UaaAuthorizationRequestFactoryTests {
 	public void testResourecIdsWithCustomSeparator() {
 		factory.setScopeSeparator("--");
 		client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("foo--bar,spam--baz"));
-		AuthorizationRequest request = factory.createAuthorizationRequest(parameters, approvalParameters, "foo",
-				"client_credentials", null);
+		parameters.put("grant_type", "client_credentials");
+		AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
 		assertEquals(StringUtils.commaDelimitedListToSet("foo,spam"), request.getResourceIds());
 	}
 
