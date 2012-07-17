@@ -43,11 +43,11 @@ public class PasswordCheckEndpointIntegrationTests {
 		HttpHeaders headers = new HttpHeaders();
 		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
 		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = serverRunning.postForMap("/password", formData, headers);
+		ResponseEntity<Map> response = serverRunning.postForMap("/password/score", formData, headers);
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 
 		assertTrue(response.getBody().containsKey("score"));
-		assertTrue(response.getBody().containsKey("required"));
+		assertTrue(response.getBody().containsKey("acceptable"));
 		assertEquals(0, response.getBody().get("score"));
 	}
 }
