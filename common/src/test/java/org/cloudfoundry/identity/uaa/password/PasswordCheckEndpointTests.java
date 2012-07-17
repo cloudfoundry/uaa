@@ -34,9 +34,8 @@ public class PasswordCheckEndpointTests {
 		PasswordScore score = pc.passwordScore("password1");
 
 		assertTrue(score.getScore() == 0);
-		assertFalse(score.isAcceptable());
 
 		score = pc.passwordScore("thisisasufficientlylongstring");
-		assertTrue(score.isAcceptable());
+		assertTrue(score.getScore() >= score.getRequiredScore());
 	}
 }
