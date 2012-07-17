@@ -32,4 +32,20 @@ public class UaaUserEditorTests {
 		assertEquals("Bloggs", user.getFamilyName());
 	}
 
+	@Test
+	public void testAuthorities() {
+		UaaUserEditor editor = new UaaUserEditor();
+		editor.setAsText("marissa|koala|marissa@test.org|Marissa|Bloggs|uaa.admin");
+		UaaUser user = (UaaUser) editor.getValue();
+		assertEquals(UaaAuthority.ADMIN_AUTHORITIES, user.getAuthorities());
+	}
+
+	@Test
+	public void testCustomAuthorities() {
+		UaaUserEditor editor = new UaaUserEditor();
+		editor.setAsText("marissa|koala|marissa@test.org|Marissa|Bloggs|uaa.admin,dash.user");
+		UaaUser user = (UaaUser) editor.getValue();
+		assertEquals("[uaa.admin, dash.user, uaa.user]", user.getAuthorities().toString());
+	}
+
 }

@@ -19,6 +19,7 @@ import javax.sql.DataSource;
 
 import org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean;
 import org.cloudfoundry.identity.uaa.oauth.UaaUserApprovalHandler;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.varz.VarzEndpoint;
@@ -97,6 +98,8 @@ public class BootstrapTests {
 		assertEquals("[vmc, my, support]",
 				ReflectionTestUtils.getField(context.getBean(UaaUserApprovalHandler.class), "autoApproveClients")
 						.toString());
+		ScimUserProvisioning users = context.getBean(ScimUserProvisioning.class);
+		assertEquals(2, users.retrieveUsers().size());
 	}
 
 	private GenericXmlApplicationContext getServletContext(String... resources) {
@@ -113,11 +116,11 @@ public class BootstrapTests {
 
 		GenericXmlApplicationContext context = new GenericXmlApplicationContext();
 		context.setParent(parent);
-		context.load(resourcesToLoad);
-
 		if (profiles != null) {
 			context.getEnvironment().setActiveProfiles(StringUtils.commaDelimitedListToStringArray(profiles));
 		}
+		
+		context.load(resourcesToLoad);
 
 		// Simulate what happens in the webapp when the YamlServletProfileInitializer kicks in
 		String yaml = System.getProperty("UAA_CONFIG_PATH");

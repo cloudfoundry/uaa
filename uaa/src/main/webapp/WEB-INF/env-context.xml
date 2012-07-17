@@ -24,6 +24,21 @@
 		</property>
 	</bean>
 
+	<!-- This is for the account bootstrap. If someone edits web.xml they can load yml from other locations for the environment 
+		and it won't be picked up here. -->
+	<bean id="config" class="org.cloudfoundry.identity.uaa.config.YamlMapFactoryBean">
+		<property name="resources">
+			<list>
+				<value>classpath:/uaa.yml</value>
+				<value>file:${CLOUD_FOUNDRY_CONFIG_PATH:config}/uaa.yml</value>
+				<value>file:${UAA_CONFIG_PATH:config}/uaa.yml</value>
+				<value>${UAA_CONFIG_URL:config/uaa.yml}</value>
+			</list>
+		</property>
+		<!-- Default configuration should contain only the admin client to avoid bootstrapping extra clients -->
+		<property name="resolutionMethod" value="OVERRIDE_AND_IGNORE" />
+	</bean>
+
 	<beans profile="default,hsqldb">
 		<description>Profile for hsqldb scripts on an empty database</description>
 		<bean id="platform" class="java.lang.String">

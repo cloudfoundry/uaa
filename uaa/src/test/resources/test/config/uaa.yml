@@ -11,3 +11,7 @@ oauth:
       - vmc
       - my
       - support
+scim:
+  users:
+    - paul|wombat|paul@test.org|Paul|Smith|uaa.admin
+    - stefan|wallaby|stefan@test.org|Stefan|Schmidt

@@ -70,28 +70,12 @@
 		<property name="scimUserProvisioning" ref="scimUserProvisioning" />
 	</bean>
 
-	<!-- This is for the oauth client bootstrap. If someone edits web.xml they can load yml from other locations for the environment 
-		and it won't be picked up here. -->
-	<bean id="config" class="org.cloudfoundry.identity.uaa.config.YamlMapFactoryBean">
-		<property name="resources">
-			<list>
-				<value>classpath:/uaa.yml</value>
-				<value>file:${CLOUD_FOUNDRY_CONFIG_PATH:config}/uaa.yml</value>
-				<value>file:${UAA_CONFIG_PATH:config}/uaa.yml</value>
-				<value>${UAA_CONFIG_URL:config/uaa.yml}</value>
-			</list>
-		</property>
-		<!-- Default configuration should contain only the admin client to avoid bootstrapping extra clients -->
-		<property name="resolutionMethod" value="OVERRIDE_AND_IGNORE" />
-	</bean>
-
 	<bean id="clientAdminBootstrap" class="org.cloudfoundry.identity.uaa.oauth.ClientAdminBootstrap">
 		<property name="clientRegistrationService" ref="clientRegistrationService" />
 		<property name="clients" value="#{@config['oauth']?.clients}" />
 		<property name="clientsToOverride" value="admin" />
 		<property name="override" value="${oauth.client.override:false}" />
 	</bean>
-
 
 	<beans profile="cloud">
 		<bean id="clientDetails" class="org.cloudfoundry.identity.uaa.oauth.JitClientDetailsService">

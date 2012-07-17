@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 /**
  * The UAA only distinguishes 2 types of user for internal usage, denoted <code>uaa.admin</code> and
@@ -69,7 +70,7 @@ public enum UaaAuthority implements GrantedAuthority {
 	public String getAuthority() {
 		return userType;
 	}
-	
+
 	@Override
 	public String toString() {
 		return userType;
@@ -78,5 +79,10 @@ public enum UaaAuthority implements GrantedAuthority {
 	public static UaaAuthority fromAuthorities(String authorities) {
 		String type = authorities == null ? "uaa.user" : authorities.toLowerCase();
 		return type.contains("uaa.admin") ? UAA_ADMIN : UAA_USER;
+	}
+
+	public static GrantedAuthority authority(String value) {
+		return value.contains("uaa.admin") ? UAA_ADMIN : value.contains("uaa.admin") ? UAA_USER
+				: new SimpleGrantedAuthority(value);
 	}
 }
