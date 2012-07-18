@@ -14,7 +14,6 @@ package org.cloudfoundry.identity.uaa.integration;
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -157,16 +156,18 @@ public class UaaTestAccounts implements TestAccounts {
 	}
 
 	public ClientCredentialsResourceDetails getAdminClientCredentialsResource() {
-		return getClientCredentialsResource(new String[] {"clients.read", "clients.write", "clients.secret"}, getAdminClientId(), getAdminClientSecret());
+		return getClientCredentialsResource(new String[] { "clients.read", "clients.write", "clients.secret" },
+				getAdminClientId(), getAdminClientSecret());
 	}
 
 	public ClientCredentialsResourceDetails getClientCredentialsResource(String prefix, String defaultClientId,
 			String defaultClientSecret) {
-		return getClientCredentialsResource(prefix, new String[] {"scim.read", "scim.write", "password.write", "tokens.read", "tokens.write"}, defaultClientId, defaultClientSecret);
+		return getClientCredentialsResource(prefix, new String[] { "scim.read", "scim.write", "password.write",
+				"tokens.read", "tokens.write" }, defaultClientId, defaultClientSecret);
 	}
 
-	public ClientCredentialsResourceDetails getClientCredentialsResource(String prefix, String[] scope, String defaultClientId,
-			String defaultClientSecret) {
+	public ClientCredentialsResourceDetails getClientCredentialsResource(String prefix, String[] scope,
+			String defaultClientId, String defaultClientSecret) {
 		if (clientDetails.containsKey(prefix)) {
 			return (ClientCredentialsResourceDetails) clientDetails.get(prefix);
 		}
@@ -178,15 +179,16 @@ public class UaaTestAccounts implements TestAccounts {
 	}
 
 	public ClientCredentialsResourceDetails getClientCredentialsResource(String clientId, String clientSecret) {
-		return getClientCredentialsResource(new String[] {"cloud_controller.read"}, clientId, clientSecret);
+		return getClientCredentialsResource(new String[] { "cloud_controller.read" }, clientId, clientSecret);
 	}
 
-	public ClientCredentialsResourceDetails getClientCredentialsResource(String[] scope, String clientId, String clientSecret) {
+	public ClientCredentialsResourceDetails getClientCredentialsResource(String[] scope, String clientId,
+			String clientSecret) {
 		ClientCredentialsResourceDetails resource = new ClientCredentialsResourceDetails();
 		resource.setClientId(clientId);
 		resource.setClientSecret(clientSecret);
 		resource.setId(clientId);
-		if (scope!=null) {
+		if (scope != null) {
 			resource.setScope(Arrays.asList(scope));
 		}
 		resource.setClientAuthenticationScheme(AuthenticationScheme.header);
@@ -195,13 +197,11 @@ public class UaaTestAccounts implements TestAccounts {
 	}
 
 	public ImplicitResourceDetails getImplicitResource(String clientPrefix, String defaultClientId,
-			String defaultRedirectUri, String username, String password) {
+			String defaultRedirectUri) {
 		ImplicitResourceDetails resource = new ImplicitResourceDetails();
 		String clientId = environment.getProperty(clientPrefix + ".id", defaultClientId);
 		resource.setClientId(clientId);
 		resource.setId(clientId);
-		Map<String, String> parameters = new LinkedHashMap<String, String>();
-		parameters.put("credentials", String.format("{\"username\":\"%s\",\"password\":\"%s\"}", username, password));
 		resource.setClientAuthenticationScheme(AuthenticationScheme.header);
 		resource.setAccessTokenUri(server.getAuthorizationUri());
 		resource.setScope(Arrays.asList("cloud_controller.read", "password.write", "openid"));
@@ -212,8 +212,8 @@ public class UaaTestAccounts implements TestAccounts {
 
 	public ResourceOwnerPasswordResourceDetails getResourceOwnerPasswordResource(String clientPrefix,
 			String defaultClientId, String defaultClientSecret, String username, String password) {
-		return getResourceOwnerPasswordResource(new String[] { "cloud_controller.read", "openid", "password.write" }, clientPrefix, defaultClientId,
-				defaultClientSecret, username, password);
+		return getResourceOwnerPasswordResource(new String[] { "cloud_controller.read", "openid", "password.write" },
+				clientPrefix, defaultClientId, defaultClientSecret, username, password);
 	}
 
 	public ResourceOwnerPasswordResourceDetails getResourceOwnerPasswordResource(String[] scope, String clientPrefix,
@@ -232,9 +232,6 @@ public class UaaTestAccounts implements TestAccounts {
 		resource.setClientSecret(clientSecret);
 		resource.setId(clientId);
 		resource.setScope(Arrays.asList(scope));
-		Map<String, String> parameters = new LinkedHashMap<String, String>();
-		parameters.put("username", username);
-		parameters.put("password", password);
 		resource.setUsername(username);
 		resource.setPassword(password);
 		resource.setClientAuthenticationScheme(AuthenticationScheme.header);
@@ -255,7 +252,8 @@ public class UaaTestAccounts implements TestAccounts {
 				StringUtils.collectionToCommaDelimitedString(defaults.getAuthorities()));
 		String redirectUris = environment.getProperty(prefix + ".redirect-uri",
 				StringUtils.collectionToCommaDelimitedString(defaults.getRegisteredRedirectUri()));
-		BaseClientDetails result = new BaseClientDetails(clientId, resourceIds, scopes, grantTypes, authorities, redirectUris);
+		BaseClientDetails result = new BaseClientDetails(clientId, resourceIds, scopes, grantTypes, authorities,
+				redirectUris);
 		result.setClientSecret(clientSecret);
 		return result;
 	}
@@ -270,8 +268,7 @@ public class UaaTestAccounts implements TestAccounts {
 	}
 
 	public ImplicitResourceDetails getDefaultImplicitResource() {
-		return getImplicitResource("oauth.clients.vmc", "vmc", "http://uaa.cloudfoundry.com/redirect/vmc",
-				getUserName(), getPassword());
+		return getImplicitResource("oauth.clients.vmc", "vmc", "http://uaa.cloudfoundry.com/redirect/vmc");
 	}
 
 	public String getCloudControllerUrl() {

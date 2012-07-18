@@ -27,6 +27,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
@@ -94,12 +95,23 @@ public class UaaAuthorizationRequestFactoryTests {
 	}
 
 	@Test
-	public void testResourecIdsWithCustomSeparator() {
+	public void testResourceIdsWithCustomSeparator() {
 		factory.setScopeSeparator("--");
 		client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("foo--bar,spam--baz"));
 		parameters.put("grant_type", "client_credentials");
 		AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
 		assertEquals(StringUtils.commaDelimitedListToSet("foo,spam"), request.getResourceIds());
+	}
+	
+	@Test
+	public void testScopesValid() throws Exception {
+		factory.validateParameters(parameters, new BaseClientDetails("foo", null, "read,write", "implicit", null));
+	}
+
+	@Test(expected=InvalidScopeException.class)
+	public void testScopesInvalid() throws Exception {
+		parameters.put("scope", "admin");
+		factory.validateParameters(parameters, new BaseClientDetails("foo", null, "read,write", "implicit", null));
 	}
 
 	private static class StubSecurityContextAccessor implements SecurityContextAccessor {

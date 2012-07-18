@@ -24,6 +24,7 @@ import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.AuthorizationRequestFactory;
@@ -31,6 +32,7 @@ import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
+import org.springframework.security.oauth2.provider.endpoint.ParametersValidator;
 
 /**
  * An {@link AuthorizationRequestFactory} that applies various UAA-specific rules to an authorization request,
@@ -39,7 +41,7 @@ import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
  * @author Dave Syer
  * 
  */
-public class UaaAuthorizationRequestFactory implements AuthorizationRequestFactory {
+public class UaaAuthorizationRequestFactory implements AuthorizationRequestFactory, ParametersValidator {
 
 	private final ClientDetailsService clientDetailsService;
 
@@ -102,7 +104,8 @@ public class UaaAuthorizationRequestFactory implements AuthorizationRequestFacto
 	}
 
 	/**
-	 * Create an authorization request applying various UAA rules to the authorizationParameters and the registered client details.
+	 * Create an authorization request applying various UAA rules to the authorizationParameters and the registered
+	 * client details.
 	 * <ul>
 	 * <li>For client_credentials grants, the default scopes are the client's granted authorities</li>
 	 * <li>For other grant types the default scopes are the registered scopes in the client details</li>
@@ -147,6 +150,27 @@ public class UaaAuthorizationRequestFactory implements AuthorizationRequestFacto
 
 		return request;
 
+	}
+
+	/**
+	 * Apply UAA rules to validate the requested scope. For client credentials grants the valid scopes are actually in
+	 * the authorities of the client.
+	 * 
+	 * @see org.springframework.security.oauth2.provider.endpoint.ParametersValidator#validateParameters(java.util.Map,
+	 * org.springframework.security.oauth2.provider.ClientDetails)
+	 */
+	public void validateParameters(Map<String, String> parameters, ClientDetails clientDetails) {
+		if (parameters.containsKey("scope")) {
+			Set<String> validScope = clientDetails.getScope();
+			if ("client_credentials".equals(parameters.get("grant_type"))) {
+				validScope = AuthorityUtils.authorityListToSet(clientDetails.getAuthorities());
+			}
+			for (String scope : OAuth2Utils.parseParameterList(parameters.get("scope"))) {
+				if (!validScope.contains(scope)) {
+					throw new InvalidScopeException("Invalid scope: " + scope, validScope);
+				}
+			}
+		}
 	}
 
 	/**

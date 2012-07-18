@@ -35,7 +35,7 @@
 		<constructor-arg>
 			<list>
 				<bean class="org.springframework.security.oauth2.provider.vote.ScopeVoter">
-					<property name="scopePrefix" value="scope="/>
+					<property name="scopePrefix" value="scope=" />
 				</bean>
 				<bean class="org.springframework.security.access.vote.RoleVoter" />
 				<bean class="org.springframework.security.access.vote.AuthenticatedVoter" />
@@ -97,7 +97,8 @@
 	</bean>
 
 	<http pattern="/check_token" create-session="stateless" entry-point-ref="basicAuthenticationEntryPoint"
-		authentication-manager-ref="clientAuthenticationManager" use-expressions="true" xmlns="http://www.springframework.org/schema/security">
+		authentication-manager-ref="clientAuthenticationManager" use-expressions="true"
+		xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="hasRole('uaa.resource')" />
 		<anonymous enabled="false" />
 		<custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
@@ -105,7 +106,8 @@
 	</http>
 
 	<http pattern="/token_key" create-session="stateless" entry-point-ref="basicAuthenticationEntryPoint"
-		authentication-manager-ref="clientAuthenticationManager" use-expressions="true" xmlns="http://www.springframework.org/schema/security">
+		authentication-manager-ref="clientAuthenticationManager" use-expressions="true"
+		xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="hasRole('uaa.resource')" />
 		<anonymous enabled="false" />
 		<custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
@@ -161,12 +163,12 @@
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<form-login authentication-failure-url="/login?error=true" login-page="/login" login-processing-url="/login.do"
 			username-parameter="username" default-target-url="/" password-parameter="password" authentication-details-source-ref="authenticationDetailsSource" />
-		<logout logout-url="/logout.do" success-handler-ref="logoutHandler"/>
+		<logout logout-url="/logout.do" success-handler-ref="logoutHandler" />
 	</http>
-	
+
 	<bean id="logoutHandler" class="org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler">
-		<property name="targetUrlParameter" value="redirect"/>
-		<property name="defaultTargetUrl" value="/login"/>
+		<property name="targetUrlParameter" value="redirect" />
+		<property name="defaultTargetUrl" value="/login" />
 	</bean>
 
 	<bean id="uiRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.DelegatingRequestMatcher">
@@ -214,9 +216,9 @@
 		<property name="tokenServices" ref="tokenServices" />
 		<property name="autoApproveClients" value="#{@config['oauth']==null?'vmc':(@config['oauth']['client']?.autoapprove?:'vmc')}" />
 	</bean>
-	
+
 	<bean id="authorizationRequestFactory" class="org.cloudfoundry.identity.uaa.oauth.UaaAuthorizationRequestFactory">
-		<constructor-arg ref="clientDetails"/>
+		<constructor-arg ref="clientDetails" />
 	</bean>
 
 	<bean id="tokenServices" class="org.springframework.security.oauth2.provider.token.DefaultTokenServices">
@@ -232,7 +234,8 @@
 	</bean>
 
 	<oauth:authorization-server client-details-service-ref="clientDetails" token-services-ref="tokenServices"
-		user-approval-handler-ref="userApprovalHandler" authorization-request-factory-ref="authorizationRequestFactory">
+		user-approval-handler-ref="userApprovalHandler" authorization-request-factory-ref="authorizationRequestFactory"
+		parameters-validator-ref="authorizationRequestFactory">
 		<oauth:authorization-code />
 		<oauth:implicit />
 		<oauth:refresh-token />
@@ -294,7 +297,7 @@
 		</property>
 		<property name="defaultViews">
 			<bean class="org.springframework.web.servlet.view.json.MappingJacksonJsonView">
-				<property name="extractValueFromSingleKeyModel" value="true"/>
+				<property name="extractValueFromSingleKeyModel" value="true" />
 			</bean>
 		</property>
 	</bean>
@@ -336,7 +339,7 @@
 
 	<bean id="loginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LoginAuthenticationManager">
 		<!-- Add new user accounts automatically -->
-		<property name="addNewAccounts" value="${login.addnew:true}"/>
+		<property name="addNewAccounts" value="${login.addnew:true}" />
 		<property name="scimUserBootstrap" ref="scimUserBootstrap" />
 	</bean>
 
