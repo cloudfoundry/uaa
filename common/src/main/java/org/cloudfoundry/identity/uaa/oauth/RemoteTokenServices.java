@@ -32,8 +32,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
-import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
+import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
 import org.springframework.util.Assert;
@@ -96,7 +96,7 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
 			Collection<String> values = (Collection<String>) map.get("scope");
 			scope.addAll(values);
 		}
-		AuthorizationRequest clientAuthentication = new AuthorizationRequest(remoteClientId, scope);
+		DefaultAuthorizationRequest clientAuthentication = new DefaultAuthorizationRequest(remoteClientId, scope);
 
 		if (map.containsKey("resource_ids") || map.containsKey("client_authorities")) {
 			Set<String> resourceIds = new HashSet<String>();
@@ -115,7 +115,7 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
 			clientDetails.setClientId(remoteClientId);
 			clientDetails.setResourceIds(resourceIds);
 			clientDetails.setAuthorities(clientAuthorities);
-			clientAuthentication = clientAuthentication.addClientDetails(clientDetails);
+			clientAuthentication.addClientDetails(clientDetails);
 		}
 
 		Set<GrantedAuthority> userAuthorities = new HashSet<GrantedAuthority>();
@@ -131,7 +131,8 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
 		String username = (String) map.get("user_name");
 		Authentication userAuthentication = new UsernamePasswordAuthenticationToken(username, null, userAuthorities);
 
-		return new OAuth2Authentication(clientAuthentication.approved(true), userAuthentication);
+		clientAuthentication.setApproved(true);
+		return new OAuth2Authentication(clientAuthentication, userAuthentication);
 	}
 
 	@Override

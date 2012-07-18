@@ -24,13 +24,13 @@ import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.AuthorizationRequestFactory;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
 
 /**
  * An {@link AuthorizationRequestFactory} that applies various UAA-specific rules to an authorization request,
@@ -102,7 +102,7 @@ public class UaaAuthorizationRequestFactory implements AuthorizationRequestFacto
 	}
 
 	/**
-	 * Create an authorization request applying various UAA rules to the input and the registered client details.
+	 * Create an authorization request applying various UAA rules to the authorizationParameters and the registered client details.
 	 * <ul>
 	 * <li>For client_credentials grants, the default scopes are the client's granted authorities</li>
 	 * <li>For other grant types the default scopes are the registered scopes in the client details</li>
@@ -119,13 +119,12 @@ public class UaaAuthorizationRequestFactory implements AuthorizationRequestFacto
 	@Override
 	public AuthorizationRequest createAuthorizationRequest(Map<String, String> authorizationParameters) {
 
-		Map<String, String> input = new HashMap<String, String>(authorizationParameters);
-		String clientId = input.get("client_id");
+		String clientId = authorizationParameters.get("client_id");
 		BaseClientDetails clientDetails = new BaseClientDetails(clientDetailsService.loadClientByClientId(clientId));
 
-		Set<String> scopes = OAuth2Utils.parseParameterList(input.get("scope"));
-		String grantType = input.get("grant_type");
-		if ((scopes == null || scopes.isEmpty()) && !isRefreshTokenRequest(authorizationParameters)) {
+		Set<String> scopes = OAuth2Utils.parseParameterList(authorizationParameters.get("scope"));
+		String grantType = authorizationParameters.get("grant_type");
+		if ((scopes == null || scopes.isEmpty())) {
 			if ("client_credentials".equals(grantType)) {
 				// The client authorities should be a list of scopes
 				scopes = AuthorityUtils.authorityListToSet(clientDetails.getAuthorities());
@@ -135,7 +134,6 @@ public class UaaAuthorizationRequestFactory implements AuthorizationRequestFacto
 				scopes = clientDetails.getScope();
 			}
 		}
-		validateScope(grantType, scopes, clientDetails);
 
 		if (securityContextAccessor.isUser()) {
 			scopes = addUserScopes(scopes, securityContextAccessor.getAuthorities());
@@ -143,9 +141,9 @@ public class UaaAuthorizationRequestFactory implements AuthorizationRequestFacto
 
 		Set<String> resourceIds = getResourceIds(clientDetails, scopes);
 		clientDetails.setResourceIds(resourceIds);
-		input.put("scope", OAuth2Utils.formatParameterList(scopes));
-		AuthorizationRequest request = new AuthorizationRequest(input);
-		request = request.addClientDetails(clientDetails);
+		DefaultAuthorizationRequest request = new DefaultAuthorizationRequest(authorizationParameters);
+		request.setScope(scopes);
+		request.addClientDetails(clientDetails);
 
 		return request;
 
@@ -193,26 +191,6 @@ public class UaaAuthorizationRequestFactory implements AuthorizationRequestFacto
 			}
 		}
 		return resourceIds.isEmpty() ? clientDetails.getResourceIds() : resourceIds;
-	}
-
-	private void validateScope(String grantType, Set<String> scopes, ClientDetails clientDetails) {
-
-		if (scopes != null && clientDetails.isScoped()) {
-			Set<String> validScope = clientDetails.getScope();
-			if ("client_credentials".equals(grantType)) {
-				validScope = AuthorityUtils.authorityListToSet(clientDetails.getAuthorities());
-			}
-			for (String scope : scopes) {
-				if (!validScope.contains(scope)) {
-					throw new InvalidScopeException("Invalid scope: " + scope, validScope);
-				}
-			}
-		}
-
-	}
-
-	private boolean isRefreshTokenRequest(Map<String, String> parameters) {
-		return "refresh_token".equals(parameters.get("grant_type")) && parameters.get("refresh_token") != null;
 	}
 
 }

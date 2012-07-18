@@ -36,7 +36,7 @@ import org.springframework.web.bind.annotation.SessionAttributes;
  * @author Dave Syer
  */
 @Controller
-@SessionAttributes(types = AuthorizationRequest.class)
+@SessionAttributes("authorizationRequest")
 public class AccessController {
 
 	private static final String SCOPE_PREFIX = "scope.";
@@ -65,9 +65,9 @@ public class AccessController {
 	}
 
 	@RequestMapping("/oauth/confirm_access")
-	public String confirm(@ModelAttribute AuthorizationRequest clientAuth, Map<String, Object> model,
-			final HttpServletRequest request) throws Exception {
+	public String confirm(Map<String, Object> model, final HttpServletRequest request) throws Exception {
 
+		AuthorizationRequest clientAuth = (AuthorizationRequest) model.remove("authorizationRequest");
 		if (clientAuth == null) {
 			model.put("error",
 					"No authorizatioun request is present, so we cannot confirm access (we don't know what you are asking for).");
@@ -122,7 +122,7 @@ public class AccessController {
 				HashMap<String, String> map = new HashMap<String, String>();
 				String value = SCOPE_PREFIX + scope;
 				String resource = scope.substring(0, scope.lastIndexOf("."));
-				String access = scope.substring(scope.lastIndexOf(".")+1);
+				String access = scope.substring(scope.lastIndexOf(".") + 1);
 				map.put("code", value);
 				map.put("text", "Access your '" + resource + "' resources with scope '" + access + "'");
 				result.add(map);
