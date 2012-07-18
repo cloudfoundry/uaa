@@ -31,6 +31,7 @@ import org.springframework.security.crypto.password.StandardPasswordEncoder;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
+import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.token.ConsumerTokenServices;
 
@@ -46,7 +47,7 @@ public class TokenAdminEndpointsTests {
 
 	private ScimUserProvisioning scimProvisioning = Mockito.mock(ScimUserProvisioning.class);
 
-	private AuthorizationRequest authorizationRequest = new AuthorizationRequest(Collections.singletonMap("client_id",
+	private AuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(Collections.singletonMap("client_id",
 			"foo"));
 
 	{

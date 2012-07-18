@@ -24,7 +24,7 @@ import org.junit.Test;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
-import org.springframework.security.oauth2.provider.AuthorizationRequest;
+import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.token.DefaultTokenServices;
 import org.springframework.security.oauth2.provider.token.InMemoryTokenStore;
@@ -44,7 +44,7 @@ public class CheckTokenEndpointTests {
 	private int expiresIn;
 
 	public CheckTokenEndpointTests() {
-		authentication = new OAuth2Authentication(new AuthorizationRequest("client", Collections.singleton("read")),
+		authentication = new OAuth2Authentication(new DefaultAuthorizationRequest("client", Collections.singleton("read")),
 				UaaAuthenticationTestFactory.getAuthentication("12345", "olds", "olds@vmware.com"));
 		DefaultTokenServices tokenServices = new DefaultTokenServices();
 		tokenServices.setTokenStore(tokenStore);
@@ -104,7 +104,7 @@ public class CheckTokenEndpointTests {
 
 	@Test
 	public void testClientOnly() {
-		authentication = new OAuth2Authentication(new AuthorizationRequest("client", Collections.singleton("read")), null);
+		authentication = new OAuth2Authentication(new DefaultAuthorizationRequest("client", Collections.singleton("read")), null);
 		DefaultTokenServices tokenServices = new DefaultTokenServices();
 		tokenServices.setTokenStore(tokenStore);
 		endpoint.setTokenServices(tokenServices);
