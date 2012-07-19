@@ -34,7 +34,7 @@ can).  The apps all work together the apps running on the same port
 to build the code, but you need to use Maven 3 if you want to run the
 server from the command line (or run integration tests).
 
-### Deply to Cloud Foundry
+### Deploy to Cloud Foundry
 
 You can also build the app and push it to Cloud Foundry, e.g.
 
@@ -496,4 +496,9 @@ at all in `vcap`).  In the UAA you can find the registation in the
         POST /oauth/token
         
     Standard OAuth2 Authorization Endpoint passed through to the UAA.
+
+## File a Bug
+
+To file a bug against Cloud Foundry Open Source and its components, sign up and use our
+bug tracking system: [http://cloudfoundry.atlassian.net](http://cloudfoundry.atlassian.net)
         
