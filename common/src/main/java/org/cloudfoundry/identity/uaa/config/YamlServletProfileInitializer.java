@@ -26,6 +26,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.util.Log4jConfigurer;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
+import org.springframework.web.context.support.WebApplicationContextUtils;
 
 /**
  * An {@link ApplicationContextInitializer} for a web application to enable it to externalize the environment and
@@ -45,13 +46,15 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 	private static final String PROFILE_CONFIG_FILE_LOCATION = "environmentConfigFile";
 
 	public static final String[] DEFAULT_PROFILE_CONFIG_FILE_LOCATIONS = new String[] { "${UAA_CONFIG_URL}",
-			"file:${UAA_CONFIG_FILE}", "file:${CLOUD_FOUNDRY_CONFIG_PATH}/uaa.yml" };
+			"file:${UAA_CONFIG_FILE}", "file:${CLOUD_FOUNDRY_CONFIG_PATH}/${CONFIG_FILE_NAME:uaa.yml}" };
 
 	@Override
 	public void initialize(ConfigurableWebApplicationContext applicationContext) {
+		
 
 		Resource resource = null;
 		ServletContext servletContext = applicationContext.getServletContext();
+		WebApplicationContextUtils.initServletPropertySources(applicationContext.getEnvironment().getPropertySources(), servletContext, applicationContext.getServletConfig());
 
 		for (String location : DEFAULT_PROFILE_CONFIG_FILE_LOCATIONS) {
 			location = applicationContext.getEnvironment().resolvePlaceholders(location);
