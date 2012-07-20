@@ -122,7 +122,7 @@ public class TestAccountSetup extends TestWatchman {
 
 	private void createAppClient(RestOperations client) {
 		BaseClientDetails clientDetails = new BaseClientDetails("app", null, "cloud_controller.read,openid,password.write",
-				"password,authorization_code,refresh_token", "uaa.none");
+				"password,authorization_code,refresh_token", "uaa.resource");
 		clientDetails.setClientSecret("appclientsecret");
 		createClient(client, testAccounts.getClientDetails("oauth.clients.app", clientDetails));
 	}
