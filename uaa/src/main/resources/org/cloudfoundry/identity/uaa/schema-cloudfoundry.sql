@@ -35,8 +35,8 @@ ALTER TABLE USERS ALTER COLUMN version SET NOT NULL;
 ALTER TABLE USERS ALTER COLUMN authority SET NOT NULL;
 ALTER TABLE USERS ADD COLUMN phoneNumber VARCHAR(255);
 ALTER TABLE USERS ADD COLUMN authorities VARCHAR(1024) default 'uaa.user';
-UPDATE USERS set authorities='uaa.user' where authority=0 and authorities not like '%uaa.user%';
-UPDATE USERS set authorities='uaa.admin,uaa.user' where authority=1 and authorities not like '%uaa.user%';
+UPDATE USERS set authorities='uaa.user' where authority=0 and authorities not like '%.%';
+UPDATE USERS set authorities='uaa.admin,uaa.user' where authority=1 and authorities not like '%.%';
 
 CREATE TABLE SEC_AUDIT (
    principal_id char(36) not null,
@@ -45,6 +45,9 @@ CREATE TABLE SEC_AUDIT (
    event_data VARCHAR(255),
    created TIMESTAMP default current_timestamp
 ) ;
+
+CREATE INDEX audit_principal ON SEC_AUDIT (principal_id);
+CREATE INDEX audit_created ON SEC_AUDIT (created);
 
 CREATE TABLE OAUTH_CLIENT_DETAILS (
   client_id VARCHAR(256) PRIMARY KEY,
