@@ -22,7 +22,7 @@
 		<constructor-arg ref="jdbcAuditService" />
 	</bean>
 
-	<bean id="jdbcAuditService" class="org.cloudfoundry.identity.uaa.audit.JdbcAuditService">
+	<bean id="jdbcAuditService" class="org.cloudfoundry.identity.uaa.audit.JdbcFailedLoginCountingAuditService">
 		<constructor-arg ref="dataSource" />
 	</bean>
 
