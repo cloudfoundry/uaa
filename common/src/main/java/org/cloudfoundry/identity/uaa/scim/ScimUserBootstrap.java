@@ -33,10 +33,21 @@ public class ScimUserBootstrap implements InitializingBean {
 
 	private final ScimUserProvisioning scimUserProvisioning;
 
+	private boolean override = false;
+
 	private final Collection<UaaUser> users;
 
 	public ScimUserBootstrap(ScimUserProvisioning scimUserProvisioning) {
 		this(scimUserProvisioning, Collections.<UaaUser> emptySet());
+	}
+
+	/**
+	 * Flag to indicate that user accounts can be updated as well as created.
+	 * 
+	 * @param override the override flag to set (default false)
+	 */
+	public void setOverride(boolean override) {
+		this.override = override;
 	}
 
 	public ScimUserBootstrap(ScimUserProvisioning scimUserProvisioning, Collection<UaaUser> users) {
@@ -66,8 +77,15 @@ public class ScimUserBootstrap implements InitializingBean {
 			return scimUserProvisioning.createUser(scimUser, user.getPassword());
 		}
 		else {
-			logger.debug("Not registering existing user: " + user);
-			// We don't update existing accounts - use the ScimUserProvisioning for that
+			if (!override) {
+				logger.debug("Not registering existing user: " + user);
+				// We don't update existing accounts - use the ScimUserProvisioning for that
+			}
+			else {
+				String id = users.iterator().next().getId();
+				scimUserProvisioning.updateUser(id, scimUser);
+				scimUserProvisioning.changePassword(id, null, user.getPassword());
+			}
 			return scimUser;
 		}
 	}

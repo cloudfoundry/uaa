@@ -29,6 +29,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.SessionAttributes;
+import org.springframework.web.context.request.WebRequest;
 
 /**
  * Controller for retrieving the model for and displaying the confirmation page for access to a protected resource.
@@ -70,7 +71,7 @@ public class AccessController {
 		AuthorizationRequest clientAuth = (AuthorizationRequest) model.remove("authorizationRequest");
 		if (clientAuth == null) {
 			model.put("error",
-					"No authorizatioun request is present, so we cannot confirm access (we don't know what you are asking for).");
+					"No authorization request is present, so we cannot confirm access (we don't know what you are asking for).");
 			// response.sendError(HttpServletResponse.SC_BAD_REQUEST);
 		}
 		else {
@@ -169,8 +170,12 @@ public class AccessController {
 	}
 
 	@RequestMapping("/oauth/error")
-	public String handleError() throws Exception {
+	public String handleError(WebRequest request, Map<String,Object> model) throws Exception {
 		// There is already an error entry in the model
+		Object object = request.getAttribute("error", WebRequest.SCOPE_REQUEST);
+		if (object!=null) {
+			model.put("error", object);
+		}
 		return "access_confirmation";
 	}
 
