@@ -99,9 +99,9 @@ img.gsc-branding-img,img.gsc-branding-img-noclear,img.gcsc-branding-img,img.gcsc
 		</div>
 		<div class="splash-box">
 			<c:if test="${error!=null}">
-				<div class="error">
-					<h2>Sorry there was an error</h2>
-					<p>${error}</p>
+				<div class="error" title="${fn:escapeXml(error)}">
+					<h2>Sorry</h2>
+					<p>There was an error. The request for authorization was invalid.</p>
 				</div>
 			</c:if>
 			<c:if test="${error==null}">
