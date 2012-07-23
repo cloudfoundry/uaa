@@ -95,6 +95,14 @@ public class UaaAuthorizationRequestFactoryTests {
 	}
 
 	@Test
+	public void testResourecIdsDoNotIncludeUaa() {
+		client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.bar,spam.baz"));
+		parameters.put("grant_type", "client_credentials");
+		AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
+		assertEquals(StringUtils.commaDelimitedListToSet("spam"), request.getResourceIds());
+	}
+
+	@Test
 	public void testResourceIdsWithCustomSeparator() {
 		factory.setScopeSeparator("--");
 		client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("foo--bar,spam--baz"));

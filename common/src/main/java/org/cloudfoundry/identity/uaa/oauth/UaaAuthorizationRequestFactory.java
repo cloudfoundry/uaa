@@ -211,7 +211,10 @@ public class UaaAuthorizationRequestFactory implements AuthorizationRequestFacto
 				resourceIds.add(scopeToResource.get(scope));
 			}
 			else if (scope.contains(scopeSeparator) && !scope.endsWith(scopeSeparator)) {
-				resourceIds.add(scope.substring(0, scope.lastIndexOf(scopeSeparator)));
+				String id = scope.substring(0, scope.lastIndexOf(scopeSeparator));
+				if (!"uaa".equals(id)) {
+					resourceIds.add(id);
+				}
 			}
 		}
 		return resourceIds.isEmpty() ? clientDetails.getResourceIds() : resourceIds;
