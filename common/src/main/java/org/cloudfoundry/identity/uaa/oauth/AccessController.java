@@ -20,13 +20,11 @@ import java.util.List;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
 
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.SessionAttributes;
 import org.springframework.web.context.request.WebRequest;
@@ -58,11 +56,6 @@ public class AccessController {
 
 	public void setClientDetailsService(ClientDetailsService clientDetailsService) {
 		this.clientDetailsService = clientDetailsService;
-	}
-
-	@ModelAttribute("identity")
-	public String getIdentity(HttpSession session) {
-		return null;
 	}
 
 	@RequestMapping("/oauth/confirm_access")
