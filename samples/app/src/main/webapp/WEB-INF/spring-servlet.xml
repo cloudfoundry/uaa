@@ -87,7 +87,7 @@
 
 	<!--define an oauth 2 resource for api access -->
 	<oauth:resource id="uaa" type="authorization_code" client-id="${CLIENT_ID:app}" client-secret="${CLIENT_SECRET:appclientsecret}"
-		access-token-uri="${accessTokenUri}" user-authorization-uri="${userAuthorizationUri}" scope="cloud_controller.read,tokens.read,tokens.write,openid" />
+		access-token-uri="${accessTokenUri}" user-authorization-uri="${userAuthorizationUri}"/>
 
 	<oauth:web-expression-handler id="oauthWebExpressionHandler" />
 
