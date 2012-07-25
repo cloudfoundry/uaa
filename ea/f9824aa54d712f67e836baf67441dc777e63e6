@@ -1,0 +1,7 @@
+Code-Review+2: Dale Olds <olds@rbcon.com>
+Verified+1: CI Master <cf-ci@rbcon.com>
+Submitted-by: Dale Olds <olds@rbcon.com>
+Submitted-at: Wed, 25 Jul 2012 08:05:12 +0000
+Reviewed-on: http://reviews.cloudfoundry.org/7705
+Project: uaa
+Branch: refs/heads/scopes
