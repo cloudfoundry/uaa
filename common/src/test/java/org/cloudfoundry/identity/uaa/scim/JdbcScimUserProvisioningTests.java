@@ -20,12 +20,16 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
 import java.util.UUID;
 
 import javax.sql.DataSource;
 
+import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
+import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -67,6 +71,8 @@ public class JdbcScimUserProvisioningTests {
     private static final String addUserSqlFormat = "insert into users (id, username, password, email, givenName, familyName, phoneNumber) values ('%s','%s','%s','%s','%s','%s','%s')";
 
     private static final String deleteUserSqlFormat = "delete from users where id='%s'";
+    
+    private int existingUserCount = 0;
 
 	@Before
 	public void createDatasource() throws Exception {
@@ -75,6 +81,8 @@ public class JdbcScimUserProvisioningTests {
 
 		db = new JdbcScimUserProvisioning(template);
 		BCryptPasswordEncoder pe = new BCryptPasswordEncoder(4);
+		
+		existingUserCount = template.queryForInt("select count(id) from users");
 
         addUser(JOE_ID, "joe", pe.encode("joespassword"), "joe@joe.com", "Joe", "User", "+1-222-1234567");
         addUser(MABEL_ID, "mabel", pe.encode("mabelspassword"), "mabel@mabel.com", "Mabel", "User", "");
@@ -110,6 +118,10 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals("jo@foo.com", created.getUserName());
 		assertNotNull(created.getId());
 		assertNotSame(user.getId(), created.getId());
+		Map<String, Object> map = template.queryForMap("select * from users where id=?", created.getId());
+		assertEquals(user.getUserName(), map.get("userName"));
+		assertEquals(user.getUserType(), map.get(UaaAuthority.UAA_USER.getUserType()));
+		assertEquals("uaa.user", created.getGroups().iterator().next().getExternalId());
 	}
 
 	@Test(expected = InvalidUserException.class)
@@ -123,6 +135,7 @@ public class JdbcScimUserProvisioningTests {
 	public void updateModifiesExpectedData() {
 		ScimUser jo = new ScimUser(null, "josephine", "Jo", "NewUser");
 		jo.addEmail("jo@blah.com");
+		jo.setUserType(UaaAuthority.UAA_ADMIN.getUserType());
 
 		ScimUser joe = db.updateUser(JOE_ID, jo);
 
@@ -133,6 +146,20 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals("NewUser", joe.getFamilyName());
 		assertEquals(1, joe.getVersion());
 		assertEquals(JOE_ID, joe.getId());
+		assertEquals(UaaAuthority.UAA_ADMIN.getUserType(), joe.getUserType());
+		assertEquals(2, joe.getGroups().size()); // admin added implicitly
+	}
+
+	@Test
+	public void updateModifiesGroups() {
+		ScimUser jo = new ScimUser(null, "josephine", "Jo", "NewUser");
+		jo.addEmail("jo@blah.com");
+		jo.setGroups(Collections.singleton(new Group(null, "dash/user")));
+
+		ScimUser joe = db.updateUser(JOE_ID, jo);
+
+		assertEquals(JOE_ID, joe.getId());
+		assertEquals(2, joe.getGroups().size()); // user added implicitly
 	}
 
 	@Test(expected = OptimisticLockingFailureException.class)
@@ -303,17 +330,17 @@ public class JdbcScimUserProvisioningTests {
 
 	@Test
 	public void canRetrieveUsersWithFilterContains() {
-		assertEquals(2, db.retrieveUsers("username co 'e'").size());
+		assertEquals(2 + existingUserCount, db.retrieveUsers("username co 'e'").size());
 	}
 
 	@Test
 	public void canRetrieveUsersWithFilterStartsWith() {
-		assertEquals(1, db.retrieveUsers("username sw 'joe'").size());
+		assertEquals(1 + existingUserCount, db.retrieveUsers("username sw 'joe'").size());
 	}
 
 	@Test
 	public void canRetrieveUsersWithFilterGreater() {
-		assertEquals(1, db.retrieveUsers("username gt 'joe'").size());
+		assertEquals(1 + existingUserCount, db.retrieveUsers("username gt 'joe'").size());
 	}
 
 	@Test
@@ -333,32 +360,32 @@ public class JdbcScimUserProvisioningTests {
 
 	@Test
 	public void canRetrieveUsersWithMetaDateFilter() {
-		assertEquals(2, db.retrieveUsers("meta.created gt '1970-01-01T00:00:00.000Z'").size());
+		assertEquals(2 + existingUserCount, db.retrieveUsers("meta.created gt '1970-01-01T00:00:00.000Z'").size());
 	}
 
 	@Test
 	public void canRetrieveUsersWithBooleanFilter() {
-		assertTrue(2 <= db.retrieveUsers("username pr and active eq true").size());
+		assertEquals(2 + existingUserCount, db.retrieveUsers("username pr and active eq true").size());
 	}
 
 	@Test
 	public void canRetrieveUsersWithSortBy() {
-		assertTrue(2 <= db.retrieveUsers("username pr", "username", true).size());
+		assertEquals(2 + existingUserCount, db.retrieveUsers("username pr", "username", true).size());
 	}
 
 	@Test
 	public void canRetrieveUsersWithSortByEmail() {
-		assertTrue(2 <= db.retrieveUsers("username pr", "emails.value", true).size());
+		assertEquals(2 + existingUserCount, db.retrieveUsers("username pr", "emails.value", true).size());
 	}
 
 	@Test
 	public void canRetrieveUsersWithFilterBooleanAnd() {
-		assertTrue(2 <= db.retrieveUsers("username pr and emails.value co '.com'").size());
+		assertEquals(2 + existingUserCount, db.retrieveUsers("username pr and emails.value co '.com'").size());
 	}
 
 	@Test
 	public void canRetrieveUsersWithFilterBooleanOr() {
-		assertTrue(2 <= db.retrieveUsers("username eq 'joe' or emails.value co '.com'").size());
+		assertEquals(2 + existingUserCount, db.retrieveUsers("username eq 'joe' or emails.value co '.com'").size());
 	}
 
 	@Test
@@ -445,6 +472,7 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals("joe@joe.com", joe.getPrimaryEmail());
 		assertEquals("joe", joe.getUserName());
 		assertEquals("+1-222-1234567", joe.getPhoneNumbers().get(0).getValue());
+		assertEquals("uaa.user", joe.getGroups().iterator().next().getExternalId());
 	}
 
 }

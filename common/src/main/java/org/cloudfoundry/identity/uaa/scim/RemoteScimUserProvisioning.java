@@ -57,7 +57,7 @@ public class RemoteScimUserProvisioning implements ScimUserProvisioning {
 	public List<ScimUser> retrieveUsers() {
 		return restTemplate.getForObject(baseUrl + "/Users", List.class);
 	}
-
+	
 	@Override
 	@SuppressWarnings("unchecked")
 	public List<ScimUser> retrieveUsers(String filter) {

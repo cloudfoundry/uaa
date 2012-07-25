@@ -19,7 +19,7 @@
 
 	<http pattern="/varz/**" create-session="stateless" entry-point-ref="authenticationEntryPoint"
 		xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/**" access="ROLE_VARZ" />
+		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<anonymous enabled="false" />
 		<http-basic authentication-details-source-ref="authenticationDetailsSource" entry-point-ref="authenticationEntryPoint" />
 		<access-denied-handler ref="accessDeniedHandler" />
@@ -30,7 +30,7 @@
 	<authentication-manager xmlns="http://www.springframework.org/schema/security">
 		<authentication-provider>
 			<user-service>
-				<user name="${varz.username:varz}" authorities="ROLE_VARZ" password="${varz.password:varzclientsecret}" />
+				<user name="${varz.username:varz}" authorities="uaa.varz" password="${varz.password:varzclientsecret}" />
 			</user-service>
 		</authentication-provider>
 	</authentication-manager>

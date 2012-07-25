@@ -97,6 +97,9 @@ public class TokenAdminEndpoints {
 	}
 
 	private String getUserName(String user) {
+		if (scimProvisioning==null) {
+			return user;
+		}
 		String username = user;
 		try {
 			if (scimProvisioning != null) {

@@ -19,7 +19,6 @@ import java.util.HashMap;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.cloudfoundry.identity.uaa.openid.OpenIdClientFilter;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -34,6 +33,7 @@ import org.springframework.web.client.RestTemplate;
  * @author Dave Syer
  *
  */
+@SuppressWarnings("deprecation")
 public class OpenIdClientFilterTests {
 	
 	private OpenIdClientFilter filter = new OpenIdClientFilter("/login");

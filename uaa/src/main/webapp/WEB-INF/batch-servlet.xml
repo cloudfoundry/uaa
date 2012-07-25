@@ -38,7 +38,7 @@
 	<authentication-manager xmlns="http://www.springframework.org/schema/security">
 		<authentication-provider>
 			<user-service>
-				<user name="${batch.username:batch}" authorities="ROLE_BATCH" password="${batch.password:batchsecret}" />
+				<user name="${batch.username:batch}" authorities="uaa.batch" password="${batch.password:batchsecret}" />
 			</user-service>
 		</authentication-provider>
 	</authentication-manager>

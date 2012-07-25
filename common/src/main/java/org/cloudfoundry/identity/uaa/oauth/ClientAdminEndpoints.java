@@ -13,18 +13,28 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jmx.export.annotation.ManagedMetric;
+import org.springframework.jmx.export.annotation.ManagedResource;
+import org.springframework.jmx.support.MetricType;
+import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
@@ -49,15 +59,33 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * @author Dave Syer
  */
 @Controller
-public class ClientAdminEndpoints {
+@ManagedResource
+public class ClientAdminEndpoints implements InitializingBean {
 
 	private final Log logger = LogFactory.getLog(getClass());
+
+	private static final Set<String> VALID_GRANTS = new HashSet<String>(Arrays.asList("implicit", "password",
+			"client_credentials", "authorization_code", "refresh_token"));
+
+	private static final Collection<String> NON_ADMIN_INVALID_GRANTS = new HashSet<String>(Arrays.asList("password"));
+
+	private static final Collection<String> NON_ADMIN_VALID_AUTHORITIES = new HashSet<String>(Arrays.asList("uaa.none"));
 
 	private ClientRegistrationService clientRegistrationService;
 
 	private ClientDetailsService clientDetailsService;
 
 	private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
+
+	private final Map<String, AtomicInteger> errorCounts = new ConcurrentHashMap<String, AtomicInteger>();
+
+	private AtomicInteger clientUpdates = new AtomicInteger();
+
+	private AtomicInteger clientDeletes = new AtomicInteger();
+
+	private AtomicInteger clientSecretChanges = new AtomicInteger();
+
+	private Set<String> reservedClientIds = StringUtils.commaDelimitedListToSet("uaa");
 
 	/**
 	 * @param clientRegistrationService the clientRegistrationService to set
@@ -77,6 +105,37 @@ public class ClientAdminEndpoints {
 		this.securityContextAccessor = securityContextAccessor;
 	}
 
+	@ManagedMetric(metricType = MetricType.COUNTER, displayName = "Client Registration Count")
+	public int getTotalClients() {
+		return clientRegistrationService.listClientDetails().size();
+	}
+
+	@ManagedMetric(metricType = MetricType.COUNTER, displayName = "Client Update Count (Since Startup)")
+	public int getClientUpdates() {
+		return clientUpdates.get();
+	}
+
+	@ManagedMetric(metricType = MetricType.COUNTER, displayName = "Client Delete Count (Since Startup)")
+	public int getClientDeletes() {
+		return clientDeletes.get();
+	}
+
+	@ManagedMetric(metricType = MetricType.COUNTER, displayName = "Client Secret Change Count (Since Startup)")
+	public int getClientSecretChanges() {
+		return clientSecretChanges.get();
+	}
+
+	@ManagedMetric(displayName = "Errors Since Startup")
+	public Map<String, AtomicInteger> getErrorCounts() {
+		return errorCounts;
+	}
+
+	@Override
+	public void afterPropertiesSet() throws Exception {
+		Assert.state(clientRegistrationService != null, "A ClientRegistrationService must be provided");
+		Assert.state(clientDetailsService != null, "A ClientDetailsService must be provided");
+	}
+
 	@RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.GET)
 	@ResponseBody
 	public ClientDetails getClientDetails(@PathVariable String client) throws Exception {
@@ -89,56 +148,35 @@ public class ClientAdminEndpoints {
 	}
 
 	@RequestMapping(value = "/oauth/clients", method = RequestMethod.POST)
-	public ResponseEntity<Void> createClientDetails(@RequestBody BaseClientDetails details) throws Exception {
-		validateClient(details, true);
+	public ResponseEntity<Void> createClientDetails(@RequestBody BaseClientDetails client) throws Exception {
+		ClientDetails details = validateClient(client, true);
 		clientRegistrationService.addClientDetails(details);
 		return new ResponseEntity<Void>(HttpStatus.CREATED);
 	}
 
 	@RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.PUT)
-	public ResponseEntity<Void> updateClientDetails(@RequestBody BaseClientDetails details, @PathVariable String client)
-			throws Exception {
-		validateClient(details, false);
-		Assert.state(client.equals(details.getClientId()),
-				String.format("The client id (%s) does not match the URL (%s)", details.getClientId(), client));
-        try {
-            ClientDetails existingClientConfig = getClientDetails(client);
-            details = syncWithExisting(existingClientConfig, details);
-        } catch (Exception e) {
-            logger.warn("Couldn't fetch client config for client_id: " + client, e);
-        }
+	public ResponseEntity<Void> updateClientDetails(@RequestBody BaseClientDetails client,
+			@PathVariable("client") String clientId) throws Exception {
+		Assert.state(clientId.equals(client.getClientId()),
+				String.format("The client id (%s) does not match the URL (%s)", client.getClientId(), clientId));
+		ClientDetails details = client;
+		try {
+			ClientDetails existing = getClientDetails(clientId);
+			details = syncWithExisting(existing, client);
+		}
+		catch (Exception e) {
+			logger.warn("Couldn't fetch client config for client_id: " + clientId, e);
+		}
+		details = validateClient(details, false);
 		clientRegistrationService.updateClientDetails(details);
+		clientUpdates.incrementAndGet();
 		return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
 	}
 
-    private BaseClientDetails syncWithExisting(ClientDetails existingClientConfig, BaseClientDetails details) {
-        if (details.getAccessTokenValiditySeconds() == 0) {
-            details.setAccessTokenValiditySeconds(existingClientConfig.getAccessTokenValiditySeconds());
-        }
-        if (details.getRefreshTokenValiditySeconds() == 0) {
-            details.setRefreshTokenValiditySeconds(existingClientConfig.getRefreshTokenValiditySeconds());
-        }
-        if (details.getAuthorities() == null || details.getAuthorities().isEmpty()) {
-            details.setAuthorities(existingClientConfig.getAuthorities());
-        }
-        if (details.getAuthorizedGrantTypes() == null || details.getAuthorizedGrantTypes().isEmpty()) {
-            details.setAuthorizedGrantTypes(existingClientConfig.getAuthorizedGrantTypes());
-        }
-        if (details.getRegisteredRedirectUri() == null || details.getRegisteredRedirectUri().isEmpty()) {
-            details.setRegisteredRedirectUri(existingClientConfig.getRegisteredRedirectUri());
-        }
-        if (details.getResourceIds() == null || details.getResourceIds().isEmpty()) {
-            details.setResourceIds(existingClientConfig.getResourceIds());
-        }
-        if (details.getScope() == null || details.getScope().isEmpty()) {
-            details.setScope(existingClientConfig.getScope());
-        }
-        return details;
-    }
-
-    @RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.DELETE)
+	@RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.DELETE)
 	public ResponseEntity<Void> removeClientDetails(@PathVariable String client) throws Exception {
 		clientRegistrationService.removeClientDetails(client);
+		clientDeletes.incrementAndGet();
 		return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
 	}
 
@@ -168,6 +206,157 @@ public class ClientAdminEndpoints {
 
 		clientRegistrationService.updateClientSecret(client, change.getSecret());
 
+		clientSecretChanges.incrementAndGet();
+	}
+
+	@ExceptionHandler(InvalidClientDetailsException.class)
+	public ResponseEntity<InvalidClientDetailsException> handleInvalidClientDetails(InvalidClientDetailsException e) {
+		incrementErrorCounts(e);
+		return new ResponseEntity<InvalidClientDetailsException>(e, HttpStatus.BAD_REQUEST);
+	}
+
+	@ExceptionHandler(NoSuchClientException.class)
+	public ResponseEntity<Void> handleNoSuchClient(NoSuchClientException e) {
+		incrementErrorCounts(e);
+		return new ResponseEntity<Void>(HttpStatus.NOT_FOUND);
+	}
+
+	@ExceptionHandler(ClientAlreadyExistsException.class)
+	public ResponseEntity<Void> handleClientAlreadyExists(ClientAlreadyExistsException e) {
+		incrementErrorCounts(e);
+		return new ResponseEntity<Void>(HttpStatus.CONFLICT);
+	}
+
+	private void incrementErrorCounts(Exception e) {
+		String series = UaaStringUtils.getErrorName(e);
+		AtomicInteger value = errorCounts.get(series);
+		if (value == null) {
+			synchronized (errorCounts) {
+				value = errorCounts.get(series);
+				if (value == null) {
+					value = new AtomicInteger();
+					errorCounts.put(series, value);
+				}
+			}
+		}
+		value.incrementAndGet();
+	}
+
+	private ClientDetails validateClient(ClientDetails prototype, boolean create) {
+
+		BaseClientDetails client = new BaseClientDetails(prototype);
+
+		String clientId = client.getClientId();
+		if (create && reservedClientIds.contains(clientId)) {
+			throw new InvalidClientDetailsException("Not allowed: " + clientId + " is a reserved client_id");
+		}
+
+		Set<String> requestedGrantTypes = client.getAuthorizedGrantTypes();
+
+		if (requestedGrantTypes.isEmpty()) {
+			throw new InvalidClientDetailsException("An authorized grant type must be provided. Must be one of: "
+					+ VALID_GRANTS.toString());
+		}
+		for (String grant : requestedGrantTypes) {
+			if (!VALID_GRANTS.contains(grant)) {
+				throw new InvalidClientDetailsException(grant + " is not an allowed grant type. Must be one of: "
+						+ VALID_GRANTS.toString());
+			}
+		}
+
+		if (!securityContextAccessor.isAdmin()) {
+
+			// Not admin, so be strict with grant types and scopes
+			for (String grant : requestedGrantTypes) {
+				if (NON_ADMIN_INVALID_GRANTS.contains(grant)) {
+					throw new InvalidClientDetailsException(grant
+							+ " is not an allowed grant type for non-admin caller.");
+				}
+			}
+
+			if (requestedGrantTypes.contains("implicit")
+					&& (requestedGrantTypes.contains("authorization_code") || requestedGrantTypes
+							.contains("refresh_token"))) {
+				throw new InvalidClientDetailsException(
+						"Not allowed: implicit grant type is not allowed together with authorization_code or refresh_token");
+			}
+
+			String callerId = securityContextAccessor.getClientId();
+			if (callerId != null) {
+
+				// New scopes are allowed if they are for the caller or the new client.
+				String callerPrefix = callerId + ".";
+				String clientPrefix = clientId + ".";
+
+				ClientDetails caller = clientDetailsService.loadClientByClientId(callerId);
+				Set<String> validScope = caller.getScope();
+				for (String scope : client.getScope()) {
+					if (scope.startsWith(callerPrefix) || scope.startsWith(clientPrefix)) {
+						// Allowed
+						continue;
+					}
+					if (!validScope.contains(scope)) {
+						throw new InvalidClientDetailsException(scope + " is not an allowed scope for caller="
+								+ callerId + ". Must have prefix in [" + callerPrefix + "," + clientPrefix
+								+ "] or be one of: " + validScope.toString());
+					}
+				}
+
+			}
+			else { // No client caller. Shouldn't happen in practice, but let's be defensive
+
+				// New scopes are allowed if they are for the caller or the new client.
+				String clientPrefix = clientId + ".";
+
+				for (String scope : client.getScope()) {
+					if (!scope.startsWith(clientPrefix)) {
+						throw new InvalidClientDetailsException(scope
+								+ " is not an allowed scope for null caller and client_id=" + clientId
+								+ ". Must start with '" + clientPrefix + "'");
+					}
+				}
+			}
+
+			Set<String> validAuthorities = new HashSet<String>(NON_ADMIN_VALID_AUTHORITIES);
+			if (requestedGrantTypes.contains("client_credentials")) {
+				// If client_credentials is used then the client might be a resource server
+				validAuthorities.add("uaa.resource");
+			}
+
+			for (String authority : AuthorityUtils.authorityListToSet(client.getAuthorities())) {
+				if (!validAuthorities.contains(authority)) {
+					throw new InvalidClientDetailsException(authority + " is not an allowed authority for caller="
+							+ callerId + ". Must be one of: " + validAuthorities.toString());
+				}
+			}
+
+			if (client.getAuthorities().isEmpty()) {
+				client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none"));
+			}
+
+		}
+
+		// The UAA does not allow or require resource ids to be registered because they are determined dynamically
+		client.setResourceIds(StringUtils.commaDelimitedListToSet("none"));
+
+		if (requestedGrantTypes.contains("implicit")) {
+			if (StringUtils.hasText(client.getClientSecret())) {
+				throw new InvalidClientDetailsException("Implicit grant should not have a client_secret");
+			}
+		}
+		if (create) {
+			// Only check for missing secret if client is being created.
+			if (!isImplicit(requestedGrantTypes) && !StringUtils.hasText(client.getClientSecret())) {
+				throw new InvalidClientDetailsException("client_secret is required for non-implicit grant types");
+			}
+		}
+
+		return client;
+
+	}
+
+	private boolean isImplicit(Set<String> requestedGrantTypes) {
+		return Collections.singleton("implicit").equals(requestedGrantTypes);
 	}
 
 	private void checkPasswordChangeIsAllowed(ClientDetails clientDetails, String oldSecret) {
@@ -208,47 +397,6 @@ public class ClientAdminEndpoints {
 
 	}
 
-	@ExceptionHandler(InvalidClientDetailsException.class)
-	public ResponseEntity<InvalidClientDetailsException> handleInvalidClientDetails(InvalidClientDetailsException e) {
-		return new ResponseEntity<InvalidClientDetailsException>(e, HttpStatus.BAD_REQUEST);
-	}
-
-	@ExceptionHandler(NoSuchClientException.class)
-	public ResponseEntity<Void> handleNoSuchClient(NoSuchClientException e) {
-		return new ResponseEntity<Void>(HttpStatus.NOT_FOUND);
-	}
-
-	@ExceptionHandler(ClientAlreadyExistsException.class)
-	public ResponseEntity<Void> handleClientAlreadyExists(ClientAlreadyExistsException e) {
-		return new ResponseEntity<Void>(HttpStatus.CONFLICT);
-	}
-
-	private void validateClient(ClientDetails client, boolean create) {
-		final Set<String> VALID_GRANTS = new HashSet<String>(Arrays.asList("implicit", "password",
-				"client_credentials", "authorization_code", "refresh_token"));
-
-		for (String grant : client.getAuthorizedGrantTypes()) {
-			if (!VALID_GRANTS.contains(grant)) {
-				throw new InvalidClientDetailsException(grant + " is not an allowed grant type. Must be one of: "
-						+ VALID_GRANTS.toString());
-			}
-		}
-
-		if (create) {
-			// Only check for missing secret if client is being created.
-			if (client.getAuthorizedGrantTypes().size() == 1 && client.getAuthorizedGrantTypes().contains("implicit")) {
-				if (StringUtils.hasText(client.getClientSecret())) {
-					throw new InvalidClientDetailsException("implicit grant does not require a client_secret");
-				}
-			}
-			else {
-				if (!StringUtils.hasText(client.getClientSecret())) {
-					throw new InvalidClientDetailsException("client_secret is required for non-implicit grant types");
-				}
-			}
-		}
-	}
-
 	private ClientDetails removeSecret(ClientDetails client) {
 		BaseClientDetails details = new BaseClientDetails();
 		details.setClientId(client.getClientId());
@@ -258,6 +406,32 @@ public class ClientAdminEndpoints {
 		details.setRegisteredRedirectUri(client.getRegisteredRedirectUri());
 		details.setAuthorities(client.getAuthorities());
 		details.setAccessTokenValiditySeconds(client.getAccessTokenValiditySeconds());
+		return details;
+	}
+
+	private ClientDetails syncWithExisting(ClientDetails existing, ClientDetails input) {
+		BaseClientDetails details = new BaseClientDetails(input);
+		if (details.getAccessTokenValiditySeconds() == null) {
+			details.setAccessTokenValiditySeconds(existing.getAccessTokenValiditySeconds());
+		}
+		if (details.getRefreshTokenValiditySeconds() == null) {
+			details.setRefreshTokenValiditySeconds(existing.getRefreshTokenValiditySeconds());
+		}
+		if (details.getAuthorities() == null || details.getAuthorities().isEmpty()) {
+			details.setAuthorities(existing.getAuthorities());
+		}
+		if (details.getAuthorizedGrantTypes() == null || details.getAuthorizedGrantTypes().isEmpty()) {
+			details.setAuthorizedGrantTypes(existing.getAuthorizedGrantTypes());
+		}
+		if (details.getRegisteredRedirectUri() == null || details.getRegisteredRedirectUri().isEmpty()) {
+			details.setRegisteredRedirectUri(existing.getRegisteredRedirectUri());
+		}
+		if (details.getResourceIds() == null || details.getResourceIds().isEmpty()) {
+			details.setResourceIds(existing.getResourceIds());
+		}
+		if (details.getScope() == null || details.getScope().isEmpty()) {
+			details.setScope(existing.getScope());
+		}
 		return details;
 	}
 

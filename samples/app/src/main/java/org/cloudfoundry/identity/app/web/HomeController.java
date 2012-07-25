@@ -16,6 +16,8 @@ import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 
+import javax.servlet.http.HttpServletRequest;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -32,6 +34,8 @@ public class HomeController {
 	private String tokensUri = "http://localhost:8080/uaa/oauth/users/{username}/tokens";
 
 	private RestOperations restTemplate;
+
+	private String logoutUrl;
 	
 	public void setRestTemplate(RestOperations restTemplate) {
 		this.restTemplate = restTemplate;
@@ -39,6 +43,13 @@ public class HomeController {
 
 	public void setTokensUri(String tokensUri) {
 		this.tokensUri = tokensUri;
+	}
+	
+	/**
+	 * @param logoutUrl the logoutUrl to set
+	 */
+	public void setLogoutUrl(String logoutUrl) {
+		this.logoutUrl = logoutUrl;
 	}
 
 	/**
@@ -69,6 +80,13 @@ public class HomeController {
 		return "home";
 	}
 
+	// Home page with just the user id - useful for testing simplest possible use case
+	@RequestMapping("/id")
+	public String id(Model model, Principal principal) {
+		model.addAttribute("principal", principal);
+		return "home";
+	}
+
 	@RequestMapping("/revoke")
 	public String revoke(Model model, Principal principal) {
 		model.addAttribute("principal", principal);
@@ -82,6 +100,13 @@ public class HomeController {
 			restTemplate.delete(tokensUri + "/" + token.get("jti"), principal.getName());
 		}
 		return "redirect:/j_spring_security_logout";
+	}
+	
+	@RequestMapping("/logout")
+	public String logout(Model model, HttpServletRequest request) {
+		String redirect = request.getRequestURL().toString();
+		model.addAttribute("cflogout", logoutUrl + "?redirect=" + redirect);
+		return "loggedout";
 	}
 
 }

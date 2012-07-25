@@ -20,15 +20,14 @@ import java.util.List;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
 
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.SessionAttributes;
+import org.springframework.web.context.request.WebRequest;
 
 /**
  * Controller for retrieving the model for and displaying the confirmation page for access to a protected resource.
@@ -36,7 +35,7 @@ import org.springframework.web.bind.annotation.SessionAttributes;
  * @author Dave Syer
  */
 @Controller
-@SessionAttributes(types = AuthorizationRequest.class)
+@SessionAttributes("authorizationRequest")
 public class AccessController {
 
 	private static final String SCOPE_PREFIX = "scope.";
@@ -59,18 +58,13 @@ public class AccessController {
 		this.clientDetailsService = clientDetailsService;
 	}
 
-	@ModelAttribute("identity")
-	public String getIdentity(HttpSession session) {
-		return null;
-	}
-
 	@RequestMapping("/oauth/confirm_access")
-	public String confirm(@ModelAttribute AuthorizationRequest clientAuth, Map<String, Object> model,
-			final HttpServletRequest request) throws Exception {
+	public String confirm(Map<String, Object> model, final HttpServletRequest request) throws Exception {
 
+		AuthorizationRequest clientAuth = (AuthorizationRequest) model.remove("authorizationRequest");
 		if (clientAuth == null) {
 			model.put("error",
-					"No authorizatioun request is present, so we cannot confirm access (we don't know what you are asking for).");
+					"No authorization request is present, so we cannot confirm access (we don't know what you are asking for).");
 			// response.sendError(HttpServletResponse.SC_BAD_REQUEST);
 		}
 		else {
@@ -112,32 +106,27 @@ public class AccessController {
 	private List<Map<String, String>> getScopes(ClientDetails client, AuthorizationRequest clientAuth) {
 		List<Map<String, String>> result = new ArrayList<Map<String, String>>();
 		for (String scope : clientAuth.getScope()) {
-			if (scope.equals("openid")) {
+			if (!scope.contains(".")) {
 				HashMap<String, String> map = new HashMap<String, String>();
 				map.put("code", SCOPE_PREFIX + scope);
-				map.put("text", "Access your profile including email address");
-				result.add(map);
-			}
-			else if (scope.equals("password")) {
-				HashMap<String, String> map = new HashMap<String, String>();
-				map.put("code", SCOPE_PREFIX + scope);
-				map.put("text", "ChangeSCOPE__PREFIX +  your password");
+				map.put("text", "Access your data with scope '" + scope + "'");
 				result.add(map);
 			}
 			else {
-				for (String resource : client.getResourceIds()) {
-					if (resource.equals("password") || resource.equals("openid")) {
-						continue;
-					}
-					HashMap<String, String> map = new HashMap<String, String>();
-					String value = SCOPE_PREFIX + resource + "." + scope;
-					map.put("code", value);
-					map.put("text", "Access your '" + resource + "' resources with scope '" + scope + "'");
-					result.add(map);
+				HashMap<String, String> map = new HashMap<String, String>();
+				String value = SCOPE_PREFIX + scope;
+				String resource = scope.substring(0, scope.lastIndexOf("."));
+				if ("uaa".equals(resource)) {
+					// special case: don't need to prompt for internal uaa scopes
+					continue;
 				}
+				String access = scope.substring(scope.lastIndexOf(".") + 1);
+				map.put("code", value);
+				map.put("text", "Access your '" + resource + "' resources with scope '" + access + "'");
+				result.add(map);
 			}
 		}
-		Collections.sort(result, new Comparator<Map<String,String>>() {
+		Collections.sort(result, new Comparator<Map<String, String>>() {
 			@Override
 			public int compare(Map<String, String> o1, Map<String, String> o2) {
 				String code1 = o1.get("code");
@@ -174,8 +163,12 @@ public class AccessController {
 	}
 
 	@RequestMapping("/oauth/error")
-	public String handleError() throws Exception {
+	public String handleError(WebRequest request, Map<String,Object> model) throws Exception {
 		// There is already an error entry in the model
+		Object object = request.getAttribute("error", WebRequest.SCOPE_REQUEST);
+		if (object!=null) {
+			model.put("error", object);
+		}
 		return "access_confirmation";
 	}
 

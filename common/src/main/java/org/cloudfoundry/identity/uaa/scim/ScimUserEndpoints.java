@@ -21,6 +21,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -30,6 +32,7 @@ import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReport;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -41,6 +44,9 @@ import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.jmx.export.annotation.ManagedMetric;
+import org.springframework.jmx.export.annotation.ManagedResource;
+import org.springframework.jmx.support.MetricType;
 import org.springframework.security.crypto.codec.Hex;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
@@ -58,11 +64,17 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
 
 /**
+ * User provisioning and query endpoints. Implements the core API from the Simple Cloud Identity Management (SCIM)
+ * group. Exposes basic CRUD and query features for user accounts in a backend database. For operations on a single user
+ * resource supports both "/Users" and "/User" (the latter was from an older version of the specification).
  * 
  * @author Luke Taylor
  * @author Dave Syer
+ * 
+ * @see <a href="http://www.simplecloud.info">SCIM specs</a>
  */
 @Controller
+@ManagedResource
 public class ScimUserEndpoints implements InitializingBean {
 
 	private final Log logger = LogFactory.getLog(getClass());
@@ -72,6 +84,14 @@ public class ScimUserEndpoints implements InitializingBean {
 	private Collection<String> schemas = Arrays.asList(ScimUser.SCHEMAS);
 
 	private static final Random passwordGenerator = new SecureRandom();
+	
+	private final Map<String, AtomicInteger> errorCounts = new ConcurrentHashMap<String, AtomicInteger>();
+
+	private AtomicInteger scimUpdates = new AtomicInteger();
+
+	private AtomicInteger scimDeletes = new AtomicInteger();
+
+	private AtomicInteger scimPasswordChanges = new AtomicInteger();
 
 	private Map<Class<? extends Exception>, HttpStatus> statuses = new HashMap<Class<? extends Exception>, HttpStatus>();
 
@@ -104,20 +124,46 @@ public class ScimUserEndpoints implements InitializingBean {
 		return new String(Hex.encode(bytes));
 	}
 
-	@RequestMapping(value = "/User/{userId}", method = RequestMethod.GET)
+	@ManagedMetric(metricType = MetricType.COUNTER, displayName = "Total Users")
+	public int getTotalUsers() {
+		return dao.retrieveUsers().size();
+	}
+
+	@ManagedMetric(metricType = MetricType.COUNTER, displayName = "User Account Update Count (Since Startup)")
+	public int getUserUpdates() {
+		return scimUpdates.get();
+	}
+
+	@ManagedMetric(metricType = MetricType.COUNTER, displayName = "User Account Delete Count (Since Startup)")
+	public int getUserDeletes() {
+		return scimDeletes.get();
+	}
+
+	@ManagedMetric(metricType = MetricType.COUNTER, displayName = "User Password Change Count (Since Startup)")
+	public int getUserPasswordChanges() {
+		return scimPasswordChanges.get();
+	}
+
+	@ManagedMetric(displayName = "Error Counts")
+	public Map<String, AtomicInteger> getErrorCounts() {
+		return errorCounts;
+	}
+
+	@RequestMapping(value = { "/User/{userId}", "/Users/{userId}" }, method = RequestMethod.GET)
 	@ResponseBody
 	public ScimUser getUser(@PathVariable String userId) {
 		return dao.retrieveUser(userId);
 	}
 
-	@RequestMapping(value = "/User", method = RequestMethod.POST)
+	// /User is from an old version of the spec
+	@RequestMapping(value = { "/User", "/Users" }, method = RequestMethod.POST)
 	@ResponseStatus(HttpStatus.CREATED)
 	@ResponseBody
 	public ScimUser createUser(@RequestBody ScimUser user) {
 		return dao.createUser(user, user.getPassword() == null ? generatePassword() : user.getPassword());
 	}
 
-	@RequestMapping(value = "/User/{userId}", method = RequestMethod.PUT)
+	@RequestMapping(value = { "/User/{userId}", "/Users/{userId}" }, method = RequestMethod.PUT)
 	@ResponseBody
 	public ScimUser updateUser(@RequestBody ScimUser user, @PathVariable String userId,
 			@RequestHeader(value = "If-Match", required = false, defaultValue = "NaN") String etag) {
@@ -127,21 +173,23 @@ public class ScimUserEndpoints implements InitializingBean {
 		int version = getVersion(userId, etag);
 		user.setVersion(version);
 		try {
-			return dao.updateUser(userId, user);
+			ScimUser updated = dao.updateUser(userId, user);
+			scimUpdates.incrementAndGet();
+			return updated;
 		}
 		catch (OptimisticLockingFailureException e) {
-			throw new ScimException(e.getMessage(), HttpStatus.CONFLICT);
+			throw new UserConflictException(e.getMessage());
 		}
 	}
 
-	@RequestMapping(value = "/User/{userId}/password", method = RequestMethod.PUT)
+	@RequestMapping(value = { "/User/{userId}/password", "/Users/{userId}/password" }, method = RequestMethod.PUT)
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void changePassword(@PathVariable String userId, @RequestBody PasswordChangeRequest change) {
 		checkPasswordChangeIsAllowed(userId, change.getOldPassword());
-
 		if (!dao.changePassword(userId, change.getOldPassword(), change.getPassword())) {
-			throw new ScimException("Password not changed for user: " + userId, HttpStatus.BAD_REQUEST);
+			throw new InvalidPasswordException("Password not changed for user: " + userId);
 		}
+		scimPasswordChanges.incrementAndGet();
 	}
 
 	private void checkPasswordChangeIsAllowed(String userId, String oldPassword) {
@@ -157,7 +205,7 @@ public class ScimUserEndpoints implements InitializingBean {
 
 			// even an admin needs to provide the old value to change his password
 			if (userId.equals(currentUser) && !StringUtils.hasText(oldPassword)) {
-				throw new ScimException("Previous password is required even for admin", HttpStatus.BAD_REQUEST);
+				throw new InvalidPasswordException("Previous password is required even for admin");
 			}
 
 		}
@@ -166,26 +214,26 @@ public class ScimUserEndpoints implements InitializingBean {
 			if (!userId.equals(currentUser)) {
 				logger.warn("User with id " + currentUser + " attempting to change password for user " + userId);
 				// TODO: This should be audited when we have non-authentication events in the log
-				throw new ScimException("Bad request. Not permitted to change another user's password",
-						HttpStatus.BAD_REQUEST);
+				throw new InvalidPasswordException("Bad request. Not permitted to change another user's password");
 			}
 
 			// User is changing their own password, old password is required
 			if (!StringUtils.hasText(oldPassword)) {
-				throw new ScimException("Previous password is required", HttpStatus.BAD_REQUEST);
+				throw new InvalidPasswordException("Previous password is required");
 			}
 
 		}
 
 	}
 
-	@RequestMapping(value = "/User/{userId}", method = RequestMethod.DELETE)
+	@RequestMapping(value = { "/User/{userId}", "/Users/{userId}" }, method = RequestMethod.DELETE)
 	@ResponseBody
 	public ScimUser deleteUser(@PathVariable String userId,
 			@RequestHeader(value = "If-Match", required = false) String etag) {
 		int version = etag == null ? -1 : getVersion(userId, etag);
-
-		return dao.removeUser(userId, version);
+		ScimUser deleted = dao.removeUser(userId, version);
+		scimDeletes.incrementAndGet();
+		return deleted;
 	}
 
 	private int getVersion(String userId, String etag) {
@@ -283,10 +331,26 @@ public class ScimUserEndpoints implements InitializingBean {
 				}
 			}
 		}
+		incrementErrorCounts(e);
 		// User can supply trace=true or just trace (unspecified) to get stack traces
 		boolean trace = request.getParameter("trace") != null && !request.getParameter("trace").equals("false");
 		return new ConvertingExceptionView(new ResponseEntity<ExceptionReport>(new ExceptionReport(e, trace),
 				e.getStatus()), messageConverters);
+	}
+
+	private void incrementErrorCounts(ScimException e) {
+		String series = UaaStringUtils.getErrorName(e);
+		AtomicInteger value = errorCounts.get(series);
+		if (value==null) {
+			synchronized (errorCounts) {
+				value = errorCounts.get(series);
+				if (value==null) {
+					value = new AtomicInteger();
+					errorCounts.put(series, value);
+				}
+			}
+		}
+		value.incrementAndGet();
 	}
 
 	public void setScimUserProvisioning(ScimUserProvisioning dao) {

@@ -16,13 +16,14 @@ import static org.junit.Assert.assertNotNull;
 import java.util.Arrays;
 import java.util.Map;
 
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.codec.Base64;
+import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordResourceDetails;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.util.LinkedMultiValueMap;
@@ -40,7 +41,14 @@ public class RefreshTokenSupportIntegrationTests {
 
 	@Rule
 	public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
-	
+
+	private ResourceOwnerPasswordResourceDetails resource;
+
+	@Before
+	public void init() {
+		resource = testAccounts.getDefaultResourceOwnerPasswordResource();
+	}
+
 	/**
 	 * tests a happy-day flow of the refresh token grant
 	 */
@@ -49,11 +57,12 @@ public class RefreshTokenSupportIntegrationTests {
 
 		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
 		formData.add("grant_type", "password");
-		formData.add("username", testAccounts.getUserName());
-		formData.add("password", testAccounts.getPassword());
-		formData.add("scope", "read");
+		formData.add("username", resource.getUsername());
+		formData.add("password", resource.getPassword());
+		formData.add("scope", "cloud_controller.read");
 		HttpHeaders headers = new HttpHeaders();
-		headers.set("Authorization", "Basic " + new String(Base64.encode("app:appclientsecret".getBytes("UTF-8"))));
+		headers.set("Authorization",
+				testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
 		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
 		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, headers);
@@ -73,8 +82,8 @@ public class RefreshTokenSupportIntegrationTests {
 		assertEquals("no-store", response.getHeaders().getFirst("Cache-Control"));
 		@SuppressWarnings("unchecked")
 		OAuth2AccessToken newAccessToken = DefaultOAuth2AccessToken.valueOf(response.getBody());
-		assertFalse("TODO: This occasionally fails because the expiry time has 1 second accuracy.", newAccessToken.getValue()
-				.equals(accessToken.getValue()));
+		assertFalse("New access token should be different to the old one.",
+				newAccessToken.getValue().equals(accessToken.getValue()));
 
 	}
 }

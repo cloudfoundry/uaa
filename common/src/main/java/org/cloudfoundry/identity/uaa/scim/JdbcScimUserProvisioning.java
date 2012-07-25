@@ -20,16 +20,20 @@ import java.sql.Types;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Meta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Name;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
@@ -55,12 +59,12 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	private final Log logger = LogFactory.getLog(getClass());
 
-	public static final String USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName,active,authority,phoneNumber";
+	public static final String USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName,active,authorities,phoneNumber";
 
 	public static final String CREATE_USER_SQL = "insert into users (" + USER_FIELDS
 			+ ",password) values (?,?,?,?,?,?,?,?,?,?,?,?)";
 
-	public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, email=?, givenName=?, familyName=?, active=?, authority=?, phoneNumber=? where id=? and version=?";
+	public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, email=?, givenName=?, familyName=?, active=?, authorities=?, phoneNumber=? where id=? and version=?";
 
 	public static final String DEACTIVATE_USER_SQL = "update users set active=false where id=?";
 
@@ -270,6 +274,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		validate(user);
 
 		logger.info("Creating new user: " + user.getUserName());
+		final String authorities = getAuthorities(user);
 
 		final String id = UUID.randomUUID().toString();
 		try {
@@ -284,7 +289,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 					ps.setString(7, user.getName().getGivenName());
 					ps.setString(8, user.getName().getFamilyName());
 					ps.setBoolean(9, user.isActive());
-					ps.setLong(10, UaaAuthority.fromUserType(user.getUserType()).value());
+					ps.setString(10, authorities);
 					String phoneNumber = extractPhoneNumber(user);
 					ps.setString(11, phoneNumber);
 					ps.setString(12, passwordEncoder.encode(password));
@@ -298,6 +303,19 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		}
 		return retrieveUser(id);
 
+	}
+
+	private String getAuthorities(ScimUser user) {
+		// Preserve simple implementation based only on uaa user type
+		normalizeGroups(user);
+		Set<String> set = new LinkedHashSet<String>();
+		// Augment with explicit group membership
+		if (user.getGroups()!=null) {
+			for (Group group : user.getGroups()) {
+				set.add(group.getExternalId());
+			}
+		}
+		return StringUtils.collectionToCommaDelimitedString(set);
 	}
 
 	private void validate(final ScimUser user) throws InvalidUserException {
@@ -324,7 +342,8 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	public ScimUser updateUser(final String id, final ScimUser user) throws InvalidUserException {
 		validate(user);
 		logger.info("Updating user " + user.getUserName());
-
+		final String authorities = getAuthorities(user);
+		
 		int updated = jdbcTemplate.update(UPDATE_USER_SQL, new PreparedStatementSetter() {
 			public void setValues(PreparedStatement ps) throws SQLException {
 				ps.setInt(1, user.getVersion() + 1);
@@ -333,7 +352,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 				ps.setString(4, user.getName().getGivenName());
 				ps.setString(5, user.getName().getFamilyName());
 				ps.setBoolean(6, user.isActive());
-				ps.setLong(7, UaaAuthority.fromUserType(user.getUserType()).value());
+				ps.setString(7, authorities);
 				ps.setString(8, extractPhoneNumber(user));
 				ps.setString(9, id);
 				ps.setInt(10, user.getVersion());
@@ -455,6 +474,20 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		this.passwordEncoder = passwordEncoder;
 	}
 
+	private void normalizeGroups(ScimUser user) {
+		Set<Group> groups = new LinkedHashSet<Group>();
+		if (user.getGroups()!=null) {
+			groups.addAll(user.getGroups());
+		}
+		// Everyone is a user
+		groups.add(new Group(null, UaaAuthority.UAA_USER.getAuthority()));
+		if (user.getUserType()!=null && user.getUserType().contains("admin")) {
+			// Some people are also admins
+			groups.add(new Group(null, UaaAuthority.UAA_ADMIN.getAuthority()));
+		}
+		user.setGroups(new ArrayList<Group>(groups));
+	}
+
 	private static final class ScimUserRowMapper implements RowMapper<ScimUser> {
 		@Override
 		public ScimUser mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -467,7 +500,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 			String givenName = rs.getString(7);
 			String familyName = rs.getString(8);
 			boolean active = rs.getBoolean(9);
-			long authority = rs.getLong(10);
+			String authorities = rs.getString(10);
 			String phoneNumber = rs.getString(11);
 			ScimUser user = new ScimUser();
 			user.setId(id);
@@ -486,8 +519,24 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 			name.setFamilyName(familyName);
 			user.setName(name);
 			user.setActive(active);
-			user.setUserType(UaaAuthority.valueOf((int) authority).getUserType());
+			setAuthorities(user, authorities);
 			return user;
 		}
+
+		private void setAuthorities(ScimUser user, String authorities) {
+			if (authorities==null) {
+				return;
+			}
+			user.setUserType(UaaAuthority.fromAuthorities(authorities).getUserType());
+			List<Group> groups = new ArrayList<Group>();
+			for (String group : authorities.split(",")) {
+				groups.add(new Group(null, group.trim()));
+			}
+			if (!groups.isEmpty()) {
+				user.setGroups(groups);
+			}
+		}
+
 	}
+
 }

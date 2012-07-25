@@ -38,7 +38,7 @@ import org.springframework.web.client.RestOperations;
  * @author Dave Syer
  */
 @OAuth2ContextConfiguration(OAuth2ContextConfiguration.ClientCredentials.class)
-public class ScimUserEndpointIntegrationTests {
+public class ScimUserEndpointsIntegrationTests {
 
 	private final String JOEL = "joel_" + new RandomValueStringGenerator().generate().toLowerCase();
 
@@ -46,7 +46,7 @@ public class ScimUserEndpointIntegrationTests {
 
 	private final String DELETE_ME = "deleteme_" + new RandomValueStringGenerator().generate().toLowerCase();
 
-	private final String userEndpoint = "/User";
+	private final String userEndpoint = "/Users";
 
 	private final String usersEndpoint = "/Users";
 
@@ -142,6 +142,25 @@ public class ScimUserEndpointIntegrationTests {
 		assertEquals(JOE, joe.getUserName());
 
 		joe.setName(new ScimUser.Name("Joe", "Bloggs"));
+
+		HttpHeaders headers = new HttpHeaders();
+		headers.add("If-Match", "\"" + joe.getVersion() + "\"");
+		response = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}", HttpMethod.PUT,
+				new HttpEntity<ScimUser>(joe, headers), ScimUser.class, joe.getId());
+		ScimUser joe1 = response.getBody();
+		assertEquals(JOE, joe1.getUserName());
+
+		assertEquals(joe.getId(), joe1.getId());
+
+	}
+
+	@Test
+	public void updateUserWithNewAuthoritiesSucceeds() throws Exception {
+		ResponseEntity<ScimUser> response = createUser(JOE, "Joe", "User", "joe@blah.com");
+		ScimUser joe = response.getBody();
+		assertEquals(JOE, joe.getUserName());
+
+		joe.setUserType("admin");
 
 		HttpHeaders headers = new HttpHeaders();
 		headers.add("If-Match", "\"" + joe.getVersion() + "\"");

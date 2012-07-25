@@ -14,15 +14,21 @@ package org.cloudfoundry.identity.uaa.user;
 
 import java.beans.PropertyEditorSupport;
 
+import org.springframework.security.core.authority.AuthorityUtils;
+
 public class UaaUserEditor extends PropertyEditorSupport {
 
 	@Override
 	public void setAsText(String text) throws IllegalArgumentException {
 		String[] values = text.split("\\|");
-		if (values.length < 4) {
+		if (values.length < 5) {
 			throw new IllegalArgumentException("Username, password, email, first and last names are required (use pipe separator '|')");
 		}
-		super.setValue(new UaaUser(values[0], values[1], values[2], values[3], values[4]));
+		UaaUser user = new UaaUser(values[0], values[1], values[2], values[3], values[4]);
+		if (values.length>5) {
+			user = user.authorities(AuthorityUtils.commaSeparatedStringToAuthorityList(values[5]));
+		}
+		super.setValue(user);
 	}
 
 }

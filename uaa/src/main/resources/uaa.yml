@@ -8,11 +8,10 @@ oauth:
   clients:
     admin:    
       authorized-grant-types: client_credentials
-      scope: read,write,password
-      authorities: ROLE_CLIENT,ROLE_ADMIN
+      scope: uaa.none
+      authorities: uaa.admin,clients.read,clients.write,clients.secret,tokens.read,tokens.write
       id: admin
       secret: adminsecret
-      resource-ids: clients,tokens
 
 scim:
   delete:

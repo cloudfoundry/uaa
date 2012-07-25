@@ -12,6 +12,11 @@
  */
 package org.cloudfoundry.identity.uaa.security;
 
+import java.util.Collection;
+
+import org.springframework.security.core.GrantedAuthority;
+
+
 /**
  * Encapsulation of security context access for use within the application.
  *
@@ -28,6 +33,12 @@ public interface SecurityContextAccessor {
 	boolean isClient();
 
 	/**
+	 * Returns true if the current invocation is being made by
+	 * a user, not by a client app.
+	 */
+	boolean isUser();
+
+	/**
 	 * @return true if the user has the "admin" role
 	 */
 	boolean isAdmin();
@@ -41,5 +52,10 @@ public interface SecurityContextAccessor {
 	 * @return the current client identifier or null
 	 */
 	String getClientId();
+	
+	/**
+	 * @return the authorities of the current principal (or empty if there is none)
+	 */
+	Collection<? extends GrantedAuthority> getAuthorities();
 
 }

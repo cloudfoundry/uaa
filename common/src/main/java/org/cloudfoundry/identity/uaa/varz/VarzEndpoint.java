@@ -98,8 +98,7 @@ public class VarzEndpoint implements EnvironmentAware {
 	public String getHealthz() throws Exception {
 		return "ok\n";
 	}
-	
-	
+
 	@RequestMapping(value = { "/", "/varz" })
 	@ResponseBody
 	public Map<String, ?> getVarz(@ModelAttribute("baseUrl") String baseUrl) throws Exception {
@@ -110,15 +109,20 @@ public class VarzEndpoint implements EnvironmentAware {
 		result.put("links", links);
 
 		Map<String, ?> memory = pullUpMap("java.lang", "type=Memory");
-		result.put("mem", getValueFromMap(memory, "memory.heap_memory_usage.used", Long.class)/1024);
+		result.put("mem", getValueFromMap(memory, "memory.heap_memory_usage.used", Long.class) / 1024);
 		result.put("memory", getValueFromMap(memory, "memory"));
-		
+
 		if (!buildProperties.isEmpty()) {
-			result.put("app", UaaStringUtils.getMapFromProperties(buildProperties, "build."));			
+			result.put("app", UaaStringUtils.getMapFromProperties(buildProperties, "build."));
 		}
 
 		Map<String, ?> spring = pullUpMap("spring.application", "*");
 		if (spring != null) {
+			// Information about users (counts etc)
+			putIfNotNull(result, "scim", getValueFromMap(spring, "#this['scim_user_endpoints']?.scim_user_endpoints"));
+			// Information about clients (counts etc)
+			putIfNotNull(result, "client_admin",
+					getValueFromMap(spring, "#this['client_admin_endpoints']?.client_admin_endpoints"));
 			// Information about tokens (counts etc)
 			putIfNotNull(result, "token_store", getValueFromMap(spring, "#this['token_store']?.token_store"));
 			// Information about audit (counts)
@@ -226,11 +230,13 @@ public class VarzEndpoint implements EnvironmentAware {
 					@SuppressWarnings("unchecked")
 					Map<String, ?> map = (Map<String, ?>) tomcat.values().iterator().next();
 					result.putAll(map);
-				} else {
+				}
+				else {
 					result.putAll(tomcat);
 				}
 			}
-		} else {
+		}
+		else {
 			result.putAll(getMBeans(domain, pattern));
 		}
 
@@ -310,7 +316,8 @@ public class VarzEndpoint implements EnvironmentAware {
 			for (String key : values.keySet()) {
 				env.put(key, values.get(key));
 			}
-		} catch (Exception e) {
+		}
+		catch (Exception e) {
 			logger.warn("Could not obtain OS environment", e);
 		}
 		return env;

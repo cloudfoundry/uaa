@@ -32,7 +32,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
-import org.springframework.security.oauth2.provider.AuthorizationRequest;
+import org.springframework.security.oauth2.provider.BaseClientDetails;
+import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
 import org.springframework.util.Assert;
@@ -87,6 +88,7 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
 		}
 
 		Assert.state(map.containsKey("client_id"), "Client id must be present in response from auth server");
+		String remoteClientId = (String) map.get("client_id");
 
 		Set<String> scope = new HashSet<String>();
 		if (map.containsKey("scope")) {
@@ -94,29 +96,42 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
 			Collection<String> values = (Collection<String>) map.get("scope");
 			scope.addAll(values);
 		}
-		Set<String> resourceIds = new HashSet<String>();
-		if (map.containsKey("resource_ids")) {
-			@SuppressWarnings("unchecked")
-			Collection<String> values = (Collection<String>) map.get("resource_ids");
-			resourceIds.addAll(values);
+		DefaultAuthorizationRequest clientAuthentication = new DefaultAuthorizationRequest(remoteClientId, scope);
+
+		if (map.containsKey("resource_ids") || map.containsKey("client_authorities")) {
+			Set<String> resourceIds = new HashSet<String>();
+			if (map.containsKey("resource_ids")) {
+				@SuppressWarnings("unchecked")
+				Collection<String> values = (Collection<String>) map.get("resource_ids");
+				resourceIds.addAll(values);
+			}
+			Set<GrantedAuthority> clientAuthorities = new HashSet<GrantedAuthority>();
+			if (map.containsKey("client_authorities")) {
+				@SuppressWarnings("unchecked")
+				Collection<String> values = (Collection<String>) map.get("client_authorities");
+				clientAuthorities.addAll(getAuthorities(values));
+			}
+			BaseClientDetails clientDetails = new BaseClientDetails();
+			clientDetails.setClientId(remoteClientId);
+			clientDetails.setResourceIds(resourceIds);
+			clientDetails.setAuthorities(clientAuthorities);
+			clientAuthentication.addClientDetails(clientDetails);
 		}
-		Set<GrantedAuthority> clientAuthorities = new HashSet<GrantedAuthority>();
-		if (map.containsKey("client_authorities")) {
-			@SuppressWarnings("unchecked")
-			Collection<String> values = (Collection<String>) map.get("client_authorities");
-			clientAuthorities.addAll(getAuthorities(values));
-		}
+
 		Set<GrantedAuthority> userAuthorities = new HashSet<GrantedAuthority>();
 		if (map.containsKey("user_authorities")) {
 			@SuppressWarnings("unchecked")
 			Collection<String> values = (Collection<String>) map.get("user_authorities");
 			userAuthorities.addAll(getAuthorities(values));
 		}
-		String remoteClientId = (String) map.get("client_id");
-		AuthorizationRequest clientAuthentication = new AuthorizationRequest(remoteClientId, scope, clientAuthorities, resourceIds);
+		else {
+			// User authorities had better not be empty or we might mistake user for unauthenticated
+			userAuthorities.addAll(getAuthorities(scope));
+		}
 		String username = (String) map.get("user_name");
 		Authentication userAuthentication = new UsernamePasswordAuthenticationToken(username, null, userAuthorities);
 
+		clientAuthentication.setApproved(true);
 		return new OAuth2Authentication(clientAuthentication, userAuthentication);
 	}
 

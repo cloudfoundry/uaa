@@ -20,7 +20,7 @@ CREATE TABLE USERS (
    username ${VARCHAR}(255) not null,
    password ${VARCHAR}(255) not null,
    email ${VARCHAR}(255) not null,
-   authority ${BIGINT} default 0 not null,
+   authorities ${VARCHAR}(1024) default 'uaa.user' not null,
    givenName ${VARCHAR}(255) not null,
    familyName ${VARCHAR}(255) not null,
    active BOOLEAN default true not null,
@@ -45,5 +45,6 @@ CREATE TABLE OAUTH_CLIENT_DETAILS (
   web_server_redirect_uri ${VARCHAR}(1024),
   authorities ${VARCHAR}(256),
   access_token_validity INTEGER default 0,
-  refresh_token_validity INTEGER default 0
+  refresh_token_validity INTEGER default 0,
+  additional_information ${VARCHAR}(4096)
 ) $!{VOODOO};

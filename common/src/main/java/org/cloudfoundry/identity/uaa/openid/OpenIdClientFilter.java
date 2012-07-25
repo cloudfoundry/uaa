@@ -20,6 +20,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.cloudfoundry.identity.uaa.social.SocialClientAuthenticationFilter;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -37,7 +38,10 @@ import org.springframework.web.client.RestOperations;
  * 
  * @author Dave Syer
  * 
+ * @deprecated in favour of {@link SocialClientAuthenticationFilter}
+ * 
  */
+@Deprecated
 public class OpenIdClientFilter extends AbstractAuthenticationProcessingFilter {
 
 	public RestOperations restTemplate;

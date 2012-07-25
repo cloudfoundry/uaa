@@ -13,7 +13,6 @@
 
 require "base64"
 require "openssl"
-require "json/pure"
 require "uaa/util"
 
 module CF::UAA
@@ -64,19 +63,19 @@ class TokenCoder
     segments.join('.')
   end
 
-  def self.decode(token, skey, pkey = nil, verify = true)
+  def self.decode(token, skey = nil, pkey = nil, verify = true)
     segments = token.split('.')
     raise DecodeError, "Not enough or too many segments" unless [2,3].include? segments.length
     header_segment, payload_segment, crypto_segment = segments
     signing_input = [header_segment, payload_segment].join('.')
     begin
-      header = JSON.parse(base64url_decode(header_segment))
-      payload = JSON.parse(base64url_decode(payload_segment), symbolize_names: true)
+      header = Util.json_parse(base64url_decode(header_segment))
+      payload = Util.json_parse(base64url_decode(payload_segment))
       signature = base64url_decode(crypto_segment) if verify
     rescue JSON::ParserError
       raise DecodeError, "Invalid segment encoding"
     end
-    return payload if !verify || (algo = header['alg']) == "none"
+    return payload if !verify || (algo = header[:alg]) == "none"
     if ["HS256", "HS384", "HS512"].include?(algo)
       raise DecodeError, "Signature verification failed" unless
           signature == OpenSSL::HMAC.digest(init_digest(algo), skey, signing_input)

@@ -19,7 +19,7 @@
 <html>
 <body>
 
-<h1>OpenID Sample Error Page</h1>
+<h1>Sample Error Page</h1>
 
 <p>
 There was a problem logging you in.  Don't panic.

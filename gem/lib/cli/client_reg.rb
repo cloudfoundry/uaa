@@ -11,130 +11,95 @@
 # subcomponent's license, as noted in the LICENSE file.
 #++
 
-require 'thor'
-require 'interact'
-require 'cli/base'
+require 'cli/common'
 require 'uaa'
 
 module CF::UAA
 
-class ClientCli < BaseCli
+class ClientCli < CommonCli
 
-  namespace :client
+  topic "Client application registrations"
 
-  def self.banner(task, namespace = true, subcommand = true)
-    "#{basename} #{task.formatted_usage(self, true, subcommand)}"
-  end
+  CLIENT_SCHEMA =
+  {
+    scopes: "list",
+    resource_ids: "list",
+    authorized_grant_types: "list",
+    authorities: "list",
+    access_token_validity: "seconds",
+    refresh_token_validity: "seconds",
+    redirect_uris: "list"
+  }
 
-  def self.client_info_schema
-    {
-      client_id: "Client ID",
-      client_secret: "",
-      scope: "Scope list",
-      resource_ids: "Resource ID list",
-      authorized_grant_types: "Authorized grant type list",
-      authorities: "Role list",
-      access_token_validity: "Access token lifetime",
-      refresh_token_validity: "Refresh token lifetime",
-      redirect_uri: "Redirect URI list"
-    }
-  end
+  CLIENT_SCHEMA.each { |k, v| define_option(k, "--#{k} <#{v}>") }
 
-  def self.client_info_options
-    client_info_schema.each do |k, v|
-      next if v.empty?
-      method_option k, type: :string, lazy_default: "", desc: v
-    end
-  end
-
-  desc "get [name]", "get client registration info."
-  map "g" => "get"
-  def get(name = cur_client_id)
-    return help(__method__) if help?
-    pp client_reg_request { |cr| ClientReg.multivalues_to_strings!(cr.get(name)) }
-  end
-
-  desc "add [name]", "add client registration."
-  method_option :clone, type: :string, aliases: "-c", desc: "get default client settings from existing client."
-  method_option :secret, type: :string, aliases: "-s", lazy_default: "", desc: "client secret"
-  client_info_options
-  map "a" => "add"
-  def add(name = nil)
-    return help(__method__) if help?
-    opts[:client_id] ||= name || ask("New client name")
-    opts[:client_secret] = verified_pwd("New client secret", opts[:secret] == ""? nil: opts[:secret])
-    client_reg_request do |cr|
-      defaults = opts[:clone] ? cr.get(opts[:clone]) : {}
-      cr.create client_info(defaults)
-    end
-  end
-
-  desc "update [name]", "update client registration info."
-  method_option :secret, type: :string, aliases: "-s", lazy_default: "", desc: "client secret, prompts if not given"
-  client_info_options
-  map "u" => "update"
-  def update(name = cur_client_id)
-    return help(__method__) if help?
-    opts[:client_id] ||= name
-    opts[:client_secret] = verified_pwd("new client secret", opts[:secret] == ""? nil: opts[:secret]) if opts[:secret]
-    client_reg_request do |cr|
-      defaults = cr.get(opts[:client_id])
-      cr.update client_info(defaults)
-    end
-  end
-
-  desc "delete [name]", "delete client registration info"
-  map "d" => "delete"
-  def delete(name = nil)
-    return help(__method__) if help?
-    name ||= ask("Client name")
-    pp client_reg_request { |cr| cr.delete(name) }
-  end
-
-  desc "list", "list client registrations"
-  map "l" => "list"
-  def list
-    return help(__method__) if help?
-    reglist =  client_reg_request { |cr| cr.list }
+  desc "clients", "List client registrations" do
+    reglist = client_reg_request { |cr| cr.list }
     reglist.each { |k, v| reglist[k] = ClientReg.multivalues_to_strings!(v) }
     pp reglist
   end
 
-  desc "tokens [clientname]", "list tokens granted to client"
-  map "t" => "tokens"
-  def tokens(name = nil)
-    return help(__method__) if help?
+  desc "client get [<name>]", "Get specific client registration" do |name|
+    name ||= cur_client_id
+    pp client_reg_request { |cr| ClientReg.multivalues_to_strings!(cr.get(name)) }
+  end
+
+  define_option :clone, "--clone <other_client>", "get default client settings from existing client"
+  define_option :secret, "--secret <secret>", "client secret"
+  define_option :interact, "--[no-]interactive", "-i", "interactively verify all values"
+
+  desc "client add [<name>]", "Add client registration",
+      CLIENT_SCHEMA.keys + [:clone, :secret, :interact] do |name|
+    opts[:client_id] ||= name || ask("New client name")
+    opts[:client_secret] = verified_pwd("New client secret", opts[:secret])
+    client_reg_request do |cr|
+      defaults = opts[:clone] ? cr.get(opts[:clone]) : {}
+      cr.create client_info(defaults, opts[:interact])
+    end
+  end
+
+  desc "client update [<name>]", "Update client registration",
+      CLIENT_SCHEMA.keys + [:secret, :interact] do |name|
+    opts[:client_id] ||= name || ask("Client name")
+    client_reg_request do |cr|
+      defaults = opts[:interact] ? cr.get(opts[:client_id]) : {}
+      cr.update client_info(defaults, opts[:interact])
+    end
+  end
+
+  desc "client secret [<name>]", "Update client secret", [:secret] do |name|
+    say "update client secret not implemented"
+    #opts[:client_id] ||= name || ask("Client name")
+    #client_reg_request do |cr|
+      #defaults = opts[:interact] ? cr.get(opts[:client_id]) : {}
+      #cr.update client_info(defaults, opts[:interact])
+    #end
+  end
+
+  desc "client delete [<name>]", "Delete client registration" do |name|
     name ||= ask("Client name")
-    pp client_reg_request { |cr| cr.list_tokens(name) }
+    pp client_reg_request { |cr| cr.delete(name) }
   end
-
-  desc "revoke client_name token_id", "revoke token"
-  map "r" => "revoke"
-  def revoke(name, token_id)
-    return help(__method__) if help?
-    pp client_reg_request { |cr| cr.revoke_token(name, token_id) }
-  end
-
-  private
 
   def client_reg_request
-    return yield ClientReg.new(cur_target_url, auth_header, trace?)
+    return yield ClientReg.new(Config.target, auth_header)
   rescue TargetError => e
-    puts "#{e.message}:\n#{JSON.pretty_generate(e.info)}"
+    say "#{e.message}:\n#{JSON.pretty_generate(e.info)}"
+    nil
   rescue Exception => e
-    puts "#{e.class}, #{e.message}", (e.backtrace if trace?)
+    say "#{e.class}, #{e.message}", (e.backtrace if trace?)
+    nil
   end
 
-  def askd(prompt, defary)
-    ask(prompt, default: (defary.join(' ') if defary && defary.respond_to?(:join)))
-  end
-
-  def client_info(defaults)
+  def client_info(defaults, interact)
     del_op = "<delete>"
-    self.class.client_info_schema.each_with_object({}) do |(k, p), info|
+    info = {client_id: opts[:client_id]}
+    info[:client_secret] = opts[:secret] if opts[:secret]
+    CLIENT_SCHEMA.each_with_object(info) do |(k, p), info|
       v = nil
       if !opts.key?(k)
-        (info[k] = (v unless v == del_op)) if !p.empty? && (v = askd(p, defaults[k]))
+        info[k] = (v unless v == del_op) if interact ?
+            !p.empty? && (v = askd(p, defaults[k])) : (v = defaults[k])
       elsif opts[k] == del_op
         info[k] = nil
       else

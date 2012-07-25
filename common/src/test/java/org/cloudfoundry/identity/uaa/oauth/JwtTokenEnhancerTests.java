@@ -20,7 +20,7 @@ import org.springframework.security.jwt.JwtHelper;
 import org.springframework.security.jwt.crypto.sign.RsaVerifier;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
-import org.springframework.security.oauth2.provider.AuthorizationRequest;
+import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 
 /**
@@ -42,7 +42,7 @@ public class JwtTokenEnhancerTests {
 	@Test
 	public void testEnhanceAccessToken() {
 		OAuth2Authentication authentication = new OAuth2Authentication(
-				new AuthorizationRequest("foo", null, null, null), userAuthentication);
+				new DefaultAuthorizationRequest("foo", null), userAuthentication);
 		OAuth2AccessToken token = tokenEnhancer.enhance(new DefaultOAuth2AccessToken("FOO"), authentication);
 		assertNotNull(token.getValue());
 	}
@@ -64,7 +64,7 @@ public class JwtTokenEnhancerTests {
 				"-----END RSA PRIVATE KEY----- ";
 		tokenEnhancer.setSigningKey(rsaKey);
 		OAuth2Authentication authentication = new OAuth2Authentication(
-				new AuthorizationRequest("foo", null, null, null), userAuthentication);
+				new DefaultAuthorizationRequest("foo", null), userAuthentication);
 		OAuth2AccessToken token = tokenEnhancer.enhance(new DefaultOAuth2AccessToken("FOO"), authentication);
 		JwtHelper.decodeAndVerify(token.getValue(), new RsaVerifier(rsaKey));
 	}

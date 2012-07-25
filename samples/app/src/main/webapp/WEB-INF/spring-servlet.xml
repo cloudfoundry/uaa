@@ -13,23 +13,19 @@
 		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
 		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
 
-	<sec:http pattern="/loggedout.jsp" security="none" />
+	<sec:http pattern="/logout" security="none" />
 	<sec:http pattern="/login_error.jsp" security="none" />
 	<sec:http pattern="/resources/**" security="none" />
 	<sec:http pattern="/favicon.ico" security="none" />
 
 	<http xmlns="http://www.springframework.org/schema/security" entry-point-ref="loginEntryPoint"
-		disable-url-rewriting="true">
-		<intercept-url pattern="/**" access="ROLE_USER" />
-		<logout logout-success-url="/loggedout.jsp?cflogout=#{logoutUrl}" />
+		disable-url-rewriting="true" use-expressions="true" >
+		<intercept-url pattern="/**" access="hasRole('uaa.user')" />
+		<logout logout-success-url="/logout" />
 		<anonymous enabled="false" />
 		<custom-filter ref="oauth2ClientFilter" after="EXCEPTION_TRANSLATION_FILTER" />
-		<custom-filter ref="openidClientFilter" before="FILTER_SECURITY_INTERCEPTOR" />
+		<custom-filter ref="socialClientFilter" before="FILTER_SECURITY_INTERCEPTOR" />
 	</http>
-
-	<bean id="logoutUrl" class="java.lang.String">
-		<constructor-arg value="${cloudFoundryLogoutUrl}" />
-	</bean>
 
 	<bean id="loginEntryPoint" class="org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint">
 		<constructor-arg value="/login" />
@@ -40,7 +36,7 @@
 	<!--apply the oauth client context -->
 	<oauth:client id="oauth2ClientFilter" />
 
-	<bean id="openidClientFilter" class="org.cloudfoundry.identity.uaa.openid.OpenIdClientFilter">
+	<bean id="socialClientFilter" class="org.cloudfoundry.identity.uaa.social.SocialClientAuthenticationFilter">
 		<constructor-arg value="/login" />
 		<property name="authenticationManager" ref="authenticationManager" />
 		<property name="authenticationFailureHandler">
@@ -48,9 +44,7 @@
 				<constructor-arg value="/login_error.jsp" />
 			</bean>
 		</property>
-		<property name="restTemplate">
-			<oauth:rest-template resource="api" />
-		</property>
+		<property name="restTemplate" ref="restTemplate" />
 		<property name="userInfoUrl" value="${userInfoUri}" />
 	</bean>
 
@@ -77,24 +71,25 @@
 	</bean>
 
 	<bean id="treeController" class="org.cloudfoundry.identity.app.web.TreeController">
-		<property name="restTemplate">
-			<oauth:rest-template resource="api" />
-		</property>
+		<property name="restTemplate" ref="restTemplate" />
 		<property name="treeUrlPattern" value="${treeUrlPattern}" />
 	</bean>
 
 	<bean id="homeController" class="org.cloudfoundry.identity.app.web.HomeController">
-		<property name="restTemplate">
-			<oauth:rest-template resource="api" />
-		</property>
+		<property name="restTemplate" ref="restTemplate"/>
 		<property name="userAuthorizationUri" value="${userAuthorizationUri}" />
 		<property name="dataUri" value="${dataUri}" />
 		<property name="tokensUri" value="${tokensUrlPattern}" />
+		<property name="logoutUrl" value="${cloudFoundryLogoutUrl}"/>
 	</bean>
+	
+	<oauth:rest-template id="restTemplate" resource="uaa" />
 
 	<!--define an oauth 2 resource for api access -->
-	<oauth:resource id="api" type="authorization_code" client-id="${CLIENT_ID:app}" client-secret="${CLIENT_SECRET:appclientsecret}"
-		access-token-uri="${accessTokenUri}" user-authorization-uri="${userAuthorizationUri}" scope="read,write,openid" />
+	<oauth:resource id="uaa" type="authorization_code" client-id="${CLIENT_ID:app}" client-secret="${CLIENT_SECRET:appclientsecret}"
+		access-token-uri="${accessTokenUri}" user-authorization-uri="${userAuthorizationUri}"/>
+
+	<oauth:web-expression-handler id="oauthWebExpressionHandler" />
 
 	<bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer" xmlns="http://www.springframework.org/schema/beans">
 		<property name="locations">

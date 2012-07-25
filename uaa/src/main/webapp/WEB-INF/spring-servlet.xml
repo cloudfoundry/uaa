@@ -34,7 +34,9 @@
 	<bean id="accessDecisionManager" class="org.springframework.security.access.vote.UnanimousBased">
 		<constructor-arg>
 			<list>
-				<bean class="org.springframework.security.oauth2.provider.vote.ScopeVoter" />
+				<bean class="org.springframework.security.oauth2.provider.vote.ScopeVoter">
+					<property name="scopePrefix" value="scope=" />
+				</bean>
 				<bean class="org.springframework.security.access.vote.RoleVoter" />
 				<bean class="org.springframework.security.access.vote.AuthenticatedVoter" />
 			</list>
@@ -95,16 +97,18 @@
 	</bean>
 
 	<http pattern="/check_token" create-session="stateless" entry-point-ref="basicAuthenticationEntryPoint"
-		authentication-manager-ref="clientAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/**" access="ROLE_RESOURCE" />
+		authentication-manager-ref="clientAuthenticationManager" use-expressions="true"
+		xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/**" access="hasRole('uaa.resource')" />
 		<anonymous enabled="false" />
 		<custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
 
 	<http pattern="/token_key" create-session="stateless" entry-point-ref="basicAuthenticationEntryPoint"
-		authentication-manager-ref="clientAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/**" access="ROLE_RESOURCE" />
+		authentication-manager-ref="clientAuthenticationManager" use-expressions="true"
+		xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/**" access="hasRole('uaa.resource')" />
 		<anonymous enabled="false" />
 		<custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
@@ -113,7 +117,7 @@
 	<http pattern="/userinfo" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
 		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
 		xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/**" access="SCOPE_OPENID" />
+		<intercept-url pattern="/**" access="scope=openid" />
 		<custom-filter ref="openidResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
@@ -159,8 +163,13 @@
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<form-login authentication-failure-url="/login?error=true" login-page="/login" login-processing-url="/login.do"
 			username-parameter="username" default-target-url="/" password-parameter="password" authentication-details-source-ref="authenticationDetailsSource" />
-		<logout logout-success-url="/login" logout-url="/logout.do" />
+		<logout logout-url="/logout.do" success-handler-ref="logoutHandler" />
 	</http>
+
+	<bean id="logoutHandler" class="org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler">
+		<property name="targetUrlParameter" value="redirect" />
+		<property name="defaultTargetUrl" value="/login" />
+	</bean>
 
 	<bean id="uiRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.DelegatingRequestMatcher">
 		<constructor-arg>
@@ -208,6 +217,18 @@
 		<property name="autoApproveClients" value="#{@config['oauth']==null?'vmc':(@config['oauth']['client']?.autoapprove?:'vmc')}" />
 	</bean>
 
+	<bean id="authorizationRequestFactory" class="org.cloudfoundry.identity.uaa.oauth.UaaAuthorizationRequestFactory">
+		<constructor-arg ref="clientDetails" />
+		<property name="defaultScopes">
+			<set>
+				<value>openid</value>
+				<value>cloud_controller.read</value>
+				<value>cloud_controller.write</value>
+				<value>password.write</value>
+			</set>
+		</property>
+	</bean>
+
 	<bean id="tokenServices" class="org.springframework.security.oauth2.provider.token.DefaultTokenServices">
 		<property name="supportRefreshToken" value="true" />
 		<property name="tokenStore" ref="tokenStore" />
@@ -221,7 +242,8 @@
 	</bean>
 
 	<oauth:authorization-server client-details-service-ref="clientDetails" token-services-ref="tokenServices"
-		user-approval-handler-ref="userApprovalHandler">
+		user-approval-handler-ref="userApprovalHandler" authorization-request-factory-ref="authorizationRequestFactory"
+		parameters-validator-ref="authorizationRequestFactory">
 		<oauth:authorization-code />
 		<oauth:implicit />
 		<oauth:refresh-token />
@@ -283,7 +305,7 @@
 		</property>
 		<property name="defaultViews">
 			<bean class="org.springframework.web.servlet.view.json.MappingJacksonJsonView">
-				<property name="extractValueFromSingleKeyModel" value="true"/>
+				<property name="extractValueFromSingleKeyModel" value="true" />
 			</bean>
 		</property>
 	</bean>
@@ -297,11 +319,6 @@
 
 	<bean id="checkTokenEndpoint" class="org.cloudfoundry.identity.uaa.oauth.CheckTokenEndpoint">
 		<property name="tokenServices" ref="tokenServices" />
-	</bean>
-
-	<bean id="tokenAdminEndpoints" class="org.cloudfoundry.identity.uaa.oauth.TokenAdminEndpoints">
-		<property name="tokenServices" ref="tokenServices" />
-		<property name="scimUserProvisioning" ref="scimUserProvisioning"/>
 	</bean>
 
 	<bean id="accessController" class="org.cloudfoundry.identity.uaa.oauth.AccessController">
@@ -330,7 +347,7 @@
 
 	<bean id="loginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LoginAuthenticationManager">
 		<!-- Add new user accounts automatically -->
-		<property name="addNewAccounts" value="${login.addnew:true}"/>
+		<property name="addNewAccounts" value="${login.addnew:true}" />
 		<property name="scimUserBootstrap" ref="scimUserBootstrap" />
 	</bean>
 

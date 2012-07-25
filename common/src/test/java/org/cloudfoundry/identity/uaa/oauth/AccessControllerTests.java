@@ -19,8 +19,8 @@ import java.util.Map;
 
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
+import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
 import org.springframework.security.oauth2.provider.InMemoryClientDetailsService;
 import org.springframework.ui.ModelMap;
 
@@ -37,8 +37,7 @@ public class AccessControllerTests {
 		InMemoryClientDetailsService clientDetailsService = new InMemoryClientDetailsService();
 		clientDetailsService.setClientDetailsStore(Collections.singletonMap("client", new BaseClientDetails()));
 		controller.setClientDetailsService(clientDetailsService);
-		String result = controller.confirm(new AuthorizationRequest("client", null, null, null), new ModelMap(),
-				new MockHttpServletRequest());
+		String result = controller.confirm(new ModelMap(), new MockHttpServletRequest());
 		assertEquals("access_confirmation", result);
 	}
 
@@ -52,7 +51,8 @@ public class AccessControllerTests {
 		request.setScheme("https");
 		request.addHeader("Host", "foo");
 		ModelMap model = new ModelMap();
-		controller.confirm(new AuthorizationRequest("client", null, null, null), model, request);
+		model.put("authorizationRequest",new DefaultAuthorizationRequest("client", null));
+		controller.confirm(model, request);
 		Map<String, Object> options = (Map<String, Object>) ((Map<String, Object>) model.get("options")).get("confirm");
 		assertEquals("https://foo/oauth/authorize", options.get("location"));
 		assertEquals("/oauth/authorize", options.get("path"));

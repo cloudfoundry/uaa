@@ -17,7 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.cloudfoundry.identity.uaa.openid.OpenIdUserDetails;
+import org.cloudfoundry.identity.uaa.social.SocialClientUserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
@@ -49,8 +49,8 @@ public class TreeController {
 	private void addUserInfo(Model model, Principal principal) {
 		model.addAttribute("principal", principal);
 		Map<String,String> attributes = new HashMap<String, String>();
-		if (principal instanceof OpenIdUserDetails) {
-			OpenIdUserDetails user = (OpenIdUserDetails) principal;
+		if (principal instanceof SocialClientUserDetails) {
+			SocialClientUserDetails user = (SocialClientUserDetails) principal;
 			model.addAttribute("userName", user.getUsername());
 			model.addAttribute("email", user.getEmail());
 		}

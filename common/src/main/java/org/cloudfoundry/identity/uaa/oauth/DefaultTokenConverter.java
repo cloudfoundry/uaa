@@ -12,14 +12,11 @@
  */
 package org.cloudfoundry.identity.uaa.oauth;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.openid.UserInfo;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
@@ -43,11 +40,6 @@ public class DefaultTokenConverter implements AccessTokenConverter {
 			response.put(UserInfo.USER_ID, principal.getId());
 			response.put(UserInfo.USER_NAME, principal.getName());
 			response.put(UserInfo.EMAIL, principal.getEmail());
-			Collection<? extends GrantedAuthority> authorities = authentication.getUserAuthentication()
-					.getAuthorities();
-			if (authorities != null) {
-				response.put("user_authorities", getAuthorities(authorities));
-			}
 
 		}
 		response.put(OAuth2AccessToken.SCOPE, token.getScope());
@@ -62,21 +54,10 @@ public class DefaultTokenConverter implements AccessTokenConverter {
 		response.putAll(token.getAdditionalInformation());
 
 		response.put("client_id", clientToken.getClientId());
-		if (clientToken.getAuthorities() != null) {
-			response.put("client_authorities", getAuthorities(clientToken.getAuthorities()));
-		}
 		if (clientToken.getResourceIds() != null && !clientToken.getResourceIds().isEmpty()) {
 			response.put("aud", clientToken.getResourceIds());
 		}
 		return response;
-	}
-
-	private Collection<String> getAuthorities(Collection<? extends GrantedAuthority> authorities) {
-		Collection<String> result = new ArrayList<String>();
-		for (GrantedAuthority authority : authorities) {
-			result.add(authority.getAuthority());
-		}
-		return result;
 	}
 
 }

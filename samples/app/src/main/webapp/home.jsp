@@ -17,18 +17,9 @@
 <html>
 <body>
 
-	<h1>OpenID Sample Home Page</h1>
+	<h1>Sample Home Page</h1>
 
-	<p>
-		Welcome
-		<c:if test="${!principal.principal.newUser}"> back,</c:if>
-		${principal.principal.name}
-	</p>
-	<c:if test="${principal.principal.newUser}">
-		<p>As a first time user of this site, your OpenID identity has
-			been registered by the application and will be recognized if you
-			return.</p>
-	</c:if>
+	<p>Welcome ${principal.principal.name}</p>
 	<h3>Technical Information</h3>
 	<p>Your principal object is....: ${principal}</p>
 	<p>Your OAuth2 tokens: ${tokens}</p>

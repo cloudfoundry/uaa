@@ -24,10 +24,10 @@ import org.mockito.Matchers;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.util.Log4jConfigurer;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
+import org.springframework.web.context.support.StandardServletEnvironment;
 
 /**
  * @author Dave Syer
@@ -39,7 +39,7 @@ public class YamlServletProfileInitializerTests {
 
 	private ConfigurableWebApplicationContext context = Mockito.mock(ConfigurableWebApplicationContext.class);
 
-	private StandardEnvironment environment = new StandardEnvironment();
+	private StandardServletEnvironment environment = new StandardServletEnvironment();
 
 	private ServletConfig servletConfig = Mockito.mock(ServletConfig.class);
 
@@ -140,7 +140,22 @@ public class YamlServletProfileInitializerTests {
 	}
 
 	@Test
-	public void testLoadServletonfiguredResource() throws Exception {
+	public void testLoadServletConfiguredFilename() throws Exception {
+
+		Mockito.when(servletConfig.getInitParameter("CONFIG_FILE_NAME")).thenReturn("foo.yml");
+		Mockito.when(servletConfig.getInitParameter("CLOUD_FOUNDRY_CONFIG_PATH")).thenReturn("/config/path");
+		Mockito.when(context.getResource(Matchers.eq("file:/config/path/foo.yml"))).thenReturn(
+				new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
+
+		initializer.initialize(context);
+
+		assertEquals("bar", environment.getProperty("foo"));
+		assertEquals("baz", environment.getProperty("spam.foo"));
+
+	}
+
+	@Test
+	public void testLoadServletConfiguredResource() throws Exception {
 
 		Mockito.when(servletConfig.getInitParameter("environmentConfigFile")).thenReturn("foo.yml");
 		Mockito.when(context.getResource(Matchers.eq("foo.yml"))).thenReturn(

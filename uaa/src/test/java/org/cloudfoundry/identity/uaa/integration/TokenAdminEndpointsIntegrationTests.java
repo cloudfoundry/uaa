@@ -165,7 +165,7 @@ public class TokenAdminEndpointsIntegrationTests {
 	static class TokenResourceOwnerPassword extends ResourceOwnerPasswordResourceDetails {
 		public TokenResourceOwnerPassword(TestAccounts testAccounts) {
 			ResourceOwnerPasswordResourceDetails resource = ((UaaTestAccounts) testAccounts)
-					.getResourceOwnerPasswordResource(new String[] { "read", "write" }, "oauth.clients.token", "token",
+					.getResourceOwnerPasswordResource(new String[] { "tokens.read", "tokens.write" }, "oauth.clients.token", "token",
 							"tokenclientsecret", testAccounts.getUserName(), testAccounts.getPassword());
 			OAuth2ContextConfiguration.ResourceHelper.initialize(resource, this);
 			setUsername(resource.getUsername());

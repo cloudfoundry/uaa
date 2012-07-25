@@ -62,7 +62,7 @@ public class ClientAdminEndpointsIntegrationTests {
 	@Test
 	public void testGetClient() throws Exception {
 
-		OAuth2AccessToken token = getClientCredentialsAccessToken("read");
+		OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read");
 
 		HttpHeaders headers = getAuthenticatedHeaders(token);
 		ResponseEntity<String> result = serverRunning.getForString("/oauth/clients/vmc", headers);
@@ -73,7 +73,7 @@ public class ClientAdminEndpointsIntegrationTests {
 	@Test
 	public void testListClients() throws Exception {
 
-		OAuth2AccessToken token = getClientCredentialsAccessToken("read");
+		OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read");
 
 		HttpHeaders headers = getAuthenticatedHeaders(token);
 		ResponseEntity<String> result = serverRunning.getForString("/oauth/clients", headers);
@@ -86,12 +86,11 @@ public class ClientAdminEndpointsIntegrationTests {
 	@Test
 	public void testCreateClient() throws Exception {
 
-		OAuth2AccessToken token = getClientCredentialsAccessToken("read,write");
+		OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write");
 
 		HttpHeaders headers = getAuthenticatedHeaders(token);
-		BaseClientDetails client = new BaseClientDetails("", "foo,bar", "client_credentials", "ROLE_CLIENT");
+		BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar", "client_credentials", "uaa.none");
 		client.setClientSecret("clientSecret");
-		client.setClientId(new RandomValueStringGenerator().generate());
 		ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
 				HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
 		assertEquals(HttpStatus.CREATED, result.getStatusCode());
@@ -100,10 +99,21 @@ public class ClientAdminEndpointsIntegrationTests {
 
 	@Test
 	public void nonImplicitGrantClientWithoutSecretIsRejected() throws Exception {
-		OAuth2AccessToken token = getClientCredentialsAccessToken("read,write");
+		OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write");
 		HttpHeaders headers = getAuthenticatedHeaders(token);
-		BaseClientDetails client = new BaseClientDetails("", "foo,bar", "client_credentials", "ROLE_CLIENT");
-		client.setClientId(new RandomValueStringGenerator().generate());
+		BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar", "client_credentials", "uaa.none");
+		ResponseEntity<UaaException> result = serverRunning.getRestTemplate().exchange(
+				serverRunning.getUrl("/oauth/clients"), HttpMethod.POST,
+				new HttpEntity<BaseClientDetails>(client, headers), UaaException.class);
+		assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
+		assertEquals("invalid_client", result.getBody().getErrorCode());
+	}
+
+	@Test
+	public void implicitAndAuthCodeGrantClient() throws Exception {
+		OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write");
+		HttpHeaders headers = getAuthenticatedHeaders(token);
+		BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar", "implicit,authorization_code", "uaa.none");
 		ResponseEntity<UaaException> result = serverRunning.getRestTemplate().exchange(
 				serverRunning.getUrl("/oauth/clients"), HttpMethod.POST,
 				new HttpEntity<BaseClientDetails>(client, headers), UaaException.class);
@@ -113,10 +123,9 @@ public class ClientAdminEndpointsIntegrationTests {
 
 	@Test
 	public void implicitGrantClientWithoutSecretIsOk() throws Exception {
-		OAuth2AccessToken token = getClientCredentialsAccessToken("read,write");
+		OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write");
 		HttpHeaders headers = getAuthenticatedHeaders(token);
-		BaseClientDetails client = new BaseClientDetails("", "foo,bar", "implicit", "ROLE_CLIENT");
-		client.setClientId(new RandomValueStringGenerator().generate());
+		BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar", "implicit", "uaa.none");
 		ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
 				HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
 
@@ -126,13 +135,12 @@ public class ClientAdminEndpointsIntegrationTests {
 	@Test
 	public void testUpdateClient() throws Exception {
 
-		OAuth2AccessToken token = getClientCredentialsAccessToken("read,write");
+		OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write");
 
 		HttpHeaders headers = getAuthenticatedHeaders(token);
 
-		BaseClientDetails client = new BaseClientDetails("", "foo,bar", "client_credentials", "ROLE_CLIENT");
+		BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar", "client_credentials", "uaa.none");
 		client.setClientSecret("clientSecret");
-		client.setClientId(new RandomValueStringGenerator().generate());
 		ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
 				HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
 		assertEquals(HttpStatus.CREATED, result.getStatusCode());
@@ -149,12 +157,11 @@ public class ClientAdminEndpointsIntegrationTests {
 	@Test
 	public void testChangeSecret() throws Exception {
 
-		OAuth2AccessToken token = getClientCredentialsAccessToken("read,write,password");
+		OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write,clients.secret");
 
 		HttpHeaders headers = getAuthenticatedHeaders(token);
 
-		BaseClientDetails client = new BaseClientDetails("", "foo,bar", "client_credentials", "ROLE_CLIENT");
-		client.setClientId(new RandomValueStringGenerator().generate());
+		BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar", "client_credentials", "uaa.none");
 		client.setClientSecret("secret");
 		ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
 				HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
@@ -174,13 +181,12 @@ public class ClientAdminEndpointsIntegrationTests {
 	@Test
 	public void testDeleteClient() throws Exception {
 
-		OAuth2AccessToken token = getClientCredentialsAccessToken("read,write");
+		OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write");
 
 		HttpHeaders headers = getAuthenticatedHeaders(token);
 
-		BaseClientDetails client = new BaseClientDetails("", "foo,bar", "client_credentials", "ROLE_CLIENT");
+		BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar", "client_credentials", "uaa.none");
 		client.setClientSecret("clientSecret");
-		client.setClientId(new RandomValueStringGenerator().generate());
 		ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
 				HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
 		assertEquals(HttpStatus.CREATED, result.getStatusCode());
