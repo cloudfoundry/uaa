@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.TreeSet;
 
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.springframework.security.core.GrantedAuthority;
@@ -47,9 +48,11 @@ public class UaaAuthorizationRequestFactoryTests {
 
 	private BaseClientDetails client = new BaseClientDetails();
 
-	{
+	@Before
+	public void init() {
 		parameters.put("client_id", "foo");
 		factory = new UaaAuthorizationRequestFactory(clientDetailsService);
+		factory.setSecurityContextAccessor(new StubSecurityContextAccessor());
 		Mockito.when(clientDetailsService.loadClientByClientId("foo")).thenReturn(client);
 	}
 
@@ -80,10 +83,9 @@ public class UaaAuthorizationRequestFactoryTests {
 			}
 		};
 		factory.setSecurityContextAccessor(securityContextAccessor);
-		client.setScope(StringUtils.commaDelimitedListToSet("one,two"));
+		client.setScope(StringUtils.commaDelimitedListToSet("one,two,foo.bar"));
 		AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
-		assertEquals(StringUtils.commaDelimitedListToSet("one,two,foo.bar,spam.baz"),
-				new TreeSet<String>(request.getScope()));
+		assertEquals(StringUtils.commaDelimitedListToSet("one,two,foo.bar"), new TreeSet<String>(request.getScope()));
 	}
 
 	@Test
@@ -110,13 +112,13 @@ public class UaaAuthorizationRequestFactoryTests {
 		AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
 		assertEquals(StringUtils.commaDelimitedListToSet("foo,spam"), request.getResourceIds());
 	}
-	
+
 	@Test
 	public void testScopesValid() throws Exception {
 		factory.validateParameters(parameters, new BaseClientDetails("foo", null, "read,write", "implicit", null));
 	}
 
-	@Test(expected=InvalidScopeException.class)
+	@Test(expected = InvalidScopeException.class)
 	public void testScopesInvalid() throws Exception {
 		parameters.put("scope", "admin");
 		factory.validateParameters(parameters, new BaseClientDetails("foo", null, "read,write", "implicit", null));

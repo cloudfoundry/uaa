@@ -16,6 +16,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
@@ -138,8 +139,8 @@ public class UaaAuthorizationRequestFactory implements AuthorizationRequestFacto
 			}
 		}
 
-		if (securityContextAccessor.isUser()) {
-			scopes = addUserScopes(scopes, securityContextAccessor.getAuthorities());
+		if (!"client_credentials".equals(grantType) && securityContextAccessor.isUser()) {
+			scopes = addUserScopes(scopes, securityContextAccessor.getAuthorities(), clientDetails);
 		}
 
 		Set<String> resourceIds = getResourceIds(clientDetails, scopes);
@@ -177,10 +178,12 @@ public class UaaAuthorizationRequestFactory implements AuthorizationRequestFacto
 	 * Add or remove scopes derived from the current authenticated user's authorities (if any)
 	 * 
 	 * @param scopes the initial set of scopes from the client registration
+	 * @param clientDetails
 	 * @param collection the users authorities
 	 * @return modified scopes adapted according to the rules specified
 	 */
-	private Set<String> addUserScopes(Set<String> scopes, Collection<? extends GrantedAuthority> authorities) {
+	private Set<String> addUserScopes(Set<String> scopes, Collection<? extends GrantedAuthority> authorities,
+			ClientDetails clientDetails) {
 
 		Set<String> result = new LinkedHashSet<String>(scopes);
 		Set<String> collection = AuthorityUtils.authorityListToSet(authorities);
@@ -197,6 +200,13 @@ public class UaaAuthorizationRequestFactory implements AuthorizationRequestFacto
 			if (excludeScopes.containsKey(authority)) {
 				Collection<String> excludes = excludeScopes.get(authority);
 				result.removeAll(excludes);
+			}
+		}
+
+		for (Iterator<String> iter = result.iterator(); iter.hasNext();) {
+			String scope = iter.next();
+			if (!clientDetails.getScope().contains(scope)) {
+				iter.remove();
 			}
 		}
 
