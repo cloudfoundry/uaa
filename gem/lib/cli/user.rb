@@ -11,102 +11,64 @@
 # subcomponent's license, as noted in the LICENSE file.
 #++
 
-require 'thor'
-require 'interact'
-require 'cli/base'
+require 'cli/common'
 require 'uaa'
 
 module CF::UAA
 
-class UserCli < BaseCli
-  namespace :user
-  def self.banner(task, namespace = true, subcommand = true)
-    "#{basename} #{task.formatted_usage(self, true, subcommand)}"
-  end
+class UserCli < CommonCli
 
-  desc "add [username] [password]", "adds a user account"
-  map "a" => "add"
-  method_option :given_name, type: :string, aliases: "-g"
-  method_option :family_name, type: :string, aliases: "-f"
-  method_option :email, type: :string, aliases: "-e"
-  def add(username = nil, pwd = nil)
-    return help(__method__) if help?
-    username, pwd = name_pwd(username, pwd)
-    email = opts[:email] || (username if username =~ /@/)
-    gname = opts[:given_name] || username
-    fname = opts[:family_name] || username
-    pp acct_request { |ua| ua.create(username, pwd, email, gname, fname) }
-  end
+  topic "User accounts"
 
-  desc "list [attributes] [filter]", "list user accounts"
-  map "l" => "list"
-  def list(attributes = nil, filter = nil)
-    return help(__method__) if help?
+  define_option :given_name, "--given_name <name>"
+  define_option :family_name, "--family_name <name>"
+  define_option :email, "--email <address>"
+  define_option :groups, "--groups <groups>"
+  USER_INFO_OPTS = [:given_name, :family_name, :email, :groups]
+
+  desc "users [<attributes>] [<filter>]", "List user accounts" do |attributes, filter|
     pp acct_request { |ua| ua.query(attributes, filter) }
   end
 
-  desc "delete [username]", "delete user account"
-  map "d" => "delete"
-  def delete(username = nil)
-    return help(__method__) if help?
-    username ||= ask("User name")
-    acct_request { |ua| ua.delete_by_name(username) }
+  desc "user add [<name>]", "Add a user account", USER_INFO_OPTS + [:password] do |name|
+    email = opts[:email] || (name if name =~ /@/)
+    gname = opts[:given_name] || name
+    fname = opts[:family_name] || name
+    pp acct_request { |ua| ua.create(*user_pwd(name, opts[:password]), email, gname, fname, opts[:groups]) }
   end
 
-  desc "get [username]", "get user account information"
-  map "g" => "get"
-  def get(username = nil)
-    return help(__method__) if help?
-    username ||= ask("User name")
-    pp acct_request { |ua| ua.get_by_name(username) }
+  desc "user delete [<name>]", "Delete user account" do |name|
+    acct_request { |ua| ua.delete_by_name(name || ask("User name")) }
   end
 
-  desc "password [username] [pwd]", "set password"
-  map "p" => "password"
-  def password(username = nil, pwd = nil)
-    return help(__method__) if help?
-    username, pwd = name_pwd(username, pwd)
-    acct_request { |ua| ua.change_password_by_name(username, pwd) }
+  desc "user get [<name>]", "Get specific user account" do |name|
+    pp acct_request { |ua| ua.get_by_name(name || ask("User to delete")) }
   end
 
-  desc "info", "get authenticated user information"
-  map "i" => "info"
-  def info
-    return help(__method__) if help?
-    pp id_request { |id| id.user_info }
+  desc "user password set [<name>]", "Set password", [:password] do |name|
+    acct_request { |ua| ua.change_password_by_name(*user_pwd(name, opts[:password])) }
   end
 
-  desc "tokens [username]", "list granted tokens"
-  map "t" => "tokens"
-  def tokens(username = nil)
-    return help(__method__) if help?
-    username ||= ask("User name")
-    pp acct_request { |ua| ua.list_tokens(username) }
-  end
-
-  desc "revoke username token_id", "revoke token"
-  map "r" => "revoke"
-  def revoke(username, token_id)
-    return help(__method__) if help?
-    pp acct_request { |ua| ua.revoke_token(username, token_id) }
+  define_option :old_password, "-o", "--old_password <password>", "current password"
+  desc "user password change [<name>]", "Change password", [:old_password, :password] do |name|
+    name ||= ask("User name")
+    opwd = verified_pwd("Current password", opts[:old_password])
+    npwd = verified_pwd("New password", opts[:password])
+    # TODO: verify the uaa will take a name instead of id here. If not, how
+    # get their own id so they can change their own password?
+    handle_request { UserAccount.change_password(Config.target, name, opwd, npwd) }
   end
 
   private
 
   def acct_request
-    return yield UserAccount.new(cur_target_url, auth_header, trace?)
+    return yield UserAccount.new(Config.target, auth_header)
   rescue TargetError => e
-    puts "#{e.message}:\n#{JSON.pretty_generate(e.info)}"
+    say "#{e.message}:\n#{JSON.pretty_generate(e.info)}"
+    nil
   rescue Exception => e
-    puts e.message, (e.backtrace if trace?)
-  end
-
-  def id_request
-    return yield IdToken.new(cur_target_url, auth_header, trace?)
-  rescue TargetError => e
-    puts "#{e.message}:\n#{JSON.pretty_generate(e.info)}"
-  rescue Exception => e
-    puts e.message, (e.backtrace if trace?)
+    say e.message, (e.backtrace if trace?)
+    nil
   end
 
 end
