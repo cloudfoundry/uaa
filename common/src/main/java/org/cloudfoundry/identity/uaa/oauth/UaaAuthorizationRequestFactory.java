@@ -12,10 +12,11 @@
  */
 package org.cloudfoundry.identity.uaa.oauth;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
@@ -51,29 +52,19 @@ public class UaaAuthorizationRequestFactory implements AuthorizationRequestFacto
 
 	private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
 
-	private Map<String, Collection<String>> includeScopes = new HashMap<String, Collection<String>>();
-
-	private Map<String, Collection<String>> excludeScopes = new HashMap<String, Collection<String>>();
+	private Collection<String> defaultScopes = new HashSet<String>();
 
 	public UaaAuthorizationRequestFactory(ClientDetailsService clientDetailsService) {
 		this.clientDetailsService = clientDetailsService;
 	}
 
 	/**
-	 * Map from authority name to collection of scope names. A token request on behalf of a user will contain all the
-	 * scopes mapped to his authorities (if any, or else just the authority value).
+	 * Default scopes that are always added to a user token (and then removed if the client doesn't have permission).
 	 * 
-	 * @param includeScopes the includeScopes to set
+	 * @param defaultScopes the defaultScopes to set
 	 */
-	public void setIncludeScopes(Map<String, Collection<String>> includeScopes) {
-		this.includeScopes = includeScopes;
-	}
-
-	/**
-	 * @param excludeScopes the excludeScopes to set
-	 */
-	public void setExcludeScopes(Map<String, Collection<String>> excludeScopes) {
-		this.excludeScopes = excludeScopes;
+	public void setDefaultScopes(Collection<String> defaultScopes) {
+		this.defaultScopes = defaultScopes;
 	}
 
 	/**
@@ -135,11 +126,10 @@ public class UaaAuthorizationRequestFactory implements AuthorizationRequestFacto
 			else {
 				// The default for a user token is the scopes registered with the client
 				scopes = clientDetails.getScope();
+				if (securityContextAccessor.isUser()) {
+					scopes = checkUserScopes(scopes, securityContextAccessor.getAuthorities(), clientDetails);
+				}
 			}
-		}
-
-		if (securityContextAccessor.isUser()) {
-			scopes = addUserScopes(scopes, securityContextAccessor.getAuthorities());
 		}
 
 		Set<String> resourceIds = getResourceIds(clientDetails, scopes);
@@ -177,26 +167,24 @@ public class UaaAuthorizationRequestFactory implements AuthorizationRequestFacto
 	 * Add or remove scopes derived from the current authenticated user's authorities (if any)
 	 * 
 	 * @param scopes the initial set of scopes from the client registration
+	 * @param clientDetails
 	 * @param collection the users authorities
 	 * @return modified scopes adapted according to the rules specified
 	 */
-	private Set<String> addUserScopes(Set<String> scopes, Collection<? extends GrantedAuthority> authorities) {
+	private Set<String> checkUserScopes(Set<String> scopes, Collection<? extends GrantedAuthority> authorities,
+			ClientDetails clientDetails) {
 
 		Set<String> result = new LinkedHashSet<String>(scopes);
-		Set<String> collection = AuthorityUtils.authorityListToSet(authorities);
+		Set<String> allowed = new LinkedHashSet<String>(AuthorityUtils.authorityListToSet(authorities));
 
-		// Add in all includes, using the authority values themselves if no mapping is provided
-		for (String authority : collection) {
-			Collection<String> includes = includeScopes.containsKey(authority) ? includeScopes.get(authority) : Arrays
-					.asList(authority);
-			result.addAll(includes);
-		}
+		// Add in all default scopes, using the authority values themselves if no mapping is provided
+		allowed.addAll(defaultScopes);
+		result.addAll(defaultScopes);
 
-		// Remove any explicit excludes
-		for (String authority : collection) {
-			if (excludeScopes.containsKey(authority)) {
-				Collection<String> excludes = excludeScopes.get(authority);
-				result.removeAll(excludes);
+		for (Iterator<String> iter = result.iterator(); iter.hasNext();) {
+			String scope = iter.next();
+			if (!clientDetails.getScope().contains(scope) || !allowed.contains(scope)) {
+				iter.remove();
 			}
 		}
 
