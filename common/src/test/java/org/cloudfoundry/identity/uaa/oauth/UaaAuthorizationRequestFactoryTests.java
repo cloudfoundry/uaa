@@ -16,6 +16,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -89,6 +90,66 @@ public class UaaAuthorizationRequestFactoryTests {
 	}
 
 	@Test
+	public void testOpenidScopeIncludeIsAResourceId() {
+		SecurityContextAccessor securityContextAccessor = new StubSecurityContextAccessor() {
+			@Override
+			public boolean isUser() {
+				return true;
+			}
+
+			@Override
+			public Collection<? extends GrantedAuthority> getAuthorities() {
+				return AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz");
+			}
+		};
+		parameters.put("scope", "openid foo.bar");
+		factory.setDefaultScopes(Arrays.asList("openid"));
+		factory.setSecurityContextAccessor(securityContextAccessor);
+		client.setScope(StringUtils.commaDelimitedListToSet("openid,foo.bar"));
+		AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
+		assertEquals(StringUtils.commaDelimitedListToSet("openid,foo.bar"), new TreeSet<String>(request.getScope()));
+		assertEquals(StringUtils.commaDelimitedListToSet("openid,foo"), new TreeSet<String>(request.getResourceIds()));
+	}
+
+	@Test
+	public void testEmptyScopeOkForClientWithNoScopes() {
+		SecurityContextAccessor securityContextAccessor = new StubSecurityContextAccessor() {
+			@Override
+			public boolean isUser() {
+				return true;
+			}
+
+			@Override
+			public Collection<? extends GrantedAuthority> getAuthorities() {
+				return AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz");
+			}
+		};
+		factory.setSecurityContextAccessor(securityContextAccessor);
+		client.setScope(StringUtils.commaDelimitedListToSet("")); // empty
+		AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
+		assertEquals(StringUtils.commaDelimitedListToSet(""), new TreeSet<String>(request.getScope()));
+	}
+
+	@Test(expected=InvalidScopeException.class)
+	public void testEmptyScopeFailsClientWithScopes() {
+		SecurityContextAccessor securityContextAccessor = new StubSecurityContextAccessor() {
+			@Override
+			public boolean isUser() {
+				return true;
+			}
+
+			@Override
+			public Collection<? extends GrantedAuthority> getAuthorities() {
+				return AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz");
+			}
+		};
+		factory.setSecurityContextAccessor(securityContextAccessor);
+		client.setScope(StringUtils.commaDelimitedListToSet("one,two")); // not empty
+		AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
+		assertEquals(StringUtils.commaDelimitedListToSet(""), new TreeSet<String>(request.getScope()));
+	}
+
+	@Test
 	public void testResourecIdsExtracted() {
 		client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz"));
 		parameters.put("grant_type", "client_credentials");
@@ -98,7 +159,7 @@ public class UaaAuthorizationRequestFactoryTests {
 
 	@Test
 	public void testResourecIdsDoNotIncludeUaa() {
-		client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.bar,spam.baz"));
+		client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none,spam.baz"));
 		parameters.put("grant_type", "client_credentials");
 		AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
 		assertEquals(StringUtils.commaDelimitedListToSet("spam"), request.getResourceIds());
