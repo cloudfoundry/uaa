@@ -126,10 +126,11 @@ public class UaaAuthorizationRequestFactory implements AuthorizationRequestFacto
 			else {
 				// The default for a user token is the scopes registered with the client
 				scopes = clientDetails.getScope();
-				if (securityContextAccessor.isUser()) {
-					scopes = checkUserScopes(scopes, securityContextAccessor.getAuthorities(), clientDetails);
-				}
 			}
+		}
+
+		if (!"client_credentials".equals(grantType) && securityContextAccessor.isUser()) {
+			scopes = checkUserScopes(scopes, securityContextAccessor.getAuthorities(), clientDetails);
 		}
 
 		Set<String> resourceIds = getResourceIds(clientDetails, scopes);
@@ -137,6 +138,9 @@ public class UaaAuthorizationRequestFactory implements AuthorizationRequestFacto
 		DefaultAuthorizationRequest request = new DefaultAuthorizationRequest(authorizationParameters);
 		request.setScope(scopes);
 		request.addClientDetails(clientDetails);
+
+		// TODO: remove this when SECOAUTH-308 is fixed
+		validateParameters(request.getAuthorizationParameters(), clientDetails);
 
 		return request;
 
@@ -157,7 +161,8 @@ public class UaaAuthorizationRequestFactory implements AuthorizationRequestFacto
 			}
 			for (String scope : OAuth2Utils.parseParameterList(parameters.get("scope"))) {
 				if (!validScope.contains(scope)) {
-					throw new InvalidScopeException("Invalid scope: " + scope, validScope);
+					throw new InvalidScopeException("Invalid scope: " + scope
+							+ ". Did you know that you can get default scopes by simply sending no value?", validScope);
 				}
 			}
 		}
@@ -179,13 +184,28 @@ public class UaaAuthorizationRequestFactory implements AuthorizationRequestFacto
 
 		// Add in all default scopes, using the authority values themselves if no mapping is provided
 		allowed.addAll(defaultScopes);
-		result.addAll(defaultScopes);
-
-		for (Iterator<String> iter = result.iterator(); iter.hasNext();) {
+		// Find intersection of user authorities and client scopes:
+		for (Iterator<String> iter = allowed.iterator(); iter.hasNext();) {
 			String scope = iter.next();
-			if (!clientDetails.getScope().contains(scope) || !allowed.contains(scope)) {
+			if (!clientDetails.getScope().contains(scope)) {
 				iter.remove();
 			}
+		}
+
+		// Weed out disallowed scopes:
+		for (Iterator<String> iter = result.iterator(); iter.hasNext();) {
+			String scope = iter.next();
+			if (!allowed.contains(scope)) {
+				iter.remove();
+			}
+		}
+
+		// TODO: maybe move this to the validateParameters method
+		if (result.isEmpty()) {
+			throw new InvalidScopeException(
+					"Invalid scope (empty) - this user is not allowed any of the requested scopes: " + scopes
+							+ " (either you requested a scope that was not allowed or client '"
+							+ clientDetails.getClientId() + "' is not allowed to act on behalf of this user)", allowed);
 		}
 
 		return result;
