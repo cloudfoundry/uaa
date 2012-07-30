@@ -398,6 +398,9 @@ public class ClientAdminEndpoints implements InitializingBean {
 	}
 
 	private ClientDetails removeSecret(ClientDetails client) {
+		if (client == null) {
+			return null;
+		}
 		BaseClientDetails details = new BaseClientDetails();
 		details.setClientId(client.getClientId());
 		details.setScope(client.getScope());
