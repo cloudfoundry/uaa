@@ -62,8 +62,7 @@ class Topic
   end
 
   def pp(obj, indent_count = 0, indent_size = 4, line_limit = terminal_columns, label = nil)
-    line = ""
-    indent_count.times { line << sprintf("%*c", indent_size, ' ') }
+    line = indent_count == 0 ? "": sprintf("%*c", indent_count * indent_size, ' ')
     line << label if label
     case obj
     when Array
@@ -76,7 +75,7 @@ class Topic
       end
     when Hash
       if label
-        say Util.truncate(line, line_limit), "\n"
+        say Util.truncate(line, line_limit)
         indent_count += 1
       end
       obj.each { |k, v| pp v, indent_count, indent_size, line_limit, "#{k}: " }
@@ -95,7 +94,7 @@ class Topic
     end
     return @output.printf("\n") unless text && !text.empty?
     text = text.dup
-    width = wrap - start
+    width = wrap == 0 ? 8 * 1024 : wrap - start
     text.each_line do |line|
       line = line.chomp
       while line.length > width

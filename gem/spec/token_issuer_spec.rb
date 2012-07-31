@@ -11,6 +11,7 @@
 # subcomponent's license, as noted in the LICENSE file.
 #++
 
+require 'set'
 require 'spec_helper'
 require 'uaa/token_issuer'
 require 'stub_uaa'
@@ -19,19 +20,20 @@ module CF::UAA
 
 describe TokenIssuer do
 
+  include SpecHelper
+
   before :all do
     #Util.default_logger(:trace)
     @stub_uaa = StubUAA.new.run_on_thread
-    admin_group = @stub_uaa.scim.add(:group, {display_name: "client_admin"})
-    readers = @stub_uaa.scim.add(:group, {display_name: "read_logs"})
-    openid = @stub_uaa.scim.add(:group, {display_name: "openid"})
-    @stub_uaa.scim.add(:client, {display_name: "test_client", password: "test_secret",
-        authorized_grant_types: ["client_credentials", "authorization_code", "password"],
-        groups: [admin_group[:id], readers[:id], openid[:id]],
-        access_token_validity: 60 * 60 * 24 * 7 })
-    @stub_uaa.scim.add(:user, {user_name: "joe+admin", password: "?joe's%password$@ ",
-        groups: [openid[:id]]})
-    @issuer = TokenIssuer.new(@stub_uaa.url, "test_client", "test_secret", "read_logs")
+    readers = @stub_uaa.scim.add(:group, {displayname: "logs.read"})
+    @stub_uaa.scim.add(:client, {displayname: "test_client", password: "test_secret",
+        authorized_grant_types: ["client_credentials", "authorization_code"],
+        groups: [readers[:id], @stub_uaa.scim.name_to_id("scim.read"),
+            @stub_uaa.scim.name_to_id("openid")],
+        access_token_validity: 60 * 60 * 24 * 8 })
+    @stub_uaa.scim.add(:user, {username: "joe+admin", password: "?joe's%password$@ ",
+        groups: [@stub_uaa.scim.name_to_id("openid")]})
+    @issuer = TokenIssuer.new(@stub_uaa.url, "test_client", "test_secret")
     @issuer.async = @async = false
   end
 
@@ -39,21 +41,14 @@ describe TokenIssuer do
   subject { @issuer }
   before :each do @stub_uaa.reply_badly = :none end
 
-  def request
-    return yield unless @async
-    cthred = Thread.current
-    EM.schedule { Fiber.new { yield; cthred.run }.resume }
-    Thread.stop
-  end
-
   def check_good_token(token, scope, client_id)
+    scope = Util.arglist(scope).to_set
     token.info[:access_token].should_not be_nil
     token.info[:token_type].should match /^bearer$/i
-    token.info[:scope].should == scope
-    token.info[:expires_in].should == 3600
+    Util.arglist(token.info[:scope]).to_set.should == scope
+    token.info[:expires_in].should == 60 * 60 * 24 * 8
     contents = TokenCoder.decode(token.info[:access_token])
-    contents[:aud].should == scope
-    contents[:scope].should == scope
+    Util.arglist(contents[:scope]).to_set.should == scope
     contents[:jti].should_not be_nil
     contents[:client_id].should == client_id
   end
@@ -62,45 +57,30 @@ describe TokenIssuer do
   context "with client credentials grant" do
 
     it "should get a token with client credentials" do
-      request do
-        check_good_token subject.client_credentials_grant, "read_logs", "test_client"
-      end
+      result = frequest { subject.client_credentials_grant("logs.read") }
+      check_good_token result, "logs.read", "test_client"
     end
 
     it "should get all granted scopes if none specified" do
-      request do
-        all_scopes = ["read_logs", "client_admin", "openid"].sort!
-        subject.default_scope = nil
-        token = subject.client_credentials_grant
-        Util.arglist(token.info[:scope]).sort!.should == all_scopes
-        contents = TokenCoder.decode(token.info[:access_token])
-        Util.arglist(contents[:scope]).sort!.should == all_scopes
-      end
+      result = frequest { subject.client_credentials_grant }
+      check_good_token result, "logs.read scim.read openid", "test_client"
     end
 
     it "should raise a bad response error if response content type is not json" do
       @stub_uaa.reply_badly = :non_json
-      request do
-        expect { subject.client_credentials_grant }.should raise_exception(BadResponse)
-      end
+      result = frequest { subject.client_credentials_grant }
+      result.should be_an_instance_of BadResponse
     end
 
     it "should raise a bad response error if the response is not proper json" do
       @stub_uaa.reply_badly = :bad_json
-      request do
-        expect { subject.client_credentials_grant }.should raise_exception(BadResponse)
-      end
+      result = frequest { subject.client_credentials_grant }
+      result.should be_an_instance_of BadResponse
     end
 
     it "should raise a target error if the response is 400 with valid oauth json error" do
-      request do
-        begin
-          subject.client_credentials_grant "bad_scope"
-          fail "TargetError exception not raised"
-        rescue TargetError => e
-          e.info[:error].should == "invalid_scope"
-        end
-      end
+      result = frequest { subject.client_credentials_grant("bad.scope") }
+      result.should be_an_instance_of TargetError
     end
 
   end
@@ -108,10 +88,8 @@ describe TokenIssuer do
   context "with owner password grant" do
 
     it "should get a token with owner password" do
-      request do
-        token = subject.owner_password_grant("joe+admin", "?joe's%password$@ ", "openid")
-        check_good_token token, "openid", "test_client"
-      end
+      result = frequest { subject.owner_password_grant("joe+admin", "?joe's%password$@ ", "openid") }
+      check_good_token result, "openid", "test_client"
     end
 
   end

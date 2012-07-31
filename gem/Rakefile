@@ -12,22 +12,22 @@
 
 require "rspec/core/rake_task"
 #require "bundler/gem_tasks" # only available in bundler >= 1.0.15
-require "rdoc/task"
+#require "rdoc/task" # rdoc for current interfaces not written yet
 require "ci/reporter/rake/rspec"
 
 ENV['CI_REPORTS'] = File.expand_path("spec_reports")
 
-task :default => [:cover]
+task :default => [:test]
 
 RSpec::Core::RakeTask.new("test") do |t|
   t.rspec_opts = ["--format", "documentation", "--colour"]
   t.pattern = "spec/**/*_spec.rb"
 end
 
-RDoc::Task.new do |rd|
-  rd.rdoc_files.include("lib/**/*.rb")
-  rd.rdoc_dir = "doc"
-end
+#RDoc::Task.new do |rd|
+#  rd.rdoc_files.include("lib/**/*.rb")
+#  rd.rdoc_dir = "doc"
+#end
 
 task :ci => [:pre_coverage, :rcov_reports, "ci:setup:rspec", :test]
 task :cov => [:pre_coverage, :test, :view_coverage]

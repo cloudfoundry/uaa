@@ -50,14 +50,14 @@ class ClientReg
   #     redirect_uri (array of strings or space or comma separated fields),
 
   def create(info)
-    info = Util.hash_keys(info, :tosym)
+    info = Util.hash_keys(info)
     raise ArgumentError, "a client registration must specify a unique client id" unless info[:client_id]
     info = self.class.multivalues_to_arrays! info
     json_parse_reply *json_post("/oauth/clients", info, @auth_header)
   end
 
   def update(info)
-    info = Util.hash_keys(info, :tosym)
+    info = Util.hash_keys(info)
     raise ArgumentError, "a client registration update must specify a unique client id" unless info[:client_id]
     info = self.class.multivalues_to_arrays! info
     json_parse_reply *json_put("/oauth/clients/#{URI.encode(info[:client_id])}", info, @auth_header)

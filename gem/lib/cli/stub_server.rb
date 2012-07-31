@@ -73,14 +73,14 @@ class Reply
     headers.each { |k, v| reply << "#{k.to_s.gsub('_', '-')}: #{v}\r\n" }
     reply << "\r\n" << body
   end
-  def json(info, status = nil)
+  def json(status = nil, info)
     info = {message: info} unless info.respond_to? :each
     @status = status if status
     headers[:content_type] = "application/json"
     @body = info.to_json
     nil
   end
-  def text(info, status = nil)
+  def text(status = nil, info)
     @status = status if status
     headers[:content_type] = "text/plain"
     @body = info.pretty_inspect
@@ -136,19 +136,19 @@ class Base
   rescue Exception => e
     server.logger.debug "exception from route handler: #{e.message}"
     server.trace { e.backtrace }
-    reply_in_kind e, 500
+    reply_in_kind 500, e
   end
 
-  def reply_in_kind(info, status = nil)
+  def reply_in_kind(status = nil, info)
     case request.headers[:accept]
-    when /application\/json/ then reply.json(info, status)
-    when /text\/html/ then reply.html(info, status)
-    else reply.text(info, status)
+    when /application\/json/ then reply.json(status, info)
+    when /text\/html/ then reply.html(status, info)
+    else reply.text(status, info)
     end
   end
 
   def default_route
-    reply_in_kind("path not handled", 404)
+    reply_in_kind(404, error: "path not handled")
   end
 
 end
