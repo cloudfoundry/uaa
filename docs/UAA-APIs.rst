@@ -601,11 +601,11 @@ Response body   *example*::
 
 =============== ===============================================================
 
-Register Client: ``POST /oauth/clients/{client_id}``
+Register Client: ``POST /oauth/clients``
 -------------------------------------------------------
 
 ==============  ===============================================
-Request         ``POST /oauth/clients/{client_id}``
+Request         ``POST /oauth/clients``
 Access          allowed by clients or users with ``ROLE_ADMIN`` and ``scope=write``
 Request body    client details
 Response code    ``201 CREATED`` if successful
