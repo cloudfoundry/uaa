@@ -18,15 +18,15 @@ module CF::UAA
 
 class InfoCli < CommonCli
 
-  topic "System information"
+  topic "System Information"
 
-  desc "who am i", "get authenticated user information" do
-    pp handle_request { Misc.whoami Config.target, auth_header }
-  end
-
-  desc "uaa", "get information about current target uaa" do
+  desc "info", "get information about current target" do
     return say "target not set" unless Config.target
     pp handle_request { Misc.server Config.target }
+  end
+
+  desc "me", "get authenticated user information" do
+    pp handle_request { Misc.whoami Config.target, auth_header }
   end
 
   desc "prompts", "Show prompts for credentials required for implicit grant post" do
@@ -42,6 +42,10 @@ class InfoCli < CommonCli
 
   desc "statistics", "Show UAA's current usage statistics" do
     say "/varz request not implemented"
+  end
+
+  desc "password strength [<password>]", "calculate strength scoe of a password" do
+    say "password strength request not implemented"
   end
 
 end

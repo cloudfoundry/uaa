@@ -20,17 +20,13 @@ module CF::UAA
 
 describe ClientReg do
 
+  include SpecHelper
+
   before :all do
     #Util.default_logger(:trace)
-    @stub_uaa = StubUAA.new.run_on_thread
-    admin_group = @stub_uaa.scim.add(:group, {display_name: "client_admin"})
-    @stub_uaa.scim.add(:group, {display_name: "foo"})
-    @stub_uaa.scim.add(:group, {display_name: "bar"})
-    @stub_uaa.scim.add(:client, {display_name: "test_client", password: "test_secret",
-        authorized_grant_types: ["client_credentials", "authorization_code"],
-        groups: [admin_group[:id]], access_token_validity: 60 * 60 * 24 * 7 })
-    @issuer = TokenIssuer.new(@stub_uaa.url, "test_client", "test_secret", nil)
-    @token = @issuer.client_credentials_grant
+    id, secret = "testclient", "testsecret"
+    @stub_uaa = StubUAA.new(id, secret).run_on_thread
+    @token = TokenIssuer.new(@stub_uaa.url, id, secret).client_credentials_grant
     @client_reg = ClientReg.new(@stub_uaa.url, @token.auth_header)
     @client_reg.async = @async = false
   end
@@ -38,29 +34,19 @@ describe ClientReg do
   after :all do @stub_uaa.stop if @stub_uaa end
   subject { @client_reg }
 
-  def request
-    return yield unless @async
-    cthred = Thread.current
-    EM.schedule { Fiber.new { yield; cthred.run }.resume }
-    Thread.stop
-  end
-
   it "should register a client" do
     new_client = { client_id: "new_client", client_secret: "new_client_secret",
-      authorities: "foo bar", authorized_grant_types: "client_credentials authorization_code",
+      authorities: "password.write openid",
+      authorized_grant_types: "client_credentials authorization_code",
       access_token_validity: 60 * 60 * 24 * 7 }
-    request do
-      subject.create(new_client).should be_nil
-    end
+    frequest { subject.create(new_client)}.should be_nil
   end
 
   it "should get a client registration" do
-    request do
-      result = subject.get "new_client"
-      result[:client_id].should == "new_client"
-      result[:authorities].should include "bar"
-      result[:authorized_grant_types].should include "authorization_code"
-    end
+    result = frequest { subject.get "new_client" }
+    result[:client_id].should == "new_client"
+    result[:authorities].should include "openid"
+    result[:authorized_grant_types].should include "authorization_code"
   end
 
 end

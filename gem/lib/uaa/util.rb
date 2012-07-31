@@ -41,12 +41,13 @@ class Util
     when :todash then k.to_s.tr('_', '-')
     when :uncamel then k.to_s.gsub(/([A-Z])([^A-Z]*)/,'_\1\2').downcase.to_sym
     when :tocamel then k.to_s.gsub(/(_[a-z])([^_]*)/) { $1[1].upcase + $2 }
-    when :tosym then k.to_s.to_sym
+    when :tosym then k.to_s.downcase.to_sym
     when :tostr then k.to_s
+    else raise "unknown hash key style: #{style}"
     end
   end
 
-  def self.hash_keys(obj, style)
+  def self.hash_keys(obj, style = :tosym)
     return obj.collect {|o| hash_keys(o, style)} if obj.is_a? Array
     return obj unless obj.is_a? Hash
     obj.each_with_object({}) {|(k, v), h| h[hash_key(k, style)] = hash_keys(v, style) }

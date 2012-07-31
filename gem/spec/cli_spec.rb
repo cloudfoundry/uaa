@@ -17,24 +17,30 @@ require 'cli'
 require 'stub_uaa'
 require 'pp'
 
+# these tests CAN be run against a new UAA, but they make changes to the UAA
+# admin client registration and are not repeatable for multiple test runs.
+#
+# Example config for integration tests with defaults:
+#    ENV["UAA_CLIENT_ID"] = "admin"
+#    ENV["UAA_CLIENT_SECRET"] = "adminsecret"
+# if UAA_CLI_TARGET is not configured, tests will use the internal stub server
+#    ENV["UAA_CLI_TARGET"] = "http://localhost:8080/uaa"
+
 module CF::UAA
 
 describe Cli do
 
   before :all do
     #Util.default_logger(:trace)
-    @stub_uaa = StubUAA.new.run_on_thread
-    cadmin_group = @stub_uaa.scim.add(:group, {display_name: "client_admin"})
-    uadmin_group = @stub_uaa.scim.add(:group, {display_name: "user_admin"})
-    openid_group = @stub_uaa.scim.add(:group, {display_name: "openid"})
-    @openid = openid_group[:id]
-    @stub_uaa.scim.add(:client, {display_name: "admin", password: "adminsecret",
-        authorized_grant_types: ["client_credentials"],
-        groups: [cadmin_group[:id]], access_token_validity: 5 * 60 })
-    @stub_uaa.scim.add(:client, {display_name: "vmc",
-        authorized_grant_types: ["implicit"],
-        requestable_scopes: [@openid], access_token_validity: 5 * 60 })
     Cli.configure("", nil, StringIO.new)
+    @client_id = ENV["UAA_CLIENT_ID"] || "admin"
+    @client_secret = ENV["UAA_CLIENT_SECRET"] || "adminsecret"
+    if ENV["UAA_CLI_TARGET"]
+      @target, @stub_uaa = ENV["UAA_CLIENT_TARGET"], nil
+    else
+      @stub_uaa = StubUAA.new(@client_id, @client_secret).run_on_thread
+      @target = @stub_uaa.url
+    end
   end
   after :all do @stub_uaa.stop if @stub_uaa end
   before :each do Cli.output.string = "" end
@@ -66,42 +72,42 @@ describe Cli do
   end
 
   it "should get server info" do
-    Cli.run("target #{@stub_uaa.url}")
-    Cli.output.string.should match @stub_uaa.host
+    Cli.run("target #{@target}")
+    Cli.output.string.should match URI.parse(@target).host
     Cli.output.string = ""
-    Cli.run("uaa")
-    Cli.output.string.should match VERSION
+    Cli.run("info")
+    Cli.output.string.should match /\d.\d.\d/
     Cli.output.string.should match "prompts"
   end
 
   it "should login as admin client" do
-    Cli.run "target #{@stub_uaa.url}"
+    Cli.run "target #{@target}"
     Cli.run "token client get admin -s adminsecret"
     Config.yaml.should match(/access_token/)
   end
 
   it "should fail to create a user account" do
     Cli.run "user add joe -p joe"
-    Cli.output.string.should match /access denied/
+    Cli.output.string.should match /access_denied/
   end
 
   it "should update the admin client" do
-    Cli.run "client update admin --authorities client_admin,user_admin"
+    Cli.run "client update admin --authorities clients.write,clients.read,uaa.admin,clients.secret,scim.write,scim.read"
     Cli.output.string = ""
     Cli.run "client get admin"
-    Cli.output.string.should match /client_admin/
-    Cli.output.string.should match /user_admin/
+    Cli.output.string.should match /scim\.read/
+    Cli.output.string.should match /scim\.write/
   end
 
   it "should still fail to create a user account" do
     Cli.run "user add joe -p joe"
-    Cli.output.string.should match /access denied/
+    Cli.output.string.should match /access_denied/
   end
 
   it "should create a user account with a new token" do
-    Cli.run "token client get admin -s adminsecret"
-    Cli.run "user add joe -p joe --groups #{@openid} --email joe@example.com"
-    Cli.output.string.should_not match /access denied/
+    Cli.run "token client get #{@client_id} -s #{@client_secret}"
+    Cli.run "user add joe -p joe --email joe@example.com"
+    Cli.output.string.should_not match /access_denied/
     Cli.output.string = ""
     Cli.run "user get joe"
     Cli.output.string.should match /joe/
@@ -120,7 +126,7 @@ describe Cli do
   end
 
   it "should get authenticated user information" do
-    Cli.run "who am i"
+    Cli.run "me"
     Cli.output.string.should match /joe/
   end
 
