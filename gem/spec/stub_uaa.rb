@@ -29,13 +29,17 @@ class StubUAAConn < Stub::Base
 
   # current uaa token contents: exp, user_name, scope, email, user_id,
   #    client_id, client_authorities, user_authorities
-  def token(client, scope, user = nil)
+  def token_reply_info(client, scope, user = nil, state = nil)
+    interval = client[:access_token_validity] || 3600
     token_body = { jti: SecureRandom.uuid, aud: scope, scope: scope,
-        client_id: client[:display_name]}
+        client_id: client[:displayname], exp: interval + Time.now.to_i }
     token_body[:user_id] = user[:id] if user
     token_body[:email] = user[:emails][0][:value] if user && user[:emails]
-    token_body[:user_name] = user[:user_name] if user && user[:user_name]
-    TokenCoder.encode(token_body, nil, nil, 'none')
+    token_body[:user_name] = user[:username] if user && user[:username]
+    info = { access_token: TokenCoder.encode(token_body, nil, nil, 'none'),
+        token_type: "bearer", expires_in: interval, scope: scope}
+    info[:state] = state if state
+    info
   end
 
   def auth_client(basic_auth_header)
@@ -56,7 +60,8 @@ class StubUAAConn < Stub::Base
     contents = TokenCoder.decode(ah[1])
     contents[:scope], required_scope = Util.arglist(contents[:scope]), Util.arglist(required_scope)
     return contents if required_scope.nil? || !(required_scope & contents[:scope]).empty?
-    access_denied "not in scope"
+    reply_in_kind({error: "insufficient_scope",
+        error_description: "required scope #{Util.strlist(required_scope)}"}, 403)
     nil
   end
 
@@ -80,7 +85,7 @@ class StubUAAConn < Stub::Base
   def ids_to_names(ids); ids.map { |id| server.scim.id_to_name(id) } end
   def names_to_ids(names); names.map { |name| server.scim.name_to_id(name) } end
 
-  CLIENT_SCIM = [[:password, :client_secret], [:display_name, :client_id],
+  CLIENT_SCIM = [[:password, :client_secret], [:displayname, :client_id],
     [:groups, :authorities]]
   def to_scim(attr_map, hsh)
     attr_map.each_with_object(hsh) { |m, h| h[m[0]] = h.delete(m[1]) if h.key?(m[1]) }
@@ -105,8 +110,7 @@ class StubUAAConn < Stub::Base
   def default_route; reply_in_kind({error: "not found", error_description: "unknown path #{request.path}"}, 404) end
   def bad_request(message = nil); reply_in_kind({error: "bad request#{message ? ',' : ''} #{message}"}, 400) end
   def oauth_error(err); reply.json({error: err}, 400) end
-  def not_found; reply_in_kind({error: "not found"}, 404) end
-  def access_denied(message = nil); reply_in_kind( {error: "access denied#{message ? ',' : ''} #{message}"}, 403) end
+  def not_found(name = nil); reply_in_kind({error: "#{name} not found"}, 404) end
 
   route :get, '/' do
     reply_in_kind "welcome to stub UAA, version #{VERSION}"
@@ -119,7 +123,7 @@ class StubUAAConn < Stub::Base
 
   route :post, '/oauth/clients' do
     return bad_request unless request.headers[:content_type] == "application/json"
-    return unless valid_token("client_admin")
+    return unless valid_token("clients.write")
     reg = client_to_scim(Util.json_parse(request.body))
     server.scim.add(:client, reg)
     reply.status = 201
@@ -127,15 +131,15 @@ class StubUAAConn < Stub::Base
 
   route :put, %r{^/oauth/clients/([^/]+)$} do
     return bad_request unless request.headers[:content_type] == "application/json"
-    return unless valid_token("client_admin")
+    return unless valid_token("clients.write")
     reg = client_to_scim(Util.json_parse(request.body))
     server.scim.update(server.scim.name_to_id(match[1]), reg)
     reply.status = 204
   end
 
   route :get, %r{^/oauth/clients/([^/]+)$} do
-    return unless valid_token("client_read client_admin")
-    return not_found unless client = server.scim.find_by_name(match[1])
+    return unless valid_token("clients.read")
+    return not_found(match[1]) unless client = server.scim.find_by_name(match[1])
     reply_in_kind(scim_to_client(client))
   end
 
@@ -173,7 +177,7 @@ class StubUAAConn < Stub::Base
     unless user = find_user(creds[:username], creds[:password])
       return redir_with_fragment(cburi, error: "access_denied", state: query[:state])
     end
-    possible_scope = ids_to_names(client[:requestable_scopes])
+    possible_scope = ids_to_names(client[:scope])
     requested_scope = query[:scope] ? Util.arglist(query[:scope]) : possible_scope
     granted_scope = ids_to_names(user[:groups]) & requested_scope # handle auto-deny
     if granted_scope.empty? || !(requested_scope - possible_scope).empty?
@@ -181,9 +185,7 @@ class StubUAAConn < Stub::Base
     end
     # TODO: how to stub any remaining scopes that are not auto-approve?
     granted_scope = Util.strlist(granted_scope)
-    redir_with_fragment(cburi, access_token: token(client, granted_scope, user),
-        token_type: "bearer", expires_in: 3600, scope: granted_scope,
-        state: query[:state])
+    redir_with_fragment(cburi, token_reply_info(client, granted_scope, user, query[:state]))
   end
 
   route :post, "/oauth/token", do
@@ -204,14 +206,12 @@ class StubUAAConn < Stub::Base
       scope = ids_to_names(user[:groups])
       scope = Util.strlist(Util.arglist(params[:scope], scope) & scope)
       return reply.json({error: "invalid_scope"}, 400) if scope.empty?
-      reply.json(access_token: token(client, scope, user), token_type: "bearer",
-          expires_in: 3600, scope: scope)
+      reply.json(token_reply_info(client, scope, user))
     when "client_credentials"
       scope = ids_to_names(client[:groups])
       scope = Util.strlist(Util.arglist(params[:scope], scope) & scope)
       return reply.json({error: "invalid_scope"}, 400) if scope.empty?
-      reply.json(access_token: token(client, scope), token_type: "bearer",
-          expires_in: 3600, scope: scope)
+      reply.json(token_reply_info(client, scope))
     else
       reply.json({error: "unsupported_grant_type"}, 400)
     end
@@ -220,36 +220,57 @@ class StubUAAConn < Stub::Base
 
   route :post, "/User" do
     return bad_request unless request.headers[:content_type] == "application/json"
-    return unless valid_token("user_admin")
-    user = server.scim.add(:user, Util.json_parse(request.body, :uncamel))
-    reply.json(Util.hash_keys(user, :tocamel))
+    return unless valid_token("scim.write")
+    info = Util.json_parse(request.body).merge!(active: true)
+    (info[:groups] ||= []) << server.scim.name_to_id("openid")
+    user = server.scim.add(:user, info).dup
+    user.delete(:password)
+    user.delete(:rtype)
+    reply.json(Util.hash_keys(user, :tostr))
   end
 
   route :put, %r{^/User/([^/]+)/password$} do
+    return bad_request unless request.headers[:content_type] == "application/json"
+    return unless valid_token("password.write")
+    return not_found(match[1]) unless user = server.scim.find_by_id(match[1], :user)
+    info = Util.json_parse(request.body)
+    return bad_request("no new password given") unless info[:password]
+    user[:password] = info[:password]
+    reply.status = 204
   end
 
   route :get, %r{^/Users\?(.*)$} do
     return bad_request unless request.headers[:content_type] == "application/json"
-    return unless valid_token("user_admin")
-    query = Util.decode_form_to_hash(match[1])
-    unless (m = /username eq '([^']+)'/.match(query[:filter]))
+    return unless valid_token("scim.read")
+    query, name = Util.decode_form_to_hash(match[1]), nil
+    if !query || !query[:filter]
+      users = server.scim.things(:user)
+    elsif !(m = /username eq '([^']+)'/.match(query[:filter]))
       return bad_request("only filter of the form \"username eq 'joe'\" is implemented")
+    else
+      users = [server.scim.find_by_name(name = m[1], :user)]
     end
-    unless (thing = server.scim.find_by_name(m[1])) && thing[:rtype] == :user
-      return not_found
-    end
-    reply.json(Util.hash_keys(thing, :tocamel))
+    return not_found(name) if users.empty?
+    reply.json(resources: Util.hash_keys(users, :tostr))
   end
 
   route :get, %r{^/User/([^/]+)$} do
+    return bad_request unless request.headers[:content_type] == "application/json"
+    return unless valid_token("scim.read")
+    return not_found(match[1]) unless user = server.scim.find_by_id(match[1], :user).dup
+    user.delete(:password)
+    user.delete(:rtype)
+    reply.json Util.hash_keys(user, :tostr)
   end
 
   route :delete, %r{^/User/([^/]+)$} do
   end
 
   route :get, %r{^/userinfo\??(.*)$} do
-    return not_found unless tokn = valid_token("openid")
-    reply.json(server.scim.find_by_id(tokn[:user_id]))
+    return not_found unless (tokn = valid_token("openid")) &&
+        (info = server.scim.find_by_id(tokn[:user_id])) && info[:username]
+    info[:user_name] = info.delete(:username)
+    reply.json(info)
   end
 
 end
@@ -259,8 +280,17 @@ class StubUAA < Stub::Server
   attr_accessor :reply_badly
   attr_reader :scim
 
-  def initialize(logger = Util.default_logger)
+  def initialize(boot_client = "admin", boot_secret = "adminsecret", logger = Util.default_logger)
     @scim = StubScim.new
+    ["scim.read", "scim.write", "password.write", "openid"]
+        .each { |g| @scim.add(:group, displayname: g) }
+    gids = ["clients.write", "clients.read", "clients.secret", "uaa.admin"]
+        .each_with_object([]) { |s, o| o << @scim.add(:group, displayname: s)[:id] }
+    @scim.add(:client, displayname: boot_client, password: boot_secret,
+        authorized_grant_types: ["client_credentials"], groups: gids,
+        access_token_validity: 60 * 60 * 24 * 7)
+    @scim.add(:client, {displayname: "vmc", authorized_grant_types: ["implicit"],
+        scope: [@scim.name_to_id("openid")], access_token_validity: 5 * 60 })
     super(StubUAAConn, logger)
   end
 

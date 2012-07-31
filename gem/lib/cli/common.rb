@@ -29,13 +29,10 @@ class CommonCli < Topic
     "#{ttype} #{token}"
   end
 
-  def user_pwd(name, pwd)
-    [ name || ask("User name"), verified_pwd("Password", pwd) ]
-  end
-
-  def client_secret(client_id, secret)
-    [ client_id || ask("Client id"), verified_pwd("Client secret", secret) ]
-  end
+  def username(name); name || ask("User name") end
+  def userpwd(pwd); pwd || ask_pwd("Password") end
+  def clientname(name); name || ask("Client name") end
+  def clientsecret(name); name || ask_pwd("Client secret") end
 
   def verified_pwd(prompt, pwd = nil)
     while pwd.nil?
@@ -113,7 +110,7 @@ class MiscCli < CommonCli
 
   desc "context [<name>]", "Display or set current context" do |ctx|
     Config.context = ctx if ctx
-    opts[:trace] ? Config.delete_attr(:trace) : Config.add_opts(trace: true) if opts.key?(:trace)
+    (opts[:trace] ? Config.add_opts(trace: true) : Config.delete_attr(:trace)) if opts.key?(:trace)
     return say "no context set in target #{Config.target}" unless Config.context
     say "context set to #{Config.context}, with target #{Config.target}"
   end
@@ -138,16 +135,6 @@ class MiscCli < CommonCli
       end
     end
     say ""
-  end
-
-  define_option :all, "--[no-]all", "-a", "remove all contexts"
-  desc "logout [<contexts...>]",
-      "Remove current or specified context tokens and settings", [:all] do |*args|
-    return Config.delete if opts[:all]
-    args.pop if args[0].nil?
-    return args.each { |arg| Config.delete(Config.target, arg) } unless args.empty?
-    return Config.delete(Config.target, Config.context) if Config.context
-    say "no target set, no contexts given -- nothing to log out"
   end
 
   def normalize_url(url, scheme = nil)
