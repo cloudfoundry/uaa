@@ -77,7 +77,7 @@ Browser Requests Code: ``GET /oauth/authorize``
 
         HTTP/1.1 302 Found
         Location: https://www.cloudfoundry.example.com?code=F45jH
-		
+
 * Response Codes::
 
         302 - Found
@@ -135,7 +135,7 @@ All requests to this endpoint MUST be over SSL.
 
         HTTP/1.1 302 Found
         Location: oauth:redirecturi#access_token=2YotnFZFEjr1zCsicMWpAA&token_type=bearer
-		
+
 * Response Codes::
 
         302 - Found
@@ -184,7 +184,7 @@ This endpoint mirrors the OpenID Connect ``/check_id`` endpoint, so not very RES
             "user_name":"marissa",
             "client_id":"vmc"
         }
-		
+
 Notes:
   
 * The ``user_name`` is the same as you get from the `OpenID Connect`_ ``/userinfo`` endpoint.  The ``id`` field is the same as you would use to get the full user profile from ``/User``.
@@ -235,7 +235,7 @@ Login Information API: ``GET /login``
 ---------------------------------------
 
 An endpoint which returns login information, e.g prompts for authorization codes or one-time passwords. This allows vmc to determine what login information it should collect from the user.
-	
+
 This call will be unauthenticated.
 
 ================  ===============================================
@@ -357,7 +357,7 @@ See `SCIM - Modifying with PUT <http://www.simplecloud.info/specs/draft-scim-res
             }
           ],
           "meta":{
-		    "version":2,
+            "version":2,
             "created":"2011-11-30T21:11:30.000Z",
             "lastModified":"2011-12-30T21:11:30.000Z"
           }
@@ -458,30 +458,35 @@ Deleting accounts is handled in the back end logically using the `active` flag, 
 * Request: ``GET /Users?attributes=id,userName&filter=userName co 'bjensen' and active eq false``
 * Response Body: list of users matching the filter
 
-Get the Token Signing Key: ``GET /token_key``
------------------------------------------------
 
-An endpoint which returns the JWT token key, used by the UAA to sign JWT access tokens, and to be used by authorized clients to verify that the key came from the UAA.
-	
-This call is authenticated with client credentials using the HTTP Basic method.
+Query the strength of a password: ``POST /password/score``
+-----------------------------------------------------------
 
-================  ==========================================
-Request           ``GET /token_key``
-Request body      *empty*
-Response body     *example* ::
+The password strength API is not part of SCIM but is provided as a service to allow user management applications to use the same password quality
+checking mechanism as the UAA itself. Rather than specifying a set of rules based on the included character types (upper and lower case, digits, symbols etc), the UAA
+exposes this API which accepts a candidate password and returns a JSON message containing a simple numeric score (between 0 and 10) and a required score
+(one which is acceptable to the UAA). The score is based on a calculation using the ideas from the  `zxcvbn project`_
 
-                    HTTP/1.1 200 OK
-                    Content-Type: text/plain
+.. zxcvbn project: http://tech.dropbox.com/?p=165
 
-                    {alg:HMACSHA256, value:FYSDKJHfgdUydsFJSHDFKAJHDSF}
+The use of this API does not guarantee that a password is strong (it is currently limited to English dictionary searches, for example), but it will protect against some of
+the worst choices that people make and will not unnecessarily penalise strong passwords.
 
-================  ==========================================
+* Request: ``POST /password/score
 
-The algorithm ("alg") tells the caller how to use the value (it is the
-result of algorithm method in the `Signer` implementation used in the
-token endpoint).  In this case it is an HMAC (symmetric) key, but you
-might also see an asymmetric RSA public key with algorithm
-"SHA256withRSA").
+    POST /password/score HTTP/1.1
+    Host: uaa.example.com
+    Content-Type: application/x-www-form-encoded
+
+    password=password1
+
+* Response
+    HTTP/1.1 200 OK
+    Content-Type: application/json
+
+    {"score": 0, "requiredScore": 5}
+
+
 
 Access Token Administration APIs
 =================================
@@ -547,6 +552,31 @@ Revoke Token by Client: ``DELETE /oauth/clients/{client_id}/tokens/{jti}``
 * Response body: *empty* ::
 
         HTTP/1.1 204 NO_CONTENT
+
+Get the Token Signing Key: ``GET /token_key``
+-----------------------------------------------
+
+An endpoint which returns the JWT token key, used by the UAA to sign JWT access tokens, and to be used by authorized clients to verify that a token came from the UAA.
+
+This call is authenticated with client credentials using the HTTP Basic method.
+
+================  ==========================================
+Request           ``GET /token_key``
+Request body      *empty*
+Response body     *example* ::
+
+                    HTTP/1.1 200 OK
+                    Content-Type: text/plain
+
+                    {alg:HMACSHA256, value:FYSDKJHfgdUydsFJSHDFKAJHDSF}
+
+================  ==========================================
+
+The algorithm ("alg") tells the caller how to use the value (it is the
+result of algorithm method in the `Signer` implementation used in the
+token endpoint).  In this case it is an HMAC (symmetric) key, but you
+might also see an asymmetric RSA public key with algorithm
+"SHA256withRSA").
 
 
 Client Registration Administration APIs
