@@ -5,7 +5,7 @@
 	<artifactId>cloudfoundry-identity-parent</artifactId>
 	<name>CloudFoundry Identity - Parent</name>
 	<packaging>pom</packaging>
-	<version>1.1.0.BUILD-SNAPSHOT</version>
+	<version>1.1.0</version>
     <url>http://github.com/cloudfoundry/uaa</url>
 	<modules>
 		<module>common</module>
