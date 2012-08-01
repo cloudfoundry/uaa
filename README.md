@@ -16,7 +16,8 @@ clients, as well as various other management functions.
   * Dave Syer (`dsyer@vmware.com`)
   * Luke Taylor (`ltaylor@vmware.com`)
   * Joel D'Sa (`jdsa@vmware.com`)
-* Team mailing list: `cf-id@vmware.com`
+  * Vidya Valmikinathan
+* Technical forum: [vcap-dev google group](https://groups.google.com/a/cloudfoundry.org/forum/?fromgroups#!forum/vcap-dev)
 * Docs: [docs/](https://github.com/cloudfoundry/uaa/tree/master/docs)
 
 ## Quick Start
@@ -88,7 +89,7 @@ You will be prompted for the client secret (`appclientsecret`), and
 then you should see your username and the client id of the original
 token grant on stdout, e.g.
 
-	id: 6e1ac414-f446-4869-9b41-41f1f41b96df
+    id: 6e1ac414-f446-4869-9b41-41f1f41b96df
     resource-ids: 
     -   tokens
     -   openid
@@ -466,10 +467,10 @@ default in the UAA only if there are no active Spring profiles (so not
 at all in `vcap`).  In the UAA you can find the registation in the
 `oauth-clients.xml` config file.  Here's a summary:
 
-	id: login
-	secret: loginsecret
+    id: login
+    secret: loginsecret
     authorized-grant-types: client_credentials
-	authorities: ROLE_LOGIN
+    authorities: ROLE_LOGIN
     resource-ids: oauth
 
 ### Use Cases
