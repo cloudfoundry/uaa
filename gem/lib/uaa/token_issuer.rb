@@ -24,21 +24,13 @@ require 'uaa/http'
 
 module CF::UAA
 
+# info hash MUST include access_token, token_type and scope (if
+# granted scope differs from requested scop). It should include expires_in.
+# It may include refresh_token, scope, and other values from the auth server.
 class Token
-
-  # info hash MUST include access_token, token_type and scope (if
-  # granted scope differs from requested scop). It should include expires_in.
-  # It may include refresh_token, scope, and other values from the auth server.
   attr_reader :info
-
-  def initialize(info)
-    @info = info
-  end
-
-  def auth_header
-    "#{info[:token_type]} #{info[:access_token]}"
-  end
-
+  def initialize(info); @info = info end
+  def auth_header; "#{info[:token_type]} #{info[:access_token]}" end
 end
 
 class TokenIssuer

@@ -88,7 +88,8 @@ class Misc
   # with the opaque token.
   def self.decode_token(target, client_id, client_secret, token, token_type = "bearer", audience_ids = nil)
     @target = target
-    reply = json_get("/check_token?token_type=#{token_type}&token=#{token}", Http.basic_auth(client_id, client_secret))
+    reply = json_get("/check_token?token_type=#{token_type}&token=#{token}",
+        Http.basic_auth(client_id, client_secret))
     auds = Util.arglist(reply[:aud] || reply[:resource_ids])
     if audience_ids && (!auds || (auds & audience_ids).empty?)
       raise AuthError, "invalid audience: #{auds.join(' ')}"
@@ -99,15 +100,23 @@ class Misc
   # this is an unauthenticated request so a client can change their secret if
   # they have the current secret.
   def self.change_secret(target, client_id, old_secret, new_secret)
+    @target = target
     req = { oldSecret: old_secret, secret: new_secret }
     json_parse_reply(*json_put("/oauth/clients/#{client_id}/password", req))
   end
 
   # this is an unauthenticated request so a user can change their password if
   # they have the current password.
-  def self.change_password(user_id, old_password, new_password)
+  def self.change_password(target, user_id, old_password, new_password)
+    @target = target
     req = { password: new_password, oldPassword: old_password }
     json_parse_reply(*json_put("/User/#{URI.encode(user_id)}/password", req))
+  end
+
+  def self.password_strength(target, password)
+    @target = target
+    json_parse_reply(*request(:post, '/password/score', URI.encode_www_form(password: password),
+        content_type: "application/x-www-form-urlencoded", accept: "application/json"))
   end
 
 end

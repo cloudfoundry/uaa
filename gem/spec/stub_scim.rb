@@ -20,31 +20,31 @@ class AlreadyExists < RuntimeError; end
 
 class StubScim
 
-  COMMON_ATTRS = [:external_id, :display_name, :groups]
+  COMMON_ATTRS = [:externalid, :displayname, :groups]
   BOOLEANS = [:active]
   NUMBERS = [:access_token_validity, :refresh_token_validity]
-  GROUPS = [:groups, :auto_approved_scopes, :requestable_scopes]
+  GROUPS = [:groups, :auto_approved_scopes, :scope]
   REFERENCES = [:members, :owners, :readers]
   ENUMS = { authorized_grant_types: ["client_credentials", "implicit",
       "authorization_code", "password", "refresh_token"] }
   COMMON_SUB_ATTRS = [:value, :display, :primary, :type]
-  NAME_SUB_ATTRS = [ :formatted, :family_name, :given_name, :middle_name,
-      :honorific_prefix, :honorific_suffix ]
-  ADDR_SUB_ATTRS = [ :formatted, :street_address, :locality, :region,
+  NAME_SUB_ATTRS = [ :formatted, :familyname, :givenname, :middlename,
+      :honorificprefix, :honorificsuffix ]
+  ADDR_SUB_ATTRS = [ :formatted, :streetaddress, :locality, :region,
       :postal_code, :country, :primary, :type ]
   AUTHZ_SUB_ATTRS = [ :client_id, :group, :exp ]
-  META_SUB_ATTRS = [:created, :last_modified, :location, :version]
-  GENERAL_MULTI = [:emails, :phone_numbers, :ims, :photos, :entitlements,
-      :roles, :x509_certificates]
-  NAME_ATTR = { user: :user_name, client: :display_name, group: :display_name }
+  META_SUB_ATTRS = [:created, :lastmodified, :location, :version]
+  GENERAL_MULTI = [:emails, :phonenumbers, :ims, :photos, :entitlements,
+      :roles, :x509certificates]
+  NAME_ATTR = { user: :username, client: :displayname, group: :displayname }
   LEGAL_ATTRS = {
-      user: COMMON_ATTRS + [:user_name, :nick_name,
-        :profile_url, :title, :user_type, :preferred_language, :locale,
-        :timezone, :active, :password, :emails, :phone_numbers, :ims, :photos,
+      user: COMMON_ATTRS + [:username, :nickname,
+        :profileurl, :title, :usertype, :preferredlanguage, :locale,
+        :timezone, :active, :password, :emails, :phonenumbers, :ims, :photos,
         :entitlements, :roles, :x509_certificates, :name, :addresses,
         :authorizations],
       client: COMMON_ATTRS + [:password, :authorized_grant_types,
-        :requestable_scopes, :auto_approved_scopes, :access_token_validity,
+        :scope, :auto_approved_scopes, :access_token_validity,
         :refresh_token_validity, :redirect_uris],
       group: COMMON_ATTRS + [:members, :owners, :readers] }
 
@@ -111,11 +111,11 @@ class StubScim
 
   def update(id, stuff)
     raise NotFound unless thing = find_by_id(id)
-    [:id, :meta, :password].each { |k| stuff.delete(k) }
+    [:id, :meta, :password, :rtype].each { |k| stuff.delete(k) }
     valid?(thing[:rtype], stuff)
     thing.merge! stuff
     thing[:meta][:version] += 1
-    thing[:meta][:last_modified] == Time.now.iso8601
+    thing[:meta][:lastmodified] == Time.now.iso8601
   end
 
   def remove(id)
@@ -123,14 +123,15 @@ class StubScim
     @things.delete(thing)
   end
 
-  def find_by_id(id)
+  def find_by_id(id, rtype = nil)
+    return unless id
     return unless i = @things.index { |thing| thing[:id] == id }
-    @things[i]
+    @things[i] if !rtype || rtype == @things[i][:rtype]
   end
 
   def find_by_name(name, rtype = nil)
     return unless name
-    return unless i = @things.index { |thing| thing[NAME_ATTR[thing[:rtype]]] == name }
+    return unless i = @things.index { |thing| name.casecmp(thing[NAME_ATTR[thing[:rtype]]]) == 0}
     @things[i] if !rtype || rtype == @things[i][:rtype]
   end
 

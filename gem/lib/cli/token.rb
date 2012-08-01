@@ -92,16 +92,18 @@ class TokenCli < CommonCli
   define_option :secret, "--secret <secret>", "-s", "client secret"
   desc "token client get [<name>]",
       "Gets a token with client credentials grant", [:secret, :scope] do |id|
-    id, secret = client_secret(id, opts[:secret])
+    id = clientname(id)
+    info = issuer_request(id, clientsecret(opts[:secret])) { |ti| ti.client_credentials_grant(opts[:scope]).info }
     Config.context = id
-    Config.add_opts issuer_request(id, secret) { |ti| ti.client_credentials_grant(opts[:scope]).info }
+    Config.add_opts info
   end
 
   define_option :password, "-p", "--password <password>", "user password"
   desc "token owner get [<client>] [<user>]", "Gets a token with a resource owner password grant",
       [:secret, :password, :scope] do |client, user|
-    user, pwd = name_pwd(user, pwd)
-    Config.add_opts issuer_request { |ti| ti.owner_password_grant(username, pwd, opts[:scope]).info }
+    Config.add_opts issuer_request(clientname(client), clientsecret(opts[:secret])) { |ti|
+        ti.owner_password_grant(username(user), userpwd(opts[:password], opts[:scope])).info
+    }
   end
 
   desc "token refresh [<refresh_token>]", "Gets a new access token from a refresh token", [:scope] do |rtok|
@@ -130,11 +132,11 @@ class TokenCli < CommonCli
     say "\nsuccessfully logged in\n"
   end
 
-  desc "token authcode", "Gets a token using the authcode flow with browser", [:client, :secret, :scope] do
-    use_browser(*client_secret(opts[:client], opts[:secret]))
+  desc "token authcode get", "Gets a token using the authcode flow with browser", [:client, :secret, :scope] do
+    use_browser(clientname(opts[:client]), clientsecret(opts[:secret]))
   end
 
-  desc "token implicit", "Gets a token using the implicit flow with browser", [:client, :scope] do
+  desc "token implicit get", "Gets a token using the implicit flow with browser", [:client, :scope] do
     use_browser opts[:client] || "vmc"
   end
 
@@ -155,6 +157,16 @@ class TokenCli < CommonCli
         say "\nNote: no key given to validate token signature\n\n" unless opts[:key]
       end
     end
+  end
+
+  define_option :all, "--[no-]all", "-a", "remove all contexts"
+  desc "token delete [<contexts...>]",
+      "Delete current or specified context tokens and settings", [:all] do |*args|
+    return Config.delete if opts[:all]
+    args.pop if args[0].nil?
+    return args.each { |arg| Config.delete(Config.target, arg) } unless args.empty?
+    return Config.delete(Config.target, Config.context) if Config.context
+    say "no target set, no contexts given -- nothing to log out"
   end
 
   private

@@ -18,7 +18,7 @@ module CF::UAA
 
 class UserCli < CommonCli
 
-  topic "User accounts"
+  topic "User Accounts"
 
   define_option :given_name, "--given_name <name>"
   define_option :family_name, "--family_name <name>"
@@ -30,33 +30,35 @@ class UserCli < CommonCli
     pp acct_request { |ua| ua.query(attributes, filter) }
   end
 
+  desc "user get [<name>]", "Get specific user account" do |name|
+    pp acct_request { |ua| ua.get_by_name(username(name)) }
+  end
+
   desc "user add [<name>]", "Add a user account", USER_INFO_OPTS + [:password] do |name|
+    name = username(name)
     email = opts[:email] || (name if name =~ /@/)
     gname = opts[:given_name] || name
     fname = opts[:family_name] || name
-    pp acct_request { |ua| ua.create(*user_pwd(name, opts[:password]), email, gname, fname, opts[:groups]) }
+    pwd = verified_pwd("Password", opts[:password])
+    pp acct_request { |ua| ua.create(name, pwd, email, gname, fname, opts[:groups]) }
   end
 
   desc "user delete [<name>]", "Delete user account" do |name|
-    acct_request { |ua| ua.delete_by_name(name || ask("User name")) }
-  end
-
-  desc "user get [<name>]", "Get specific user account" do |name|
-    pp acct_request { |ua| ua.get_by_name(name || ask("User to delete")) }
+    acct_request { |ua| ua.delete_by_name(username(name)) }
   end
 
   desc "user password set [<name>]", "Set password", [:password] do |name|
-    acct_request { |ua| ua.change_password_by_name(*user_pwd(name, opts[:password])) }
+    acct_request { |ua| ua.change_password_by_name(username(name),
+        verified_pwd("New password", opts[:password])) }
   end
 
   define_option :old_password, "-o", "--old_password <password>", "current password"
   desc "user password change [<name>]", "Change password", [:old_password, :password] do |name|
-    name ||= ask("User name")
-    opwd = verified_pwd("Current password", opts[:old_password])
-    npwd = verified_pwd("New password", opts[:password])
     # TODO: verify the uaa will take a name instead of id here. If not, how
     # get their own id so they can change their own password?
-    handle_request { UserAccount.change_password(Config.target, name, opwd, npwd) }
+    handle_request { UserAccount.change_password(Config.target, username(name),
+        opts[:old_password] || ask_pwd("Current password"),
+        verified_pwd("New password", opts[:password])) }
   end
 
   private

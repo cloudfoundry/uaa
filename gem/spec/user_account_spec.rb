@@ -19,14 +19,15 @@ module CF::UAA
 
 describe UserAccount do
 
-  before :all do
-    @stub_uaa = StubUAA.new.run_on_thread
-    admin_group = @stub_uaa.scim.add(:group, {display_name: "user_admin"})
-    @stub_uaa.scim.add(:client, {display_name: "test_client", password: "test_secret",
-        authorized_grant_types: ["client_credentials"], groups: [admin_group[:id]],
-        access_token_validity: 60 * 60 * 24 * 7 })
+  include SpecHelper
 
-    @issuer = TokenIssuer.new(@stub_uaa.url, "test_client", "test_secret", nil)
+  before :all do
+    #Util.default_logger(:trace)
+    id, secret = "testclient", "testsecret"
+    @stub_uaa = StubUAA.new(id, secret).run_on_thread
+    @stub_uaa.scim.find_by_name(id)[:groups] << @stub_uaa.scim.name_to_id("scim.read")
+    @stub_uaa.scim.find_by_name(id)[:groups] << @stub_uaa.scim.name_to_id("scim.write")
+    @issuer = TokenIssuer.new(@stub_uaa.url, id, secret)
     @token = @issuer.client_credentials_grant
     @user_acct = UserAccount.new(@stub_uaa.url, @token.auth_header)
     @user_acct.async = @async = false
@@ -35,22 +36,13 @@ describe UserAccount do
   after :all do @stub_uaa.stop if @stub_uaa end
   subject { @user_acct }
 
-  def request
-    return yield unless @async
-    cthred = Thread.current
-    EM.schedule { Fiber.new { yield; cthred.run }.resume }
-    Thread.stop
-  end
-
   it "should create a user account" do
     @email_addrs = 'jdoe@example.org'
-    request do
-      result = subject.create("jdoe", "password", "jdoe@example.org", "John", "Doe")
-      #puts result.inspect
-      result[:id].should_not be_nil
-      # TODO: result[:emails].should =~ ["jdoe@example.org"]
-      # TODO: result[:password].should_not be
-    end
+    result = frequest { subject.create("jdoe", "password", "jdoe@example.org", "John", "Doe") }
+    #puts result.inspect
+    result[:id].should_not be_nil
+    #result[:emails].should =~ "jdoe@example.org"
+    result[:password].should_not be
   end
 
 =begin

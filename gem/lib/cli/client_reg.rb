@@ -18,7 +18,7 @@ module CF::UAA
 
 class ClientCli < CommonCli
 
-  topic "Client application registrations"
+  topic "Client Application Registrations"
 
   CLIENT_SCHEMA =
   {
@@ -34,14 +34,13 @@ class ClientCli < CommonCli
   CLIENT_SCHEMA.each { |k, v| define_option(k, "--#{k} <#{v}>") }
 
   desc "clients", "List client registrations" do
-    reglist = client_reg_request { |cr| cr.list }
+    return unless reglist = client_reg_request { |cr| cr.list }
     reglist.each { |k, v| reglist[k] = ClientReg.multivalues_to_strings!(v) }
     pp reglist
   end
 
   desc "client get [<name>]", "Get specific client registration" do |name|
-    name ||= cur_client_id
-    pp client_reg_request { |cr| ClientReg.multivalues_to_strings!(cr.get(name)) }
+    pp client_reg_request { |cr| ClientReg.multivalues_to_strings!(cr.get(clientname(name))) }
   end
 
   define_option :clone, "--clone <other_client>", "get default client settings from existing client"
@@ -50,9 +49,9 @@ class ClientCli < CommonCli
 
   desc "client add [<name>]", "Add client registration",
       CLIENT_SCHEMA.keys + [:clone, :secret, :interact] do |name|
-    opts[:client_id] ||= name || ask("New client name")
-    opts[:client_secret] = verified_pwd("New client secret", opts[:secret])
     client_reg_request do |cr|
+      opts[:client_id] = clientname(name)
+      opts[:client_secret] = verified_pwd("New client secret", opts[:secret])
       defaults = opts[:clone] ? cr.get(opts[:clone]) : {}
       cr.create client_info(defaults, opts[:interact])
     end
@@ -60,11 +59,15 @@ class ClientCli < CommonCli
 
   desc "client update [<name>]", "Update client registration",
       CLIENT_SCHEMA.keys + [:secret, :interact] do |name|
-    opts[:client_id] ||= name || ask("Client name")
     client_reg_request do |cr|
+      opts[:client_id] = clientname(name)
       defaults = opts[:interact] ? cr.get(opts[:client_id]) : {}
       cr.update client_info(defaults, opts[:interact])
     end
+  end
+
+  desc "client delete [<name>]", "Delete client registration" do |name|
+    pp client_reg_request { |cr| cr.delete(clientname(name)) }
   end
 
   desc "client secret [<name>]", "Update client secret", [:secret] do |name|
@@ -76,18 +79,13 @@ class ClientCli < CommonCli
     #end
   end
 
-  desc "client delete [<name>]", "Delete client registration" do |name|
-    name ||= ask("Client name")
-    pp client_reg_request { |cr| cr.delete(name) }
-  end
-
   def client_reg_request
     return yield ClientReg.new(Config.target, auth_header)
   rescue TargetError => e
-    say "#{e.message}:\n#{JSON.pretty_generate(e.info)}"
+    say "\n#{e.message}:\n#{JSON.pretty_generate(e.info)}"
     nil
   rescue Exception => e
-    say "#{e.class}, #{e.message}", (e.backtrace if trace?)
+    say "\n#{e.class}: #{e.message}", (e.backtrace if trace?)
     nil
   end
 

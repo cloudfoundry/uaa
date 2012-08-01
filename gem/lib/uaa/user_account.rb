@@ -33,12 +33,9 @@ class UserAccount
   end
 
   def create(name, password, email_addresses = nil, given_name = name, family_name = name, groups = nil)
-    emails = []
-    if email_addresses.respond_to?(:each)
-      email_addresses.each { |email| emails.unshift({:value => email}) }
-    else
-      emails = [{:value => (email_addresses || name) }]
-    end
+    emails = email_addresses.respond_to?(:each) ?
+        email_addresses.each_with_object([]) { |email| emails.unshift({:value => email}) } :
+        [{:value => (email_addresses || name) }]
     request = { userName: name, password: password, emails: emails,
         name: { givenName: given_name, familyName: family_name }}
     request[:groups] = Util.arglist(groups) if groups

@@ -25,7 +25,7 @@ class GroupCli < CommonCli
   end
 
   desc "group get [<name>]", "Get specific group information" do |name|
-    name ||= ask("Group name")
+    #name ||= ask("Group name")
     pp group_request { |gr| gr.get_by_name(name) }
   end
 
@@ -34,13 +34,14 @@ class GroupCli < CommonCli
   end
 
   desc "group delete [<name>]", "Delete group" do |name|
-    name ||= ask("Group name")
-    group_request { |gr| gr.delete_by_name(name) }
+    #name ||= ask("Group name")
+    pp group_request { |gr| gr.delete_by_name(name) }
   end
 
   private
 
   def group_request
+    "Group operations not implemented"
     #return yield UserAccount.new(cur_target_url, auth_header, trace?)
   #rescue TargetError => e
     #say "#{e.message}:\n#{JSON.pretty_generate(e.info)}"
