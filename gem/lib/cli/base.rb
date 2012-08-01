@@ -31,13 +31,18 @@ class Topic
   end
 
   def self.desc(template, desc, options = [], &handler)
-    parts = template.split(' ')
-    cmd = parts.each_with_object([]) { |p, o| p =~ /^[\[<]/ ? (break o) : o << p }
+    parts, argc = template.split(' '), 0
+    cmd = parts.each_with_object([]) { |p, o|
+      case p
+      when /\.\.\.\]$/ then argc = -1; break o
+      when /^\[/ then argc = parts.length - o.length; break o
+      else o << p
+      end
+    }
     cmd_key = cmd.join('_').to_sym
     define_method(cmd_key, handler)
     @commands ||= {}
-    @commands[cmd_key] = {parts: cmd, argc: parts.length - cmd.length,
-        template: template, desc: desc, options: options}
+    @commands[cmd_key] = {parts: cmd, argc: argc, template: template, desc: desc, options: options}
   end
 
   def initialize(cli_class, options = {}, input = $stdin, output = $stdout)
@@ -120,19 +125,20 @@ class Topic
     [ short ? "#{short} | #{long}" : "#{long}", desc]
   end
 
-  def say_cmd_helper(info)
+  def say_cmd_helper(info, suffix = nil)
     say_definition 2, info[:template], info[:desc]
     info[:options].each do |o|
       odef, desc = opt_help(o, @cli_class.option_defs[o])
       say_definition help_col_start, "", desc ? "#{odef}, #{desc}" : odef
     end
+    @output.print suffix
   end
 
   def say_command_help(args)
     say ""
     @cli_class.topics.each do |tpc|
       tpc.commands.each do |k, v|
-        return say_cmd_helper(v), "" if args[0..v[:parts].length - 1] == v[:parts]
+        return say_cmd_helper(v, "\n") if args[0..v[:parts].length - 1] == v[:parts]
       end
     end
     args.map(&:downcase)
@@ -166,6 +172,7 @@ class BaseCli
   end
 
   def self.preprocess_options(args, opts); end # to be implemented in subclass
+  def self.too_many_args(cmd); end # to be implemented in subclass
 
   def self.run(args = ARGV)
     @input ||= $stdin
@@ -185,7 +192,14 @@ class BaseCli
       tpc.commands.each do |k, v|
         next unless args[0..v[:parts].length - 1] == v[:parts]
         args = args[v[:parts].length..-1]
-        (v[:argc] - args.length).times { args << nil } if args.length < v[:argc]
+        if v[:argc] == -1
+          # variable args, leave args alone
+        elsif args.length > v[:argc]
+          too_many_args(v[:parts].dup)
+          return self
+        elsif args.length < v[:argc]
+          (v[:argc] - args.length).times { args << nil }
+        end
         tpc.new(self, opts, @input, @output).send(k, *args)
         return self
       end
@@ -193,8 +207,7 @@ class BaseCli
     @output.puts "command not found"
     self
   rescue Exception => e
-    $stderr.puts "unhandled exception in cli runner, #{e.class}: #{e.message}", e.backtrace
-    raise
+    $stderr.puts "", "#{e.class}: #{e.message}", (e.backtrace if opts[:trace])
   end
 
 end

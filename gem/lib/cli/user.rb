@@ -26,15 +26,15 @@ class UserCli < CommonCli
   define_option :groups, "--groups <groups>"
   USER_INFO_OPTS = [:given_name, :family_name, :email, :groups]
 
-  desc "users [<attributes>] [<filter>]", "List user accounts" do |attributes, filter|
+  desc "users [attributes] [filter]", "List user accounts" do |attributes, filter|
     pp acct_request { |ua| ua.query(attributes, filter) }
   end
 
-  desc "user get [<name>]", "Get specific user account" do |name|
+  desc "user get [name]", "Get specific user account" do |name|
     pp acct_request { |ua| ua.get_by_name(username(name)) }
   end
 
-  desc "user add [<name>]", "Add a user account", USER_INFO_OPTS + [:password] do |name|
+  desc "user add [name]", "Add a user account", USER_INFO_OPTS + [:password] do |name|
     name = username(name)
     email = opts[:email] || (name if name =~ /@/)
     gname = opts[:given_name] || name
@@ -43,17 +43,17 @@ class UserCli < CommonCli
     pp acct_request { |ua| ua.create(name, pwd, email, gname, fname, opts[:groups]) }
   end
 
-  desc "user delete [<name>]", "Delete user account" do |name|
+  desc "user delete [name]", "Delete user account" do |name|
     acct_request { |ua| ua.delete_by_name(username(name)) }
   end
 
-  desc "user password set [<name>]", "Set password", [:password] do |name|
+  desc "user password set [name]", "Set password", [:password] do |name|
     acct_request { |ua| ua.change_password_by_name(username(name),
         verified_pwd("New password", opts[:password])) }
   end
 
   define_option :old_password, "-o", "--old_password <password>", "current password"
-  desc "user password change [<name>]", "Change password", [:old_password, :password] do |name|
+  desc "user password change [name]", "Change password", [:old_password, :password] do |name|
     # TODO: verify the uaa will take a name instead of id here. If not, how
     # get their own id so they can change their own password?
     handle_request { UserAccount.change_password(Config.target, username(name),

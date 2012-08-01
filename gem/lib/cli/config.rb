@@ -61,9 +61,16 @@ class Config
     @context = c
   end
 
+  def self.valid_context(ctx)
+    raise ArgumentError, "target not set" unless @target
+    k = existing_key(@config[@target][:contexts] ||= {}, ctx)
+    raise ArgumentError, "unknown context #{ctx}" unless k
+    k
+  end
+
   def self.delete(tgt = nil, ctx = nil)
     if tgt && ctx
-      @config[tgt][:contexts].delete(ctx)
+      @config[tgt][:contexts].delete(valid_context(ctx))
       @context = nil if tgt == @target && ctx == @context
     elsif tgt
       @config.delete(tgt)
@@ -106,6 +113,11 @@ class Config
     when Symbol then key
     else nil
     end
+  end
+
+  def self.existing_key(hash, key)
+    k = subhash_key(hash, key)
+    k if hash[k]
   end
 
   def self.set_current_subhash(hash, newcurrent, oldcurrent)

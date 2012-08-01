@@ -39,15 +39,14 @@ class ClientCli < CommonCli
     pp reglist
   end
 
-  desc "client get [<name>]", "Get specific client registration" do |name|
+  desc "client get [name]", "Get specific client registration" do |name|
     pp client_reg_request { |cr| ClientReg.multivalues_to_strings!(cr.get(clientname(name))) }
   end
 
   define_option :clone, "--clone <other_client>", "get default client settings from existing client"
-  define_option :secret, "--secret <secret>", "client secret"
   define_option :interact, "--[no-]interactive", "-i", "interactively verify all values"
 
-  desc "client add [<name>]", "Add client registration",
+  desc "client add [name]", "Add client registration",
       CLIENT_SCHEMA.keys + [:clone, :secret, :interact] do |name|
     client_reg_request do |cr|
       opts[:client_id] = clientname(name)
@@ -57,7 +56,7 @@ class ClientCli < CommonCli
     end
   end
 
-  desc "client update [<name>]", "Update client registration",
+  desc "client update [name]", "Update client registration",
       CLIENT_SCHEMA.keys + [:secret, :interact] do |name|
     client_reg_request do |cr|
       opts[:client_id] = clientname(name)
@@ -66,11 +65,11 @@ class ClientCli < CommonCli
     end
   end
 
-  desc "client delete [<name>]", "Delete client registration" do |name|
+  desc "client delete [name]", "Delete client registration" do |name|
     pp client_reg_request { |cr| cr.delete(clientname(name)) }
   end
 
-  desc "client secret [<name>]", "Update client secret", [:secret] do |name|
+  desc "client secret [name]", "Update client secret", [:secret] do |name|
     say "update client secret not implemented"
     #opts[:client_id] ||= name || ask("Client name")
     #client_reg_request do |cr|
