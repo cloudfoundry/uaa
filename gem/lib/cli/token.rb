@@ -63,7 +63,7 @@ class TokenCli < CommonCli
 
   define_option :client, "--client <name>", "-c"
   define_option :scope, "--scope <list>"
-  desc "token get [<credentials...>]",
+  desc "token get [credentials...]",
       "Gets a token by posting user credentials with an implicit grant request",
       [:client, :scope] do |*args|
     client_name = opts[:client] || "vmc"
@@ -83,14 +83,14 @@ class TokenCli < CommonCli
       end
       ti.implicit_grant_with_creds(creds, opts[:scope]).info
     }
-    return say "login failed" unless token && token[:access_token]
+    return say "attempt to get token failed", "" unless token && token[:access_token]
     Config.context = TokenCoder.decode(token[:access_token], nil, nil, false)[:user_name]
     Config.add_opts token
     say "successfully logged in"
   end
 
   define_option :secret, "--secret <secret>", "-s", "client secret"
-  desc "token client get [<name>]",
+  desc "token client get [name]",
       "Gets a token with client credentials grant", [:secret, :scope] do |id|
     id = clientname(id)
     info = issuer_request(id, clientsecret(opts[:secret])) { |ti| ti.client_credentials_grant(opts[:scope]).info }
@@ -99,14 +99,14 @@ class TokenCli < CommonCli
   end
 
   define_option :password, "-p", "--password <password>", "user password"
-  desc "token owner get [<client>] [<user>]", "Gets a token with a resource owner password grant",
+  desc "token owner get [client] [user]", "Gets a token with a resource owner password grant",
       [:secret, :password, :scope] do |client, user|
     Config.add_opts issuer_request(clientname(client), clientsecret(opts[:secret])) { |ti|
         ti.owner_password_grant(username(user), userpwd(opts[:password], opts[:scope])).info
     }
   end
 
-  desc "token refresh [<refresh_token>]", "Gets a new access token from a refresh token", [:scope] do |rtok|
+  desc "token refresh [refreshtoken]", "Gets a new access token from a refresh token", [:scope] do |rtok|
     rtok ||= Config.value(:refresh_token)
     Config.add_opts issuer_request { |ti| ti.refresh_token_grant(rtok, opts[:scope]).info }
   end
@@ -141,7 +141,7 @@ class TokenCli < CommonCli
   end
 
   define_option :key, "--key <key>", "Token validation key"
-  desc "token decode [<token>] [<type>]",
+  desc "token decode [token] [tokentype]",
       "Show token contents as parsed locally or by the UAA. Decodes locally unless --client and --secret are given. Validates locally if --key given",
       [:key, :client, :secret] do |token, ttype|
     ttype = "bearer" if token && !ttype
@@ -160,13 +160,12 @@ class TokenCli < CommonCli
   end
 
   define_option :all, "--[no-]all", "-a", "remove all contexts"
-  desc "token delete [<contexts...>]",
+  desc "token delete [contexts...]",
       "Delete current or specified context tokens and settings", [:all] do |*args|
     return Config.delete if opts[:all]
-    args.pop if args[0].nil?
-    return args.each { |arg| Config.delete(Config.target, arg) } unless args.empty?
+    return args.each { |arg| Config.delete(Config.target, arg.to_i.to_s == arg ? arg.to_i : arg) } unless args.empty?
     return Config.delete(Config.target, Config.context) if Config.context
-    say "no target set, no contexts given -- nothing to log out"
+    say "no target set, no contexts given -- nothing to delete"
   end
 
   private
@@ -174,10 +173,10 @@ class TokenCli < CommonCli
   def issuer_request(client_id, secret = nil)
     return yield TokenIssuer.new(Config.target.to_s, client_id, secret)
   rescue TargetError => e
-    say "#{e.message}:\n#{JSON.pretty_generate(e.info)}"
+    say "\n#{e.message}:\n#{JSON.pretty_generate(e.info)}"
     nil
   rescue Exception => e
-    say "#{e.class}: #{e.message}", (e.backtrace if trace?)
+    say "\n#{e.class}: #{e.message}", (e.backtrace if trace?)
     nil
   end
 

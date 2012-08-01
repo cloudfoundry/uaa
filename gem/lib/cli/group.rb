@@ -20,20 +20,20 @@ class GroupCli < CommonCli
 
   topic "Groups"
 
-  desc "groups [<attributes>] [<filter>]", "List groups" do |attributes, filter|
+  desc "groups [attributes] [filter]", "List groups" do |attributes, filter|
     pp group_request { |gr| gr.query(attributes, filter) }
   end
 
-  desc "group get [<name>]", "Get specific group information" do |name|
+  desc "group get [name]", "Get specific group information" do |name|
     #name ||= ask("Group name")
     pp group_request { |gr| gr.get_by_name(name) }
   end
 
-  desc "group add [<name>]", "Adds a group" do |name|
+  desc "group add [name]", "Adds a group" do |name|
     pp group_request { |gr| gr.create(name) }
   end
 
-  desc "group delete [<name>]", "Delete group" do |name|
+  desc "group delete [name]", "Delete group" do |name|
     #name ||= ask("Group name")
     pp group_request { |gr| gr.delete_by_name(name) }
   end

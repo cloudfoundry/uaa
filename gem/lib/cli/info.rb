@@ -44,9 +44,9 @@ class InfoCli < CommonCli
     say "/varz request not implemented"
   end
 
-  desc "password strength <password>", "calculate strength score of a password" do |pwd|
+  desc "password strength [password]", "calculate strength score of a password" do |pwd|
     return say "target not set" unless Config.target
-    pp handle_request { Misc.password_strength(Config.target, pwd) }
+    pp handle_request { Misc.password_strength(Config.target, userpwd(pwd)) }
   end
 
 end

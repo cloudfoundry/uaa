@@ -72,14 +72,14 @@ class MiscCli < CommonCli
   define_option :help, "--[no-]help", "-h", "display helpful information"
   define_option :version, "--[no-]version", "-v", "show version"
 
-  desc "help [<command>|<topic>]", "Display summary or details of command or topic" do |*args|
+  desc "help [topic|command...]", "Display summary or details of command or topic" do |*args|
     return version if opts[:version]
     args.pop if args[0].nil?
     args.empty? ? say_help : say_command_help(args)
   end
 
   define_option :force, "--[no-]force", "-f", "set context even if target UAA is not available"
-  desc "target [<uaa_url>]", "Display current or set new target" do |uaa_url|
+  desc "target [uaa_url]", "Display current or set new target" do |uaa_url|
     msg = nil
     if uaa_url
       if uaa_url.to_i.to_s == uaa_url
@@ -108,11 +108,12 @@ class MiscCli < CommonCli
     say "\n"
   end
 
-  desc "context [<name>]", "Display or set current context" do |ctx|
-    Config.context = ctx if ctx
+  desc "context [name]", "Display or set current context" do |ctx|
+    ctx = ctx.to_i if ctx.to_i.to_s == ctx
+    Config.context = ctx if ctx && Config.valid_context(ctx)
     (opts[:trace] ? Config.add_opts(trace: true) : Config.delete_attr(:trace)) if opts.key?(:trace)
     return say "no context set in target #{Config.target}" unless Config.context
-    say "context set to #{Config.context}, with target #{Config.target}"
+    say "", "context set to #{Config.context}, with target #{Config.target}", ""
   end
 
   desc "contexts", "Display all contexts" do
@@ -128,7 +129,7 @@ class MiscCli < CommonCli
       next unless v[:contexts]
       v[:contexts].each_with_index do |(sk, sv), si|
         say ""
-        splat = sv[:current] ? '*' : ' '
+        splat = sv[:current] && v[:current]? '*' : ' '
         sv.delete(:current)
         pp "[#{si}]#{splat}[#{sk}]", 1
         pp sv, 2

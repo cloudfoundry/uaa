@@ -30,6 +30,11 @@ class Cli < BaseCli
     self
   end
 
+  def self.too_many_args(cmd)
+    @output.puts "\nToo many command line parameters given."
+    run cmd.unshift("help")
+  end
+
   def self.preprocess_options(args, opts)
     return args.replace(["version"]) if opts[:version]
     return args.unshift("help") if args.empty? || opts[:help] && args[0] != "version"
