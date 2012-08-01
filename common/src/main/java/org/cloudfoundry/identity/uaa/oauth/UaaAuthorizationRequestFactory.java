@@ -184,9 +184,9 @@ public class UaaAuthorizationRequestFactory implements AuthorizationRequestFacto
 		Set<String> result = new LinkedHashSet<String>(scopes);
 		Set<String> allowed = new LinkedHashSet<String>(AuthorityUtils.authorityListToSet(authorities));
 
-		// Add in all default scopes, using the authority values themselves if no mapping is provided
+		// Add in all default scopes
 		allowed.addAll(defaultScopes);
-		// Find intersection of user authorities and client scopes:
+		// Find intersection of user authorities, default scopes and client scopes:
 		for (Iterator<String> iter = allowed.iterator(); iter.hasNext();) {
 			String scope = iter.next();
 			if (!clientDetails.getScope().contains(scope)) {

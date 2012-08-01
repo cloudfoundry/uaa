@@ -87,6 +87,7 @@ public class UaaAuthorizationRequestFactoryTests {
 		client.setScope(StringUtils.commaDelimitedListToSet("one,two,foo.bar"));
 		AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
 		assertEquals(StringUtils.commaDelimitedListToSet("foo.bar"), new TreeSet<String>(request.getScope()));
+		factory.validateParameters(request.getAuthorizationParameters(), client);
 	}
 
 	@Test

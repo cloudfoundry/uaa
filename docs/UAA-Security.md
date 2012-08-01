@@ -17,8 +17,7 @@ SCIM `type` field from the core schema).  These translate into granted
 authorities, `[uaa.user]` or `[uaa.admin,uaa.user]` respectively, for
 the purposes of access decisions within the UAA (i.e. admin users also
 have the user role).  Granted authorities are not directly visible to
-Resource Servers, but by default they show up as scopes in the access
-tokens.
+Resource Servers, but they show up as scopes in the access tokens.
 
 Resource Servers may choose to use this information as part of an
 access decision, and this may be good enough for simple use cases
@@ -33,7 +32,7 @@ also SCIM clients can modify this attribute themselves, but it might
 be better (and safer) if the data don't change much to have an admin
 user or client do the role assignments.  In any case it is recommended
 that Resource Servers have sensible defaults for new users that have
-not yet been assigned a role that makes sense to them.
+not yet been assigned a role.
 
 ### Bootstrap
 
@@ -44,10 +43,23 @@ service started with no active Spring profile will initialize a single
 user account (marissa/koala).
 
 2. A `vcap` environment: integration testing or in production.  If the
-service starts with any active Spring profile it will not touch the
-user database.  The SCIM endpoints can be used to provision user
-accounts, once a client with the correct privileges has been
+service starts with any active Spring profile by default it will not
+touch the user database.  The SCIM endpoints can be used to provision
+user accounts, once a client with the correct privileges has been
 registered.
+
+In either case additional user accounts and client registrations can
+be bootstrapped at start up by providing some data in `uaa.yml`.
+Example users:
+
+    scim:
+      users:
+        - paul|wombat|paul@test.org|Paul|Smith|uaa.admin
+        - stefan|wallaby|stefan@test.org|Stefan|Schmidt
+
+The format for the user is
+`username|password|email|first_name|last_name(|comma-separated-authorities)`.
+Remember that authorities are represented as groups in SCIM.
 
 ## OAuth Client Applications
 
@@ -66,7 +78,7 @@ a token requested for a scope not on the list, and should be used by a
 Resource Server to deny access to a resource if the token has
 insufficient scope.
 
-UAA client applications have the following meta data (all are
+UAA client applications have the following meta data (some are
 optional, but to prevent mistakes it is usually better to use a
 default value):
 
@@ -74,7 +86,7 @@ default value):
   types, as defined in the spec: choose from `client_credentials`,
   `password`, `implicit`, `refresh_token`, `authorization_code`.  Used
   by the Authorization Server to deny a token grant if it is not on
-  the list
+  the list.  If in doubt use `authorization_code` and `refresh_token`.
 * scope: a list of permitted scopes for this client to obtain on
   behalf of a user (so not relevant to `client_credentials` grants).
   Also used as the default scopes for a token where the client does
@@ -83,7 +95,7 @@ default value):
   (e.g. `uaa.admin` or any valid scope value).  The authorities are
   used to define the default scopes that are assigned to a token in a
   `client_credentials` grant, and to limit the legal values if
-  explicit scopes are requested.
+  explicit scopes are requested in that case.
 * secret: the shared secret used to authenticate token grant requests
   and token decoding operations (not revealed to Resource Server).
 * resource-ids: white list of resource ids to be included in the
@@ -182,13 +194,73 @@ client) are initialized:
 
 The cloud controller secret is generated during the setup.  The same
 clients are initialized in CF.com, but the secret is different.
+Additional clients can be added during start up using `uaa.yml`, e.g.
+
+    oauth:
+      clients:
+        vmc:
+          authorized-grant-types: implicit
+          scope: cloud_controller.read,cloud_controller.write,password.write,openid
+          authorities: uaa.none
+          id: vmc
+          resource-ids: none
+          redirect-uri: http://uaa.cloudfoundry.com/redirect/vmc
+
+## Token Scope Rules
+
+When a client application asks for a new access token it can
+optionally provide a set of requested scopes (space separated,
+e.g. `scope=openid cloud_controller.read`).  The UAA will use that set
+if provided and that will be the scope of the token if
+granted. Otherwise, if no explicit value is requested, defaults will
+be supplied according to what the client and user are allowed to do.
+The rules governing the defaults and what is allowed are described
+next.
+
+### User Tokens
+
+A token granted on behalf of a user (grant type anything except
+`client_credentials`) takes its default scopes from the `scope` field
+of the client registration.  Whether or not the default values are
+used, the requested scopes are then validated:
+
+* The user's authorities (SCIM groups) are augmented with some static
+values, configurable but defaulting to
+`[openid, cloud_controller.read, cloud_controller.write]`
+* Allowed scopes consist of the intersection of the client scope and
+the augmented user authorities.
+* Disallowed scopes are removed from the request.
+* If all the requested scopes are disallowed then clients get a 400
+response with a JSON error message indicating the allowed values (for
+implicit grants it should be a 302 according to the OAuth2 spec, but
+that change hasn't been implemented yet).  The exception to that rule
+is for clients with no registered scopes (no error in that case), but
+there shouldn't be any such clients in a production system.
+
+Note that the filtering of scopes by user authorities might mean that
+a client gets a narrower-scoped token than it originally asked for,
+e.g. if it asks for no `scope=dash.admin dash.user openid`, the token
+might come back with only `dash.user openid`.  Tokens are opaque to
+client applications, so they have to be prepared for resource servers
+to deny access to some resources based on the scope of the token when
+it is presented.
+
+### Client Tokens
+
+A token issued on a `client_credentials` grant has default and allowed
+scopes equal to the client authorities.  Requesting a disallowed scope
+will result in a 400 reponse and an error message that indicates the
+allowed scopes.  A client would normally take the default scopes when
+acting on its own behalf - since no approval is necessary there is no
+point narrowing the scope.
 
 ## UAA Resources
 
 All OAuth2 protected resource have an id (as listed individually).
-Any request whose token does not have a matching resource id will be
-rejected. Resources that are not OAuth2 protected resources do not
-have a resource id (e.g. those with simple HTTP Basic authentication).
+Any request whose token does not have a matching resource id (`aud`
+field in decoded token) will be rejected. Resources that are not
+OAuth2 protected resources do not have a resource id (e.g. those with
+simple HTTP Basic authentication).
 
 ### Token Management
 
