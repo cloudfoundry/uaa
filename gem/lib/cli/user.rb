@@ -56,7 +56,7 @@ class UserCli < CommonCli
   desc "user password change [name]", "Change password", [:old_password, :password] do |name|
     # TODO: verify the uaa will take a name instead of id here. If not, how
     # get their own id so they can change their own password?
-    handle_request { UserAccount.change_password(Config.target, username(name),
+    handle_request { Misc.change_password(Config.target, username(name),
         opts[:old_password] || ask_pwd("Current password"),
         verified_pwd("New password", opts[:password])) }
   end

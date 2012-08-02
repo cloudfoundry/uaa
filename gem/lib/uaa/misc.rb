@@ -81,7 +81,7 @@ class Misc
 
   def self.validation_key(target, client_id = nil, client_secret = nil)
     @target = target
-    json_get("/token_key", (client_id ? Http.basic_auth(client_id, client_secret) : nil))
+    json_get("/token_key", (client_id && client_secret ? Http.basic_auth(client_id, client_secret) : nil))
   end
 
   # Returns hash of values from the Authorization Server that are associated
@@ -117,6 +117,11 @@ class Misc
     @target = target
     json_parse_reply(*request(:post, '/password/score', URI.encode_www_form(password: password),
         content_type: "application/x-www-form-urlencoded", accept: "application/json"))
+  end
+
+  def self.varz(target, name, pwd)
+    @target = target
+    json_get("/varz", Http.basic_auth(name, pwd))
   end
 
 end
