@@ -13,7 +13,7 @@
 
 require 'yajl/json_gem'
 require 'logger'
-require 'open-uri'
+require 'uri'
 
 module CF; module UAA end end
 

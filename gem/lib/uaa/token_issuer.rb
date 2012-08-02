@@ -70,9 +70,23 @@ class TokenIssuer
 
     status, body, headers = request(:post, uri, body, headers)
     raise BadResponse, "status #{status}" unless status == 302
-    loc = headers[:location].split('#')
-    raise BadResponse, "bad location header" unless loc.length == 2 && URI.parse(loc[0]) == URI.parse(redir_uri)
-    parse_implicit_params loc[1], state
+    req_uri, reply_uri = URI.parse(redir_uri), URI.parse(headers[:location])
+    fragment, reply_uri.fragment = reply_uri.fragment, nil
+    return parse_implicit_params(fragment, state) if req_uri == reply_uri
+
+    # work around bug when uaa is behind proxy that rewrites location header
+    if reply_uri.scheme == "https"
+      reply_uri.scheme = "http"
+      if req_uri == URI.parse(reply_uri.to_s)
+        logger.warn("Scheme of location URL in reply is different than requested")
+        return parse_implicit_params(fragment, state)
+      end
+      puts req_uri.inspect, reply_uri.inspect
+    end
+
+    raise BadResponse, "bad location header"
+  rescue URI::Error => e
+    raise BadResponse, "bad location header in reply: #{e.message}"
   end
 
   # constructs a uri that the client is to return to the browser to direct
