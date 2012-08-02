@@ -44,7 +44,9 @@ class CommonCli < Topic
   end
 
   def askd(prompt, defary)
-    defary ? ask(prompt) : ask("#{prompt} [#{Util.strlist(defary)}]") || defary
+    return ask(prompt) unless defary
+    result = ask("#{prompt} [#{Util.strlist(defary)}]")
+    result.nil? || result.empty? ? defary : result
   end
 
   def handle_request

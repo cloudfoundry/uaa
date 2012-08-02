@@ -23,7 +23,6 @@ class ClientCli < CommonCli
   CLIENT_SCHEMA =
   {
     scopes: "list",
-    resource_ids: "list",
     authorized_grant_types: "list",
     authorities: "list",
     access_token_validity: "seconds",
@@ -66,16 +65,16 @@ class ClientCli < CommonCli
   end
 
   desc "client delete [name]", "Delete client registration" do |name|
-    pp client_reg_request { |cr| cr.delete(clientname(name)) }
+    client_reg_request { |cr| cr.delete(clientname(name)) }
   end
 
-  desc "client secret [name]", "Update client secret", [:secret] do |name|
-    say "update client secret not implemented"
-    #opts[:client_id] ||= name || ask("Client name")
-    #client_reg_request do |cr|
-      #defaults = opts[:interact] ? cr.get(opts[:client_id]) : {}
-      #cr.update client_info(defaults, opts[:interact])
-    #end
+  define_option :old_secret, "-o", "--old_secret <secret>", "current secret"
+  desc "client secret change [name]", "Change client secret", [:old_secret, :secret] do |name|
+    say "change client secret not implemented"
+  end
+
+  desc "client secret set [name]", "Set client secret", [:secret] do |name|
+    say "set client secret not implemented"
   end
 
   def client_reg_request
@@ -96,7 +95,7 @@ class ClientCli < CommonCli
       v = nil
       if !opts.key?(k)
         info[k] = (v unless v == del_op) if interact ?
-            !p.empty? && (v = askd(p, defaults[k])) : (v = defaults[k])
+            !p.empty? && (v = askd("#{k.to_s.gsub('_', ' ')} (#{p})", defaults[k])) : (v = defaults[k])
       elsif opts[k] == del_op
         info[k] = nil
       else

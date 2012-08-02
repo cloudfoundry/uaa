@@ -17,13 +17,9 @@ require 'cli'
 require 'stub_uaa'
 require 'pp'
 
-# these tests CAN be run against a new UAA, but they make changes to the UAA
-# admin client registration and are not repeatable for multiple test runs.
-#
-# Example config for integration tests with defaults:
+# Example config to run these tests against a real UAA rather than the stub server
 #    ENV["UAA_CLIENT_ID"] = "admin"
 #    ENV["UAA_CLIENT_SECRET"] = "adminsecret"
-# if UAA_CLI_TARGET is not configured, tests will use the internal stub server
 #    ENV["UAA_CLI_TARGET"] = "http://localhost:8080/uaa"
 
 module CF::UAA

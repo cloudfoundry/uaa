@@ -73,7 +73,7 @@ module Http
     http_post(url, body.to_json, "application/json", authorization)
   end
 
-  def json_put(url, body, authorization)
+  def json_put(url, body, authorization = nil)
     http_put(url, body.to_json, "application/json", authorization)
   end
 
@@ -86,12 +86,16 @@ module Http
     request(:get, path, nil, headers)
   end
 
-  def http_post(path, body, content_type, authorization)
-    request(:post, path, body, content_type: content_type, authorization: authorization)
+  def http_post(path, body, content_type, authorization = nil)
+    headers = { content_type: content_type }
+    headers[:authorization] = authorization if authorization
+    request(:post, path, body, headers)
   end
 
-  def http_put(path, body, content_type, authorization)
-    request(:put, path, body, content_type: content_type, authorization: authorization)
+  def http_put(path, body, content_type, authorization = nil)
+    headers = { content_type: content_type }
+    headers[:authorization] = authorization if authorization
+    request(:put, path, body, headers)
   end
 
   def http_delete(path, authorization)

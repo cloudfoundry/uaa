@@ -21,33 +21,30 @@ class InfoCli < CommonCli
   topic "System Information"
 
   desc "info", "get information about current target" do
-    return say "target not set" unless Config.target
-    pp handle_request { Misc.server Config.target }
+    misc_request { pp Misc.server Config.target }
   end
 
   desc "me", "get authenticated user information" do
-    pp handle_request { Misc.whoami Config.target, auth_header }
+    misc_request { pp Misc.whoami Config.target, auth_header }
   end
 
   desc "prompts", "Show prompts for credentials required for implicit grant post" do
-    pp handle_request { Misc.server(Config.target)[:prompts] }
+    misc_request { pp Misc.server(Config.target)[:prompts] }
   end
 
   desc "signing key", "get the UAA's token signing key(s)", [:client, :secret] do
-    handle_request {
-      tkc = Misc.validation_key(Config.target, opts[:client], opts[:secret])
-      pp tkc.validation_key
-    }
+    misc_request { pp Misc.validation_key(Config.target, opts[:client], opts[:secret]) }
   end
 
-  desc "statistics", "Show UAA's current usage statistics" do
-    say "/varz request not implemented"
+  desc "stats", "Show UAA's current usage statistics", [:client, :secret] do
+    misc_request { pp Misc.varz(Config.target, opts[:client], opts[:secret]) }
   end
 
   desc "password strength [password]", "calculate strength score of a password" do |pwd|
-    return say "target not set" unless Config.target
-    pp handle_request { Misc.password_strength(Config.target, userpwd(pwd)) }
+    misc_request { pp Misc.password_strength(Config.target, userpwd(pwd)) }
   end
+
+  def misc_request(&blk) ; Config.target ? handle_request(&blk) : say("target not set") end
 
 end
 
