@@ -21,10 +21,27 @@ public class UaaUserEditor extends PropertyEditorSupport {
 	@Override
 	public void setAsText(String text) throws IllegalArgumentException {
 		String[] values = text.split("\\|");
-		if (values.length < 5) {
-			throw new IllegalArgumentException("Username, password, email, first and last names are required (use pipe separator '|')");
+		if (values.length < 2) {
+			throw new IllegalArgumentException("Specify atleast a username and password, you may also optionally specify email, first name, last name and authorities (use pipe separator '|')");
 		}
-		UaaUser user = new UaaUser(values[0], values[1], values[2], values[3], values[4]);
+
+		String username = values[0], password = values[1];
+		String email = username, firstName = username, lastName = username;
+
+		try {
+			if (values[2].contains("@")) {
+				email = values[2];
+				firstName = values[3];
+				lastName = values[4];
+			} else {
+				firstName = values[2];
+				lastName = values[3];
+			}
+		} catch (ArrayIndexOutOfBoundsException ex) {
+			// just ignore, since we anyway have defaults for email / firstname / lastname
+		}
+
+		UaaUser user = new UaaUser(username, password, email, firstName, lastName);
 		if (values.length>5) {
 			user = user.authorities(AuthorityUtils.commaSeparatedStringToAuthorityList(values[5]));
 		}
