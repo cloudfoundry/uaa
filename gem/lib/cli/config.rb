@@ -37,6 +37,11 @@ class Config
       @config_file = nil
     elsif File.exists?(@config_file = config)
       @config = YAML.load_file(@config_file)
+      @config.each { |k, v|
+        next unless k.to_s =~ / /
+        STDERR.puts "invalid config file #{@config_file}, perhaps from older version"
+        exit 1
+      }
     end
     @config = Util.hash_keys(@config, :tosym)
     @context = current_subhash(@config[@target][:contexts]) if @target = current_subhash(@config)
