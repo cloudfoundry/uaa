@@ -11,7 +11,6 @@
 # subcomponent's license, as noted in the LICENSE file.
 #++
 
-require 'open-uri'
 require 'cli/base'
 require 'cli/config'
 
