@@ -41,8 +41,7 @@ class Cli < BaseCli
     [:trace, :debug].each do |k|
       opts[k] = true if !opts.key?(k) && Config.target && Config.context && Config.value(k)
     end
-    Util.default_logger(:debug, @output) if opts[:debug]
-    Util.default_logger(:trace, @output) if opts[:trace]
+    Util.default_logger(opts[:trace] ? :trace : opts[:debug] ? :debug : :warn, @output)
   end
 
 end

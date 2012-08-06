@@ -37,16 +37,15 @@ module Http
 
   attr_accessor :proxy, :async
   attr_reader :target
+  def logger=(logr); @logger = logr end
+  def logger ; @logger ||= Util.default_logger end
+  def trace? ; @logger && @logger.respond_to?(:trace?) && @logger.trace? end
 
   def self.basic_auth(name, password)
     "Basic " + Base64::strict_encode64("#{name}:#{password}")
   end
 
   private
-
-  def logger=(logr); @logger = logr end
-  def logger ; @logger ||= Util.default_logger end
-  def trace? ; @logger && @logger.respond_to?(:trace?) && @logger.trace? end
 
   def json_get(url, authorization = nil)
     json_parse_reply(*http_get(url, 'application/json', authorization))

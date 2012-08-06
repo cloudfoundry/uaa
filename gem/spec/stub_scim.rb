@@ -153,13 +153,13 @@ class StubScim
     @things.select { |thing| rtype.nil? || thing[:rtype] == rtype }
   end
 
-  def id_to_name(id)
-    thing = find_by_id(id)
+  def id_to_name(id, rtype = nil)
+    thing = find_by_id(id, rtype)
     thing[NAME_ATTR[thing[:rtype]]]
   end
 
-  def name_to_id(name)
-    thing = find_by_name(name)
+  def name_to_id(name, rtype = nil)
+    thing = find_by_name(name, rtype)
     thing[:id]
   end
 

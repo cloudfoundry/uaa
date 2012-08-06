@@ -117,8 +117,10 @@ class StubUAAConn < Stub::Base
   end
 
   route :get, '/oauth/clients' do
-    return unless valid_token("client_read client_admin")
-    reply_in_kind server.scim.things(:client)
+    return unless valid_token("clients.read")
+    reply_in_kind server.scim.things(:client).each_with_object({}) { |t, o|
+      o[t[:displayname]] = scim_to_client(t)
+    }
   end
 
   route :post, '/oauth/clients' do
@@ -133,17 +135,20 @@ class StubUAAConn < Stub::Base
     return bad_request unless request.headers[:content_type] == "application/json"
     return unless valid_token("clients.write")
     reg = client_to_scim(Util.json_parse(request.body))
-    server.scim.update(server.scim.name_to_id(match[1]), reg)
+    server.scim.update(server.scim.name_to_id(match[1], :client), reg)
     reply.status = 204
   end
 
   route :get, %r{^/oauth/clients/([^/]+)$} do
     return unless valid_token("clients.read")
-    return not_found(match[1]) unless client = server.scim.find_by_name(match[1])
+    return not_found(match[1]) unless client = server.scim.find_by_name(match[1], :client)
     reply_in_kind(scim_to_client(client))
   end
 
   route :delete, %r{^/oauth/clients/([^/]+)$} do
+    return unless valid_token("clients.write")
+    return not_found(match[1]) unless server.scim.remove(server.scim.name_to_id(match[1], :client))
+    reply.status = 204
   end
 
   route :put, %r{^/oauth/clients/([^/]+)/password$} do
@@ -152,6 +157,14 @@ class StubUAAConn < Stub::Base
   route :get, '/login' do
     reply.json(version: VERSION,
         prompts: { username: ["text", "Username"], password: ["password","Password"]})
+  end
+
+  route :get, '/varz' do
+    reply.json(mem: 0, type: 'UAA', app: { version: VERSION } )
+  end
+
+  route :get, '/token_key' do
+    reply.json(alg: "none", value: "none")
   end
 
   route :post, '/password/score' do
@@ -292,7 +305,7 @@ class StubUAA < Stub::Server
 
   def initialize(boot_client = "admin", boot_secret = "adminsecret", logger = Util.default_logger)
     @scim = StubScim.new
-    ["scim.read", "scim.write", "password.write", "openid"]
+    ["scim.read", "scim.write", "password.write", "openid", "uaa.resource"]
         .each { |g| @scim.add(:group, displayname: g) }
     gids = ["clients.write", "clients.read", "clients.secret", "uaa.admin"]
         .each_with_object([]) { |s, o| o << @scim.add(:group, displayname: s)[:id] }

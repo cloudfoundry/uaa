@@ -33,18 +33,21 @@ class InfoCli < CommonCli
   end
 
   desc "signing key", "get the UAA's token signing key(s)", [:client, :secret] do
-    misc_request { pp Misc.validation_key(Config.target, opts[:client], opts[:secret]) }
+    misc_request { pp Misc.validation_key(Config.target, clientname, clientsecret) }
   end
 
   desc "stats", "Show UAA's current usage statistics", [:client, :secret] do
-    misc_request { pp Misc.varz(Config.target, opts[:client], opts[:secret]) }
+    misc_request { pp Misc.varz(Config.target, clientname, clientsecret) }
   end
 
   desc "password strength [password]", "calculate strength score of a password" do |pwd|
     misc_request { pp Misc.password_strength(Config.target, userpwd(pwd)) }
   end
 
-  def misc_request(&blk) ; Config.target ? handle_request(&blk) : say("target not set") end
+  def misc_request(&blk)
+    Misc.logger = Util.default_logger
+    Config.target ? handle_request(&blk) : say("target not set")
+  end
 
 end
 

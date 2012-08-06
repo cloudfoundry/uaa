@@ -208,6 +208,7 @@ class BaseCli
     self
   rescue Exception => e
     $stderr.puts "", "#{e.class}: #{e.message}", (e.backtrace if opts[:trace])
+    #$stderr.puts "", "#{e.class}: #{e.message}", e.backtrace
   end
 
 end
