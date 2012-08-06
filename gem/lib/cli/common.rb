@@ -29,9 +29,9 @@ class CommonCli < Topic
   end
 
   def username(name); name || ask("User name") end
-  def userpwd(pwd); pwd || ask_pwd("Password") end
-  def clientname(name); name || ask("Client name") end
-  def clientsecret(name); name || ask_pwd("Client secret") end
+  def userpwd(pwd = opts[:password]); pwd || ask_pwd("Password") end
+  def clientname(name = opts[:client]); name || ask("Client name") end
+  def clientsecret(name = opts[:secret]); name || ask_pwd("Client secret") end
 
   def verified_pwd(prompt, pwd = nil)
     while pwd.nil?

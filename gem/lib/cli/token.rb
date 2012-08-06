@@ -93,7 +93,7 @@ class TokenCli < CommonCli
   desc "token client get [name]",
       "Gets a token with client credentials grant", [:secret, :scope] do |id|
     id = clientname(id)
-    info = issuer_request(id, clientsecret(opts[:secret])) { |ti| ti.client_credentials_grant(opts[:scope]).info }
+    info = issuer_request(id, clientsecret) { |ti| ti.client_credentials_grant(opts[:scope]).info }
     Config.context = id
     Config.add_opts info
   end
@@ -101,8 +101,8 @@ class TokenCli < CommonCli
   define_option :password, "-p", "--password <password>", "user password"
   desc "token owner get [client] [user]", "Gets a token with a resource owner password grant",
       [:secret, :password, :scope] do |client, user|
-    Config.add_opts issuer_request(clientname(client), clientsecret(opts[:secret])) { |ti|
-        ti.owner_password_grant(username(user), userpwd(opts[:password], opts[:scope])).info
+    Config.add_opts issuer_request(clientname(client), clientsecret) { |ti|
+        ti.owner_password_grant(username(user), userpwd, opts[:scope]).info
     }
   end
 
@@ -133,7 +133,7 @@ class TokenCli < CommonCli
   end
 
   desc "token authcode get", "Gets a token using the authcode flow with browser", [:client, :secret, :scope] do
-    use_browser(clientname(opts[:client]), clientsecret(opts[:secret]))
+    use_browser(clientname, clientsecret)
   end
 
   desc "token implicit get", "Gets a token using the implicit flow with browser", [:client, :scope] do

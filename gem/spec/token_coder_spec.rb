@@ -114,7 +114,7 @@ describe TokenCoder do
     expect { subject.decode("bEaReR #{tkn}") }.to raise_exception(AuthError)
   end
 
-  it "should decode a token, but not require validatation" do
+  it "should decode a token, but not require validation" do
     token = "eyJhbGciOiJIUzI1NiJ9.eyJpZCI6ImY1MTgwMjExLWVkYjItNGQ4OS1hNmQwLThmNGVjMTE0NTE4YSIsInJlc291cmNlX2lkcyI6WyJjbG91ZF9jb250cm9sbGVyIiwicGFzc3dvcmQiXSwiZXhwaXJlc19hdCI6MTMzNjU1MTc2Niwic2NvcGUiOlsicmVhZCJdLCJlbWFpbCI6Im9sZHNAdm13YXJlLmNvbSIsImNsaWVudF9hdXRob3JpdGllcyI6WyJST0xFX1VOVFJVU1RFRCJdLCJleHBpcmVzX2luIjo0MzIwMCwidXNlcl9hdXRob3JpdGllcyI6WyJST0xFX1VTRVIiXSwidXNlcl9pZCI6Im9sZHNAdm13YXJlLmNvbSIsImNsaWVudF9pZCI6InZtYyIsInRva2VuX2lkIjoiZWRlYmYzMTctNWU2Yi00YmYwLWFmM2ItMTA0OWRjNmFlYjc1In0.XoirrePfEujnZ9Vm7SRRnj3vZEfRp2tkjkS_OCVz5Bs"
     info = TokenCoder.decode(token, nil, nil, false)
     info[:id].should_not be_nil

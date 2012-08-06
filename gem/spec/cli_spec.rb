@@ -107,7 +107,7 @@ describe Cli do
   end
 
   it "should create a test client" do
-    Cli.run "client add #{@test_client} -s testsecret --authorities clients.read,scim.read " +
+    Cli.run "client add #{@test_client} -s testsecret --authorities clients.read,scim.read,uaa.resource " +
         "--authorized_grant_types client_credentials"
     Cli.output.string = ""
     Cli.run "client get #{@test_client}"
@@ -118,6 +118,12 @@ describe Cli do
   it "should login as test client" do
     Cli.run "token client get #{@test_client} -s testsecret"
     Config.yaml.should match(/access_token/)
+  end
+
+  it "should get the server signing key as test client" do
+    Cli.run "signing key -c #{@test_client} -s testsecret"
+    Cli.output.string.should match 'alg:'
+    Cli.output.string.should match 'value:'
   end
 
   it "should fail to create a user account as test client" do
@@ -170,13 +176,43 @@ describe Cli do
     Cli.output.string.should match 'joe'
   end
 
+  it "should have multiple distinct authentication contexts" do
+    Cli.run "contexts"
+    Cli.output.string.should match "[admin]"
+    Cli.output.string.should match "[#{@test_client}]"
+    Cli.output.string.should match "[joe]"
+  end
+
+
   it "should delete a client registration as admin" do
     Cli.run "context #{@client_id}"
     Cli.run "client delete #{@test_client}"
     Cli.output.string = ""
     Cli.run "clients"
     Cli.output.string.should_not match @test_client
+    Cli.output.string.should_not match 'error'
   end
+
+  it "should get the server stats" do
+    Cli.run "stats -c varz -s varzclientsecret"
+    Cli.output.string.should match 'type: UAA'
+    Cli.output.string.should match 'mem:'
+    Cli.output.string.should match 'version:'
+  end
+
+  # TODO:
+  #   token owner get
+  #   token delete, check with token contexts
+  #   user add
+  #   user get
+  #   user delete
+  #   user password set
+  #   user password change
+  #   users attributes, filter
+  #   client secret change
+  #   client secret set
+
+  #   how to test token authcode, implicit, refresh?
 
 end
 

@@ -34,8 +34,7 @@ class ClientCli < CommonCli
 
   desc "clients", "List client registrations" do
     return unless reglist = client_reg_request { |cr| cr.list }
-    reglist.each { |k, v| reglist[k] = ClientReg.multivalues_to_strings!(v) }
-    pp reglist
+    pp reglist.each_with_object({}) { |(k, v), o| o[k] = ClientReg.multivalues_to_strings!(v) }
   end
 
   desc "client get [name]", "Get specific client registration" do |name|
