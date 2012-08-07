@@ -241,10 +241,10 @@ settings using environment variables.  The defaults as usual come from
 * `UAA_ADMIN_CLIENT_ID` the client id for bootstrapping client
   registrations needed for the rest of the tests.
 
-* `UAA_ADMIN_CLIENT_SECRET` the client secret for boottrapping client
+* `UAA_ADMIN_CLIENT_SECRET` the client secret for bootstrapping client
   registrations
   
-All other settings from `uaa.yml` can be overriden individually as
+All other settings from `uaa.yml` can be overridden individually as
 system properties.  Running in an IDE this is easy just using whatever
 features allow you to modify the JVM in test runs, but using Maven you
 have to use the `argLine` property to get settings passed onto the
@@ -464,7 +464,7 @@ and there is an environment variable (or Java System property),
 `LOGIN_SECRET` for the client secret that the app uses when it
 authenticates itself with the UAA.  The Login app is registered by
 default in the UAA only if there are no active Spring profiles (so not
-at all in `vcap`).  In the UAA you can find the registation in the
+at all in `vcap`).  In the UAA you can find the registration in the
 `oauth-clients.xml` config file.  Here's a summary:
 
     id: login
