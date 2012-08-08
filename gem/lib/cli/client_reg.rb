@@ -22,12 +22,12 @@ class ClientCli < CommonCli
 
   CLIENT_SCHEMA =
   {
-    scopes: "list",
+    scope: "list",
     authorized_grant_types: "list",
     authorities: "list",
     access_token_validity: "seconds",
     refresh_token_validity: "seconds",
-    redirect_uris: "list"
+    redirect_uri: "list"
   }
 
   CLIENT_SCHEMA.each { |k, v| define_option(k, "--#{k} <#{v}>") }
@@ -48,7 +48,7 @@ class ClientCli < CommonCli
       CLIENT_SCHEMA.keys + [:clone, :secret, :interact] do |name|
     client_reg_request do |cr|
       opts[:client_id] = clientname(name)
-      opts[:client_secret] = verified_pwd("New client secret", opts[:secret])
+      opts[:secret] = verified_pwd("New client secret", opts[:secret])
       defaults = opts[:clone] ? cr.get(opts[:clone]) : {}
       cr.create client_info(defaults, opts[:interact])
     end
