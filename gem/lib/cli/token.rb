@@ -106,9 +106,9 @@ class TokenCli < CommonCli
     }
   end
 
-  desc "token refresh [refreshtoken]", "Gets a new access token from a refresh token", [:scope] do |rtok|
+  desc "token refresh [refreshtoken]", "Gets a new access token from a refresh token", [:client, :secret, :scope] do |rtok|
     rtok ||= Config.value(:refresh_token)
-    Config.add_opts issuer_request { |ti| ti.refresh_token_grant(rtok, opts[:scope]).info }
+    Config.add_opts issuer_request(clientname, clientsecret) { |ti| ti.refresh_token_grant(rtok, opts[:scope]).info }
   end
 
   def use_browser(client_id, secret = nil)

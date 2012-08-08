@@ -45,7 +45,7 @@ class StubScim
         :authorizations],
       client: COMMON_ATTRS + [:password, :authorized_grant_types,
         :scope, :auto_approved_scopes, :access_token_validity,
-        :refresh_token_validity, :redirect_uris],
+        :refresh_token_validity, :redirect_uri],
       group: COMMON_ATTRS + [:members, :owners, :readers] }
 
   def initialize
