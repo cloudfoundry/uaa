@@ -113,7 +113,7 @@ class TokenCli < CommonCli
 
   def use_browser(client_id, secret = nil)
     catcher = Stub::Server.new(TokenCatcher,
-        Util.default_logger(debug? ? :debug : trace? ? :trace : info),
+        Util.default_logger(debug? ? :debug : trace? ? :trace : :info),
         client_id: client_id, client_secret: secret).run_on_thread
     uri = issuer_request(client_id, secret) { |ti|
       secret ? ti.authcode_uri("#{catcher.url}/authcode", opts[:scope]) :
