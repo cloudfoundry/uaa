@@ -13,6 +13,9 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.servlet.Filter;
@@ -39,7 +42,7 @@ import org.springframework.util.Assert;
  * Filter which processes authentication submitted through the <code>/authorize</code> endpoint.
  * 
  * Checks the submitted information for a parameter named "credentials" (or specified via the
- * {@link #setParameterName(String) parameter name}), in JSON format.
+ * {@link #setParameterNames(List) parameter name}), in JSON format.
  * <p>
  * If the parameter is found, it will submit an authentication request to the AuthenticationManager and attempt to
  * authenticate the user. If authentication fails, it will return an error message. Otherwise, it creates a security
@@ -57,15 +60,15 @@ public class AuthzAuthenticationFilter implements Filter {
 
 	private ObjectMapper mapper = new ObjectMapper();
 
-	private String parameterName = "credentials";
+	private List<String> parameterNames = Collections.EMPTY_LIST;// = "credentials";
 
 	/**
 	 * The name of the parameter to extract credentials from.
 	 * 
-	 * @param parameterName the parameter name to set (default "credentials")
+	 * @param parameterNames the parameter names to set (default "credentials")
 	 */
-	public void setParameterName(String parameterName) {
-		this.parameterName = parameterName;
+	public void setParameterNames(List<String> parameterNames) {
+		this.parameterNames = parameterNames;
 	}
 
 	public AuthzAuthenticationFilter(AuthenticationManager authenticationManager) {
@@ -79,18 +82,16 @@ public class AuthzAuthenticationFilter implements Filter {
 		HttpServletRequest req = (HttpServletRequest) request;
 		HttpServletResponse res = (HttpServletResponse) response;
 
-		String credentials = req.getParameter(parameterName);
+		if (!"POST".equals(req.getMethod().toUpperCase())) {
+			throw new BadCredentialsException("Credentials must be sent via POST");
+		}
 
-		if (credentials != null) {
-			// Keep it simple for now and just use a map of JSON fields to create the authentication request.
-			Map<String, String> loginInfo = mapper.readValue(credentials, new TypeReference<Map<String, String>>() {
-			});
-			logger.debug("Located credentials in request, with keys: " + loginInfo.keySet());
+		Map<String, String> loginInfo = getCredentials(req);
 
+		if (loginInfo.isEmpty()) {
+			logger.debug("Request does not contain credentials. Ignoring.");
+		} else {
 			try {
-				if (!"POST".equals(req.getMethod().toUpperCase())) {
-					throw new BadCredentialsException("Credentials must be sent via POST");
-				}
 				Authentication result = authenticationManager.authenticate(new AuthzAuthenticationRequest(loginInfo,
 						new UaaAuthenticationDetails(req)));
 				SecurityContextHolder.getContext().setAuthentication(result);
@@ -103,11 +104,32 @@ public class AuthzAuthenticationFilter implements Filter {
 				return;
 			}
 		}
-		else {
-			logger.debug("Request does not contain '" + parameterName + "' parameter. Ignoring.");
-		}
 
 		chain.doFilter(request, response);
+	}
+
+	private Map<String, String> getCredentials(HttpServletRequest request) {
+		Map<String, String> credentials = new HashMap<String, String>();
+
+		for (String paramName : parameterNames) {
+			String value = request.getParameter(paramName);
+			if (value != null) {
+				if (value.startsWith("{")) {
+					try {
+						Map<String, String> jsonCredentials = mapper.readValue(value, new TypeReference<Map<String, String>>() {
+						});
+						credentials.putAll(jsonCredentials);
+					} catch (IOException e) {
+						logger.warn("Unknown format of value for request param: " + paramName + ". Ignoring.");
+					}
+				} else {
+					credentials.put(paramName, value);
+				}
+			}
+		}
+
+		logger.debug("Located credentials in request, with keys: " + credentials.keySet());
+		return credentials;
 	}
 
 	public void init(FilterConfig filterConfig) throws ServletException {

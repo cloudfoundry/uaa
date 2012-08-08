@@ -115,11 +115,15 @@ public final class UaaRequestMatcher implements RequestMatcher {
 			return false;
 		}
 
+		if(this.parameters == null) {
+			return true;
+		}
+
 		if (this.accepts == null) {
 			return true;
 		}
 
-		return this.accepts.equals(other.accepts);
+		return this.accepts.equals(other.accepts) && this.parameters.equals(other.parameters);
 	}
 
 	@Override
@@ -127,6 +131,9 @@ public final class UaaRequestMatcher implements RequestMatcher {
 		int code = 31 ^ path.hashCode();
 		if (accepts != null) {
 			code ^= accepts.hashCode();
+		}
+		if (parameters != null) {
+			code ^= parameters.hashCode();
 		}
 		return code;
 	}

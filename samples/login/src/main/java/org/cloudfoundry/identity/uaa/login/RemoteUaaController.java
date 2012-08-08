@@ -8,6 +8,7 @@ import java.net.URLDecoder;
 import java.security.Principal;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
@@ -131,8 +132,10 @@ public class RemoteUaaController {
 
 		MultiValueMap<String, String> map = new LinkedMultiValueMap<String, String>();
 		map.setAll(parameters);
+
 		if (principal != null) {
-			map.set("login", getLoginCredentials(principal));
+			map.set("source", "login");
+			map.setAll(getLoginCredentials(principal));
 		}
 
 		HttpHeaders requestHeaders = new HttpHeaders();
@@ -196,20 +199,19 @@ public class RemoteUaaController {
 		}
 	}
 
-	private String getLoginCredentials(Principal principal) {
-		StringBuilder login = new StringBuilder("{");
-		appendField(login, "username", principal.getName());
+	private Map<String, String> getLoginCredentials(Principal principal) {
+		Map<String, String> credentials = new HashMap<String, String>();
+		credentials.put("username", principal.getName());
 		if (principal instanceof Authentication) {
 			Object details = ((Authentication) principal).getPrincipal();
 			if (details instanceof UaaUserDetails) {
 				UaaUser user = ((UaaUserDetails) details).getUser();
-				appendField(login, "family_name", user.getFamilyName());
-				appendField(login, "given_name", user.getGivenName());
-				appendField(login, "email", user.getEmail());
+				credentials.put("family_name", user.getFamilyName());
+				credentials.put("given_name", user.getGivenName());
+				credentials.put("email", user.getEmail());
 			}
 		}
-		login.append("}");
-		return login.toString();
+		return credentials;
 	}
 
 	private void appendField(StringBuilder login, String key, Object value) {

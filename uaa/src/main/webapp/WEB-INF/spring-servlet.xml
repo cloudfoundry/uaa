@@ -47,7 +47,7 @@
 
 	<!-- Version of the /authorize endpoint for stateless clients such as VMC -->
 	<http request-matcher-ref="oauthAuthorizeRequestMatcher" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"
-		authentication-manager-ref="authzAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
+		  authentication-manager-ref="authzAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<custom-filter ref="authzAuthenticationFilter" position="FORM_LOGIN_FILTER" />
 		<anonymous enabled="false" />
@@ -55,7 +55,7 @@
 	</http>
 
 	<http request-matcher-ref="loginAuthorizeRequestMatcher" entry-point-ref="oauthAuthenticationEntryPoint"
-		authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
+		  authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
 		<custom-filter ref="loginAuthenticationFilter" position="FORM_LOGIN_FILTER" />
@@ -74,7 +74,7 @@
 		<property name="parameters">
 			<map>
 				<entry key="response_type" value="token" />
-				<entry key="credentials" value="{" />
+				<entry key="source" value="credentials" />
 			</map>
 		</property>
 	</bean>
@@ -84,19 +84,80 @@
 		<property name="accept" value="application/json" />
 		<property name="parameters">
 			<map>
-				<entry key="login" value="{" />
+				<entry key="source" value="login" />
 			</map>
 		</property>
 	</bean>
 
 	<bean id="authzAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationFilter">
 		<constructor-arg ref="authzAuthenticationMgr" />
+		<property name="parameterNames">
+			<list>
+				<value>username</value>
+				<value>password</value>
+				<value>credentials</value>
+			</list>
+		</property>
 	</bean>
 
 	<bean id="loginAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationFilter">
 		<constructor-arg ref="loginAuthenticationMgr" />
-		<property name="parameterName" value="login" />
+		<property name="parameterNames">
+			<list>
+				<value>username</value>
+				<value>given_name</value>
+				<value>family_name</value>
+				<value>email</value>
+				<value>login</value>
+			</list>
+		</property>
+
 	</bean>
+
+	<!-- For backwards compatibility to the old way of posting credentials to /authorize endpoint -->
+	<http request-matcher-ref="oauthAuthorizeRequestMatcherOld" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"
+		  authentication-manager-ref="authzAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+		<custom-filter ref="authzAuthenticationFilter" position="FORM_LOGIN_FILTER" />
+		<anonymous enabled="false" />
+		<access-denied-handler ref="oauthAccessDeniedHandler" />
+	</http>
+
+	<http request-matcher-ref="loginAuthorizeRequestMatcherOld" entry-point-ref="oauthAuthenticationEntryPoint"
+		  authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+		<custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
+		<custom-filter ref="loginAuthenticationFilter" position="FORM_LOGIN_FILTER" />
+		<anonymous enabled="false" />
+		<access-denied-handler ref="oauthAccessDeniedHandler" />
+	</http>
+
+	<bean id="oauthAuthorizeRequestMatcherOld" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
+		<constructor-arg value="/oauth/authorize" />
+		<property name="accept">
+			<list>
+				<value>application/json</value>
+				<value>application/x-www-form-urlencoded</value>
+			</list>
+		</property>
+		<property name="parameters">
+			<map>
+				<entry key="response_type" value="token" />
+				<entry key="credentials" value="{" />
+			</map>
+		</property>
+	</bean>
+
+	<bean id="loginAuthorizeRequestMatcherOld" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
+		<constructor-arg value="/oauth/authorize" />
+		<property name="accept" value="application/json" />
+		<property name="parameters">
+			<map>
+				<entry key="login" value="{" />
+			</map>
+		</property>
+	</bean>
+	<!-- End -->
 
 	<http pattern="/check_token" create-session="stateless" entry-point-ref="basicAuthenticationEntryPoint"
 		authentication-manager-ref="clientAuthenticationManager" use-expressions="true"
