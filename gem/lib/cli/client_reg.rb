@@ -68,11 +68,11 @@ class ClientCli < CommonCli
   end
 
   define_option :old_secret, "-o", "--old_secret <secret>", "current secret"
-  desc "client secret change [name]", "Change client secret", [:old_secret, :secret] do |name|
+  desc "secret change [name]", "Change client secret", [:old_secret, :secret] do |name|
     say "change client secret not implemented"
   end
 
-  desc "client secret set [name]", "Set client secret", [:secret] do |name|
+  desc "secret set [name]", "Set client secret", [:secret] do |name|
     say "set client secret not implemented"
   end
 

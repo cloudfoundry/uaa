@@ -44,21 +44,21 @@ class UserCli < CommonCli
   end
 
   desc "user delete [name]", "Delete user account" do |name|
-    acct_request { |ua| ua.delete_by_name(username(name)) }
+    pp acct_request { |ua| ua.delete_by_name(username(name)) }
   end
 
-  desc "user password set [name]", "Set password", [:password] do |name|
-    acct_request { |ua| ua.change_password_by_name(username(name),
+  desc "password set [name]", "Set password", [:password] do |name|
+    pp acct_request { |ua| ua.change_password_by_name(username(name),
         verified_pwd("New password", opts[:password])) }
   end
 
   define_option :old_password, "-o", "--old_password <password>", "current password"
-  desc "user password change [name]", "Change password", [:old_password, :password] do |name|
-    # TODO: verify the uaa will take a name instead of id here. If not, how
-    # get their own id so they can change their own password?
-    handle_request { Misc.change_password(Config.target, username(name),
-        opts[:old_password] || ask_pwd("Current password"),
-        verified_pwd("New password", opts[:password])) }
+  desc "password change", "Change password for authenticated user in current context", [:old_password, :password] do
+    pp acct_request { |ua|
+      oldpwd = opts[:old_password] || ask_pwd("Current password")
+      ua.change_password(Config.value(:user_id),
+          verified_pwd("New password", opts[:password]), oldpwd)
+    }
   end
 
   private
@@ -66,11 +66,9 @@ class UserCli < CommonCli
   def acct_request
     return yield UserAccount.new(Config.target, auth_header)
   rescue TargetError => e
-    say "#{e.message}:\n#{JSON.pretty_generate(e.info)}"
-    nil
+    "\n#{e.message}:\n#{JSON.pretty_generate(e.info)}\n"
   rescue Exception => e
-    say e.message, (e.backtrace if trace?)
-    nil
+    "\n#{e.class}: #{e.message}\n#{e.backtrace if trace?}\n"
   end
 
 end

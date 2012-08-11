@@ -84,7 +84,9 @@ class TokenCli < CommonCli
       ti.implicit_grant_with_creds(creds, opts[:scope]).info
     }
     return say "attempt to get token failed", "" unless token && token[:access_token]
-    Config.context = TokenCoder.decode(token[:access_token], nil, nil, false)[:user_name]
+    tokinfo = TokenCoder.decode(token[:access_token], nil, nil, false)
+    Config.context = tokinfo[:user_name]
+    Config.add_opts(user_id: tokinfo[:user_id])
     Config.add_opts token
     say "successfully logged in"
   end

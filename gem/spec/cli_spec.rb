@@ -20,7 +20,7 @@ require 'pp'
 # Example config to run these tests against a real UAA rather than the stub server
 #    ENV["UAA_CLIENT_ID"] = "admin"
 #    ENV["UAA_CLIENT_SECRET"] = "adminsecret"
-#    ENV["UAA_CLI_TARGET"] = "http://localhost:8080/uaa"
+#    ENV["UAA_CLIENT_TARGET"] = "http://localhost:8080/uaa"
 
 module CF::UAA
 
@@ -32,8 +32,10 @@ describe Cli do
     @client_id = ENV["UAA_CLIENT_ID"] || "admin"
     @client_secret = ENV["UAA_CLIENT_SECRET"] || "adminsecret"
     @test_client = "clapp_#{Time.now.to_i}"
-    if ENV["UAA_CLI_TARGET"]
-      @target, @stub_uaa = ENV["UAA_CLI_TARGET"], nil
+    @test_user = "sam_#{Time.now.to_i}"
+    @test_pwd = "correcthorsebatterystaple"
+    if ENV["UAA_CLIENT_TARGET"]
+      @target, @stub_uaa = ENV["UAA_CLIENT_TARGET"], nil
     else
       @stub_uaa = StubUAA.new(@client_id, @client_secret).run_on_thread
       @target = @stub_uaa.url
@@ -127,7 +129,7 @@ describe Cli do
   end
 
   it "should fail to create a user account as test client" do
-    Cli.run "user add joe -p joe"
+    Cli.run "user add #{@test_user} -p #{@test_pwd}"
     Cli.output.string.should match /insufficient_scope/
   end
 
@@ -143,24 +145,25 @@ describe Cli do
 
   it "should still fail to create a user account as the test client" do
     Cli.run "context #{@test_client}"
-    Cli.run "user add joe -p joe"
+    Cli.run "user add #{@test_user} -p #{@test_pwd}"
     Cli.output.string.should match "insufficient_scope"
   end
 
   it "should create a user account with a new token" do
     Cli.run "token client get #{@test_client} -s testsecret"
-    Cli.run "user add JoE -p joe --email joe@example.com"
+    Cli.output.string = ""
+    Cli.run "user add #{@test_user.capitalize} -p #{@test_pwd} --email #{@test_user}@example.com"
     Cli.output.string.should_not match /insufficient_scope/
     Cli.output.string = ""
-    Cli.run "user get joe"
-    Cli.output.string.should match "JoE"
+    Cli.run "user get #{@test_user}"
+    #puts "start user get", Cli.output.string, "end"
+    Cli.output.string.should match @test_user.capitalize
   end
 
   it "should login with implicit grant & posted credentials as a user" do
-    Cli.run "token get joe joe"
+    Cli.run "token get #{@test_user} #{@test_pwd}"
     Cli.output.string.should match "successfully logged in"
     #pp Cli.output.string
-    #pp Config.config
   end
 
   it "should decode the token" do
@@ -168,19 +171,27 @@ describe Cli do
     ["user_name", "exp", "aud", "scope", "client_id", "email", "user_id"].each do |a|
       Cli.output.string.should match a
     end
-    #Cli.output.string.should match 'JoE'
+    # puts Cli.output.string
+    # Cli.output.string.should match 'JoE'
   end
 
   it "should get authenticated user information" do
     Cli.run "me"
-    Cli.output.string.should match 'joe'
+    Cli.output.string.should match @test_user
+  end
+
+  it "should change a user's password" do
+    Cli.run "password change -p newpwd --old_password #{@test_pwd}"
+    Cli.output.string = ""
+    Cli.run "token get #{@test_user} newpwd"
+    Cli.output.string.should match "successfully logged in"
   end
 
   it "should have multiple distinct authentication contexts" do
     Cli.run "contexts"
     Cli.output.string.should match "[admin]"
     Cli.output.string.should match "[#{@test_client}]"
-    Cli.output.string.should match "[joe]"
+    Cli.output.string.should match "[#{@test_user}]"
   end
 
 
@@ -203,11 +214,8 @@ describe Cli do
   # TODO:
   #   token owner get
   #   token delete, check with token contexts
-  #   user add
-  #   user get
   #   user delete
   #   user password set
-  #   user password change
   #   users attributes, filter
   #   client secret change
   #   client secret set

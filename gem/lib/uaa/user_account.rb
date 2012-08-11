@@ -44,8 +44,9 @@ class UserAccount
     raise BadResponse, "no user id returned by create user: target #{@target}"
   end
 
-  def change_password(user_id, new_password)
+  def change_password(user_id, new_password, old_password = nil)
     password_request = { password: new_password }
+    password_request[:oldPassword] = old_password if old_password
     json_parse_reply(*json_put("/User/#{URI.encode(user_id)}/password", password_request, @auth_header))
   end
 
@@ -65,8 +66,8 @@ class UserAccount
   def delete(user_id); http_delete "/User/#{URI.encode(user_id)}", @auth_header end
   def delete_by_name(name); delete user_id_from_name(name) end
 
-  def change_password_by_name(name, new_password)
-    change_password(user_id_from_name(name), new_password)
+  def change_password_by_name(name, new_password, old_password = nil)
+    change_password(user_id_from_name(name), new_password, old_password)
   end
 
   def user_id_from_name(name)
