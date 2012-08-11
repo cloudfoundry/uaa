@@ -74,9 +74,8 @@ class Topic
       if obj.empty? || obj[0].is_a?(String)
         say Util.truncate(line << Util.strlist(obj), line_limit)
       else
-        Util.truncate(line, line_limit) if label
-        label = sprintf "%-*c", indent_size, '-'
-        obj.each {|o| pp o, indent_count, indent_size, line_limit, label }
+        say Util.truncate(line, line_limit) if label
+        obj.each {|o| pp o, indent_count, indent_size, line_limit, '-' }
       end
     when Hash
       if label
@@ -141,7 +140,7 @@ class Topic
         return say_cmd_helper(v, "\n") if args[0..v[:parts].length - 1] == v[:parts]
       end
     end
-    args.map(&:downcase)
+    args = args.map(&:downcase)
     @cli_class.topics.each { |tpc| return say_help(tpc) unless (args & tpc.topic.downcase.split(' ')).empty? }
     say "No command or topic found to match: #{args.join(' ')}", ""
   end
@@ -204,7 +203,7 @@ class BaseCli
         return self
       end
     end
-    @output.puts "command not found"
+    @output.puts "#{$0} subcommand not found"
     self
   rescue Exception => e
     $stderr.puts "", "#{e.class}: #{e.message}", (e.backtrace if opts[:trace])

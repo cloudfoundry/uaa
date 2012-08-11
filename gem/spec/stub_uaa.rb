@@ -246,6 +246,7 @@ class StubUAAConn < Stub::Base
     return unless valid_token("scim.write")
     info = Util.json_parse(request.body).merge!(active: true)
     (info[:groups] ||= []) << server.scim.name_to_id("openid")
+    info[:groups] << server.scim.name_to_id("password.write")
     user = server.scim.add(:user, info).dup
     user.delete(:password)
     user.delete(:rtype)
@@ -291,7 +292,7 @@ class StubUAAConn < Stub::Base
 
   route :get, %r{^/userinfo\??(.*)$} do
     return not_found unless (tokn = valid_token("openid")) &&
-        (info = server.scim.find_by_id(tokn[:user_id])) && info[:username]
+        (info = server.scim.find_by_id(tokn[:user_id]).dup) && info[:username]
     info[:user_name] = info.delete(:username)
     reply.json(info)
   end
@@ -313,7 +314,8 @@ class StubUAA < Stub::Server
         authorized_grant_types: ["client_credentials"], groups: gids,
         access_token_validity: 60 * 60 * 24 * 7)
     @scim.add(:client, {displayname: "vmc", authorized_grant_types: ["implicit"],
-        scope: [@scim.name_to_id("openid")], access_token_validity: 5 * 60 })
+        scope: [@scim.name_to_id("openid"), @scim.name_to_id("password.write")],
+        access_token_validity: 5 * 60 })
     super(StubUAAConn, logger)
   end
 

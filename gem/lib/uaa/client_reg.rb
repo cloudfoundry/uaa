@@ -20,7 +20,7 @@ class ClientReg
 
   include Http
 
-  MULTI_VALUED = [:scope, :resource_ids, :authorized_grant_types, :authorities, :redirect_uri]
+  MULTI_VALUED = [:scope, :authorized_grant_types, :authorities, :redirect_uri]
 
   def self.multivalues_to_arrays!(info)
     MULTI_VALUED.each_with_object(info) { |v, o| o[v] = Util.arglist(o[v]) if o[v] }
@@ -42,7 +42,6 @@ class ClientReg
   #     client_id (required),
   #     client_secret,
   #     scope (array of strings or space or comma separated fields),
-  #     resource_ids (array of strings or space or comma separated fields),
   #     authorized_grant_types (array of strings or space or comma separated fields),
   #     authorities (array of strings or space or comma separated fields),
   #     access_token_validity (integer)

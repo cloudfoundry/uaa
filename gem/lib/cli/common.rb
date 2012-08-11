@@ -51,10 +51,10 @@ class CommonCli < Topic
   def handle_request
     return yield
   rescue TargetError => e
-    say "#{e.message}:\n#{JSON.pretty_generate(e.info)}"
+    say "\n#{e.message}:\n#{JSON.pretty_generate(e.info)}"
     nil
   rescue Exception => e
-    say e.message, (e.backtrace if trace?)
+    say "\n#{e.class}: #{e.message}", (e.backtrace if trace?)
     nil
   end
 
@@ -109,18 +109,6 @@ class MiscCli < CommonCli
     say "\n"
   end
 
-  desc "context [name]", "Display or set current context" do |ctx|
-    ctx = ctx.to_i if ctx.to_i.to_s == ctx
-    Config.context = ctx if ctx && Config.valid_context(ctx)
-    (opts[:trace] ? Config.add_opts(trace: true) : Config.delete_attr(:trace)) if opts.key?(:trace)
-    return say "no context set in target #{Config.target}" unless Config.context
-    say "", "context set to #{Config.context}, with target #{Config.target}", ""
-  end
-
-  desc "contexts", "Display all contexts" do
-    config_pp
-  end
-
   def config_pp(tgt = nil, ctx = nil)
     Config.config.each_with_index do |(k, v), i|
       next if tgt && tgt != k
@@ -129,6 +117,7 @@ class MiscCli < CommonCli
       pp "[#{i}]#{splat}[#{k}]"
       next unless v[:contexts]
       v[:contexts].each_with_index do |(sk, sv), si|
+        next if ctx && ctx != sk
         say ""
         splat = sv[:current] && v[:current]? '*' : ' '
         sv.delete(:current)
@@ -137,6 +126,19 @@ class MiscCli < CommonCli
       end
     end
     say ""
+  end
+
+  desc "context [name]", "Display or set current context" do |ctx|
+    ctx = ctx.to_i if ctx.to_i.to_s == ctx
+    Config.context = ctx if ctx && Config.valid_context(ctx)
+    (opts[:trace] ? Config.add_opts(trace: true) : Config.delete_attr(:trace)) if opts.key?(:trace)
+    return say "no context set in target #{Config.target}" unless Config.context
+    #say "", "context set to #{Config.context}, with target #{Config.target}", ""
+    config_pp Config.target, Config.context
+  end
+
+  desc "contexts", "Display all contexts" do
+    config_pp
   end
 
   def normalize_url(url, scheme = nil)
