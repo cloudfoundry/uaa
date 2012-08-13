@@ -25,8 +25,8 @@ describe UserAccount do
     #Util.default_logger(:trace)
     id, secret = "testclient", "testsecret"
     @stub_uaa = StubUAA.new(id, secret).run_on_thread
-    @stub_uaa.scim.find_by_name(id)[:groups] << @stub_uaa.scim.name_to_id("scim.read")
-    @stub_uaa.scim.find_by_name(id)[:groups] << @stub_uaa.scim.name_to_id("scim.write")
+    @stub_uaa.scim.update(@stub_uaa.scim.id(id, :client), groups:
+        [@stub_uaa.scim.id("scim.read", :group), @stub_uaa.scim.id("scim.write", :group)])
     @issuer = TokenIssuer.new(@stub_uaa.url, id, secret)
     @token = @issuer.client_credentials_grant
     @user_acct = UserAccount.new(@stub_uaa.url, @token.auth_header)

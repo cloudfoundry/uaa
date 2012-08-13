@@ -97,14 +97,6 @@ class Misc
     reply
   end
 
-  # this is an unauthenticated request so a client can change their secret if
-  # they have the current secret.
-  def self.change_secret(target, client_id, old_secret, new_secret)
-    @target = target
-    req = { oldSecret: old_secret, secret: new_secret }
-    json_parse_reply(*json_put("/oauth/clients/#{client_id}/password", req))
-  end
-
   def self.password_strength(target, password)
     @target = target
     json_parse_reply(*request(:post, '/password/score', URI.encode_www_form(password: password),

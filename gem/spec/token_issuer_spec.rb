@@ -25,14 +25,14 @@ describe TokenIssuer do
   before :all do
     #Util.default_logger(:trace)
     @stub_uaa = StubUAA.new.run_on_thread
-    readers = @stub_uaa.scim.add(:group, {displayname: "logs.read"})
-    @stub_uaa.scim.add(:client, {displayname: "test_client", password: "test_secret",
+    readers = @stub_uaa.scim.add(:group, displayname: "logs.read")
+    @stub_uaa.scim.add(:client, displayname: "test_client", password: "test_secret",
         authorized_grant_types: ["client_credentials", "authorization_code"],
-        groups: [readers[:id], @stub_uaa.scim.name_to_id("scim.read"),
-            @stub_uaa.scim.name_to_id("openid")],
-        access_token_validity: 60 * 60 * 24 * 8 })
-    @stub_uaa.scim.add(:user, {username: "joe+admin", password: "?joe's%password$@ ",
-        groups: [@stub_uaa.scim.name_to_id("openid")]})
+        groups: [readers, @stub_uaa.scim.id("scim.read", :group),
+            @stub_uaa.scim.id("openid", :group)],
+        access_token_validity: 60 * 60 * 24 * 8 )
+    @stub_uaa.scim.add(:user, username: "joe+admin", password: "?joe's%password$@ ",
+        groups: [@stub_uaa.scim.id("openid", :group)])
     @issuer = TokenIssuer.new(@stub_uaa.url, "test_client", "test_secret")
     @issuer.async = @async = false
   end

@@ -66,6 +66,12 @@ class ClientReg
   def delete(id); http_delete "/oauth/clients/#{URI.encode(id)}", @auth_header end
   def list; json_get "/oauth/clients", @auth_header end
 
+  def change_secret(client_id, new_secret, old_secret = nil)
+    req = { secret: new_secret }
+    req[:oldSecret] = old_secret if old_secret
+    json_parse_reply(*json_put("/oauth/clients/#{URI.encode(client_id)}/secret", req, @auth_header))
+  end
+
 end
 
 end

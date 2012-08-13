@@ -68,12 +68,18 @@ class ClientCli < CommonCli
   end
 
   define_option :old_secret, "-o", "--old_secret <secret>", "current secret"
-  desc "secret change [name]", "Change client secret", [:old_secret, :secret] do |name|
-    say "change client secret not implemented"
+  desc "secret change", "Change secret for client in current context", [:old_secret, :secret] do
+    return say "context not set" unless client_id = Config.context.to_s
+    client_reg_request do |cr|
+      old = opts[:old_secret] || ask_pwd("Current secret")
+      cr.change_secret(client_id, verified_pwd("New secret", opts[:secret]), old)
+    end
   end
 
   desc "secret set [name]", "Set client secret", [:secret] do |name|
-    say "set client secret not implemented"
+    client_reg_request do |cr|
+      cr.change_secret(clientname(name), verified_pwd("New secret", opts[:secret]))
+    end
   end
 
   def client_reg_request
