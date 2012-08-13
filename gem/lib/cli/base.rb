@@ -83,7 +83,7 @@ class Topic
         indent_count += 1
       end
       obj.each { |k, v| pp v, indent_count, indent_size, line_limit, "#{k}: " }
-    when nil then say Util.truncate(line << "<nil>", line_limit)
+    when nil then say "" # Util.truncate(line << "<nil>", line_limit)
     else say Util.truncate(line << obj.to_s, line_limit)
     end
   end

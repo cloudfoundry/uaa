@@ -102,7 +102,7 @@ class Misc
   def self.change_secret(target, client_id, old_secret, new_secret)
     @target = target
     req = { oldSecret: old_secret, secret: new_secret }
-    json_parse_reply(*json_put("/oauth/clients/#{client_id}/password", req))
+    json_parse_reply(*json_put("/oauth/clients/#{client_id}/secret", req))
   end
 
   def self.password_strength(target, password)

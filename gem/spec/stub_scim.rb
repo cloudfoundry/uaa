@@ -20,6 +20,8 @@ class AlreadyExists < RuntimeError; end
 
 class StubScim
 
+  private
+
   COMMON_ATTRS = [:externalid, :displayname, :groups]
   BOOLEANS = [:active]
   NUMBERS = [:access_token_validity, :refresh_token_validity]
@@ -48,10 +50,6 @@ class StubScim
         :refresh_token_validity, :redirect_uri],
       group: COMMON_ATTRS + [:members, :owners, :readers] }
 
-  def initialize
-    @things = []
-  end
-
   def valid_complex?(value, subattrs, simple_ok = false)
     return true if simple_ok && value.is_a?(String)
     return unless value.is_a?(Hash) && (!simple_ok || value.key?(:value))
@@ -64,7 +62,7 @@ class StubScim
   end
 
   def valid_id?(id, rtype)
-    @things.index { |thing| (!rtype || thing[:rtype] == rtype) && thing[:id] == id }
+    (t = @things_by_id[id]) && (rtype.nil? || t[:rtype] == rtype)
   end
 
   def valid_ids?(value, rtype = nil)
@@ -75,7 +73,7 @@ class StubScim
     end
   end
 
-  def valid?(rtype, thing)
+  def enforce_schema(rtype, thing)
     thing.each do |k, v|
       raise SchemaViolation, "illegal #{k} on #{rtype}" unless LEGAL_ATTRS[rtype].include?(k)
       valid_attr = case k
@@ -94,73 +92,105 @@ class StubScim
     end
   end
 
-  def add(rtype, stuff)
-    raise SchemaViolation, "new #{rtype} has no name #{NAME_ATTR[rtype]}" unless stuff.is_a?(Hash) && (name = stuff[NAME_ATTR[rtype]])
-    raise AlreadyExists if find_by_name name
-    valid?(rtype, stuff)
-    stuff[:rtype] = rtype
-    stuff[:id] = SecureRandom.uuid
-    stuff[:meta] = { created: Time.now.iso8601, last_modified: Time.now.iso8601, version: 1 }
-    if stuff[:members]
-      put_members(stuff[:id], stuff[:members])
-      stuff.delete(:members)
-    end
-    @things << stuff
-    stuff
-  end
-
-  def update(id, stuff)
-    raise NotFound unless thing = find_by_id(id)
-    [:id, :meta, :password, :rtype].each { |k| stuff.delete(k) }
-    valid?(thing[:rtype], stuff)
-    thing.merge! stuff
-    thing[:meta][:version] += 1
-    thing[:meta][:lastmodified] == Time.now.iso8601
-  end
-
-  def remove(id)
-    raise NotFound unless thing = find_by_id(id)
-    @things.delete(thing)
-  end
-
-  def find_by_id(id, rtype = nil)
-    return unless id
-    return unless i = @things.index { |thing| thing[:id] == id }
-    @things[i] if !rtype || rtype == @things[i][:rtype]
-  end
-
-  def find_by_name(name, rtype = nil)
-    return unless name
-    return unless i = @things.index { |thing| name.casecmp(thing[NAME_ATTR[thing[:rtype]]]) == 0}
-    @things[i] if !rtype || rtype == @things[i][:rtype]
-  end
-
   def members(group_id)
-    @things.each_with_object([]) do |thing, members|
-        members << thing[:id] if thing[:groups] && thing[:groups].include?(group_id)
+    @things_by_id.each_with_object([]) do |(k, t), members|
+        members << t[:id] if t[:groups] && t[:groups].include?(group_id)
     end
   end
 
   def put_members(group_id, members)
     members.each do |member|
       member = member[:value] if member.is_a? Hash
-      thing = find_by_id(member)
+      thing = ref_by_id(member)
       (thing[:groups] ||= []) << group_id
     end
   end
 
-  def things(rtype = nil)
-    @things.select { |thing| rtype.nil? || thing[:rtype] == rtype }
+  def ref_by_id(id, rtype = nil)
+    (t = @things_by_id[id]) && (rtype.nil? || t[:rtype] == rtype) ? t : nil
   end
 
-  def id_to_name(id, rtype = nil)
-    thing = find_by_id(id, rtype)
+  def ref_by_name(name, rtype)
+    @things_by_name[rtype.to_s + name.downcase]
+  end
+
+  public
+
+  def initialize
+    @things_by_id, @things_by_name = {}, {}
+  end
+
+  def add(rtype, stuff)
+    unless stuff.is_a?(Hash) && (name = stuff[NAME_ATTR[rtype]])
+      raise SchemaViolation, "new #{rtype} has no name #{NAME_ATTR[rtype]}"
+    end
+    raise AlreadyExists if @things_by_name.key?(name = rtype.to_s + name.downcase)
+    enforce_schema(rtype, stuff)
+    stuff = stuff.merge(rtype: rtype, id: (id = SecureRandom.uuid),
+        meta: { created: Time.now.iso8601, last_modified: Time.now.iso8601, version: 1 })
+    if stuff[:members]
+      put_members(id, stuff[:members])
+      stuff.delete(:members)
+    end
+    @things_by_id[id] = @things_by_name[name] = stuff
+    id
+  end
+
+  def update(id, stuff)
+    raise NotFound unless thing = ref_by_id(id)
+    rtype = thing[:rtype]
+    if newname = stuff[NAME_ATTR[rtype]]
+      oldname = rtype.to_s + thing[NAME_ATTR[rtype]].downcase
+      if (newname = rtype.to_s + newname.downcase) == oldname
+        newname = nil
+      else
+        raise AlreadyExists if @things_by_name.key?(newname)
+      end
+    end
+    stuff = stuff.dup
+    [:id, :meta, :rtype].each { |k| stuff.delete(k) }
+    enforce_schema(rtype, stuff)
+    if stuff[:members]
+      put_members(id, stuff[:members])
+      stuff.delete(:members)
+    end
+    if newname
+      @things_by_name.delete(oldname)
+      @things_by_name[newname] = thing
+    end
+    thing.merge! stuff
+    thing[:meta][:version] += 1
+    thing[:meta][:lastmodified] == Time.now.iso8601
+  end
+
+  def remove(id, rtype = nil)
+    return unless thing = ref_by_id(id, rtype)
+    @things_by_id.delete(id)
+    rtype = thing[:rtype]
+    @things_by_name.delete(rtype.to_s + thing[NAME_ATTR[rtype]].downcase)
+  end
+
+  def get(id, rtype = nil)
+    return unless thing = ref_by_id(id, rtype)
+    thing = thing.dup
+    thing[:members] = members(id) if thing[:rtype] == :group
+    thing
+  end
+
+  def name(id, rtype = nil)
+    return unless thing = ref_by_id(id, rtype)
     thing[NAME_ATTR[thing[:rtype]]]
   end
 
-  def name_to_id(name, rtype = nil)
-    thing = find_by_name(name, rtype)
+  def id(name, rtype)
+    return unless thing = ref_by_name(name, rtype)
     thing[:id]
+  end
+
+  def get_by_name(name, rtype) ; get(id(name, rtype)) end
+
+  def find(rtype, filter = nil)
+    @things_by_id.each_with_object([]) { |(k, v), o| o << v[:id] if rtype == v[:rtype] }
   end
 
 end
