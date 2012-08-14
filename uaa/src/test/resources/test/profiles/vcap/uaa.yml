@@ -31,7 +31,7 @@ oauth:
       scope: cloud_controller.read,cloud_controller.write,openid,password.write,tokens.read,tokens.write
       authorities: uaa.none
       resource-ids: password,tokens,cloud_controller,openid
-      redirect-uri: http://uaa.cloudfoundry.com/redirect/vmc
+      redirect-uri: https://uaa.cloudfoundry.com/redirect/vmc
     cloud_controller:    
       id: cloud_controller
       secret: cloudcontrollersecret
