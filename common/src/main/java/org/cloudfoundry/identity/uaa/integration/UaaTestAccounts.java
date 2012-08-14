@@ -26,6 +26,7 @@ import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.client.resource.OAuth2ProtectedResourceDetails;
 import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
+import org.springframework.security.oauth2.client.token.grant.code.AuthorizationCodeResourceDetails;
 import org.springframework.security.oauth2.client.token.grant.implicit.ImplicitResourceDetails;
 import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordResourceDetails;
 import org.springframework.security.oauth2.common.AuthenticationScheme;
@@ -269,6 +270,18 @@ public class UaaTestAccounts implements TestAccounts {
 
 	public ImplicitResourceDetails getDefaultImplicitResource() {
 		return getImplicitResource("oauth.clients.vmc", "vmc", "http://uaa.cloudfoundry.com/redirect/vmc");
+	}
+
+	public AuthorizationCodeResourceDetails getDefaultAuthorizationCodeResource() {
+		ResourceOwnerPasswordResourceDetails resource = getDefaultResourceOwnerPasswordResource();
+		AuthorizationCodeResourceDetails result = new AuthorizationCodeResourceDetails();
+		result.setAccessTokenUri(resource.getAccessTokenUri());
+		result.setUserAuthorizationUri(resource.getAccessTokenUri().replace("/token", "/authorize"));
+		result.setClientId(resource.getClientId());
+		result.setClientSecret(resource.getClientSecret());
+		String redirectUri = environment.getProperty("oauth.clients.app.redirect-uri", "http://anywhere.com");
+		result.setPreEstablishedRedirectUri(redirectUri);
+		return result;
 	}
 
 	public String getCloudControllerUrl() {
