@@ -82,16 +82,15 @@ public class AuthzAuthenticationFilter implements Filter {
 		HttpServletRequest req = (HttpServletRequest) request;
 		HttpServletResponse res = (HttpServletResponse) response;
 
-		if (!"POST".equals(req.getMethod().toUpperCase())) {
-			throw new BadCredentialsException("Credentials must be sent via POST");
-		}
-
 		Map<String, String> loginInfo = getCredentials(req);
 
 		if (loginInfo.isEmpty()) {
 			logger.debug("Request does not contain credentials. Ignoring.");
 		} else {
 			try {
+				if (!"POST".equals(req.getMethod().toUpperCase())) {
+					throw new BadCredentialsException("Credentials must be sent via POST");
+				}
 				Authentication result = authenticationManager.authenticate(new AuthzAuthenticationRequest(loginInfo,
 						new UaaAuthenticationDetails(req)));
 				SecurityContextHolder.getContext().setAuthentication(result);
@@ -137,4 +136,6 @@ public class AuthzAuthenticationFilter implements Filter {
 
 	public void destroy() {
 	}
+
+
 }
