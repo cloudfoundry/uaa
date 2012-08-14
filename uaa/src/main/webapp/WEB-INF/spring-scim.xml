@@ -84,7 +84,7 @@
 			<constructor-arg ref="scimUserProvisioning" />
 			<constructor-arg>
 				<list value-type="org.cloudfoundry.identity.uaa.user.UaaUser">
-					<value>marissa|koala|marissa@test.org|Marissa|Bloggs</value>
+					<value>marissa|koala|marissa@test.org|Marissa|Bloggs|uaa.user,tokens.read,tokens.write</value>
 				</list>
 			</constructor-arg>
 		</bean>

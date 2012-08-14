@@ -24,6 +24,7 @@ import org.junit.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabase;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
+import org.springframework.security.core.authority.AuthorityUtils;
 
 /**
  * @author Luke Taylor
@@ -58,6 +59,18 @@ public class ScimUserBootstrapTests {
 		bootstrap.afterPropertiesSet();
 		Collection<ScimUser> users = db.retrieveUsers();
 		assertEquals(2, users.size());
+	}
+
+	@Test
+	public void canAddUserWithAuthorities() throws Exception {
+		UaaUser joe = new UaaUser("joe", "password", "joe@test.org", "Joe", "User");
+		joe = joe.authorities(AuthorityUtils.commaSeparatedStringToAuthorityList("openid,read"));
+		ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, Arrays.asList(joe));
+		bootstrap.afterPropertiesSet();
+		Collection<ScimUser> users = db.retrieveUsers();
+		assertEquals(1, users.size());
+		// uaa.user is always added
+		assertEquals(3, users.iterator().next().getGroups().size());
 	}
 
 	@Test

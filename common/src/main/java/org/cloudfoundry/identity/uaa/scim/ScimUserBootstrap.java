@@ -12,14 +12,17 @@
  */
 package org.cloudfoundry.identity.uaa.scim;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.security.core.GrantedAuthority;
 
 /**
  * Convenience class for provisioning user accounts from {@link UaaUser} instances.
@@ -96,6 +99,18 @@ public class ScimUserBootstrap implements InitializingBean {
 	private ScimUser getScimUser(UaaUser user) {
 		ScimUser scim = new ScimUser(user.getId(), user.getUsername(), user.getGivenName(), user.getFamilyName());
 		scim.addEmail(user.getEmail());
+		scim.setGroups(getGroups(user.getAuthorities()));
 		return scim;
+	}
+
+	/**
+	 * Convert authorities to groups.
+	 */
+	private Collection<Group> getGroups(List<? extends GrantedAuthority> authorities) {
+		List<Group> groups = new ArrayList<Group>();
+		for (GrantedAuthority group : authorities) {
+			groups.add(new Group(null, group.toString()));
+		}
+		return groups;
 	}
 }
