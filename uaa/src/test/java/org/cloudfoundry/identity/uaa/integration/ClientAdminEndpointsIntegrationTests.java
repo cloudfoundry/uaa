@@ -24,6 +24,7 @@ import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.oauth.SecretChangeRequest;
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.http.HttpEntity;
@@ -198,6 +199,29 @@ public class ClientAdminEndpointsIntegrationTests {
 						new HttpEntity<BaseClientDetails>(client, headers), Void.class, client.getClientId());
 		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
 
+	}
+
+	@Test
+	@Ignore // CFID-372
+	public void testCreateExistingClientFails() throws Exception {
+
+		OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write");
+
+		HttpHeaders headers = getAuthenticatedHeaders(token);
+
+		BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar", "client_credentials", "uaa.none");
+		client.setClientSecret("clientSecret");
+		ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
+				HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
+		assertEquals(HttpStatus.CREATED, result.getStatusCode());
+
+		@SuppressWarnings("rawtypes")
+		ResponseEntity<Map> attempt = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
+				HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Map.class);
+		assertEquals(HttpStatus.CONFLICT, attempt.getStatusCode());
+		@SuppressWarnings("unchecked")
+		Map<String,String> map = attempt.getBody();
+		assertEquals("", map.get("error"));
 	}
 
 	public HttpHeaders getAuthenticatedHeaders(OAuth2AccessToken token) {

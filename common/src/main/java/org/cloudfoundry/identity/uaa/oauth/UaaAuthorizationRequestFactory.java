@@ -141,9 +141,6 @@ public class UaaAuthorizationRequestFactory implements AuthorizationRequestFacto
 		}
 		request.addClientDetails(clientDetails);
 
-		// TODO: remove this when SECOAUTH-308 is fixed
-		validateParameters(request.getAuthorizationParameters(), clientDetails);
-
 		return request;
 
 	}
