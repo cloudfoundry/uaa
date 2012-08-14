@@ -1,0 +1,9 @@
+Code-Review+1: Joel D'sa <jdsa@vmware.com>
+Code-Review+2: Luke Taylor <ltaylor@vmware.com>
+Verified+1: CI Master <cf-ci@rbcon.com>
+Code-Review+1: Vidya Valmikinathan <vidya@rbcon.com>
+Submitted-by: Luke Taylor <ltaylor@vmware.com>
+Submitted-at: Tue, 14 Aug 2012 18:57:48 +0000
+Reviewed-on: http://reviews.cloudfoundry.org/8336
+Project: uaa
+Branch: refs/heads/master
