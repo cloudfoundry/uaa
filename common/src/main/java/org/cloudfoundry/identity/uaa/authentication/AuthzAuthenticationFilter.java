@@ -31,12 +31,15 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.Assert;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 
 /**
  * Filter which processes authentication submitted through the <code>/authorize</code> endpoint.
@@ -82,16 +85,15 @@ public class AuthzAuthenticationFilter implements Filter {
 		HttpServletRequest req = (HttpServletRequest) request;
 		HttpServletResponse res = (HttpServletResponse) response;
 
-		if (!"POST".equals(req.getMethod().toUpperCase())) {
-			throw new BadCredentialsException("Credentials must be sent via POST");
-		}
-
 		Map<String, String> loginInfo = getCredentials(req);
 
 		if (loginInfo.isEmpty()) {
 			logger.debug("Request does not contain credentials. Ignoring.");
 		} else {
 			try {
+				if (!"POST".equals(req.getMethod().toUpperCase())) {
+					throw new BadCredentialsException("Credentials must be sent via POST");
+				}
 				Authentication result = authenticationManager.authenticate(new AuthzAuthenticationRequest(loginInfo,
 						new UaaAuthenticationDetails(req)));
 				SecurityContextHolder.getContext().setAuthentication(result);
@@ -137,4 +139,6 @@ public class AuthzAuthenticationFilter implements Filter {
 
 	public void destroy() {
 	}
+
+
 }
