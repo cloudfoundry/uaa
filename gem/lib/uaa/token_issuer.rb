@@ -59,7 +59,9 @@ class TokenIssuer
     # this manufactured redirect_uri is a convention here, not part of OAuth2
     redir_uri = "http://uaa.cloudfoundry.com/redirect/#{@client_id}"
     uri = authorize_path_args("token", redir_uri, scope, state = SecureRandom.uuid)
-    headers = {content_type: "application/x-www-form-urlencoded"}
+
+    # the accept header is only here so the uaa will issue error replies in json to aid debugging
+    headers = {content_type: "application/x-www-form-urlencoded", accept: "application/json" }
 
      # required for current UAA implementation
     body = URI.encode_www_form(credentials: credentials.to_json)
