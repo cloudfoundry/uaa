@@ -19,6 +19,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -55,11 +56,23 @@ public class ClientAdminBootstrap implements InitializingBean {
 			"cloud_controller.write", "clients.read", "clients.write", "clients.secret", "tokens.read", "tokens.write",
 			"scim.read", "scim.write");
 
+	private String domain = "cloudfoundry\\.com";
+
 	{
 		authoritiesToScopes.put("ROLE_UNTRUSTED", "uaa.none");
 		authoritiesToScopes.put("ROLE_RESOURCE", "uaa.resource");
 		authoritiesToScopes.put("ROLE_LOGIN", "uaa.login");
 		authoritiesToScopes.put("ROLE_ADMIN", "uaa.admin");
+	}
+
+	/**
+	 * The domain suffix (default "cloudfoundry.com") used to detect http redirects. If an http callback in this domain
+	 * is found in a client registration and there is no corresponding value with https as well, then the https value will be added.
+	 * 
+	 * @param domain the domain to set
+	 */
+	public void setDomain(String domain) {
+		this.domain = domain.replace(".", "\\.");
 	}
 
 	/**
@@ -96,7 +109,38 @@ public class ClientAdminBootstrap implements InitializingBean {
 	@Override
 	public void afterPropertiesSet() throws Exception {
 		convertLegacyClients();
+		addHttpsCallbacks();
 		addNewClients();
+	}
+
+	/**
+	 * Add https callback to clients in cloudfoundry.com if not present
+	 */
+	private void addHttpsCallbacks() {
+		List<ClientDetails> clients = clientRegistrationService.listClientDetails();
+
+		for (ClientDetails client : clients) {
+			if (client.getClientId().startsWith("legacy_")) {
+				continue;
+			}
+			Set<String> registeredRedirectUri = client.getRegisteredRedirectUri();
+			if (registeredRedirectUri == null || registeredRedirectUri.isEmpty()) {
+				continue;
+			}
+			Set<String> uris = new HashSet<String>(registeredRedirectUri);
+			for (String uri : registeredRedirectUri) {
+				if (uri.matches("^http://[^/]*\\." + domain)) {
+					uris.add("https" + uri.substring("http".length()));
+				}
+			}
+			if (uris.size() == registeredRedirectUri.size()) {
+				continue;
+			}
+			BaseClientDetails newClient = new BaseClientDetails(client);
+			newClient.setRegisteredRedirectUri(uris);
+			logger.info("Adding https callback: " + newClient);
+			clientRegistrationService.updateClientDetails(newClient);
+		}
 	}
 
 	/**
@@ -121,7 +165,8 @@ public class ClientAdminBootstrap implements InitializingBean {
 				if (!clients.contains(legacyClient)) {
 					clientRegistrationService.addClientDetails(legacyClient);
 				}
-			} catch (ClientAlreadyExistsException e) {
+			}
+			catch (ClientAlreadyExistsException e) {
 				// Should not happen
 				logger.error("Error creating legacy copy of: " + client);
 			}
@@ -131,7 +176,7 @@ public class ClientAdminBootstrap implements InitializingBean {
 			Set<String> userScopes = getUserScopes(client);
 			// Use sorted set to make testing easier
 			Set<String> clientScopes = new TreeSet<String>(getClientScopes(client));
-			if(client.getAuthorizedGrantTypes().equals(Collections.singleton("client_credentials"))) {
+			if (client.getAuthorizedGrantTypes().equals(Collections.singleton("client_credentials"))) {
 				userScopes = Collections.singleton("uaa.none");
 				clientScopes.addAll(getUserScopes(client));
 			}
@@ -139,11 +184,11 @@ public class ClientAdminBootstrap implements InitializingBean {
 			newClient.setAuthorities(AuthorityUtils.createAuthorityList(clientScopes.toArray(new String[clientScopes
 					.size()])));
 			Integer validity = newClient.getAccessTokenValiditySeconds();
-			if (validity!=null && validity==0) {
+			if (validity != null && validity == 0) {
 				newClient.setAccessTokenValiditySeconds(null);
 			}
 			validity = newClient.getRefreshTokenValiditySeconds();
-			if (validity!=null && validity==0) {
+			if (validity != null && validity == 0) {
 				newClient.setRefreshTokenValiditySeconds(null);
 			}
 			logger.info("Converted: " + newClient);

@@ -221,7 +221,7 @@ public class ClientAdminEndpointsIntegrationTests {
 		assertEquals(HttpStatus.CONFLICT, attempt.getStatusCode());
 		@SuppressWarnings("unchecked")
 		Map<String,String> map = attempt.getBody();
-		assertEquals("", map.get("error"));
+		assertEquals("already_exists", map.get("error"));
 	}
 
 	public HttpHeaders getAuthenticatedHeaders(OAuth2AccessToken token) {

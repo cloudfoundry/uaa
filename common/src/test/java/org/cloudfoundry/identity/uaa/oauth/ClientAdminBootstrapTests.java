@@ -68,6 +68,30 @@ public class ClientAdminBootstrapTests {
 		Mockito.verify(clientRegistrationService, Mockito.times(0)).addClientDetails(Mockito.any(ClientDetails.class));		
 	}
 	
+	@Test
+	public void testLegacyHttpsAdded() throws Exception {
+		bootstrap.setDomain("bar.com");
+		BaseClientDetails input = new BaseClientDetails("foo", "password,scim,tokens", "read,write,password", "client_credentials", "ROLE_CLIENT,ROLE_ADMIN", "http://foo.bar.com");
+		bootstrap.setClientRegistrationService(clientRegistrationService);
+		Mockito.when(clientRegistrationService.listClientDetails()).thenReturn(Arrays.<ClientDetails>asList(input));
+		bootstrap.afterPropertiesSet();
+		// legacy is added but the https is not re-added
+		Mockito.verify(clientRegistrationService, Mockito.times(1)).addClientDetails(Mockito.any(ClientDetails.class));		
+		Mockito.verify(clientRegistrationService, Mockito.times(2)).updateClientDetails(Mockito.any(ClientDetails.class));		
+	}
+	
+	@Test
+	public void testLegacyHttpsAlreadyPresent() throws Exception {
+		bootstrap.setDomain("bar.com");
+		BaseClientDetails input = new BaseClientDetails("foo", "password,scim,tokens", "read,write,password", "client_credentials", "ROLE_CLIENT,ROLE_ADMIN", "http://foo.bar.com,https://foo.bar.com");
+		bootstrap.setClientRegistrationService(clientRegistrationService);
+		Mockito.when(clientRegistrationService.listClientDetails()).thenReturn(Arrays.<ClientDetails>asList(input));
+		bootstrap.afterPropertiesSet();
+		// legacy is added but the https is not re-added
+		Mockito.verify(clientRegistrationService, Mockito.times(1)).addClientDetails(Mockito.any(ClientDetails.class));		
+		Mockito.verify(clientRegistrationService, Mockito.times(1)).updateClientDetails(Mockito.any(ClientDetails.class));		
+	}
+	
 	private void doSimpleTest(BaseClientDetails input, BaseClientDetails output) throws Exception {
 		bootstrap.setClientRegistrationService(clientRegistrationService);
 		Mockito.when(clientRegistrationService.listClientDetails()).thenReturn(Arrays.<ClientDetails>asList(input));
