@@ -57,7 +57,7 @@ class TokenIssuer
   # as specified by the information retrieved by #prompts
   def implicit_grant_with_creds(credentials, scope = nil)
     # this manufactured redirect_uri is a convention here, not part of OAuth2
-    redir_uri = "http://uaa.cloudfoundry.com/redirect/#{@client_id}"
+    redir_uri = "https://uaa.cloudfoundry.com/redirect/#{@client_id}"
     uri = authorize_path_args("token", redir_uri, scope, state = SecureRandom.uuid)
     headers = {content_type: "application/x-www-form-urlencoded"}
 
