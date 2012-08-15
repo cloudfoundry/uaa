@@ -103,9 +103,12 @@ class TokenCli < CommonCli
   define_option :password, "-p", "--password <password>", "user password"
   desc "token owner get [client] [user]", "Gets a token with a resource owner password grant",
       [:secret, :password, :scope] do |client, user|
-    Config.add_opts issuer_request(clientname(client), clientsecret) { |ti|
-        ti.owner_password_grant(username(user), userpwd, opts[:scope]).info
+    info = issuer_request(clientname(client), clientsecret) { |ti|
+        ti.owner_password_grant(user = username(user), userpwd, opts[:scope]).info
     }
+    Config.context = user
+    Config.add_opts info
+    say "successfully logged in"
   end
 
   desc "token refresh [refreshtoken]", "Gets a new access token from a refresh token", [:client, :secret, :scope] do |rtok|
@@ -154,9 +157,10 @@ class TokenCli < CommonCli
       if opts[:client] && opts[:secret]
         pp Misc.decode_token(Config.target, opts[:client], opts[:secret], token, ttype)
       else
-        #puts JSON.pretty_generate TokenCoder.decode(token, opts[:key], opts[:key], !!opts[:key])
-        pp TokenCoder.decode(token, opts[:key], opts[:key], !!opts[:key])
-        say "\nNote: no key given to validate token signature\n\n" unless opts[:key]
+        info = TokenCoder.decode(token, opts[:key], opts[:key], !!opts[:key])
+        say info.inspect if trace?
+        pp info
+        say "", "Note: no key given to validate token signature", "" unless opts[:key]
       end
     end
   end

@@ -56,7 +56,9 @@ class Config
   end
 
   def self.target=(tgt)
-    raise ArgumentError, "invalid target, #{tgt}" unless t = set_current_subhash(@config, tgt, @target)
+    unless t = set_current_subhash(@config, tgt, @target)
+      raise ArgumentError, "invalid target, #{tgt}"
+    end
     @context = current_subhash(@config[t][:contexts])
     save
     @target = t
@@ -64,7 +66,9 @@ class Config
 
   def self.context=(ctx)
     raise ArgumentError, "target not set" unless @target
-    raise ArgumentError, "invalid context, #{ctx}" unless c = set_current_subhash(@config[@target][:contexts] ||= {}, ctx, @context)
+    unless c = set_current_subhash(@config[@target][:contexts] ||= {}, ctx, @context)
+      raise ArgumentError, "invalid context, #{ctx}"
+    end
     save
     @context = c
   end
@@ -78,7 +82,7 @@ class Config
 
   def self.delete(tgt = nil, ctx = nil)
     if tgt && ctx
-      @config[tgt][:contexts].delete(valid_context(ctx))
+      @config[tgt][:contexts].delete(ctx = valid_context(ctx))
       @context = nil if tgt == @target && ctx == @context
     elsif tgt
       @config.delete(tgt)
@@ -117,8 +121,8 @@ class Config
   def self.subhash_key(hash, key)
     case key
     when Integer then hash.each_with_index { |(k, v), i| return k if i == key }; nil
-    when String then key.to_sym
-    when Symbol then key
+    when String then key.downcase.to_sym
+    when Symbol then key.to_s.downcase.to_sym
     else nil
     end
   end

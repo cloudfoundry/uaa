@@ -66,47 +66,50 @@ class Topic
     @help_col_start = terminal_columns / 2
   end
 
-  def pp(obj, indent_count = 0, indent_size = 4, line_limit = terminal_columns, label = nil)
-    line = indent_count == 0 ? "": sprintf("%*c", indent_count * indent_size, ' ')
-    line << label if label
+  def pp(obj, indent = 0, wrap = terminal_columns, label = nil)
+    #line = indent_count == 0 ? "#{label}": sprintf("%*c%s", indent_count * indent_size, ' ', label)
     case obj
     when Array
-      if obj.empty? || obj[0].is_a?(String)
-        say Util.truncate(line << Util.strlist(obj), line_limit)
+      if obj.empty? || !obj[0].is_a?(Hash) && !obj[0].is_a?(Array)
+        say_definition(indent, label, Util.strlist(obj), nil, wrap)
       else
-        say Util.truncate(line, line_limit) if label
-        obj.each {|o| pp o, indent_count, indent_size, line_limit, '-' }
+        say_definition(indent, label, nil, nil, wrap) if label
+        obj.each {|o| pp o, indent, wrap, '-' }
       end
     when Hash
-      if label
-        say Util.truncate(line, line_limit)
-        indent_count += 1
-      end
-      obj.each { |k, v| pp v, indent_count, indent_size, line_limit, "#{k}: " }
-    when nil then say "" # Util.truncate(line << "<nil>", line_limit)
-    else say Util.truncate(line << obj.to_s, line_limit)
+      say_definition(indent, label, nil, nil, wrap) if label
+      obj.each { |k, v| pp v, indent + 2, wrap, "#{k}: " }
+    else say_definition(indent, label, obj.to_s, nil, wrap)
     end
   end
 
   def say_definition(indent, term, text = nil, start = help_col_start, wrap = terminal_columns)
-    cur = indent + term.length
-    @output.printf "%*c%s", indent, ' ', term
-    if cur < start
-      @output.printf("%*c", start - cur, ' ')
-    elsif cur > start
-      @output.printf("\n%*c", start, ' ')
+    cur = indent + (term ? term.length : 0)
+    indent < 1 ? @output.printf("%s", term) : @output.printf("%*c%s", indent, ' ', term)
+    if start.nil?
+      start = 2 if (start = indent + 4) > wrap
+    else
+      start = 2 if start > wrap
+      if cur < start
+        @output.printf("%*c", start - cur, ' ')
+      elsif cur > start
+        @output.printf("\n%*c", start, ' ')
+      end
+      cur = start
     end
     return @output.printf("\n") unless text && !text.empty?
     text = text.dup
-    width = wrap == 0 ? 8 * 1024 : wrap - start
     text.each_line do |line|
+      width = wrap == 0 ? 4096 : wrap - cur
       line = line.chomp
       while line.length > width
         i = line.rindex(' ', width) || width
         @output.printf("%s\n%*c", line[0..i - 1], start, ' ')
+        width = wrap == 0 ? 4096 : wrap - start
         line = line[i..-1].strip
       end
       @output.printf("%s\n", line)
+      cur = start
     end
   end
 

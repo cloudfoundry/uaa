@@ -110,7 +110,7 @@ describe Cli do
 
   it "should create a test client" do
     Cli.run "client add #{@test_client} -s testsecret --authorities clients.read,scim.read,uaa.resource " +
-        "--authorized_grant_types client_credentials"
+        "--authorized_grant_types client_credentials,password"
     Cli.output.string = ""
     Cli.run "client get #{@test_client}"
     Cli.output.string.should match /clients\.read/
@@ -192,8 +192,29 @@ describe Cli do
     Cli.output.string.should match "[admin]"
     Cli.output.string.should match "[#{@test_client}]"
     Cli.output.string.should match "[#{@test_user}]"
+    #puts Cli.output.string
   end
 
+  it "should remove the user context" do
+    Cli.run "token delete #{@test_user}"
+    Cli.run "contexts"
+    Cli.output.string.should match "[admin]"
+    Cli.output.string.should match "[#{@test_client}]"
+    Cli.output.string.should_not match "#{@test_user}"
+  end
+
+  it "should login with owner password grant" do
+    Cli.run "token owner get #{@test_client} -s testsecret #{@test_user} -p newpwd"
+    Cli.output.string.should match "successfully logged in"
+  end
+
+  it "should decode the owner token" do
+    Cli.run "token decode"
+    puts "start", Cli.output.string, "end"
+    ["user_name", "exp", "aud", "scope", "client_id", "email", "user_id"].each do |a|
+      Cli.output.string.should match a
+    end
+  end
 
   it "should delete a client registration as admin" do
     Cli.run "context #{@client_id}"
@@ -212,14 +233,11 @@ describe Cli do
   end
 
   # TODO:
-  #   token owner get
-  #   token delete, check with token contexts
   #   user delete
   #   user password set
   #   users attributes, filter
   #   client secret change
   #   client secret set
-
   #   how to test token authcode, implicit, refresh?
 
 end
