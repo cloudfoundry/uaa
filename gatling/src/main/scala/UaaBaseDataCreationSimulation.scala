@@ -28,8 +28,8 @@ class UaaBaseDataCreationSimulation extends Simulation {
 
   def apply = {
     Seq(
-      registerClients.configure users 1 protocolConfig uaaHttpConfig,
-      createUsers.configure users 5 protocolConfig uaaHttpConfig
+      registerClients.configure users 1 protocolConfig uaaHttpConfig
+      , createUsers.configure users 5 protocolConfig uaaHttpConfig
     )
   }
 

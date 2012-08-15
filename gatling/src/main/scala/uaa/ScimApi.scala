@@ -28,8 +28,7 @@ object ScimApi {
   def scimClientLogin() = clientCredentialsAccessTokenRequest(
     username = scimClient.id,
     password = scimClient.secret,
-    client_id = scimClient.id,
-    scope = "write password")
+    client_id = scimClient.id)
 
   /**
    * Creates 'n' users by invoking the SCIM API.

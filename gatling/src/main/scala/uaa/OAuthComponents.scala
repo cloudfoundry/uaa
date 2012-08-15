@@ -113,12 +113,12 @@ object OAuthComponents {
    * in the client session under the key "access_token".
    */
   def clientCredentialsAccessTokenRequest(
-    username: String, password: String, client_id: String, scope: String) =
+    username: String, password: String, client_id: String, scope: String = "") =
       http("Client Credentials Token Request")
         .post("/oauth/token")
         .basicAuth(username, password)
         .param("client_id", client_id)
-        .param("scope", scope)
+//        .param("scope", scope)
         .param("grant_type", "client_credentials")
         .headers(plainHeaders)
         .check(status.is(200), jsonToken.saveAs("access_token"))

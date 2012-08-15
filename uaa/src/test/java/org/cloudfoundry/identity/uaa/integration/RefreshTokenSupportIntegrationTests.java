@@ -9,9 +9,7 @@
  */
 package org.cloudfoundry.identity.uaa.integration;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -23,6 +21,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.jwt.JwtHelper;
 import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordResourceDetails;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
@@ -82,6 +81,11 @@ public class RefreshTokenSupportIntegrationTests {
 		assertEquals("no-store", response.getHeaders().getFirst("Cache-Control"));
 		@SuppressWarnings("unchecked")
 		OAuth2AccessToken newAccessToken = DefaultOAuth2AccessToken.valueOf(response.getBody());
+		try {
+			JwtHelper.decode(newAccessToken.getValue());
+		} catch (IllegalArgumentException e) {
+			fail("Refreshed token was not a JWT");
+		}
 		assertFalse("New access token should be different to the old one.",
 				newAccessToken.getValue().equals(accessToken.getValue()));
 
