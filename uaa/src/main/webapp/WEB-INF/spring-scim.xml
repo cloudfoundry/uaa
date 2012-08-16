@@ -82,11 +82,8 @@
 
 		<bean id="scimUserBootstrap" class="org.cloudfoundry.identity.uaa.scim.ScimUserBootstrap">
 			<constructor-arg ref="scimUserProvisioning" />
-			<constructor-arg>
-				<list value-type="org.cloudfoundry.identity.uaa.user.UaaUser">
-					<value>marissa|koala|marissa@test.org|Marissa|Bloggs|uaa.user,tokens.read,tokens.write</value>
-				</list>
-			</constructor-arg>
+			<constructor-arg value="#{(@config['scim']==null or @config['scim']['users']==null)?new String[]{}:@config['scim']['users']}"/>
+			<property name="override" value="${scim.user.override:false}" />
 		</bean>
 
 	</beans>
