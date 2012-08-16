@@ -88,7 +88,7 @@ class TokenCli < CommonCli
     Config.context = tokinfo[:user_name]
     Config.add_opts(user_id: tokinfo[:user_id])
     Config.add_opts token
-    say "successfully logged in"
+    say_success "implicit (with posted credentials) "
   end
 
   define_option :secret, "--secret <secret>", "-s", "client secret"
@@ -98,6 +98,7 @@ class TokenCli < CommonCli
     info = issuer_request(id, clientsecret) { |ti| ti.client_credentials_grant(opts[:scope]).info }
     Config.context = id
     Config.add_opts info
+    say_success "client credentials"
   end
 
   define_option :password, "-p", "--password <password>", "user password"
@@ -108,12 +109,13 @@ class TokenCli < CommonCli
     }
     Config.context = user
     Config.add_opts info
-    say "successfully logged in"
+    say_success "owner password"
   end
 
   desc "token refresh [refreshtoken]", "Gets a new access token from a refresh token", [:client, :secret, :scope] do |rtok|
     rtok ||= Config.value(:refresh_token)
     Config.add_opts issuer_request(clientname, clientsecret) { |ti| ti.refresh_token_grant(rtok, opts[:scope]).info }
+    say_success "refresh"
   end
 
   def use_browser(client_id, secret = nil)
@@ -134,7 +136,7 @@ class TokenCli < CommonCli
     end
     Config.context = TokenCoder.decode(catcher.info[:access_token], nil, nil, false)[:user_name]
     Config.add_opts catcher.info
-    say "\nsuccessfully logged in\n"
+    say_success secret ? "authorization code" : "implicit"
   end
 
   desc "token authcode get", "Gets a token using the authcode flow with browser", [:client, :secret, :scope] do
@@ -175,6 +177,11 @@ class TokenCli < CommonCli
   end
 
   private
+
+  def say_success(grant)
+    say "", "Successfully fetched token via a #{grant} grant.",
+        "Target: #{Config.target}", "Context: #{Config.context}", ""
+  end
 
   def issuer_request(client_id, secret = nil)
     return yield TokenIssuer.new(Config.target.to_s, client_id, secret)
