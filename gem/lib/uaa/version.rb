@@ -13,6 +13,6 @@
 
 module CF
   module UAA
-    VERSION = "1.1.1.snapshot"
+    VERSION = "1.1.1"
   end
 end
