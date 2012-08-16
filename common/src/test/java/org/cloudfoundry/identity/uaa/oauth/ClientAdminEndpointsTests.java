@@ -448,7 +448,7 @@ public class ClientAdminEndpointsTests {
 
 	@Test
 	public void testHandleClientAlreadyExists() throws Exception {
-		ResponseEntity<Void> result = endpoints.handleClientAlreadyExists(new ClientAlreadyExistsException(
+		ResponseEntity<InvalidClientDetailsException> result = endpoints.handleClientAlreadyExists(new ClientAlreadyExistsException(
 				"No such client: foo"));
 		assertEquals(HttpStatus.CONFLICT, result.getStatusCode());
 	}

@@ -24,7 +24,6 @@ import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.oauth.SecretChangeRequest;
 import org.junit.Assume;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.http.HttpEntity;
@@ -202,7 +201,7 @@ public class ClientAdminEndpointsIntegrationTests {
 	}
 
 	@Test
-	@Ignore // CFID-372
+	// CFID-372
 	public void testCreateExistingClientFails() throws Exception {
 
 		OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write");
@@ -221,7 +220,7 @@ public class ClientAdminEndpointsIntegrationTests {
 		assertEquals(HttpStatus.CONFLICT, attempt.getStatusCode());
 		@SuppressWarnings("unchecked")
 		Map<String,String> map = attempt.getBody();
-		assertEquals("already_exists", map.get("error"));
+		assertEquals("invalid_client", map.get("error"));
 	}
 
 	public HttpHeaders getAuthenticatedHeaders(OAuth2AccessToken token) {

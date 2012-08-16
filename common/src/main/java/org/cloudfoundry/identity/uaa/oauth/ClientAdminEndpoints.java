@@ -222,9 +222,9 @@ public class ClientAdminEndpoints implements InitializingBean {
 	}
 
 	@ExceptionHandler(ClientAlreadyExistsException.class)
-	public ResponseEntity<Void> handleClientAlreadyExists(ClientAlreadyExistsException e) {
+	public ResponseEntity<InvalidClientDetailsException> handleClientAlreadyExists(ClientAlreadyExistsException e) {
 		incrementErrorCounts(e);
-		return new ResponseEntity<Void>(HttpStatus.CONFLICT);
+		return new ResponseEntity<InvalidClientDetailsException>(new InvalidClientDetailsException(e.getMessage()) , HttpStatus.CONFLICT);
 	}
 
 	private void incrementErrorCounts(Exception e) {
