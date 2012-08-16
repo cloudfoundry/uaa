@@ -15,7 +15,7 @@ class ScimWorkoutSimulation extends Simulation {
       chain.feed(UsernamePasswordFeeder())
       .exec(findUserByName)
       .exec(getUser)
-      .exec(updateUser)
+//      .exec(updateUser)
     ).times(50)
 
   def apply = {
