@@ -9,11 +9,14 @@ oauth:
     admin:    
       authorized-grant-types: client_credentials
       scope: uaa.none
-      authorities: uaa.admin,clients.read,clients.write,clients.secret,tokens.read,tokens.write
+      authorities: uaa.admin,clients.read,clients.write,clients.secret,tokens.read,tokens.write,scim.read,scim.write
       id: admin
       secret: adminsecret
 
 scim:
+  users:
+  - marissa|koala|marissa@test.org|Marissa|Bloggs|uaa.user,tokens.read,tokens.write
+  - vidya|test|vidya@rbcon.com|uaa.user,tokens.read,tokens.write,scim.read,scim.write,uaa.admin,openid
   delete:
     deactivate: false
 
