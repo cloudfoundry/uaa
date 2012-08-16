@@ -122,7 +122,7 @@ public class JwtTokenEnhancer implements TokenEnhancer, InitializingBean {
 		DefaultOAuth2AccessToken result = new DefaultOAuth2AccessToken(accessToken);
 		String tokenId = result.getValue();
 		result.setAdditionalInformation(Collections.<String, Object> singletonMap(TOKEN_ID, tokenId));
-		return result.setValue(createAccessTokenValue(accessToken, authentication));
+		return result.setValue(createAccessTokenValue(result, authentication));
 	}
 
 	protected String createAccessTokenValue(OAuth2AccessToken accessToken, OAuth2Authentication authentication) {

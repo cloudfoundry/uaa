@@ -11,9 +11,11 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
+import org.cloudfoundry.identity.uaa.openid.UserInfo;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.jwt.JwtHelper;
@@ -45,6 +47,10 @@ public class JwtTokenEnhancerTests {
 				new DefaultAuthorizationRequest("foo", null), userAuthentication);
 		OAuth2AccessToken token = tokenEnhancer.enhance(new DefaultOAuth2AccessToken("FOO"), authentication);
 		assertNotNull(token.getValue());
+		assertEquals("FOO", token.getAdditionalInformation().get(JwtTokenEnhancer.TOKEN_ID));
+		String claims = JwtHelper.decode(token.getValue()).getClaims();
+		assertTrue("Wrong claims: " + claims, claims.contains("\""+UserInfo.USER_ID+"\""));
+		assertTrue("Wrong claims: " + claims, claims.contains("\""+JwtTokenEnhancer.TOKEN_ID+"\""));
 	}
 
 
