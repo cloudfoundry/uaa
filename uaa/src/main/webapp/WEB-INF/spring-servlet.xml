@@ -287,6 +287,8 @@
 				<value>cloud_controller.read</value>
 				<value>cloud_controller.write</value>
 				<value>password.write</value>
+				<value>tokens.write</value>
+				<value>tokens.read</value>
 			</set>
 		</property>
 	</bean>

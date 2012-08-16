@@ -46,9 +46,13 @@
 		<anonymous enabled="true" />
 		<form-login login-page="/login" username-parameter="username" password-parameter="password"
 			login-processing-url="/login.do" authentication-failure-url="/login?error=true"/>
-		<!-- TODO: add form login with remote password authentication -->
-		<logout logout-success-url="/" logout-url="/logout.do" />
+		<logout logout-url="/logout.do" success-handler-ref="logoutHandler" />
 	</http>
+
+	<bean id="logoutHandler" class="org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler">
+		<property name="targetUrlParameter" value="redirect" />
+		<property name="defaultTargetUrl" value="/login" />
+	</bean>
 
 	<http xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
