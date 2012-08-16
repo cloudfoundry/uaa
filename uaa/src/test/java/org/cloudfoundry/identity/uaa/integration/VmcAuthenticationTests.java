@@ -14,10 +14,10 @@
 package org.cloudfoundry.identity.uaa.integration;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
-import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -77,14 +77,13 @@ public class VmcAuthenticationTests {
 				String.format("{\"username\":\"%s\",\"password\":\"%s\"}", testAccounts.getUserName(),
 						testAccounts.getPassword()));
 		params.set("scope", "read");
-		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAuthorizationUri(), params, headers);
-		// TODO: Fix this (should be 302) when SECOAUTH-310 is fixed
-		assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-		@SuppressWarnings("unchecked")
-		Map<String, String> map = response.getBody();
-		System.err.println(map);
-		assertTrue("No error: " + map, map.containsKey("error"));
+		ResponseEntity<Void> response = serverRunning.postForResponse(serverRunning.getAuthorizationUri(), headers, params);
+		assertEquals(HttpStatus.FOUND, response.getStatusCode());
+		String location = response.getHeaders().getLocation().toString();
+		// System.err.println(location);
+		assertTrue(location.startsWith(params.getFirst("redirect_uri")));
+		assertTrue(location.contains("error=invalid_scope"));
+		assertFalse(location.contains("credentials="));
 	}
 
 }
