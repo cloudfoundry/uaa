@@ -15,8 +15,7 @@ package uaa
 import java.util.regex.Pattern
 
 import com.excilys.ebi.gatling.core.Predef._
-import com.excilys.ebi.gatling.core.check.ExtractorFactory
-import com.excilys.ebi.gatling.core.check.MatcherCheckBuilder
+import com.excilys.ebi.gatling.core.check.{CheckBuilder, ExtractorFactory, MatcherCheckBuilder}
 import com.excilys.ebi.gatling.core.structure.ChainBuilder
 import com.excilys.ebi.gatling.http.Predef._
 import com.excilys.ebi.gatling.http.check.HttpCheck
@@ -58,10 +57,11 @@ object AccessTokenCheckBuilder {
       if (matcher.find()) Some(matcher.group(1)) else None
   }
 
+  // Only used for saving the location header (status code can be used to check for a redirect)
   private[uaa] def locationHeaderExtractorFactory: ExtractorFactory[ExtendedResponse, String, String] = response => expression => {
     if (response.getStatusCode() != 302)
       println("Reponse is not a redirect")
-    Option(response.getHeader("Location"))
+    Option(response.getHeader("Location")) orElse(Some("No location header found"))
   }
 }
 
@@ -94,7 +94,7 @@ object OAuthComponents {
 
   def clearCookies : (Session => Session) = _.removeAttribute("gatling.http.cookies")
 
-  def saveLocation() = locationHeader.saveAs("location")
+  def saveLocation(): CheckBuilder[HttpCheck[String], ExtendedResponse, String] = locationHeader.saveAs("location")
 
   def statusIs(status:Int) : (Session => Boolean) = _.getAttribute("status").toString.toInt == status
 
@@ -113,12 +113,12 @@ object OAuthComponents {
    * in the client session under the key "access_token".
    */
   def clientCredentialsAccessTokenRequest(
-    username: String, password: String, client_id: String, scope: String) =
+    username: String, password: String, client_id: String, scope: String = "") =
       http("Client Credentials Token Request")
         .post("/oauth/token")
         .basicAuth(username, password)
         .param("client_id", client_id)
-        .param("scope", scope)
+//        .param("scope", scope)
         .param("grant_type", "client_credentials")
         .headers(plainHeaders)
         .check(status.is(200), jsonToken.saveAs("access_token"))
@@ -128,12 +128,12 @@ object OAuthComponents {
    *
    * Requires a username and password in the session.
    */
-  def vmcLogin(): ActionBuilder = vmcLogin("${username}", "${password}", "read")
+  def vmcLogin(): ActionBuilder = vmcLogin("${username}", "${password}")
 
   /**
    * Single vmc login action with a specific username/password and scope
    */
-  def vmcLogin(username: String, password: String, scope: String, expectedStatus:Int = 302): ActionBuilder = {
+  def vmcLogin(username: String, password: String, scope: String = "", expectedStatus:Int = 302): ActionBuilder = {
     val ab = http("VMC login")
         .post("/oauth/authorize")
         .param("client_id", "vmc")

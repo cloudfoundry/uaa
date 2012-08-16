@@ -34,7 +34,7 @@ object UaaApi {
    * Shortcut for getting an access token as the default bootstrap admin client
    */
   def adminClientLogin() =
-    clientCredentialsAccessTokenRequest(admin_client_id, admin_client_secret, admin_client_id, "write")
+    clientCredentialsAccessTokenRequest(admin_client_id, admin_client_secret, admin_client_id)
 
 
   def registerClient(client: Client) =

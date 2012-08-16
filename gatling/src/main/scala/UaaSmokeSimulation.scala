@@ -38,17 +38,17 @@ class UaaSmokeSimulation extends Simulation {
   val passwordScores = scenario("Password score API")
     .loop(chain.exec(
       http("Check complex password")
-      .post("/password")
+      .post("/password/score")
       .param("password", "coRrecth0rseba++ery9.23.2007staple$")
       .check(status is 200, jsonPath("//score") is "10"))
       .exec(
       http("Check simple password")
-        .post("/password")
+        .post("/password/score")
         .param("password", "password1")
         .check(status is 200, jsonPath("//score") is "0"))
       .exec(
       http("Check adjacency password")
-        .post("/password")
+        .post("/password/score")
         .param("password", "sdfghhju")
         .check(status is 200, jsonPath("//score") is "1"))
 
@@ -57,10 +57,10 @@ class UaaSmokeSimulation extends Simulation {
 
   def apply = {
     Seq(
-      uiLoginLogout.configure users 2 ramp 10 protocolConfig uaaHttpConfig,
-      authzCodeLogin.configure users 2 ramp 10 protocolConfig uaaHttpConfig,
-      passwordScores.configure users  2 protocolConfig uaaHttpConfig,
-      vmcUserLogins.configure users 10 ramp 10 protocolConfig uaaHttpConfig
+      uiLoginLogout.configure users 2 ramp 10 protocolConfig uaaHttpConfig
+      , authzCodeLogin.configure users 2 ramp 10 protocolConfig uaaHttpConfig
+      , passwordScores.configure users  3 ramp 10 protocolConfig uaaHttpConfig
+      , vmcUserLogins.configure users 10 ramp 10 protocolConfig uaaHttpConfig
     )
   }
 }
