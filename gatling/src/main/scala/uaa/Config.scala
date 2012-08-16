@@ -33,7 +33,7 @@ object Config {
     "http://uaa." + target
   }
 
-  def urlBase = (sys.env.get("VCAP_BVT_TARGET") orElse
+  def urlBase = (sys.env.get("VCAP_BVT_TARGET") map (_.replace("api.", "http://uaa.")) orElse
                   yetiTarget).getOrElse("http://localhost:8080/uaa")
 
   // The bootstrap admin user
@@ -48,21 +48,21 @@ object Config {
   val appClient = Client(
       id = "app_client",
       secret= "app_client_secret",
-      scopes = Seq("read"),
+      scopes = Seq("cloud_controller.read","cloud_controller.write","openid","password.write","tokens.read","tokens.write"),
       redirectUri = Some("http://localhost:8080/app"),
       resources = Seq("cloud_controller"),
-      authorities = Seq("ROLE_CLIENT"),
+      authorities = Seq("cloud_controller.read","cloud_controller.write","openid","password.write","tokens.read","tokens.write"),
       grants = Seq("client_credentials", "authorization_code", "refresh_token"))
 
   // Scim client which is registered by the admin user in order to create users
   val scimClient = Client("scim_client", "scim_client_secret",
-    Seq("read", "write", "password"), Seq("cloud_controller","scim", "password"), Seq("ROLE_CLIENT","ROLE_ADMIN"))
+    Seq("uaa.none"), Seq("cloud_controller","scim", "password"), Seq("scim.read","scim.write","password.write"))
 
   // The base user data
   val users: Seq[User] = (1 to nUsers).map(i => User("shaun" + i, "password"))
 
   def uaaHttpConfig = {
-    println("Targeting UAA at: " + urlBase)
+    println("**** Targeting UAA at: " + urlBase)
     httpConfig.baseURL(urlBase).disableFollowRedirect.disableAutomaticReferer
   }
 

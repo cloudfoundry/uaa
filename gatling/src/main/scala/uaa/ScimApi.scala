@@ -28,8 +28,7 @@ object ScimApi {
   def scimClientLogin() = clientCredentialsAccessTokenRequest(
     username = scimClient.id,
     password = scimClient.secret,
-    client_id = scimClient.id,
-    scope = "write password")
+    client_id = scimClient.id)
 
   /**
    * Creates 'n' users by invoking the SCIM API.
@@ -69,7 +68,7 @@ object ScimApi {
     http("Find user by name")
       .get("/Users")
       .queryParam("attributes", "id")
-      .queryParam("filter","userName eq ${username}")
+      .queryParam("filter","userName eq '${username}'")
       .header("Authorization", "Bearer ${access_token}")
       .asJSON
       .check(status.is(200), regex(""""id":"(.*?)"""").saveAs("userId"))
@@ -89,7 +88,7 @@ object ScimApi {
    */
   def updateUser =
     http("Update user")
-      .put("/User/${userId}/password")
+      .put("/User/${userId}")
       .header("Authorization", "Bearer ${access_token}")
       .body("${scimUser")
       .asJSON
