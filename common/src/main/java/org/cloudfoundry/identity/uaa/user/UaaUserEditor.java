@@ -13,34 +13,47 @@
 package org.cloudfoundry.identity.uaa.user;
 
 import java.beans.PropertyEditorSupport;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import org.springframework.security.core.authority.AuthorityUtils;
 
 public class UaaUserEditor extends PropertyEditorSupport {
 
+	private static String SHORT_FORMAT = "unm|pwd{|comma-separated-authorities}";
+	private static String LONG_FORMAT = "unm|pwd|email|fname|lname{|comma-separated-authorities}";
+	private static List<String> SUPPORTED_FORMATS = Arrays.asList(SHORT_FORMAT, LONG_FORMAT);
+
 	@Override
 	public void setAsText(String text) throws IllegalArgumentException {
 		String[] values = text.split("\\|");
 		if (values.length < 2) {
-			throw new IllegalArgumentException("Specify at least a username and password. You may also optionally specify email, first name, last name and authorities (use pipe separator '|')");
+			throw new IllegalArgumentException("Specify at least a username and password. Supported formats: " + SUPPORTED_FORMATS);
 		}
 
 		String username = values[0], password = values[1];
 		String email = username, firstName = username, lastName = username;
 		String authorities = null;
-
-		for (int i = 2; i < values.length; i++) {
-			if (values[i].contains("@")) {
-				email = values[i];
-			} else if (values[i].contains(",") || values[i].contains(".")) {
-				authorities = values[i];
-			} else {
-				if ((i+1) < values.length) {
-					firstName = values[i];
-					lastName = values[++i];
-				} else {
-					 authorities = values[i];
-				}
+		if (values.length > 2) {
+			switch (values.length) {
+				case 3:
+					authorities = values[2];
+					break;
+				case 6:
+					email = values[2];
+					firstName = values[3];
+					lastName = values[4];
+					authorities = values[5];
+					break;
+				case 5:
+					email = values[2];
+					firstName = values[3];
+					lastName = values[4];
+					break;
+				default:
+					throw new IllegalArgumentException("Supported formats: " + SUPPORTED_FORMATS);
 			}
 		}
 
