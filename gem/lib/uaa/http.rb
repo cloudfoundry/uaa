@@ -120,7 +120,7 @@ module Http
     status, body, response_headers = async ? perform_ahttp_request(req) : perform_http_request(req)
 
     logger.debug { "<---\nresponse: #{status}\nheaders: #{response_headers}\n" +
-        "#{'body' + Util.truncate(body.to_s, trace? ? 50000: 50) if body}" }
+        "#{'body: ' + Util.truncate(body.to_s, trace? ? 50000: 50) if body}" }
 
     [status, body, Util.hash_keys(response_headers, :undash)]
 

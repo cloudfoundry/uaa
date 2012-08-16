@@ -82,8 +82,8 @@ class StubUAAConn < Stub::Base
     reply.headers[:location] = uri.to_s
   end
 
-  def ids_to_names(ids); ids.map { |id| server.scim.name(id) } end
-  def names_to_ids(names, rtype); names.map { |name| server.scim.id(name, rtype) } end
+  def ids_to_names(ids); ids ? ids.map { |id| server.scim.name(id) } : [] end
+  def names_to_ids(names, rtype); names ? names.map { |name| server.scim.id(name, rtype) } : [] end
 
   CLIENT_SCIM = [[:password, :client_secret], [:displayname, :client_id],
     [:groups, :authorities]]
@@ -97,6 +97,7 @@ class StubUAAConn < Stub::Base
 
   def client_to_scim(reg)
     reg[:authorities] = names_to_ids(reg[:authorities], :group) if reg.key?(:authorities)
+    reg[:scope] = names_to_ids(reg[:scope], :group) if reg.key?(:scope)
     to_scim(CLIENT_SCIM, reg)
   end
 
@@ -219,20 +220,32 @@ class StubUAAConn < Stub::Base
       return reply.json(401, error: "invalid_client")
     end
     params = Util.decode_form_to_hash(request.body)
+    unless params[:grant_type]
+      return reply.json(400, error: "invalid_request", error_description: "no grant type in request")
+    end
+    unless client[:authorized_grant_types].include?(params[:grant_type])
+      return reply.json(400, error: "unauthorized_client")
+    end
     case params[:grant_type]
-    when "authorization_code" then reply.status = 501 # should have params code, redirect_uri
+    when "authorization_code"
+      reply.status = 501 # not implmented yet, should have params code, redirect_uri
     when "password"
       user = find_user(params[:username], params[:password])
       return reply.json(400, error: "invalid_grant") unless user
-      scope = ids_to_names(user[:groups])
-      scope = Util.strlist(Util.arglist(params[:scope], scope) & scope)
-      return reply.json(400, error: "invalid_scope") if scope.empty?
-      reply.json(token_reply_info(client, scope, user))
+      possible_scope = ids_to_names(client[:scope])
+      requested_scope = params[:scope] ? Util.arglist(params[:scope]) : possible_scope
+      granted_scope = ids_to_names(user[:groups]) & requested_scope # handle auto-deny
+      if granted_scope.empty? || !(requested_scope - possible_scope).empty?
+        return reply.json(400, error: "invalid_scope")
+      end
+      reply.json(token_reply_info(client, granted_scope, user))
     when "client_credentials"
       scope = ids_to_names(client[:groups])
       scope = Util.strlist(Util.arglist(params[:scope], scope) & scope)
       return reply.json(400, error: "invalid_scope") if scope.empty?
       reply.json(token_reply_info(client, scope))
+    when "refresh_token"
+      reply.status = 501 # not implmented yet, should have params refresh_token, and scope
     else
       reply.json(400, error: "unsupported_grant_type")
     end
