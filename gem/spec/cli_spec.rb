@@ -161,7 +161,7 @@ describe Cli do
 
   it "should login with implicit grant & posted credentials as a user" do
     Cli.run "token get #{@test_user} #{@test_pwd}"
-    Cli.output.string.should match "successfully logged in"
+    Cli.output.string.should match "Successfully fetched token"
   end
 
   it "should decode the token" do
@@ -181,7 +181,7 @@ describe Cli do
     Cli.run "password change -p newpwd --old_password #{@test_pwd}"
     Cli.output.string = ""
     Cli.run "token get #{@test_user} newpwd"
-    Cli.output.string.should match "successfully logged in"
+    Cli.output.string.should match "Successfully fetched token"
   end
 
   it "should have multiple distinct authentication contexts" do
@@ -201,7 +201,7 @@ describe Cli do
 
   it "should login with owner password grant" do
     Cli.run "token owner get #{@test_client} -s testsecret #{@test_user} -p newpwd"
-    Cli.output.string.should match "successfully logged in"
+    Cli.output.string.should match "Successfully fetched token"
   end
 
   it "should decode the owner token" do

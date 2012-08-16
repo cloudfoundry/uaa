@@ -75,17 +75,6 @@ class TokenIssuer
     req_uri, reply_uri = URI.parse(redir_uri), URI.parse(headers[:location])
     fragment, reply_uri.fragment = reply_uri.fragment, nil
     return parse_implicit_params(fragment, state) if req_uri == reply_uri
-
-    # work around bug when uaa is behind proxy that rewrites location header
-    if reply_uri.scheme == "https"
-      reply_uri.scheme = "http"
-      if req_uri == URI.parse(reply_uri.to_s)
-        logger.warn("Scheme of location URL in reply is different than requested")
-        return parse_implicit_params(fragment, state)
-      end
-      puts req_uri.inspect, reply_uri.inspect
-    end
-
     raise BadResponse, "bad location header"
   rescue URI::Error => e
     raise BadResponse, "bad location header in reply: #{e.message}"
