@@ -35,6 +35,7 @@ import org.springframework.jmx.export.annotation.ManagedMetric;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.jmx.support.MetricType;
 import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.oauth2.common.exceptions.BadClientCredentialsException;
 import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
@@ -143,6 +144,10 @@ public class ClientAdminEndpoints implements InitializingBean {
 			return removeSecret(clientDetailsService.loadClientByClientId(client));
 		}
 		catch (InvalidClientException e) {
+			throw new NoSuchClientException("No such client: " + client);
+		}
+		catch (BadClientCredentialsException e) {
+			// TODO: CFID-399 maybe this should go away?
 			throw new NoSuchClientException("No such client: " + client);
 		}
 	}
