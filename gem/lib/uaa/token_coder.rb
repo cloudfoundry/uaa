@@ -64,6 +64,7 @@ class TokenCoder
   end
 
   def self.decode(token, skey = nil, pkey = nil, verify = true)
+    pkey = OpenSSL::PKey::RSA.new(pkey) unless pkey.nil? || pkey.is_a?(OpenSSL::PKey::PKey)
     segments = token.split('.')
     raise DecodeError, "Not enough or too many segments" unless [2,3].include? segments.length
     header_segment, payload_segment, crypto_segment = segments
