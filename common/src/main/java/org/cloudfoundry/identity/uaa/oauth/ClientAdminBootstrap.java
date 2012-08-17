@@ -268,6 +268,7 @@ public class ClientAdminBootstrap implements InitializingBean {
 					if (override) {
 						logger.info("Overriding client details for " + clientId);
 						clientRegistrationService.updateClientDetails(client);
+						clientRegistrationService.updateClientSecret(clientId, client.getClientSecret());
 						return;
 					}
 				}
