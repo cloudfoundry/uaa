@@ -32,7 +32,12 @@ jwt:
         gOdvA1hvq3tlWU5REDrYt24xpviA0fvrJpwMPbECMAKDKdiDi6Q4/iBkkzNMefA8
         7HX27b9LR33don/1u/yvzMUo+lrRdKAFJ+9GPE9XFA==
         -----END RSA PRIVATE KEY-----
-     verification-key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAYQDk3m+AGfjcDrT4fspyIBqmulFjVXuiciYvpaD5j2XaR7c6Krm5wsBLOiUokmd6wbrRAMPMpoC1eogWNNoXY7Jd4eWdDVmscfHczGX13uBKXwdOCEqKqoWQsXIb7kgz+Hk= uaa@uaa
+     verification-key: |
+        -----BEGIN RSA PUBLIC KEY-----
+        MGgCYQDk3m+AGfjcDrT4fspyIBqmulFjVXuiciYvpaD5j2XaR7c6Krm5wsBLOiUo
+        kmd6wbrRAMPMpoC1eogWNNoXY7Jd4eWdDVmscfHczGX13uBKXwdOCEqKqoWQsXIb
+        7kgz+HkCAwEAAQ==
+        -----END RSA PUBLIC KEY-----
 
 password-policy:
   required-score: 0
