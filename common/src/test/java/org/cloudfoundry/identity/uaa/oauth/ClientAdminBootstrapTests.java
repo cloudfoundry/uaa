@@ -14,10 +14,14 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
+import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
 
@@ -57,6 +61,21 @@ public class ClientAdminBootstrapTests {
 		BaseClientDetails input = new BaseClientDetails("foo", "password,scim,tokens", "read,write,password", "client_credentials", "ROLE_CLIENT,ROLE_ADMIN", null);
 		BaseClientDetails output = new BaseClientDetails("foo", "none", "uaa.none", "client_credentials", "password.write,scim.read,scim.write,tokens.read,tokens.write,uaa.admin", null);
 		doSimpleTest(input, output);
+	}
+	
+	@Test
+	public void testOverrideClient() throws Exception {
+		bootstrap.setClientRegistrationService(clientRegistrationService);
+		bootstrap.setClientsToOverride(Collections.singleton("foo"));
+		bootstrap.setOverride(true);
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put("secret", "bar");
+		bootstrap.setClients(Collections.singletonMap("foo", map ));
+		Mockito.doThrow(new ClientAlreadyExistsException("Planned")).when(clientRegistrationService).addClientDetails(Mockito.any(ClientDetails.class));
+		bootstrap.afterPropertiesSet();
+		Mockito.verify(clientRegistrationService, Mockito.times(1)).addClientDetails(Mockito.any(ClientDetails.class));		
+		Mockito.verify(clientRegistrationService, Mockito.times(1)).updateClientDetails(Mockito.any(ClientDetails.class));		
+		Mockito.verify(clientRegistrationService, Mockito.times(1)).updateClientSecret("foo", "bar");		
 	}
 	
 	@Test

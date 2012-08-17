@@ -32,6 +32,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
@@ -147,10 +148,16 @@ public class ClientAdminEndpointsIntegrationTests {
 
 		client.setResourceIds(Collections.singleton("foo"));
 		client.setClientSecret(null);
+		client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("some.crap"));
 
 		result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients/{client}"),
 				HttpMethod.PUT, new HttpEntity<BaseClientDetails>(client, headers), Void.class, client.getClientId());
 		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+
+		ResponseEntity<String> response = serverRunning.getForString("/oauth/clients/" + client.getClientId(), headers);
+		assertEquals(HttpStatus.OK, response.getStatusCode());
+		assertTrue(response.getBody().contains(client.getClientId()));
+		assertTrue(response.getBody().contains("some.crap"));
 
 	}
 
