@@ -5,21 +5,23 @@
 	is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file. -->
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
 	xmlns:sec="http://www.springframework.org/schema/security" xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
-	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:util="http://www.springframework.org/schema/util"
 	xsi:schemaLocation="http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.1.xsd
 		http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2.xsd
 		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.1.xsd
-		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd">
+		http://www.springframework.org/schema/security/oauth http://www.springframework.org/schema/security/spring-security-oauth.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.1.xsd">
 
 	<bean id="scimUserProvisioning" class="org.cloudfoundry.identity.uaa.scim.JdbcScimUserProvisioning">
 		<constructor-arg ref="jdbcTemplate" />
 		<!-- Password validation turned off to match cloud controller policies -->
 		<property name="passwordValidator">
-            <bean class="org.cloudfoundry.identity.uaa.scim.ZxcvbnPasswordValidator">
-                <property name="scoreCalculator" ref="zxcvbnScoreCalculator" />
-            </bean>
-        </property>
-        <property name="deactivateOnDelete" value="${scim.delete.deactivate:true}" />
+			<bean class="org.cloudfoundry.identity.uaa.scim.ZxcvbnPasswordValidator">
+				<property name="scoreCalculator" ref="zxcvbnScoreCalculator" />
+			</bean>
+		</property>
+		<property name="deactivateOnDelete" value="${scim.delete.deactivate:true}" />
 	</bean>
 
 	<!-- Add a handler adapter with special knowledge of the ScimUser endpoints -->
@@ -72,20 +74,23 @@
 		<constructor-arg value="/User" />
 	</bean>
 
+	<bean id="users" class="org.springframework.beans.factory.config.ListFactoryBean">
+		<property name="sourceList"
+			value="#{(@config['scim']==null or @config['scim']['users']==null)?@defaultUsers:@config['scim']['users']}" />
+	</bean>
+
 	<bean id="scimUserBootstrap" class="org.cloudfoundry.identity.uaa.scim.ScimUserBootstrap">
 		<constructor-arg ref="scimUserProvisioning" />
-		<constructor-arg value="#{(@config['scim']==null or @config['scim']['users']==null)?new String[]{}:@config['scim']['users']}"/>
+		<constructor-arg ref="users" />
 		<property name="override" value="${scim.user.override:false}" />
 	</bean>
 
+	<util:list id="defaultUsers" />
+
 	<beans profile="default">
-
-		<bean id="scimUserBootstrap" class="org.cloudfoundry.identity.uaa.scim.ScimUserBootstrap">
-			<constructor-arg ref="scimUserProvisioning" />
-			<constructor-arg value="#{(@config['scim']==null or @config['scim']['users']==null)?new String[]{}:@config['scim']['users']}"/>
-			<property name="override" value="${scim.user.override:false}" />
-		</bean>
-
+		<util:list id="defaultUsers">
+			<value>marissa|koala|marissa@test.org|Marissa|Bloggs|uaa.user,tokens.read,tokens.write</value>
+		</util:list>
 	</beans>
 
 </beans>
