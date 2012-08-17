@@ -60,12 +60,14 @@ public class AuthzAuthenticationFilter implements Filter {
 
 	private ObjectMapper mapper = new ObjectMapper();
 
-	private List<String> parameterNames = Collections.EMPTY_LIST;// = "credentials";
+	private List<String> parameterNames = Collections.emptyList();
 
 	/**
-	 * The name of the parameter to extract credentials from.
+	 * The name of the parameter to extract credentials from. Request parameters with these names are extracted and
+	 * passed as credentials to the authentication manager. A request that doesn't have any of the specified parameters
+	 * is ignored.
 	 * 
-	 * @param parameterNames the parameter names to set (default "credentials")
+	 * @param parameterNames the parameter names to set (default empty)
 	 */
 	public void setParameterNames(List<String> parameterNames) {
 		this.parameterNames = parameterNames;
@@ -86,7 +88,9 @@ public class AuthzAuthenticationFilter implements Filter {
 
 		if (loginInfo.isEmpty()) {
 			logger.debug("Request does not contain credentials. Ignoring.");
-		} else {
+		}
+		else {
+			logger.debug("Located credentials in request, with keys: " + loginInfo.keySet());
 			try {
 				if (!"POST".equals(req.getMethod().toUpperCase())) {
 					throw new BadCredentialsException("Credentials must be sent via POST");
@@ -115,19 +119,21 @@ public class AuthzAuthenticationFilter implements Filter {
 			if (value != null) {
 				if (value.startsWith("{")) {
 					try {
-						Map<String, String> jsonCredentials = mapper.readValue(value, new TypeReference<Map<String, String>>() {
-						});
+						Map<String, String> jsonCredentials = mapper.readValue(value,
+								new TypeReference<Map<String, String>>() {
+								});
 						credentials.putAll(jsonCredentials);
-					} catch (IOException e) {
+					}
+					catch (IOException e) {
 						logger.warn("Unknown format of value for request param: " + paramName + ". Ignoring.");
 					}
-				} else {
+				}
+				else {
 					credentials.put(paramName, value);
 				}
 			}
 		}
 
-		logger.debug("Located credentials in request, with keys: " + credentials.keySet());
 		return credentials;
 	}
 
@@ -136,6 +142,5 @@ public class AuthzAuthenticationFilter implements Filter {
 
 	public void destroy() {
 	}
-
 
 }

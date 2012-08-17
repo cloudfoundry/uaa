@@ -27,6 +27,7 @@ public class AuthzAuthenticationFilterTests {
 
 	@Test
 	public void authenticatesValidUser() throws Exception {
+
 		String msg = "{ \"username\":\"marissa\", \"password\":\"koala\"}";
 
 		AuthenticationManager am = mock(AuthenticationManager.class);
@@ -39,7 +40,6 @@ public class AuthzAuthenticationFilterTests {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 
 		filter.doFilter(request, response, new MockFilterChain());
-
-
+		
 	}
 }
