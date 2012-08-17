@@ -129,7 +129,7 @@ public class ClientAdminBootstrap implements InitializingBean {
 			}
 			Set<String> uris = new HashSet<String>(registeredRedirectUri);
 			for (String uri : registeredRedirectUri) {
-				if (uri.matches("^http://[^/]*\\." + domain)) {
+				if (uri.matches("^http://[^/]*\\." + domain + ".*")) {
 					uris.add("https" + uri.substring("http".length()));
 				}
 			}

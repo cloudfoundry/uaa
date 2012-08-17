@@ -90,7 +90,7 @@ public class ClientAdminBootstrapTests {
 	@Test
 	public void testLegacyHttpsAdded() throws Exception {
 		bootstrap.setDomain("bar.com");
-		BaseClientDetails input = new BaseClientDetails("foo", "password,scim,tokens", "read,write,password", "client_credentials", "ROLE_CLIENT,ROLE_ADMIN", "http://foo.bar.com");
+		BaseClientDetails input = new BaseClientDetails("foo", "password,scim,tokens", "read,write,password", "client_credentials", "ROLE_CLIENT,ROLE_ADMIN", "http://foo.bar.com/spam");
 		bootstrap.setClientRegistrationService(clientRegistrationService);
 		Mockito.when(clientRegistrationService.listClientDetails()).thenReturn(Arrays.<ClientDetails>asList(input));
 		bootstrap.afterPropertiesSet();
