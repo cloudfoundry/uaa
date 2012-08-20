@@ -19,6 +19,8 @@
 		<sec:intercept-url pattern="/**" access="denyAll" />
 	</sec:http>
 
+	<bean id="tokenStore" class="org.springframework.security.oauth2.provider.token.InMemoryTokenStore" />
+
     <authentication-manager id="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security" />
 
 	<bean id="http403EntryPoint" class="org.springframework.security.web.authentication.Http403ForbiddenEntryPoint" />

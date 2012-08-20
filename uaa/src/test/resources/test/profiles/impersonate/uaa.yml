@@ -1,0 +1,12 @@
+oauth:
+  clients:
+    impersonate:
+      id: impersonate
+      authorized-grant-types: password,client_credentials,authorization_code,refresh_token
+      authorities: uaa.resource,uaa.impersonate,uaa.admin
+      scope: uaa.admin,openid
+      secret: impersonatesecret
+scim:
+  users:
+    - admin|admin|admin@test.org|Admin|User|uaa.admin,uaa.user
+    - marissa|koala|marissa@test.org|Marissa|Bloggs|uaa.user,tokens.read,tokens.write

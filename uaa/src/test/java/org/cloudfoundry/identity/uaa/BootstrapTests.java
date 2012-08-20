@@ -78,6 +78,12 @@ public class BootstrapTests {
 	}
 
 	@Test
+	public void testImpersonateContextDefaults() throws Exception {
+		context = getServletContext("file:./src/main/webapp/WEB-INF/impersonate-servlet.xml");
+		assertNotNull(context.getBean("userDatabase", JdbcUaaUserDatabase.class));
+	}
+
+	@Test
 	public void testRootContextDefaults() throws Exception {
 		context = getServletContext("hsqldb", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
 		assertNotNull(context.getBean("userDatabase", JdbcUaaUserDatabase.class));
