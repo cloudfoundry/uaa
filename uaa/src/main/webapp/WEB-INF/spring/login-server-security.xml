@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- Cloud Foundry 2012.02.03 Beta Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved. This product is licensed to 
+	you under the Apache License, Version 2.0 (the "License"). You may not use this product except in compliance with the License. 
+	This product includes a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents 
+	is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file. -->
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
+	xmlns:sec="http://www.springframework.org/schema/security"
+	xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-1.0.xsd
+		http://www.springframework.org/schema/security/oauth http://www.springframework.org/schema/security/spring-security-oauth.xsd
+		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.1.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+
+	<oauth:resource-server id="oauthResourceAuthenticationFilter" token-services-ref="tokenServices"
+		resource-id="oauth" entry-point-ref="oauthAuthenticationEntryPoint" />
+
+	<http request-matcher-ref="loginAuthorizeRequestMatcher" entry-point-ref="oauthAuthenticationEntryPoint"
+		  authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+		<custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
+		<custom-filter ref="loginAuthenticationFilter" position="FORM_LOGIN_FILTER" />
+		<anonymous enabled="false" />
+		<access-denied-handler ref="oauthAccessDeniedHandler" />
+	</http>
+
+	<bean id="loginAuthorizeRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
+		<constructor-arg value="/oauth/authorize" />
+		<property name="accept" value="application/json" />
+		<property name="parameters">
+			<map>
+				<entry key="source" value="login" />
+			</map>
+		</property>
+	</bean>
+
+	<bean id="loginAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationFilter">
+		<constructor-arg ref="loginAuthenticationMgr" />
+		<property name="parameterNames">
+			<list>
+				<value>username</value>
+				<value>given_name</value>
+				<value>family_name</value>
+				<value>email</value>
+				<value>login</value>
+			</list>
+		</property>
+
+	</bean>
+
+	<!-- For backwards compatibility to the old way of posting credentials to /authorize endpoint -->
+	<http request-matcher-ref="loginAuthorizeRequestMatcherOld" entry-point-ref="oauthAuthenticationEntryPoint"
+		  authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+		<custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
+		<custom-filter ref="loginAuthenticationFilter" position="FORM_LOGIN_FILTER" />
+		<anonymous enabled="false" />
+		<access-denied-handler ref="oauthAccessDeniedHandler" />
+	</http>
+
+	<bean id="loginAuthorizeRequestMatcherOld" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
+		<constructor-arg value="/oauth/authorize" />
+		<property name="accept" value="application/json" />
+		<property name="parameters">
+			<map>
+				<entry key="login" value="{" />
+			</map>
+		</property>
+	</bean>
+	<!-- End -->
+
+	<bean id="loginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LoginAuthenticationManager">
+		<!-- Add new user accounts automatically -->
+		<property name="addNewAccounts" value="${login.addnew:true}" />
+		<property name="scimUserBootstrap" ref="scimUserBootstrap" />
+	</bean>
+
+</beans>

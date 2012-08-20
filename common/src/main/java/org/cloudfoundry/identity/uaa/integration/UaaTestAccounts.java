@@ -131,7 +131,7 @@ public class UaaTestAccounts implements TestAccounts {
 	}
 
 	public String getBatchAuthorizationHeader() {
-		return getAuthorizationHeader("batch", "batch_user", "batch_password");
+		return getAuthorizationHeader("batch", "batch", "batchsecret");
 	}
 
 	public String getAuthorizationHeader(String prefix, String defaultUsername, String defaultPassword) {

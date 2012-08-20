@@ -1,7 +1,3 @@
-batch:
-  username: batch_user
-  password: batch_password
-
 oauth:
   authorize:
    ssl: # set this to "true" to force https to be used by the user approval page 
