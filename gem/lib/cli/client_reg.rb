@@ -59,7 +59,9 @@ class ClientCli < CommonCli
     client_reg_request do |cr|
       opts[:client_id] = clientname(name)
       defaults = opts[:interact] ? cr.get(opts[:client_id]) : {}
-      cr.update client_info(defaults, opts[:interact])
+      info = client_info(defaults, opts[:interact])
+      return cr.update info if info.length > 1
+      say "No options given, nothing to update. Use -i for interactive update."
     end
   end
 
@@ -86,10 +88,8 @@ class ClientCli < CommonCli
     return yield ClientReg.new(Config.target, auth_header)
   rescue TargetError => e
     say "\n#{e.message}:\n#{JSON.pretty_generate(e.info)}"
-    nil
   rescue Exception => e
     say "\n#{e.class}: #{e.message}", (e.backtrace if trace?)
-    nil
   end
 
   def client_info(defaults, interact)
