@@ -220,11 +220,13 @@ describe Cli do
     Cli.output.string.should_not match 'error'
   end
 
-  it "should get the server stats" do
-    Cli.run "stats -c varz -s varzclientsecret"
-    Cli.output.string.should match 'type: UAA'
-    Cli.output.string.should match 'mem:'
-    Cli.output.string.should match 'version:'
+  if ENV['UAA_VARZ_SECRET']
+    it "should get the server stats" do
+      Cli.run "stats -c varz -s #{ENV['UAA_VARZ_SECRET']}"
+      Cli.output.string.should match 'type: UAA'
+      Cli.output.string.should match 'mem:'
+      Cli.output.string.should match 'version:'
+    end
   end
 
   # TODO:
