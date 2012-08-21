@@ -95,7 +95,9 @@ class TokenCli < CommonCli
   desc "token client get [name]",
       "Gets a token with client credentials grant", [:secret, :scope] do |id|
     id = clientname(id)
-    info = issuer_request(id, clientsecret) { |ti| ti.client_credentials_grant(opts[:scope]).info }
+    return unless info = issuer_request(id, clientsecret) { |ti|
+      ti.client_credentials_grant(opts[:scope]).info
+    }
     Config.context = id
     Config.add_opts info
     say_success "client credentials"
@@ -104,7 +106,7 @@ class TokenCli < CommonCli
   define_option :password, "-p", "--password <password>", "user password"
   desc "token owner get [client] [user]", "Gets a token with a resource owner password grant",
       [:secret, :password, :scope] do |client, user|
-    info = issuer_request(clientname(client), clientsecret) { |ti|
+    return unless info = issuer_request(clientname(client), clientsecret) { |ti|
         ti.owner_password_grant(user = username(user), userpwd, opts[:scope]).info
     }
     Config.context = user
@@ -117,6 +119,8 @@ class TokenCli < CommonCli
     Config.add_opts issuer_request(clientname, clientsecret) { |ti| ti.refresh_token_grant(rtok, opts[:scope]).info }
     say_success "refresh"
   end
+
+  VMC_TOKEN_FILE = File.join ENV["HOME"], ".vmc_token"
 
   def use_browser(client_id, secret = nil)
     catcher = Stub::Server.new(TokenCatcher,
@@ -137,15 +141,23 @@ class TokenCli < CommonCli
     Config.context = TokenCoder.decode(catcher.info[:access_token], nil, nil, false)[:user_name]
     Config.add_opts catcher.info
     say_success secret ? "authorization code" : "implicit"
+    return unless opts[:vmc]
+    begin
+      tok_json = File.open(VMC_TOKEN_FILE, 'r') { |f| f.read } if File.exists?(VMC_TOKEN_FILE)
+      vmc_tokens = Util.json_parse(tok_json, :none) || {}
+      vmc_tokens[Config.target.to_s.gsub("://uaa.", "://api.")] = auth_header
+      File.open(VMC_TOKEN_FILE, 'w') { |f| f.write(vmc_tokens.to_json) }
+    rescue Exception => e
+      say "", "Unable to save token to vmc token file", "#{e.class}: #{e.message}", (e.backtrace if trace?)
+    end
   end
 
-  desc "token authcode get", "Gets a token using the authcode flow with browser", [:client, :secret, :scope] do
-    use_browser(clientname, clientsecret)
-  end
+  define_option :vmc, "--[no-]vmc", "save token in the ~/.vmc_tokens file"
+  desc "token authcode get", "Gets a token using the authcode flow with browser",
+      [:client, :secret, :scope, :vmc] { use_browser(clientname, clientsecret) }
 
-  desc "token implicit get", "Gets a token using the implicit flow with browser", [:client, :scope] do
-    use_browser opts[:client] || "vmc"
-  end
+  desc "token implicit get", "Gets a token using the implicit flow with browser",
+      [:client, :scope, :vmc] { use_browser opts[:client] || "vmc" }
 
   define_option :key, "--key <key>", "Token validation key"
   desc "token decode [token] [tokentype]",
@@ -170,10 +182,14 @@ class TokenCli < CommonCli
   define_option :all, "--[no-]all", "-a", "remove all contexts"
   desc "token delete [contexts...]",
       "Delete current or specified context tokens and settings", [:all] do |*args|
-    return Config.delete if opts[:all]
-    return args.each { |arg| Config.delete(Config.target, arg.to_i.to_s == arg ? arg.to_i : arg) } unless args.empty?
-    return Config.delete(Config.target, Config.context) if Config.context
-    say "no target set, no contexts given -- nothing to delete"
+    begin
+      return Config.delete if opts[:all]
+      return args.each { |arg| Config.delete(Config.target, arg.to_i.to_s == arg ? arg.to_i : arg) } unless args.empty?
+      return Config.delete(Config.target, Config.context) if Config.context
+      say "no target set, no contexts given -- nothing to delete"
+    rescue Exception => e
+      say "", "#{e.class}: #{e.message}", (e.backtrace if trace?), ""
+    end
   end
 
   private
@@ -187,10 +203,8 @@ class TokenCli < CommonCli
     return yield TokenIssuer.new(Config.target.to_s, client_id, secret)
   rescue TargetError => e
     say "\n#{e.message}:\n#{JSON.pretty_generate(e.info)}"
-    nil
   rescue Exception => e
     say "\n#{e.class}: #{e.message}", (e.backtrace if trace?)
-    nil
   end
 
 end
