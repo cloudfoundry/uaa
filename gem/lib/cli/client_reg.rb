@@ -86,10 +86,8 @@ class ClientCli < CommonCli
     return yield ClientReg.new(Config.target, auth_header)
   rescue TargetError => e
     say "\n#{e.message}:\n#{JSON.pretty_generate(e.info)}"
-    nil
   rescue Exception => e
     say "\n#{e.class}: #{e.message}", (e.backtrace if trace?)
-    nil
   end
 
   def client_info(defaults, interact)

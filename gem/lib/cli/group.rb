@@ -45,10 +45,8 @@ class GroupCli < CommonCli
     #return yield UserAccount.new(cur_target_url, auth_header, trace?)
   #rescue TargetError => e
     #say "#{e.message}:\n#{JSON.pretty_generate(e.info)}"
-    #nil
   #rescue Exception => e
     #say e.message, (e.backtrace if trace?)
-    #nil
   end
 
 end
