@@ -69,7 +69,7 @@ public class JwtTokenEnhancer implements TokenEnhancer, InitializingBean {
 	@RequestMapping(value = "/token_key", method = RequestMethod.GET)
 	@ResponseBody
 	public Map<String, String> getKey() {
-		Map<String,String> result = new LinkedHashMap<String, String>();
+		Map<String, String> result = new LinkedHashMap<String, String>();
 		result.put("alg", signer.algorithm());
 		result.put("value", verifierKey);
 		return result;
@@ -120,8 +120,10 @@ public class JwtTokenEnhancer implements TokenEnhancer, InitializingBean {
 
 	public OAuth2AccessToken enhance(OAuth2AccessToken accessToken, OAuth2Authentication authentication) {
 		DefaultOAuth2AccessToken result = new DefaultOAuth2AccessToken(accessToken);
+		Map<String, Object> info = new LinkedHashMap<String, Object>(accessToken.getAdditionalInformation());
 		String tokenId = result.getValue();
-		result.setAdditionalInformation(Collections.<String, Object> singletonMap(TOKEN_ID, tokenId));
+		info.put(TOKEN_ID, tokenId);
+		result.setAdditionalInformation(info);
 		return result.setValue(createAccessTokenValue(result, authentication));
 	}
 

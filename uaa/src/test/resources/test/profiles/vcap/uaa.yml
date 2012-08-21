@@ -30,7 +30,7 @@ oauth:
       authorized-grant-types: implicit
       scope: cloud_controller.read,cloud_controller.write,openid,password.write,tokens.read,tokens.write
       authorities: uaa.none
-      resource-ids: password,tokens,cloud_controller,openid
+      resource-ids: none
       redirect-uri: https://uaa.cloudfoundry.com/redirect/vmc
     cloud_controller:    
       id: cloud_controller
@@ -38,7 +38,7 @@ oauth:
       authorized-grant-types: client_credentials
       scope: scim.read,scim.write,password.write
       authorities: uaa.resource,scim.read,scim.write,password.write
-      resource-ids: scim,password
+      resource-ids: none
     admin:    
       authorized-grant-types: client_credentials
       scope: clients.read,clients.write,clients.secret,tokens.read,tokens.write
