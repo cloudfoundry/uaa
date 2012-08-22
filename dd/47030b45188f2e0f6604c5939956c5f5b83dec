@@ -1,0 +1,7 @@
+Code-Review+2: Luke Taylor <ltaylor@vmware.com>
+Verified+1: CI Master <cf-ci@rbcon.com>
+Submitted-by: Luke Taylor <ltaylor@vmware.com>
+Submitted-at: Wed, 22 Aug 2012 11:21:27 +0000
+Reviewed-on: http://reviews.cloudfoundry.org/8639
+Project: uaa
+Branch: refs/heads/develop
