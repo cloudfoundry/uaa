@@ -12,7 +12,6 @@
  */
 package org.cloudfoundry.identity.uaa.oauth;
 
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
