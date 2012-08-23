@@ -36,6 +36,8 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.util.Assert;
 
 /**
@@ -61,6 +63,15 @@ public class AuthzAuthenticationFilter implements Filter {
 	private ObjectMapper mapper = new ObjectMapper();
 
 	private List<String> parameterNames = Collections.emptyList();
+
+	private AuthenticationEntryPoint authenticationEntryPoint = new OAuth2AuthenticationEntryPoint();
+
+	/**
+	 * @param authenticationEntryPoint the authenticationEntryPoint to set
+	 */
+	public void setAuthenticationEntryPoint(AuthenticationEntryPoint authenticationEntryPoint) {
+		this.authenticationEntryPoint = authenticationEntryPoint;
+	}
 
 	/**
 	 * The name of the parameter to extract credentials from. Request parameters with these names are extracted and
@@ -101,9 +112,7 @@ public class AuthzAuthenticationFilter implements Filter {
 			}
 			catch (AuthenticationException e) {
 				logger.debug("Authentication failed");
-				response.getWriter().write("{ \"error\":\"authentication failed\" }");
-				response.setContentType("application/json");
-				res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+				authenticationEntryPoint.commence(req, res, e);
 				return;
 			}
 		}

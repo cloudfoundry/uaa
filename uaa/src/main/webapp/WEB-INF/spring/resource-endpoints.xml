@@ -31,7 +31,7 @@
 		<custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
-	
+
 	<bean id="checkTokenEndpoint" class="org.cloudfoundry.identity.uaa.oauth.CheckTokenEndpoint">
 		<property name="tokenServices" ref="tokenServices" />
 	</bean>
