@@ -24,13 +24,18 @@
 	</http>
 
 	<http pattern="/token_key" create-session="stateless" entry-point-ref="basicAuthenticationEntryPoint"
-		authentication-manager-ref="clientAuthenticationManager" use-expressions="true"
+		authentication-manager-ref="clientAuthenticationManager" use-expressions="true" 
 		xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/**" access="hasRole('uaa.resource')" />
-		<anonymous enabled="false" />
-		<custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
+		<intercept-url pattern="/**" access="isAnonymous() or hasRole('uaa.resource')" />
+		<anonymous enabled="true" />
+		<custom-filter ref="ignoreableClientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
+	
+	<bean id="ignoreableClientAuthenticationFilter" class="org.springframework.security.web.authentication.www.BasicAuthenticationFilter">
+		<constructor-arg ref="clientAuthenticationManager" />
+		<property name="authenticationDetailsSource" ref="authenticationDetailsSource" />
+	</bean>
 
 	<bean id="checkTokenEndpoint" class="org.cloudfoundry.identity.uaa.oauth.CheckTokenEndpoint">
 		<property name="tokenServices" ref="tokenServices" />
