@@ -1,0 +1,9 @@
+Code-Review+2: Dave Syer <dsyer@vmware.com>
+Code-Review+1: Chloe Jackson <jacksonc@vmware.com>
+Verified+1: CI Master <cf-ci@rbcon.com>
+Code-Review+1: Daniel Higham <dhigham@rbcon.com>
+Submitted-by: Dave Syer <dsyer@vmware.com>
+Submitted-at: Thu, 23 Aug 2012 16:57:33 +0000
+Reviewed-on: http://reviews.cloudfoundry.org/8653
+Project: uaa
+Branch: refs/heads/develop
