@@ -25,8 +25,8 @@
     <import resource="spring/oauth-endpoints.xml" />
     <import resource="spring/login-server-security.xml" />
 	<import resource="spring/scim-endpoints.xml" />
-	<import resource="spring/client-admin-endpoints.xml" />
     <import resource="spring/token-admin-endpoints.xml" />
+	<import resource="spring/client-admin-endpoints.xml" />
     <import resource="spring/resource-endpoints.xml" />
     <import resource="spring/openid-endpoints.xml" />
     <import resource="spring/password-endpoints.xml" />
