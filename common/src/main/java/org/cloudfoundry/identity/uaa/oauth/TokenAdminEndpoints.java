@@ -61,7 +61,7 @@ public class TokenAdminEndpoints {
 	}
 
 	@RequestMapping(value = "/oauth/users/{user}/tokens/{token}", method = RequestMethod.DELETE)
-	public ResponseEntity<Void> revokeUserToken(@PathVariable String user, @PathVariable String token,
+	public ResponseEntity<?> revokeUserToken(@PathVariable String user, @PathVariable String token,
 			Principal principal, @RequestParam(required = false, defaultValue = "true") boolean lookup)
 			throws Exception {
 		String username = lookup ? getUserName(user) : user;
@@ -71,7 +71,10 @@ public class TokenAdminEndpoints {
 			return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
 		}
 		else {
-			return new ResponseEntity<Void>(HttpStatus.NOT_FOUND);
+			Map<String, String> map = new HashMap<String, String>();
+			map.put("error", "not_found");
+			map.put("error_description", "Token not found");
+			return new ResponseEntity<Map<String,String>>(map , HttpStatus.NOT_FOUND);
 		}
 	}
 
