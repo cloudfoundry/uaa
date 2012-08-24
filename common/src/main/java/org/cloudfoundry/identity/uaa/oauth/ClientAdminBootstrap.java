@@ -46,8 +46,6 @@ public class ClientAdminBootstrap implements InitializingBean {
 
 	private ClientRegistrationService clientRegistrationService;
 
-	private Set<String> clientsToOverride = Collections.emptySet();
-
 	private boolean override = false;
 
 	private Map<String, String> authoritiesToScopes = new HashMap<String, String>();
@@ -67,7 +65,8 @@ public class ClientAdminBootstrap implements InitializingBean {
 
 	/**
 	 * The domain suffix (default "cloudfoundry.com") used to detect http redirects. If an http callback in this domain
-	 * is found in a client registration and there is no corresponding value with https as well, then the https value will be added.
+	 * is found in a client registration and there is no corresponding value with https as well, then the https value
+	 * will be added.
 	 * 
 	 * @param domain the domain to set
 	 */
@@ -88,15 +87,6 @@ public class ClientAdminBootstrap implements InitializingBean {
 	public void setClients(Map<String, Map<String, Object>> clients) {
 		this.clients = clients == null ? Collections.<String, Map<String, Object>> emptyMap()
 				: new HashMap<String, Map<String, Object>>(clients);
-	}
-
-	/**
-	 * A set of client ids to attempt an update if they already exist (overriding changes made online)
-	 * 
-	 * @param clientsToOverride the clients to override to set
-	 */
-	public void setClientsToOverride(Set<String> clientsToOverride) {
-		this.clientsToOverride = clientsToOverride;
 	}
 
 	/**
@@ -264,13 +254,11 @@ public class ClientAdminBootstrap implements InitializingBean {
 				clientRegistrationService.addClientDetails(client);
 			}
 			catch (ClientAlreadyExistsException e) {
-				if (clientsToOverride.contains(clientId)) {
-					if (override) {
-						logger.info("Overriding client details for " + clientId);
-						clientRegistrationService.updateClientDetails(client);
-						clientRegistrationService.updateClientSecret(clientId, client.getClientSecret());
-						return;
-					}
+				if (override) {
+					logger.info("Overriding client details for " + clientId);
+					clientRegistrationService.updateClientDetails(client);
+					clientRegistrationService.updateClientSecret(clientId, client.getClientSecret());
+					return;
 				}
 				// ignore it
 				logger.debug(e.getMessage());

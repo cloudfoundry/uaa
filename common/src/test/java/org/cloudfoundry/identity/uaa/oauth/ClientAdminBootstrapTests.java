@@ -66,7 +66,6 @@ public class ClientAdminBootstrapTests {
 	@Test
 	public void testOverrideClient() throws Exception {
 		bootstrap.setClientRegistrationService(clientRegistrationService);
-		bootstrap.setClientsToOverride(Collections.singleton("foo"));
 		bootstrap.setOverride(true);
 		Map<String, Object> map = new HashMap<String, Object>();
 		map.put("secret", "bar");
