@@ -1,0 +1,8 @@
+Code-Review+1: Dale Olds <olds@rbcon.com>
+Code-Review+2: Joel D'sa <jdsa@vmware.com>
+Verified+1: CI Master <cf-ci@rbcon.com>
+Submitted-by: Joel D'sa <jdsa@vmware.com>
+Submitted-at: Mon, 27 Aug 2012 23:54:27 +0000
+Reviewed-on: http://reviews.cloudfoundry.org/8763
+Project: uaa
+Branch: refs/heads/hotfix-1.1.2
