@@ -10,26 +10,25 @@
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  */
+
 package org.cloudfoundry.identity.uaa.oauth;
 
 import java.util.Map;
 
-import org.springframework.security.oauth2.common.OAuth2AccessToken;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.security.core.Authentication;
 
 /**
  * @author Dave Syer
- *
+ * 
  */
-public interface AccessTokenConverter {
+public interface UserTokenConverter {
 
 	/**
-	 * @param token an access token
-	 * @param authentication the current OAuth authentication
+	 * Extract information about the user to be used in an access token (i.e. for resource servers).
 	 * 
-	 * @return a map representation of the token suitable for a JSON response
-	 * 
+	 * @param userAuthentication an authentication representing a user
+	 * @return a map of key values representing the unique information about the user
 	 */
-	public abstract Map<String, ?> convertAccessToken(OAuth2AccessToken token,	OAuth2Authentication authentication);
+	Map<String, ?> convertUserAuthentication(Authentication userAuthentication);
 
 }

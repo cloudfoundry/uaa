@@ -57,38 +57,38 @@ public class CheckTokenEndpointTests {
 
 	@Test
 	public void testUserIdInResult() {
-		Map<String, Object> result = endpoint.checkToken("FOO");
+		Map<String, ?> result = endpoint.checkToken("FOO");
 		assertEquals("olds", result.get("user_name"));
 		assertEquals("12345", result.get("user_id"));
 	}
 
 	@Test
 	public void testEmailInResult() {
-		Map<String, Object> result = endpoint.checkToken("FOO");
+		Map<String, ?> result = endpoint.checkToken("FOO");
 		assertEquals("olds@vmware.com", result.get("email"));
 	}
 
 	@Test
 	public void testClientIdInResult() {
-		Map<String, Object> result = endpoint.checkToken("FOO");
+		Map<String, ?> result = endpoint.checkToken("FOO");
 		assertEquals("client", result.get("client_id"));
 	}
 
 	@Test
 	public void testExpiryResult() {
-		Map<String, Object> result = endpoint.checkToken("FOO");
+		Map<String, ?> result = endpoint.checkToken("FOO");
 		assertTrue(expiresIn + System.currentTimeMillis()/1000 >= Integer.parseInt(String.valueOf(result.get("exp"))));
 	}
 
 	@Test
 	public void testUserAuthoritiesNotInResult() {
-		Map<String, Object> result = endpoint.checkToken("FOO");
+		Map<String, ?> result = endpoint.checkToken("FOO");
 		assertEquals(null, result.get("user_authorities"));
 	}
 
 	@Test
 	public void testClientAuthoritiesNotInResult() {
-		Map<String, Object> result = endpoint.checkToken("FOO");
+		Map<String, ?> result = endpoint.checkToken("FOO");
 		assertEquals(null, result.get("client_authorities"));
 	}
 
@@ -98,7 +98,7 @@ public class CheckTokenEndpointTests {
 		token.setExpiration(new Date(System.currentTimeMillis() - 100000));
 		expiresIn = token.getExpiresIn();
 		tokenStore.storeAccessToken(token, authentication);
-		Map<String, Object> result = endpoint.checkToken("FOO");
+		Map<String, ?> result = endpoint.checkToken("FOO");
 		assertEquals("expired_token", result.get("error"));
 	}
 
@@ -110,7 +110,7 @@ public class CheckTokenEndpointTests {
 		endpoint.setTokenServices(tokenServices);
 		OAuth2AccessToken token = new DefaultOAuth2AccessToken("FOO");
 		tokenStore.storeAccessToken(token, authentication);
-		Map<String, Object> result = endpoint.checkToken("FOO");
+		Map<String, ?> result = endpoint.checkToken("FOO");
 		assertEquals("client", result.get("client_id"));
 	}
 

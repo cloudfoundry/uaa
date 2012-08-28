@@ -111,7 +111,13 @@
 
 	<!-- End -->
 
-	<bean id="tokenStore" class="org.springframework.security.oauth2.provider.token.InMemoryTokenStore" />
+	<bean id="tokenStore" class="org.springframework.security.oauth2.provider.token.InMemoryTokenStore">
+		<property name="authenticationKeyGenerator">
+			<bean class="org.cloudfoundry.identity.uaa.oauth.UaaAuthenticationKeyGenerator">
+				<property name="clientDetailsService" ref="clientDetails"/>
+			</bean>
+		</property>
+	</bean>
 
 	<bean id="userApprovalHandler" class="org.cloudfoundry.identity.uaa.oauth.UaaUserApprovalHandler">
 		<property name="tokenServices" ref="tokenServices" />
