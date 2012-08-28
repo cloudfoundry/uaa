@@ -36,39 +36,52 @@ public class ClientAdminBootstrapTests {
 	private ClientRegistrationService clientRegistrationService = Mockito.mock(ClientRegistrationService.class);
 
 	@Test
+	public void testSimpleAddClient() throws Exception {
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put("id", "foo");
+		map.put("secret", "bar");
+		map.put("scope", "openid");
+		map.put("authorized-grant-types", "authorization_code");
+		map.put("authorities", "uaa.none");
+		BaseClientDetails output = new BaseClientDetails("foo", "none", "openid", "authorization_code", "uaa.none");
+		output.setClientSecret("bar");
+		doSimpleTest(map, output);
+	}
+	
+	@Test
 	public void testClientWithOpenIdOnly() throws Exception {
 		BaseClientDetails input = new BaseClientDetails("foo", "openid", "openid", "authorization_code", "ROLE_CLIENT");
 		BaseClientDetails output = new BaseClientDetails("foo", "none", "openid", "authorization_code", "uaa.none");
-		doSimpleTest(input, output);
+		doSimpleTestWithLegacyClient(input, output);
 	}
 
 	@Test
 	public void testAuthCodeClientWithCloudController() throws Exception {
 		BaseClientDetails client = new BaseClientDetails("foo", "openid,cloud_controller", "openid,read,write", "authorization_code", "ROLE_CLIENT", null);
 		BaseClientDetails output = new BaseClientDetails("foo", "none", "openid,cloud_controller.read,cloud_controller.write", "authorization_code", "uaa.none", null);
-		doSimpleTest(client, output);
+		doSimpleTestWithLegacyClient(client, output);
 	}
 
 	@Test
 	public void testAdminClient() throws Exception {
 		BaseClientDetails input = new BaseClientDetails("foo", "clients,tokens", "read,write,password", "client_credentials", "ROLE_ADMIN", null);
 		BaseClientDetails output = new BaseClientDetails("foo", "none", "uaa.none", "client_credentials", "clients.read,clients.secret,clients.write,tokens.read,tokens.write,uaa.admin", null);
-		doSimpleTest(input, output);
+		doSimpleTestWithLegacyClient(input, output);
 	}
 	
 	@Test
 	public void testCloudController() throws Exception {
 		BaseClientDetails input = new BaseClientDetails("foo", "password,scim,tokens", "read,write,password", "client_credentials", "ROLE_CLIENT,ROLE_ADMIN", null);
 		BaseClientDetails output = new BaseClientDetails("foo", "none", "uaa.none", "client_credentials", "password.write,scim.read,scim.write,tokens.read,tokens.write,uaa.admin", null);
-		doSimpleTest(input, output);
+		doSimpleTestWithLegacyClient(input, output);
 	}
 	
 	@Test
 	public void testOverrideClient() throws Exception {
 		bootstrap.setClientRegistrationService(clientRegistrationService);
-		bootstrap.setOverride(true);
 		Map<String, Object> map = new HashMap<String, Object>();
 		map.put("secret", "bar");
+		map.put("override", true);
 		bootstrap.setClients(Collections.singletonMap("foo", map ));
 		Mockito.doThrow(new ClientAlreadyExistsException("Planned")).when(clientRegistrationService).addClientDetails(Mockito.any(ClientDetails.class));
 		bootstrap.afterPropertiesSet();
@@ -110,7 +123,15 @@ public class ClientAdminBootstrapTests {
 		Mockito.verify(clientRegistrationService, Mockito.times(1)).updateClientDetails(Mockito.any(ClientDetails.class));		
 	}
 	
-	private void doSimpleTest(BaseClientDetails input, BaseClientDetails output) throws Exception {
+	private void doSimpleTest(Map<String, Object> map, BaseClientDetails output) throws Exception {
+		bootstrap.setClientRegistrationService(clientRegistrationService);
+		Mockito.when(clientRegistrationService.listClientDetails()).thenReturn(Collections.<ClientDetails>emptyList());
+		bootstrap.setClients(Collections.singletonMap((String)map.get("id"), map));
+		bootstrap.afterPropertiesSet();
+		Mockito.verify(clientRegistrationService).addClientDetails(output);
+	}
+
+	private void doSimpleTestWithLegacyClient(BaseClientDetails input, BaseClientDetails output) throws Exception {
 		bootstrap.setClientRegistrationService(clientRegistrationService);
 		Mockito.when(clientRegistrationService.listClientDetails()).thenReturn(Arrays.<ClientDetails>asList(input));
 		bootstrap.afterPropertiesSet();
