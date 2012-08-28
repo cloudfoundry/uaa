@@ -66,16 +66,24 @@ public class ClientAdminBootstrapTests {
 	@Test
 	public void testOverrideClient() throws Exception {
 		bootstrap.setClientRegistrationService(clientRegistrationService);
-		bootstrap.setClientsToOverride(Collections.singleton("foo"));
-		bootstrap.setOverride(true);
-		Map<String, Object> map = new HashMap<String, Object>();
-		map.put("secret", "bar");
-		bootstrap.setClients(Collections.singletonMap("foo", map ));
-		Mockito.doThrow(new ClientAlreadyExistsException("Planned")).when(clientRegistrationService).addClientDetails(Mockito.any(ClientDetails.class));
+
+        Map<String, Object> clientWithOverride = new HashMap<String, Object>();
+        clientWithOverride.put("secret", "bar");
+        clientWithOverride.put("override", "true");
+
+        Map<String, Object> clientWithoutOverride = new HashMap<String, Object>();
+        clientWithoutOverride.put("secret", "bar");
+
+        Map<String, Map<String, Object>> clients = new HashMap<String, Map<String, Object>>();
+        clients.put("foo1", clientWithOverride);
+        clients.put("foo2", clientWithoutOverride);
+        bootstrap.setClients(clients);
+
+        Mockito.doThrow(new ClientAlreadyExistsException("Planned")).when(clientRegistrationService).addClientDetails(Mockito.any(ClientDetails.class));
 		bootstrap.afterPropertiesSet();
-		Mockito.verify(clientRegistrationService, Mockito.times(1)).addClientDetails(Mockito.any(ClientDetails.class));		
+		Mockito.verify(clientRegistrationService, Mockito.times(2)).addClientDetails(Mockito.any(ClientDetails.class));
 		Mockito.verify(clientRegistrationService, Mockito.times(1)).updateClientDetails(Mockito.any(ClientDetails.class));		
-		Mockito.verify(clientRegistrationService, Mockito.times(1)).updateClientSecret("foo", "bar");		
+		Mockito.verify(clientRegistrationService, Mockito.times(1)).updateClientSecret("foo1", "bar");
 	}
 	
 	@Test

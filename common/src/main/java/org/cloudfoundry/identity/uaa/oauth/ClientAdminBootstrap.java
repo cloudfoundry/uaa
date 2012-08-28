@@ -46,10 +46,6 @@ public class ClientAdminBootstrap implements InitializingBean {
 
 	private ClientRegistrationService clientRegistrationService;
 
-	private Set<String> clientsToOverride = Collections.emptySet();
-
-	private boolean override = false;
-
 	private Map<String, String> authoritiesToScopes = new HashMap<String, String>();
 
 	private Collection<String> validScopes = Arrays.asList("password.write", "openid", "cloud_controller.read",
@@ -76,27 +72,11 @@ public class ClientAdminBootstrap implements InitializingBean {
 	}
 
 	/**
-	 * @param override the override to set
-	 */
-	public void setOverride(boolean override) {
-		this.override = override;
-	}
-
-	/**
 	 * @param clients the clients to set
 	 */
 	public void setClients(Map<String, Map<String, Object>> clients) {
 		this.clients = clients == null ? Collections.<String, Map<String, Object>> emptyMap()
 				: new HashMap<String, Map<String, Object>>(clients);
-	}
-
-	/**
-	 * A set of client ids to attempt an update if they already exist (overriding changes made online)
-	 * 
-	 * @param clientsToOverride the clients to override to set
-	 */
-	public void setClientsToOverride(Set<String> clientsToOverride) {
-		this.clientsToOverride = clientsToOverride;
 	}
 
 	/**
@@ -264,14 +244,13 @@ public class ClientAdminBootstrap implements InitializingBean {
 				clientRegistrationService.addClientDetails(client);
 			}
 			catch (ClientAlreadyExistsException e) {
-				if (clientsToOverride.contains(clientId)) {
-					if (override) {
-						logger.info("Overriding client details for " + clientId);
-						clientRegistrationService.updateClientDetails(client);
-						clientRegistrationService.updateClientSecret(clientId, client.getClientSecret());
-						return;
-					}
-				}
+                boolean override = map.containsKey("override") ? Boolean.parseBoolean((String) map.get("override")) : false;
+                if (override) {
+                    logger.info("Overriding client details for " + clientId);
+                    clientRegistrationService.updateClientDetails(client);
+                    clientRegistrationService.updateClientSecret(clientId, client.getClientSecret());
+                    return;
+                }
 				// ignore it
 				logger.debug(e.getMessage());
 			}
