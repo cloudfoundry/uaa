@@ -46,8 +46,6 @@ public class ClientAdminBootstrap implements InitializingBean {
 
 	private ClientRegistrationService clientRegistrationService;
 
-	private boolean override = false;
-
 	private Map<String, String> authoritiesToScopes = new HashMap<String, String>();
 
 	private Collection<String> validScopes = Arrays.asList("password.write", "openid", "cloud_controller.read",
@@ -72,13 +70,6 @@ public class ClientAdminBootstrap implements InitializingBean {
 	 */
 	public void setDomain(String domain) {
 		this.domain = domain.replace(".", "\\.");
-	}
-
-	/**
-	 * @param override the override to set
-	 */
-	public void setOverride(boolean override) {
-		this.override = override;
 	}
 
 	/**
@@ -243,6 +234,8 @@ public class ClientAdminBootstrap implements InitializingBean {
 					(String) map.get("authorities"), (String) map.get("redirect-uri"));
 			client.setClientSecret((String) map.get("secret"));
 			Integer validity = (Integer) map.get("access-token-validity");
+			Boolean override = (Boolean) map.get("override");
+			Map<String, Object> info = new HashMap<String, Object>(map);
 			if (validity != null) {
 				client.setAccessTokenValiditySeconds(validity);
 			}
@@ -250,11 +243,17 @@ public class ClientAdminBootstrap implements InitializingBean {
 			if (validity != null) {
 				client.setRefreshTokenValiditySeconds(validity);
 			}
+			for (String key : Arrays.asList("resource-ids", "scope", "authorized-grant-types", "authorities",
+					"redirect-uri", "secret", "id", "override", "access-token-validity", "refresh-token-validity")) {
+				info.remove(key);
+			}
+			client.setResourceIds(Collections.singleton("none"));
+			client.setAdditionalInformation(info);
 			try {
 				clientRegistrationService.addClientDetails(client);
 			}
 			catch (ClientAlreadyExistsException e) {
-				if (override) {
+				if (override!=null && override) {
 					logger.info("Overriding client details for " + clientId);
 					clientRegistrationService.updateClientDetails(client);
 					clientRegistrationService.updateClientSecret(clientId, client.getClientSecret());
