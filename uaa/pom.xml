@@ -31,20 +31,20 @@
 		<profile>
 			<id>devuaa</id>
 			<properties>
-				<CLOUD_FOUNDRY_CONFIG_PATH>src/test/resources/test/profiles/devuaa</CLOUD_FOUNDRY_CONFIG_PATH>
+				<CLOUD_FOUNDRY_CONFIG_PATH>${project.basedir}/src/test/resources/test/profiles/devuaa</CLOUD_FOUNDRY_CONFIG_PATH>
 			</properties>
 		</profile>
 		<profile>
 			<id>vcap</id>
 			<properties>
-				<CLOUD_FOUNDRY_CONFIG_PATH>src/test/resources/test/profiles/vcap</CLOUD_FOUNDRY_CONFIG_PATH>
+				<CLOUD_FOUNDRY_CONFIG_PATH>${project.basedir}/src/test/resources/test/profiles/vcap</CLOUD_FOUNDRY_CONFIG_PATH>
 				<uaa.path>/</uaa.path>
 			</properties>
 		</profile>
 		<profile>
 			<id>local</id>
 			<properties>
-				<CLOUD_FOUNDRY_CONFIG_PATH>src/test/resources/test/profiles/local</CLOUD_FOUNDRY_CONFIG_PATH>
+				<CLOUD_FOUNDRY_CONFIG_PATH>${project.basedir}/src/test/resources/test/profiles/local</CLOUD_FOUNDRY_CONFIG_PATH>
 				<uaa.path>/</uaa.path>
 			</properties>
 		</profile>
@@ -64,9 +64,6 @@
 								</goals>
 								<configuration>
 									<fork>true</fork>
-									<systemProperties>
-										<CLOUD_FOUNDRY_CONFIG_PATH>${CLOUD_FOUNDRY_CONFIG_PATH}</CLOUD_FOUNDRY_CONFIG_PATH>
-									</systemProperties>
 								</configuration>
 							</execution>
 						</executions>
@@ -133,6 +130,9 @@
 					<artifactId>tomcat-maven-plugin</artifactId>
 					<configuration>
 						<path>${uaa.path}</path>
+                        <systemProperties>
+                          <CLOUD_FOUNDRY_CONFIG_PATH>${CLOUD_FOUNDRY_CONFIG_PATH}</CLOUD_FOUNDRY_CONFIG_PATH>
+                        </systemProperties>
 					</configuration>
 				</plugin>
 				<plugin>
@@ -140,6 +140,9 @@
 					<artifactId>tomcat7-maven-plugin</artifactId>
 					<configuration>
 						<path>${uaa.path}</path>
+                        <systemProperties>
+                          <CLOUD_FOUNDRY_CONFIG_PATH>${CLOUD_FOUNDRY_CONFIG_PATH}</CLOUD_FOUNDRY_CONFIG_PATH>
+                        </systemProperties>
 					</configuration>
 				</plugin>
 				<plugin>
