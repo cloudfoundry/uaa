@@ -147,7 +147,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 			throw new NoSuchClientException("No such client: " + client);
 		}
 		catch (BadClientCredentialsException e) {
-			// TODO: CFID-399 maybe this should go away?
+			// Defensive check, in case the clientDetailsService starts throwing these instead
 			throw new NoSuchClientException("No such client: " + client);
 		}
 	}
