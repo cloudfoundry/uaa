@@ -109,6 +109,9 @@
 		<property name="uaaBaseUrl" value="${uaa.url:http://localhost:8080/uaa}" />
 		<property name="authorizationTemplate">
 			<bean class="org.springframework.security.oauth2.client.OAuth2RestTemplate">
+				<property name="requestFactory">
+					<bean class="org.springframework.http.client.HttpComponentsClientHttpRequestFactory" />
+				</property>
 				<constructor-arg ref="uaa" />
 			</bean>
 		</property>
