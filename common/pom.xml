@@ -86,6 +86,7 @@
 			<groupId>org.springframework.security</groupId>
 			<artifactId>spring-security-jwt</artifactId>
 			<version>${spring.security.jwt.version}</version>
+			<optional>true</optional>
 		</dependency>
 
 		<dependency>
@@ -179,7 +180,7 @@
 			<groupId>commons-dbcp</groupId>
 			<artifactId>commons-dbcp</artifactId>
 			<version>1.4</version>
-			<scope>runtime</scope>
+			<scope>test</scope>
 		</dependency>
 
 		<dependency>
@@ -187,6 +188,7 @@
 			<artifactId>log4j</artifactId>
 			<version>1.2.14</version>
 			<scope>runtime</scope>
+			<optional>true</optional>
 		</dependency>
 
 		<dependency>
@@ -205,13 +207,7 @@
 		<dependency>
 			<groupId>edu.vt.middleware</groupId>
 			<artifactId>vt-password</artifactId>
-			<version>3.1.1</version>
-			<exclusions>
-				<exclusion>
-					<groupId>org.bouncycastle</groupId>
-					<artifactId>bcprov-jdk15</artifactId>
-				</exclusion>
-			</exclusions>
+			<optional>true</optional>
 		</dependency>
 
 		<dependency>
@@ -225,8 +221,7 @@
 		<dependency>
 			<groupId>org.apache.httpcomponents</groupId>
 			<artifactId>httpclient</artifactId>
-			<version>4.1.2</version>
-			<scope>compile</scope>
+			<scope>test</scope>
 		</dependency>
 
 		<dependency>
@@ -239,14 +234,14 @@
 			<groupId>org.hsqldb</groupId>
 			<artifactId>hsqldb-j5</artifactId>
 			<version>2.2.4</version>
-			<scope>runtime</scope>
+			<scope>test</scope>
 		</dependency>
 
 		<dependency>
 			<groupId>postgresql</groupId>
 			<artifactId>postgresql</artifactId>
 			<version>9.1-901.jdbc3</version>
-			<scope>runtime</scope>
+			<scope>test</scope>
 		</dependency>
 
 		<dependency>
@@ -254,6 +249,7 @@
 			<artifactId>szxcvbn_2.8.2</artifactId>
 			<version>0.1</version>
 			<scope>compile</scope>
+			<optional>true</optional>
 		</dependency>
 
 		<dependency>
