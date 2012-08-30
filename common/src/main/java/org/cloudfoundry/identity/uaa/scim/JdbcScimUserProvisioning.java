@@ -312,7 +312,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		// Augment with explicit group membership
 		if (user.getGroups()!=null) {
 			for (Group group : user.getGroups()) {
-				set.add(group.getExternalId());
+				set.add(group.getDisplay());
 			}
 		}
 		return StringUtils.collectionToCommaDelimitedString(set);
