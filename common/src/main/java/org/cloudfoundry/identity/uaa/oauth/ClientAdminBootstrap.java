@@ -46,10 +46,6 @@ public class ClientAdminBootstrap implements InitializingBean {
 
 	private ClientRegistrationService clientRegistrationService;
 
-	private Set<String> clientsToOverride = Collections.emptySet();
-
-	private boolean override = false;
-
 	private Map<String, String> authoritiesToScopes = new HashMap<String, String>();
 
 	private Collection<String> validScopes = Arrays.asList("password.write", "openid", "cloud_controller.read",
@@ -67,7 +63,8 @@ public class ClientAdminBootstrap implements InitializingBean {
 
 	/**
 	 * The domain suffix (default "cloudfoundry.com") used to detect http redirects. If an http callback in this domain
-	 * is found in a client registration and there is no corresponding value with https as well, then the https value will be added.
+	 * is found in a client registration and there is no corresponding value with https as well, then the https value
+	 * will be added.
 	 * 
 	 * @param domain the domain to set
 	 */
@@ -76,27 +73,11 @@ public class ClientAdminBootstrap implements InitializingBean {
 	}
 
 	/**
-	 * @param override the override to set
-	 */
-	public void setOverride(boolean override) {
-		this.override = override;
-	}
-
-	/**
 	 * @param clients the clients to set
 	 */
 	public void setClients(Map<String, Map<String, Object>> clients) {
 		this.clients = clients == null ? Collections.<String, Map<String, Object>> emptyMap()
 				: new HashMap<String, Map<String, Object>>(clients);
-	}
-
-	/**
-	 * A set of client ids to attempt an update if they already exist (overriding changes made online)
-	 * 
-	 * @param clientsToOverride the clients to override to set
-	 */
-	public void setClientsToOverride(Set<String> clientsToOverride) {
-		this.clientsToOverride = clientsToOverride;
 	}
 
 	/**
@@ -253,6 +234,8 @@ public class ClientAdminBootstrap implements InitializingBean {
 					(String) map.get("authorities"), (String) map.get("redirect-uri"));
 			client.setClientSecret((String) map.get("secret"));
 			Integer validity = (Integer) map.get("access-token-validity");
+			Boolean override = (Boolean) map.get("override");
+			Map<String, Object> info = new HashMap<String, Object>(map);
 			if (validity != null) {
 				client.setAccessTokenValiditySeconds(validity);
 			}
@@ -260,17 +243,21 @@ public class ClientAdminBootstrap implements InitializingBean {
 			if (validity != null) {
 				client.setRefreshTokenValiditySeconds(validity);
 			}
+			for (String key : Arrays.asList("resource-ids", "scope", "authorized-grant-types", "authorities",
+					"redirect-uri", "secret", "id", "override", "access-token-validity", "refresh-token-validity")) {
+				info.remove(key);
+			}
+			client.setResourceIds(Collections.singleton("none"));
+			client.setAdditionalInformation(info);
 			try {
 				clientRegistrationService.addClientDetails(client);
 			}
 			catch (ClientAlreadyExistsException e) {
-				if (clientsToOverride.contains(clientId)) {
-					if (override) {
-						logger.info("Overriding client details for " + clientId);
-						clientRegistrationService.updateClientDetails(client);
-						clientRegistrationService.updateClientSecret(clientId, client.getClientSecret());
-						return;
-					}
+				if (override!=null && override) {
+					logger.info("Overriding client details for " + clientId);
+					clientRegistrationService.updateClientDetails(client);
+					clientRegistrationService.updateClientSecret(clientId, client.getClientSecret());
+					return;
 				}
 				// ignore it
 				logger.debug(e.getMessage());

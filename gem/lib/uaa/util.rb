@@ -43,6 +43,7 @@ class Util
     when :tocamel then k.to_s.gsub(/(_[a-z])([^_]*)/) { $1[1].upcase + $2 }
     when :tosym then k.to_s.downcase.to_sym
     when :tostr then k.to_s
+    when :none then k
     else raise "unknown hash key style: #{style}"
     end
   end
