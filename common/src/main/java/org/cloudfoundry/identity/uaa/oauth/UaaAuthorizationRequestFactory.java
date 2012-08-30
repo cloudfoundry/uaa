@@ -207,7 +207,7 @@ public class UaaAuthorizationRequestFactory implements AuthorizationRequestFacto
 			}
 		}
 
-		// TODO: maybe move this to the validateParameters method
+		// Check that a token with empty scope is not going to be granted 
 		if (result.isEmpty() && !clientDetails.getScope().isEmpty()) {
 			throw new InvalidScopeException(
 					"Invalid scope (empty) - this user is not allowed any of the requested scopes: " + scopes

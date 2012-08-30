@@ -335,14 +335,18 @@ public class ClientAdminEndpoints implements InitializingBean {
 				}
 			}
 
-			if (client.getAuthorities().isEmpty()) {
-				client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none"));
-			}
+		}
 
+		if (client.getAuthorities().isEmpty()) {
+			client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none"));
 		}
 
 		// The UAA does not allow or require resource ids to be registered because they are determined dynamically
-		client.setResourceIds(StringUtils.commaDelimitedListToSet("none"));
+		client.setResourceIds(Collections.singleton("none"));
+		
+		if (client.getScope().isEmpty()) {
+			client.setScope(Collections.singleton("uaa.none"));
+		}
 
 		if (requestedGrantTypes.contains("implicit")) {
 			if (StringUtils.hasText(client.getClientSecret())) {

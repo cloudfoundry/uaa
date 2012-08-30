@@ -54,6 +54,8 @@ public class ClientAdminEndpointsTests {
 
 	private ClientDetailsService clientDetailsService = Mockito.mock(ClientDetailsService.class);
 
+	private SecurityContextAccessor securityContextAccessor = Mockito.mock(SecurityContextAccessor.class);
+
 	private ClientRegistrationService clientRegistrationService = Mockito.mock(ClientRegistrationService.class);
 
 	@Rule
@@ -63,11 +65,13 @@ public class ClientAdminEndpointsTests {
 	public void setUp() throws Exception {
 		endpoints.setClientDetailsService(clientDetailsService);
 		endpoints.setClientRegistrationService(clientRegistrationService);
+		endpoints.setSecurityContextAccessor(securityContextAccessor);
 		input.setClientId("foo");
 		input.setClientSecret("secret");
 		input.setAuthorizedGrantTypes(Arrays.asList("authorization_code"));
 		details = new BaseClientDetails(input);
 		details.setResourceIds(Arrays.asList("none"));
+		details.setScope(Arrays.asList("uaa.none"));
 		details.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none"));
 		endpoints.afterPropertiesSet();
 	}
@@ -285,7 +289,8 @@ public class ClientAdminEndpointsTests {
 	}
 
 	@Test
-	public void testRemoveClientDetails() throws Exception {
+	public void testRemoveClientDetailsAdminCaller() throws Exception {
+		Mockito.when(securityContextAccessor.isAdmin()).thenReturn(true);
 		Mockito.when(clientDetailsService.loadClientByClientId("foo")).thenReturn(details);
 		endpoints.createClientDetails(details);
 		ResponseEntity<Void> result = endpoints.removeClientDetails("foo");
@@ -355,7 +360,7 @@ public class ClientAdminEndpointsTests {
 
 	@Test
 	public void testAuthorityAllowedByCaller() throws Exception {
-		BaseClientDetails caller = new BaseClientDetails("caller", null, "none", "client_credentials,implicit",
+		BaseClientDetails caller = new BaseClientDetails("caller", null, "uaa.none", "client_credentials,implicit",
 				"uaa.none");
 		when(clientDetailsService.loadClientByClientId("caller")).thenReturn(caller);
 		endpoints.setSecurityContextAccessor(new StubSecurityContextAccessor() {
@@ -421,6 +426,7 @@ public class ClientAdminEndpointsTests {
 
 	@Test
 	public void updateNonImplicitClientWithEmptySecretIsOk() throws Exception {
+		Mockito.when(securityContextAccessor.isAdmin()).thenReturn(true);
 		details.setAuthorizedGrantTypes(Arrays.asList("authorization_code"));
 		details.setClientSecret(null);
 		endpoints.updateClientDetails(details, details.getClientId());

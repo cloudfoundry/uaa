@@ -27,6 +27,7 @@ import java.util.TreeSet;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
@@ -67,7 +68,8 @@ public class ClientAdminBootstrap implements InitializingBean {
 
 	/**
 	 * The domain suffix (default "cloudfoundry.com") used to detect http redirects. If an http callback in this domain
-	 * is found in a client registration and there is no corresponding value with https as well, then the https value will be added.
+	 * is found in a client registration and there is no corresponding value with https as well, then the https value
+	 * will be added.
 	 * 
 	 * @param domain the domain to set
 	 */
@@ -259,6 +261,14 @@ public class ClientAdminBootstrap implements InitializingBean {
 			validity = (Integer) map.get("refresh-token-validity");
 			if (validity != null) {
 				client.setRefreshTokenValiditySeconds(validity);
+			}
+			// UAA does not use the resource ids in client registrations
+			client.setResourceIds(Collections.singleton("none"));
+			if (client.getScope().isEmpty()) {
+				client.setScope(Collections.singleton("uaa.none"));
+			}
+			if (client.getAuthorities().isEmpty()) {
+				client.setAuthorities(Collections.singleton(UaaAuthority.UAA_NONE));
 			}
 			try {
 				clientRegistrationService.addClientDetails(client);
