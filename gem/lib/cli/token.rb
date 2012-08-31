@@ -23,7 +23,7 @@ class TokenCatcher < Stub::Base
   def process_grant(data)
     server.logger.debug "processing grant for path #{request.path}"
     secret = server.info.delete(:client_secret)
-    ti = TokenIssuer.new(Config.target, server.info.delete(:client_id), secret)
+    ti = TokenIssuer.new(Config.target, server.info.delete(:client_id), secret, nil, Config.token_target)
     tkn = secret ? ti.authcode_grant(server.info.delete(:uri), data) :
         ti.implicit_grant(server.info.delete(:uri), data)
     server.info.update(tkn.info)
@@ -200,7 +200,7 @@ class TokenCli < CommonCli
   end
 
   def issuer_request(client_id, secret = nil)
-    return yield TokenIssuer.new(Config.target.to_s, client_id, secret)
+    return yield TokenIssuer.new(Config.target.to_s, client_id, secret, nil, Config.token_target.to_s)
   rescue TargetError => e
     say "\n#{e.message}:\n#{JSON.pretty_generate(e.info)}"
   rescue Exception => e
