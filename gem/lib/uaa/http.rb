@@ -108,8 +108,6 @@ module Http
     headers[:proxy_user] = @proxy if @proxy unless headers[:proxy_user]
     headers[:accept] = headers[:content_type] if headers[:content_type] && !headers[:accept]
 
-    raise BadTarget, "Target must be set before executing a request" unless target
-
     req = { method: method, url: "#{target}#{path}", payload: payload,
         headers: Util.hash_keys(headers, :todash), :multipart => true }
 
