@@ -68,7 +68,7 @@ public class JdbcScimUserProvisioningTests {
 
     private static final String SQL_INJECTION_FIELDS = "password,version,created,lastModified,username,email,givenName,familyName";
 
-    private static final String addUserSqlFormat = "insert into users (id, username, password, email, givenName, familyName, phoneNumber) values ('%s','%s','%s','%s','%s','%s','%s')";
+    private static final String addUserSqlFormat = "insert into users (id, username, password, email, givenName, familyName, phoneNumber, authorities) values ('%s','%s','%s','%s','%s','%s','%s', '%s')";
 
     private static final String deleteUserSqlFormat = "delete from users where id='%s'";
     
@@ -96,7 +96,7 @@ public class JdbcScimUserProvisioningTests {
 
     private void addUser(String id, String username, String password, String email, String givenName, String familyName, String phoneNumber) {
         TestUtils.assertNoSuchUser(template, "id", id);
-        template.execute(String.format(addUserSqlFormat, id, username, password, email, givenName, familyName, phoneNumber));
+        template.execute(String.format(addUserSqlFormat, id, username, password, email, givenName, familyName, phoneNumber, "uaa.user,org.foo"));
     }
 
     private void removeUser (String id) {
@@ -346,6 +346,11 @@ public class JdbcScimUserProvisioningTests {
 	@Test
 	public void canRetrieveUsersWithEmailFilter() {
 		assertEquals(1, db.retrieveUsers("emails.value sw 'joe'").size());
+	}
+
+	@Test
+	public void canRetrieveUsersWithGroupsFilter() {
+		assertEquals(2, db.retrieveUsers("groups.display co 'org.foo'").size());
 	}
 
 	@Test
