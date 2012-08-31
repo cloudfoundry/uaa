@@ -4,8 +4,7 @@
 	This product includes a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents 
 	is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file. -->
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
-	xmlns:sec="http://www.springframework.org/schema/security"
-	xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
+	xmlns:sec="http://www.springframework.org/schema/security" xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
 	xmlns:context="http://www.springframework.org/schema/context"
 	xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-1.0.xsd
 		http://www.springframework.org/schema/security/oauth http://www.springframework.org/schema/security/spring-security-oauth.xsd
@@ -17,7 +16,7 @@
 		resource-id="oauth" entry-point-ref="oauthAuthenticationEntryPoint" />
 
 	<http request-matcher-ref="loginAuthorizeRequestMatcher" entry-point-ref="oauthAuthenticationEntryPoint"
-		  authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
+		authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
 		<custom-filter ref="loginAuthenticationFilter" position="FORM_LOGIN_FILTER" />
@@ -51,7 +50,7 @@
 
 	<!-- For backwards compatibility to the old way of posting credentials to /authorize endpoint -->
 	<http request-matcher-ref="loginAuthorizeRequestMatcherOld" entry-point-ref="oauthAuthenticationEntryPoint"
-		  authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
+		authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
 		<custom-filter ref="loginAuthenticationFilter" position="FORM_LOGIN_FILTER" />
@@ -73,7 +72,15 @@
 	<bean id="loginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LoginAuthenticationManager">
 		<property name="addNewAccounts" value="${login.addnew:false}" />
 		<property name="scimUserBootstrap" ref="scimUserBootstrap" />
-		<property name="userDatabase" ref="userDatabase"/>
+		<property name="userDatabase" ref="userDatabase" />
 	</bean>
+
+	<beans profile="default">
+		<bean id="loginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LoginAuthenticationManager">
+			<property name="addNewAccounts" value="true" />
+			<property name="scimUserBootstrap" ref="scimUserBootstrap" />
+			<property name="userDatabase" ref="userDatabase" />
+		</bean>
+	</beans>
 
 </beans>
