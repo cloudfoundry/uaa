@@ -47,23 +47,33 @@ class UserAccount
   def change_password(user_id, new_password, old_password = nil)
     password_request = { password: new_password }
     password_request[:oldPassword] = old_password if old_password
+<<<<<<< HEAD
     json_parse_reply(*json_put("/Users/#{URI.encode(user_id)}/password", password_request, @auth_header))
+=======
+    json_parse_reply(*json_put(@target, "/User/#{URI.encode(user_id)}/password", password_request, @auth_header))
+>>>>>>> Added support for a distinct token target
   end
 
   def query(attributes = nil, filter = nil)
     query = {}
     query[:attributes] = attributes.respond_to?(:join) ? attributes.join(","): attributes.to_s if attributes
     query[:filter] = filter if filter
-    json_get("/Users?#{URI.encode_www_form(query)}", @auth_header)
+    json_get(@target, "/Users?#{URI.encode_www_form(query)}", @auth_header)
   end
 
   def query_by_value(attributes, filter_attribute, filter_value)
     query(attributes, %<#{filter_attribute} eq '#{filter_value}'>)
   end
 
+<<<<<<< HEAD
   def get(user_id); json_get("/Users/#{URI.encode(user_id)}", @auth_header) end
   def get_by_name(name); get user_id_from_name(name) end
   def delete(user_id); http_delete "/Users/#{URI.encode(user_id)}", @auth_header end
+=======
+  def get(user_id); json_get(@target, "/User/#{URI.encode(user_id)}", @auth_header) end
+  def get_by_name(name); get user_id_from_name(name) end
+  def delete(user_id); http_delete @target, "/User/#{URI.encode(user_id)}", @auth_header end
+>>>>>>> Added support for a distinct token target
   def delete_by_name(name); delete user_id_from_name(name) end
 
   def change_password_by_name(name, new_password, old_password = nil)

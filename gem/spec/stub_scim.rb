@@ -12,6 +12,7 @@
 #++
 
 require 'uaa/util'
+require 'time'
 
 module CF::UAA
 
