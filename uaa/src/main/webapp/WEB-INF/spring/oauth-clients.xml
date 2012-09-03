@@ -36,7 +36,7 @@
 						<map>
 							<entry key="id" value="vmc" />
 							<entry key="authorized-grant-types" value="implicit" />
-							<entry key="scope" value="cloud_controller.read,cloud_controller.write,openid,password.write,tokens.read,tokens.write" />
+							<entry key="scope" value="cloud_controller.read,cloud_controller.write,openid,password.write,tokens.read,tokens.write,scim.userids" />
 							<entry key="authorities" value="uaa.none" />
 						</map>
 					</entry>
@@ -45,7 +45,7 @@
 							<entry key="id" value="app" />
 							<entry key="secret" value="appclientsecret" />
 							<entry key="authorized-grant-types" value="password,authorization_code,refresh_token,client_credentials" />
-							<entry key="scope" value="cloud_controller.read,cloud_controller.write,openid,password.write,tokens.read,tokens.write" />
+							<entry key="scope" value="cloud_controller.read,cloud_controller.write,openid,password.write,tokens.read,tokens.write,scim.userids" />
 							<entry key="authorities" value="uaa.resource" />
 						</map>
 					</entry>

@@ -363,6 +363,6 @@ public class ScimUserEndpoints implements InitializingBean {
 
 	@Override
 	public void afterPropertiesSet() throws Exception {
-		Assert.notNull(dao, "Dao must be set");
+		Assert.notNull(dao, "ScimUserProvisioning must be set");
 	}
 }
