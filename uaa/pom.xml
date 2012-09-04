@@ -208,19 +208,6 @@
 			<artifactId>cloudfoundry-identity-common</artifactId>
 			<version>${project.version}</version>
 			<scope>compile</scope>
-			<exclusions>
-				<exclusion>
-					<!-- Explicitly ignore commons-logging while we have slf4j (from Batch Admin) -->
-					<groupId>commons-logging</groupId>
-					<artifactId>commons-logging</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-
-		<dependency>
-			<groupId>org.springframework.batch</groupId>
-			<artifactId>spring-batch-admin-manager</artifactId>
-			<version>1.2.1.RELEASE</version>
 		</dependency>
 
 		<dependency>

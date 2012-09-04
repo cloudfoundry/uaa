@@ -33,10 +33,6 @@
 
 	<context:property-placeholder properties-ref="applicationProperties" />
 
-	<bean id="messageSource" class="org.springframework.context.support.ResourceBundleMessageSource">
-		<property name="basename" value="messages" />
-	</bean>
-
 	<bean id="basicAuthenticationEntryPoint" class="org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint">
 		<property name="realmName" value="UAA/client" />
 		<property name="typeName" value="Basic" />
