@@ -17,6 +17,7 @@ module CF::UAA
 
 class SchemaViolation < RuntimeError; end
 class AlreadyExists < RuntimeError; end
+class BadFilter < RuntimeError; end
 
 class StubScim
 
@@ -49,6 +50,12 @@ class StubScim
         :scope, :auto_approved_scopes, :access_token_validity,
         :refresh_token_validity, :redirect_uri],
       group: COMMON_ATTRS + [:members, :owners, :readers] }
+
+  def self.known_attribute(attr)
+    return :id if (attr = attr.downcase) == "id"
+    LEGAL_ATTRS.each { |k, v| v.each { |a| return a if a.to_s == attr } }
+    false
+  end
 
   def valid_complex?(value, subattrs, simple_ok = false)
     return true if simple_ok && value.is_a?(String)
@@ -161,6 +168,7 @@ class StubScim
     thing.merge! stuff
     thing[:meta][:version] += 1
     thing[:meta][:lastmodified] == Time.now.iso8601
+    nil
   end
 
   def remove(id, rtype = nil)
@@ -191,6 +199,114 @@ class StubScim
 
   def find(rtype, filter = nil)
     @things_by_id.each_with_object([]) { |(k, v), o| o << v[:id] if rtype == v[:rtype] }
+  end
+
+end
+
+class ScimFilter
+
+  private
+
+  def eat_json_string
+    raise BadFilter unless @input.skip(/\s*"/)
+    str = ""
+    while true
+      case
+      when @input.scan(/[^\\"]+/); str << @input.matched
+      when @input.scan(%r{\\["\\/]}); str << @input.matched[-1]
+      when @input.scan(/\\[bfnrt]/); str << eval(%Q{"#{@input.matched}"})
+      when @input.scan(/\\u[0-9a-fA-F]{4}/); str << [Integer("0x#{@input.matched[2..-1]}")].pack("U")
+      else break
+      end
+    end
+    raise BadFilter unless @input.skip(/"\s*/)
+    str
+  end
+
+  def eat_word(*words)
+    @input.skip(/\s*/)
+    return unless s = @input.scan(/(\S+)\s*/)
+    w = @input[1].downcase
+    return w if words.empty? || words.include?(w)
+    @input.unscan
+    false
+  end
+
+  def eat_expr
+    if @input.skip(/\s*\(\s*/)
+      phrase = eat_phrase
+      raise BadFilter unless @input.skip(/\s*\)\s*/)
+      return phrase
+    end
+    raise BadFilter unless (attr = eat_word) &&
+        (op = eat_word("eq", "co", "sw", "pr", "gt", "ge", "lt", "le")) &&
+        (op == "pr" || value = eat_json_string)
+    (attr_sym = StubScim.known_attribute(attr)) ?
+        [:item, attr_sym, op, value] : [:undefined, attr, op, value]
+  end
+
+  # AND level
+  def eat_subphrase
+    phrase = [:and, eat_expr]
+    while eat_word("and"); phrase << eat_expr end
+    phrase.length == 2 ? phrase[1] : phrase
+  end
+
+  # OR level
+  def eat_phrase
+    phrase = [:or, eat_subphrase]
+    while eat_word("or"); phrase << eat_subphrase end
+    phrase.length == 2 ? phrase[1] : phrase
+  end
+
+  def eval_expr(entry, attr, op, value)
+    return false unless val = entry[attr]
+    case op
+    when "pr"; true
+    when "eq"; val == value
+    when "sw"; val.start_with?(value)
+    when "co"; val.contains(value)
+    when "gt"; val > value
+    when "ge"; val >= value
+    when "lt"; val < value
+    when "le"; val <= value
+    end
+  end
+
+  def eval(entry, filtr)
+    undefd = 0
+    case filtr[0]
+    when :undefined ; nil
+    when :item ; eval_expr(entry, filtr[1], filtr[2], filtr[3])
+    when :or
+      filtr[1..-1].each { |f|
+        return true if (res = eval(entry, f)) == true
+        undefd += 1 if res.nil?
+      }
+      filtr.length == undefd + 1 ? nil: false
+    when :and
+      filtr[1..-1].each { |f|
+        return false if (res = eval(entry, f)) == false
+        undefd += 1 if res.nil?
+      }
+      filtr.length == undefd + 1 ? nil: true
+    end
+  end
+
+  public
+
+  def initialize(filter_string)
+    @input = StringScanner.new(filter_string)
+    @filter = eat_phrase
+    raise BadFilter unless @input.eos?
+    self
+  rescue BadFilter => b
+    raise BadFilter, "invalid filter expression at offset #{@input.pos}: #{@input.string}"
+  end
+
+  def evaluate(entry)
+    puts "evaluating", entry.inspect, @filter.inspect
+    eval(entry, @filter)
   end
 
 end
