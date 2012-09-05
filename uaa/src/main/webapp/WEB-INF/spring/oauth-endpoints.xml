@@ -134,6 +134,7 @@
 				<value>password.write</value>
 				<value>tokens.write</value>
 				<value>tokens.read</value>
+				<value>scim.userids</value>
 			</set>
 		</property>
 	</bean>

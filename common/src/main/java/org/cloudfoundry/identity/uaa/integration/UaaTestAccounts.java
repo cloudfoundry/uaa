@@ -205,7 +205,6 @@ public class UaaTestAccounts implements TestAccounts {
 		resource.setId(clientId);
 		resource.setClientAuthenticationScheme(AuthenticationScheme.header);
 		resource.setAccessTokenUri(server.getAuthorizationUri());
-		resource.setScope(Arrays.asList("cloud_controller.read", "password.write", "openid"));
 		String redirectUri = environment.getProperty(clientPrefix + ".redirect-uri", defaultRedirectUri);
 		resource.setPreEstablishedRedirectUri(redirectUri);
 		return resource;
