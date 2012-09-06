@@ -39,7 +39,7 @@ class UserAccount
     request = { userName: name, password: password, emails: emails,
         name: { givenName: given_name, familyName: family_name }}
     request[:groups] = Util.arglist(groups) if groups
-    user = json_parse_reply(*json_post("/Users", request, @auth_header))
+    user = json_parse_reply(*json_post(@target, "/Users", request, @auth_header))
     return user if user[:id]
     raise BadResponse, "no user id returned by create user: target #{@target}"
   end
@@ -47,11 +47,7 @@ class UserAccount
   def change_password(user_id, new_password, old_password = nil)
     password_request = { password: new_password }
     password_request[:oldPassword] = old_password if old_password
-<<<<<<< HEAD
-    json_parse_reply(*json_put("/Users/#{URI.encode(user_id)}/password", password_request, @auth_header))
-=======
-    json_parse_reply(*json_put(@target, "/User/#{URI.encode(user_id)}/password", password_request, @auth_header))
->>>>>>> Added support for a distinct token target
+    json_parse_reply(*json_put(@target, "/Users/#{URI.encode(user_id)}/password", password_request, @auth_header))
   end
 
   def query(attributes = nil, filter = nil)
@@ -65,15 +61,9 @@ class UserAccount
     query(attributes, %<#{filter_attribute} eq '#{filter_value}'>)
   end
 
-<<<<<<< HEAD
-  def get(user_id); json_get("/Users/#{URI.encode(user_id)}", @auth_header) end
+  def get(user_id); json_get(@target, "/Users/#{URI.encode(user_id)}", @auth_header) end
   def get_by_name(name); get user_id_from_name(name) end
-  def delete(user_id); http_delete "/Users/#{URI.encode(user_id)}", @auth_header end
-=======
-  def get(user_id); json_get(@target, "/User/#{URI.encode(user_id)}", @auth_header) end
-  def get_by_name(name); get user_id_from_name(name) end
-  def delete(user_id); http_delete @target, "/User/#{URI.encode(user_id)}", @auth_header end
->>>>>>> Added support for a distinct token target
+  def delete(user_id); http_delete @target, "/Users/#{URI.encode(user_id)}", @auth_header end
   def delete_by_name(name); delete user_id_from_name(name) end
 
   def change_password_by_name(name, new_password, old_password = nil)
