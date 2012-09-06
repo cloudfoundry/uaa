@@ -38,9 +38,10 @@ class TokenIssuer
   include Http
   attr_accessor :default_scope
 
-  def initialize(target, client_id, client_secret = nil, default_scope = nil)
+  def initialize(target, client_id, client_secret = nil, default_scope = nil, token_target = nil)
     @target, @client_id, @client_secret = target, client_id, client_secret
     @default_scope = default_scope
+    @token_target = token_target
   end
 
   # login prompts for use by app to collect credentials for implicit grant
@@ -154,7 +155,8 @@ class TokenIssuer
     headers = {content_type: "application/x-www-form-urlencoded", accept: "application/json",
         authorization: Http.basic_auth(@client_id, @client_secret) }
     body = URI.encode_www_form(params)
-    reply = json_parse_reply(*request(@target, :post, '/oauth/token', body, headers))
+    request_token_target = @token_target || @target
+    reply = json_parse_reply(*request(request_token_target, :post, '/oauth/token', body, headers))
     raise BadResponse unless reply[:token_type] && reply[:access_token]
     Token.new reply
   end
