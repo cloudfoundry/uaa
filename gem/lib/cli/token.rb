@@ -200,7 +200,7 @@ class TokenCli < CommonCli
   end
 
   def issuer_request(client_id, secret = nil)
-    return yield TokenIssuer.new(Config.target.to_s, client_id, secret, nil, Config.token_target.to_s)
+    return yield TokenIssuer.new(Config.target.to_s, client_id, secret, nil, Config.token_target)
   rescue TargetError => e
     say "\n#{e.message}:\n#{JSON.pretty_generate(e.info)}"
   rescue Exception => e
