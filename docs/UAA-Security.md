@@ -321,6 +321,16 @@ Resource ID = `scim`.  Rules:
 * Delete, add or update user account
   * Token has scope `scim.write`
 
+### Group Membership Queries
+
+Resource ID = `scim`.  Rules:
+
+* List or inspect users in a group via `/Groups/{group}/Users`
+  * Token has scope `scim.userids`
+  * For non-admin tokens, only attributes `userName` and `id` are allowed (also in filters)
+  * Users can only query groups they belong to themselves
+  * Users cannot query the group `uaa.user`
+
 ### User Profiles
 
 Used for Single Sign On (OpenID Connect lite).  Resource ID = `openid`.  Rules:
