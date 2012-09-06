@@ -19,12 +19,11 @@ import static org.junit.Assert.assertNotNull;
 import java.util.Collection;
 import java.util.Collections;
 
+import org.cloudfoundry.identity.uaa.rest.SimpleMessage;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.crypto.password.StandardPasswordEncoder;
@@ -104,9 +103,9 @@ public class TokenAdminEndpointsTests {
 		Mockito.when(tokenServices.findTokensByUserName("marissa")).thenReturn(
 				Collections.<OAuth2AccessToken> singleton(new DefaultOAuth2AccessToken("FOO")));
 		Mockito.when(tokenServices.revokeToken("FOO")).thenReturn(true);
-		ResponseEntity<?> result = endpoints.revokeUserToken("marissa", new StandardPasswordEncoder().encode("FOO"),
+		SimpleMessage result = endpoints.revokeUserToken("marissa", new StandardPasswordEncoder().encode("FOO"),
 				new TestingAuthenticationToken("marissa", ""), false);
-		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+		assertEquals("ok", result.getStatus());
 	}
 
 	@Test
@@ -116,25 +115,25 @@ public class TokenAdminEndpointsTests {
 		Mockito.when(tokenServices.findTokensByUserName("marissa")).thenReturn(
 				Collections.<OAuth2AccessToken> singleton(token));
 		Mockito.when(tokenServices.revokeToken("FOO")).thenReturn(true);
-		ResponseEntity<?> result = endpoints.revokeUserToken("marissa", "BAR", new TestingAuthenticationToken(
+		SimpleMessage result = endpoints.revokeUserToken("marissa", "BAR", new TestingAuthenticationToken(
 				"marissa", ""), false);
-		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+		assertEquals("ok", result.getStatus());
 	}
 
-	@Test
+	@Test(expected=NoSuchTokenException.class)
 	public void testRevokeInvalidTokenForUser() throws Exception {
 		OAuth2AccessToken token = new DefaultOAuth2AccessToken("BAR");
 		Mockito.when(tokenServices.findTokensByUserName("marissa")).thenReturn(Collections.singleton(token));
-		ResponseEntity<?> result = endpoints.revokeUserToken("marissa", "FOO", new TestingAuthenticationToken(
+		SimpleMessage result = endpoints.revokeUserToken("marissa", "FOO", new TestingAuthenticationToken(
 				"marissa", ""), false);
-		assertEquals(HttpStatus.NOT_FOUND, result.getStatusCode());
+		assertEquals("ok", result.getStatus());
 	}
 
-	@Test
+	@Test(expected=NoSuchTokenException.class)
 	public void testRevokeNullTokenForUser() throws Exception {
-		ResponseEntity<?> result = endpoints.revokeUserToken("marissa", null, new TestingAuthenticationToken("marissa",
+		SimpleMessage result = endpoints.revokeUserToken("marissa", null, new TestingAuthenticationToken("marissa",
 				""), false);
-		assertEquals(HttpStatus.NOT_FOUND, result.getStatusCode());
+		assertEquals("ok", result.getStatus());
 	}
 
 	@Test(expected = AccessDeniedException.class)
@@ -170,15 +169,15 @@ public class TokenAdminEndpointsTests {
 		Mockito.when(tokenServices.findTokensByClientId("foo")).thenReturn(
 				Collections.<OAuth2AccessToken> singleton(new DefaultOAuth2AccessToken("FOO")));
 		Mockito.when(tokenServices.revokeToken("FOO")).thenReturn(true);
-		ResponseEntity<?> result = endpoints.revokeClientToken("foo", new StandardPasswordEncoder().encode("FOO"),
+		SimpleMessage result = endpoints.revokeClientToken("foo", new StandardPasswordEncoder().encode("FOO"),
 				new TestingAuthenticationToken("foo", ""));
-		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+		assertEquals("ok", result.getStatus());
 	}
 
-	@Test
+	@Test(expected=NoSuchTokenException.class)
 	public void testRevokeInvalidTokenForClient() throws Exception {
-		ResponseEntity<?> result = endpoints.revokeClientToken("foo", "FOO", new TestingAuthenticationToken("foo", ""));
-		assertEquals(HttpStatus.NOT_FOUND, result.getStatusCode());
+		SimpleMessage result = endpoints.revokeClientToken("foo", "FOO", new TestingAuthenticationToken("foo", ""));
+		assertEquals("ok", result.getStatus());
 	}
 
 }

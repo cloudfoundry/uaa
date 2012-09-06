@@ -50,7 +50,7 @@ public class LoginServerSecurityIntegrationTests {
 
 	private final String JOE = "joe" + new RandomValueStringGenerator().generate().toLowerCase();
 
-	private final String userEndpoint = "/User";
+	private final String userEndpoint = "/Users";
 
 	private ScimUser joe;
 
@@ -105,7 +105,7 @@ public class LoginServerSecurityIntegrationTests {
 		HttpHeaders headers = new HttpHeaders();
 		ResponseEntity<Void> result = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password",
 				HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers), null, joe.getId());
-		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+		assertEquals(HttpStatus.OK, result.getStatusCode());
 
 		// The implicit grant for vmc requires extra parameters in the authorization request
 		context.setParameters(Collections.singletonMap("credentials",

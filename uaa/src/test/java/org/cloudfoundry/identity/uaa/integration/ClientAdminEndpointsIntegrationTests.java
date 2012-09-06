@@ -152,7 +152,7 @@ public class ClientAdminEndpointsIntegrationTests {
 
 		result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients/{client}"),
 				HttpMethod.PUT, new HttpEntity<BaseClientDetails>(client, headers), Void.class, client.getClientId());
-		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+		assertEquals(HttpStatus.OK, result.getStatusCode());
 
 		ResponseEntity<String> response = serverRunning.getForString("/oauth/clients/" + client.getClientId(), headers);
 		assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -181,7 +181,7 @@ public class ClientAdminEndpointsIntegrationTests {
 		change.setSecret("newsecret");
 		result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients/{client}/secret"),
 				HttpMethod.PUT, new HttpEntity<SecretChangeRequest>(change, headers), Void.class, client.getClientId());
-		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+		assertEquals(HttpStatus.OK, result.getStatusCode());
 
 	}
 
@@ -203,7 +203,7 @@ public class ClientAdminEndpointsIntegrationTests {
 		result = serverRunning.getRestTemplate()
 				.exchange(serverRunning.getUrl("/oauth/clients/{client}"), HttpMethod.DELETE,
 						new HttpEntity<BaseClientDetails>(client, headers), Void.class, client.getClientId());
-		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+		assertEquals(HttpStatus.OK, result.getStatusCode());
 
 	}
 

@@ -188,7 +188,7 @@ public class ScimUserEndpointsIntegrationTests {
 		HttpHeaders headers = new HttpHeaders();
 		ResponseEntity<Void> result = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password",
 				HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers), null, joe.getId());
-		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+		assertEquals(HttpStatus.OK, result.getStatusCode());
 
 	}
 

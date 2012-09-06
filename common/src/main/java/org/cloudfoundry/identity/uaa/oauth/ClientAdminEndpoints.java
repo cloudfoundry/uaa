@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.rest.SimpleMessage;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
@@ -153,14 +154,18 @@ public class ClientAdminEndpoints implements InitializingBean {
 	}
 
 	@RequestMapping(value = "/oauth/clients", method = RequestMethod.POST)
-	public ResponseEntity<Void> createClientDetails(@RequestBody BaseClientDetails client) throws Exception {
+	@ResponseStatus(HttpStatus.CREATED)
+	@ResponseBody
+	public ClientDetails createClientDetails(@RequestBody BaseClientDetails client) throws Exception {
 		ClientDetails details = validateClient(client, true);
 		clientRegistrationService.addClientDetails(details);
-		return new ResponseEntity<Void>(HttpStatus.CREATED);
+		return removeSecret(client);
 	}
 
 	@RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.PUT)
-	public ResponseEntity<Void> updateClientDetails(@RequestBody BaseClientDetails client,
+	@ResponseStatus(HttpStatus.OK)
+	@ResponseBody
+	public ClientDetails updateClientDetails(@RequestBody BaseClientDetails client,
 			@PathVariable("client") String clientId) throws Exception {
 		Assert.state(clientId.equals(client.getClientId()),
 				String.format("The client id (%s) does not match the URL (%s)", client.getClientId(), clientId));
@@ -175,29 +180,32 @@ public class ClientAdminEndpoints implements InitializingBean {
 		details = validateClient(details, false);
 		clientRegistrationService.updateClientDetails(details);
 		clientUpdates.incrementAndGet();
-		return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
+		return removeSecret(client);
 	}
 
 	@RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.DELETE)
-	public ResponseEntity<Void> removeClientDetails(@PathVariable String client) throws Exception {
+	@ResponseStatus(HttpStatus.OK)
+	@ResponseBody
+	public ClientDetails removeClientDetails(@PathVariable String client) throws Exception {
+		ClientDetails details = clientDetailsService.loadClientByClientId(client);
 		clientRegistrationService.removeClientDetails(client);
 		clientDeletes.incrementAndGet();
-		return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
+		return removeSecret(details);
 	}
 
 	@RequestMapping(value = "/oauth/clients", method = RequestMethod.GET)
-	public ResponseEntity<Map<String, ClientDetails>> listClientDetails() throws Exception {
+	@ResponseBody
+	public Map<String, ClientDetails> listClientDetails() throws Exception {
 		List<ClientDetails> details = clientRegistrationService.listClientDetails();
 		Map<String, ClientDetails> map = new LinkedHashMap<String, ClientDetails>();
 		for (ClientDetails client : details) {
 			map.put(client.getClientId(), removeSecret(client));
 		}
-		return new ResponseEntity<Map<String, ClientDetails>>(map, HttpStatus.OK);
+		return map;
 	}
 
 	@RequestMapping(value = "/oauth/clients/{client}/secret", method = RequestMethod.PUT)
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	public void changeSecret(@PathVariable String client, @RequestBody SecretChangeRequest change) {
+	public SimpleMessage changeSecret(@PathVariable String client, @RequestBody SecretChangeRequest change) {
 
 		ClientDetails clientDetails;
 		try {
@@ -212,6 +220,8 @@ public class ClientAdminEndpoints implements InitializingBean {
 		clientRegistrationService.updateClientSecret(client, change.getSecret());
 
 		clientSecretChanges.incrementAndGet();
+		
+		return new SimpleMessage("ok", "secret updated");
 	}
 
 	@ExceptionHandler(InvalidClientDetailsException.class)
