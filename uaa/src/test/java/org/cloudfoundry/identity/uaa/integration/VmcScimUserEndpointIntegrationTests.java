@@ -45,8 +45,6 @@ public class VmcScimUserEndpointIntegrationTests {
 
 	private final String JOE = "joe" + new RandomValueStringGenerator().generate().toLowerCase();
 
-	private final String userEndpoint = "/User";
-
 	private final String usersEndpoint = "/Users";
 
 	private ScimUser joe;
@@ -76,7 +74,7 @@ public class VmcScimUserEndpointIntegrationTests {
 		user.setName(new ScimUser.Name("Joe", "User"));
 		user.addEmail("joe@blah.com");
 
-		ResponseEntity<ScimUser> newuser = client.postForEntity(serverRunning.getUrl(userEndpoint), user,
+		ResponseEntity<ScimUser> newuser = client.postForEntity(serverRunning.getUrl(usersEndpoint), user,
 				ScimUser.class);
 
 		joe = newuser.getBody();
@@ -86,7 +84,7 @@ public class VmcScimUserEndpointIntegrationTests {
 		change.setPassword("password");
 
 		HttpHeaders headers = new HttpHeaders();
-		ResponseEntity<Void> result = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password",
+		ResponseEntity<Void> result = client.exchange(serverRunning.getUrl(usersEndpoint) + "/{id}/password",
 				HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers), null, joe.getId());
 		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
 
@@ -100,7 +98,7 @@ public class VmcScimUserEndpointIntegrationTests {
 	private ResponseEntity<Map> deleteUser(RestOperations client, String id, int version) {
 		HttpHeaders headers = new HttpHeaders();
 		headers.add("If-Match", "\"" + version + "\"");
-		return client.exchange(serverRunning.getUrl(userEndpoint + "/{id}"), HttpMethod.DELETE, new HttpEntity<Void>(
+		return client.exchange(serverRunning.getUrl(usersEndpoint + "/{id}"), HttpMethod.DELETE, new HttpEntity<Void>(
 				headers), Map.class, id);
 	}
 
@@ -113,7 +111,7 @@ public class VmcScimUserEndpointIntegrationTests {
 
 		HttpHeaders headers = new HttpHeaders();
 		RestOperations client = serverRunning.getRestTemplate();
-		ResponseEntity<Void> result = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password",
+		ResponseEntity<Void> result = client.exchange(serverRunning.getUrl(usersEndpoint) + "/{id}/password",
 				HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers), null, joe.getId());
 		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
 
@@ -135,7 +133,6 @@ public class VmcScimUserEndpointIntegrationTests {
 		RestOperations client = serverRunning.getRestTemplate();
 		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> response = deleteUser(client, joe.getId(), joe.getVersion());
-		// It's unauthorized because the resource ids mismatch it should be FORBIDDEN
 		assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
 		@SuppressWarnings("unchecked")
 		Map<String, String> error = response.getBody();
@@ -149,7 +146,6 @@ public class VmcScimUserEndpointIntegrationTests {
 		ResponseEntity<Map> response = serverRunning.getForObject(usersEndpoint, Map.class);
 		@SuppressWarnings("unchecked")
 		Map<String, Object> results = response.getBody();
-		// It's unauthorized because the resource ids mismatch it should be FORBIDDEN
 		assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
 		assertNotNull("There should be an error", results.get("error"));
 	}

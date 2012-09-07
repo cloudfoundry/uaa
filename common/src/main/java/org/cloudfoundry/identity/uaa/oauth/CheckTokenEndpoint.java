@@ -50,7 +50,7 @@ public class CheckTokenEndpoint implements InitializingBean {
 
 	@RequestMapping(value = "/check_token")
 	@ResponseBody
-	public Map<String, Object> checkToken(@RequestParam("token") String value) {
+	public Map<String, ?> checkToken(@RequestParam("token") String value) {
 
 		OAuth2AccessToken token = resourceServerTokenServices.readAccessToken(value);
 		if (token == null) {
@@ -62,7 +62,7 @@ public class CheckTokenEndpoint implements InitializingBean {
 		}
 
 		OAuth2Authentication authentication = resourceServerTokenServices.loadAuthentication(value);
-		Map<String, Object> response = tokenConverter.convertAccessToken(token, authentication);
+		Map<String, ?> response = tokenConverter.convertAccessToken(token, authentication);
 
 		return response;
 	}
