@@ -73,6 +73,12 @@ describe Cli do
     Config.yaml.should match "https://example.com"
   end
 
+  it "should strip trailing / from target" do
+    Cli.run("target example.com/uaa/ --force")
+    Config.yaml.should match "https://example.com/uaa"
+    Config.yaml.should_not match "https://example.com/uaa/"
+  end
+
   it "should set multiple targets and see them fully qualified in config and targets output" do
     Cli.run("target example.com --force")
     Cli.run("target example2.com --force")
