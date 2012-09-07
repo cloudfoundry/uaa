@@ -69,9 +69,11 @@ class Config
   end
 
   def self.token_target=(tgt)
-    @config[@target][:token_target] = tgt
-    save
-    @token_target = tgt
+    if tgt
+      @config[@target][:token_target] = tgt.to_s
+      save
+      @token_target = tgt
+    end
   end
 
   def self.context=(ctx)
