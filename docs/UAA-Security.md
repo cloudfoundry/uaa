@@ -61,13 +61,21 @@ The format for the user is
 `username|password|email|first_name|last_name(|comma-separated-authorities)`.
 Remember that authorities are represented as groups in SCIM.
 
+### Account lockout policy
+
+In its default configuration, the UAA does not lock accounts permanently
+when a user repeatedly fails authentication. Instead it temporarily locks a
+user out for a short period (5 minutes by default) after 5 failed logins
+within the previous hour. The failure count is reset when a user
+successfully authenticates.
+
 ## OAuth Client Applications
 
 ### Security Metadata
 
 Client application meta data can be used by Resource Servers to make
 an access decision, and by the Authorization Server (the UAA itself)
-to decide whether to grant an access token.  
+to decide whether to grant an access token.
 
 Scope values are arbitrary strings, but are a contract between a
 client and a Resource Server, so in cases where UAA acts as a Resource
@@ -266,7 +274,7 @@ simple HTTP Basic authentication).
 
 Resource ID = `tokens`.  Rules:
 
-* Revoke user token: 
+* Revoke user token:
   * Token has scope `uaa.admin`, or
   * If token represents user, user is authenticated and is the owner
     of the token to be revoked, and token has scope `tokens.write`
@@ -291,7 +299,7 @@ Resource ID = `clients`.  Rules:
   * Token has scope `clients.write`
 * Inspect client registration
   * Token has scope `clients.read`
-  
+
 ### Client Secret Mangagement
 
 Resource ID null (so all clients can change their password).  Rule:
@@ -310,7 +318,7 @@ Resource ID = `password`.  Rules:
   * Token has scope `password.write`
   * If token represents a client, scope includes `uaa.admin`
   * If token represents a user, either scope includes `uaa.admin` or user provides the old password
-  
+
 ### User Account Management
 
 Resource ID = `scim`.  Rules:
@@ -337,7 +345,7 @@ Used for Single Sign On (OpenID Connect lite).  Resource ID = `openid`.  Rules:
 
 * Obtain user profile data
   * Token has scope `openid`
-  
+
 ### Token Resources for Providers
 
 The UAA uses HTTP Basic authentication for these resources, so they
@@ -349,15 +357,15 @@ grant clients need not apply).
 * Obtain access token at `/oauth/token`
   * Client is authenticated
   * If grant type is `authorization_code` client must have the code
-  
+
 * Inspect access token at `/check_token`
   * Client is authenticated
   * Client has authority `uaa.resource`
-  
+
 * Obtain token key (for decoding JWT tokens locally) at `/token_key`
   * Client is authenticated
   * Client has authority `uaa.resource`
-  
+
 ### Management Information
 
 The `/varz` endpoint is protected by HTTP Basic authentication with
