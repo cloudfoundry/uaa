@@ -21,17 +21,13 @@ import java.util.Map;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.UserNotFoundException;
-import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.crypto.password.StandardPasswordEncoder;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
-import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.token.ConsumerTokenServices;
 import org.springframework.stereotype.Controller;
@@ -65,7 +61,7 @@ public class TokenAdminEndpoints {
 	}
 
 	@RequestMapping(value = "/oauth/users/{user}/tokens/{token}", method = RequestMethod.DELETE)
-	public ResponseEntity<?> revokeUserToken(@PathVariable String user, @PathVariable String token,
+	public ResponseEntity<Void> revokeUserToken(@PathVariable String user, @PathVariable String token,
 			Principal principal, @RequestParam(required = false, defaultValue = "true") boolean lookup)
 			throws Exception {
 		String username = lookup ? getUserName(user) : user;
@@ -75,10 +71,7 @@ public class TokenAdminEndpoints {
 			return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
 		}
 		else {
-			Map<String, String> map = new HashMap<String, String>();
-			map.put("error", "not_found");
-			map.put("error_description", "Token not found");
-			return new ResponseEntity<Map<String, String>>(map, HttpStatus.NOT_FOUND);
+			return new ResponseEntity<Void>(HttpStatus.NOT_FOUND);
 		}
 	}
 
@@ -91,7 +84,7 @@ public class TokenAdminEndpoints {
 	}
 
 	@RequestMapping(value = "/oauth/clients/{client}/tokens/{token}", method = RequestMethod.DELETE)
-	public ResponseEntity<?> revokeClientToken(@PathVariable String client, @PathVariable String token,
+	public ResponseEntity<Void> revokeClientToken(@PathVariable String client, @PathVariable String token,
 			Principal principal) throws Exception {
 		checkClient(client, principal);
 		String tokenValue = getTokenValue(tokenServices.findTokensByClientId(client), token);
@@ -99,15 +92,12 @@ public class TokenAdminEndpoints {
 			return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
 		}
 		else {
-			Map<String, String> map = new HashMap<String, String>();
-			map.put("error", "not_found");
-			map.put("error_description", "Token not found");
-			return new ResponseEntity<Map<String, String>>(map, HttpStatus.NOT_FOUND);
+			return new ResponseEntity<Void>(HttpStatus.NOT_FOUND);
 		}
 	}
 
 	private String getUserName(String user) {
-		if (scimProvisioning == null) {
+		if (scimProvisioning==null) {
 			return user;
 		}
 		String username = user;
@@ -151,14 +141,9 @@ public class TokenAdminEndpoints {
 				// The token doesn't have an ID in the token service, but we need one for the endpoint, so add one here
 				map.put(JwtTokenEnhancer.TOKEN_ID, encoder.encode(token.getValue()));
 			}
-			try {
-				String clientId = tokenServices.getClientId(token.getValue());
-				if (clientId != null) {
-					map.put("client_id", clientId);
-				}
-			}
-			catch (InvalidTokenException e) {
-				// Ignore defensively in case of bugs in token services
+			String clientId = tokenServices.getClientId(token.getValue());
+			if (clientId != null) {
+				map.put("client_id", clientId);
 			}
 			token.setAdditionalInformation(map);
 			result.add(token);
@@ -184,16 +169,11 @@ public class TokenAdminEndpoints {
 	private void checkClient(String client, Principal principal) {
 		if (principal instanceof OAuth2Authentication) {
 			OAuth2Authentication authentication = (OAuth2Authentication) principal;
-			if (!authentication.isClientOnly() || !client.equals(principal.getName()) && !isAdmin(principal)) {
+			if (!authentication.isClientOnly() || !client.equals(principal.getName())) {
 				throw new AccessDeniedException(String.format("Client '%s' cannot obtain tokens for client '%s'",
 						principal.getName(), client));
 			}
 		}
-	}
-
-	private boolean isAdmin(Principal principal) {
-		return AuthorityUtils.authorityListToSet(((Authentication) principal).getAuthorities()).contains(
-				UaaAuthority.UAA_ADMIN.toString());
 	}
 
 	/**

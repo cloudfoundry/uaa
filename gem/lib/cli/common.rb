@@ -78,7 +78,7 @@ class MiscCli < CommonCli
   end
 
   define_option :force, "--[no-]force", "-f", "set context even if target UAA is not available"
-  desc "target [uaa_url] [token_url]", "Display current or set new target" do |uaa_url, token_url|
+  desc "target [uaa_url]", "Display current or set new target" do |uaa_url|
     msg = nil
     if uaa_url
       if uaa_url.to_i.to_s == uaa_url
@@ -95,27 +95,9 @@ class MiscCli < CommonCli
       end
       Config.target = url # we now have a canonical url set to https if possible
     end
-    if token_url
-      if token_url.to_i.to_s == token_url
-        return say "invalid token target index" unless url = Config.token_target?(uaa_url.to_i)
-      elsif url = normalize_url(token_url)
-        return say msg if (msg = bad_uaa_url(url)) unless opts[:force] || Config.token_target?(url)
-      elsif !Config.token_target?(url = normalize_url(token_url, "https")) &&
-            !Config.token_target?(url = normalize_url(token_url, "http"))
-        if opts[:force]
-          url = normalize_url(token_url, "https")
-        elsif bad_uaa_url(url = normalize_url(token_url, "https"))
-          return say msg if msg = bad_uaa_url(url = normalize_url(token_url, "http"))
-        end
-      end
-      Config.token_target = url # we now have a canonical url set to https if possible
-    else
-      Config.token_target = nil
-    end
     return say "no target set" unless Config.target
-    token_target_msg = Config.token_target ? "\ntoken target set to #{Config.token_target}" : ""
-    return say "target set to #{Config.target}#{token_target_msg}" unless Config.context
-    say "target set to #{Config.target}, with context #{Config.context}#{token_target_msg}"
+    return say "target set to #{Config.target}" unless Config.context
+    say "target set to #{Config.target}, with context #{Config.context}"
   end
 
   desc "targets", "Display all targets" do
@@ -131,9 +113,6 @@ class MiscCli < CommonCli
       say ""
       splat = v[:current] ? '*' : ' '
       pp "[#{i}]#{splat}[#{k}]"
-      if v[:token_target]
-        pp "token_target: #{v[:token_target]}", 4
-      end
       next unless v[:contexts]
       v[:contexts].each_with_index do |(sk, sv), si|
         next if ctx && ctx != sk

@@ -46,7 +46,7 @@ public class UaaAuthentication implements Authentication, Serializable {
 
 	@Override
 	public String getName() {
-		// TODO: Should we return the ID for the principal name?
+		// TODO: Should we return the ID for the princpal name?
 		return principal.getName();
 	}
 

@@ -147,7 +147,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 			throw new NoSuchClientException("No such client: " + client);
 		}
 		catch (BadClientCredentialsException e) {
-			// Defensive check, in case the clientDetailsService starts throwing these instead
+			// TODO: CFID-399 maybe this should go away?
 			throw new NoSuchClientException("No such client: " + client);
 		}
 	}
@@ -335,18 +335,14 @@ public class ClientAdminEndpoints implements InitializingBean {
 				}
 			}
 
-		}
+			if (client.getAuthorities().isEmpty()) {
+				client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none"));
+			}
 
-		if (client.getAuthorities().isEmpty()) {
-			client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none"));
 		}
 
 		// The UAA does not allow or require resource ids to be registered because they are determined dynamically
-		client.setResourceIds(Collections.singleton("none"));
-		
-		if (client.getScope().isEmpty()) {
-			client.setScope(Collections.singleton("uaa.none"));
-		}
+		client.setResourceIds(StringUtils.commaDelimitedListToSet("none"));
 
 		if (requestedGrantTypes.contains("implicit")) {
 			if (StringUtils.hasText(client.getClientSecret())) {

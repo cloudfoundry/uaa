@@ -12,7 +12,6 @@ import org.cloudfoundry.identity.uaa.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.scim.ScimUserBootstrap;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -21,7 +20,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 
@@ -32,8 +30,6 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
 	private ApplicationEventPublisher eventPublisher;
 
 	private ScimUserBootstrap scimUserBootstrap;
-	
-	private UaaUserDatabase userDatabase;
 
 	boolean addNewAccounts = false;
 
@@ -62,14 +58,7 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
 	public void setScimUserBootstrap(ScimUserBootstrap scimUserBootstrap) {
 		this.scimUserBootstrap = scimUserBootstrap;
 	}
-	
-	/**
-	 * @param userDatabase the userDatabase to set
-	 */
-	public void setUserDatabase(UaaUserDatabase userDatabase) {
-		this.userDatabase = userDatabase;
-	}
-	
+
 	@Override
 	public Authentication authenticate(Authentication request) throws AuthenticationException {
 
@@ -91,12 +80,6 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
 				if (scimUserBootstrap != null && addNewAccounts) {
 					// Register new users automatically
 					scimUserBootstrap.addUser(user);
-				} else {
-					try {
-						user = userDatabase.retrieveUserByName(user.getUsername());
-					} catch (UsernameNotFoundException e) {
-						throw new BadCredentialsException("Bad credentials");
-					}
 				}
 				Authentication success = new UaaAuthentication(new UaaPrincipal(user), UaaAuthority.USER_AUTHORITIES,
 						(UaaAuthenticationDetails) req.getDetails());
@@ -113,12 +96,6 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
 	protected UaaUser getUser(AuthzAuthenticationRequest req, Map<String, String> info) {
 		String name = req.getName();
 		String email = info.get("email");
-		if (name==null && email!=null) {
-			name = email;
-		}
-		if (name==null) {
-			throw new BadCredentialsException("Cannot determine username from credentials supplied");
-		}
 		if (email == null) {
 			if (name.contains("@")) {
 				email = name;

@@ -21,7 +21,7 @@ module CF::UAA
 
 class Cli < BaseCli
   @overview = "UAA Command Line Interface"
-  @topics = [MiscCli, InfoCli, TokenCli, UserCli, GroupCli, ClientCli]
+  @topics = [MiscCli, InfoCli, TokenCli, UserCli, ClientCli]
   @global_options = [:help, :version, :debug, :trace]
 
   def self.configure(config_file = "", input = $stdin, output = $stdout)

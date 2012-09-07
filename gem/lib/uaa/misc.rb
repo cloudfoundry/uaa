@@ -33,7 +33,8 @@ class Misc
   end
 
   def self.check_id(target, token)
-    reply = json_get(target, "/check_id", "Bearer #{token}")
+    @target = target
+    reply = json_get("/check_id", "Bearer #{token}")
 
   # To verify the validity of the Token response, the Client MUST do the following:
 
@@ -67,23 +68,27 @@ class Misc
   end
 
   def self.whoami(target, auth_header)
-    json_get(target, "/userinfo?schema=openid", auth_header)
+    @target = target
+    json_get("/userinfo?schema=openid", auth_header)
   end
 
   def self.server(target)
-    reply = json_get target, '/login'
+    @target = target
+    reply = json_get '/login'
     return reply if reply && reply[:prompts]
     raise BadResponse, "Invalid response from target #{target}"
   end
 
   def self.validation_key(target, client_id = nil, client_secret = nil)
-    json_get(target, "/token_key", (client_id && client_secret ? Http.basic_auth(client_id, client_secret) : nil))
+    @target = target
+    json_get("/token_key", (client_id && client_secret ? Http.basic_auth(client_id, client_secret) : nil))
   end
 
   # Returns hash of values from the Authorization Server that are associated
   # with the opaque token.
   def self.decode_token(target, client_id, client_secret, token, token_type = "bearer", audience_ids = nil)
-    reply = json_get(target, "/check_token?token_type=#{token_type}&token=#{token}",
+    @target = target
+    reply = json_get("/check_token?token_type=#{token_type}&token=#{token}",
         Http.basic_auth(client_id, client_secret))
     auds = Util.arglist(reply[:aud] || reply[:resource_ids])
     if audience_ids && (!auds || (auds & audience_ids).empty?)
@@ -93,12 +98,14 @@ class Misc
   end
 
   def self.password_strength(target, password)
-    json_parse_reply(*request(target, :post, '/password/score', URI.encode_www_form(password: password),
+    @target = target
+    json_parse_reply(*request(:post, '/password/score', URI.encode_www_form(password: password),
         content_type: "application/x-www-form-urlencoded", accept: "application/json"))
   end
 
   def self.varz(target, name, pwd)
-    json_get(target, "/varz", Http.basic_auth(name, pwd))
+    @target = target
+    json_get("/varz", Http.basic_auth(name, pwd))
   end
 
 end

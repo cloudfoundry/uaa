@@ -100,12 +100,9 @@ end
 class Base
   attr_accessor :request, :reply, :match, :server
 
-  def self.route(http_methods, matcher, filters = {}, &handler)
+  def self.route(http_methods, matcher, &handler)
     fail unless !EM.reactor_running? || EM.reactor_thread?
-    matcher = Regexp.new("^#{Regexp.escape(matcher.to_s)}$") unless matcher.is_a?(Regexp)
-    filters = filters.each_with_object({}) { |(k, v), o|
-      o[k] = v.is_a?(Regexp) ? v : Regexp.new("^#{Regexp.escape(v.to_s)}$")
-    }
+    matcher = Regexp.new("^#{Regexp.escape(matcher.to_s)}$") unless matcher.is_a? Regexp
     @routes ||= {}
     @route_number = (@route_number || 0) + 1
     route_name = "route_#{@route_number}".to_sym
@@ -114,21 +111,14 @@ class Base
       m = m.to_sym
       @routes[m] ||= []
       i = @routes[m].index { |r| r[0].to_s.length < matcher.to_s.length }
-      @routes[m].insert(i || -1, [matcher, filters, route_name]) unless i && @routes[m][i][0] == matcher
+      @routes[m].insert(i || -1, [matcher, route_name]) unless i && @routes[m][i][0] == matcher
     end
   end
 
   def self.find_route(request)
     fail unless EM.reactor_thread?
     if @routes && (rary = @routes[request.method])
-      rary.each { |r; m|
-        next unless (m = r[0].match(request.path))
-        r[1].each { |k, v|
-          next if v.match(request.headers[k])
-          return reply_in_kind(400,  "header '#{k}: #{request.headers[k]}' is not accepted")
-        }
-        return [m, r[2]]
-      }
+      rary.each { |r; m| return [m, r[1]] if (m = r[0].match(request.path)) }
     end
     [nil, :default_route]
   end

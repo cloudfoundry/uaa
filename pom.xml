@@ -5,7 +5,7 @@
 	<artifactId>cloudfoundry-identity-parent</artifactId>
 	<name>CloudFoundry Identity - Parent</name>
 	<packaging>pom</packaging>
-	<version>1.2.0.BUILD-SNAPSHOT</version>
+	<version>1.1.2</version>
     <url>http://github.com/cloudfoundry/uaa</url>
 	<modules>
 		<module>common</module>
@@ -13,9 +13,9 @@
 		<module>samples</module>
 	</modules>
 	<properties>
-		<spring.version>3.1.2.RELEASE</spring.version>
+		<spring.version>3.1.1.RELEASE</spring.version>
 		<spring.security.version>3.1.2.RELEASE</spring.security.version>
-		<spring.security.oauth.version>1.0.0.BUILD-SNAPSHOT</spring.security.oauth.version>
+		<spring.security.oauth.version>1.0.0.RC2</spring.security.oauth.version>
 		<spring.security.jwt.version>1.0.0.M3</spring.security.jwt.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -59,29 +59,6 @@
 					</execution>
 				</executions>
 			</plugin>
-            <plugin>
-              <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-enforcer-plugin</artifactId>
-              <version>1.1.1</version>
-              <executions>
-                <execution>
-                  <id>enforce-versions</id>
-                  <goals>
-                    <goal>enforce</goal>
-                  </goals>
-                  <configuration>
-                    <rules>
-                      <requireMavenVersion>
-                        <version>3.0.4</version>
-                      </requireMavenVersion>
-                      <requireJavaVersion>
-                        <version>1.6</version>
-                      </requireJavaVersion>
-                    </rules>
-                  </configuration>
-                </execution>
-              </executions>
-            </plugin>
 		</plugins>
 		<pluginManagement>
 			<plugins>
@@ -236,7 +213,7 @@
                 <plugin>
                   <groupId>org.apache.maven.plugins</groupId>
                   <artifactId>maven-release-plugin</artifactId>
-                  <version>2.3.2</version>
+                  <version>2.3</version>
                 </plugin>
 			</plugins>
 		</pluginManagement>
@@ -248,36 +225,6 @@
 			</extension>
 		</extensions>
 	</build>
-    <dependencyManagement>
-      <dependencies>
-		<dependency>
-			<groupId>edu.vt.middleware</groupId>
-			<artifactId>vt-password</artifactId>
-			<version>3.1.1</version>
-			<exclusions>
-				<exclusion>
-					<groupId>org.bouncycastle</groupId>
-					<artifactId>bcprov-jdk15</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>commons-logging</groupId>
-					<artifactId>commons-logging</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.httpcomponents</groupId>
-			<artifactId>httpclient</artifactId>
-			<version>4.2.1</version>
-			<exclusions>
-				<exclusion>
-					<groupId>commons-logging</groupId>
-					<artifactId>commons-logging</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-      </dependencies>
-    </dependencyManagement>
 	<repositories>
 		<repository>
 			<id>spring-milestone</id>

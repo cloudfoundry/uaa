@@ -52,24 +52,24 @@ class ClientReg
     info = Util.hash_keys(info)
     raise ArgumentError, "a client registration must specify a unique client id" unless info[:client_id]
     info = self.class.multivalues_to_arrays! info
-    json_parse_reply *json_post(@target, "/oauth/clients", info, @auth_header)
+    json_parse_reply *json_post("/oauth/clients", info, @auth_header)
   end
 
   def update(info)
     info = Util.hash_keys(info)
     raise ArgumentError, "a client registration update must specify a unique client id" unless info[:client_id]
     info = self.class.multivalues_to_arrays! info
-    json_parse_reply *json_put(@target, "/oauth/clients/#{URI.encode(info[:client_id])}", info, @auth_header)
+    json_parse_reply *json_put("/oauth/clients/#{URI.encode(info[:client_id])}", info, @auth_header)
   end
 
-  def get(id); json_get @target, "/oauth/clients/#{URI.encode(id)}", @auth_header end
-  def delete(id); http_delete @target, "/oauth/clients/#{URI.encode(id)}", @auth_header end
-  def list; json_get @target, "/oauth/clients", @auth_header end
+  def get(id); json_get "/oauth/clients/#{URI.encode(id)}", @auth_header end
+  def delete(id); http_delete "/oauth/clients/#{URI.encode(id)}", @auth_header end
+  def list; json_get "/oauth/clients", @auth_header end
 
   def change_secret(client_id, new_secret, old_secret = nil)
     req = { secret: new_secret }
     req[:oldSecret] = old_secret if old_secret
-    json_parse_reply(*json_put(@target, "/oauth/clients/#{URI.encode(client_id)}/secret", req, @auth_header))
+    json_parse_reply(*json_put("/oauth/clients/#{URI.encode(client_id)}/secret", req, @auth_header))
   end
 
 end

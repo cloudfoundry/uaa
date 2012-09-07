@@ -19,13 +19,12 @@ module CF::UAA
 class Config
 
   class << self
-    attr_reader :target, :context, :token_target
+    attr_reader :target, :context
   end
 
   def self.config; @config ? @config.dup : {} end
   def self.yaml; YAML.dump(Util.hash_keys(@config, :tostr)) end
   def self.target?(tgt); tgt if @config[tgt = subhash_key(@config, tgt)] end
-  def self.token_target?(tgt); tgt if @config[tgt = subhash_key(@config[@target][:token_target], tgt)] end
 
   # if a yaml string is provided, config is loaded from the string, otherwise
   # config is assumed to be a file name to read and store config.
@@ -48,10 +47,7 @@ class Config
       }
     end
     @config = Util.hash_keys(@config, :tosym)
-    if @target = current_subhash(@config)
-      @token_target = @config[@target][:token_target]
-      @context = current_subhash(@config[@target][:contexts])
-    end
+    @context = current_subhash(@config[@target][:contexts]) if @target = current_subhash(@config)
   end
 
   def self.save
@@ -66,14 +62,6 @@ class Config
     @context = current_subhash(@config[t][:contexts])
     save
     @target = t
-  end
-
-  def self.token_target=(tgt)
-    if tgt
-      @config[@target][:token_target] = tgt.to_s
-      save
-      @token_target = tgt
-    end
   end
 
   def self.context=(ctx)

@@ -47,8 +47,8 @@ public class TokenAdminEndpointsTests {
 
 	private ScimUserProvisioning scimProvisioning = Mockito.mock(ScimUserProvisioning.class);
 
-	private AuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(Collections.singletonMap(
-			"client_id", "foo"));
+	private AuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(Collections.singletonMap("client_id",
+			"foo"));
 
 	{
 		endpoints.setTokenServices(tokenServices);
@@ -104,7 +104,7 @@ public class TokenAdminEndpointsTests {
 		Mockito.when(tokenServices.findTokensByUserName("marissa")).thenReturn(
 				Collections.<OAuth2AccessToken> singleton(new DefaultOAuth2AccessToken("FOO")));
 		Mockito.when(tokenServices.revokeToken("FOO")).thenReturn(true);
-		ResponseEntity<?> result = endpoints.revokeUserToken("marissa", new StandardPasswordEncoder().encode("FOO"),
+		ResponseEntity<Void> result = endpoints.revokeUserToken("marissa", new StandardPasswordEncoder().encode("FOO"),
 				new TestingAuthenticationToken("marissa", ""), false);
 		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
 	}
@@ -116,7 +116,7 @@ public class TokenAdminEndpointsTests {
 		Mockito.when(tokenServices.findTokensByUserName("marissa")).thenReturn(
 				Collections.<OAuth2AccessToken> singleton(token));
 		Mockito.when(tokenServices.revokeToken("FOO")).thenReturn(true);
-		ResponseEntity<?> result = endpoints.revokeUserToken("marissa", "BAR", new TestingAuthenticationToken(
+		ResponseEntity<Void> result = endpoints.revokeUserToken("marissa", "BAR", new TestingAuthenticationToken(
 				"marissa", ""), false);
 		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
 	}
@@ -125,15 +125,15 @@ public class TokenAdminEndpointsTests {
 	public void testRevokeInvalidTokenForUser() throws Exception {
 		OAuth2AccessToken token = new DefaultOAuth2AccessToken("BAR");
 		Mockito.when(tokenServices.findTokensByUserName("marissa")).thenReturn(Collections.singleton(token));
-		ResponseEntity<?> result = endpoints.revokeUserToken("marissa", "FOO", new TestingAuthenticationToken(
+		ResponseEntity<Void> result = endpoints.revokeUserToken("marissa", "FOO", new TestingAuthenticationToken(
 				"marissa", ""), false);
 		assertEquals(HttpStatus.NOT_FOUND, result.getStatusCode());
 	}
 
 	@Test
 	public void testRevokeNullTokenForUser() throws Exception {
-		ResponseEntity<?> result = endpoints.revokeUserToken("marissa", null, new TestingAuthenticationToken("marissa",
-				""), false);
+		ResponseEntity<Void> result = endpoints.revokeUserToken("marissa", null, new TestingAuthenticationToken(
+				"marissa", ""), false);
 		assertEquals(HttpStatus.NOT_FOUND, result.getStatusCode());
 	}
 
@@ -170,14 +170,15 @@ public class TokenAdminEndpointsTests {
 		Mockito.when(tokenServices.findTokensByClientId("foo")).thenReturn(
 				Collections.<OAuth2AccessToken> singleton(new DefaultOAuth2AccessToken("FOO")));
 		Mockito.when(tokenServices.revokeToken("FOO")).thenReturn(true);
-		ResponseEntity<?> result = endpoints.revokeClientToken("foo", new StandardPasswordEncoder().encode("FOO"),
+		ResponseEntity<Void> result = endpoints.revokeClientToken("foo", new StandardPasswordEncoder().encode("FOO"),
 				new TestingAuthenticationToken("foo", ""));
 		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
 	}
 
 	@Test
 	public void testRevokeInvalidTokenForClient() throws Exception {
-		ResponseEntity<?> result = endpoints.revokeClientToken("foo", "FOO", new TestingAuthenticationToken("foo", ""));
+		ResponseEntity<Void> result = endpoints.revokeClientToken("foo", "FOO", new TestingAuthenticationToken("foo",
+				""));
 		assertEquals(HttpStatus.NOT_FOUND, result.getStatusCode());
 	}
 

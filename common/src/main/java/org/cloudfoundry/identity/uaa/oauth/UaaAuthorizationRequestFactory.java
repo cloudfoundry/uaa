@@ -25,7 +25,6 @@ import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.oauth2.common.exceptions.BadClientCredentialsException;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
@@ -166,13 +165,6 @@ public class UaaAuthorizationRequestFactory implements AuthorizationRequestFacto
 				}
 			}
 		}
-		// Client id is not mandatory in the request, but if it's there we can prevent a clash
-		if (parameters.containsKey("grant_type") && parameters.containsKey("client_id")) {
-			String clientId = parameters.get("client_id");
-			if (!clientDetails.getClientId().equals(clientId)) {
-				throw new BadClientCredentialsException();
-			}
-		}
 	}
 
 	/**
@@ -207,7 +199,7 @@ public class UaaAuthorizationRequestFactory implements AuthorizationRequestFacto
 			}
 		}
 
-		// Check that a token with empty scope is not going to be granted 
+		// TODO: maybe move this to the validateParameters method
 		if (result.isEmpty() && !clientDetails.getScope().isEmpty()) {
 			throw new InvalidScopeException(
 					"Invalid scope (empty) - this user is not allowed any of the requested scopes: " + scopes

@@ -29,7 +29,6 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.oauth2.common.exceptions.BadClientCredentialsException;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
@@ -184,14 +183,6 @@ public class UaaAuthorizationRequestFactoryTests {
 	@Test(expected = InvalidScopeException.class)
 	public void testScopesInvalid() throws Exception {
 		parameters.put("scope", "admin");
-		factory.validateParameters(parameters, new BaseClientDetails("foo", null, "read,write", "implicit", null));
-	}
-
-	@Test(expected=BadClientCredentialsException.class)
-	public void tesstWrongClientId() {
-		parameters.put("grant_type", "authorization_code");
-		parameters.put("client_id", "bar");
-		parameters.put("scope", "read");
 		factory.validateParameters(parameters, new BaseClientDetails("foo", null, "read,write", "implicit", null));
 	}
 

@@ -74,7 +74,7 @@
 			<param-name>contextInitializerClasses</param-name>
 			<param-value>org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer</param-value>
 		</init-param>
-		<load-on-startup>2</load-on-startup>
+		<load-on-startup>0</load-on-startup>
 	</servlet>
 
 	<servlet>

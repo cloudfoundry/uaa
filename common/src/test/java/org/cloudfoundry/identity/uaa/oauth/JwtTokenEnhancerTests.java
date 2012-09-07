@@ -13,17 +13,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Map;
-
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
 import org.cloudfoundry.identity.uaa.openid.UserInfo;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.jwt.JwtHelper;
 import org.springframework.security.jwt.crypto.sign.RsaVerifier;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
@@ -49,74 +43,45 @@ public class JwtTokenEnhancerTests {
 
 	@Test
 	public void testEnhanceAccessToken() {
-		OAuth2Authentication authentication = new OAuth2Authentication(new DefaultAuthorizationRequest("foo", null),
-				userAuthentication);
+		OAuth2Authentication authentication = new OAuth2Authentication(
+				new DefaultAuthorizationRequest("foo", null), userAuthentication);
 		OAuth2AccessToken token = tokenEnhancer.enhance(new DefaultOAuth2AccessToken("FOO"), authentication);
 		assertNotNull(token.getValue());
 		assertEquals("FOO", token.getAdditionalInformation().get(JwtTokenEnhancer.TOKEN_ID));
 		String claims = JwtHelper.decode(token.getValue()).getClaims();
-		assertTrue("Wrong claims: " + claims, claims.contains("\"" + UserInfo.USER_ID + "\""));
-		assertTrue("Wrong claims: " + claims, claims.contains("\"" + JwtTokenEnhancer.TOKEN_ID + "\""));
+		assertTrue("Wrong claims: " + claims, claims.contains("\""+UserInfo.USER_ID+"\""));
+		assertTrue("Wrong claims: " + claims, claims.contains("\""+JwtTokenEnhancer.TOKEN_ID+"\""));
 	}
+
 
 	@Test
 	public void rsaKeyCreatesValidRsaSignedTokens() throws Exception {
-		String rsaKey = "-----BEGIN RSA PRIVATE KEY-----  \n"
-				+ "MIIBywIBAAJhAOTeb4AZ+NwOtPh+ynIgGqa6UWNVe6JyJi+loPmPZdpHtzoqubnC \n"
-				+ "wEs6JSiSZ3rButEAw8ymgLV6iBY02hdjsl3h5Z0NWaxx8dzMZfXe4EpfB04ISoqq\n"
-				+ "hZCxchvuSDP4eQIDAQABAmEAqUuYsuuDWFRQrZgsbGsvC7G6zn3HLIy/jnM4NiJK\n"
-				+ "t0JhWNeN9skGsR7bqb1Sak2uWqW8ZqnqgAC32gxFRYHTavJEk6LTaHWovwDEhPqc\n"
-				+ "Zs+vXd6tZojJQ35chR/slUEBAjEA/sAd1oFLWb6PHkaz7r2NllwUBTvXL4VcMWTS\n"
-				+ "pN+5cU41i9fsZcHw6yZEl+ZCicDxAjEA5f3R+Bj42htNI7eylebew1+sUnFv1xT8\n"
-				+ "jlzxSzwVkoZo+vef7OD6OcFLeInAHzAJAjEAs6izolK+3ETa1CRSwz0lPHQlnmdM\n"
-				+ "Y/QuR5tuPt6U/saEVuJpkn4LNRtg5qt6I4JRAjAgFRYTG7irBB/wmZFp47izXEc3\n"
-				+ "gOdvA1hvq3tlWU5REDrYt24xpviA0fvrJpwMPbECMAKDKdiDi6Q4/iBkkzNMefA8\n"
-				+ "7HX27b9LR33don/1u/yvzMUo+lrRdKAFJ+9GPE9XFA== \n" + "-----END RSA PRIVATE KEY----- ";
+		String rsaKey = " -----BEGIN RSA PRIVATE KEY-----  \n" +
+				"  MIIBywIBAAJhAOTeb4AZ+NwOtPh+ynIgGqa6UWNVe6JyJi+loPmPZdpHtzoqubnC \n" +
+				" wEs6JSiSZ3rButEAw8ymgLV6iBY02hdjsl3h5Z0NWaxx8dzMZfXe4EpfB04ISoqq\n" +
+				"    hZCxchvuSDP4eQIDAQABAmEAqUuYsuuDWFRQrZgsbGsvC7G6zn3HLIy/jnM4NiJK\n" +
+				" t0JhWNeN9skGsR7bqb1Sak2uWqW8ZqnqgAC32gxFRYHTavJEk6LTaHWovwDEhPqc\n" +
+				" Zs+vXd6tZojJQ35chR/slUEBAjEA/sAd1oFLWb6PHkaz7r2NllwUBTvXL4VcMWTS\n" +
+				" pN+5cU41i9fsZcHw6yZEl+ZCicDxAjEA5f3R+Bj42htNI7eylebew1+sUnFv1xT8\n" +
+				" jlzxSzwVkoZo+vef7OD6OcFLeInAHzAJAjEAs6izolK+3ETa1CRSwz0lPHQlnmdM\n" +
+				" Y/QuR5tuPt6U/saEVuJpkn4LNRtg5qt6I4JRAjAgFRYTG7irBB/wmZFp47izXEc3\n" +
+				" gOdvA1hvq3tlWU5REDrYt24xpviA0fvrJpwMPbECMAKDKdiDi6Q4/iBkkzNMefA8\n" +
+				"  7HX27b9LR33don/1u/yvzMUo+lrRdKAFJ+9GPE9XFA== \n" +
+				"-----END RSA PRIVATE KEY----- ";
 		tokenEnhancer.setSigningKey(rsaKey);
-		OAuth2Authentication authentication = new OAuth2Authentication(new DefaultAuthorizationRequest("foo", null),
-				userAuthentication);
+		OAuth2Authentication authentication = new OAuth2Authentication(
+				new DefaultAuthorizationRequest("foo", null), userAuthentication);
 		OAuth2AccessToken token = tokenEnhancer.enhance(new DefaultOAuth2AccessToken("FOO"), authentication);
 		JwtHelper.decodeAndVerify(token.getValue(), new RsaVerifier(rsaKey));
 	}
 
 	@Test
 	public void publicKeyStringIsReturnedFromTokenKeyEndpoint() throws Exception {
-		tokenEnhancer.setVerifierKey("-----BEGIN RSA PUBLIC KEY-----\n"
-				+ "MGgCYQDk3m+AGfjcDrT4fspyIBqmulFjVXuiciYvpaD5j2XaR7c6Krm5wsBLOiUo\n"
-				+ "kmd6wbrRAMPMpoC1eogWNNoXY7Jd4eWdDVmscfHczGX13uBKXwdOCEqKqoWQsXIb\n" + "7kgz+HkCAwEAAQ==\n"
-				+ "-----END RSA PUBLIC KEY-----");
-		Map<String, String> key = tokenEnhancer.getKey(new UsernamePasswordAuthenticationToken("foo", "bar"));
-		assertTrue("Wrong key: " + key, key.get("value").contains("-----BEGIN"));
-	}
-
-	@Test
-	public void publicKeyStringIsReturnedFromTokenKeyEndpointWithNullPrincipal() throws Exception {
-		tokenEnhancer.setVerifierKey("-----BEGIN RSA PUBLIC KEY-----\n"
-				+ "MGgCYQDk3m+AGfjcDrT4fspyIBqmulFjVXuiciYvpaD5j2XaR7c6Krm5wsBLOiUo\n"
-				+ "kmd6wbrRAMPMpoC1eogWNNoXY7Jd4eWdDVmscfHczGX13uBKXwdOCEqKqoWQsXIb\n" + "7kgz+HkCAwEAAQ==\n"
-				+ "-----END RSA PUBLIC KEY-----");
-		Map<String, String> key = tokenEnhancer.getKey(null);
-		assertTrue("Wrong key: " + key, key.get("value").contains("-----BEGIN"));
-	}
-
-	@Test
-	public void sharedSecretIsReturnedFromTokenKeyEndpoint() throws Exception {
 		tokenEnhancer.setVerifierKey("someKey");
-		assertEquals("{alg=HMACSHA256, value=someKey}",
-				tokenEnhancer.getKey(new UsernamePasswordAuthenticationToken("foo", "bar")).toString());
+		assertEquals("{alg=HMACSHA256, value=someKey}", tokenEnhancer.getKey().toString());
 	}
 
-	@Test(expected = AccessDeniedException.class)
-	public void sharedSecretCannotBeAnonymouslyRetrievedFromTokenKeyEndpoint() throws Exception {
-		tokenEnhancer.setVerifierKey("someKey");
-		assertEquals(
-				"{alg=HMACSHA256, value=someKey}",
-				tokenEnhancer.getKey(
-						new AnonymousAuthenticationToken("anon", "anonymousUser", AuthorityUtils
-								.createAuthorityList("ROLE_ANONYMOUS"))).toString());
-	}
-
-	@Test(expected = IllegalStateException.class)
+	@Test(expected=IllegalStateException.class)
 	public void keysNotMatchingWithMacSigner() throws Exception {
 		tokenEnhancer.setSigningKey("aKey");
 		tokenEnhancer.setVerifierKey("someKey");

@@ -13,7 +13,11 @@
 
 package org.cloudfoundry.identity.uaa.password;
 
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
+
+import java.util.Map;
 
 import org.junit.Test;
 

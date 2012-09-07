@@ -150,100 +150,11 @@ This works similarly to the previous section, but does not require the credentia
 #. If the user authorizes the scopes for the requesting client, the UAA will redirect the browser to the ``redirect_uri`` provided (and pre-registered) by the client. 
 #. Since the reply parameters are encoded in the location fragment, the client application must get the access token in the reply fragment from user's browser -- typically by returning a page to the browser with some javascript which will post the access token to the client app. 
 
-Trusted Authentication from Login Server
-----------------------------------------
-
-In addition to the normal authentication of the ``/oauth/authorize`` endpoint described above (cookie-based for browser app and special case for ``vmc``) the UAA offers a special channel whereby a trusted client app can authenticate itself and then use the ``/oauth/authorize`` endpoint by providing minimal information about the user account (but not the password).  This channel is provided so that authentication can be abstracted into a separate "Login" server.  The default client id for the trusted app is ``login``, and this client is registered in the default profile (but not in any other)::
-
-    id: login,
-    secret: loginsecret,
-    scope: uaa.none,
-    authorized-grant-types: client_credentials,
-    authorities: oauth.login
-
-To authenticate the ``/oauth/authorize`` endpoint using this channel the Login Server has to provide a standard OAuth2 bearer token header _and_ some additional parameters to identify the user: ``source=login`` is mandatory, as is ``username``, plus optionally ``[email, given_name, family_name]``.  The UAA will lookup the user in its internal database and if it is found the request is authenticated.  The UAA can be configured to automatically register authenicated users that are missing from its database, but this will only work if all the fields are provided.  The response from the UAA (if the Login Server asks for JSON content) has enough information to get approval from the user and pass the response back to the UAA.
-
-Using this trusted channel a Login Server can obtain authorization (or tokens directly in the implicit grant) from the UAA, and also have complete control over authentication of the user, and the UI for logging in and approving token grants.
-
-An authorization code grant has two steps (as normal), but instead of a UI response the UAA sends JSON:
-
-Step 1: Initial Authorization Request
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-* Request: ``POST /oauth/authorize``
-* Request query component: some parameters specified by the spec, appended to the query component using the "application/x-www-form-urlencoded" format,
-
-  * ``response_type=code``
-  * ``client_id`` - a registered client id
-  * ``redirect_uri`` - a redirect URI registered with the client
-  * ``state`` - recommended (a random string that the client app can correlate with the current user session)
-  * ``source=login`` - mandatory
-  * ``username`` - the user whom the client is acting on behalf of (the authenticated user in the Login Server)
-  * ``email`` - the email of the user, optional
-  * ``given_name`` - the given (first) name of the user, optional
-  * ``family_name`` - the family (last) name of the user, optional
-
-* Request header:
-
-        Accept: application/json
-        Authorization: Bearer <login-client-bearer-token-obtained-from-uaa>
-
-* Request body: empty (or form encoded parameters as above)
-
-* Response header will include a cookie.  This needs to be sent back in the second step (if required) so that the UAA can retrive the state from this request.
-
-* Response body if successful, and user approval is required (example)::
-
-        HTTP/1.1 200 OK
-        {
-          "message":"To confirm or deny access POST to the following locations with the parameters requested.",
-          "scopes":[
-             {"text":"Access your data with scope 'openid'","code":"scope.openid"},
-             {"text":"Access your 'password' resources with scope 'write'","code":"scope.password.write"},
-             ...
-          ],
-          "auth_request":{...}, // The authorization request
-          "client": {
-             "scope":[...],
-             "client_id":"app",
-             "authorized_grant_types":["authorization_code"],
-             "authorities":[...]
-          },
-          "redirect_uri": "http://app.cloudfoundry.com",
-          "options":{
-              "deny":{"value":"false","key":"user_oauth_approval",...},
-              "confirm":{"value":"true","key":"user_oauth_approval",...}
-          }
-        }
-
-  the response body contains useful information for rendering to a user for approval, e.g. each scope that was requested (prepended with "scope." to facilitate i18n lookups) including a default message text in English describing it.
-
-* Response Codes::
-
-        200 - OK
-        403 - FORBIDDEN (if the user has denied approval)
-        302 - FOUND (if the grant is already approved)
-
-Step 2: User Approves Grant
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Just a normal POST with approval parameters to ``/oauth/authorize``, including the cookie requested in Step 1 (just like a browser would do).  For example::
-
-        POST /oauth/authorize
-        Cookie: JSESSIONID=fkserygfkseyrgfv
-
-        user_oauth_approval=true
-
-Response::
-
-        302 FOUND
-        Location: https://app.cloudfoundry.com?code=jhkgh&state=kjhdafg
-
 
 OAuth2 Token Validation Service: ``POST /check_token``
 -------------------------------------------------------
 
-An endpoint that allows a resource server such as the cloud controller to validate an access token. Interactions between the resource server and the authorization provider are not specified in OAuth2, so we are adding this endpoint. The request should be over SSL and use basic auth with the shared secret between the UAA and the resource server (which is stored as a client app registration). The POST body should be the access token and the response includes the userID, user_name and scope of the token in json format.  The client (not the user) is authenticated via basic auth for this call.
+An endpoint that allows a resource server such as the cloud controller to validate an access token. Interactions between the resource server and the authorization provider are not specified in OAuth2, so we are adding this endpoint. The request should be over SSL and use basic auth with the shared secret between the UAA and the cloud controller. The POST body should be the access token and the response includes the userID, user_name and scope of the token in json format.  The client (not the user) is authenticated via basic auth for this call.
 
 OAuth2 access tokens are opaque to clients, but can be decoded by resource servers to obtain all needed information such as userID, scope(s), lifetime, user attributes. If the token is encrypted witha shared sceret between the UAA are resource server it can be decoded without contacting the UAA. However, it may be useful -- at least during development -- for the UAA to specify a short, opaque token and then provide a way for the resource server to return it to the UAA to validate and open. That is what this endpoint does. It does not return general user account information like the /userinfo endpoint, it is specifically to validate and return the information represented by access token that the user presented to the resource server.
 
@@ -269,14 +180,14 @@ This endpoint mirrors the OpenID Connect ``/check_id`` endpoint, so not very RES
             "scope":["read"],
             "email":"marissa@test.org",
             "exp":138943173,
-            "user_id":"41750ae1-b2d0-4304-b1fe-7bdc24256387",
+            "id":"41750ae1-b2d0-4304-b1fe-7bdc24256387",
             "user_name":"marissa",
             "client_id":"vmc"
         }
 
 Notes:
   
-* The ``user_name`` is the same as you get from the `OpenID Connect`_ ``/userinfo`` endpoint.  The ``user_id`` field is the same as you would use to get the full user profile from ``/User``.
+* The ``user_name`` is the same as you get from the `OpenID Connect`_ ``/userinfo`` endpoint.  The ``id`` field is the same as you would use to get the full user profile from ``/User``.
 * Many of the fields in the response are a courtesy, allowing the caller to avoid further round trip queries to pick up the same information (e.g. via the ``/User`` endpoint).
 * The ``aud`` claim is the resource ids that are the audience for the token.  A Resource Server should check that it is on this list or else reject the token.
 * The ``client_id`` data represent the client that the token was granted for, not the caller.  The value can be used by the caller, for example, to verify that the client has been granted permission to access a resource.
@@ -547,13 +458,6 @@ Deleting accounts is handled in the back end logically using the `active` flag, 
 * Request: ``GET /Users?attributes=id,userName&filter=userName co 'bjensen' and active eq false``
 * Response Body: list of users matching the filter
 
-Query Group Membership
-----------------------
-
-There is a SCIM-like endpoint for querying group membership, with the same filter and attribute syntax as ``/Users``, but with restrictions on how it can be used.  A special purpose endpoint for use as a user id/name translation api. It will be used by vmc so it has to be quite restricted in function (i.e. it's not a general purpose groups or users endpoint). You can only query it, as a user, for usernames and user ids in the same group as you. Otherwise the API is the same as /Users.
-
-* Request: ``GET /Groups/{group}/Users``
-* Response Body: list of users matching the filter
 
 Query the strength of a password: ``POST /password/score``
 -----------------------------------------------------------
@@ -561,9 +465,9 @@ Query the strength of a password: ``POST /password/score``
 The password strength API is not part of SCIM but is provided as a service to allow user management applications to use the same password quality
 checking mechanism as the UAA itself. Rather than specifying a set of rules based on the included character types (upper and lower case, digits, symbols etc), the UAA
 exposes this API which accepts a candidate password and returns a JSON message containing a simple numeric score (between 0 and 10) and a required score
-(one which is acceptable to the UAA). The score is based on a calculation using the ideas from the  `zxcvbn project`_.
+(one which is acceptable to the UAA). The score is based on a calculation using the ideas from the  `zxcvbn project`_
 
-.. _zxcvbn project: http://tech.dropbox.com/?p=165
+.. zxcvbn project: http://tech.dropbox.com/?p=165
 
 The use of this API does not guarantee that a password is strong (it is currently limited to English dictionary searches, for example), but it will protect against some of
 the worst choices that people make and will not unnecessarily penalise strong passwords.

@@ -18,7 +18,7 @@
 	<security:http pattern="/healthz/**" security="none"/>
 
 	<http pattern="/varz/**" create-session="stateless" entry-point-ref="authenticationEntryPoint"
-		security-context-repository-ref="securityContextRepository" xmlns="http://www.springframework.org/schema/security">
+		xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<anonymous enabled="false" />
 		<http-basic authentication-details-source-ref="authenticationDetailsSource" entry-point-ref="authenticationEntryPoint" />
@@ -26,8 +26,6 @@
 	</http>
 
 	<alias alias="varzSecurityFilterChain" name="springSecurityFilterChain" />
-
-	<bean id="securityContextRepository" class="org.springframework.security.web.context.NullSecurityContextRepository"/>
 
 	<authentication-manager xmlns="http://www.springframework.org/schema/security">
 		<authentication-provider>

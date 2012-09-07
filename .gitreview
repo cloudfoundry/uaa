@@ -2,5 +2,4 @@
 host=reviews.cloudfoundry.org
 port=29418
 project=uaa
-defaultbranch=develop
 

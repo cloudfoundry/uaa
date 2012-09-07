@@ -22,7 +22,7 @@ import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth.common.signature.SharedConsumerSecretImpl;
+import org.springframework.security.oauth.common.signature.SharedConsumerSecret;
 import org.springframework.security.oauth.consumer.BaseProtectedResourceDetails;
 import org.springframework.security.oauth.consumer.OAuthConsumerToken;
 import org.springframework.security.oauth.consumer.OAuthSecurityContextHolder;
@@ -56,7 +56,7 @@ public class OAuthClientAuthenticationFilterTests {
 		OAuthSecurityContextImpl context = new OAuthSecurityContextImpl();
 		OAuthConsumerToken token = new OAuthConsumerToken();
 		resource.setConsumerKey(consumerKey);
-		resource.setSharedSecret(new SharedConsumerSecretImpl(sharedSecret));
+		resource.setSharedSecret(new SharedConsumerSecret(sharedSecret));
 		token.setValue(accessToken);
 		token.setSecret(secret);
 		context.setAccessTokens(Collections.singletonMap("foo", token));

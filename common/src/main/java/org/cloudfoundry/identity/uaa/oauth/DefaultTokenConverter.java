@@ -15,36 +15,42 @@ package org.cloudfoundry.identity.uaa.oauth;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.openid.UserInfo;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 
 /**
  * @author Dave Syer
- * 
+ *
  */
 public class DefaultTokenConverter implements AccessTokenConverter {
 
-	private UserTokenConverter userTokenConverter = new UaaUserTokenConverter();
-
 	@Override
-	public Map<String, ?> convertAccessToken(OAuth2AccessToken token, OAuth2Authentication authentication) {
+	public Map<String, Object> convertAccessToken(OAuth2AccessToken token, OAuth2Authentication authentication) {
 		Map<String, Object> response = new HashMap<String, Object>();
 		AuthorizationRequest clientToken = authentication.getAuthorizationRequest();
 
-		if (!authentication.isClientOnly()) {
-			response.putAll(userTokenConverter.convertUserAuthentication(authentication.getUserAuthentication()));
-		}
+		if (!authentication.isClientOnly()
+				&& authentication.getUserAuthentication().getPrincipal() instanceof UaaPrincipal) {
 
+			UaaPrincipal principal = (UaaPrincipal) authentication.getUserAuthentication().getPrincipal();
+
+			response.put(UserInfo.USER_ID, principal.getId());
+			response.put(UserInfo.USER_NAME, principal.getName());
+			response.put(UserInfo.EMAIL, principal.getEmail());
+
+		}
 		response.put(OAuth2AccessToken.SCOPE, token.getScope());
 		if (token.getAdditionalInformation().containsKey(JwtTokenEnhancer.TOKEN_ID)) {
 			response.put(JwtTokenEnhancer.TOKEN_ID, token.getAdditionalInformation().get(JwtTokenEnhancer.TOKEN_ID));
 		}
 
 		if (token.getExpiration() != null) {
-			response.put("exp", token.getExpiration().getTime() / 1000);
+			response.put("exp", token.getExpiration().getTime()/1000);
 		}
-
+		
 		response.putAll(token.getAdditionalInformation());
 
 		response.put("client_id", clientToken.getClientId());

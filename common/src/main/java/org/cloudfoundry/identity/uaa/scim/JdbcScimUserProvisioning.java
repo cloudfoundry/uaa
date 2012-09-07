@@ -86,8 +86,6 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	static final Pattern emailsValuePattern = Pattern.compile("emails\\.value", Pattern.CASE_INSENSITIVE);
 
-	static final Pattern groupsValuePattern = Pattern.compile("groups\\.display", Pattern.CASE_INSENSITIVE);
-
 	static final Pattern phoneNumbersValuePattern = Pattern.compile("phoneNumbers\\.value", Pattern.CASE_INSENSITIVE);
 
 	static final Pattern coPattern = Pattern.compile("(.*?)([a-z0-9]*) co '(.*?)'([\\s]*.*)", Pattern.CASE_INSENSITIVE);
@@ -173,8 +171,6 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 		// There is only one email address for now...
 		where = StringUtils.arrayToDelimitedString(emailsValuePattern.split(where), "email");
-		// There is only one field in groups for now...
-		where = StringUtils.arrayToDelimitedString(groupsValuePattern.split(where), "authorities");
 		// There is only one phone number for now...
 		where = StringUtils.arrayToDelimitedString(phoneNumbersValuePattern.split(where), "phoneNumber");
 
@@ -316,7 +312,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		// Augment with explicit group membership
 		if (user.getGroups()!=null) {
 			for (Group group : user.getGroups()) {
-				set.add(group.getDisplay());
+				set.add(group.getExternalId());
 			}
 		}
 		return StringUtils.collectionToCommaDelimitedString(set);

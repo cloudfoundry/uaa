@@ -123,13 +123,15 @@ class StubUAAConn < Stub::Base
     }
   end
 
-  route :post, '/oauth/clients', content_type: %r{application/json} do
+  route :post, '/oauth/clients' do
+    return bad_request unless request.headers[:content_type] == "application/json"
     return unless valid_token("clients.write")
     server.scim.add(:client, client_to_scim(Util.json_parse(request.body)))
     reply.status = 201
   end
 
-  route :put, %r{^/oauth/clients/([^/]+)$}, content_type: %r{application/json} do
+  route :put, %r{^/oauth/clients/([^/]+)$} do
+    return bad_request unless request.headers[:content_type] == "application/json"
     return unless valid_token("clients.write")
     info = client_to_scim(Util.json_parse(request.body))
     server.scim.update(server.scim.id(match[1], :client), info)
@@ -148,32 +150,37 @@ class StubUAAConn < Stub::Base
     reply.status = 204
   end
 
-  route :put, %r{^/oauth/clients/([^/]+)/secret$}, content_type: %r{application/json} do
+  route :put, %r{^/oauth/clients/([^/]+)/secret$} do
   end
 
   route :get, '/login' do
-    reply_in_kind(commit_id: "not implemented",
-        app: {name: "Stub UAA", version: VERSION, description: "User Account and Authentication Service, test server"},
-        prompts: {username: ["text", "Username"], password: ["password","Password"]})
+    reply.json(version: VERSION,
+        prompts: { username: ["text", "Username"], password: ["password","Password"]})
   end
 
   route :get, '/varz' do
-    reply_in_kind(mem: 0, type: 'UAA', app: { version: VERSION } )
+    reply.json(mem: 0, type: 'UAA', app: { version: VERSION } )
   end
 
   route :get, '/token_key' do
-    reply_in_kind(alg: "none", value: "none")
+    reply.json(alg: "none", value: "none")
   end
 
-  route :post, '/password/score', content_type: %r{application/x-www-form-urlencoded} do
+  route :post, '/password/score' do
+    unless request.headers[:content_type] == "application/x-www-form-urlencoded"
+      return bad_request "invalid content type"
+    end
     info = Util.decode_form_to_hash(request.body)
     return bad_request "no password to score" unless info[:password]
     score = info[:password].length > 10 || info[:password].length < 0 ? 10 : info[:password].length
-    reply_in_kind(score: score, requiredscore: 0)
+    reply.json(score: score, requiredscore: 0)
   end
 
   # implicit grant returns: access_token, token_type, state, expires_in
-  route :post, %r{^/oauth/authorize\?(.*)$}, content_type: %r{application/x-www-form-urlencoded} do
+  route :post, %r{^/oauth/authorize\?(.*)$} do
+    unless request.headers[:content_type] == "application/x-www-form-urlencoded"
+      return bad_request "invalid content type"
+    end
     query = Util.decode_form_to_hash(match[1])
     client = server.scim.get_by_name(query[:client_id], :client)
     cburi = query[:redirect_uri]
@@ -203,8 +210,11 @@ class StubUAAConn < Stub::Base
     redir_with_fragment(cburi, token_reply_info(client, granted_scope, user, query[:state]))
   end
 
-  route :post, "/oauth/token", content_type: %r{application/x-www-form-urlencoded},
-        accept: %r{application/json} do
+  route :post, "/oauth/token", do
+    unless request.headers[:accept] == "application/json" &&
+        request.headers[:content_type] == "application/x-www-form-urlencoded"
+      return reply_in_kind(400, "bad request")
+    end
     unless client = auth_client(request.headers[:authorization])
       reply.headers[:www_authenticate] = "basic"
       return reply.json(401, error: "invalid_client")
@@ -249,7 +259,8 @@ class StubUAAConn < Stub::Base
     user
   end
 
-  route :post, "/Users", content_type: %r{application/json} do
+  route :post, "/User" do
+    return bad_request unless request.headers[:content_type] == "application/json"
     return unless valid_token("scim.write")
     info, id = Util.json_parse(request.body).merge!(active: true), nil
     info[:groups] ||= []
@@ -258,10 +269,11 @@ class StubUAAConn < Stub::Base
       info[:groups] << id unless info[:groups].include?(id)
     }
     user = clean_user(server.scim.get(server.scim.add(:user, info)))
-    reply_in_kind(Util.hash_keys(user, :tostr))
+    reply.json(Util.hash_keys(user, :tostr))
   end
 
-  route :put, %r{^/Users/([^/]+)/password$}, content_type: %r{application/json} do
+  route :put, %r{^/User/([^/]+)/password$} do
+    return bad_request unless request.headers[:content_type] == "application/json"
     info = Util.json_parse(request.body)
     oldpwd = info[:oldpassword]
     if oldpwd
@@ -277,6 +289,7 @@ class StubUAAConn < Stub::Base
   end
 
   route :get, %r{^/Users\?(.*)$} do
+    return bad_request unless request.headers[:content_type] == "application/json"
     return unless valid_token("scim.read")
     query, name = Util.decode_form_to_hash(match[1]), nil
     if !query || !query[:filter]
@@ -288,25 +301,27 @@ class StubUAAConn < Stub::Base
     else
       users = [clean_user(server.scim.get_by_name(name = m[1], :user))]
     end
-    users.empty? ? not_found(name) : reply_in_kind(resources: Util.hash_keys(users, :tostr))
+    return not_found(name) if users.empty?
+    reply.json(resources: Util.hash_keys(users, :tostr))
   end
 
-  route :get, %r{^/Users/([^/]+)$} do
+  route :get, %r{^/User/([^/]+)$} do
+    return bad_request unless request.headers[:content_type] == "application/json"
     return unless valid_token("scim.read")
     return not_found(match[1]) unless user = server.scim.get(match[1], :user)
-    reply_in_kind(Util.hash_keys(clean_user(user), :tostr))
+    reply.json Util.hash_keys(clean_user(user), :tostr)
   end
 
-  route :delete, %r{^/Users/([^/]+)$} do
+  route :delete, %r{^/User/([^/]+)$} do
     return unless valid_token("scim.write")
-    not_found(match[1]) unless server.scim.remove(match[1], :user)
+    return not_found(match[1]) unless server.scim.remove(match[1], :user)
   end
 
   route :get, %r{^/userinfo\??(.*)$} do
     return not_found unless (tokn = valid_token("openid")) &&
         (info = server.scim.get(tokn[:user_id])) && info[:username]
     info[:user_name] = info.delete(:username)
-    reply_in_kind(info)
+    reply.json(info)
   end
 
 end

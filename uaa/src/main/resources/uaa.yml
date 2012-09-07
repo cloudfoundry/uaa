@@ -1,3 +1,7 @@
+batch:
+  username: batch_user
+  password: batch_password
+
 oauth:
   authorize:
    ssl: # set this to "true" to force https to be used by the user approval page 
@@ -12,6 +16,28 @@ oauth:
 scim:
   delete:
     deactivate: false
+
+jwt:
+   token:
+     signing-key: |
+        -----BEGIN RSA PRIVATE KEY-----
+        MIIBywIBAAJhAOTeb4AZ+NwOtPh+ynIgGqa6UWNVe6JyJi+loPmPZdpHtzoqubnC
+        wEs6JSiSZ3rButEAw8ymgLV6iBY02hdjsl3h5Z0NWaxx8dzMZfXe4EpfB04ISoqq
+        hZCxchvuSDP4eQIDAQABAmEAqUuYsuuDWFRQrZgsbGsvC7G6zn3HLIy/jnM4NiJK
+        t0JhWNeN9skGsR7bqb1Sak2uWqW8ZqnqgAC32gxFRYHTavJEk6LTaHWovwDEhPqc
+        Zs+vXd6tZojJQ35chR/slUEBAjEA/sAd1oFLWb6PHkaz7r2NllwUBTvXL4VcMWTS
+        pN+5cU41i9fsZcHw6yZEl+ZCicDxAjEA5f3R+Bj42htNI7eylebew1+sUnFv1xT8
+        jlzxSzwVkoZo+vef7OD6OcFLeInAHzAJAjEAs6izolK+3ETa1CRSwz0lPHQlnmdM
+        Y/QuR5tuPt6U/saEVuJpkn4LNRtg5qt6I4JRAjAgFRYTG7irBB/wmZFp47izXEc3
+        gOdvA1hvq3tlWU5REDrYt24xpviA0fvrJpwMPbECMAKDKdiDi6Q4/iBkkzNMefA8
+        7HX27b9LR33don/1u/yvzMUo+lrRdKAFJ+9GPE9XFA==
+        -----END RSA PRIVATE KEY-----
+     verification-key: |
+        -----BEGIN RSA PUBLIC KEY-----
+        MGgCYQDk3m+AGfjcDrT4fspyIBqmulFjVXuiciYvpaD5j2XaR7c6Krm5wsBLOiUo
+        kmd6wbrRAMPMpoC1eogWNNoXY7Jd4eWdDVmscfHczGX13uBKXwdOCEqKqoWQsXIb
+        7kgz+HkCAwEAAQ==
+        -----END RSA PUBLIC KEY-----
 
 password-policy:
   required-score: 0

@@ -60,8 +60,7 @@ public class AuthorizationCodeGrantIntegrationTests {
 	public void testSuccessfulAuthorizationCodeFlow() throws Exception {
 
 		HttpHeaders headers = new HttpHeaders();
-		// TODO: should be able to handle just TEXT_HTML
-		headers.setAccept(Arrays.asList(MediaType.TEXT_HTML, MediaType.ALL));
+		headers.setAccept(Arrays.asList(MediaType.TEXT_HTML));
 
 		AuthorizationCodeResourceDetails resource = testAccounts.getDefaultAuthorizationCodeResource();
 

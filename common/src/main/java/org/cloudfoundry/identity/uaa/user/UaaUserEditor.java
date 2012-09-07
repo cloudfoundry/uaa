@@ -14,7 +14,9 @@ package org.cloudfoundry.identity.uaa.user;
 
 import java.beans.PropertyEditorSupport;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.security.core.authority.AuthorityUtils;
 

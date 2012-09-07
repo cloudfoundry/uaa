@@ -28,7 +28,6 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.junit.rules.TestWatchman;
 import org.junit.runners.model.FrameworkMethod;
-import org.junit.runners.model.Statement;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpResponse;
@@ -72,12 +71,7 @@ public class TestAccountSetup extends TestWatchman {
 	}
 
 	@Override
-	public Statement apply(Statement base, FrameworkMethod method, Object target) {
-		initializeIfNecessary(method, target);
-		return super.apply(base, method, target);
-	}
-
-	private void initializeIfNecessary(FrameworkMethod method, Object target) {
+	public void starting(FrameworkMethod method) {
 		// Cache statically to save time on a test suite
 		if (!initialized) {
 			OAuth2ProtectedResourceDetails resource = testAccounts.getAdminClientCredentialsResource();
@@ -113,22 +107,22 @@ public class TestAccountSetup extends TestWatchman {
 
 	private void createVmcClient(RestOperations client) {
 		BaseClientDetails clientDetails = new BaseClientDetails("vmc", "cloud_controller,openid,password",
-				"openid,cloud_controller.read,password.write,tokens.read,tokens.write", "implicit", "uaa.none",
+				"cloud_controller.read,password.write,tokens.read,tokens.write", "implicit", "uaa.none",
 				"http://uaa.cloudfoundry.com/redirect/vmc");
 		createClient(client, testAccounts.getClientDetails("oauth.clients.vmc", clientDetails));
 	}
 
 	private void createScimClient(RestOperations client) {
-		BaseClientDetails clientDetails = new BaseClientDetails("scim", "none", "uaa.none", "client_credentials",
+		BaseClientDetails clientDetails = new BaseClientDetails("scim", "scim,password,tokens",
+				"scim.read,scim.write,password.write,tokens.read,tokens.write", "client_credentials",
 				"scim.read,scim.write,password.write,tokens.read,tokens.write");
 		clientDetails.setClientSecret("scimsecret");
 		createClient(client, testAccounts.getClientDetails("oauth.clients.scim", clientDetails));
 	}
 
 	private void createAppClient(RestOperations client) {
-		BaseClientDetails clientDetails = new BaseClientDetails("app", "none",
-				"cloud_controller.read,openid,password.write", "password,authorization_code,refresh_token",
-				"uaa.resource");
+		BaseClientDetails clientDetails = new BaseClientDetails("app", null, "cloud_controller.read,openid,password.write",
+				"password,authorization_code,refresh_token", "uaa.resource");
 		clientDetails.setClientSecret("appclientsecret");
 		createClient(client, testAccounts.getClientDetails("oauth.clients.app", clientDetails));
 	}
