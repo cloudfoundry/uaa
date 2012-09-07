@@ -161,6 +161,9 @@ class MiscCli < CommonCli
   end
 
   def normalize_url(url, scheme = nil)
+    while url.end_with? "/"
+        url.chomp! "/"
+    end
     raise ArgumentError, "invalid whitespace in target url" if url =~ /\s/
     unless url =~ /^https?:\/\//
       return unless scheme
@@ -168,7 +171,8 @@ class MiscCli < CommonCli
     end
     url = URI.parse(url)
     url.host.downcase!
-    url.to_s.to_sym
+    url = url.to_s
+    url.to_sym
   end
 
   def bad_uaa_url(url)
