@@ -34,7 +34,6 @@ import java.util.regex.Pattern;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
-import org.cloudfoundry.identity.uaa.scim.ScimUser.Meta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Name;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.springframework.dao.DataAccessException;
@@ -508,7 +507,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 			String phoneNumber = rs.getString(11);
 			ScimUser user = new ScimUser();
 			user.setId(id);
-			Meta meta = new Meta();
+			ScimMeta meta = new ScimMeta();
 			meta.setVersion(version);
 			meta.setCreated(created);
 			meta.setLastModified(lastModified);
