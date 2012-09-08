@@ -124,7 +124,7 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals("uaa.user", created.getGroups().iterator().next().getDisplay());
 	}
 
-	@Test(expected = InvalidUserException.class)
+	@Test(expected = InvalidScimResourceException.class)
 	public void cannotCreateUserWithNonAsciiUsername() {
 		ScimUser user = new ScimUser(null, "joe$eph", "Jo", "User");
 		user.addEmail("jo@blah.com");
@@ -171,7 +171,7 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals("joe", joe.getUserName());
 	}
 
-	@Test(expected = InvalidUserException.class)
+	@Test(expected = InvalidScimResourceException.class)
 	public void updateWithBadUsernameIsError() {
 		ScimUser jo = new ScimUser(null, "jo$ephine", "Jo", "NewUser");
 		jo.addEmail("jo@blah.com");
@@ -199,7 +199,7 @@ public class JdbcScimUserProvisioningTests {
 		db.changePassword(JOE_ID, "notjoespassword", "newpassword");
 	}
 
-	@Test(expected = UserNotFoundException.class)
+	@Test(expected = ScimResourceNotFoundException.class)
 	public void cannotChangePasswordIfOldPasswordDoesntMatch() {
 		assertTrue(db.changePassword("9999", null, "newpassword"));
 	}
@@ -210,7 +210,7 @@ public class JdbcScimUserProvisioningTests {
 		assertJoe(joe);
 	}
 
-	@Test(expected = UserNotFoundException.class)
+	@Test(expected = ScimResourceNotFoundException.class)
 	public void cannotRetrieveNonexistentUser() {
 		ScimUser joe = db.retrieveUser("9999");
 		assertJoe(joe);
@@ -226,20 +226,20 @@ public class JdbcScimUserProvisioningTests {
         removeUser(tmpUserId);
 	}
 
-	@Test(expected = UserAlreadyExistsException.class)
+	@Test(expected = ScimResourceAlreadyExistsException.class)
 	public void cannotDeactivateExistingUserAndThenCreateHimAgain() {
         String tmpUserId = createUserForDelete();
         ScimUser deletedUser = db.removeUser(tmpUserId, 0);
         deletedUser.setActive(true);
 		try {
         db.createUser(deletedUser, "foobarspam1234");
-        } catch (UserAlreadyExistsException e) {
+        } catch (ScimResourceAlreadyExistsException e) {
             removeUser(tmpUserId);
             throw e;
         }
 	}
 
-	@Test(expected = UserNotFoundException.class)
+	@Test(expected = ScimResourceNotFoundException.class)
 	public void cannotDeactivateNonexistentUser() {
 		ScimUser joe = db.removeUser("9999", 0);
 		assertJoe(joe);
@@ -260,7 +260,7 @@ public class JdbcScimUserProvisioningTests {
         assertEquals(0, db.retrieveUsers("username eq '" + tmpUserId + "'").size());
     }
 
-    @Test //(expected = UserAlreadyExistsException.class)
+    @Test //(expected = ScimResourceAlreadyExistsException.class)
     public void canDeleteExistingUserAndThenCreateHimAgain() {
         String tmpUserId = createUserForDelete();
         db.setDeactivateOnDelete(false);
@@ -276,7 +276,7 @@ public class JdbcScimUserProvisioningTests {
         removeUser(user.getId());
     }
 
-    @Test(expected = UserNotFoundException.class)
+    @Test(expected = ScimResourceNotFoundException.class)
     public void cannotDeleteNonexistentUser() {
         db.setDeactivateOnDelete(false);
         ScimUser joe = db.removeUser("9999", 0);

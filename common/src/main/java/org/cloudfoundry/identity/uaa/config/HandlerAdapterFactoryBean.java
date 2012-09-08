@@ -18,7 +18,7 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletResponse;
 
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimCore;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.context.ApplicationContext;
@@ -38,7 +38,7 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestResponseBody
 
 /**
  * Factory for a handler adapter that sniffs the results from {@link RequestMapping} method executions and adds an ETag
- * header if the result is a {@link ScimUser}. Inject into application context as anonymous bean.
+ * header if the result is a {@link ScimCore}. Inject into application context as anonymous bean.
  * 
  * @author Dave Syer
  * 
@@ -81,16 +81,16 @@ public class HandlerAdapterFactoryBean implements FactoryBean<HandlerAdapter>, A
 
 		@Override
 		public boolean supportsReturnType(MethodParameter returnType) {
-			return ScimUser.class.isAssignableFrom(returnType.getMethod().getReturnType());
+			return ScimCore.class.isAssignableFrom(returnType.getMethod().getReturnType());
 		}
 
 		@Override
 		public void handleReturnValue(Object returnValue, MethodParameter returnType,
 				ModelAndViewContainer mavContainer, NativeWebRequest webRequest) throws IOException,
 				HttpMediaTypeNotAcceptableException {
-			if (returnValue instanceof ScimUser) {
+			if (returnValue instanceof ScimCore) {
 				HttpServletResponse response = webRequest.getNativeResponse(HttpServletResponse.class);
-				response.addHeader("ETag", "\"" + ((ScimUser) returnValue).getVersion() + "\"");
+				response.addHeader("ETag", "\"" + ((ScimCore) returnValue).getVersion() + "\"");
 			}
 			super.handleReturnValue(returnValue, returnType, mavContainer, webRequest);
 		}

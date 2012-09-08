@@ -15,18 +15,18 @@ package org.cloudfoundry.identity.uaa.scim;
 import org.springframework.http.HttpStatus;
 
 /**
- * Unchecked exception to signal that a user has a conflict on update (e.g. optimistic locking).
+ * Unchecked exception signalling that a user account could not be found.
  * 
  * @author Dave Syer
  *
  */
-public class UserConflictException extends ScimException {
+public class ScimResourceNotFoundException extends ScimException {
 
 	/**
 	 * @param message a message for the caller
 	 */
-	public UserConflictException(String message) {
-		super(message, HttpStatus.CONFLICT);
+	public ScimResourceNotFoundException(String message) {
+		super(message, HttpStatus.NOT_FOUND);
 	}
 
 }

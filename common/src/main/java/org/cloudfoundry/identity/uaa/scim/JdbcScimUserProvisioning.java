@@ -34,7 +34,6 @@ import java.util.regex.Pattern;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
-import org.cloudfoundry.identity.uaa.scim.ScimUser.Meta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Name;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.springframework.dao.DataAccessException;
@@ -139,7 +138,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 			return u;
 		}
 		catch (EmptyResultDataAccessException e) {
-			throw new UserNotFoundException("User " + id + " does not exist");
+			throw new ScimResourceNotFoundException("User " + id + " does not exist");
 		}
 	}
 
@@ -272,7 +271,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	@Override
 	public ScimUser createUser(final ScimUser user, final String password) throws InvalidPasswordException,
-			InvalidUserException {
+            InvalidScimResourceException {
 
 		passwordValidator.validate(password, user);
 		validate(user);
@@ -302,7 +301,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 			});
 		}
 		catch (DuplicateKeyException e) {
-			throw new UserAlreadyExistsException("Username already in use (could be inactive account): "
+			throw new ScimResourceAlreadyExistsException("Username already in use (could be inactive account): "
 					+ user.getUserName());
 		}
 		return retrieveUser(id);
@@ -322,15 +321,15 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		return StringUtils.collectionToCommaDelimitedString(set);
 	}
 
-	private void validate(final ScimUser user) throws InvalidUserException {
+	private void validate(final ScimUser user) throws InvalidScimResourceException {
 		if (!user.getUserName().matches("[a-z0-9+-_.@]+")) {
-			throw new InvalidUserException("Username must be lower case alphanumeric with optional characters '._@'.");
+			throw new InvalidScimResourceException("Username must be lower case alphanumeric with optional characters '._@'.");
 		}
 		if (user.getEmails()==null || user.getEmails().isEmpty()) {
-			throw new InvalidUserException("An email must be provided.");
+			throw new InvalidScimResourceException("An email must be provided.");
 		}
 		if (user.getName()==null || user.getName().getFamilyName()==null || user.getName().getGivenName()==null) {
-			throw new InvalidUserException("A given name and a family name must be provided.");
+			throw new InvalidScimResourceException("A given name and a family name must be provided.");
 		}
 	}
 
@@ -343,7 +342,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	}
 
 	@Override
-	public ScimUser updateUser(final String id, final ScimUser user) throws InvalidUserException {
+	public ScimUser updateUser(final String id, final ScimUser user) throws InvalidScimResourceException {
 		validate(user);
 		logger.info("Updating user " + user.getUserName());
 		final String authorities = getAuthorities(user);
@@ -376,7 +375,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	@Override
 	public boolean changePassword(final String id, String oldPassword, final String newPassword)
-			throws UserNotFoundException {
+			throws ScimResourceNotFoundException {
 		if (oldPassword != null) {
 			checkPasswordMatches(id, oldPassword);
 		}
@@ -389,7 +388,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 			}
 		});
 		if (updated == 0) {
-			throw new UserNotFoundException("User " + id + " does not exist");
+			throw new ScimResourceNotFoundException("User " + id + " does not exist");
 		}
 		if (updated != 1) {
 			throw new IncorrectResultSizeDataAccessException(1);
@@ -405,7 +404,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 					new int[] { Types.VARCHAR }, String.class);
 		}
 		catch (IncorrectResultSizeDataAccessException e) {
-			throw new UserNotFoundException("User " + id + " does not exist");
+			throw new ScimResourceNotFoundException("User " + id + " does not exist");
 		}
 
 		if (!passwordEncoder.matches(oldPassword, currentPassword)) {
@@ -508,7 +507,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 			String phoneNumber = rs.getString(11);
 			ScimUser user = new ScimUser();
 			user.setId(id);
-			Meta meta = new Meta();
+			ScimMeta meta = new ScimMeta();
 			meta.setVersion(version);
 			meta.setCreated(created);
 			meta.setLastModified(lastModified);
