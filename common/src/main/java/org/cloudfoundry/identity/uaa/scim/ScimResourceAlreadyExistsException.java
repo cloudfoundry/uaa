@@ -20,12 +20,12 @@ import org.springframework.http.HttpStatus;
  * @author Dave Syer
  *
  */
-public class UserAlreadyExistsException extends ScimException {
+public class ScimResourceAlreadyExistsException extends ScimException {
 
 	/**
 	 * @param message a message for the caller
 	 */
-	public UserAlreadyExistsException(String message) {
+	public ScimResourceAlreadyExistsException(String message) {
 		super(message, HttpStatus.CONFLICT);
 	}
 

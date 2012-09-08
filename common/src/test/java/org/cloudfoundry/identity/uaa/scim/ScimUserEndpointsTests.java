@@ -129,9 +129,9 @@ public class ScimUserEndpointsTests {
 		endpoints.setSecurityContextAccessor(mockSecurityContext(user));
 		try {
 			endpoints.createUser(user);
-			fail("Expected InvalidUserException");
+			fail("Expected InvalidScimResourceException");
 		}
-		catch (InvalidUserException e) {
+		catch (InvalidScimResourceException e) {
 			// expected
 			String message = e.getMessage();
 			assertTrue("Wrong message: " + message, message.contains("email"));

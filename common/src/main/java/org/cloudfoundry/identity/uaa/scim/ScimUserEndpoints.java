@@ -179,7 +179,7 @@ public class ScimUserEndpoints implements InitializingBean {
 			return updated;
 		}
 		catch (OptimisticLockingFailureException e) {
-			throw new UserConflictException(e.getMessage());
+			throw new ScimResourceConflictException(e.getMessage());
 		}
 	}
 

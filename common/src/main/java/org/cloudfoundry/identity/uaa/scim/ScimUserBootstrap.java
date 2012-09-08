@@ -12,21 +12,19 @@
  */
 package org.cloudfoundry.identity.uaa.scim;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
+import org.cloudfoundry.identity.uaa.scim.groups.*;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.security.core.GrantedAuthority;
 
 /**
  * Convenience class for provisioning user accounts from {@link UaaUser} instances.
- * 
+ *
  * @author Luke Taylor
  * @author Dave Syer
  */
@@ -36,25 +34,39 @@ public class ScimUserBootstrap implements InitializingBean {
 
 	private final ScimUserProvisioning scimUserProvisioning;
 
+	private final ScimGroupProvisioning scimGroupProvisioning;
+
+	private final ScimGroupMembershipManager membershipManager;
+
 	private boolean override = false;
 
 	private final Collection<UaaUser> users;
 
 	public ScimUserBootstrap(ScimUserProvisioning scimUserProvisioning) {
-		this(scimUserProvisioning, Collections.<UaaUser> emptySet());
+		this(scimUserProvisioning, Collections.<UaaUser>emptyList());
+	}
+
+	public ScimUserBootstrap(ScimUserProvisioning scimUserProvisioning, Collection<UaaUser> users) {
+		this(scimUserProvisioning, null, null, users);
+	}
+
+	public ScimUserBootstrap(ScimUserProvisioning scimUserProvisioning, ScimGroupProvisioning scimGroupProvisioning, ScimGroupMembershipManager membershipManager) {
+		this(scimUserProvisioning, scimGroupProvisioning, membershipManager, Collections.<UaaUser>emptySet());
 	}
 
 	/**
 	 * Flag to indicate that user accounts can be updated as well as created.
-	 * 
+	 *
 	 * @param override the override flag to set (default false)
 	 */
 	public void setOverride(boolean override) {
 		this.override = override;
 	}
 
-	public ScimUserBootstrap(ScimUserProvisioning scimUserProvisioning, Collection<UaaUser> users) {
+	public ScimUserBootstrap(ScimUserProvisioning scimUserProvisioning, ScimGroupProvisioning scimGroupProvisioning, ScimGroupMembershipManager membershipManager, Collection<UaaUser> users) {
 		this.scimUserProvisioning = scimUserProvisioning;
+		this.scimGroupProvisioning = scimGroupProvisioning;
+		this.membershipManager = membershipManager;
 		this.users = Collections.unmodifiableCollection(users);
 	}
 
@@ -67,7 +79,7 @@ public class ScimUserBootstrap implements InitializingBean {
 
 	/**
 	 * Add a user account from the properties provided.
-	 * 
+	 *
 	 * @param user a UaaUser
 	 * @return the ScimUser added
 	 */
@@ -77,19 +89,35 @@ public class ScimUserBootstrap implements InitializingBean {
 		if (users.isEmpty()) {
 			logger.info("Registering new user account: " + user);
 			// TODO: send a message or raise an event that can be used to inform the user of his new password
-			return scimUserProvisioning.createUser(scimUser, user.getPassword());
-		}
-		else {
+			scimUser = scimUserProvisioning.createUser(scimUser, user.getPassword());
+		} else {
 			if (!override) {
 				logger.debug("Not registering existing user: " + user);
 				// We don't update existing accounts - use the ScimUserProvisioning for that
-			}
-			else {
+			} else {
 				String id = users.iterator().next().getId();
 				scimUserProvisioning.updateUser(id, scimUser);
 				scimUserProvisioning.changePassword(id, null, user.getPassword());
 			}
-			return scimUser;
+		}
+		if (scimGroupProvisioning != null && membershipManager != null) {
+			Set<Group> groups = scimUser.getGroups();
+			for (Group g : groups) {
+				addToGroup(scimUser, g.display);
+			}
+		}
+		return scimUser;
+	}
+
+	private void addToGroup(ScimUser user, String gName) {
+		ScimGroup group = null;
+		try {
+			group = scimGroupProvisioning.retrieveGroupByName(gName);
+			membershipManager.addMember(group.getId(), new ScimGroupMember(user.getId()));
+		} catch (ScimResourceNotFoundException ex) {
+			group = new ScimGroup(gName);
+			group.setMembers(Arrays.asList(new ScimGroupMember(user.getId())));
+			scimGroupProvisioning.createGroup(group);
 		}
 	}
 
