@@ -36,9 +36,7 @@ import org.springframework.util.Assert;
  * @author Luke Taylor
  */
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
-public final class ScimUser {
-
-	public static final String[] SCHEMAS = new String[] { "urn:scim:schemas:core:1.0" };
+public final class ScimUser extends ScimCore {
 
 	@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 	public static final class Group {
@@ -236,56 +234,6 @@ public final class ScimUser {
 
 	}
 
-	@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
-	public static final class Meta {
-		private int version = 0;
-
-		private Date created = new Date();
-
-		private Date lastModified = null;
-
-		public Meta() {
-		}
-
-		public Meta(Date created, Date lastModified, int version) {
-			this.created = created;
-			this.lastModified = lastModified;
-			this.version = version;
-		}
-
-		@JsonSerialize(using = JsonDateSerializer.class, include = JsonSerialize.Inclusion.NON_NULL)
-		public Date getCreated() {
-			return created;
-		}
-
-		@JsonDeserialize(using = JsonDateDeserializer.class)
-		public void setCreated(Date created) {
-			this.created = created;
-		}
-
-		@JsonSerialize(using = JsonDateSerializer.class, include = JsonSerialize.Inclusion.NON_NULL)
-		public Date getLastModified() {
-			return lastModified;
-		}
-
-		@JsonDeserialize(using = JsonDateDeserializer.class)
-		public void setLastModified(Date lastModified) {
-			this.lastModified = lastModified;
-		}
-
-		public void setVersion(int version) {
-			this.version = version;
-		}
-
-		public int getVersion() {
-			return version;
-		}
-	}
-
-	private String id;
-
-	private String externalId;
-
 	private String userName;
 
 	private Name name;
@@ -314,34 +262,15 @@ public final class ScimUser {
 
 	private boolean active = true;
 
-	private Meta meta = new Meta();
-
 	@JsonProperty
 	private String password;
 
-	public ScimUser() {
-	}
+	public ScimUser() { }
 
 	public ScimUser(String id, String userName, String givenName, String familyName) {
-		this.id = id;
+		super(id);
 		setUserName(userName);
 		this.name = new Name(givenName, familyName);
-	}
-
-	public String getId() {
-		return id;
-	}
-
-	void setId(String id) {
-		this.id = id;
-	}
-
-	public String getExternalId() {
-		return externalId;
-	}
-
-	public void setExternalId(String externalId) {
-		this.externalId = externalId;
 	}
 
 	public String getUserName() {
@@ -462,32 +391,6 @@ public final class ScimUser {
 
 	public void setActive(boolean active) {
 		this.active = active;
-	}
-
-	public Meta getMeta() {
-		return meta;
-	}
-
-	public void setMeta(Meta meta) {
-		this.meta = meta;
-	}
-
-	@JsonIgnore
-	public void setVersion(int version) {
-		meta.setVersion(version);
-	}
-
-	@JsonIgnore
-	public int getVersion() {
-		return meta.getVersion();
-	}
-
-	public void setSchemas(String[] schemas) {
-		Assert.isTrue(Arrays.equals(SCHEMAS, schemas), "Only schema '" + SCHEMAS[0] + "' is currently supported");
-	}
-
-	public String[] getSchemas() {
-		return SCHEMAS;
 	}
 
 	@JsonIgnore
