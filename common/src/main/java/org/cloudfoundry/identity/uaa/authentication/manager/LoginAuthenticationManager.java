@@ -32,7 +32,7 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
 	private ApplicationEventPublisher eventPublisher;
 
 	private ScimUserBootstrap scimUserBootstrap;
-	
+
 	private UaaUserDatabase userDatabase;
 
 	boolean addNewAccounts = false;
@@ -62,18 +62,19 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
 	public void setScimUserBootstrap(ScimUserBootstrap scimUserBootstrap) {
 		this.scimUserBootstrap = scimUserBootstrap;
 	}
-	
+
 	/**
 	 * @param userDatabase the userDatabase to set
 	 */
 	public void setUserDatabase(UaaUserDatabase userDatabase) {
 		this.userDatabase = userDatabase;
 	}
-	
+
 	@Override
 	public Authentication authenticate(Authentication request) throws AuthenticationException {
 
 		if (!(request instanceof AuthzAuthenticationRequest)) {
+			logger.debug("Cannot process request of type: " + request.getClass().getName());
 			return null;
 		}
 
@@ -88,13 +89,22 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
 			OAuth2Authentication authentication = (OAuth2Authentication) context.getAuthentication();
 			if (authentication.isClientOnly()) {
 				UaaUser user = getUser(req, info);
-				if (scimUserBootstrap != null && addNewAccounts) {
-					// Register new users automatically
-					scimUserBootstrap.addUser(user);
-				} else {
-					try {
-						user = userDatabase.retrieveUserByName(user.getUsername());
-					} catch (UsernameNotFoundException e) {
+				try {
+					user = userDatabase.retrieveUserByName(user.getUsername());
+				}
+				catch (UsernameNotFoundException e) {
+					// Not necessarily fatal
+					if (scimUserBootstrap != null && addNewAccounts) {
+						// Register new users automatically
+						scimUserBootstrap.addUser(user);
+						try {
+							user = userDatabase.retrieveUserByName(user.getUsername());
+						}
+						catch (UsernameNotFoundException ex) {
+							throw new BadCredentialsException("Bad credentials");
+						}
+					}
+					else {
 						throw new BadCredentialsException("Bad credentials");
 					}
 				}
@@ -106,17 +116,17 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
 		}
 
 		logger.debug("Did not locate login credentials");
-		throw new BadCredentialsException("Bad credentials");
+		return null;
 
 	}
 
 	protected UaaUser getUser(AuthzAuthenticationRequest req, Map<String, String> info) {
 		String name = req.getName();
 		String email = info.get("email");
-		if (name==null && email!=null) {
+		if (name == null && email != null) {
 			name = email;
 		}
-		if (name==null) {
+		if (name == null) {
 			throw new BadCredentialsException("Cannot determine username from credentials supplied");
 		}
 		if (email == null) {
