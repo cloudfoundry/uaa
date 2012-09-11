@@ -43,6 +43,6 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency "yajl-ruby"
   s.add_runtime_dependency "eventmachine"
   s.add_runtime_dependency "launchy"
-  s.add_runtime_dependency "em-http-request"
+  s.add_runtime_dependency "em-http-request", ">= 1.0.0.beta.3"
 
 end

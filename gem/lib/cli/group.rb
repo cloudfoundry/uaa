@@ -18,7 +18,7 @@ module CF::UAA
 
 class GroupCli < CommonCli
 
-  topic "Groups"
+  topic "Groups", "group"
 
   desc "groups [attributes] [filter]", "List groups" do |attributes, filter|
     pp group_request { |gr| gr.query(attributes, filter) }

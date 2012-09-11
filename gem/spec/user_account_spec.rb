@@ -45,6 +45,30 @@ describe UserAccount do
     result[:password].should_not be
   end
 
+  it "should match a simple eq filter" do
+    filtr = ScimFilter.new("username eq \"joe\"")
+    result = filtr.evaluate({username: "joe", id: "11111"})
+    result.should == true
+  end
+
+  it "should match a simple and filter" do
+    filtr = ScimFilter.new("username eq \"joe\" and id sw \"1111\"")
+    result = filtr.evaluate({username: "joe", id: "11111"})
+    result.should == true
+  end
+
+  it "should match a simple or filter" do
+    filtr = ScimFilter.new("username eq \"joe\" or id sw \"1111\" and foobar eq \"nothing\"")
+    result = filtr.evaluate({username: "joe", id: "11111"})
+    result.should == true
+  end
+
+  it "should match a simple or filter" do
+    filtr = ScimFilter.new("username eq \"joe\" or id sw \"1111\" and foobar eq \"nothing\"")
+    result = filtr.evaluate({username: "joe", id: "11111"})
+    result.should == true
+  end
+
 =begin
 
   subject { UserAccount.new(StubServer.url, 'Bearer example_access_token') }
