@@ -161,6 +161,7 @@ class MiscCli < CommonCli
   end
 
   def normalize_url(url, scheme = nil)
+    url = url.dup
     url.strip!
     while url.end_with? "/"
         url.chomp! "/"
