@@ -18,7 +18,7 @@ module CF::UAA
 
 class InfoCli < CommonCli
 
-  topic "System Information"
+  topic "System Information", "sys", "info"
 
   desc "info", "get information about current target" do
     misc_request { pp Misc.server Config.target }
@@ -29,7 +29,7 @@ class InfoCli < CommonCli
   end
 
   desc "prompts", "Show prompts for credentials required for implicit grant post" do
-    misc_request { pp Misc.server(Config.target)[:prompts] }
+    misc_request { pp update_target_info(Misc.server(Config.target))[:prompts] }
   end
 
   desc "signing key", "get the UAA's token signing key(s)", [:client, :secret] do

@@ -20,16 +20,18 @@ module CF::UAA
 
 class StubUAAConn < Stub::Base
 
-  def inject_error
+  def inject_error(input = nil)
     case server.reply_badly
     when :non_json then reply.text("non-json reply")
     when :bad_json then reply.body = %<{"access_token":"good.access.token" "missed a comma":"there"}>
+    when :bad_state then input[:state] = "badstate"
+    when :no_token_type then input.delete(:token_type)
     end
   end
 
   # current uaa token contents: exp, user_name, scope, email, user_id,
   #    client_id, client_authorities, user_authorities
-  def token_reply_info(client, scope, user = nil, state = nil)
+  def token_reply_info(client, scope, user = nil, state = nil, refresh = false)
     interval = client[:access_token_validity] || 3600
     token_body = { jti: SecureRandom.uuid, aud: scope, scope: scope,
         client_id: client[:displayname], exp: interval + Time.now.to_i }
@@ -39,6 +41,8 @@ class StubUAAConn < Stub::Base
     info = { access_token: TokenCoder.encode(token_body, nil, nil, 'none'),
         token_type: "bearer", expires_in: interval, scope: scope}
     info[:state] = state if state
+    info[:refresh_token] = "universal_refresh_token" if refresh
+    inject_error(info)
     info
   end
 
@@ -48,6 +52,12 @@ class StubUAAConn < Stub::Base
     ah = Base64::strict_decode64(ah[1]).split(':')
     client = server.scim.get_by_name(ah[0], :client)
     client if client && client[:password] == ah[1]
+  end
+
+  # TODO: need to save scope, timeout, client, redir_url, user_id, etc
+  # when redeeming an authcode, code and redir_url must match
+  def auth_code(client_id, code = nil)
+    8989 if code.nil? || code == 8989 # just stubbed enough for tests
   end
 
   def find_user(name, pwd = nil)
@@ -82,6 +92,15 @@ class StubUAAConn < Stub::Base
     reply.headers[:location] = uri.to_s
   end
 
+  def redir_with_query(cburi, params)
+    reply.status = 302
+    uri = URI.parse(cburi)
+    uri.query = URI.encode_www_form(params)
+    reply.headers[:location] = uri.to_s
+  end
+
+  def redir_err_f(cburi, state, msg); redir_with_fragment(cburi, error: msg, state: state) end
+  def redir_err_q(cburi, state, msg); redir_with_query(cburi, error: msg, state: state) end
   def ids_to_names(ids); ids ? ids.map { |id| server.scim.name(id) } : [] end
   def names_to_ids(names, rtype); names ? names.map { |name| server.scim.id(name, rtype) } : [] end
 
@@ -111,8 +130,16 @@ class StubUAAConn < Stub::Base
   def oauth_error(err); reply.json(400, error: err) end
   def not_found(name = nil); reply_in_kind(404, error: "#{name} not found") end
 
-  route :get, '/' do
-    reply_in_kind "welcome to stub UAA, version #{VERSION}"
+  route :get, '/' do reply_in_kind "welcome to stub UAA, version #{VERSION}" end
+  route :get, '/varz' do reply_in_kind(mem: 0, type: 'UAA', app: { version: VERSION } ) end
+  route :get, '/token_key' do reply_in_kind(alg: "none", value: "none") end
+  route :get, '/login' do reply_in_kind(server.info) end
+
+  route :post, '/password/score', content_type: %r{application/x-www-form-urlencoded} do
+    info = Util.decode_form_to_hash(request.body)
+    return bad_request "no password to score" unless info[:password]
+    score = info[:password].length > 10 || info[:password].length < 0 ? 10 : info[:password].length
+    reply_in_kind(score: score, requiredscore: 0)
   end
 
   route :get, '/oauth/clients' do
@@ -149,58 +176,53 @@ class StubUAAConn < Stub::Base
   end
 
   route :put, %r{^/oauth/clients/([^/]+)/secret$}, content_type: %r{application/json} do
-  end
-
-  route :get, '/login' do
-    reply_in_kind(commit_id: "not implemented",
-        app: {name: "Stub UAA", version: VERSION, description: "User Account and Authentication Service, test server"},
-        prompts: {username: ["text", "Username"], password: ["password","Password"]})
-  end
-
-  route :get, '/varz' do
-    reply_in_kind(mem: 0, type: 'UAA', app: { version: VERSION } )
-  end
-
-  route :get, '/token_key' do
-    reply_in_kind(alg: "none", value: "none")
-  end
-
-  route :post, '/password/score', content_type: %r{application/x-www-form-urlencoded} do
-    info = Util.decode_form_to_hash(request.body)
-    return bad_request "no password to score" unless info[:password]
-    score = info[:password].length > 10 || info[:password].length < 0 ? 10 : info[:password].length
-    reply_in_kind(score: score, requiredscore: 0)
+    reply.status = 501
   end
 
   # implicit grant returns: access_token, token_type, state, expires_in
-  route :post, %r{^/oauth/authorize\?(.*)$}, content_type: %r{application/x-www-form-urlencoded} do
+  route [:post, :get], %r{^/oauth/authorize\?(.*)$} do
     query = Util.decode_form_to_hash(match[1])
     client = server.scim.get_by_name(query[:client_id], :client)
     cburi = query[:redirect_uri]
+    state = query[:state]
 
     # if invalid client_id or redir_uri: inform resource owner, do not redirect
     unless client && valid_redir_uri?(client, cburi)
       return bad_request "invalid client_id or redirect_uri"
     end
-    unless client[:authorized_grant_types].include? "implicit"
-      return redir_with_fragment(cburi, error: "unauthorized_client", state: query[:state])
+    if query[:response_type] == 'token'
+      unless client[:authorized_grant_types].include?("implicit")
+        return redir_err_f(cburi, state, "unauthorized_client")
+      end
+      if request.method == :post
+        unless request.headers[:content_type] =~ %r{application/x-www-form-urlencoded}
+          return redir_err_f(cburi, state, "invalid_request")
+        end
+        creds = Util.json_parse(Util.decode_form_to_hash(request.body)[:credentials])
+        unless user = find_user(creds[:username], creds[:password])
+          return redir_err_f(cburi, state, "access_denied")
+        end
+      else
+        # TODO: how to authN user and ask for authorizations?
+        return reply.status = 501
+      end
+      possible_scope = ids_to_names(client[:scope])
+      requested_scope = query[:scope] ? Util.arglist(query[:scope]) : possible_scope
+      granted_scope = ids_to_names(user[:groups]) & requested_scope # handle auto-deny
+      if granted_scope.empty? || !(requested_scope - possible_scope).empty?
+        return redir_err_f(cburi, state, "invalid_scope")
+      end
+      # TODO: how to stub any remaining scopes that are not auto-approve?
+      granted_scope = Util.strlist(granted_scope)
+      return redir_with_fragment(cburi, token_reply_info(client, granted_scope, user, query[:state]))
     end
-    unless query[:response_type] == 'token'
-      return redir_with_fragment(cburi, error: "unsupported_response_type", state: query[:state])
+    return redir_err_q(cburi, state, "invalid_request") unless request.method == :get
+    return redir_err_q(cburi, state, "unsupported_response_type") unless query[:response_type] == 'code'
+    unless client[:authorized_grant_types].include?("authorization_code")
+      return redir_err_f(cburi, state, "unauthorized_client")
     end
-    creds = Util.json_parse(Util.decode_form_to_hash(request.body)[:credentials])
-    unless user = find_user(creds[:username], creds[:password])
-      return redir_with_fragment(cburi, error: "access_denied", state: query[:state])
-    end
-    possible_scope = ids_to_names(client[:scope])
-    requested_scope = query[:scope] ? Util.arglist(query[:scope]) : possible_scope
-    granted_scope = ids_to_names(user[:groups]) & requested_scope # handle auto-deny
-    if granted_scope.empty? || !(requested_scope - possible_scope).empty?
-      return redir_with_fragment(cburi, error: "invalid_scope", state: query[:state])
-    end
-    # TODO: how to stub any remaining scopes that are not auto-approve?
-    granted_scope = Util.strlist(granted_scope)
-    redir_with_fragment(cburi, token_reply_info(client, granted_scope, user, query[:state]))
+    # TODO: calculate scope, get user id
+    redir_with_query(cburi, state: state, code: auth_code(client[:id]))
   end
 
   route :post, "/oauth/token", content_type: %r{application/x-www-form-urlencoded},
@@ -217,8 +239,10 @@ class StubUAAConn < Stub::Base
       return reply.json(400, error: "unauthorized_client")
     end
     case params[:grant_type]
-    when "authorization_code"
-      reply.status = 501 # not implmented yet, should have params code, redirect_uri
+    when "authorization_code" # should have params: code, redirect_uri
+      scope = ids_to_names(client[:scope]) # need to get requested scope
+      return reply.json(400, error: "invalid_grant") unless auth_code(client[:id])
+      reply.json(token_reply_info(client, scope, nil, nil, true))
     when "password"
       user = find_user(params[:username], params[:password])
       return reply.json(400, error: "invalid_grant") unless user
@@ -235,11 +259,22 @@ class StubUAAConn < Stub::Base
       return reply.json(400, error: "invalid_scope") if scope.empty?
       reply.json(token_reply_info(client, scope))
     when "refresh_token"
-      reply.status = 501 # not implmented yet, should have params refresh_token, and scope
+      # TODO: max scope should come from refresh token
+      return reply.json(400, error: "invalid_grant") unless params[:refresh_token] == "universal_refresh_token"
+      scope = ids_to_names(client[:scope])
+      scope = Util.strlist(Util.arglist(params[:scope], scope) & scope)
+      return reply.json(400, error: "invalid_scope") if scope.empty?
+      reply.json(token_reply_info(client, scope))
     else
       reply.json(400, error: "unsupported_grant_type")
     end
     inject_error
+  end
+
+  route :post, "/alternate/token", content_type: %r{application/x-www-form-urlencoded},
+        accept: %r{application/json} do
+    request.path.replace("/oauth/token")
+    process
   end
 
   def clean_user(user)
@@ -328,7 +363,10 @@ class StubUAA < Stub::Server
     @scim.add(:client, {displayname: "vmc", authorized_grant_types: ["implicit"],
         scope: [@scim.id("openid", :group), @scim.id("password.write", :group)],
         access_token_validity: 5 * 60 })
-    super(StubUAAConn, logger)
+    info = { commit_id: "not implemented",
+        app: {name: "Stub UAA", version: VERSION, description: "User Account and Authentication Service, test server"},
+        prompts: {username: ["text", "Username"], password: ["password","Password"]} }
+    super(StubUAAConn, logger, info)
   end
 
 end
