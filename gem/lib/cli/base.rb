@@ -20,9 +20,15 @@ module CF::UAA
 
 class Topic
 
+  attr_reader :synonyms
+
   def self.option_defs ; @option_defs || {} end
   def self.commands; @commands || {} end
-  def self.topic(description = nil) description ? (@description = description) : @description end
+  def self.topic(*args)
+    return @description if args.empty?
+    @synonyms = (args[0].split(' ') + args[1..-1]).map(&:downcase)
+    @description = args[0]
+  end
 
   def self.define_option(key, *args)
     @option_defs ||= {}
@@ -144,7 +150,7 @@ class Topic
       end
     end
     args = args.map(&:downcase)
-    @cli_class.topics.each { |tpc| return say_help(tpc) unless (args & tpc.topic.downcase.split(' ')).empty? }
+    @cli_class.topics.each { |tpc| return say_help(tpc) unless (args & tpc.synonyms).empty? }
     say "No command or topic found to match: #{args.join(' ')}", ""
   end
 
@@ -210,7 +216,6 @@ class BaseCli
     self
   rescue Exception => e
     $stderr.puts "", "#{e.class}: #{e.message}", (e.backtrace if opts[:trace])
-    #$stderr.puts "", "#{e.class}: #{e.message}", e.backtrace
   end
 
 end
