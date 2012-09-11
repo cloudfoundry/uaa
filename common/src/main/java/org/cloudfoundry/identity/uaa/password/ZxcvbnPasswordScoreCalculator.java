@@ -15,6 +15,8 @@ package org.cloudfoundry.identity.uaa.password;
 
 import static szxcvbn.ZxcvbnHelper.*;
 
+import java.util.Arrays;
+
 /**
  * A PasswordScoreCalculator that uses the Zxcvbn scala library to compute the strength of a given password.
  * Uses a configurable 'requiredScore' property to flag a password as (un)acceptable.
@@ -29,8 +31,8 @@ public class ZxcvbnPasswordScoreCalculator implements PasswordScoreCalculator {
 	}
 
 	@Override
-	public PasswordScore computeScore(String password) {
-		int score = zxcvbn(password).score();
+	public PasswordScore computeScore(String password, String... userData) {
+		int score = zxcvbn(password, Arrays.asList(userData)).score();
 		return new PasswordScore(score, requiredScore);
 	}
 }
