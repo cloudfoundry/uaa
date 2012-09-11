@@ -54,6 +54,7 @@
 		</property>
 	</bean>
 
+<<<<<<< HEAD
   <bean id="scimGroupEndpoints" class="org.cloudfoundry.identity.uaa.scim.groups.ScimGroupEndpoints">
     <constructor-arg ref="scimGroupProvisioning" />
     <property name="statuses" ref="exceptionToStatusMap" />
@@ -76,10 +77,14 @@
     <access-denied-handler ref="oauthAccessDeniedHandler" />
   </http>
 
-	<http pattern="/User/*/password" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
+  <bean id="groupsUsersEndpoints" class="org.cloudfoundry.identity.uaa.scim.GroupsUsersEndpoints">
+    <property name="scimUserEndpoints" ref="scimUserEndpoints" />
+  </bean>
+
+  <http pattern="/User*/*/password" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
 		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
 		xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/User/*/password" access="IS_AUTHENTICATED_FULLY,scope=password.write" />
+		<intercept-url pattern="/User*/*/password" access="IS_AUTHENTICATED_FULLY,scope=password.write" />
 		<custom-filter ref="passwordResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
@@ -87,11 +92,22 @@
 	<http request-matcher-ref="userEndPointRequestMatcher" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
 		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
 		xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/Users*" access="scope=scim.read" method="GET" />
-		<intercept-url pattern="/User/**" access="scope=scim.read" method="GET" />
-		<intercept-url pattern="/User/**" access="scope=scim.write" method="DELETE" />
+		<intercept-url pattern="/User*/*" access="scope=scim.read" method="GET" />
+		<intercept-url pattern="/User*/**" access="scope=scim.read" method="GET" />
+		<intercept-url pattern="/Users/*" access="scope=scim.write" method="DELETE" />
+		<intercept-url pattern="/User/*" access="scope=scim.write" method="DELETE" />
+		<intercept-url pattern="/Users/*" access="scope=scim.write" method="PUT" />
+		<intercept-url pattern="/User/*" access="scope=scim.write" method="PUT" />
 		<intercept-url pattern="/User*" access="scope=scim.write" method="POST" />
-		<intercept-url pattern="/User/**" access="scope=scim.write" method="PUT" />
+		<intercept-url pattern="/**" access="ROLE_NONEXISTENT" />
+		<custom-filter ref="scimResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
+		<access-denied-handler ref="oauthAccessDeniedHandler" />
+	</http>
+
+	<http pattern="/Groups/*/Users" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
+		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
+		xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/User/*/password" access="IS_AUTHENTICATED_FULLY,scope=scim.userids" />
 		<custom-filter ref="scimResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>

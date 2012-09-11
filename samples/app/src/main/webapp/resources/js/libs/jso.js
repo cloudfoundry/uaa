@@ -122,7 +122,7 @@
 			usethis;
 
 		if (!scopes) scopes = [];
-
+		
 		for(i = 0; i < tokens.length; i++) {
 			usethis = true;
 

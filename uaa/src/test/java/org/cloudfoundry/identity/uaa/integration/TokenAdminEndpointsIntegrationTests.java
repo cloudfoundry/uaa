@@ -16,7 +16,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
-import java.util.Map;
 
 import org.junit.Assume;
 import org.junit.Before;
@@ -75,7 +74,7 @@ public class TokenAdminEndpointsIntegrationTests {
 
 		HttpEntity<?> request = new HttpEntity<String>(token.getValue());
 		assertEquals(
-				HttpStatus.NO_CONTENT,
+				HttpStatus.OK,
 				serverRunning
 						.getRestTemplate()
 						.exchange(serverRunning.getUrl("/oauth/users/{user}/tokens/{token}"), HttpMethod.DELETE,
@@ -95,16 +94,12 @@ public class TokenAdminEndpointsIntegrationTests {
 	public void testRevokeBogusToken() throws Exception {
 
 		HttpHeaders headers = new HttpHeaders();
-		headers .setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
 		HttpEntity<?> request = new HttpEntity<String>(context.getAccessToken().getValue(), headers);
-		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = serverRunning.getRestTemplate().exchange(
-				serverRunning.getUrl("/oauth/users/{user}/tokens/{token}"), HttpMethod.DELETE, request, Map.class,
+		ResponseEntity<Void> response = serverRunning.getRestTemplate().exchange(
+				serverRunning.getUrl("/oauth/users/{user}/tokens/{token}"), HttpMethod.DELETE, request, Void.class,
 				testAccounts.getUserName(), "FOO");
 		assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-		@SuppressWarnings("unchecked")
-		Map<String,String> body = response.getBody();
-		assertEquals("not_found", body.get("error"));
 
 	}
 
@@ -151,7 +146,7 @@ public class TokenAdminEndpointsIntegrationTests {
 
 		HttpEntity<?> request = new HttpEntity<String>(token.getValue());
 		assertEquals(
-				HttpStatus.NO_CONTENT,
+				HttpStatus.OK,
 				serverRunning
 						.getRestTemplate()
 						.exchange(serverRunning.getUrl("/oauth/clients/scim/tokens/" + hash), HttpMethod.DELETE,

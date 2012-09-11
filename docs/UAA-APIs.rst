@@ -547,6 +547,13 @@ Deleting accounts is handled in the back end logically using the `active` flag, 
 * Request: ``GET /Users?attributes=id,userName&filter=userName co 'bjensen' and active eq false``
 * Response Body: list of users matching the filter
 
+Query Group Membership
+----------------------
+
+There is a SCIM-like endpoint for querying group membership, with the same filter and attribute syntax as ``/Users``, but with restrictions on how it can be used.  A special purpose endpoint for use as a user id/name translation api. It will be used by vmc so it has to be quite restricted in function (i.e. it's not a general purpose groups or users endpoint). You can only query it, as a user, for usernames and user ids in the same group as you. Otherwise the API is the same as /Users.
+
+* Request: ``GET /Groups/{group}/Users``
+* Response Body: list of users matching the filter
 
 Query the strength of a password: ``POST /password/score``
 -----------------------------------------------------------
@@ -554,9 +561,9 @@ Query the strength of a password: ``POST /password/score``
 The password strength API is not part of SCIM but is provided as a service to allow user management applications to use the same password quality
 checking mechanism as the UAA itself. Rather than specifying a set of rules based on the included character types (upper and lower case, digits, symbols etc), the UAA
 exposes this API which accepts a candidate password and returns a JSON message containing a simple numeric score (between 0 and 10) and a required score
-(one which is acceptable to the UAA). The score is based on a calculation using the ideas from the  `zxcvbn project`_
+(one which is acceptable to the UAA). The score is based on a calculation using the ideas from the  `zxcvbn project`_.
 
-.. zxcvbn project: http://tech.dropbox.com/?p=165
+.. _zxcvbn project: http://tech.dropbox.com/?p=165
 
 The use of this API does not guarantee that a password is strong (it is currently limited to English dictionary searches, for example), but it will protect against some of
 the worst choices that people make and will not unnecessarily penalise strong passwords.

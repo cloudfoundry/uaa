@@ -30,6 +30,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReport;
+import org.cloudfoundry.identity.uaa.rest.SimpleMessage;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
@@ -183,13 +184,14 @@ public class ScimUserEndpoints implements InitializingBean {
 	}
 
 	@RequestMapping(value = { "/User/{userId}/password", "/Users/{userId}/password" }, method = RequestMethod.PUT)
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	public void changePassword(@PathVariable String userId, @RequestBody PasswordChangeRequest change) {
+	@ResponseBody
+	public SimpleMessage changePassword(@PathVariable String userId, @RequestBody PasswordChangeRequest change) {
 		checkPasswordChangeIsAllowed(userId, change.getOldPassword());
 		if (!dao.changePassword(userId, change.getOldPassword(), change.getPassword())) {
 			throw new InvalidPasswordException("Password not changed for user: " + userId);
 		}
 		scimPasswordChanges.incrementAndGet();
+		return new SimpleMessage("ok", "password updated");
 	}
 
 	private void checkPasswordChangeIsAllowed(String userId, String oldPassword) {
@@ -363,6 +365,6 @@ public class ScimUserEndpoints implements InitializingBean {
 
 	@Override
 	public void afterPropertiesSet() throws Exception {
-		Assert.notNull(dao, "Dao must be set");
+		Assert.notNull(dao, "ScimUserProvisioning must be set");
 	}
 }
