@@ -19,6 +19,7 @@ ENV['CI_REPORTS'] = File.expand_path("spec_reports")
 
 task :default => [:test]
 task :tests => [:test]
+task :spec => [:test]
 
 RSpec::Core::RakeTask.new("test") do |t|
   t.rspec_opts = ["--format", "documentation", "--colour"]

@@ -19,38 +19,31 @@ module CF::UAA
 
 describe Misc do
 
-  it "should match a simple eq filter" do
-    filtr = ScimFilter.new("username eq \"joe\"")
-    result = filtr.evaluate({username: "joe", id: "11111"})
-    result.should == true
+  include SpecHelper
+
+  before :all do @stub_uaa = StubUAA.new.run_on_thread end
+  after :all do @stub_uaa.stop if @stub_uaa end
+
+  it "should get the server info" do
+    result = frequest { Misc.server(@stub_uaa.url) }
+    result[:prompts].should_not be_nil
+    result[:token_endpoint].should be_nil
+    result[:commit_id].should_not be_nil
   end
 
-  it "should match a simple and filter" do
-    filtr = ScimFilter.new("username eq \"joe\" and id sw \"1111\"")
-    result = filtr.evaluate({username: "joe", id: "11111"})
-    result.should == true
+  it "should get token_endpoint" do
+    @stub_uaa.info[:token_endpoint] = te = "http://alternate/token/end/point"
+    result = frequest { Misc.server(@stub_uaa.url) }
+    result[:token_endpoint].should == te
   end
 
-  it "should match a simple or filter" do
-    filtr = ScimFilter.new("username eq \"joe\" or id sw \"1111\" and foobar eq \"nothing\"")
-    result = filtr.evaluate({username: "joe", id: "11111"})
-    result.should == true
-  end
-
-  it "should match a simple or filter" do
-    filtr = ScimFilter.new("username eq \"joe\" or id sw \"1111\" and foobar eq \"nothing\"")
-    result = filtr.evaluate({username: "joe", id: "11111"})
-    result.should == true
+  it "should get token validation key" do
+    result = frequest { Misc.validation_key(@stub_uaa.url) }
+    result[:alg].should_not be_nil
+    result[:value].should_not be_nil
   end
 
 =begin
-
-  subject { TokenChecker.new(StubServer.url, "test_resource", "test_secret", "test_resource") }
-
-  before :each do
-    subject.debug = false
-    StubServer.use_fiber = subject.async = true
-  end
 
   it "should raise an auth error if the given auth header is bad" do
     expect { subject.decode(nil) }.to raise_exception(AuthError)
@@ -106,19 +99,6 @@ describe Misc do
     end
     StubServer.request do
       expect { subject.decode("TestTokType TestToken")}.to raise_exception(AuthError)
-    end
-  end
-
-  it "should get the validation key" do
-    vkey = %<{"alg": "my.alg", "value": "my.value"}>
-    StubServer.responder do |request, reply|
-      request.path.should == "/token_key"
-      reply.headers[:content_type] = "application/json"
-      reply.body = vkey
-      reply
-    end
-    StubServer.request do
-      subject.validation_key.should == {alg: "my.alg", value: "my.value"}
     end
   end
 

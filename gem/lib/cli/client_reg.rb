@@ -18,7 +18,7 @@ module CF::UAA
 
 class ClientCli < CommonCli
 
-  topic "Client Application Registrations"
+  topic "Client Application Registrations", "reg"
 
   CLIENT_SCHEMA =
   {

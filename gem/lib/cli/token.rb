@@ -23,7 +23,8 @@ class TokenCatcher < Stub::Base
   def process_grant(data)
     server.logger.debug "processing grant for path #{request.path}"
     secret = server.info.delete(:client_secret)
-    ti = TokenIssuer.new(Config.target, server.info.delete(:client_id), secret, nil, Config.token_target)
+    ti = TokenIssuer.new(Config.target, server.info.delete(:client_id), secret,
+        Config.target_value(:token_target))
     tkn = secret ? ti.authcode_grant(server.info.delete(:uri), data) :
         ti.implicit_grant(server.info.delete(:uri), data)
     server.info.update(tkn.info)
@@ -36,10 +37,13 @@ class TokenCatcher < Stub::Base
     server.logger.debug "reply: #{reply.body}"
   end
 
-  route(:get, '/favicon.ico') { reply.headers[:content_type] = "image/vnd.microsoft.icon"
-    reply.body = File.read File.expand_path File.join __FILE__, '..', 'favicon.ico' }
-  route(:get, %r{^/authcode\?(.*)$}) { process_grant match[1] }
-  route(:post, '/callback') { process_grant request.body }
+  route :get, '/favicon.ico' do
+    reply.headers[:content_type] = "image/vnd.microsoft.icon"
+    reply.body = File.read File.expand_path(File.join(__FILE__, '..', 'favicon.ico'))
+  end
+
+  route :get, %r{^/authcode\?(.*)$} do process_grant match[1] end
+  route :post, '/callback' do process_grant request.body end
   route :get, '/callback' do
     server.logger.debug "caught redirect back from UAA after authentication"
     reply.headers[:content_type] = "text/html"
@@ -59,7 +63,7 @@ end
 
 class TokenCli < CommonCli
 
-  topic "Tokens"
+  topic "Tokens", "token", "login"
 
   define_option :client, "--client <name>", "-c"
   define_option :scope, "--scope <list>"
@@ -121,6 +125,7 @@ class TokenCli < CommonCli
   end
 
   VMC_TOKEN_FILE = File.join ENV["HOME"], ".vmc_token"
+  VMC_TARGET_FILE = File.join ENV["HOME"], ".vmc_target"
 
   def use_browser(client_id, secret = nil)
     catcher = Stub::Server.new(TokenCatcher,
@@ -143,9 +148,10 @@ class TokenCli < CommonCli
     say_success secret ? "authorization code" : "implicit"
     return unless opts[:vmc]
     begin
+      vmc_target = File.open(VMC_TARGET_FILE, 'r') { |f| f.read.strip }
       tok_json = File.open(VMC_TOKEN_FILE, 'r') { |f| f.read } if File.exists?(VMC_TOKEN_FILE)
       vmc_tokens = Util.json_parse(tok_json, :none) || {}
-      vmc_tokens[Config.target.to_s.gsub("://uaa.", "://api.")] = auth_header
+      vmc_tokens[vmc_target] = auth_header
       File.open(VMC_TOKEN_FILE, 'w') { |f| f.write(vmc_tokens.to_json) }
     rescue Exception => e
       say "", "Unable to save token to vmc token file", "#{e.class}: #{e.message}", (e.backtrace if trace?)
@@ -200,7 +206,8 @@ class TokenCli < CommonCli
   end
 
   def issuer_request(client_id, secret = nil)
-    return yield TokenIssuer.new(Config.target.to_s, client_id, secret, nil, Config.token_target)
+    update_target_info
+    yield TokenIssuer.new(Config.target.to_s, client_id, secret, Config.target_value(:token_target))
   rescue TargetError => e
     say "\n#{e.message}:\n#{JSON.pretty_generate(e.info)}"
   rescue Exception => e

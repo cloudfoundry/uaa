@@ -306,7 +306,6 @@ class ScimFilter
   end
 
   def evaluate(entry)
-    puts "evaluating", entry.inspect, @filter.inspect
     eval(entry, @filter)
   end
 

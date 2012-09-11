@@ -44,10 +44,10 @@ module Http
     "Basic " + Base64::strict_encode64("#{name}:#{password}")
   end
 
-  private
+  # json helpers
 
-  def json_get(target, url, authorization = nil)
-    json_parse_reply(*http_get(target, url, 'application/json', authorization))
+  def json_get(target, path = nil, authorization = nil)
+    json_parse_reply(*http_get(target, path, 'application/json', authorization))
   end
 
   def json_parse_reply(status, body, headers)
@@ -67,17 +67,17 @@ module Http
     raise BadResponse, "invalid JSON response"
   end
 
-  def json_post(target, url, body, authorization)
-    http_post(target, url, body.to_json, "application/json", authorization)
+  def json_post(target, path, body, authorization)
+    http_post(target, path, body.to_json, "application/json", authorization)
   end
 
-  def json_put(target, url, body, authorization = nil)
-    http_put(target, url, body.to_json, "application/json", authorization)
+  def json_put(target, path, body, authorization = nil)
+    http_put(target, path, body.to_json, "application/json", authorization)
   end
 
   # HTTP helpers
 
-  def http_get(target, path, content_type = nil, authorization = nil)
+  def http_get(target, path = nil, content_type = nil, authorization = nil)
     headers = {}
     headers[:content_type] = content_type if content_type
     headers[:authorization] = authorization if authorization
@@ -109,7 +109,7 @@ module Http
     headers[:accept] = headers[:content_type] if headers[:content_type] && !headers[:accept]
 
     req = { method: method, url: "#{target}#{path}", payload: payload,
-        headers: Util.hash_keys(headers, :todash), :multipart => true }
+        headers: Util.hash_keys(headers, :todash) }
 
     logger.debug { "---> #{@async ? 'async' : ''}\nrequest: #{method} #{req[:url]}\n" +
         "headers: #{req[:headers]}\n#{'body: ' + Util.truncate(payload.to_s, trace? ? 50000 : 50) if payload}" }
@@ -122,19 +122,17 @@ module Http
     [status, body, Util.hash_keys(response_headers, :undash)]
 
   rescue Exception => e
-    logger.debug { "<---- no response due to exception (#{e})" }
-    raise
+    e.message.replace "Target #{target}, #{e.message}"
+    logger.debug { "<---- no response due to exception: #{e}" }
+    raise e
   end
 
+  private
+
   def perform_http_request(req)
-    # RestClient.proxy = proxy_uri.to_s if proxy_uri = URI.parse(req[:url]).find_proxy()
-    result = nil
-    RestClient::Request.execute(req) do |response, request|
-      result = [ response.code, response.body, response.headers ]
-    end
-    result
+    RestClient::Request.execute(req) { |resp, req| [resp.code, resp.body, resp.headers] }
   rescue URI::Error, SocketError, SystemCallError => e
-    raise BadTarget, "Cannot access target (#{e.message})"
+    raise BadTarget, "error: #{e.message}"
   rescue RestClient::Exception, Net::HTTPBadResponse => e
     raise HTTPException, "HTTP exception: #{e.class}: #{e}"
   end

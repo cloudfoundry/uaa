@@ -18,7 +18,7 @@ module CF::UAA
 
 class UserCli < CommonCli
 
-  topic "User Accounts"
+  topic "User Accounts", "account"
 
   define_option :given_name, "--given_name <name>"
   define_option :family_name, "--family_name <name>"
