@@ -38,7 +38,6 @@
 		$.oajax({
 			url: "${dataUri}",
 			jso_provider: "uaa",
-			jso_scopes: ["cloud_controller.read","openid"],
 			jso_allowia: true, 
 			dataType: 'json',
 			success: function(data) {
