@@ -50,4 +50,21 @@ public class PasswordCheckEndpointIntegrationTests {
 		assertTrue(response.getBody().containsKey("requiredScore"));
 		assertEquals(0, response.getBody().get("score"));
 	}
+
+	@Test
+	public void passwordPostWithUserDataSucceeds() throws Exception {
+		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+		formData.add("password", "joe@joesplace.blah");
+		formData.add("userData", "joe,joe@joesplace.blah,joesdogsname");
+		HttpHeaders headers = new HttpHeaders();
+		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+		@SuppressWarnings("rawtypes")
+		ResponseEntity<Map> response = serverRunning.postForMap("/password/score", formData, headers);
+		assertEquals(HttpStatus.OK, response.getStatusCode());
+
+		assertTrue(response.getBody().containsKey("score"));
+		assertTrue(response.getBody().containsKey("requiredScore"));
+		assertEquals(0, response.getBody().get("score"));
+	}
+
 }

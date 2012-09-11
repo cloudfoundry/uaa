@@ -13,11 +13,15 @@
 
 package org.cloudfoundry.identity.uaa.password;
 
+import java.util.List;
+
 import org.springframework.stereotype.Controller;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import scala.actors.threadpool.Arrays;
 
 /**
  * Password quality check endpoint.
@@ -35,7 +39,7 @@ public class PasswordCheckEndpoint {
 
 	@RequestMapping(value = "/password/score", method = RequestMethod.POST)
 	@ResponseBody
-	public PasswordScore passwordScore(@RequestParam String password) {
-		return scoreCalculator.computeScore(password);
+	public PasswordScore passwordScore(@RequestParam String password, @RequestParam(defaultValue = "") String userData) {
+		return scoreCalculator.computeScore(password, StringUtils.commaDelimitedListToStringArray(userData));
 	}
 }

@@ -13,6 +13,8 @@
 
 package org.cloudfoundry.identity.uaa.password;
 
+import java.util.List;
+
 /**
  * Computes a strength/score for a given password
  *
@@ -22,7 +24,8 @@ public interface PasswordScoreCalculator {
 
 	/**
 	 * @param password the trial password
+	 * @param userData user-specific data which should not be in the password.
 	 * @return the score computed for the password
 	 */
-	public PasswordScore computeScore(String password);
+	public PasswordScore computeScore(String password, String... userData);
 }
