@@ -169,7 +169,7 @@ object OAuthComponents {
       http("Logged Out")
         .get("${location}")
         .headers(plainHeaders)
-        .check(status.is(200)))
+        .check(status.in(Seq(200,302))))
     .exec(clearCookies)
 
   /**
