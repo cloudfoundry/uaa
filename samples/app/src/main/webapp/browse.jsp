@@ -38,14 +38,19 @@
 		$.oajax({
 			url: "${dataUri}",
 			jso_provider: "uaa",
-			jso_allowia: true, 
+			jso_allowia: true,
+			jso_scopes: ["openid", "cloud_controller.read"],
 			dataType: 'json',
 			success: function(data) {
 				console.log({response:data});
 				$('#message').html(JSON.stringify(data));
+			},
+			error: function(xhr, text) {
+				console.log("There was an error: " + text);
 			}
 		});
 
+		jso_dump();
 		jso_wipe();
 
 	});
