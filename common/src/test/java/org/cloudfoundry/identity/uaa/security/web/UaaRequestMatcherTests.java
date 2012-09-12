@@ -87,6 +87,16 @@ public class UaaRequestMatcherTests {
 	}
 
 	@Test
+	public void pathMatcherMatchesExpectedPathsAndEmptyParameters() throws Exception {
+		// Accept only JSON
+		UaaRequestMatcher matcher = new UaaRequestMatcher("/somePath");
+		matcher.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+		matcher.setParameters(Collections.singletonMap("code", ""));
+		assertTrue(matcher.matches(request("/somePath", null, "code", "FOO")));
+		assertFalse(matcher.matches(request("/somePath", null)));
+	}
+
+	@Test
 	public void pathMatcherMatchesExpectedPathsAndRequestParametersWithAcceptHeader() throws Exception {
 		// Accept only JSON
 		UaaRequestMatcher matcher = new UaaRequestMatcher("/somePath");
