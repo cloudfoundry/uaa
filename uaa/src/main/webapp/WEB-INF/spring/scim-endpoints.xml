@@ -68,11 +68,8 @@
 				entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
 				xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/Groups*" access="scope=scim.read" method="GET"/>
-		<intercept-url pattern="/Group/**" access="scope=scim.read" method="GET"/>
-		<intercept-url pattern="/Group/**" access="scope=scim.write" method="DELETE"/>
 		<intercept-url pattern="/Groups/**" access="scope=scim.write" method="DELETE"/>
-		<intercept-url pattern="/Group*" access="scope=scim.write" method="POST"/>
-		<intercept-url pattern="/Group/**" access="scope=scim.write" method="PUT"/>
+		<intercept-url pattern="/Groups*" access="scope=scim.write" method="POST"/>
 		<intercept-url pattern="/Groups/**" access="scope=scim.write" method="PUT"/>
 		<custom-filter ref="scimResourceAuthenticationFilter" position="PRE_AUTH_FILTER"/>
 		<access-denied-handler ref="oauthAccessDeniedHandler"/>
@@ -125,7 +122,7 @@
 	</bean>
 
 	<bean id="groupEndpointsRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
-		<constructor-arg value="/Group"/>
+		<constructor-arg value="/Groups"/>
 	</bean>
 
 	<bean id="users" class="org.springframework.beans.factory.config.ListFactoryBean">
@@ -141,12 +138,41 @@
 		<property name="override" value="${scim.user.override:false}"/>
 	</bean>
 
+	<bean id="scimGroupBootstrap" class="org.cloudfoundry.identity.uaa.scim.groups.ScimGroupBootstrap">
+		<constructor-arg name="scimUserProvisioning" ref="scimUserProvisioning"/>
+		<constructor-arg name="scimGroupProvisioning" ref="scimGroupProvisioning"/>
+		<constructor-arg name="membershipManager" ref="groupMembershipManager"/>
+		<property name="groups" ref="groups" />
+		<property name="groupMembers" ref="members" />
+	</bean>
+
+	<bean id="groups" class="java.lang.String">
+		<constructor-arg value="#{(@config['scim']==null or @config['scim']['groups']==null)?@defaultGroups:@config['scim']['groups']}" />
+	</bean>
+
+	<bean id="members" class="org.springframework.beans.factory.config.ListFactoryBean">
+		<property name="sourceList"
+							value="#{(@config['scim']==null or @config['scim']['group_membership']==null)?@defaultMembers:@config['scim']['group_membership']}"/>
+	</bean>
+
 	<util:list id="defaultUsers"/>
+	<util:list id="defaultMembers"/>
+	<bean id="defaultGroups" class="java.lang.String">
+		<constructor-arg value="" />
+	</bean>
+
 
 	<beans profile="default">
 		<util:list id="defaultUsers">
 			<value>marissa|koala|marissa@test.org|Marissa|Bloggs|uaa.user,tokens.read,tokens.write</value>
 		</util:list>
+		<util:list id="defaultMembers">
+			<value>acme|acme.dev,acme.qa</value>
+			<value>acme.dev|marissa</value>
+		</util:list>
+		<bean id="defaultGroups" class="java.lang.String">
+			<constructor-arg value="acme,acme.dev,acme.qa" />
+		</bean>
 	</beans>
 
 </beans>
