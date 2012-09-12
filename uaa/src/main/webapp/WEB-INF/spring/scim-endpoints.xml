@@ -68,11 +68,8 @@
 				entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
 				xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/Groups*" access="scope=scim.read" method="GET"/>
-		<intercept-url pattern="/Group/**" access="scope=scim.read" method="GET"/>
-		<intercept-url pattern="/Group/**" access="scope=scim.write" method="DELETE"/>
 		<intercept-url pattern="/Groups/**" access="scope=scim.write" method="DELETE"/>
-		<intercept-url pattern="/Group*" access="scope=scim.write" method="POST"/>
-		<intercept-url pattern="/Group/**" access="scope=scim.write" method="PUT"/>
+		<intercept-url pattern="/Groups*" access="scope=scim.write" method="POST"/>
 		<intercept-url pattern="/Groups/**" access="scope=scim.write" method="PUT"/>
 		<custom-filter ref="scimResourceAuthenticationFilter" position="PRE_AUTH_FILTER"/>
 		<access-denied-handler ref="oauthAccessDeniedHandler"/>
@@ -125,7 +122,7 @@
 	</bean>
 
 	<bean id="groupEndpointsRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
-		<constructor-arg value="/Group"/>
+		<constructor-arg value="/Groups"/>
 	</bean>
 
 	<bean id="users" class="org.springframework.beans.factory.config.ListFactoryBean">

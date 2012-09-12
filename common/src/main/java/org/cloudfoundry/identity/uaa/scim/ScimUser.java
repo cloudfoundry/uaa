@@ -267,6 +267,13 @@ public final class ScimUser extends ScimCore {
 
 	public ScimUser() { }
 
+	public ScimUser(String id, String userName) {
+		this(id, userName, userName, userName);
+		Email e = new Email();
+		e.setValue(userName);
+		emails = Arrays.asList(e);
+	}
+
 	public ScimUser(String id, String userName, String givenName, String familyName) {
 		super(id);
 		setUserName(userName);
