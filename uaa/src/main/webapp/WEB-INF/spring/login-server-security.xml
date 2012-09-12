@@ -77,7 +77,7 @@
 
 	<beans profile="default">
 		<bean id="loginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LoginAuthenticationManager">
-			<property name="addNewAccounts" value="true" />
+			<property name="addNewAccounts" value="${login.addnew:true}" />
 			<property name="scimUserBootstrap" ref="scimUserBootstrap" />
 			<property name="userDatabase" ref="userDatabase" />
 		</bean>
