@@ -15,7 +15,7 @@
 	<oauth:resource-server id="oauthResourceAuthenticationFilter" token-services-ref="tokenServices"
 		resource-id="oauth" entry-point-ref="oauthAuthenticationEntryPoint" />
 
-	<http request-matcher-ref="loginAuthorizeRequestMatcher" entry-point-ref="oauthAuthenticationEntryPoint"
+	<http request-matcher-ref="loginAuthorizeRequestMatcher" create-session="always" entry-point-ref="oauthAuthenticationEntryPoint"
 		authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
