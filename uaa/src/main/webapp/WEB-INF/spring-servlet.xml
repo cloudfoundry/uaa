@@ -62,7 +62,6 @@
 
 	<http request-matcher-ref="uiRequestMatcher" access-denied-page="/" authentication-manager-ref="authzAuthenticationMgr"
 		xmlns="http://www.springframework.org/schema/security">
-		<!-- machine API access to the authorization process itself is allowed -->
 		<intercept-url pattern="/login**" access="IS_AUTHENTICATED_ANONYMOUSLY" />
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<form-login authentication-failure-url="/login?error=true" login-page="/login" login-processing-url="/login.do"
