@@ -92,9 +92,7 @@ describe "UAA Integration:" do
     end
 
     it "changes the user's password by name" do
-      result = @user_acct.change_password_by_name(@username, "newpassword")
-      result.should have_key :status
-      result[:status].should == "ok"
+      @user_acct.change_password_by_name(@username, "newpassword").should be_nil
     end
 
     it "lists all users" do
