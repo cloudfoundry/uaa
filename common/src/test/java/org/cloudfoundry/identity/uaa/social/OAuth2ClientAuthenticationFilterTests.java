@@ -17,9 +17,6 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Assume;
 import org.junit.Test;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
 import org.springframework.security.oauth2.client.context.DefaultOAuth2ClientContext;
 import org.springframework.security.oauth2.client.context.OAuth2ClientContext;
@@ -33,11 +30,7 @@ import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
  */
 public class OAuth2ClientAuthenticationFilterTests {
 
-	private SocialClientAuthenticationFilter filter = new SocialClientAuthenticationFilter("/login");
-
-	private MockHttpServletRequest request = new MockHttpServletRequest();
-
-	private MockHttpServletResponse response = new MockHttpServletResponse();
+	private SocialClientUserDetailsSource filter = new SocialClientUserDetailsSource();
 
 	private OAuth2ClientContext context = new DefaultOAuth2ClientContext();
 
@@ -54,9 +47,8 @@ public class OAuth2ClientAuthenticationFilterTests {
 		filter.setRestTemplate(restTemplate);
 		filter.setUserInfoUrl("https://uaa.cloudfoundry.com/userinfo");
 		filter.afterPropertiesSet();
-		Authentication authentication = filter.attemptAuthentication(request, response);
-		System.err.println(authentication.getDetails());
-		assertTrue(authentication.isAuthenticated());
+		SocialClientUserDetails user = filter.getUserDetails();
+		assertTrue(!user.getAuthorities().isEmpty());
 	}
 
 	@Test
@@ -66,9 +58,8 @@ public class OAuth2ClientAuthenticationFilterTests {
 		filter.setRestTemplate(restTemplate);
 		filter.setUserInfoUrl("https://api.github.com/user");
 		filter.afterPropertiesSet();
-		Authentication authentication = filter.attemptAuthentication(request, response);
-		System.err.println(authentication.getDetails());
-		assertTrue(authentication.isAuthenticated());
+		SocialClientUserDetails user = filter.getUserDetails();
+		assertTrue(!user.getAuthorities().isEmpty());
 	}
 
 	@Test
@@ -80,9 +71,8 @@ public class OAuth2ClientAuthenticationFilterTests {
 		filter.setRestTemplate(restTemplate);
 		filter.setUserInfoUrl("https://graph.facebook.com/me");
 		filter.afterPropertiesSet();
-		Authentication authentication = filter.attemptAuthentication(request, response);
-		System.err.println(authentication.getDetails());
-		assertTrue(authentication.isAuthenticated());
+		SocialClientUserDetails user = filter.getUserDetails();
+		assertTrue(!user.getAuthorities().isEmpty());
 	}
 
 }

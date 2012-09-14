@@ -19,9 +19,6 @@ import java.util.Collections;
 
 import org.junit.Assume;
 import org.junit.Test;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth.common.signature.SharedConsumerSecretImpl;
 import org.springframework.security.oauth.consumer.BaseProtectedResourceDetails;
 import org.springframework.security.oauth.consumer.OAuthConsumerToken;
@@ -35,11 +32,7 @@ import org.springframework.security.oauth.consumer.client.OAuthRestTemplate;
  */
 public class OAuthClientAuthenticationFilterTests {
 
-	private SocialClientAuthenticationFilter filter = new SocialClientAuthenticationFilter("/login");
-
-	private MockHttpServletRequest request = new MockHttpServletRequest();
-
-	private MockHttpServletResponse response = new MockHttpServletResponse();
+	private SocialClientUserDetailsSource filter = new SocialClientUserDetailsSource();
 
 	private BaseProtectedResourceDetails resource = new BaseProtectedResourceDetails();
 
@@ -70,9 +63,8 @@ public class OAuthClientAuthenticationFilterTests {
 		filter.setRestTemplate(restTemplate);
 		filter.setUserInfoUrl("https://api.twitter.com/1/account/verify_credentials.json");
 		filter.afterPropertiesSet();
-		Authentication authentication = filter.attemptAuthentication(request, response);
-		System.err.println(authentication.getDetails());
-		assertTrue(authentication.isAuthenticated());
+		SocialClientUserDetails user = filter.getUserDetails();
+		assertTrue(!user.getAuthorities().isEmpty());
 	}
 
 	@Test
@@ -82,9 +74,8 @@ public class OAuthClientAuthenticationFilterTests {
 		filter.setRestTemplate(restTemplate);
 		filter.setUserInfoUrl("http://api.linkedin.com/v1/people/~:(id,first-name,last-name,formatted-name,api-standard-profile-request,public-profile-url)?format=json");
 		filter.afterPropertiesSet();
-		Authentication authentication = filter.attemptAuthentication(request, response);
-		System.err.println(authentication.getDetails());
-		assertTrue(authentication.isAuthenticated());
+		SocialClientUserDetails user = filter.getUserDetails();
+		assertTrue(!user.getAuthorities().isEmpty());
 	}
 
 }
