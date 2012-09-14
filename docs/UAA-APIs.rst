@@ -482,11 +482,11 @@ See `SCIM - Changing Password <http://www.simplecloud.info/specs/draft-scim-rest
           "oldPassword": "oldpassword"
         }
 
-* Response Body: *empty*
+* Response Body: the updated details
 
 * Response Codes::
 
-        204 - Updated successfully
+        200 - Updated successfully
         400 - Bad Request
         401 - Unauthorized
         404 - Not found
@@ -570,7 +570,7 @@ the worst choices that people make and will not unnecessarily penalise strong pa
 comma-separated list of user-specific data in the ``userData`` parameter. This can be used to pass things like the username, email or other biographical
 information known to the client which should result in a low score if it is used as part of the password.
 
-* Request: ``POST /password/score
+* Request: ``POST /password/score``
 
     POST /password/score HTTP/1.1
     Host: uaa.example.com
@@ -595,7 +595,6 @@ List Tokens for User: ``GET /oauth/users/{username}/tokens``
 -------------------------------------------------------------
 
 * Request: ``GET /oauth/users/{username}/tokens``
-* Access: allowed by clients with ``ROLE_ADMIN`` and for users to see their own tokens (as long as the client has ``ROLE_ADMIN``)
 * Request body: *empty*
 * Response body: a list of access tokens, *example* ::
 
@@ -615,16 +614,14 @@ Revoke Token by User: ``DELETE /oauth/users/{username}/tokens/{jti}``
 ----------------------------------------------------------------------------
 
 * Request: ``DELETE /oauth/users/{username}/tokens/{jti}``
-* Access: allowed by clients with ``ROLE_ADMIN`` and for users to revoke their own tokens (as long as the client has ``ROLE_ADMIN``)
 * Request body: *empty*
-* Response code: ``204 NO_CONTENT``
-* Response body: *empty*
+* Response code: ``200 OK``
+* Response body: a status message (hash)
 
 List Tokens for Client: ``GET /oauth/clients/{client_id}/tokens``
 ---------------------------------------------------------------------
 
 * Request: ``GET /oauth/clients/{client_id}/tokens``
-* Access: allowed by clients with ``ROLE_CLIENT``
 * Request body: *empty*
 * Response body: a list of access tokens, *example* ::
 
@@ -644,12 +641,12 @@ Revoke Token by Client: ``DELETE /oauth/clients/{client_id}/tokens/{jti}``
 --------------------------------------------------------------------------------
 
 * Request: ``DELETE /oauth/clients/{client_id}/tokens/{jti}``
-* Access: allowed by clients with ``ROLE_CLIENT``
 * Request body: *empty*
-* Reponse code: ``204`` (NO_CONTENT)
-* Response body: *empty* ::
+* Reponse code: ``200`` OK
+* Response body: a status message (hash) ::
 
-        HTTP/1.1 204 NO_CONTENT
+        HTTP/1.1 200 OK
+        { "status": "ok" }
 
 Get the Token Signing Key: ``GET /token_key``
 -----------------------------------------------
@@ -683,37 +680,36 @@ Client Registration Administration APIs
 List Clients: ``GET /oauth/clients``
 -----------------------------------------------------
 
-=============== ===============================================================
+==============  ===========================================================================
 Request         ``GET /oauth/clients``
-Access          Allowed by clients or users with ``ROLE_ADMIN`` and ``scope=read``
 Request body    client details
 Response code    ``200 OK`` if successful with client details in JSON response
-Response body   *example*::
+Response body   *example* ::
 
                   HTTP/1.1 200 OK
                   {foo: {
                     client_id : foo,
-                    scope : [read,write],
-                    resource_ids : [cloud_controller,scim],
-                    authorities : [ROLE_CLIENT,ROLE_ADMIN],
+                    scope : [uaa.none]
+                    resource_ids : [none],
+                    authorities : [cloud_controller.read,cloud_controller.write,scim.read],
                     authorized_grant_types : [client_credentials]
                   },
                   bar: {
                     client_id : bar,
-                    scope : [read,write],
-                    resource_ids : [cloud_controller,openid],
-                    authorities : [ROLE_CLIENT],
+                    scope : [cloud_controller.read,cloud_controller.write,openid],
+                    resource_ids : [none],
+                    authorities : [uaa.none],
                     authorized_grant_types : [authorization_code]
                   }}
 
-=============== ===============================================================
+==============  ===========================================================================
+
 
 Inspect Client: ``GET /oauth/clients/{client_id}``
 -----------------------------------------------------
 
 =============== ===============================================================
 Request         ``GET /oauth/clients/{client_id}``
-Access          Allowed by clients or users with ``ROLE_ADMIN`` and ``scope=read``
 Request body    client details
 Response code    ``200 OK`` if successful with client details in JSON response
 Response body   *example*::
@@ -721,9 +717,9 @@ Response body   *example*::
                   HTTP/1.1 200 OK
                   {
                     client_id : foo,
-                    scope : [read,write],
-                    resource_ids : [cloud_controller,scim],
-                    authorities : [ROLE_CLIENT,ROLE_ADMIN],
+                    scope : [uaa.none],
+                    resource_ids : [none],
+                    authorities : [cloud_controller.read,cloud_controller.write,scim.read],
                     authorized_grant_types : [client_credentials]
                   }
 
@@ -734,10 +730,9 @@ Register Client: ``POST /oauth/clients/{client_id}``
 
 ==============  ===============================================
 Request         ``POST /oauth/clients/{client_id}``
-Access          allowed by clients or users with ``ROLE_ADMIN`` and ``scope=write``
 Request body    client details
 Response code    ``201 CREATED`` if successful
-Response body   *empty*
+Response body   the client details
 ==============  ===============================================
 
 Example request::
@@ -746,9 +741,9 @@ Example request::
     {
       client_id : foo,
       client_secret : fooclientsecret, // optional for untrusted clients
-      scope : [read,write],
-      resource_ids : [cloud_controller,scim],
-      authorities : [ROLE_CLIENT,ROLE_ADMIN],
+      scope : [uaa.none],
+      resource_ids : [none],
+      authorities : [cloud_controller.read,cloud_controller.write,openid],
       authorized_grant_types : [client_credentials],
       access_token_validity: 43200
     }
@@ -760,10 +755,9 @@ Update Client: ``PUT /oauth/clients/{client_id}``
 
 ==============  ===============================================
 Request         ``PUT /oauth/clients/{client_id}``
-Access          allowed by clients or users with ``ROLE_ADMIN`` and ``scope=write``
 Request body    client details
-Response code   ``204 NO_CONTENT`` if successful
-Response body   *empty*
+Response code   ``200 OK`` if successful
+Response body   the updated details
 ==============  ===============================================
 
 Example::
@@ -771,9 +765,9 @@ Example::
     PUT /oauth/clients/foo
     {
       client_id : foo,
-      scope : [read,write],
-      resource_ids : [cloud_controller,scim],
-      authorities : [ROLE_CLIENT,ROLE_ADMIN],
+      scope : [uaa.none],
+      resource_ids : [none],
+      authorities : [cloud_controller.read,cloud_controller.write,openid],
       authorized_grant_types : [client_credentials]
     }
 
@@ -785,10 +779,9 @@ Delete Client: ``DELETE /oauth/clients/{client_id}``
 
 ==============  ===============================================
 Request         ``DELETE /oauth/clients/{client_id}``
-Access          allowed by clients or users with ``ROLE_ADMIN`` and ``scope=write``
 Request body    *empty*
-Response code   ``204 NO_CONTENT``
-Response body   *empty*
+Response code   ``200 OK``
+Response body   the old client
 ==============  ===============================================
 
 
@@ -797,10 +790,9 @@ Change Client Secret: ``PUT /oauth/clients/{client_id}/secret``
 
 ==============  ===============================================
 Request         ``PUT /oauth/clients/{client_id}/secret``
-Access          allowed by clients or users with ``ROLE_ADMIN`` and ``scope=password``
 Request body    *secret change request*
-Reponse code    ``204 NO_CONTENT`` if successful
-Response body   *empty*
+Reponse code    ``200 OK`` if successful
+Response body   a status message (hash)
 ==============  ===============================================
 
 Example::
