@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.scim.groups;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimResourceNotFoundException;
+import org.cloudfoundry.identity.uaa.scim.SearchResults;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
@@ -79,14 +80,33 @@ public class ScimGroupEndpointsTests {
 		return new ScimGroupMember(id, t, a);
 	}
 
+	private void validateSearchResults (Collection<Map<String, Object>> groups, String... names) {
+		List<String> gnm = Arrays.asList(names);
+		assertEquals(gnm.size(), groups.size());
+		for (Map<String, Object> g : groups) {
+			assertTrue(gnm.contains(g.get("displayName")));
+		}
+	}
+
 	@Test
 	public void testListGroups() throws Exception {
-		List<ScimGroup> groups = endpoints.listGroups();
-		assertNotNull(groups);
-		assertEquals(3, groups.size());
-		for (String id : groupIds) {
-			assertTrue(groups.contains(new ScimGroup(id, "")));
-		}
+		SearchResults<Map<String, Object>> results = endpoints.listGroups("displayName", "id pr", "created", "ascending", 1, 100);
+		assertNotNull(results);
+		validateSearchResults(results.getResources(), "uaa.user", "uaa.admin", "uaa.none");
+	}
+
+	@Test
+	public void testListGroupsWithNameEqFilter() {
+		SearchResults<Map<String, Object>> results = endpoints.listGroups("id,displayName", "displayName eq 'uaa.user'", "created", "ascending", 1, 100);
+		assertNotNull(results);
+		validateSearchResults(results.getResources(), "uaa.user");
+	}
+
+	@Test
+	public void testListGroupsWithNameCoFilter() {
+		SearchResults<Map<String, Object>> results = endpoints.listGroups("id,displayName", "displayName co 'admin'", "created", "ascending", 1, 100);
+		assertNotNull(results);
+		validateSearchResults(results.getResources(), "uaa.admin");
 	}
 
 	@Test

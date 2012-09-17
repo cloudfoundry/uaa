@@ -19,10 +19,7 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 import javax.sql.DataSource;
 
@@ -80,6 +77,13 @@ public class JdbcScimUserProvisioningTests {
         template = new JdbcTemplate(dataSource);
 
 		db = new JdbcScimUserProvisioning(template);
+		ScimSearchQueryConverter filterConverter = new ScimSearchQueryConverter();
+		Map<String, String> replaceWith = new HashMap<String, String>();
+		replaceWith.put("emails\\.value", "email");
+		replaceWith.put("groups\\.display", "authorities");
+		replaceWith.put("phoneNumbers\\.value", "phoneNumber");
+		filterConverter.setAttributeNameMapper(new SimpleAttributeNameMapper(replaceWith));
+		db.setQueryConverter(filterConverter);
 		BCryptPasswordEncoder pe = new BCryptPasswordEncoder(4);
 		
 		existingUserCount = template.queryForInt("select count(id) from users");

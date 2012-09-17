@@ -21,12 +21,7 @@ import static org.junit.internal.matchers.StringContains.containsString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter;
@@ -83,6 +78,13 @@ public class ScimUserEndpointsTests {
 		dao = new JdbcScimUserProvisioning(jdbcTemplate);
 		dao.setPasswordEncoder(NoOpPasswordEncoder.getInstance());
 		dao.setPasswordValidator(new NullPasswordValidator());
+		ScimSearchQueryConverter filterConverter = new ScimSearchQueryConverter();
+		Map<String, String> replaceWith = new HashMap<String, String>();
+		replaceWith.put("emails\\.value", "email");
+		replaceWith.put("groups\\.display", "authorities");
+		replaceWith.put("phoneNumbers\\.value", "phoneNumber");
+		filterConverter.setAttributeNameMapper(new SimpleAttributeNameMapper(replaceWith));
+		dao.setQueryConverter(filterConverter);
 		endpoints = new ScimUserEndpoints();
 		endpoints.setScimUserProvisioning(dao);
 		joel = new ScimUser(null, "jdsa", "Joel", "D'sa");

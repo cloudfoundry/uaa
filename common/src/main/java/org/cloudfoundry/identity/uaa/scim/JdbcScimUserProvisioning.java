@@ -17,18 +17,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.logging.Log;
@@ -36,6 +30,7 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Name;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.scim.SearchQueryConverter.ProcessedFilter;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -79,42 +74,10 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	public static final String ALL_USERS = "select " + USER_FIELDS + " from users";
 
-	/*
-	 * Filter regexes for turning SCIM filters into SQL:
-	 */
+	private SearchQueryConverter queryConverter = new ScimSearchQueryConverter();
 
-	static final Pattern emailsValuePattern = Pattern.compile("emails\\.value", Pattern.CASE_INSENSITIVE);
-
-	static final Pattern groupsValuePattern = Pattern.compile("groups\\.display", Pattern.CASE_INSENSITIVE);
-
-	static final Pattern phoneNumbersValuePattern = Pattern.compile("phoneNumbers\\.value", Pattern.CASE_INSENSITIVE);
-
-	static final Pattern coPattern = Pattern.compile("(.*?)([a-z0-9]*) co '(.*?)'([\\s]*.*)", Pattern.CASE_INSENSITIVE);
-
-	static final Pattern swPattern = Pattern.compile("(.*?)([a-z0-9]*) sw '(.*?)'([\\s]*.*)", Pattern.CASE_INSENSITIVE);
-
-	static final Pattern eqPattern = Pattern.compile("(.*?)([a-z0-9]*) eq '(.*?)'([\\s]*.*)", Pattern.CASE_INSENSITIVE);
-
-	static final Pattern boPattern = Pattern.compile("(.*?)([a-z0-9]*) eq (true|false)([\\s]*.*)",
-			Pattern.CASE_INSENSITIVE);
-
-	static final Pattern metaPattern = Pattern.compile("(.*?)meta\\.([a-z0-9]*) (\\S) '(.*?)'([\\s]*.*)",
-			Pattern.CASE_INSENSITIVE);
-
-	static final Pattern prPattern = Pattern.compile(" pr([\\s]*)", Pattern.CASE_INSENSITIVE);
-
-	static final Pattern gtPattern = Pattern.compile(" gt ", Pattern.CASE_INSENSITIVE);
-
-	static final Pattern gePattern = Pattern.compile(" ge ", Pattern.CASE_INSENSITIVE);
-
-	static final Pattern ltPattern = Pattern.compile(" lt ", Pattern.CASE_INSENSITIVE);
-
-	static final Pattern lePattern = Pattern.compile(" le ", Pattern.CASE_INSENSITIVE);
-
-	static final Pattern unquotedEq = Pattern.compile("(id|username|email|givenName|familyName) eq [^'].*",
-			Pattern.CASE_INSENSITIVE);
-
-	private static final DateFormat TIMESTAMP_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+	static final Pattern unquotedEq = Pattern.compile("(id|username|email|givenName|familyName) = [^'].*",
+															 Pattern.CASE_INSENSITIVE);
 
 	protected final JdbcTemplate jdbcTemplate;
 
@@ -129,6 +92,10 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	public JdbcScimUserProvisioning(JdbcTemplate jdbcTemplate) {
 		Assert.notNull(jdbcTemplate);
 		this.jdbcTemplate = jdbcTemplate;
+	}
+
+	public void setQueryConverter(SearchQueryConverter queryConverter) {
+		this.queryConverter = queryConverter;
 	}
 
 	@Override
@@ -156,57 +123,15 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	@Override
 	public List<ScimUser> retrieveUsers(String filter, String sortBy, boolean ascending) {
-		String where = filter;
 
-		// Single quotes for literals
-		where = where.replaceAll("\"", "'");
-
-		if (unquotedEq.matcher(where).matches()) {
-			throw new IllegalArgumentException("Eq argument in filter (" + filter + ") must be quoted");
-		}
-
-		if (sortBy != null) {
-			// Need to add "asc" or "desc" explicitly to ensure that the pattern splitting below works
-			where = where + " order by " + sortBy + (ascending ? " asc" : " desc");
-		}
-
-		// There is only one email address for now...
-		where = StringUtils.arrayToDelimitedString(emailsValuePattern.split(where), "email");
-		// There is only one field in groups for now...
-		where = StringUtils.arrayToDelimitedString(groupsValuePattern.split(where), "authorities");
-		// There is only one phone number for now...
-		where = StringUtils.arrayToDelimitedString(phoneNumbersValuePattern.split(where), "phoneNumber");
-
-		Map<String, Object> values = new HashMap<String, Object>();
-
-		where = makeCaseInsensitive(where, coPattern, "%slower(%s) like :?%s", "%%%s%%", values);
-		where = makeCaseInsensitive(where, swPattern, "%slower(%s) like :?%s", "%s%%", values);
-		where = makeCaseInsensitive(where, eqPattern, "%slower(%s) = :?%s", "%s", values);
-		where = makeBooleans(where, boPattern, "%s%s = :?%s", values);
-		where = prPattern.matcher(where).replaceAll(" is not null$1");
-		where = gtPattern.matcher(where).replaceAll(" > ");
-		where = gePattern.matcher(where).replaceAll(" >= ");
-		where = ltPattern.matcher(where).replaceAll(" < ");
-		where = lePattern.matcher(where).replaceAll(" <= ");
-		// This will catch equality of number literals
-		where = where.replaceAll(" eq ", " = ");
-		where = makeTimestamps(where, metaPattern, "%s%s %s :?%s", values);
-		where = where.replaceAll("meta\\.", "");
-
-		logger.debug("Filtering users with SQL: [" + where + "], and parameters: " + values);
-
-		if (where.contains("emails.")) {
-			throw new UnsupportedOperationException("Filters on email address fields other than 'value' not supported");
-		}
-
-		if (where.contains("phoneNumbers.")) {
-			throw new UnsupportedOperationException("Filters on phone number fields other than 'value' not supported");
-		}
+		ProcessedFilter where = queryConverter.convert(filter, sortBy,  ascending);
+		logger.debug("Filtering users with SQL: " + where);
+		validateSqlWhereClause(where.getSql());
 
 		try {
-			// Default order is by created date descending
-			String order = sortBy == null ? " ORDER BY created desc" : "";
-			return new JdbcPagingList<ScimUser>(jdbcTemplate, ALL_USERS + " WHERE " + where + order, values, mapper,
+			String completeSql = ALL_USERS + " where " + where.getSql();
+			logger.debug("complete sql: " + completeSql + ", params: " + where.getParams());
+			return new JdbcPagingList<ScimUser>(jdbcTemplate, ALL_USERS + " where " + where.getSql(), where.getParams(), mapper,
 					200);
 		}
 		catch (DataAccessException e) {
@@ -215,58 +140,18 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		}
 	}
 
-	private String makeTimestamps(String where, Pattern pattern, String template, Map<String, Object> values) {
-		String output = where;
-		Matcher matcher = pattern.matcher(output);
-		int count = values.size();
-		while (matcher.matches()) {
-			String property = matcher.group(2);
-			Object value = matcher.group(4);
-			if (property.equals("created") || property.equals("lastModified")) {
-				try {
-					value = TIMESTAMP_FORMAT.parse((String) value);
-				}
-				catch (ParseException e) {
-					// ignore
-				}
-			}
-			values.put("value" + count, value);
-			String query = template.replace("?", "value" + count);
-			output = matcher.replaceFirst(String.format(query, matcher.group(1), property, matcher.group(3),
-					matcher.group(5)));
-			matcher = pattern.matcher(output);
-			count++;
+	private void validateSqlWhereClause(String where) {
+		if (unquotedEq.matcher(where).matches()) {
+			throw new IllegalArgumentException("Eq argument in filter must be quoted");
 		}
-		return output;
-	}
 
-	private String makeCaseInsensitive(String where, Pattern pattern, String template, String valueTemplate,
-			Map<String, Object> values) {
-		String output = where;
-		Matcher matcher = pattern.matcher(output);
-		int count = values.size();
-		while (matcher.matches()) {
-			values.put("value" + count, String.format(valueTemplate, matcher.group(3).toLowerCase()));
-			String query = template.replace("?", "value" + count);
-			output = matcher.replaceFirst(String.format(query, matcher.group(1), matcher.group(2), matcher.group(4)));
-			matcher = pattern.matcher(output);
-			count++;
+		if (where.contains("emails.")) {
+			throw new UnsupportedOperationException("Filters on email address fields other than 'value' not supported");
 		}
-		return output;
-	}
 
-	private String makeBooleans(String where, Pattern pattern, String template, Map<String, Object> values) {
-		String output = where;
-		Matcher matcher = pattern.matcher(output);
-		int count = values.size();
-		while (matcher.matches()) {
-			values.put("value" + count, Boolean.valueOf(matcher.group(3).toLowerCase()));
-			String query = template.replace("?", "value" + count);
-			output = matcher.replaceFirst(String.format(query, matcher.group(1), matcher.group(2), matcher.group(4)));
-			matcher = pattern.matcher(output);
-			count++;
+		if (where.contains("phoneNumbers.")) {
+			throw new UnsupportedOperationException("Filters on phone number fields other than 'value' not supported");
 		}
-		return output;
 	}
 
 	@Override

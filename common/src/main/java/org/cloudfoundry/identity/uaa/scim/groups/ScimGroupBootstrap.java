@@ -24,6 +24,8 @@ public class ScimGroupBootstrap implements InitializingBean {
 
 	private static final String USER_BY_NAME_FILTER = "username eq '%s'";
 
+	private static final String GROUP_BY_NAME_FILTER = "displayName eq '%s'";
+
 	private final Log logger = LogFactory.getLog(getClass());
 
 	public ScimGroupBootstrap(ScimGroupProvisioning scimGroupProvisioning, ScimUserProvisioning scimUserProvisioning, ScimGroupMembershipManager membershipManager) {
@@ -134,12 +136,12 @@ public class ScimGroupBootstrap implements InitializingBean {
 		return null;
 	}
 
-	private ScimGroup getGroup(String name) {
-		try {
-			return scimGroupProvisioning.retrieveGroupByName(name);
-		} catch (ScimResourceNotFoundException ex) {
-			logger.debug("group " + name + " does not exist, ignoring " + name);
+	ScimGroup getGroup(String name) {
+		List<ScimGroup> g = scimGroupProvisioning.retrieveGroups(String.format(GROUP_BY_NAME_FILTER, name));
+		if (g != null && !g.isEmpty()) {
+			return g.get(0);
 		}
+		logger.debug("could not find group with name");
 		return null;
 	}
 

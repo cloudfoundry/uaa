@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.scim.groups.*;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.util.StringUtils;
 
 /**
  * Convenience class for provisioning user accounts from {@link UaaUser} instances.
@@ -110,12 +111,14 @@ public class ScimUserBootstrap implements InitializingBean {
 	}
 
 	private void addToGroup(ScimUser user, String gName) {
-		ScimGroup group = null;
-		try {
-			group = scimGroupProvisioning.retrieveGroupByName(gName);
-			membershipManager.addMember(group.getId(), new ScimGroupMember(user.getId()));
-		} catch (ScimResourceNotFoundException ex) {
-			group = new ScimGroup(gName);
+		if (!StringUtils.hasText(gName)) {
+			return;
+		}
+		List<ScimGroup> g = scimGroupProvisioning.retrieveGroups(String.format("displayName eq '%s'", gName));
+		if (g != null && !g.isEmpty()) {
+			membershipManager.addMember(g.get(0).getId(), new ScimGroupMember(user.getId()));
+		} else {
+			ScimGroup group = new ScimGroup(gName);
 			group.setMembers(Arrays.asList(new ScimGroupMember(user.getId())));
 			scimGroupProvisioning.createGroup(group);
 		}
