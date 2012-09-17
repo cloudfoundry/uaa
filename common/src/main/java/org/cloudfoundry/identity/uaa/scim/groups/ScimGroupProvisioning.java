@@ -16,8 +16,6 @@ public interface ScimGroupProvisioning {
 
 	public ScimGroup retrieveGroup(String id) throws ScimResourceNotFoundException;
 
-	public ScimGroup retrieveGroupByName(String name) throws ScimResourceNotFoundException;
-
 	public ScimGroup createGroup(ScimGroup group) throws InvalidScimResourceException, ScimResourceAlreadyExistsException;
 
 	public ScimGroup updateGroup(String id, ScimGroup group) throws InvalidScimResourceException, ScimResourceNotFoundException;

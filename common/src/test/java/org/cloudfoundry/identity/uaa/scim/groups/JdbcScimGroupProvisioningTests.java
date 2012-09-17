@@ -21,6 +21,7 @@ import org.springframework.test.annotation.IfProfileValue;
 import org.springframework.test.annotation.ProfileValueSourceConfiguration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.util.StringUtils;
 
 import javax.sql.DataSource;
 import java.util.Arrays;
@@ -89,14 +90,15 @@ public class JdbcScimGroupProvisioningTests {
 		assertEquals(expected, existingMemberCount);
 	}
 
-	@Test(expected = UnsupportedOperationException.class)
-	public void testRetrieveGroupsWithFilter() throws Exception {
-		dao.retrieveGroups("filter");
-	}
-
-	@Test(expected = UnsupportedOperationException.class)
-	public void testRetrieveGroupsWithFilterAndSort() throws Exception {
-		dao.retrieveGroups("filter", "created", true);
+	private void validateGroup(ScimGroup group, String name) {
+		assertNotNull(group);
+		assertNotNull(group.getId());
+		assertNotNull(group.getDisplayName());
+		if (StringUtils.hasText(name)) {
+			assertEquals(name, group.getDisplayName());
+		}
+		assertNotNull(group.getMembers());
+		validateMemberCount(group.getId(), group.getMembers().size());
 	}
 
 	@Test
@@ -104,33 +106,54 @@ public class JdbcScimGroupProvisioningTests {
 		List<ScimGroup> groups = dao.retrieveGroups();
 		logger.debug(groups);
 		assertEquals(3, groups.size());
+		for (ScimGroup g : groups) {
+			validateGroup(g, null);
+		}
+	}
+
+	@Test
+	public void canRetrieveGroupsWithFilter() throws Exception {
+		assertEquals(1, dao.retrieveGroups("displayName eq 'uaa.user'").size());
+		assertEquals(3, dao.retrieveGroups("displayName pr").size());
+		assertEquals(1, dao.retrieveGroups("displayName eq \"openid\"").size());
+		assertEquals(1, dao.retrieveGroups("DISPLAYNAMe eq 'uaa.admin'").size());
+		assertEquals(1, dao.retrieveGroups("displayName EQ 'openid'").size());
+		assertEquals(1, dao.retrieveGroups("displayName eq 'Openid'").size());
+		assertEquals(1, dao.retrieveGroups("displayName co 'user'").size());
+		assertEquals(2, dao.retrieveGroups("displayName sw 'uaa'").size());
+		assertEquals(3, dao.retrieveGroups("displayName gt 'oauth'").size());
+		assertEquals(1, dao.retrieveGroups("displayName eq 'openid' and meta.version eq 0").size());
+		assertEquals(3, dao.retrieveGroups("meta.created gt '1970-01-01T00:00:00.000Z'").size());
+		assertEquals(3, dao.retrieveGroups("displayName pr and id co 'g'").size());
+		assertEquals(2, dao.retrieveGroups("displayName eq 'openid' or displayName co '.user'").size());
+		assertEquals(3, dao.retrieveGroups("displayName eq 'foo' or id sw 'g'").size());
+	}
+
+	@Test
+	public void canRetrieveGroupsWithFilterAndSortBy() {
+		assertEquals(3, dao.retrieveGroups("displayName pr", "id", true).size());
+		assertEquals(1, dao.retrieveGroups("id co '2'", "displayName", false).size());
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void cannotRetrieveGroupsWithIllegalQuotesFilter() {
+		assertEquals(1, dao.retrieveGroups("displayName eq 'bar").size());
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void cannotRetrieveGroupsWithInvalidFieldsFilter() {
+		assertEquals(1, dao.retrieveGroups("name eq 'openid'").size());
 	}
 
 	@Test
 	public void canRetrieveGroup() throws Exception {
 		ScimGroup group = dao.retrieveGroup("g1");
-		assertEquals("uaa.user", group.getDisplayName());
-		assertEquals(2, group.getMembers().size());
+		validateGroup(group, "uaa.user");
 	}
 
 	@Test(expected = ScimResourceNotFoundException.class)
 	public void cannotRetrieveNonExistentGroup() {
 		dao.retrieveGroup("invalidgroup");
-	}
-
-	@Test
-	public void canRetrieveGroupByName() {
-		ScimGroup group = dao.retrieveGroupByName("openid");
-		assertNotNull(group);
-		assertNotNull(group.getId());
-		assertNotNull(group.getMembers());
-		assertEquals("openid", group.getDisplayName());
-		assertEquals(1, group.getMembers().size());
-	}
-
-	@Test(expected = ScimResourceNotFoundException.class)
-	public void cannotRetrieveNonExistentGroupByName() {
-		dao.retrieveGroupByName("invalidgroup");
 	}
 
 	@Test
@@ -142,7 +165,7 @@ public class JdbcScimGroupProvisioningTests {
 		g = dao.createGroup(g);
 		logger.debug(g);
 		validateGroupCount(4);
-		validateMemberCount(g.getId(), 2);
+		validateGroup(g, "test.1");
 	}
 
 	@Test
@@ -161,9 +184,7 @@ public class JdbcScimGroupProvisioningTests {
 		g = dao.updateGroup("g1", g);
 
 		g = dao.retrieveGroup("g1");
-		assertEquals("uaa.none", g.getDisplayName());
-		assertEquals(2, g.getMembers().size());
-		validateMemberCount("g1", 2);
+		validateGroup(g, "uaa.none");
 	}
 
 	private void enableUpdates() {

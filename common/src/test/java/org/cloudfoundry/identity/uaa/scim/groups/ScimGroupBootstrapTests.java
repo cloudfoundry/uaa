@@ -11,6 +11,7 @@ import org.cloudfoundry.identity.uaa.test.TestUtils;
 import static org.junit.Assert.*;
 
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.jruby.RubyGlobal;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -78,11 +79,11 @@ public class ScimGroupBootstrapTests {
 		bootstrap.setGroups("org1.dev,org1.qa,org1.engg,org1.mgr,org1.hr");
 		bootstrap.afterPropertiesSet();
 		assertEquals(5, gDB.retrieveGroups().size());
-		assertNotNull(gDB.retrieveGroupByName("org1.dev"));
-		assertNotNull(gDB.retrieveGroupByName("org1.qa"));
-		assertNotNull(gDB.retrieveGroupByName("org1.engg"));
-		assertNotNull(gDB.retrieveGroupByName("org1.mgr"));
-		assertNotNull(gDB.retrieveGroupByName("org1.hr"));
+		assertNotNull(bootstrap.getGroup("org1.dev"));
+		assertNotNull(bootstrap.getGroup("org1.qa"));
+		assertNotNull(bootstrap.getGroup("org1.engg"));
+		assertNotNull(bootstrap.getGroup("org1.mgr"));
+		assertNotNull(bootstrap.getGroup("org1.hr"));
 	}
 
 	@Test
@@ -106,9 +107,9 @@ public class ScimGroupBootstrapTests {
 
 		assertEquals(5, gDB.retrieveGroups().size());
 		assertEquals(7, uDB.retrieveUsers().size());
-		assertEquals(2, gDB.retrieveGroupByName("org1.qa").getMembers().size());
-		assertEquals(1, gDB.retrieveGroupByName("org1.hr").getMembers().size());
-		assertEquals(3, gDB.retrieveGroupByName("org1.engg").getMembers().size());
-		assertEquals(2, mDB.getAdminMembers(gDB.retrieveGroupByName("org1.dev").getId()).size());
+		assertEquals(2, bootstrap.getGroup("org1.qa").getMembers().size());
+		assertEquals(1, bootstrap.getGroup("org1.hr").getMembers().size());
+		assertEquals(3, bootstrap.getGroup("org1.engg").getMembers().size());
+		assertEquals(2, mDB.getAdminMembers(bootstrap.getGroup("org1.dev").getId()).size());
 	}
 }

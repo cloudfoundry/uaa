@@ -3,8 +3,10 @@ package org.cloudfoundry.identity.uaa.scim.groups;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.scim.*;
+import org.cloudfoundry.identity.uaa.scim.SearchQueryConverter.ProcessedFilter;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
@@ -13,6 +15,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -20,7 +23,9 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 public class JdbcScimGroupProvisioning implements ScimGroupProvisioning {
 
@@ -38,11 +43,9 @@ public class JdbcScimGroupProvisioning implements ScimGroupProvisioning {
 
 	public static final String UPDATE_GROUP_SQL = String.format("update %s set displayName=?, lastModified=? where id=? and version=?", GROUP_TABLE);
 
-	public static final String GET_GROUPS_SQL = String.format("select %s from %s order by created ASC", GROUP_FIELDS, GROUP_TABLE);
+	public static final String GET_GROUPS_SQL = String.format("select %s from %s", GROUP_FIELDS, GROUP_TABLE);
 
 	public static final String GET_GROUP_SQl = String.format("select %s from %s where id=?", GROUP_FIELDS, GROUP_TABLE);
-
-	public static final String GET_GROUP_BY_NAME_SQL = String.format("select %s from %s where displayName=?", GROUP_FIELDS, GROUP_TABLE);
 
 	public static final String DELETE_GROUP_SQL = String.format("delete from %s where id=?", GROUP_TABLE);
 
@@ -50,10 +53,18 @@ public class JdbcScimGroupProvisioning implements ScimGroupProvisioning {
 
 	private ScimGroupMembershipManager membershipManager;
 
+	private SearchQueryConverter queryConverter = new ScimSearchQueryConverter();
+
+	static final Pattern unquotedEq = Pattern.compile("(id|displayName) = [^'].*", Pattern.CASE_INSENSITIVE);
+
 	public JdbcScimGroupProvisioning(JdbcTemplate jdbcTemplate) {
 		Assert.notNull(jdbcTemplate);
 		this.jdbcTemplate = jdbcTemplate;
 		membershipManager = new JdbcScimGroupMembershipManager(jdbcTemplate);
+	}
+
+	public void setQueryConverter(SearchQueryConverter queryConverter) {
+		this.queryConverter = queryConverter;
 	}
 
 	public void setMembershipManager(ScimGroupMembershipManager membershipManager) {
@@ -71,16 +82,35 @@ public class JdbcScimGroupProvisioning implements ScimGroupProvisioning {
 
 	@Override
 	public List<ScimGroup> retrieveGroups(String filter, String sortBy, boolean ascending) {
-		throw new UnsupportedOperationException("coming soon");
+		ProcessedFilter where = queryConverter.convert(filter, StringUtils.hasText(sortBy) ? sortBy : "created",
+															ascending);
+		logger.debug("Filtering users with SQL: " + where);
+
+		try {
+			List<ScimGroup> groups = new JdbcPagingList<ScimGroup>(jdbcTemplate, GET_GROUPS_SQL + " where " + where.getSql(), where.getParams(), rowMapper, 200);
+			for (ScimGroup group : groups) {
+				group.setMembers(membershipManager.getMembers(group.getId()));
+			}
+			return groups;
+		}
+		catch (DataAccessException e) {
+			logger.debug("Filter '" + filter + "' generated invalid SQL", e);
+			throw new IllegalArgumentException("Invalid filter: " + filter);
+		}
 	}
 
 	@Override
 	public List<ScimGroup> retrieveGroups() {
-		return new JdbcPagingList<ScimGroup>(jdbcTemplate, GET_GROUPS_SQL, rowMapper, 100);
+		List<ScimGroup> groups = new JdbcPagingList<ScimGroup>(jdbcTemplate, GET_GROUPS_SQL + " order by created ASC", rowMapper, 100);
+		for (ScimGroup group : groups) {
+			group.setMembers(membershipManager.getMembers(group.getId()));
+		}
+		return groups;
 	}
 
 	@Override
 	public ScimGroup retrieveGroup(String id) throws ScimResourceNotFoundException {
+		logger.debug("retrieving group with id: " + id);
 		try {
 			ScimGroup group = jdbcTemplate.queryForObject(GET_GROUP_SQl, rowMapper, id);
 			group.setMembers(membershipManager.getMembers(id));
@@ -91,19 +121,9 @@ public class JdbcScimGroupProvisioning implements ScimGroupProvisioning {
 	}
 
 	@Override
-	public ScimGroup retrieveGroupByName(String name) throws ScimResourceNotFoundException {
-		try {
-			ScimGroup group = jdbcTemplate.queryForObject(GET_GROUP_BY_NAME_SQL, rowMapper, name);
-			group.setMembers(membershipManager.getMembers(group.getId()));
-			return group;
-		} catch (EmptyResultDataAccessException e) {
-			throw new ScimResourceNotFoundException("Group " + name + " does not exist");
-		}
-	}
-
-	@Override
 	public ScimGroup createGroup(final ScimGroup group) throws InvalidScimResourceException {
 		final String id = UUID.randomUUID().toString();
+		logger.debug("creating new group with id: " + id);
 		try {
 			jdbcTemplate.update(ADD_GROUP_SQL, new PreparedStatementSetter() {
 				@Override
@@ -129,6 +149,7 @@ public class JdbcScimGroupProvisioning implements ScimGroupProvisioning {
 	@Override
 	public ScimGroup updateGroup(final String id, final ScimGroup group) throws InvalidScimResourceException, ScimResourceNotFoundException {
 		checkIfUpdateAllowed(id);
+		logger.debug("updating group: " + id);
 		try {
 			int updated = jdbcTemplate.update(UPDATE_GROUP_SQL, new PreparedStatementSetter() {
 				@Override
@@ -154,6 +175,7 @@ public class JdbcScimGroupProvisioning implements ScimGroupProvisioning {
 	@Override
 	public ScimGroup removeGroup(String id, int version) throws ScimResourceNotFoundException {
 		ScimGroup group = retrieveGroup(id);
+		logger.debug("deleting group: " + id);
 		int deleted;
 		if (version > 0) {
 			deleted = jdbcTemplate.update(DELETE_GROUP_SQL + " and version=?;", id, version);

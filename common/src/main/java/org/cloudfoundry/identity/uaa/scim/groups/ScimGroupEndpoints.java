@@ -2,11 +2,13 @@ package org.cloudfoundry.identity.uaa.scim.groups;
 
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReport;
-import org.cloudfoundry.identity.uaa.scim.ScimException;
+import org.cloudfoundry.identity.uaa.scim.*;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
+import org.springframework.expression.spel.SpelEvaluationException;
+import org.springframework.expression.spel.SpelParseException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConverter;
@@ -16,6 +18,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,8 +47,29 @@ public class ScimGroupEndpoints {
 
 	@RequestMapping(value = {"/Group", "/Groups"}, method = RequestMethod.GET)
 	@ResponseBody
-	public List<ScimGroup> listGroups() {
-		return dao.retrieveGroups();
+	public SearchResults<Map<String, Object>> listGroups(@RequestParam(value = "attributes", required = false, defaultValue = "id") String attributesCommaSeparated,
+									  @RequestParam(required = false, defaultValue = "id pr") String filter,
+									  @RequestParam(required = false, defaultValue = "created") String sortBy,
+									  @RequestParam(required = false, defaultValue = "ascending") String sortOrder,
+									  @RequestParam(required = false, defaultValue = "1") int startIndex,
+									  @RequestParam(required = false, defaultValue = "100") int count) {
+		List<ScimGroup> input;
+		try {
+			input = dao.retrieveGroups(filter, sortBy, "ascending".equalsIgnoreCase(sortOrder));
+		}
+		catch (IllegalArgumentException e) {
+			throw new ScimException("Invalid filter expression: [" + filter + "]", HttpStatus.BAD_REQUEST);
+		}
+
+		AttributeNameMapper mapper = new SimpleAttributeNameMapper(Collections.<String, String> singletonMap("emails\\.(.*)", "emails.![$1]"));
+		String[] attributes = attributesCommaSeparated.split(",");
+		try {
+			return SearchResultsFactory.buildSearchResultFrom(input, startIndex, count, attributes, mapper);
+		} catch (SpelParseException e) {
+			throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST);
+		} catch (SpelEvaluationException e) {
+			throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST);
+		}
 	}
 
 	@RequestMapping(value = {"/Group/{groupId}", "/Groups/{groupId}"}, method = RequestMethod.GET)
