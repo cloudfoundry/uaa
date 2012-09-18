@@ -32,11 +32,11 @@ class InfoCli < CommonCli
     misc_request { pp update_target_info(Misc.server(Config.target))[:prompts] }
   end
 
-  desc "signing key", "get the UAA's token signing key(s)", [:client, :secret] do
+  desc "signing key", "get the UAA's token signing key(s)", :client, :secret do
     misc_request { pp Misc.validation_key(Config.target, clientname, clientsecret) }
   end
 
-  desc "stats", "Show UAA's current usage statistics", [:client, :secret] do
+  desc "stats", "Show UAA's current usage statistics", :client, :secret do
     misc_request { pp Misc.varz(Config.target, clientname, clientsecret) }
   end
 

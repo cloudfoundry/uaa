@@ -46,16 +46,34 @@ module Http
 
   # json helpers
 
-  def json_get(target, path = nil, authorization = nil)
-    json_parse_reply(*http_get(target, path, 'application/json', authorization))
+  def add_auth_header(auth, headers) headers[:authorization] = auth if auth; headers end
+
+  def json_get(target, path = nil, authorization = nil, headers = {})
+    json_parse_reply(*http_get(target, path,
+        add_auth_header(authorization, headers.merge(accept: "application/json"))))
+  end
+
+  def json_post(target, path, body, authorization, headers = {})
+    http_post(target, path, body.to_json,
+        add_auth_header(authorization, headers.merge(content_type: "application/json")))
+  end
+
+  def json_put(target, path, body, authorization = nil, headers = {})
+    http_put(target, path, body.to_json,
+        add_auth_header(authorization, headers.merge(content_type: "application/json")))
+  end
+
+  def json_patch(target, path, body, authorization = nil, headers = {})
+    http_patch(target, path, body.to_json,
+        add_auth_header(authorization, headers.merge(content_type: "application/json")))
   end
 
   def json_parse_reply(status, body, headers)
     unless [200, 201, 204, 400, 401, 403].include? status
       raise (status == 404 ? NotFound : BadResponse), "invalid status response: #{status}"
     end
-    if body && !body.empty? && headers && headers[:content_type] !~ /application\/json/i
-      raise BadResponse, "received invalid response content type"
+    if body && !body.empty? && (headers && headers[:content_type] !~ /application\/json/i || status == 204)
+      raise BadResponse, "received invalid response content or type"
     end
     parsed_reply = Util.json_parse(body)
     if status >= 400
@@ -67,34 +85,12 @@ module Http
     raise BadResponse, "invalid JSON response"
   end
 
-  def json_post(target, path, body, authorization)
-    http_post(target, path, body.to_json, "application/json", authorization)
-  end
-
-  def json_put(target, path, body, authorization = nil)
-    http_put(target, path, body.to_json, "application/json", authorization)
-  end
-
   # HTTP helpers
 
-  def http_get(target, path = nil, content_type = nil, authorization = nil)
-    headers = {}
-    headers[:content_type] = content_type if content_type
-    headers[:authorization] = authorization if authorization
-    request(target, :get, path, nil, headers)
-  end
-
-  def http_post(target, path, body, content_type, authorization = nil)
-    headers = { content_type: content_type }
-    headers[:authorization] = authorization if authorization
-    request(target, :post, path, body, headers)
-  end
-
-  def http_put(target, path, body, content_type, authorization = nil)
-    headers = { content_type: content_type }
-    headers[:authorization] = authorization if authorization
-    request(target, :put, path, body, headers)
-  end
+  def http_get(target, path = nil, headers = {}) request(target, :get, path, nil, headers) end
+  def http_post(target, path, body, headers = {}) request(target, :post, path, body, headers) end
+  def http_put(target, path, body, headers = {}) request(target, :put, path, body, headers) end
+  def http_patch(target, path, body, headers = {}) request(target, :patch, path, body, headers) end
 
   def http_delete(target, path, authorization)
     status = request(target, :delete, path, nil, authorization: authorization)[0]

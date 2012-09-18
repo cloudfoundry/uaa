@@ -50,7 +50,6 @@ describe "UAA Integration:" do
   it "makes sure the server is there by getting the prompts for an implicit grant" do
     prompts = TokenIssuer.new(@target, @client_id, @client_secret).prompts
     prompts.should_not be_nil
-    #puts "user_info", JSON.pretty_generate(prompts), ""
   end
 
   it "configures the admin client for the rest of the tests" do
@@ -72,46 +71,32 @@ describe "UAA Integration:" do
     end
 
     it "creates a user" do
-      usr = @user_acct.create(@username, "sam's password", "sam@example.com")
+      usr = @user_acct.add(userName: @username, password: "sam's password",
+          emails: [{value: "sam@example.com"}], name: {givenName: "none", familyName: "none"})
       @user_id.replace usr[:id]
       usr[:id].should be
     end
 
     it "finds the user by name" do
       user_info = @user_acct.query_by_value("id", "username", @username)[:resources][0]
-      #puts "user_info", JSON.pretty_generate(user_info), ""
       user_info[:id].should == @user_id
-      #user_info[:username].should == @username
     end
 
     it "gets the user by id" do
       user_info = @user_acct.get(@user_id)
       user_info[:id].should == @user_id
-      user_info[:username].should == @username
-      #puts JSON.pretty_generate(user_info)
+      # TODO: fix this after uaa attribute names are no longer case sensitive
+      user_info[:username] ? user_info[:username].should == @username : user_info[:userName].should == @username
     end
 
     it "changes the user's password by name" do
-      @user_acct.change_password_by_name(@username, "newpassword").should be_nil
+      @user_acct.change_password_by_name(@username, "newpassword")[:status].should == "ok"
     end
 
     it "lists all users" do
       user_info = @user_acct.query
       user_info.should_not be_nil
-      #puts JSON.pretty_generate(user_info)
-      #TODO: check something!
     end
-
-    #it "deletes the user by name" do
-      #@user_acct.delete_by_name(@username)
-      #expect { @user_acct.get_by_name(@username) }
-          #.to raise_exception(NotFound)
-    #end
-
-    #it "complains about an attempt to delete a non-existent user" do
-      #expect { @user_acct.delete_by_name("non-existent-user") }
-          #.to raise_exception(NotFound)
-    #end
 
   end
 
@@ -130,15 +115,31 @@ describe "UAA Integration:" do
     it "gets a token by an implicit grant" do
       token = @toki.implicit_grant_with_creds(username: @username, password: "newpassword")
       token.info[:access_token].should be
-      #puts "token info", JSON.pretty_generate(token.info), ""
       info = Misc.whoami(@target, token.auth_header)
-      #puts "user info", JSON.pretty_generate(info), ""
       info[:user_name].should == @username
       contents = TokenCoder.decode(token.info[:access_token], nil, nil, false)
       contents[:user_name].should == @username
-      #puts "token contents", JSON.pretty_generate(contents), ""
     end
   end
+
+  context "with a client credentials grant," do
+
+    before :all do
+      toki = TokenIssuer.new(@target, @client_id, @client_secret)
+      @user_acct = UserAccount.new(@target, toki.client_credentials_grant.auth_header)
+    end
+
+    it "deletes the user by name" do
+      @user_acct.delete_by_name(@username)
+      expect { @user_acct.get_by_name(@username) }.to raise_exception(NotFound)
+    end
+
+    it "complains about an attempt to delete a non-existent user" do
+      expect { @user_acct.delete_by_name("non-existent-user") }.to raise_exception(NotFound)
+    end
+
+  end
+
 end
 
 end

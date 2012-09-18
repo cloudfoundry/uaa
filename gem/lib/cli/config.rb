@@ -24,7 +24,7 @@ class Config
 
   def self.config; @config ? @config.dup : {} end
   def self.yaml; YAML.dump(Util.hash_keys(@config, :tostr)) end
-  def self.target?(tgt); tgt if @config[tgt = subhash_key(@config, tgt)] end
+  def self.target?(tgt) tgt if @config[tgt = subhash_key(@config, tgt)] end
 
   # if a yaml string is provided, config is loaded from the string, otherwise
   # config is assumed to be a file name to read and store config.

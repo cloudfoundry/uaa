@@ -88,12 +88,12 @@ describe Http do
     # to just make the domain name invalid with tildes, but this may not test
     # the desired code paths
     it "fail cleanly for a failed dns lookup" do
-      result = frequest { http_get("http://bad~host~name", "/") }
+      result = frequest { http_get("http://bad~host~name/") }
       result.should be_an_instance_of BadTarget
     end
 
     it "fail cleanly for a get operation, no connection to address" do
-      result = frequest { http_get("http://127.0.0.1:30000", "/") }
+      result = frequest { http_get("http://127.0.0.1:30000/") }
       result.should be_an_instance_of BadTarget
     end
 

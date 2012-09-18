@@ -19,41 +19,56 @@ module CF::UAA
 class SchemaViolation < RuntimeError; end
 class AlreadyExists < RuntimeError; end
 class BadFilter < RuntimeError; end
+class BadVersion < RuntimeError; end
 
 class StubScim
 
   private
 
-  COMMON_ATTRS = [:externalid, :displayname, :groups]
+  # attribute types. Anything not listed is case-ignore string
+  HIDDEN_ATTRS = [:rtype, :password, :client_secret]
+  READ_ONLY_ATTRS = [:id, :meta]
   BOOLEANS = [:active]
   NUMBERS = [:access_token_validity, :refresh_token_validity]
-  GROUPS = [:groups, :auto_approved_scopes, :scope]
-  REFERENCES = [:members, :owners, :readers]
+  GROUPS = [:groups, :auto_approved_scope, :scope, :authorities]
+  REFERENCES = [:members, :owners, :readers] # references to users or groups
   ENUMS = { authorized_grant_types: ["client_credentials", "implicit",
       "authorization_code", "password", "refresh_token"] }
-  COMMON_SUB_ATTRS = [:value, :display, :primary, :type]
-  NAME_SUB_ATTRS = [ :formatted, :familyname, :givenname, :middlename,
-      :honorificprefix, :honorificsuffix ]
-  ADDR_SUB_ATTRS = [ :formatted, :streetaddress, :locality, :region,
-      :postal_code, :country, :primary, :type ]
-  AUTHZ_SUB_ATTRS = [ :client_id, :group, :exp ]
-  META_SUB_ATTRS = [:created, :lastmodified, :location, :version]
   GENERAL_MULTI = [:emails, :phonenumbers, :ims, :photos, :entitlements,
       :roles, :x509certificates]
-  NAME_ATTR = { user: :username, client: :displayname, group: :displayname }
+  GENERAL_SUBATTRS = [:value, :display, :primary, :type]
+  EXPLICIT_SINGLE = {
+      name: [:formatted, :familyname, :givenname, :middlename,
+          :honorificprefix, :honorificsuffix],
+      meta: [:created, :lastmodified, :location, :version] }
+  EXPLICIT_MULTI = {
+      addresses: [:formatted, :streetaddress, :locality, :region,
+          :postal_code, :country, :primary, :type],
+      authorizations: [:client_id, :group, :exp] }
+
+  # resource class definitions: naming and legal attributes
+  NAME_ATTR = { user: :username, client: :client_id, group: :displayname }
+  COMMON_ATTRS = [:externalid, :id, :meta]
   LEGAL_ATTRS = {
-      user: COMMON_ATTRS + [:username, :nickname,
+      user: COMMON_ATTRS + [:displayname, :username, :nickname,
         :profileurl, :title, :usertype, :preferredlanguage, :locale,
         :timezone, :active, :password, :emails, :phonenumbers, :ims, :photos,
         :entitlements, :roles, :x509_certificates, :name, :addresses,
-        :authorizations],
-      client: COMMON_ATTRS + [:password, :authorized_grant_types,
-        :scope, :auto_approved_scopes, :access_token_validity,
-        :refresh_token_validity, :redirect_uri],
-      group: COMMON_ATTRS + [:members, :owners, :readers] }
+        :authorizations, :groups],
+      client: COMMON_ATTRS + [:client_id, :client_secret, :authorized_grant_types,
+        :scope, :auto_approved_scope, :access_token_validity,
+        :refresh_token_validity, :redirect_uri, :authorities],
+      group: COMMON_ATTRS + [:displayname, :members, :owners, :readers] }
+
+  def hide_attrs(thing, attrs = HIDDEN_ATTRS) attrs.each { |a| thing.delete(a) }; thing end
+  def valid_id?(id, rtype) id && (t = @things_by_id[id]) && (rtype.nil? || t[:rtype] == rtype) end
+  def ref_by_name(name, rtype) @things_by_name[rtype.to_s + name.downcase] end
+
+  def ref_by_id(id, rtype = nil)
+    (t = @things_by_id[id]) && (rtype.nil? || t[:rtype] == rtype) ? t : nil
+  end
 
   def self.known_attribute(attr)
-    return :id if (attr = attr.downcase) == "id"
     LEGAL_ATTRS.each { |k, v| v.each { |a| return a if a.to_s == attr } }
     false
   end
@@ -69,15 +84,11 @@ class StubScim
     values.each { |value| return unless valid_complex?(value, subattrs, simple_ok) }
   end
 
-  def valid_id?(id, rtype)
-    (t = @things_by_id[id]) && (rtype.nil? || t[:rtype] == rtype)
-  end
-
   def valid_ids?(value, rtype = nil)
     return unless value.is_a?(Array)
     value.each do |ref|
       return unless ref.is_a?(String) && valid_id?(ref, rtype) ||
-          ref.is_a?(Hash) && ref.key?(:value) && valid_id?(ref[:value], rtype)
+          ref.is_a?(Hash) && valid_id?(ref[:value], rtype)
     end
   end
 
@@ -87,14 +98,13 @@ class StubScim
       valid_attr = case k
         when *BOOLEANS then v == !!v
         when *NUMBERS then v.is_a?(Integer)
-        when *GENERAL_MULTI then valid_multi?(v, COMMON_SUB_ATTRS, true)
+        when *GENERAL_MULTI then valid_multi?(v, GENERAL_SUBATTRS, true)
         when *GROUPS then valid_ids?(v, :group)
         when *REFERENCES then valid_ids?(v)
         when ENUMS[k] then ENUMS[k].include?(v)
-        when :name then valid_complex?(v, NAME_SUB_ATTRS)
-        when :addresses then valid_multi?(v, ADDR_SUB_ATTRS)
-        when :authorizations then valid_multi?(v, AUTHZ_SUB_ATTRS)
-        else true # must ba a string, no checking yet
+        when *EXPLICIT_SINGLE.keys then valid_complex?(v, EXPLICIT_SINGLE[k])
+        when *EXPLICIT_MULTI.keys then valid_multi?(v, EXPLICIT_MULTI[k])
+        else k.is_a?(String) || k.is_a?(Symbol)
       end
       raise SchemaViolation, "#{v} is an invalid #{k}" unless valid_attr
     end
@@ -114,19 +124,20 @@ class StubScim
     end
   end
 
-  def ref_by_id(id, rtype = nil)
-    (t = @things_by_id[id]) && (rtype.nil? || t[:rtype] == rtype) ? t : nil
+  def normalize_references(thing, attrs)
+    attrs.each { |a| thing[a].map! { |r| r.is_a?(Hash)? r[:value]: r } if thing[a] }
   end
 
-  def ref_by_name(name, rtype)
-    @things_by_name[rtype.to_s + name.downcase]
+  def normalize_multivalues(thing, attrs)
+    attrs.each { |a| thing[a].map! { |v| v.is_a?(Hash)? v: {value: v}} if thing[a] }
   end
 
   public
 
-  def initialize
-    @things_by_id, @things_by_name = {}, {}
-  end
+  def initialize; @things_by_id, @things_by_name = {}, {} end
+  def name(id, rtype = nil) (t = ref_by_id(id, rtype))? t[NAME_ATTR[t[:rtype]]]: nil end
+  def id(name, rtype) (t = ref_by_name(name, rtype))? t[:id] : nil end
+  def get_by_name(name, rtype, include_hidden = false) get(id(name, rtype), rtype, include_hidden) end
 
   def add(rtype, stuff)
     unless stuff.is_a?(Hash) && (name = stuff[NAME_ATTR[rtype]])
@@ -140,12 +151,15 @@ class StubScim
       put_members(id, stuff[:members])
       stuff.delete(:members)
     end
+    normalize_references(stuff, GROUPS + REFERENCES)
+    normalize_multivalues(stuff, GENERAL_MULTI)
     @things_by_id[id] = @things_by_name[name] = stuff
     id
   end
 
-  def update(id, stuff)
+  def update(id, stuff, match_version = nil)
     raise NotFound unless thing = ref_by_id(id)
+    raise BadVersion if match_version && match_version != thing[:meta][:version]
     rtype = thing[:rtype]
     if newname = stuff[NAME_ATTR[rtype]]
       oldname = rtype.to_s + thing[NAME_ATTR[rtype]].downcase
@@ -156,7 +170,7 @@ class StubScim
       end
     end
     stuff = stuff.dup
-    [:id, :meta, :rtype].each { |k| stuff.delete(k) }
+    hide_attrs(stuff, [:rtype] + READ_ONLY_ATTRS)
     enforce_schema(rtype, stuff)
     if stuff[:members]
       put_members(id, stuff[:members])
@@ -166,40 +180,35 @@ class StubScim
       @things_by_name.delete(oldname)
       @things_by_name[newname] = thing
     end
+    normalize_references(stuff, GROUPS + REFERENCES)
+    normalize_multivalues(stuff, GENERAL_MULTI)
     thing.merge! stuff
     thing[:meta][:version] += 1
     thing[:meta][:lastmodified] == Time.now.iso8601
-    nil
+    id
   end
 
   def remove(id, rtype = nil)
     return unless thing = ref_by_id(id, rtype)
     @things_by_id.delete(id)
     rtype = thing[:rtype]
-    @things_by_name.delete(rtype.to_s + thing[NAME_ATTR[rtype]].downcase)
+    hide_attrs(@things_by_name.delete(rtype.to_s + thing[NAME_ATTR[rtype]].downcase))
   end
 
-  def get(id, rtype = nil)
+  def get(id, rtype = nil, include_hidden = false)
     return unless thing = ref_by_id(id, rtype)
     thing = thing.dup
     thing[:members] = members(id) if thing[:rtype] == :group
-    thing
+    include_hidden ? thing : hide_attrs(thing)
   end
 
-  def name(id, rtype = nil)
-    return unless thing = ref_by_id(id, rtype)
-    thing[NAME_ATTR[thing[:rtype]]]
-  end
-
-  def id(name, rtype)
-    return unless thing = ref_by_name(name, rtype)
-    thing[:id]
-  end
-
-  def get_by_name(name, rtype) ; get(id(name, rtype)) end
-
-  def find(rtype, filter = nil)
-    @things_by_id.each_with_object([]) { |(k, v), o| o << v[:id] if rtype == v[:rtype] }
+  def find(rtype, attrs = nil, filter_string = nil)
+    filter = (ScimFilter.new(filter_string) if filter_string)
+    @things_by_id.each_with_object([]) do |(k, v), o|
+      next unless rtype == v[:rtype] && (filter.nil? || filter.match?(v))
+      ent = attrs ? attrs.each_with_object({id: v[:id], meta: v[:meta]}) { |a, e| e[a] = v[a] } : v.dup
+      o << hide_attrs(ent)
+    end
   end
 
 end
@@ -264,13 +273,13 @@ class ScimFilter
     return false unless val = entry[attr]
     case op
     when "pr"; true
-    when "eq"; val == value
-    when "sw"; val.start_with?(value)
-    when "co"; val.contains(value)
-    when "gt"; val > value
-    when "ge"; val >= value
-    when "lt"; val < value
-    when "le"; val <= value
+    when "eq"; val.casecmp(value) == 0
+    when "sw"; val =~ /^#{Regexp.escape(value)}/i
+    when "co"; val =~ /#{Regexp.escape(value)}/i
+    when "gt"; val.casecmp(value) > 0
+    when "ge"; val.casecmp(value) >= 0
+    when "lt"; val.casecmp(value) < 0
+    when "le"; val.casecmp(value) <= 0
     end
   end
 
@@ -305,7 +314,7 @@ class ScimFilter
     raise BadFilter, "invalid filter expression at offset #{@input.pos}: #{@input.string}"
   end
 
-  def evaluate(entry)
+  def match?(entry)
     eval(entry, @filter)
   end
 

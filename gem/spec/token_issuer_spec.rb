@@ -26,10 +26,10 @@ describe TokenIssuer do
     #Util.default_logger(:trace)
     @stub_uaa = StubUAA.new.run_on_thread
     readers = @stub_uaa.scim.add(:group, displayname: "logs.read")
-    @stub_uaa.scim.add(:client, displayname: "test_client", password: "test_secret",
+    @stub_uaa.scim.add(:client, client_id: "test_client", client_secret: "test_secret",
         authorized_grant_types: ["client_credentials", "authorization_code",
             "password", "implicit", "refresh_token"],
-        groups: [readers, @stub_uaa.scim.id("scim.read", :group),
+        authorities: [readers, @stub_uaa.scim.id("scim.read", :group),
             @stub_uaa.scim.id("openid", :group)],
         scope: [@stub_uaa.scim.id("openid", :group)],
         access_token_validity: 60 * 60 * 24 * 8 )
