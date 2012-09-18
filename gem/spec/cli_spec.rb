@@ -39,6 +39,7 @@ describe Cli do
     else
       @stub_uaa = StubUAA.new(@client_id, @client_secret).run_on_thread
       @target = @stub_uaa.url
+      @stub_uaa.scim.add(:group, displayname: "dashboard.user")
     end
   end
   after :all do @stub_uaa.stop if @stub_uaa end
@@ -106,7 +107,7 @@ describe Cli do
   it "should check password strength" do
     Cli.run("password strength PaSsW0rd")
     Cli.output.string.should match "score"
-    Cli.output.string.should match "requiredscore"
+    Cli.output.string.should match "requiredScore"
   end
 
   it "should login as admin client" do
@@ -116,7 +117,7 @@ describe Cli do
 
   it "should create a test client" do
     Cli.run "client add #{@test_client} -s testsecret --authorities clients.read,scim.read,uaa.resource " +
-        "--authorized_grant_types client_credentials,password --scope openid,password.write "
+        "--authorized_grant_types client_credentials,password --scope openid,password.write"
     Cli.output.string = ""
     Cli.run "client get #{@test_client}"
     Cli.output.string.should match /clients\.read/
@@ -158,7 +159,7 @@ describe Cli do
   it "should create a user account with a new token" do
     Cli.run "token client get #{@test_client} -s testsecret"
     Cli.output.string = ""
-    Cli.run "user add #{@test_user.capitalize} -p #{@test_pwd} --email #{@test_user}@example.com"
+    Cli.run "user add #{@test_user.capitalize} -p #{@test_pwd} --email #{@test_user}@example.com --family_name #{@test_user.capitalize} --given_name joe"
     Cli.output.string.should_not match /insufficient_scope/
     Cli.output.string = ""
     Cli.run "user get #{@test_user}"
@@ -175,12 +176,38 @@ describe Cli do
     ["user_name", "exp", "aud", "scope", "client_id", "email", "user_id"].each do |a|
       Cli.output.string.should match a
     end
+    Cli.output.string.should include("email: #{@test_user}@example.com")
     # Cli.output.string.should match 'JoE'
   end
 
   it "should get authenticated user information" do
     Cli.run "me"
     Cli.output.string.should match @test_user
+  end
+
+  it "should update the user" do
+    Cli.run "context #{@test_client}"
+    Cli.run "user update #{@test_user} --email #{@test_user}+1@example.com --phones 123-456-7890 --groups dashboard.user,openid,password.write"
+    Cli.output.string = ""
+    Cli.run "user get #{@test_user}"
+    Cli.output.string.should include(@test_user.capitalize)
+    Cli.output.string.should include("#{@test_user}+1@example.com")
+    Cli.output.string.should include("123-456-7890")
+    #Cli.output.string.should include("dashboard.user")
+  end
+
+  it "should get updated information in the token" do
+    Cli.run "token get #{@test_user} #{@test_pwd}"
+    Cli.output.string.should match "Successfully fetched token"
+    Cli.output.string = ""
+    Cli.run "token decode"
+    Cli.output.string.should include("email: #{@test_user}+1@example.com")
+  end
+
+  it "should get ids for usernames" do
+    Cli.run "group members dashboard.user #{@test_user}"
+    Cli.output.string.should match /#{@test_user}/i
+    Cli.output.string.should include("id")
   end
 
   it "should change a user's password" do
@@ -235,13 +262,19 @@ describe Cli do
     end
   end
 
-  # TODO:
-  #   user delete
-  #   user password set
-  #   users attributes, filter
-  #   client secret change
-  #   client secret set
-  #   how to test token authcode, implicit, refresh?
+  unless ENV["UAA_CLIENT_TARGET"]
+    it "should use the token endpoint given by the login server" do
+      Cli.configure("", nil, StringIO.new)
+      @stub_uaa.info[:token_endpoint] = te = "#{@stub_uaa.url}/alternate"
+      Cli.run("target #{@target}")
+      Cli.run "token client get #{@client_id} -s #{@client_secret}"
+      Config.yaml.should match(/access_token/)
+      Config.yaml.should match(/token_endpoint/)
+      Config.yaml.should match(te)
+      @stub_uaa.info[:token_endpoint].should be_nil
+      Cli.configure("", nil, StringIO.new) # clean up
+    end
+  end
 
 end
 

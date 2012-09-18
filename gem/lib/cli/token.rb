@@ -69,7 +69,7 @@ class TokenCli < CommonCli
   define_option :scope, "--scope <list>"
   desc "token get [credentials...]",
       "Gets a token by posting user credentials with an implicit grant request",
-      [:client, :scope] do |*args|
+      :client, :scope do |*args|
     client_name = opts[:client] || "vmc"
     token = issuer_request(client_name, "") { |ti|
       prompts = ti.prompts
@@ -97,7 +97,7 @@ class TokenCli < CommonCli
 
   define_option :secret, "--secret <secret>", "-s", "client secret"
   desc "token client get [name]",
-      "Gets a token with client credentials grant", [:secret, :scope] do |id|
+      "Gets a token with client credentials grant", :secret, :scope do |id|
     id = clientname(id)
     return unless info = issuer_request(id, clientsecret) { |ti|
       ti.client_credentials_grant(opts[:scope]).info
@@ -109,7 +109,7 @@ class TokenCli < CommonCli
 
   define_option :password, "-p", "--password <password>", "user password"
   desc "token owner get [client] [user]", "Gets a token with a resource owner password grant",
-      [:secret, :password, :scope] do |client, user|
+      :secret, :password, :scope do |client, user|
     return unless info = issuer_request(clientname(client), clientsecret) { |ti|
         ti.owner_password_grant(user = username(user), userpwd, opts[:scope]).info
     }
@@ -118,7 +118,7 @@ class TokenCli < CommonCli
     say_success "owner password"
   end
 
-  desc "token refresh [refreshtoken]", "Gets a new access token from a refresh token", [:client, :secret, :scope] do |rtok|
+  desc "token refresh [refreshtoken]", "Gets a new access token from a refresh token", :client, :secret, :scope do |rtok|
     rtok ||= Config.value(:refresh_token)
     Config.add_opts issuer_request(clientname, clientsecret) { |ti| ti.refresh_token_grant(rtok, opts[:scope]).info }
     say_success "refresh"
@@ -160,15 +160,15 @@ class TokenCli < CommonCli
 
   define_option :vmc, "--[no-]vmc", "save token in the ~/.vmc_tokens file"
   desc "token authcode get", "Gets a token using the authcode flow with browser",
-      [:client, :secret, :scope, :vmc] { use_browser(clientname, clientsecret) }
+      :client, :secret, :scope, :vmc do use_browser(clientname, clientsecret) end
 
   desc "token implicit get", "Gets a token using the implicit flow with browser",
-      [:client, :scope, :vmc] { use_browser opts[:client] || "vmc" }
+      :client, :scope, :vmc do use_browser opts[:client] || "vmc" end
 
   define_option :key, "--key <key>", "Token validation key"
-  desc "token decode [token] [tokentype]",
-      "Show token contents as parsed locally or by the UAA. Decodes locally unless --client and --secret are given. Validates locally if --key given",
-      [:key, :client, :secret] do |token, ttype|
+  desc "token decode [token] [tokentype]", "Show token contents as parsed locally or by the UAA. " +
+      "Decodes locally unless --client and --secret are given. Validates locally if --key given",
+      :key, :client, :secret do |token, ttype|
     ttype = "bearer" if token && !ttype
     token ||= Config.value(:access_token)
     ttype ||= Config.value(:token_type)
@@ -187,7 +187,7 @@ class TokenCli < CommonCli
 
   define_option :all, "--[no-]all", "-a", "remove all contexts"
   desc "token delete [contexts...]",
-      "Delete current or specified context tokens and settings", [:all] do |*args|
+      "Delete current or specified context tokens and settings", :all do |*args|
     begin
       return Config.delete if opts[:all]
       return args.each { |arg| Config.delete(Config.target, arg.to_i.to_s == arg ? arg.to_i : arg) } unless args.empty?
@@ -198,8 +198,6 @@ class TokenCli < CommonCli
     end
   end
 
-  private
-
   def say_success(grant)
     say "", "Successfully fetched token via a #{grant} grant.",
         "Target: #{Config.target}", "Context: #{Config.context}", ""
@@ -207,7 +205,7 @@ class TokenCli < CommonCli
 
   def issuer_request(client_id, secret = nil)
     update_target_info
-    yield TokenIssuer.new(Config.target.to_s, client_id, secret, Config.target_value(:token_target))
+    yield TokenIssuer.new(Config.target.to_s, client_id, secret, Config.target_value(:token_endpoint))
   rescue TargetError => e
     say "\n#{e.message}:\n#{JSON.pretty_generate(e.info)}"
   rescue Exception => e

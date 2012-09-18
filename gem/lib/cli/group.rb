@@ -20,34 +20,46 @@ class GroupCli < CommonCli
 
   topic "Groups", "group"
 
+  def acct_request
+    return yield UserAccount.new(Config.target, auth_header)
+  rescue TargetError => e
+    "\n#{e.message}:\n#{JSON.pretty_generate(e.info)}\n"
+  rescue Exception => e
+    "\n#{e.class}: #{e.message}\n#{e.backtrace if trace?}\n"
+  end
+
+  def gname(name) name || ask("Group name") end
+
   desc "groups [attributes] [filter]", "List groups" do |attributes, filter|
-    pp group_request { |gr| gr.query(attributes, filter) }
+    pp acct_request { |ua| ua.query_groups(attributes, filter) }
   end
 
   desc "group get [name]", "Get specific group information" do |name|
-    #name ||= ask("Group name")
-    pp group_request { |gr| gr.get_by_name(name) }
+    pp acct_request { |ua| ua.get_group(gname(name)) }
   end
 
   desc "group add [name]", "Adds a group" do |name|
-    pp group_request { |gr| gr.create(name) }
+    pp acct_request { |ua| ua.add_group(gname(name)) }
   end
 
   desc "group delete [name]", "Delete group" do |name|
-    #name ||= ask("Group name")
-    pp group_request { |gr| gr.delete_by_name(name) }
+    pp acct_request { |ua| ua.delete_group(gname(name)) }
   end
 
-  private
-
-  def group_request
-    "Group operations not implemented"
-    #return yield UserAccount.new(cur_target_url, auth_header, trace?)
-  #rescue TargetError => e
-    #say "#{e.message}:\n#{JSON.pretty_generate(e.info)}"
-  #rescue Exception => e
-    #say e.message, (e.backtrace if trace?)
+  desc "group increase [name] [members...]", "add members to a group" do |name, *members|
+    pp acct_request { |ua| ua.update_group(gname(name), members: members) }
   end
+
+  desc "group decrease [name] [members...]", "remove members from a group" do |name, *members|
+    dm = members.each_with_object([]) { |m, dm| dm << {value: m, operation: "delete"} }
+    pp acct_request { |ua| ua.update_group(gname(name), members: dm) }
+  end
+
+  desc "group members [name] [username|id...]", "Gets user names and ids for the given users" do |name, *users|
+    pp acct_request { |ua| ua.members(name, *users) }
+  end
+
+
 
 end
 

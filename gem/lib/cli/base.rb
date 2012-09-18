@@ -38,7 +38,7 @@ class Topic
     @option_defs[key] = args
   end
 
-  def self.desc(template, desc, options = [], &handler)
+  def self.desc(template, desc, *options, &handler)
     parts, argc = template.split(' '), 0
     cmd = parts.each_with_object([]) { |p, o|
       case p

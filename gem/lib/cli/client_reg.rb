@@ -45,7 +45,7 @@ class ClientCli < CommonCli
   define_option :interact, "--[no-]interactive", "-i", "interactively verify all values"
 
   desc "client add [name]", "Add client registration",
-      CLIENT_SCHEMA.keys + [:clone, :secret, :interact] do |name|
+      *CLIENT_SCHEMA.keys, :clone, :secret, :interact do |name|
     client_reg_request do |cr|
       opts[:client_id] = clientname(name)
       opts[:secret] = verified_pwd("New client secret", opts[:secret])
@@ -54,8 +54,7 @@ class ClientCli < CommonCli
     end
   end
 
-  desc "client update [name]", "Update client registration",
-      CLIENT_SCHEMA.keys + [:interact] do |name|
+  desc "client update [name]", "Update client registration", *CLIENT_SCHEMA.keys, :interact do |name|
     client_reg_request do |cr|
       opts[:client_id] = clientname(name)
       defaults = opts[:interact] ? cr.get(opts[:client_id]) : {}
@@ -69,14 +68,14 @@ class ClientCli < CommonCli
     client_reg_request { |cr| cr.delete(clientname(name)) }
   end
 
-  desc "secret set [name]", "Set client secret", [:secret] do |name|
+  desc "secret set [name]", "Set client secret", :secret do |name|
     client_reg_request do |cr|
       cr.change_secret(clientname(name), verified_pwd("New secret", opts[:secret]))
     end
   end
 
   define_option :old_secret, "-o", "--old_secret <secret>", "current secret"
-  desc "secret change", "Change secret for authenticated client in current context", [:old_secret, :secret] do
+  desc "secret change", "Change secret for authenticated client in current context", :old_secret, :secret do
     return say "context not set" unless client_id = Config.context.to_s
     client_reg_request do |cr|
       old = opts[:old_secret] || ask_pwd("Current secret")

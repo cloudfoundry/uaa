@@ -41,7 +41,8 @@ class Util
     when :todash then k.to_s.tr('_', '-')
     when :uncamel then k.to_s.gsub(/([A-Z])([^A-Z]*)/,'_\1\2').downcase.to_sym
     when :tocamel then k.to_s.gsub(/(_[a-z])([^_]*)/) { $1[1].upcase + $2 }
-    when :tosym then k.to_s.downcase.to_sym
+    when :downsym then k.to_s.downcase.to_sym
+    when :tosym then k.to_s.to_sym
     when :tostr then k.to_s
     when :none then k
     else raise "unknown hash key style: #{style}"
@@ -90,8 +91,8 @@ class Util
   end
 
   # reverse of arglist, puts arrays of strings into a single, space-delimited string
-  def self.strlist(arg)
-    arg.respond_to?(:join) ? arg.join(' ') : arg.to_s
+  def self.strlist(arg, delim = ' ')
+    arg.respond_to?(:join) ? arg.join(delim) : arg.to_s
   end
 
   def self.default_logger(level = nil, sink = nil)
