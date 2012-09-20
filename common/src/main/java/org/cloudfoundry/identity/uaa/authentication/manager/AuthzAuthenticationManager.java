@@ -12,7 +12,10 @@
  */
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
+import java.security.SecureRandom;
+import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -30,8 +33,10 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.codec.Hex;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 /**
@@ -46,6 +51,11 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
 	private final UaaUserDatabase userDatabase;
 	private ApplicationEventPublisher eventPublisher;
 	private AccountLoginPolicy accountLoginPolicy = new PermitAllAccountLoginPolicy();
+	/**
+	 * Dummy user allows the authentication process for non-existent and locked out users to be as close to
+	 * that of normal users as possible to avoid differences in timing.
+	 */
+	private final UaaUser dummyUser;
 
 	public AuthzAuthenticationManager(UaaUserDatabase cfusers) {
 		this(cfusers, new BCryptPasswordEncoder());
@@ -54,44 +64,52 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
 	public AuthzAuthenticationManager(UaaUserDatabase userDatabase, PasswordEncoder encoder) {
 		this.userDatabase = userDatabase;
 		this.encoder = encoder;
+		this.dummyUser = createDummyUser();
 	}
 
 	@Override
 	public Authentication authenticate(Authentication req) throws AuthenticationException {
+		logger.debug("Processing authentication request for " + req.getName());
+
+		if (req.getCredentials() == null) {
+			throw new BadCredentialsException("No password supplied");
+		}
+
+		UaaUser user;
 		try {
-			logger.debug("Processing authentication request for " + req.getName());
-			UaaUser user = userDatabase.retrieveUserByName(req.getName().toLowerCase(Locale.US));
-
-			if (!accountLoginPolicy.isAllowed(user, req)) {
-				logger.warn("Login policy rejected authentication for " + user.getUsername() + ", " + user.getId()
-						+ ". Ignoring login request.");
-				// TODO: We should perhaps have another audit event type here
-				// since this will not be logged as an authentication failure.
-				throw new BadCredentialsException("Login policy rejected authentication");
-			}
-
-			if (req.getCredentials() == null) {
-				throw new BadCredentialsException("No password supplied");
-			}
-
-			if (encoder.matches((CharSequence) req.getCredentials(), user.getPassword())) {
-				logger.debug("Password successfully matched");
-				Authentication success = new UaaAuthentication(new UaaPrincipal(user),
-							user.getAuthorities(), (UaaAuthenticationDetails) req.getDetails());
-				eventPublisher.publishEvent(new UserAuthenticationSuccessEvent(user, success));
-
-				return success;
-			}
-			logger.debug("Password did not match");
-			eventPublisher.publishEvent(new UserAuthenticationFailureEvent(user, req));
-
-			throw new BadCredentialsException("Bad credentials");
+			user = userDatabase.retrieveUserByName(req.getName().toLowerCase(Locale.US));
 		}
 		catch (UsernameNotFoundException e) {
-			eventPublisher.publishEvent(new UserNotFoundEvent(req));
-			logger.debug("No user named '" + req.getName() + "' was found");
-			throw new BadCredentialsException("Bad credentials");
+			user = dummyUser;
 		}
+
+		final boolean passwordMatches = encoder.matches((CharSequence) req.getCredentials(), user.getPassword());
+
+		if (!accountLoginPolicy.isAllowed(user, req)) {
+			logger.warn("Login policy rejected authentication for " + user.getUsername() + ", " + user.getId()
+					+ ". Ignoring login request.");
+			// TODO: We should perhaps have another audit event type here
+			// since this will not be logged as an authentication failure.
+			throw new BadCredentialsException("Login policy rejected authentication");
+		}
+
+		if (passwordMatches) {
+			logger.debug("Password successfully matched");
+			Authentication success = new UaaAuthentication(new UaaPrincipal(user),
+						user.getAuthorities(), (UaaAuthenticationDetails) req.getDetails());
+			eventPublisher.publishEvent(new UserAuthenticationSuccessEvent(user, success));
+
+			return success;
+		}
+
+		if (user == dummyUser) {
+			logger.debug("No user named '" + req.getName() + "' was found");
+			eventPublisher.publishEvent(new UserNotFoundEvent(req));
+		} else {
+			logger.debug("Password did not match for user " + req.getName());
+			eventPublisher.publishEvent(new UserAuthenticationFailureEvent(user, req));
+		}
+		throw new BadCredentialsException("Bad credentials");
 	}
 
 	@Override
@@ -101,5 +119,25 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
 
 	public void setAccountLoginPolicy(AccountLoginPolicy accountLoginPolicy) {
 		this.accountLoginPolicy = accountLoginPolicy;
+	}
+
+	private UaaUser createDummyUser() {
+		// Create random unguessable password
+		SecureRandom random = new SecureRandom();
+		byte[] passBytes = new byte[16];
+		random.nextBytes(passBytes);
+		String password = encoder.encode(new String(Hex.encode(passBytes)));
+		// Unique ID which isn't in the database
+		final String id = UUID.randomUUID().toString();
+
+		return new UaaUser("dummy_user", password, "dummy_user", "dummy", "dummy") {
+			public final String getId() {
+				return id;
+			}
+
+			public final List<? extends GrantedAuthority> getAuthorities() {
+				throw new IllegalStateException();
+			}
+		};
 	}
 }
