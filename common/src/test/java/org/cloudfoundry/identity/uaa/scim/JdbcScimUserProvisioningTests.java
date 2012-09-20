@@ -12,13 +12,6 @@
  */
 package org.cloudfoundry.identity.uaa.scim;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import java.util.*;
 
 import javax.sql.DataSource;
@@ -41,6 +34,8 @@ import org.springframework.test.annotation.IfProfileValue;
 import org.springframework.test.annotation.ProfileValueSourceConfiguration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import static org.junit.Assert.*;
 
 /**
  * @author Luke Taylor
@@ -65,7 +60,7 @@ public class JdbcScimUserProvisioningTests {
 
     private static final String SQL_INJECTION_FIELDS = "password,version,created,lastModified,username,email,givenName,familyName";
 
-    private static final String addUserSqlFormat = "insert into users (id, username, password, email, givenName, familyName, phoneNumber, authorities) values ('%s','%s','%s','%s','%s','%s','%s', '%s')";
+    private static final String addUserSqlFormat = "insert into users (id, username, password, email, givenName, familyName, phoneNumber) values ('%s','%s','%s','%s','%s','%s', '%s')";
 
     private static final String deleteUserSqlFormat = "delete from users where id='%s'";
     
@@ -100,7 +95,7 @@ public class JdbcScimUserProvisioningTests {
 
     private void addUser(String id, String username, String password, String email, String givenName, String familyName, String phoneNumber) {
         TestUtils.assertNoSuchUser(template, "id", id);
-        template.execute(String.format(addUserSqlFormat, id, username, password, email, givenName, familyName, phoneNumber, "uaa.user,org.foo"));
+        template.execute(String.format(addUserSqlFormat, id, username, password, email, givenName, familyName, phoneNumber));
     }
 
     private void removeUser (String id) {
@@ -125,7 +120,7 @@ public class JdbcScimUserProvisioningTests {
 		Map<String, Object> map = template.queryForMap("select * from users where id=?", created.getId());
 		assertEquals(user.getUserName(), map.get("userName"));
 		assertEquals(user.getUserType(), map.get(UaaAuthority.UAA_USER.getUserType()));
-		assertEquals("uaa.user", created.getGroups().iterator().next().getDisplay());
+		assertNull(created.getGroups());
 	}
 
 	@Test(expected = InvalidScimResourceException.class)
@@ -150,12 +145,11 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals("NewUser", joe.getFamilyName());
 		assertEquals(1, joe.getVersion());
 		assertEquals(JOE_ID, joe.getId());
-		assertEquals(UaaAuthority.UAA_ADMIN.getUserType(), joe.getUserType());
-		assertEquals(2, joe.getGroups().size()); // admin added implicitly
+		assertNull(joe.getGroups());
 	}
 
 	@Test
-	public void updateModifiesGroups() {
+	public void updateCannotModifyGroups() {
 		ScimUser jo = new ScimUser(null, "josephine", "Jo", "NewUser");
 		jo.addEmail("jo@blah.com");
 		jo.setGroups(Collections.singleton(new Group(null, "dash/user")));
@@ -163,7 +157,7 @@ public class JdbcScimUserProvisioningTests {
 		ScimUser joe = db.updateUser(JOE_ID, jo);
 
 		assertEquals(JOE_ID, joe.getId());
-		assertEquals(2, joe.getGroups().size()); // user added implicitly
+		assertNull(joe.getGroups());
 	}
 
 	@Test(expected = OptimisticLockingFailureException.class)
@@ -354,7 +348,7 @@ public class JdbcScimUserProvisioningTests {
 
 	@Test
 	public void canRetrieveUsersWithGroupsFilter() {
-		assertEquals(2, db.retrieveUsers("groups.display co 'org.foo'").size());
+		assertEquals(2, db.retrieveUsers("groups.display co 'uaa.user'").size());
 	}
 
 	@Test
@@ -481,7 +475,7 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals("joe@joe.com", joe.getPrimaryEmail());
 		assertEquals("joe", joe.getUserName());
 		assertEquals("+1-222-1234567", joe.getPhoneNumbers().get(0).getValue());
-		assertEquals("uaa.user", joe.getGroups().iterator().next().getDisplay());
+		assertNull(joe.getGroups());
 	}
 
 }

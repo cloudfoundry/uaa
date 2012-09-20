@@ -43,14 +43,6 @@ public class ScimUserBootstrap implements InitializingBean {
 
 	private final Collection<UaaUser> users;
 
-	public ScimUserBootstrap(ScimUserProvisioning scimUserProvisioning) {
-		this(scimUserProvisioning, Collections.<UaaUser>emptyList());
-	}
-
-	public ScimUserBootstrap(ScimUserProvisioning scimUserProvisioning, Collection<UaaUser> users) {
-		this(scimUserProvisioning, null, null, users);
-	}
-
 	public ScimUserBootstrap(ScimUserProvisioning scimUserProvisioning, ScimGroupProvisioning scimGroupProvisioning, ScimGroupMembershipManager membershipManager) {
 		this(scimUserProvisioning, scimGroupProvisioning, membershipManager, Collections.<UaaUser>emptySet());
 	}
@@ -86,6 +78,10 @@ public class ScimUserBootstrap implements InitializingBean {
 	 */
 	public ScimUser addUser(UaaUser user) {
 		ScimUser scimUser = getScimUser(user);
+		List<String> groupsToAddUser = new ArrayList<String>();
+		for (ScimUser.Group g : getGroups(user.getAuthorities())) {
+			groupsToAddUser.add(g.getDisplay());
+		}
 		List<ScimUser> users = scimUserProvisioning.retrieveUsers("userName eq '" + user.getUsername() + "'");
 		if (users.isEmpty()) {
 			logger.info("Registering new user account: " + user);
@@ -96,15 +92,17 @@ public class ScimUserBootstrap implements InitializingBean {
 				logger.debug("Not registering existing user: " + user);
 				// We don't update existing accounts - use the ScimUserProvisioning for that
 			} else {
-				String id = users.iterator().next().getId();
-				scimUserProvisioning.updateUser(id, scimUser);
+				ScimUser existingUser = users.iterator().next();
+				String id = existingUser.getId();
+				int version = existingUser.getVersion();
+				scimUser.setVersion(version);
+				scimUser = scimUserProvisioning.updateUser(id, scimUser);
 				scimUserProvisioning.changePassword(id, null, user.getPassword());
 			}
 		}
 		if (scimGroupProvisioning != null && membershipManager != null) {
-			Set<Group> groups = scimUser.getGroups();
-			for (Group g : groups) {
-				addToGroup(scimUser, g.display);
+			for (String g : groupsToAddUser) {
+				addToGroup(scimUser, g);
 			}
 		}
 		return scimUser;
@@ -115,12 +113,17 @@ public class ScimUserBootstrap implements InitializingBean {
 			return;
 		}
 		List<ScimGroup> g = scimGroupProvisioning.retrieveGroups(String.format("displayName eq '%s'", gName));
-		if (g != null && !g.isEmpty()) {
-			membershipManager.addMember(g.get(0).getId(), new ScimGroupMember(user.getId()));
+		ScimGroup group;
+		if (g == null || g.isEmpty()) {
+			group = new ScimGroup(gName);
+			group = scimGroupProvisioning.createGroup(group);
 		} else {
-			ScimGroup group = new ScimGroup(gName);
-			group.setMembers(Arrays.asList(new ScimGroupMember(user.getId())));
-			scimGroupProvisioning.createGroup(group);
+			group = g.get(0);
+		}
+		try {
+			membershipManager.addMember(group.getId(), new ScimGroupMember(user.getId()));
+		} catch (MemberAlreadyExistsException ex) {
+			// do nothing
 		}
 	}
 
@@ -130,7 +133,6 @@ public class ScimUserBootstrap implements InitializingBean {
 	private ScimUser getScimUser(UaaUser user) {
 		ScimUser scim = new ScimUser(user.getId(), user.getUsername(), user.getGivenName(), user.getFamilyName());
 		scim.addEmail(user.getEmail());
-		scim.setGroups(getGroups(user.getAuthorities()));
 		return scim;
 	}
 
