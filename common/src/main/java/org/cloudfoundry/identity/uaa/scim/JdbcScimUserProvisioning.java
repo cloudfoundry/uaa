@@ -55,10 +55,14 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	public static final String USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName,active,authorities,phoneNumber";
 
-	public static final String CREATE_USER_SQL = "insert into users (" + USER_FIELDS
-			+ ",password) values (?,?,?,?,?,?,?,?,?,?,?,?)";
+	public static final String WRITEABLE_USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName,active,phoneNumber";
 
-	public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, email=?, givenName=?, familyName=?, active=?, authorities=?, phoneNumber=? where id=? and version=?";
+	public static final String CREATE_USER_SQL = "insert into users (" + WRITEABLE_USER_FIELDS
+			+ ",password) values (?,?,?,?,?,?,?,?,?,?,?)";
+
+	public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, email=?, givenName=?, familyName=?, active=?, phoneNumber=? where id=? and version=?";
+
+	public static final String UPDATE_USER_AUTHORITIES_SQL = "update users set version=?, authorities=? where id=? and version=?";
 
 	public static final String DEACTIVATE_USER_SQL = "update users set active=false where id=?";
 
@@ -162,7 +166,6 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		validate(user);
 
 		logger.info("Creating new user: " + user.getUserName());
-		final String authorities = getAuthorities(user);
 
 		final String id = UUID.randomUUID().toString();
 		try {
@@ -177,10 +180,9 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 					ps.setString(7, user.getName().getGivenName());
 					ps.setString(8, user.getName().getFamilyName());
 					ps.setBoolean(9, user.isActive());
-					ps.setString(10, authorities);
 					String phoneNumber = extractPhoneNumber(user);
-					ps.setString(11, phoneNumber);
-					ps.setString(12, passwordEncoder.encode(password));
+					ps.setString(10, phoneNumber);
+					ps.setString(11, passwordEncoder.encode(password));
 				}
 
 			});
@@ -191,19 +193,6 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		}
 		return retrieveUser(id);
 
-	}
-
-	private String getAuthorities(ScimUser user) {
-		// Preserve simple implementation based only on uaa user type
-		normalizeGroups(user);
-		Set<String> set = new LinkedHashSet<String>();
-		// Augment with explicit group membership
-		if (user.getGroups()!=null) {
-			for (Group group : user.getGroups()) {
-				set.add(group.getDisplay());
-			}
-		}
-		return StringUtils.collectionToCommaDelimitedString(set);
 	}
 
 	private void validate(final ScimUser user) throws InvalidScimResourceException {
@@ -230,8 +219,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	public ScimUser updateUser(final String id, final ScimUser user) throws InvalidScimResourceException {
 		validate(user);
 		logger.info("Updating user " + user.getUserName());
-		final String authorities = getAuthorities(user);
-		
+
 		int updated = jdbcTemplate.update(UPDATE_USER_SQL, new PreparedStatementSetter() {
 			public void setValues(PreparedStatement ps) throws SQLException {
 				ps.setInt(1, user.getVersion() + 1);
@@ -240,10 +228,9 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 				ps.setString(4, user.getName().getGivenName());
 				ps.setString(5, user.getName().getFamilyName());
 				ps.setBoolean(6, user.isActive());
-				ps.setString(7, authorities);
-				ps.setString(8, extractPhoneNumber(user));
-				ps.setString(9, id);
-				ps.setInt(10, user.getVersion());
+				ps.setString(7, extractPhoneNumber(user));
+				ps.setString(8, id);
+				ps.setInt(9, user.getVersion());
 			}
 		});
 		ScimUser result = retrieveUser(id);
@@ -254,6 +241,29 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		}
 		if (updated > 1) {
 			throw new IncorrectResultSizeDataAccessException(1);
+		}
+		return result;
+	}
+
+	@Override
+	public ScimUser updateAuthorities(final String authorities, final ScimUser user) {
+		int updated = jdbcTemplate.update(UPDATE_USER_AUTHORITIES_SQL, new PreparedStatementSetter() {
+			@Override
+			public void setValues(PreparedStatement ps) throws SQLException {
+				ps.setInt(1, user.getVersion() + 1);
+				ps.setString(2, authorities);
+				ps.setString(3, user.getId());
+				ps.setInt(4, user.getVersion());
+			}
+		});
+		ScimUser result = retrieveUser(user.getId());
+		if (updated == 0) {
+			throw new OptimisticLockingFailureException
+						  (String.format("attempt to update user-authorities for user: %s with wrong version, expected: %d but found: %d",
+												user.getId(), user.getVersion(), result.getVersion()));
+		}
+		if (updated > 1) {
+			throw new IncorrectResultSizeDataAccessException(1, updated);
 		}
 		return result;
 	}
@@ -418,7 +428,12 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 			user.setUserType(UaaAuthority.fromAuthorities(authorities).getUserType());
 			List<Group> groups = new ArrayList<Group>();
 			for (String group : authorities.split(",")) {
-				groups.add(new Group(null, group.trim()));
+				group = group.trim();
+				if (!group.endsWith(".i")) {
+					groups.add(new Group(null, group.trim())); // don't bother with the groupId for now, just use the group name
+				} else {
+					groups.add(new Group(null, group.substring(0, group.length()-2), Group.MembershipType.INDIRECT));
+				}
 			}
 			if (!groups.isEmpty()) {
 				user.setGroups(groups);

@@ -23,9 +23,13 @@ import static org.mockito.Mockito.when;
 
 import java.util.*;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter;
+import org.cloudfoundry.identity.uaa.scim.groups.*;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -63,11 +67,17 @@ public class ScimUserEndpointsTests {
 
 	private static ScimUserEndpoints endpoints;
 
+	private static ScimGroupEndpoints groupEndpoints;
+
 	private static JdbcScimUserProvisioning dao;
+
+	private static JdbcScimGroupMembershipManager mm;
 
 	private static EmbeddedDatabase database;
 
 	private List<ScimUser> createdUsers = new ArrayList<ScimUser>();
+
+	private List<ScimGroup> createdGroups = new ArrayList<ScimGroup>();
 
 	@BeforeClass
 	public static void setUp() {
@@ -87,6 +97,12 @@ public class ScimUserEndpointsTests {
 		dao.setQueryConverter(filterConverter);
 		endpoints = new ScimUserEndpoints();
 		endpoints.setScimUserProvisioning(dao);
+		mm = new JdbcScimGroupMembershipManager(jdbcTemplate);
+		mm.setScimUserProvisioning(dao);
+		JdbcScimGroupProvisioning gdao = new JdbcScimGroupProvisioning(jdbcTemplate);
+		mm.setScimGroupProvisioning(gdao);
+		endpoints.setScimGroupMembershipManager(mm);
+		groupEndpoints = new ScimGroupEndpoints(gdao, mm);
 		joel = new ScimUser(null, "jdsa", "Joel", "D'sa");
 		joel.addEmail("jdsa@vmware.com");
 		dale = new ScimUser(null, "olds", "Dale", "Olds");
@@ -97,6 +113,7 @@ public class ScimUserEndpointsTests {
 
 	@AfterClass
 	public static void tearDown() throws Exception {
+		TestUtils.deleteFrom(database, "users", "groups", "group_membership");
 		if (database != null) {
 			database.shutdown();
 		}
@@ -108,7 +125,77 @@ public class ScimUserEndpointsTests {
 		for (ScimUser user : createdUsers) {
 			jdbcTemplate.update("delete from users where id=?", user.getId());
 		}
+		for (ScimGroup g : createdGroups) {
+			jdbcTemplate.update("delete from groups where id=?", g.getId());
+			jdbcTemplate.update("delete from group_membership where group_id=?", g.getId());
+		}
 	}
+
+	private void validateUserGroups (ScimUser user, String... gnm) {
+		Set<String> expectedAuthorities = new HashSet<String>();
+		expectedAuthorities.addAll(Arrays.asList(gnm));
+		expectedAuthorities.add("uaa.user");
+		assertNotNull(user.getGroups());
+		Log logger = LogFactory.getLog(getClass());
+		logger.debug("user's groups: " + user.getGroups() + ", expecting: " + expectedAuthorities);
+		assertEquals(expectedAuthorities.size(), user.getGroups().size());
+		for (ScimUser.Group g : user.getGroups()) {
+			assertTrue(expectedAuthorities.contains(g.getDisplay()));
+		}
+	}
+
+	@Test
+	public void groupsIsSyncedCorrectlyOnCreate() {
+		// uaa.user group must already exist before all users are automatically enrolled in it
+		createdGroups.add(groupEndpoints.createGroup(new ScimGroup("uaa.user")));
+
+		ScimUser user = new ScimUser(null, "dave", "David", "Syer");
+		user.addEmail("dsyer@vmware.com");
+		user.setGroups(Arrays.asList(new ScimUser.Group(null, "test1")));
+		endpoints.setSecurityContextAccessor(mockSecurityContext(user));
+		ScimUser created = endpoints.createUser(user);
+		createdUsers.add(created);
+
+		validateUserGroups(created, "uaa.user");
+	}
+
+	@Test
+	public void groupsIsSyncedCorrectlyOnUpdate() {
+		// uaa.user group must already exist before all users are automatically enrolled in it
+		createdGroups.add(groupEndpoints.createGroup(new ScimGroup("uaa.user")));
+
+		ScimUser user = new ScimUser(null, "dave", "David", "Syer");
+		user.addEmail("dsyer@vmware.com");
+		endpoints.setSecurityContextAccessor(mockSecurityContext(user));
+		ScimUser created = endpoints.createUser(user);
+		createdUsers.add(created);
+		validateUserGroups(created, "uaa.user");
+
+		created.setGroups(Arrays.asList(new ScimUser.Group(null, "test1")));
+		ScimUser updated = endpoints.updateUser(created, created.getId(), "*");
+		validateUserGroups(updated, "uaa.user");
+	}
+
+	@Test
+	public void groupsIsSyncedCorrectlyOnGet() {
+		// uaa.user group must already exist before all users are automatically enrolled in it
+		createdGroups.add(groupEndpoints.createGroup(new ScimGroup("uaa.user")));
+
+		ScimUser user = new ScimUser(null, "dave", "David", "Syer");
+		user.addEmail("dsyer@vmware.com");
+		endpoints.setSecurityContextAccessor(mockSecurityContext(user));
+		ScimUser created = endpoints.createUser(user);
+		createdUsers.add(created);
+
+		validateUserGroups(created, "uaa.user");
+
+		ScimGroup g = new ScimGroup("test1");
+		g.setMembers(Arrays.asList(new ScimGroupMember(created.getId())));
+		createdGroups.add(groupEndpoints.createGroup(g));
+
+		validateUserGroups(endpoints.getUser(created.getId()), "test1");
+	}
+
 
 	@Test
 	public void userGetsADefaultPassword() {
@@ -262,6 +349,34 @@ public class ScimUserEndpointsTests {
 		endpoints.deleteUser(exGuy.getId(), null);
 	}
 
+	@Test
+	public void deleteUserUpdatesGroupMembership() {
+		ScimUser exGuy = new ScimUser(null, "deleteme3", "Expendable", "Guy");
+		exGuy.addEmail("exguy3@imonlyheretobedeleted.com");
+		exGuy = dao.createUser(exGuy, "exguyspassword");
+		createdUsers.add(exGuy);
+
+		ScimGroup g = new ScimGroup("test1");
+		g.setMembers(Arrays.asList(new ScimGroupMember(exGuy.getId())));
+		g = groupEndpoints.createGroup(g);
+		createdGroups.add(g);
+		validateGroupMembers(g, exGuy.getId(), true);
+
+		endpoints.deleteUser(exGuy.getId(), "*");
+		validateGroupMembers(groupEndpoints.getGroup(g.getId()), exGuy.getId(), false);
+	}
+
+	private void validateGroupMembers(ScimGroup g, String mId, boolean expected) {
+		boolean isMember = false;
+		for (ScimGroupMember m : g.getMembers()) {
+			if (mId.equals(m.getMemberId())) {
+				isMember = true;
+				break;
+			}
+		}
+		assertEquals(expected, isMember);
+	}
+
 	private SecurityContextAccessor mockSecurityContext(ScimUser user) {
 		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
 		String id = user.getId();
@@ -382,5 +497,4 @@ public class ScimUserEndpointsTests {
 		}
 		return result;
 	}
-
 }

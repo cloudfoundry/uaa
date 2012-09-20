@@ -41,11 +41,12 @@
 
 	<bean id="scimGroupProvisioning" class="org.cloudfoundry.identity.uaa.scim.groups.JdbcScimGroupProvisioning">
 		<constructor-arg ref="jdbcTemplate"/>
-		<property name="membershipManager" ref="groupMembershipManager"/>
 	</bean>
 
 	<bean id="groupMembershipManager" class="org.cloudfoundry.identity.uaa.scim.groups.JdbcScimGroupMembershipManager">
-		<constructor-arg ref="jdbcTemplate"/>
+		<constructor-arg name="jdbcTemplate" ref="jdbcTemplate"/>
+		<property name="scimGroupProvisioning" ref="scimGroupProvisioning" />
+		<property name="scimUserProvisioning" ref="scimUserProvisioning" />
 	</bean>
 
 	<!-- Add a handler adapter with special knowledge of the ScimUser endpoints -->
@@ -64,6 +65,7 @@
 
 	<bean id="scimUserEndpoints" class="org.cloudfoundry.identity.uaa.scim.ScimUserEndpoints">
 		<property name="scimUserProvisioning" ref="scimUserProvisioning"/>
+		<property name="scimGroupMembershipManager" ref="groupMembershipManager" />
 		<property name="statuses" ref="exceptionToStatusMap"/>
 		<property name="messageConverters">
 			<bean class="org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter"/>
@@ -71,7 +73,8 @@
 	</bean>
 
 	<bean id="scimGroupEndpoints" class="org.cloudfoundry.identity.uaa.scim.groups.ScimGroupEndpoints">
-		<constructor-arg ref="scimGroupProvisioning"/>
+		<constructor-arg name="scimGroupProvisioning" ref="scimGroupProvisioning"/>
+		<constructor-arg name="membershipManager" ref="groupMembershipManager" />
 		<property name="statuses" ref="exceptionToStatusMap"/>
 		<property name="messageConverters">
 			<bean class="org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter"/>

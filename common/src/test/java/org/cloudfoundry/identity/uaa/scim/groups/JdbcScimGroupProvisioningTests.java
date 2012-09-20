@@ -44,11 +44,7 @@ public class JdbcScimGroupProvisioningTests {
 
 	private static final String addGroupSqlFormat = "insert into groups (id, displayName) values ('%s','%s')";
 
-	private static final String addMemberSqlFormat = "insert into group_membership (group_id, member_id, member_type, authorities) values ('%s', '%s', '%s', '%s')";
-
 	private int existingGroupCount = -1;
-
-	private int existingMemberCount = -1;
 
 	@Before
 	public void createDatasource() {
@@ -60,14 +56,8 @@ public class JdbcScimGroupProvisioningTests {
 		addGroup("g1", "uaa.user");
 		addGroup("g2", "uaa.admin");
 		addGroup("g3", "openid");
-		addMember("g1", "m1", "USER", "READ");
-		addMember("g1", "g2", "GROUP", "READ");
-		addMember("g3", "m3", "USER", "READ,WRITE");
 
 		validateGroupCount(3);
-		validateMemberCount("g1", 2);
-		validateMemberCount("g2", 0);
-		validateMemberCount("g3", 1);
 	}
 
 	@After
@@ -76,18 +66,12 @@ public class JdbcScimGroupProvisioningTests {
 		validateGroupCount(0);
 
 		TestUtils.deleteFrom(dataSource, "group_membership");
-		existingMemberCount = template.queryForInt("select count(*) from group_membership");
-		assertEquals(0, existingMemberCount);
+		assertEquals(0, template.queryForInt("select count(*) from group_membership"));
 	}
 
 	private void validateGroupCount(int expected) {
 		existingGroupCount = template.queryForInt("select count(id) from groups");
 		assertEquals(expected, existingGroupCount);
-	}
-
-	private void validateMemberCount(String gId, int expected) {
-		existingMemberCount = template.queryForInt("select count(*) from group_membership where group_id='" + gId + "'");
-		assertEquals(expected, existingMemberCount);
 	}
 
 	private void validateGroup(ScimGroup group, String name) {
@@ -97,8 +81,6 @@ public class JdbcScimGroupProvisioningTests {
 		if (StringUtils.hasText(name)) {
 			assertEquals(name, group.getDisplayName());
 		}
-		assertNotNull(group.getMembers());
-		validateMemberCount(group.getId(), group.getMembers().size());
 	}
 
 	@Test
@@ -172,7 +154,6 @@ public class JdbcScimGroupProvisioningTests {
 	public void canUpdateGroup() throws Exception {
 		ScimGroup g = dao.retrieveGroup("g1");
 		logger.debug(g);
-		assertEquals(2, g.getMembers().size());
 		assertEquals("uaa.user", g.getDisplayName());
 
 		ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroup.GROUP_MEMBER);
@@ -180,69 +161,20 @@ public class JdbcScimGroupProvisioningTests {
 		g.setMembers(Arrays.asList(m1, m2));
 		g.setDisplayName("uaa.none");
 
-		enableUpdates();
 		g = dao.updateGroup("g1", g);
 
 		g = dao.retrieveGroup("g1");
 		validateGroup(g, "uaa.none");
 	}
 
-	private void enableUpdates() {
-		SecurityContextAccessor context = Mockito.mock(DefaultSecurityContextAccessor.class);
-		Mockito.when(context.isAdmin()).thenReturn(true);
-		dao.setContext(context);
-	}
-
 	@Test
 	public void canRemoveGroup() throws Exception {
 		ScimGroup g = dao.removeGroup("g1", 0);
 		validateGroupCount(2);
-		validateMemberCount("g1", 0);
-	}
-
-	@Test
-	public void canCheckIfUpdateAllowed() {
-		SecurityContextAccessor context = Mockito.mock(DefaultSecurityContextAccessor.class);
-		Mockito.when(context.isAdmin()).thenReturn(false);
-		Mockito.when(context.isUser()).thenReturn(true);
-		Mockito.when(context.getUserId()).thenReturn("m3");
-		dao.setContext(context);
-
-		dao.checkIfUpdateAllowed("g3");
-
-		Mockito.when(context.isAdmin()).thenReturn(true);
-		Mockito.when(context.getUserId()).thenReturn("m3");
-		dao.setContext(context);
-
-		dao.checkIfUpdateAllowed("g3");
-		dao.checkIfUpdateAllowed("g2");
-		dao.checkIfUpdateAllowed("invalidgroup");
-
-		Mockito.when(context.getUserId()).thenReturn("m1");
-		dao.setContext(context);
-
-		dao.checkIfUpdateAllowed("g3");
-		dao.checkIfUpdateAllowed("g2");
-		dao.checkIfUpdateAllowed("invalidgroup");
-
-	}
-
-	@Test(expected = ScimException.class)
-	public void canCheckIfUpdateAllowedFails() {
-		SecurityContextAccessor context = Mockito.mock(DefaultSecurityContextAccessor.class);
-		Mockito.when(context.isAdmin()).thenReturn(false);
-		Mockito.when(context.getUserId()).thenReturn("m2");
-		dao.setContext(context);
-
-		dao.checkIfUpdateAllowed("g3");
 	}
 
 	private void addGroup(String id, String name) {
 		TestUtils.assertNoSuchUser(template, "id", id);
 		template.execute(String.format(addGroupSqlFormat, id, name));
-	}
-
-	private void addMember(String gId, String mId, String mType, String authorities) {
-		template.execute(String.format(addMemberSqlFormat, gId, mId, mType, authorities));
 	}
 }

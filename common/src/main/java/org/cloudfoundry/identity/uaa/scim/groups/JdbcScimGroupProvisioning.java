@@ -21,17 +21,12 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.regex.Pattern;
 
 public class JdbcScimGroupProvisioning implements ScimGroupProvisioning {
 
 	private JdbcTemplate jdbcTemplate;
-
-	private SecurityContextAccessor context = new DefaultSecurityContextAccessor();
 
 	private final Log logger = LogFactory.getLog(getClass());
 
@@ -41,7 +36,7 @@ public class JdbcScimGroupProvisioning implements ScimGroupProvisioning {
 
 	public static final String ADD_GROUP_SQL = String.format("insert into %s ( %s ) values (?,?,?,?,?)", GROUP_TABLE, GROUP_FIELDS);
 
-	public static final String UPDATE_GROUP_SQL = String.format("update %s set displayName=?, lastModified=? where id=? and version=?", GROUP_TABLE);
+	public static final String UPDATE_GROUP_SQL = String.format("update %s set version=?, displayName=?, lastModified=? where id=? and version=?", GROUP_TABLE);
 
 	public static final String GET_GROUPS_SQL = String.format("select %s from %s", GROUP_FIELDS, GROUP_TABLE);
 
@@ -51,8 +46,6 @@ public class JdbcScimGroupProvisioning implements ScimGroupProvisioning {
 
 	private final RowMapper<ScimGroup> rowMapper = new ScimGroupRowMapper();
 
-	private ScimGroupMembershipManager membershipManager;
-
 	private SearchQueryConverter queryConverter = new ScimSearchQueryConverter();
 
 	static final Pattern unquotedEq = Pattern.compile("(id|displayName) = [^'].*", Pattern.CASE_INSENSITIVE);
@@ -60,19 +53,10 @@ public class JdbcScimGroupProvisioning implements ScimGroupProvisioning {
 	public JdbcScimGroupProvisioning(JdbcTemplate jdbcTemplate) {
 		Assert.notNull(jdbcTemplate);
 		this.jdbcTemplate = jdbcTemplate;
-		membershipManager = new JdbcScimGroupMembershipManager(jdbcTemplate);
 	}
 
 	public void setQueryConverter(SearchQueryConverter queryConverter) {
 		this.queryConverter = queryConverter;
-	}
-
-	public void setMembershipManager(ScimGroupMembershipManager membershipManager) {
-		this.membershipManager = membershipManager;
-	}
-
-	public void setContext(SecurityContextAccessor context) {
-		this.context = context;
 	}
 
 	@Override
@@ -82,15 +66,11 @@ public class JdbcScimGroupProvisioning implements ScimGroupProvisioning {
 
 	@Override
 	public List<ScimGroup> retrieveGroups(String filter, String sortBy, boolean ascending) {
-		ProcessedFilter where = queryConverter.convert(filter, StringUtils.hasText(sortBy) ? sortBy : "created",
-															ascending);
+		ProcessedFilter where = queryConverter.convert(filter, StringUtils.hasText(sortBy) ? sortBy : "created", ascending);
 		logger.debug("Filtering users with SQL: " + where);
 
 		try {
 			List<ScimGroup> groups = new JdbcPagingList<ScimGroup>(jdbcTemplate, GET_GROUPS_SQL + " where " + where.getSql(), where.getParams(), rowMapper, 200);
-			for (ScimGroup group : groups) {
-				group.setMembers(membershipManager.getMembers(group.getId()));
-			}
 			return groups;
 		}
 		catch (DataAccessException e) {
@@ -102,18 +82,13 @@ public class JdbcScimGroupProvisioning implements ScimGroupProvisioning {
 	@Override
 	public List<ScimGroup> retrieveGroups() {
 		List<ScimGroup> groups = new JdbcPagingList<ScimGroup>(jdbcTemplate, GET_GROUPS_SQL + " order by created ASC", rowMapper, 100);
-		for (ScimGroup group : groups) {
-			group.setMembers(membershipManager.getMembers(group.getId()));
-		}
 		return groups;
 	}
 
 	@Override
 	public ScimGroup retrieveGroup(String id) throws ScimResourceNotFoundException {
-		logger.debug("retrieving group with id: " + id);
 		try {
 			ScimGroup group = jdbcTemplate.queryForObject(GET_GROUP_SQl, rowMapper, id);
-			group.setMembers(membershipManager.getMembers(id));
 			return group;
 		} catch (EmptyResultDataAccessException e) {
 			throw new ScimResourceNotFoundException("Group " + id + " does not exist");
@@ -138,33 +113,24 @@ public class JdbcScimGroupProvisioning implements ScimGroupProvisioning {
 		} catch (DuplicateKeyException ex) {
 			throw new ScimResourceAlreadyExistsException("A group with displayName: " + group.getDisplayName() + " already exists.");
 		}
-		if (group.getMembers() != null) {
-			for (ScimGroupMember member : group.getMembers()) {
-				membershipManager.addMember(id, member);
-			}
-		}
 		return retrieveGroup(id);
 	}
 
 	@Override
 	public ScimGroup updateGroup(final String id, final ScimGroup group) throws InvalidScimResourceException, ScimResourceNotFoundException {
-		checkIfUpdateAllowed(id);
-		logger.debug("updating group: " + id);
 		try {
 			int updated = jdbcTemplate.update(UPDATE_GROUP_SQL, new PreparedStatementSetter() {
 				@Override
 				public void setValues(PreparedStatement ps) throws SQLException {
-					ps.setString(1, group.getDisplayName());
-					ps.setTimestamp(2, new Timestamp(new Date().getTime()));
-					ps.setString(3, id);
-					ps.setInt(4, group.getVersion());
+					ps.setInt(1, group.getVersion() + 1);
+					ps.setString(2, group.getDisplayName());
+					ps.setTimestamp(3, new Timestamp(new Date().getTime()));
+					ps.setString(4, id);
+					ps.setInt(5, group.getVersion());
 				}
 			});
 			if (updated != 1) {
 				throw new IncorrectResultSizeDataAccessException(1, updated);
-			}
-			if (group.getMembers() != null) {
-				membershipManager.updateOrAddMembers(id, group.getMembers());
 			}
 			return retrieveGroup(id);
 		} catch (DuplicateKeyException ex) {
@@ -175,7 +141,6 @@ public class JdbcScimGroupProvisioning implements ScimGroupProvisioning {
 	@Override
 	public ScimGroup removeGroup(String id, int version) throws ScimResourceNotFoundException {
 		ScimGroup group = retrieveGroup(id);
-		logger.debug("deleting group: " + id);
 		int deleted;
 		if (version > 0) {
 			deleted = jdbcTemplate.update(DELETE_GROUP_SQL + " and version=?;", id, version);
@@ -185,23 +150,7 @@ public class JdbcScimGroupProvisioning implements ScimGroupProvisioning {
 		if (deleted != 1) {
 			throw new IncorrectResultSizeDataAccessException(1, deleted);
 		}
-		if (group.getMembers() != null) {
-			membershipManager.removeMembers(id);
-		}
 		return group;
-	}
-
-	protected void checkIfUpdateAllowed(String groupId) {
-		if (context.isAdmin()) {
-			return;
-		}
-		if (context.isUser()) {
-			if (membershipManager.getAdminMembers(groupId).contains(new ScimGroupMember(context.getUserId()))) {
-				return;
-			} else
-				throw new ScimException(context.getUserId() + " does not have privileges to update group: " + groupId, HttpStatus.UNAUTHORIZED);
-		}
-		throw new ScimException("Only group members with required privileges can update group", HttpStatus.UNAUTHORIZED);
 	}
 
 	private static final class ScimGroupRowMapper implements RowMapper<ScimGroup> {

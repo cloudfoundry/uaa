@@ -31,7 +31,7 @@ public class SearchResultsFactory {
 	private static Map<String, Expression> buildExpressions(String[] attributes, AttributeNameMapper mapper) {
 		Map<String, Expression> expressions = new LinkedHashMap<String, Expression>();
 		for (String attribute : attributes) {
-			String spel = mapper != null ? mapper.map(attribute) : attribute;
+			String spel = mapper != null ? mapper.mapToInternal(attribute) : attribute;
 			Expression expression = new SpelExpressionParser().parseExpression(spel);
 			expressions.put(attribute, expression);
 		}
