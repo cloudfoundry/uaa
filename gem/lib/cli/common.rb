@@ -80,8 +80,8 @@ class MiscCli < CommonCli
   define_option :version, "--[no-]version", "-v", "show version"
 
   desc "help [topic|command...]", "Display summary or details of command or topic" do |*args|
-    return version if opts[:version]
-    args.pop if args[0].nil?
+    # handle hidden command, output commands in form for bash completion
+    return say_commands if args.length == 1 && args[0] == "commands"
     args.empty? ? say_help : say_command_help(args)
   end
 
