@@ -7,14 +7,13 @@ import java.util.List;
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class ScimGroupMember {
 
-	private String id;
+	private String memberId;
 
 	@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 	public enum Type {
 		USER, GROUP
 	}
 
-	;
 	private Type type;
 
 	private List<ScimGroup.Authority> authorities;
@@ -27,12 +26,12 @@ public class ScimGroupMember {
 		this.authorities = permissions;
 	}
 
-	public String getId() {
-		return id;
+	public String getMemberId() {
+		return memberId;
 	}
 
-	public void setId(String id) {
-		this.id = id;
+	public void setMemberId(String memberId) {
+		this.memberId = memberId;
 	}
 
 	public Type getType() {
@@ -45,12 +44,12 @@ public class ScimGroupMember {
 
 	@Override
 	public String toString() {
-		return String.format("(memberId: %s, type: %s, permissions: %s)", id, type, authorities);
+		return String.format("(memberId: %s, type: %s, permissions: %s)", memberId, type, authorities);
 	}
 
 	@Override
 	public int hashCode() {
-		int hc = 31 ^ id.hashCode();
+		int hc = 31 ^ memberId.hashCode();
 		hc ^= type.hashCode();
 		return hc;
 	}
@@ -61,7 +60,7 @@ public class ScimGroupMember {
 			return false;
 		}
 		ScimGroupMember other = (ScimGroupMember) o;
-		if (id.equals(other.id) && type.equals(other.type)) {
+		if (memberId.equals(other.memberId) && type.equals(other.type)) {
 			return true;
 		}
 		return false;
@@ -70,12 +69,12 @@ public class ScimGroupMember {
 	public ScimGroupMember() {
 	}
 
-	public ScimGroupMember(String id) {
-		this(id, Type.USER, ScimGroup.GROUP_MEMBER);
+	public ScimGroupMember(String memberId) {
+		this(memberId, Type.USER, ScimGroup.GROUP_MEMBER);
 	}
 
-	public ScimGroupMember(String id, Type type, List<ScimGroup.Authority> authorities) {
-		this.id = id;
+	public ScimGroupMember(String memberId, Type type, List<ScimGroup.Authority> authorities) {
+		this.memberId = memberId;
 		this.type = type;
 		this.authorities = authorities;
 	}

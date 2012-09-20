@@ -43,7 +43,7 @@ public class ScimGroupBootstrapTests {
 
 	private JdbcScimUserProvisioning uDB;
 
-	private ScimGroupMembershipManager mDB;
+	private JdbcScimGroupMembershipManager mDB;
 
 	private ScimGroupBootstrap bootstrap;
 
@@ -54,6 +54,8 @@ public class ScimGroupBootstrapTests {
 		uDB = new JdbcScimUserProvisioning(template);
 		uDB.setPasswordValidator(new NullPasswordValidator());
 		mDB = new JdbcScimGroupMembershipManager(template);
+		mDB.setScimGroupProvisioning(gDB);
+		mDB.setScimUserProvisioning(uDB);
 
 		uDB.createUser(TestUtils.scimUserInstance("dev1"), "test");
 		uDB.createUser(TestUtils.scimUserInstance("dev2"), "test");

@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.scim.groups;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReport;
 import org.cloudfoundry.identity.uaa.scim.*;
@@ -18,7 +20,6 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,10 +29,19 @@ public class ScimGroupEndpoints {
 
 	private final ScimGroupProvisioning dao;
 
+	private ScimGroupMembershipManager membershipManager;
+
+	private SecurityContextAccessor context = new DefaultSecurityContextAccessor();
+
 	private Map<Class<? extends Exception>, HttpStatus> statuses = new HashMap<Class<? extends Exception>, HttpStatus>();
 
-	private HttpMessageConverter<?>[] messageConverters = new RestTemplate().getMessageConverters().toArray(
-																												   new HttpMessageConverter<?>[0]);
+	private HttpMessageConverter<?>[] messageConverters = new RestTemplate().getMessageConverters().toArray(new HttpMessageConverter<?>[0]);
+
+	private final Log logger = LogFactory.getLog(getClass());
+
+	public void setContext(SecurityContextAccessor context) {
+		this.context = context;
+	}
 
 	public void setStatuses(Map<Class<? extends Exception>, HttpStatus> statuses) {
 		this.statuses = statuses;
@@ -41,11 +51,12 @@ public class ScimGroupEndpoints {
 		this.messageConverters = messageConverters;
 	}
 
-	public ScimGroupEndpoints(ScimGroupProvisioning dao) {
-		this.dao = dao;
+	public ScimGroupEndpoints(ScimGroupProvisioning scimGroupProvisioning, ScimGroupMembershipManager membershipManager) {
+		this.dao = scimGroupProvisioning;
+		this.membershipManager = membershipManager;
 	}
 
-	@RequestMapping(value = {"/Group", "/Groups"}, method = RequestMethod.GET)
+	@RequestMapping(value = {"/Groups"}, method = RequestMethod.GET)
 	@ResponseBody
 	public SearchResults<Map<String, Object>> listGroups(@RequestParam(value = "attributes", required = false, defaultValue = "id") String attributesCommaSeparated,
 									  @RequestParam(required = false, defaultValue = "id pr") String filter,
@@ -56,6 +67,9 @@ public class ScimGroupEndpoints {
 		List<ScimGroup> input;
 		try {
 			input = dao.retrieveGroups(filter, sortBy, "ascending".equalsIgnoreCase(sortOrder));
+			for (ScimGroup group : input) {
+				group.setMembers(membershipManager.getMembers(group.getId()));
+			}
 		}
 		catch (IllegalArgumentException e) {
 			throw new ScimException("Invalid filter expression: [" + filter + "]", HttpStatus.BAD_REQUEST);
@@ -71,30 +85,47 @@ public class ScimGroupEndpoints {
 		}
 	}
 
-	@RequestMapping(value = {"/Group/{groupId}", "/Groups/{groupId}"}, method = RequestMethod.GET)
+	@RequestMapping(value = {"/Groups/{groupId}"}, method = RequestMethod.GET)
 	@ResponseBody
 	public ScimGroup getGroup(@PathVariable String groupId) {
-		return dao.retrieveGroup(groupId);
+		logger.debug("retrieving group with id: " + groupId);
+		ScimGroup group = dao.retrieveGroup(groupId);
+		group.setMembers(membershipManager.getMembers(groupId));
+		return group;
 	}
 
-	@RequestMapping(value = {"/Group", "/Groups"}, method = RequestMethod.POST)
+	@RequestMapping(value = {"/Groups"}, method = RequestMethod.POST)
 	@ResponseStatus(HttpStatus.CREATED)
 	@ResponseBody
 	public ScimGroup createGroup(@RequestBody ScimGroup group) {
-		return dao.createGroup(group);
+		ScimGroup created = dao.createGroup(group);
+		if (group.getMembers() != null) {
+			for (ScimGroupMember member : group.getMembers()) {
+				membershipManager.addMember(created.getId(), member);
+			}
+		}
+		created.setMembers(membershipManager.getMembers(created.getId()));
+		return created;
 	}
 
-	@RequestMapping(value = {"/Group/{groupId}", "/Groups/{groupId}"}, method = RequestMethod.PUT)
+	@RequestMapping(value = {"/Groups/{groupId}"}, method = RequestMethod.PUT)
 	@ResponseBody
 	public ScimGroup updateGroup(@RequestBody ScimGroup group, @PathVariable String groupId,
 								 @RequestHeader(value = "If-Match", required = false) String etag) {
 		if (etag == null) {
 			throw new ScimException("Missing If-Match for PUT", HttpStatus.BAD_REQUEST);
 		}
+		checkIfUpdateAllowed(groupId);
+		logger.debug("updating group: " + groupId);
 		int version = getVersion(groupId, etag);
 		group.setVersion(version);
 		try {
-			return dao.updateGroup(groupId, group);
+			ScimGroup updated = dao.updateGroup(groupId, group);
+			if (group.getMembers() != null) {
+				membershipManager.updateOrAddMembers(updated.getId(), group.getMembers());
+			}
+			updated.setMembers(membershipManager.getMembers(updated.getId()));
+			return updated;
 		} catch (IncorrectResultSizeDataAccessException e) {
 			throw new ScimException(e.getMessage(), HttpStatus.CONFLICT);
 		}
@@ -113,11 +144,28 @@ public class ScimGroupEndpoints {
 		}
 		*/
 
-	@RequestMapping(value = {"/Group/{groupId}", "/Groups/{groupId}"}, method = RequestMethod.DELETE)
+	@RequestMapping(value = {"/Groups/{groupId}"}, method = RequestMethod.DELETE)
 	@ResponseBody
 	public ScimGroup deleteGroup(@PathVariable String groupId,
 								 @RequestHeader(value = "If-Match", required = false, defaultValue = "*") String etag) {
-		return dao.removeGroup(groupId, getVersion(groupId, etag));
+		ScimGroup group = getGroup(groupId);
+		logger.debug("deleting group: " + group);
+		dao.removeGroup(groupId, getVersion(groupId, etag));
+		membershipManager.removeMembersByGroupId(groupId);
+		return group;
+	}
+
+	protected void checkIfUpdateAllowed(String groupId) {
+		if (context.isAdmin()) {
+			return;
+		}
+		if (context.isUser()) {
+			if (membershipManager.getAdminMembers(groupId).contains(new ScimGroupMember(context.getUserId()))) {
+				return;
+			} else
+				throw new ScimException(context.getUserId() + " does not have privileges to update group: " + groupId, HttpStatus.UNAUTHORIZED);
+		}
+		throw new ScimException("Only group members with required privileges can update group", HttpStatus.UNAUTHORIZED);
 	}
 
 	@ExceptionHandler

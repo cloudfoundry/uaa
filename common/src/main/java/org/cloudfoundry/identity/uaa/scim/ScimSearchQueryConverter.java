@@ -43,12 +43,17 @@ public class ScimSearchQueryConverter implements SearchQueryConverter {
 
 	@Override
 	public ProcessedFilter convert(String filter, String sortBy, boolean ascending) {
+		return convert(filter, sortBy, ascending, mapper);
+	}
+
+	@Override
+	public ProcessedFilter convert(String filter, String sortBy, boolean ascending, AttributeNameMapper mapper) {
 		Map<String, Object> values = new HashMap<String, Object>();
-		String where = StringUtils.hasText(filter) ? getWhereClause(filter, sortBy, ascending, values) : null;
+		String where = StringUtils.hasText(filter) ? getWhereClause(filter, sortBy, ascending, values, mapper) : null;
 		return new ProcessedFilter(where, values);
 	}
 
-	private String getWhereClause (String filter, String sortBy, boolean ascending, Map<String, Object> values) {
+	private String getWhereClause (String filter, String sortBy, boolean ascending, Map<String, Object> values, AttributeNameMapper mapper) {
 
 		// Single quotes for literals
 		String where = filter.replaceAll("\"", "'");
@@ -58,7 +63,7 @@ public class ScimSearchQueryConverter implements SearchQueryConverter {
 			where = where + " order by " + sortBy + (ascending ? " asc" : " desc");
 		}
 
-		where = mapper.map(where);
+		where = mapper.mapToInternal(where);
 
 		where = makeCaseInsensitive(where, coPattern, "%slower(%s) like :?%s", "%%%s%%", values);
 		where = makeCaseInsensitive(where, swPattern, "%slower(%s) like :?%s", "%s%%", values);

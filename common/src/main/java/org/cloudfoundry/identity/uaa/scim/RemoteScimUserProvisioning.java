@@ -13,6 +13,7 @@
 
 package org.cloudfoundry.identity.uaa.scim;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.http.HttpEntity;
@@ -82,6 +83,15 @@ public class RemoteScimUserProvisioning implements ScimUserProvisioning {
 		restTemplate.put(baseUrl + "/User/{id}", user, id);
 		return user;
 	}
+
+//	@Override
+//	public ScimUser updateAuthorities(String authorities, ScimUser user) throws ScimResourceNotFoundException {
+//		user.setGroups(new ArrayList<ScimUser.Group>());
+//		for (String auth : authorities.split(",")) {
+//			user.getGroups().add(new ScimUser.Group(null, auth));
+//		}
+//		return updateUser(user.getId(), user);
+//	}
 
 	@Override
 	public boolean changePassword(String id, String oldPassword, String newPassword) throws ScimResourceNotFoundException {

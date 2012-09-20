@@ -16,8 +16,8 @@ public class ScimGroupMemberTests {
 
 	@Test
 	public void testHashCode() throws Exception {
-		assertTrue(m1.hashCode() == new ScimGroupMember(m1.getId(), m1.getType(), m1.getAuthorities()).hashCode());
-		assertTrue(m4.hashCode() == new ScimGroupMember(m1.getId(), m4.getType(), m4.getAuthorities()).hashCode());
+		assertTrue(m1.hashCode() == new ScimGroupMember(m1.getMemberId(), m1.getType(), m1.getAuthorities()).hashCode());
+		assertTrue(m4.hashCode() == new ScimGroupMember(m1.getMemberId(), m4.getType(), m4.getAuthorities()).hashCode());
 		assertTrue(m1.hashCode() == m2.hashCode());
 		assertTrue(m1.hashCode() == m3.hashCode());
 		assertFalse(m1.hashCode() == m4.hashCode());
@@ -28,9 +28,9 @@ public class ScimGroupMemberTests {
 
 	@Test
 	public void testEquals() throws Exception {
-		assertEquals(m1, new ScimGroupMember(m1.getId(), m1.getType(), null));
-		assertEquals(m3, new ScimGroupMember(m3.getId(), m3.getType(), null));
-		assertEquals(m6, new ScimGroupMember(m6.getId(), m6.getType(), m3.getAuthorities()));
+		assertEquals(m1, new ScimGroupMember(m1.getMemberId(), m1.getType(), null));
+		assertEquals(m3, new ScimGroupMember(m3.getMemberId(), m3.getType(), null));
+		assertEquals(m6, new ScimGroupMember(m6.getMemberId(), m6.getType(), m3.getAuthorities()));
 		assertNotSame(m7, m1);
 		assertEquals(m1, m2);
 		assertEquals(m1, m3);
