@@ -105,11 +105,7 @@ public class BootstrapTests {
 			System.arraycopy(resources, 1, resourcesToLoad, 0, resourcesToLoad.length);
 		}
 
-		GenericXmlApplicationContext parent = new GenericXmlApplicationContext(
-				"file:./src/main/webapp/WEB-INF/applicationContext.xml");
-
 		GenericXmlApplicationContext context = new GenericXmlApplicationContext();
-		context.setParent(parent);
 		if (profiles != null) {
 			context.getEnvironment().setActiveProfiles(StringUtils.commaDelimitedListToStringArray(profiles));
 		}
