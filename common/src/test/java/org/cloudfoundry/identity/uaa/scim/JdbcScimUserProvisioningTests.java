@@ -139,8 +139,8 @@ public class JdbcScimUserProvisioningTests {
 
 		ScimUser joe = db.updateUser(JOE_ID, jo);
 
-		// Can't change username (yet)
-		assertEquals("joe", joe.getUserName());
+		// Can change username
+		assertEquals("josephine", joe.getUserName());
 		assertEquals("jo@blah.com", joe.getPrimaryEmail());
 		assertEquals("Jo", joe.getGivenName());
 		assertEquals("NewUser", joe.getFamilyName());

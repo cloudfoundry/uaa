@@ -44,6 +44,7 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageConversionException;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.jmx.export.annotation.ManagedMetric;
 import org.springframework.jmx.export.annotation.ManagedResource;
@@ -322,6 +323,9 @@ public class ScimUserEndpoints implements InitializingBean {
 			e = (ScimException) t;
 		}
 		else if (t instanceof DataIntegrityViolationException) {
+			e = new ScimException(t.getMessage(), t, HttpStatus.BAD_REQUEST);
+		}
+		else if (t instanceof HttpMessageConversionException) {
 			e = new ScimException(t.getMessage(), t, HttpStatus.BAD_REQUEST);
 		}
 		else {

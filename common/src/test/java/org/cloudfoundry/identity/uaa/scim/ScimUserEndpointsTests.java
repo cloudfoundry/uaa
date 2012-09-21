@@ -41,6 +41,7 @@ import org.junit.rules.ExpectedException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.HttpMessageConversionException;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabase;
@@ -147,6 +148,20 @@ public class ScimUserEndpointsTests {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		endpoints.setMessageConverters(new HttpMessageConverter<?>[] { new ExceptionReportHttpMessageConverter() });
 		View view = endpoints.handleException(new DataIntegrityViolationException("foo"), request);
+		ConvertingExceptionView converted = (ConvertingExceptionView) view;
+		converted.render(Collections.<String, Object> emptyMap(), request, response);
+		String body = response.getContentAsString();
+		assertEquals(HttpStatus.BAD_REQUEST.value(), response.getStatus());
+		// System.err.println(body);
+		assertTrue("Wrong body: " + body, body.contains("message\":\"foo"));
+	}
+
+	@Test
+	public void testHandleExceptionWithBadFieldName() throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		endpoints.setMessageConverters(new HttpMessageConverter<?>[] { new ExceptionReportHttpMessageConverter() });
+		View view = endpoints.handleException(new HttpMessageConversionException("foo"), request);
 		ConvertingExceptionView converted = (ConvertingExceptionView) view;
 		converted.render(Collections.<String, Object> emptyMap(), request, response);
 		String body = response.getContentAsString();

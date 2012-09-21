@@ -15,10 +15,12 @@ package org.cloudfoundry.identity.uaa.integration;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.scim.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
@@ -54,13 +56,13 @@ public class ScimUserEndpointsIntegrationTests {
 	public ServerRunning serverRunning = ServerRunning.isRunning();
 
 	private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
-	
+
 	@Rule
 	public OAuth2ContextSetup context = OAuth2ContextSetup.withTestAccounts(serverRunning, testAccounts);
 
 	@Rule
 	public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
-	
+
 	private RestOperations client;
 
 	@Before
@@ -98,8 +100,7 @@ public class ScimUserEndpointsIntegrationTests {
 		assertEquals(JOE, joe1.getUserName());
 
 		// Check we can GET the user
-		ScimUser joe2 = client
-				.getForObject(serverRunning.getUrl(userEndpoint + "/{id}"), ScimUser.class, joe1.getId());
+		ScimUser joe2 = client.getForObject(serverRunning.getUrl(userEndpoint + "/{id}"), ScimUser.class, joe1.getId());
 
 		assertEquals(joe1.getId(), joe2.getId());
 	}
@@ -151,6 +152,44 @@ public class ScimUserEndpointsIntegrationTests {
 		assertEquals(JOE, joe1.getUserName());
 
 		assertEquals(joe.getId(), joe1.getId());
+
+	}
+
+	@Test
+	public void updateUserNameSucceeds() throws Exception {
+		ResponseEntity<ScimUser> response = createUser(JOE, "Joe", "User", "joe@blah.com");
+		ScimUser joe = response.getBody();
+		assertEquals(JOE, joe.getUserName());
+
+		joe.setUserName(JOE + "new");
+
+		HttpHeaders headers = new HttpHeaders();
+		headers.add("If-Match", "\"" + joe.getVersion() + "\"");
+		response = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}", HttpMethod.PUT,
+				new HttpEntity<ScimUser>(joe, headers), ScimUser.class, joe.getId());
+		ScimUser joe1 = response.getBody();
+		assertEquals(JOE + "new", joe1.getUserName());
+
+		assertEquals(joe.getId(), joe1.getId());
+
+	}
+
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	@Test
+	public void updateUserWithBadAttributeFails() throws Exception {
+
+		ResponseEntity<ScimUser> created = createUser(JOE, "Joe", "User", "joe@blah.com");
+		ScimUser joe = created.getBody();
+		HttpHeaders headers = new HttpHeaders();
+		headers.add("If-Match", "\"" + joe.getVersion() + "\"");
+		ObjectMapper mapper = new ObjectMapper();
+		Map<String, Object> map = new HashMap<String, Object>(mapper.readValue(mapper.writeValueAsString(joe),
+				Map.class));
+		map.put("nottheusername", JOE + "0");
+		ResponseEntity<Map> response = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}", HttpMethod.PUT,
+				new HttpEntity<Map>(map, headers), Map.class, joe.getId());
+		Map<String, Object> joe1 = response.getBody();
+		assertTrue("Wrong message: " + joe1, ((String) joe1.get("message")).toLowerCase().contains("unrecognized field"));
 
 	}
 
@@ -237,16 +276,16 @@ public class ScimUserEndpointsIntegrationTests {
 		ScimUser deleteMe = createUser(DELETE_ME, "Delete", "Me", "deleteme@blah.com").getBody();
 
 		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = client.exchange(serverRunning.getUrl(userEndpoint + "/{id}"),
-				HttpMethod.DELETE, new HttpEntity<Void>((Void) null), Map.class, deleteMe.getId());
+		ResponseEntity<Map> response = client.exchange(serverRunning.getUrl(userEndpoint + "/{id}"), HttpMethod.DELETE,
+				new HttpEntity<Void>((Void) null), Map.class, deleteMe.getId());
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 	}
 
 	@Test
 	public void getReturnsNotFoundForNonExistentUser() throws Exception {
 		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = client.exchange(serverRunning.getUrl(userEndpoint + "/{id}"),
-				HttpMethod.GET, new HttpEntity<Void>((Void) null), Map.class, "9999");
+		ResponseEntity<Map> response = client.exchange(serverRunning.getUrl(userEndpoint + "/{id}"), HttpMethod.GET,
+				new HttpEntity<Void>((Void) null), Map.class, "9999");
 		@SuppressWarnings("unchecked")
 		Map<String, String> error = response.getBody();
 		assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());

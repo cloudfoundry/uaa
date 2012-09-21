@@ -64,7 +64,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	public static final String CREATE_USER_SQL = "insert into users (" + USER_FIELDS
 			+ ",password) values (?,?,?,?,?,?,?,?,?,?,?,?)";
 
-	public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, email=?, givenName=?, familyName=?, active=?, authorities=?, phoneNumber=? where id=? and version=?";
+	public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, userName=?, email=?, givenName=?, familyName=?, active=?, authorities=?, phoneNumber=? where id=? and version=?";
 
 	public static final String DEACTIVATE_USER_SQL = "update users set active=false where id=?";
 
@@ -352,14 +352,15 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 			public void setValues(PreparedStatement ps) throws SQLException {
 				ps.setInt(1, user.getVersion() + 1);
 				ps.setTimestamp(2, new Timestamp(new Date().getTime()));
-				ps.setString(3, user.getPrimaryEmail());
-				ps.setString(4, user.getName().getGivenName());
-				ps.setString(5, user.getName().getFamilyName());
-				ps.setBoolean(6, user.isActive());
-				ps.setString(7, authorities);
-				ps.setString(8, extractPhoneNumber(user));
-				ps.setString(9, id);
-				ps.setInt(10, user.getVersion());
+				ps.setString(3, user.getUserName());
+				ps.setString(4, user.getPrimaryEmail());
+				ps.setString(5, user.getName().getGivenName());
+				ps.setString(6, user.getName().getFamilyName());
+				ps.setBoolean(7, user.isActive());
+				ps.setString(8, authorities);
+				ps.setString(9, extractPhoneNumber(user));
+				ps.setString(10, id);
+				ps.setInt(11, user.getVersion());
 			}
 		});
 		ScimUser result = retrieveUser(id);
