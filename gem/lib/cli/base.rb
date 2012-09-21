@@ -135,6 +135,18 @@ class Topic
     [ short ? "#{short} | #{long}" : "#{long}", desc]
   end
 
+  def opt_strs(opts)
+    opts.each_with_object([]) { |o, a|
+      @cli_class.option_defs[o].each { |d|
+        case d
+        when /^-.$/ then a << d
+        when /^--\[no-\](\S+)/ then a << "--#{$1} --no-#{$1}"
+        when /^--(\S+)/ then a << "--#{$1}"
+        end
+      }
+    }.join(' ')
+  end
+
   def say_cmd_helper(info, suffix = nil)
     say_definition 2, info[:template], info[:desc]
     info[:options].each do |o|
@@ -170,6 +182,37 @@ class Topic
       say_definition 2, odef, desc
     end
     @output.print("\n")
+  end
+
+  def add_command(branches, parts, opts = nil)
+    if parts.empty?
+      return if opts.nil? || opts.empty?
+      return branches << {label: opt_strs(opts)}
+    end
+    if i = branches.find_index { |b| parts[0] == b[:label] }
+      parts.shift
+    else
+      branches << {label: parts.shift, sub: []}
+      i = -1
+    end
+    add_command(branches[i][:sub], parts, opts)
+  end
+
+  def print_tree(branches, indent)
+    return unless branches
+    branches.each do |b|
+      indent.times { @output.print "\t" };
+      @output.puts b[:label]
+      print_tree b[:sub], indent + 1
+    end
+  end
+
+  def say_commands
+    tree = {label: File.basename($0), sub: []}
+    @cli_class.topics.each {|t| t.commands.each {|k, v| add_command(tree[:sub], v[:parts].dup, v[:options])}}
+    add_command(tree[:sub], [], @cli_class.global_options)
+    @output.puts tree[:label]
+    print_tree(tree[:sub], 1)
   end
 
 end
@@ -214,7 +257,7 @@ class BaseCli
         return self
       end
     end
-    @output.puts "#{$0} subcommand not found"
+    @output.puts "#{File.basename($0)}: subcommand not found"
     self
   rescue Exception => e
     $stderr.puts "", "#{e.class}: #{e.message}", (e.backtrace if opts[:trace])

@@ -61,9 +61,15 @@ describe Cli do
     end
   end
 
+  it "should get commands in bash completion format" do
+    Cli.run "help commands"
+    [/--no-version/, /--version/, /^#{File.basename($0)}/, /help/].each do |s|
+      Cli.output.string.should match(s)
+    end
+  end
+
   ["help targets", "targets -h", "-h targets"].each do |opt|
     it "should display help for specific command like: #{opt}" do
-      Cli.output.string = ""
       Cli.run(opt)
       Cli.output.string.should match /Display all targets/
     end
