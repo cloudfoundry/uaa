@@ -18,11 +18,10 @@ module CF::UAA
 
 class Config
 
-  class << self
-    attr_reader :target, :context
-  end
+  class << self; attr_reader :target, :context end
 
   def self.config; @config ? @config.dup : {} end
+  def self.loaded?; !!@config end
   def self.yaml; YAML.dump(Util.hash_keys(@config, :tostr)) end
   def self.target?(tgt) tgt if @config[tgt = subhash_key(@config, tgt)] end
 
@@ -30,7 +29,7 @@ class Config
   # config is assumed to be a file name to read and store config.
   # config can be retrieved in yaml form from Config.yaml
   def self.load(config = nil)
-    @config ||= {}
+    @config = {}
     return unless config
     if config =~ /^---/ || config == ""
       @config = config == "" ? {} : YAML.load(config)
@@ -45,6 +44,8 @@ class Config
           "Please review the new commands with 'uaac help'", ""
         exit 1
       }
+    else # file doesn't exist, make sure we can write it now
+      File.open(@config_file, 'w') { |f| f.write(" ") }
     end
     @config = Util.hash_keys(@config, :tosym)
     @context = current_subhash(@config[@target][:contexts]) if @target = current_subhash(@config)
@@ -52,7 +53,7 @@ class Config
 
   def self.save
     File.open(@config_file, 'w') { |f| YAML.dump(Util.hash_keys(@config, :tostr), f) } if @config_file
-    nil
+    true
   end
 
   def self.target=(tgt)

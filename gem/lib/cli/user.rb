@@ -39,11 +39,9 @@ class UserCli < CommonCli
   end
 
   def acct_request
-    return yield UserAccount.new(Config.target, auth_header)
-  rescue TargetError => e
-    "\n#{e.message}:\n#{JSON.pretty_generate(e.info)}\n"
+    yield UserAccount.new(Config.target, auth_header)
   rescue Exception => e
-    "\n#{e.class}: #{e.message}\n#{e.backtrace if trace?}\n"
+    complain e
   end
 
   desc "users [attributes] [filter]", "List user accounts" do |attributes, filter|
@@ -56,7 +54,7 @@ class UserCli < CommonCli
 
   desc "user add [name]", "Add a user account", *USER_INFO_OPTS, :password do |name|
     info = {userName: username(name), password: verified_pwd("Password", opts[:password])}
-    pp acct_request { |ua| ua.add(user_opts(info)) }
+    pp acct_request { |ua| ua.add(user_opts(info)); "user account successfully added" }
   end
 
   define_option :del_attrs, "--del_attrs <attr_names>", "list of attributes to delete"
@@ -67,29 +65,38 @@ class UserCli < CommonCli
       info = ua.get_by_name(username(name))
       opts[:del_attrs].each { |a| info.delete(a) } if opts[:del_attrs]
       ua.update(info[:id], info.merge(updates))
+      "user account successfully updated"
     }
   end
 
   desc "user patch [name] [updates]", "Patch user account with updates in SCIM json format",
       :del_attrs do |name, updates|
-    pp acct_request { |ua| ua.update(username(name), Util.json_parse(updates), opts[:del_attrs]) }
+    pp acct_request { |ua|
+      ua.update(username(name), Util.json_parse(updates), opts[:del_attrs])
+      "user account successfully updated"
+    }
   end
 
   desc "user delete [name]", "Delete user account" do |name|
-    pp acct_request { |ua| ua.delete_by_name(username(name)) }
+    pp acct_request { |ua|
+      ua.delete_by_name(username(name))
+      "user account successfully deleted"
+    }
   end
 
   desc "password set [name]", "Set password", :password do |name|
-    pp acct_request { |ua| ua.change_password_by_name(username(name),
-        verified_pwd("New password", opts[:password])) }
+    pp acct_request { |ua|
+      ua.change_password_by_name(username(name), verified_pwd("New password", opts[:password]))
+      "password successfully set"
+    }
   end
 
   define_option :old_password, "-o", "--old_password <password>", "current password"
   desc "password change", "Change password for authenticated user in current context", :old_password, :password do
     pp acct_request { |ua|
       oldpwd = opts[:old_password] || ask_pwd("Current password")
-      ua.change_password(Config.value(:user_id),
-          verified_pwd("New password", opts[:password]), oldpwd)
+      ua.change_password(Config.value(:user_id), verified_pwd("New password", opts[:password]), oldpwd)
+      "password successfully changed"
     }
   end
 

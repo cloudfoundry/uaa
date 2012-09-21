@@ -20,15 +20,31 @@ class ClientCli < CommonCli
 
   topic "Client Application Registrations", "reg"
 
-  CLIENT_SCHEMA =
-  {
-    scope: "list",
-    authorized_grant_types: "list",
-    authorities: "list",
-    access_token_validity: "seconds",
-    refresh_token_validity: "seconds",
-    redirect_uri: "list"
-  }
+  def client_reg_request
+    (yield ClientReg.new(Config.target, auth_header)) || "success" # no exception means success
+  rescue TargetError => e
+    complain e
+  end
+
+  def client_info(defaults, interact)
+    del_op = "<delete>"
+    info = {client_id: opts[:client_id]}
+    info[:client_secret] = opts[:secret] if opts[:secret]
+    CLIENT_SCHEMA.each_with_object(info) do |(k, p), info|
+      v = nil
+      if !opts.key?(k)
+        info[k] = (v unless v == del_op) if interact ?
+            !p.empty? && (v = askd("#{k.to_s.gsub('_', ' ')} (#{p})", defaults[k])) : (v = defaults[k])
+      elsif opts[k] == del_op
+        info[k] = nil
+      else
+        info[k] = v if (v = (opts[k].nil? || opts[k].empty? ? defaults[k]: opts[k]))
+      end
+    end
+  end
+
+  CLIENT_SCHEMA = { scope: "list", authorized_grant_types: "list", authorities: "list",
+      access_token_validity: "seconds", refresh_token_validity: "seconds", redirect_uri: "list" }
 
   CLIENT_SCHEMA.each { |k, v| define_option(k, "--#{k} <#{v}>") }
 
@@ -80,31 +96,6 @@ class ClientCli < CommonCli
     client_reg_request do |cr|
       old = opts[:old_secret] || ask_pwd("Current secret")
       cr.change_secret(client_id, verified_pwd("New secret", opts[:secret]), old)
-    end
-  end
-
-  def client_reg_request
-    return yield ClientReg.new(Config.target, auth_header)
-  rescue TargetError => e
-    say "\n#{e.message}:\n#{JSON.pretty_generate(e.info)}"
-  rescue Exception => e
-    say "\n#{e.class}: #{e.message}", (e.backtrace if trace?)
-  end
-
-  def client_info(defaults, interact)
-    del_op = "<delete>"
-    info = {client_id: opts[:client_id]}
-    info[:client_secret] = opts[:secret] if opts[:secret]
-    CLIENT_SCHEMA.each_with_object(info) do |(k, p), info|
-      v = nil
-      if !opts.key?(k)
-        info[k] = (v unless v == del_op) if interact ?
-            !p.empty? && (v = askd("#{k.to_s.gsub('_', ' ')} (#{p})", defaults[k])) : (v = defaults[k])
-      elsif opts[k] == del_op
-        info[k] = nil
-      else
-        info[k] = v if (v = (opts[k].nil? || opts[k].empty? ? defaults[k]: opts[k]))
-      end
     end
   end
 
