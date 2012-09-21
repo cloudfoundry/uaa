@@ -21,11 +21,9 @@ class GroupCli < CommonCli
   topic "Groups", "group"
 
   def acct_request
-    return yield UserAccount.new(Config.target, auth_header)
+    (yield UserAccount.new(Config.target, auth_header)) || "success"
   rescue TargetError => e
-    "\n#{e.message}:\n#{JSON.pretty_generate(e.info)}\n"
-  rescue Exception => e
-    "\n#{e.class}: #{e.message}\n#{e.backtrace if trace?}\n"
+    complain e
   end
 
   def gname(name) name || ask("Group name") end
