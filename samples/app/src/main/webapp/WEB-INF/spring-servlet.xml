@@ -19,7 +19,7 @@
 	<sec:http pattern="/favicon.ico" security="none" />
 
 	<http xmlns="http://www.springframework.org/schema/security" entry-point-ref="loginEntryPoint"
-		disable-url-rewriting="true" use-expressions="true" >
+		disable-url-rewriting="true" use-expressions="true">
 		<intercept-url pattern="/**" access="hasRole('uaa.user')" />
 		<logout logout-success-url="/logout" />
 		<anonymous enabled="false" />
@@ -44,8 +44,12 @@
 				<constructor-arg value="/login_error.jsp" />
 			</bean>
 		</property>
-		<property name="restTemplate" ref="restTemplate" />
-		<property name="userInfoUrl" value="${userInfoUri}" />
+		<property name="socialClientUserDetailsSource">
+			<bean class="org.cloudfoundry.identity.uaa.social.SocialClientUserDetailsSource">
+				<property name="restTemplate" ref="restTemplate" />
+				<property name="userInfoUrl" value="${userInfoUri}" />
+			</bean>
+		</property>
 	</bean>
 
 	<mvc:resources location="/resources/" mapping="/resources/**" />
@@ -76,18 +80,18 @@
 	</bean>
 
 	<bean id="homeController" class="org.cloudfoundry.identity.app.web.HomeController">
-		<property name="restTemplate" ref="restTemplate"/>
+		<property name="restTemplate" ref="restTemplate" />
 		<property name="userAuthorizationUri" value="${userAuthorizationUri}" />
 		<property name="dataUri" value="${dataUri}" />
 		<property name="tokensUri" value="${tokensUrlPattern}" />
-		<property name="logoutUrl" value="${cloudFoundryLogoutUrl}"/>
+		<property name="logoutUrl" value="${cloudFoundryLogoutUrl}" />
 	</bean>
-	
+
 	<oauth:rest-template id="restTemplate" resource="uaa" />
 
 	<!--define an oauth 2 resource for api access -->
 	<oauth:resource id="uaa" type="authorization_code" client-id="${CLIENT_ID:app}" client-secret="${CLIENT_SECRET:appclientsecret}"
-		access-token-uri="${accessTokenUri}" user-authorization-uri="${userAuthorizationUri}"/>
+		access-token-uri="${accessTokenUri}" user-authorization-uri="${userAuthorizationUri}" />
 
 	<oauth:web-expression-handler id="oauthWebExpressionHandler" />
 
