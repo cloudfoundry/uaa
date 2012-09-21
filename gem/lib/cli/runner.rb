@@ -22,11 +22,10 @@ module CF::UAA
 class Cli < BaseCli
   @overview = "UAA Command Line Interface"
   @topics = [MiscCli, InfoCli, TokenCli, UserCli, GroupCli, ClientCli]
-  @global_options = [:help, :version, :debug, :trace]
+  @global_options = [:help, :version, :debug, :trace, :config]
 
   def self.configure(config_file = "", input = $stdin, output = $stdout)
-    Config.load config_file
-    @input, @output = input, output
+    @config_file, @input, @output = config_file, input, output
     self
   end
 
@@ -38,10 +37,11 @@ class Cli < BaseCli
   def self.preprocess_options(args, opts)
     return args.replace(["version"]) if opts[:version]
     return args.unshift("help") if args.empty? || opts[:help] && args[0] != "version"
+    Config.load(opts[:config] || @config_file) if opts.key?(:config) || !Config.loaded?
     [:trace, :debug].each do |k|
       opts[k] = true if !opts.key?(k) && Config.target && Config.context && Config.value(k)
     end
-    Util.default_logger(opts[:trace] ? :trace : opts[:debug] ? :debug : :warn, @output)
+    Misc.logger = Util.default_logger(opts[:trace]? :trace: opts[:debug]? :debug: :warn, @output)
   end
 
 end

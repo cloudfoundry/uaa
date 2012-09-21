@@ -65,6 +65,17 @@ class TokenCli < CommonCli
 
   topic "Tokens", "token", "login"
 
+  def say_success(grant)
+    say "\nSuccessfully fetched token via a #{grant} grant.\nTarget: #{Config.target}\nContext: #{Config.context}\n"
+  end
+
+  def issuer_request(client_id, secret = nil)
+    update_target_info
+    yield TokenIssuer.new(Config.target.to_s, client_id, secret, Config.target_value(:token_endpoint))
+  rescue TargetError => e
+    complain e
+  end
+
   define_option :client, "--client <name>", "-c"
   define_option :scope, "--scope <list>"
   desc "token get [credentials...]",
@@ -87,7 +98,7 @@ class TokenCli < CommonCli
       end
       ti.implicit_grant_with_creds(creds, opts[:scope]).info
     }
-    return say "attempt to get token failed", "" unless token && token[:access_token]
+    return gripe "attempt to get token failed\n" unless token && token[:access_token]
     tokinfo = TokenCoder.decode(token[:access_token], nil, nil, false)
     Config.context = tokinfo[:user_name]
     Config.add_opts(user_id: tokinfo[:user_id])
@@ -154,7 +165,8 @@ class TokenCli < CommonCli
       vmc_tokens[vmc_target] = auth_header
       File.open(VMC_TOKEN_FILE, 'w') { |f| f.write(vmc_tokens.to_json) }
     rescue Exception => e
-      say "", "Unable to save token to vmc token file", "#{e.class}: #{e.message}", (e.backtrace if trace?)
+      gripe "\nUnable to save token to vmc token file"
+      complain e
     end
   end
 
@@ -179,8 +191,8 @@ class TokenCli < CommonCli
       else
         info = TokenCoder.decode(token, opts[:key], opts[:key], !!opts[:key])
         say info.inspect if trace?
+        say "\nNote: no key given to validate token signature\n\n" unless opts[:key]
         pp info
-        say "", "Note: no key given to validate token signature", "" unless opts[:key]
       end
     end
   end
@@ -194,22 +206,8 @@ class TokenCli < CommonCli
       return Config.delete(Config.target, Config.context) if Config.context
       say "no target set, no contexts given -- nothing to delete"
     rescue Exception => e
-      say "", "#{e.class}: #{e.message}", (e.backtrace if trace?), ""
+      complain e
     end
-  end
-
-  def say_success(grant)
-    say "", "Successfully fetched token via a #{grant} grant.",
-        "Target: #{Config.target}", "Context: #{Config.context}", ""
-  end
-
-  def issuer_request(client_id, secret = nil)
-    update_target_info
-    yield TokenIssuer.new(Config.target.to_s, client_id, secret, Config.target_value(:token_endpoint))
-  rescue TargetError => e
-    say "\n#{e.message}:\n#{JSON.pretty_generate(e.info)}"
-  rescue Exception => e
-    say "\n#{e.class}: #{e.message}", (e.backtrace if trace?)
   end
 
 end
