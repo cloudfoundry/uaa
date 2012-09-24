@@ -47,12 +47,17 @@ public interface SecurityContextAccessor {
 	 * @return the current user identifier (not primary key)
 	 */
 	String getUserId();
-	
+
 	/**
 	 * @return the current client identifier or null
 	 */
 	String getClientId();
-	
+
+	/**
+	 * Provides a representation of the current user/client authentication infromation for use in logs
+	 */
+	String getAuthenticationInfo();
+
 	/**
 	 * @return the authorities of the current principal (or empty if there is none)
 	 */
