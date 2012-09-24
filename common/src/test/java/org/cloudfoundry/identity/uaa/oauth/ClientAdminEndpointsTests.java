@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.security.StubSecurityContextAccessor;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -43,7 +44,7 @@ import org.springframework.security.oauth2.provider.NoSuchClientException;
 
 /**
  * @author Dave Syer
- * 
+ *
  */
 public class ClientAdminEndpointsTests {
 
@@ -467,39 +468,4 @@ public class ClientAdminEndpointsTests {
 		assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
 		assertEquals(1, endpoints.getErrorCounts().size());
 	}
-
-	private static class StubSecurityContextAccessor implements SecurityContextAccessor {
-
-		@Override
-		public boolean isClient() {
-			return false;
-		}
-
-		@Override
-		public boolean isUser() {
-			return false;
-		}
-
-		@Override
-		public boolean isAdmin() {
-			return false;
-		}
-
-		@Override
-		public String getUserId() {
-			return null;
-		}
-
-		@Override
-		public String getClientId() {
-			return null;
-		}
-
-		@Override
-		public Collection<? extends GrantedAuthority> getAuthorities() {
-			return Collections.emptySet();
-		}
-
-	}
-
 }

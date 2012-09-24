@@ -27,14 +27,15 @@ import org.springframework.security.core.authority.AuthorityUtils;
 
 /**
  * @author Dave Syer
- * 
+ * @author Luke Taylor
+ *
  */
-public class GroupsUsersEndpointsTests {
+public class UserIdConversionEndpointsTests {
 
 	@Rule
 	public ExpectedException expected = ExpectedException.none();
 
-	private GroupsUsersEndpoints endpoints = new GroupsUsersEndpoints();
+	private UserIdConversionEndpoints endpoints = new UserIdConversionEndpoints();
 
 	private SecurityContextAccessor securityContextAccessor = Mockito.mock(SecurityContextAccessor.class);
 
@@ -48,40 +49,26 @@ public class GroupsUsersEndpointsTests {
 	public void init() {
 		endpoints.setSecurityContextAccessor(securityContextAccessor);
 		endpoints.setScimUserEndpoints(scimUserEndpoints);
+		endpoints.setEnabled(true);
 		Mockito.when(securityContextAccessor.getAuthorities()).thenReturn(authorities);
 	}
 
 	@Test
-	public void testDefaultFilterHappyDay() {
-		endpoints.findUsers("orgs.foo", "", "ascending", 0, 100);
-	}
-
-	@Test
-	public void testDefaultFilterWrongGroup() {
-		expected.expect(ScimException.class);
-		expected.expectMessage(containsString("Current user"));
-		endpoints.findUsers("orgs.bar", "", "ascending", 0, 100);
+	public void testHappyDay() {
+		endpoints.findUsers("userName eq marissa", "ascending", 0, 100);
 	}
 
 	@Test
 	public void testBadFieldInFilter() {
 		expected.expect(ScimException.class);
 		expected.expectMessage(containsString("Invalid filter"));
-		endpoints.findUsers("orgs.foo", "emails.value eq 'foo@bar.org'", "ascending", 0, 100);
+		endpoints.findUsers("emails.value eq 'foo@bar.org'", "ascending", 0, 100);
 	}
 
 	@Test
 	public void testBadFilterWithGroup() {
 		expected.expect(ScimException.class);
 		expected.expectMessage(containsString("Invalid filter"));
-		endpoints.findUsers("orgs.foo", "groups.display co 'foo'", "ascending", 0, 100);
+		endpoints.findUsers("groups.display co 'foo'", "ascending", 0, 100);
 	}
-
-	@Test
-	public void testBadGroup() {
-		expected.expect(ScimException.class);
-		expected.expectMessage(containsString("Current user"));
-		endpoints.findUsers("uaa.user", "", "ascending", 0, 100);
-	}
-
 }

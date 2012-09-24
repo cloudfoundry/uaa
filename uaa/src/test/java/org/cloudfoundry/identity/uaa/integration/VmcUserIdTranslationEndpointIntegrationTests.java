@@ -38,17 +38,17 @@ import org.springframework.web.client.RestOperations;
 
 /**
  * Integration test to verify that the userid translation use cases are supported adequately for vmc.
- * 
+ *
  * @author Luke Taylor
  */
 @OAuth2ContextConfiguration(OAuth2ContextConfiguration.Implicit.class)
-public class VmcGroupsUsersEndpointIntegrationTests {
+public class VmcUserIdTranslationEndpointIntegrationTests {
 
 	private final String JOE = "joe" + new RandomValueStringGenerator().generate().toLowerCase();
 
 	private final String userEndpoint = "/Users";
 
-	private final String usersEndpoint = "/Groups/{group}/Users";
+	private final String idsEndpoint = "/ids/Users";
 
 	private ScimUser joe;
 
@@ -62,7 +62,7 @@ public class VmcGroupsUsersEndpointIntegrationTests {
 
 	@Rule
 	public OAuth2ContextSetup context = OAuth2ContextSetup.withTestAccounts(serverRunning, testAccounts);
-	
+
 	@BeforeOAuth2Context
 	@OAuth2ContextConfiguration(OAuth2ContextConfiguration.ClientCredentials.class)
 	public void setUpUserAccounts() {
@@ -99,19 +99,9 @@ public class VmcGroupsUsersEndpointIntegrationTests {
 	}
 
 	@Test
-	public void findUsersSucceeds() throws Exception {
-		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = serverRunning.getForObject(usersEndpoint.replace("{group}", "orgs.foo"), Map.class);
-		@SuppressWarnings("unchecked")
-		Map<String, Object> results = response.getBody();
-		assertEquals(HttpStatus.OK, response.getStatusCode());
-		assertNotNull("There should be resources", results.get("resources"));
-	}
-
-	@Test
 	public void findUsersWithExplicitFilterSucceeds() throws Exception {
 		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = serverRunning.getForObject(usersEndpoint.replace("{group}", "orgs.foo") + "?filter=userName eq '" + JOE + "'", Map.class);
+		ResponseEntity<Map> response = serverRunning.getForObject(idsEndpoint + "?filter=userName eq '" + JOE + "'", Map.class);
 		@SuppressWarnings("unchecked")
 		Map<String, Object> results = response.getBody();
 		assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -121,7 +111,7 @@ public class VmcGroupsUsersEndpointIntegrationTests {
 	@Test
 	public void findUsersExplicitEmailFails() throws Exception {
 		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = serverRunning.getForObject(usersEndpoint.replace("{group}", "orgs.foo") + "?filter=emails.value sw 'joe'", Map.class);
+		ResponseEntity<Map> response = serverRunning.getForObject(idsEndpoint + "?filter=emails.value sw 'joe'", Map.class);
 		@SuppressWarnings("unchecked")
 		Map<String, Object> results = response.getBody();
 		assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
@@ -131,7 +121,7 @@ public class VmcGroupsUsersEndpointIntegrationTests {
 	@Test
 	public void findUsersExplicitPresentFails() throws Exception {
 		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = serverRunning.getForObject(usersEndpoint.replace("{group}", "orgs.foo") + "?filter=pr userType", Map.class);
+		ResponseEntity<Map> response = serverRunning.getForObject(idsEndpoint + "?filter=pr userType", Map.class);
 		@SuppressWarnings("unchecked")
 		Map<String, Object> results = response.getBody();
 		assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
@@ -141,21 +131,10 @@ public class VmcGroupsUsersEndpointIntegrationTests {
 	@Test
 	public void findUsersExplicitGroupFails() throws Exception {
 		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = serverRunning.getForObject(usersEndpoint.replace("{group}", "orgs.foo") + "?filter=groups.display co 'foo'", Map.class);
+		ResponseEntity<Map> response = serverRunning.getForObject(idsEndpoint + "?filter=groups.display co 'foo'", Map.class);
 		@SuppressWarnings("unchecked")
 		Map<String, Object> results = response.getBody();
 		assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
 		assertNotNull("There should be an error", results.get("error"));
 	}
-
-	@Test
-	public void findUsersInOtherGroupFails() throws Exception {
-		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = serverRunning.getForObject(usersEndpoint.replace("{group}", "orgs.bar"), Map.class);
-		@SuppressWarnings("unchecked")
-		Map<String, Object> results = response.getBody();
-		assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
-		assertNotNull("There should be an error", results.get("error"));
-	}
-
 }
