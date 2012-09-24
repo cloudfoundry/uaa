@@ -13,14 +13,7 @@
 package org.cloudfoundry.identity.uaa.scim;
 
 import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -31,17 +24,17 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReport;
 import org.cloudfoundry.identity.uaa.rest.SimpleMessage;
+import org.cloudfoundry.identity.uaa.scim.groups.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.groups.ScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
-import org.springframework.expression.Expression;
 import org.springframework.expression.spel.SpelEvaluationException;
 import org.springframework.expression.spel.SpelParseException;
-import org.springframework.expression.spel.standard.SpelExpressionParser;
-import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConversionException;
@@ -82,6 +75,8 @@ public class ScimUserEndpoints implements InitializingBean {
 	private final Log logger = LogFactory.getLog(getClass());
 
 	private ScimUserProvisioning dao;
+
+	private ScimGroupMembershipManager membershipManager;
 
 	private Collection<String> schemas = Arrays.asList(ScimUser.SCHEMAS);
 
@@ -154,7 +149,7 @@ public class ScimUserEndpoints implements InitializingBean {
 	@RequestMapping(value = { "/User/{userId}", "/Users/{userId}" }, method = RequestMethod.GET)
 	@ResponseBody
 	public ScimUser getUser(@PathVariable String userId) {
-		return dao.retrieveUser(userId);
+		return syncGroups(dao.retrieveUser(userId));
 	}
 
 	// /User is from an old version of the spec
@@ -162,7 +157,7 @@ public class ScimUserEndpoints implements InitializingBean {
 	@ResponseStatus(HttpStatus.CREATED)
 	@ResponseBody
 	public ScimUser createUser(@RequestBody ScimUser user) {
-		return dao.createUser(user, user.getPassword() == null ? generatePassword() : user.getPassword());
+		return syncGroups(dao.createUser(user, user.getPassword() == null ? generatePassword() : user.getPassword()));
 	}
 
 	@RequestMapping(value = { "/User/{userId}", "/Users/{userId}" }, method = RequestMethod.PUT)
@@ -177,10 +172,10 @@ public class ScimUserEndpoints implements InitializingBean {
 		try {
 			ScimUser updated = dao.updateUser(userId, user);
 			scimUpdates.incrementAndGet();
-			return updated;
+			return syncGroups(updated);
 		}
 		catch (OptimisticLockingFailureException e) {
-			throw new UserConflictException(e.getMessage());
+			throw new ScimResourceConflictException(e.getMessage());
 		}
 	}
 
@@ -234,9 +229,11 @@ public class ScimUserEndpoints implements InitializingBean {
 	public ScimUser deleteUser(@PathVariable String userId,
 			@RequestHeader(value = "If-Match", required = false) String etag) {
 		int version = etag == null ? -1 : getVersion(userId, etag);
-		ScimUser deleted = dao.removeUser(userId, version);
+		ScimUser user = getUser(userId);
+		dao.removeUser(userId, version);
+		membershipManager.removeMembersByMemberId(userId);
 		scimDeletes.incrementAndGet();
-		return deleted;
+		return user;
 	}
 
 	private int getVersion(String userId, String etag) {
@@ -272,48 +269,43 @@ public class ScimUserEndpoints implements InitializingBean {
 		List<ScimUser> input;
 		try {
 			input = dao.retrieveUsers(filter, sortBy, sortOrder.equals("ascending"));
+			for (ScimUser user : input) {
+				syncGroups(user);
+			}
 		}
 		catch (IllegalArgumentException e) {
 			throw new ScimException("Invalid filter expression: [" + filter + "]", HttpStatus.BAD_REQUEST);
 		}
+
+		AttributeNameMapper mapper = new SimpleAttributeNameMapper(Collections.<String, String> singletonMap("emails\\.(.*)", "emails.![$1]"));
 		String[] attributes = attributesCommaSeparated.split(",");
-		Map<String, Expression> expressions = new LinkedHashMap<String, Expression>();
-
-		for (String attribute : attributes) {
-
-			String spel = attribute.replaceAll("emails\\.(.*)", "emails.![$1]");
-			logger.debug("Registering SpEL for attribute: " + spel);
-
-			Expression expression;
-			try {
-				expression = new SpelExpressionParser().parseExpression(spel);
-			}
-			catch (SpelParseException e) {
-				throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]",
-						HttpStatus.BAD_REQUEST);
-			}
-
-			expressions.put(attribute, expression);
-
-		}
-
-		Collection<Map<String, Object>> users = new ArrayList<Map<String, Object>>();
-		StandardEvaluationContext context = new StandardEvaluationContext();
 		try {
-			for (ScimUser user : input.subList(startIndex - 1, startIndex + count - 1)) {
-				Map<String, Object> map = new LinkedHashMap<String, Object>();
-				for (String attribute : expressions.keySet()) {
-					map.put(attribute, expressions.get(attribute).getValue(context, user));
-				}
-				users.add(map);
-			}
-		}
-		catch (SpelEvaluationException e) {
+			return SearchResultsFactory.buildSearchResultFrom(input, startIndex, count, attributes, mapper);
+		} catch (SpelParseException e) {
+			throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST);
+		} catch (SpelEvaluationException e) {
 			throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST);
 		}
+	}
 
-		return new SearchResults<Map<String, Object>>(schemas, users, 1, count, input.size());
+	private ScimUser syncGroups(ScimUser user) {
+		if (user == null) {
+			return user;
+		}
 
+		Set<ScimGroup> directGroups = membershipManager.getGroupsWithMember(user.getId(), false);
+		Set<ScimGroup> indirectGroups = membershipManager.getGroupsWithMember(user.getId(), true);
+		indirectGroups.removeAll(directGroups);
+		Set<ScimUser.Group> groups = new HashSet<ScimUser.Group>();
+		for (ScimGroup group : directGroups) {
+			groups.add(new ScimUser.Group(group.getId(), group.getDisplayName(), ScimUser.Group.MembershipType.DIRECT));
+		}
+		for (ScimGroup group : indirectGroups) {
+			groups.add(new ScimUser.Group(group.getId(), group.getDisplayName(), ScimUser.Group.MembershipType.INDIRECT));
+		}
+
+		user.setGroups(groups);
+		return user;
 	}
 
 	@ExceptionHandler
@@ -363,6 +355,10 @@ public class ScimUserEndpoints implements InitializingBean {
 		this.dao = dao;
 	}
 
+	public void setScimGroupMembershipManager(ScimGroupMembershipManager membershipManager) {
+		this.membershipManager = membershipManager;
+	}
+
 	void setSecurityContextAccessor(SecurityContextAccessor securityContextAccessor) {
 		this.securityContextAccessor = securityContextAccessor;
 	}
@@ -370,5 +366,6 @@ public class ScimUserEndpoints implements InitializingBean {
 	@Override
 	public void afterPropertiesSet() throws Exception {
 		Assert.notNull(dao, "ScimUserProvisioning must be set");
+		Assert.notNull(membershipManager, "ScimGroupMembershipManager must be set");
 	}
 }

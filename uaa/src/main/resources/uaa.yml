@@ -2,7 +2,7 @@ oauth:
   authorize:
    ssl: # set this to "true" to force https to be used by the user approval page 
   clients:
-    admin:    
+    admin:
       authorized-grant-types: client_credentials
       scope: uaa.none
       authorities: uaa.admin,clients.read,clients.write,clients.secret,tokens.read,tokens.write

@@ -15,10 +15,12 @@ package org.cloudfoundry.identity.uaa.test;
 import static org.junit.Assert.assertEquals;
 
 import java.sql.Connection;
+import java.util.Arrays;
 
 import javax.sql.DataSource;
 
 import org.cloudfoundry.identity.uaa.integration.TestProfileEnvironment;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -73,6 +75,14 @@ public class TestUtils {
 
 	public static void assertNoSuchUser(JdbcTemplate template, String column, String value) {
 		assertEquals(0, template.queryForInt("select count(id) from users where " + column + "='" + value + "'"));
+	}
+
+	public static ScimUser scimUserInstance(String email) {
+		ScimUser user = new ScimUser("", email, email, email);
+		ScimUser.Email em = new ScimUser.Email();
+		em.setValue(email);
+		user.setEmails(Arrays.asList(em));
+		return user;
 	}
 
 }

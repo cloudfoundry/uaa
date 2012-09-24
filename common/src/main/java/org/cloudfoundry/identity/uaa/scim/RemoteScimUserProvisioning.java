@@ -13,6 +13,7 @@
 
 package org.cloudfoundry.identity.uaa.scim;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.http.HttpEntity;
@@ -48,7 +49,7 @@ public class RemoteScimUserProvisioning implements ScimUserProvisioning {
 	}
 
 	@Override
-	public ScimUser retrieveUser(String id) throws UserNotFoundException {
+	public ScimUser retrieveUser(String id) throws ScimResourceNotFoundException {
 		return restTemplate.getForObject(baseUrl + "/User/{id}", ScimUser.class, id);
 	}
 
@@ -72,19 +73,19 @@ public class RemoteScimUserProvisioning implements ScimUserProvisioning {
 	}
 
 	@Override
-	public ScimUser createUser(ScimUser user, String password) throws InvalidPasswordException, InvalidUserException {
+	public ScimUser createUser(ScimUser user, String password) throws InvalidPasswordException, InvalidScimResourceException {
 		user.setPassword(password);
 		return restTemplate.postForObject(baseUrl + "/User", user, ScimUser.class);
 	}
 
 	@Override
-	public ScimUser updateUser(String id, ScimUser user) throws InvalidUserException, UserNotFoundException {
+	public ScimUser updateUser(String id, ScimUser user) throws InvalidScimResourceException, ScimResourceNotFoundException {
 		restTemplate.put(baseUrl + "/User/{id}", user, id);
 		return user;
 	}
 
 	@Override
-	public boolean changePassword(String id, String oldPassword, String newPassword) throws UserNotFoundException {
+	public boolean changePassword(String id, String oldPassword, String newPassword) throws ScimResourceNotFoundException {
 		PasswordChangeRequest request = new PasswordChangeRequest();
 		request.setOldPassword(oldPassword);
 		request.setPassword(newPassword);
@@ -93,7 +94,7 @@ public class RemoteScimUserProvisioning implements ScimUserProvisioning {
 	}
 
 	@Override
-	public ScimUser removeUser(String id, int version) throws UserNotFoundException {
+	public ScimUser removeUser(String id, int version) throws ScimResourceNotFoundException {
 		HttpHeaders headers = new HttpHeaders();
 		headers.set("If-Match", String.format("%d", version));
 		return restTemplate.exchange(baseUrl + "/User/{id}", HttpMethod.DELETE, new HttpEntity<Void>(headers), ScimUser.class, id).getBody();

@@ -21,7 +21,7 @@ import java.util.List;
  */
 public interface ScimUserProvisioning {
 
-	public ScimUser retrieveUser(String id) throws UserNotFoundException;
+	public ScimUser retrieveUser(String id) throws ScimResourceNotFoundException;
 
 	public List<ScimUser> retrieveUsers();
 
@@ -29,12 +29,12 @@ public interface ScimUserProvisioning {
 
 	public List<ScimUser> retrieveUsers(String filter, String sortBy, boolean ascending);
 
-	public ScimUser createUser(ScimUser user, String password) throws InvalidPasswordException, InvalidUserException;
+	public ScimUser createUser(ScimUser user, String password) throws InvalidPasswordException, InvalidScimResourceException;
 
-	public ScimUser updateUser(String id, ScimUser user) throws InvalidUserException, UserNotFoundException;
+	public ScimUser updateUser(String id, ScimUser user) throws InvalidScimResourceException, ScimResourceNotFoundException;
 
-	public boolean changePassword(String id, String oldPassword, String newPassword) throws UserNotFoundException;
+	public boolean changePassword(String id, String oldPassword, String newPassword) throws ScimResourceNotFoundException;
 
-	public ScimUser removeUser(String id, int version) throws UserNotFoundException;
+	public ScimUser removeUser(String id, int version) throws ScimResourceNotFoundException;
 
 }
