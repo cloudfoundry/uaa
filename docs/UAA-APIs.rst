@@ -547,12 +547,12 @@ Deleting accounts is handled in the back end logically using the `active` flag, 
 * Request: ``GET /Users?attributes=id,userName&filter=userName co 'bjensen' and active eq false``
 * Response Body: list of users matching the filter
 
-Query Group Membership
-----------------------
+Converting UserIds to Names
+---------------------------
 
-There is a SCIM-like endpoint for querying group membership, with the same filter and attribute syntax as ``/Users``, but with restrictions on how it can be used.  A special purpose endpoint for use as a user id/name translation api. It will be used by vmc so it has to be quite restricted in function (i.e. it's not a general purpose groups or users endpoint). You can only query it, as a user, for usernames and user ids in the same group as you. Otherwise the API is the same as /Users.
+There is a SCIM-like endpoint for converting usernames to names, with the same filter and attribute syntax as ``/Users``. It must be supplied with a ``filter`` parameter.  It is a special purpose endpoint for use as a user id/name translation api, and is should be disabled in production sites by setting ``scim.userids-enabled=false`` in the UAA configuration. It will be used by vmc so it has to be quite restricted in function (i.e. it's not a general purpose groups or users endpoint). Otherwise the API is the same as /Users.
 
-* Request: ``GET /Groups/{group}/Users``
+* Request: ``GET /ids/Users``
 * Response Body: list of users matching the filter
 
 Query the strength of a password: ``POST /password/score``
