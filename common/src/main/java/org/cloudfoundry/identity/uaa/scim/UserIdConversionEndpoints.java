@@ -22,6 +22,8 @@ import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
@@ -31,24 +33,23 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.View;
 
 /**
  * @author Dave Syer
- * 
+ * @author Luke Taylor
+ *
  */
 @Controller
-public class GroupsUsersEndpoints implements InitializingBean {
+public class UserIdConversionEndpoints implements InitializingBean {
+	private final Log logger = LogFactory.getLog(getClass());
 
 	private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
 
 	private ScimUserEndpoints scimUserEndpoints;
+
+	private boolean enabled = true;
 
 	private Set<Pattern> patterns = new HashSet<Pattern>();
 
@@ -74,19 +75,31 @@ public class GroupsUsersEndpoints implements InitializingBean {
 		this.scimUserEndpoints = scimUserEndpoints;
 	}
 
-	@RequestMapping(value = "/Groups/{group}/Users", method = RequestMethod.GET)
+	/**
+	 * Determines whether this endpoint is active or not.
+	 * If not enabled, it will return a 404.
+	 */
+	public void setEnabled(boolean enabled) {
+		this.enabled = enabled;
+	}
+
+	@RequestMapping(value = "/ids/Users", method = RequestMethod.GET)
 	@ResponseBody
-	public SearchResults<Map<String, Object>> findUsers(@PathVariable String group,
-			@RequestParam(required = false, defaultValue = "") String filter,
+	public SearchResults<Map<String, Object>> findUsers(
+			@RequestParam(required = true, defaultValue = "") String filter,
 			@RequestParam(required = false, defaultValue = "ascending") String sortOrder,
 			@RequestParam(required = false, defaultValue = "1") int startIndex,
 			@RequestParam(required = false, defaultValue = "100") int count) {
+		if (!enabled) {
+			logger.warn("Request from user "+ securityContextAccessor.getAuthenticationInfo() +
+					" received at disabled Id translation endpoint with filter:" + filter);
+			throw new UnsupportedOperationException();
+		}
+
+		filter = filter.trim();
+
 		checkFilter(filter);
-		checkGroup(group);
-		String appended = filter.trim();
-		appended = (appended.length() > 0 ? "(" : "") + appended + (appended.length() > 0 ? ") and " : "")
-				+ "groups.display co '" + group + "'";
-		return scimUserEndpoints.findUsers("id,userName", appended, "userName", sortOrder, startIndex, count);
+		return scimUserEndpoints.findUsers("id,userName", filter, "userName", sortOrder, startIndex, count);
 	}
 
 	@ExceptionHandler
@@ -94,11 +107,20 @@ public class GroupsUsersEndpoints implements InitializingBean {
 		return scimUserEndpoints.handleException(t, request);
 	}
 
+	@ExceptionHandler
+	@ResponseStatus(HttpStatus.NOT_FOUND)
+	public void handleException(UnsupportedOperationException e) {
+	}
+
 	private void checkFilter(String filter) {
+		if (filter.isEmpty()) {
+			throw new ScimException("a 'filter' parameter is required", HttpStatus.BAD_REQUEST);
+		}
+
 		String lowerCase = filter.toLowerCase();
 		if (lowerCase.contains("groups.")) {
 			throw new ScimException(
-					"Invalid filter expression: [" + filter + "] (no group filters allowed on /Groups)",
+					"Invalid filter expression: [" + filter + "] (no group filters allowed on /ids/Users)",
 					HttpStatus.BAD_REQUEST);
 		}
 		for (Pattern pattern : patterns) {
@@ -107,23 +129,9 @@ public class GroupsUsersEndpoints implements InitializingBean {
 				String field = matcher.group(2);
 				if (!"username".equals(field) && !"id".equals(field)) {
 					throw new ScimException("Invalid filter expression: [" + filter + "] (no " + field
-							+ " filters allowed on /Groups)", HttpStatus.BAD_REQUEST);
+							+ " filters allowed on /ids/Users)", HttpStatus.BAD_REQUEST);
 				}
 			}
-		}
-	}
-
-	private void checkGroup(String group) {
-		if (securityContextAccessor.isClient() || securityContextAccessor.isAdmin()) {
-			return;
-		}
-		if (UaaAuthority.UAA_USER.toString().equals(group)) {			
-			throw new ScimException("Current user is not allowed to query group: " + group, HttpStatus.FORBIDDEN);
-		}
-		Collection<? extends GrantedAuthority> authorities = securityContextAccessor.getAuthorities();
-		Set<String> values = AuthorityUtils.authorityListToSet(authorities);
-		if (!values.contains(group)) {
-			throw new ScimException("Current user is not in requested group: " + group, HttpStatus.FORBIDDEN);
 		}
 	}
 

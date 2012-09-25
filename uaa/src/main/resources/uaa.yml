@@ -1,6 +1,6 @@
 oauth:
   authorize:
-   ssl: # set this to "true" to force https to be used by the user approval page 
+   ssl: # set this to "true" to force https to be used by the user approval page
   clients:
     admin:
       authorized-grant-types: client_credentials
@@ -12,6 +12,7 @@ oauth:
 scim:
   delete:
     deactivate: false
+  userids-enabled: true
 
 password-policy:
   required-score: 0

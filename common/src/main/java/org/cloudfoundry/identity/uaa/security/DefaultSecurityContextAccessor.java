@@ -57,6 +57,24 @@ public class DefaultSecurityContextAccessor implements SecurityContextAccessor {
 	}
 
 	@Override
+	public String getAuthenticationInfo() {
+		Authentication a = SecurityContextHolder.getContext().getAuthentication();
+
+		if (a instanceof OAuth2Authentication) {
+			OAuth2Authentication oauth = ((OAuth2Authentication) a);
+
+			String info = getClientId();
+			if (!oauth.isClientOnly()) {
+				info = info + "; " + a.getName() + "; " + getUserId();
+			}
+
+			return info;
+		} else {
+			return a.getName();
+		}
+	}
+
+	@Override
 	public String getClientId() {
 		Authentication a = SecurityContextHolder.getContext().getAuthentication();
 
