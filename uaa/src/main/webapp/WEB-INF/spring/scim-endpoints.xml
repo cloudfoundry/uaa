@@ -14,12 +14,12 @@
 		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.1.xsd">
 
 	<bean id="nameMapper" class="org.cloudfoundry.identity.uaa.scim.SimpleAttributeNameMapper">
-		<constructor-arg>
-			<util:map>
-				<entry key="emails\\.value" value="email" />
-				<entry key="groups\\.display" value="authorities" />
-				<entry key="phoneNumbers\\.value" value="phoneNumber" />
-			</util:map>
+		<constructor-arg name="paramsMap">
+			<map key-type="java.lang.String" value-type="java.lang.String">
+				<entry key="emails\.value" value="email" />
+				<entry key="groups\.display" value="authorities" />
+				<entry key="phoneNumbers\.value" value="phoneNumber" />
+			</map>
 		</constructor-arg>
 	</bean>
 

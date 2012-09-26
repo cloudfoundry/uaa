@@ -118,7 +118,7 @@ public class ScimUserEndpointsIntegrationTests {
 
 		System.err.println(error);
 		assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-		assertEquals("invalid_user", error.get("error"));
+		assertEquals("invalid_scim_resource", error.get("error"));
 
 	}
 
@@ -251,7 +251,7 @@ public class ScimUserEndpointsIntegrationTests {
 		Map<String, String> error = response.getBody();
 
 		// System.err.println(error);
-		assertEquals("user_already_exists", error.get("error"));
+		assertEquals("scim_resource_already_exists", error.get("error"));
 
 	}
 
@@ -264,7 +264,7 @@ public class ScimUserEndpointsIntegrationTests {
 		@SuppressWarnings("unchecked")
 		Map<String, String> error = response.getBody();
 		// System.err.println(error);
-		assertEquals("user_not_found", error.get("error"));
+		assertEquals("scim_resource_not_found", error.get("error"));
 		assertEquals("User 9999 does not exist", error.get("message"));
 
 	}
@@ -289,7 +289,7 @@ public class ScimUserEndpointsIntegrationTests {
 		@SuppressWarnings("unchecked")
 		Map<String, String> error = response.getBody();
 		assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-		assertEquals("user_not_found", error.get("error"));
+		assertEquals("scim_resource_not_found", error.get("error"));
 		assertEquals("User 9999 does not exist", error.get("message"));
 	}
 
