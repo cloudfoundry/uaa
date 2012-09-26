@@ -13,11 +13,15 @@
 
 	<import resource="spring/env.xml" />
 
-	<context:property-placeholder properties-ref="applicationProperties"/>
+	<context:property-placeholder properties-ref="applicationProperties" />
 
 	<context:mbean-server id="mbeanServer" />
-	
-	<security:http pattern="/healthz/**" security="none"/>
+
+	<http pattern="/healthz/**" create-session="stateless" entry-point-ref="authenticationEntryPoint"
+		security-context-repository-ref="securityContextRepository" xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY" />
+		<anonymous enabled="true" />
+	</http>
 
 	<http pattern="/varz/**" create-session="stateless" entry-point-ref="authenticationEntryPoint"
 		security-context-repository-ref="securityContextRepository" xmlns="http://www.springframework.org/schema/security">
@@ -29,7 +33,7 @@
 
 	<alias alias="varzSecurityFilterChain" name="springSecurityFilterChain" />
 
-	<bean id="securityContextRepository" class="org.springframework.security.web.context.NullSecurityContextRepository"/>
+	<bean id="securityContextRepository" class="org.springframework.security.web.context.NullSecurityContextRepository" />
 
 	<authentication-manager xmlns="http://www.springframework.org/schema/security">
 		<authentication-provider>
@@ -48,12 +52,12 @@
 	</bean>
 
 	<mvc:annotation-driven />
-	
+
 	<!-- Override the default mapping so that domain names with periods can be used -->
 	<bean class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping">
-		<property name="useSuffixPatternMatch" value="false"/>
-		<property name="alwaysUseFullPath" value="true"/>
-		<property name="order" value="-1"/>
+		<property name="useSuffixPatternMatch" value="false" />
+		<property name="alwaysUseFullPath" value="true" />
+		<property name="order" value="-1" />
 	</bean>
 
 	<bean id="varzEndpoint" class="org.cloudfoundry.identity.uaa.varz.VarzEndpoint">
@@ -63,7 +67,9 @@
 				<entry key="type" value="UAA" />
 			</map>
 		</property>
-		<property name="environmentProperties" ref="applicationProperties"/>
+		<property name="environmentProperties" ref="applicationProperties" />
 	</bean>
+
+	<bean id="healthzEndpoint" class="org.cloudfoundry.identity.uaa.varz.HealthzEndpoint" />
 
 </beans>
