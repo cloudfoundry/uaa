@@ -35,6 +35,16 @@
 	</filter-mapping>
 
 	<filter-mapping>
+		<filter-name>varzSecurityFilterChain</filter-name>
+		<url-pattern>/healthz/*</url-pattern>
+	</filter-mapping>
+
+	<filter-mapping>
+		<filter-name>varzSecurityFilterChain</filter-name>
+		<url-pattern>/healthz</url-pattern>
+	</filter-mapping>
+
+	<filter-mapping>
 		<filter-name>springSecurityFilterChain</filter-name>
 		<url-pattern>/*</url-pattern>
 	</filter-mapping>
