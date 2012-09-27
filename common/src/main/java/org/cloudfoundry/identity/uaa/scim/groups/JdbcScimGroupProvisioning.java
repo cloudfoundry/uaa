@@ -1,28 +1,33 @@
 package org.cloudfoundry.identity.uaa.scim.groups;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.Date;
+import java.util.List;
+import java.util.UUID;
+import java.util.regex.Pattern;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.scim.*;
+import org.cloudfoundry.identity.uaa.scim.InvalidScimResourceException;
+import org.cloudfoundry.identity.uaa.scim.JdbcPagingList;
+import org.cloudfoundry.identity.uaa.scim.ScimMeta;
+import org.cloudfoundry.identity.uaa.scim.ScimResourceAlreadyExistsException;
+import org.cloudfoundry.identity.uaa.scim.ScimResourceNotFoundException;
+import org.cloudfoundry.identity.uaa.scim.ScimSearchQueryConverter;
+import org.cloudfoundry.identity.uaa.scim.SearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.SearchQueryConverter.ProcessedFilter;
-import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
-import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
-import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
-
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.util.*;
-import java.util.regex.Pattern;
 
 public class JdbcScimGroupProvisioning implements ScimGroupProvisioning {
 

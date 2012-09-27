@@ -214,26 +214,6 @@ public class RemoteUaaController {
 		return credentials;
 	}
 
-	private void appendField(StringBuilder login, String key, Object value) {
-		if (value != null) {
-			if (login.length() > 1) {
-				login.append(",");
-			}
-			quote(login, key).append(":");
-			if (value instanceof CharSequence) {
-				quote(login, (CharSequence) value);
-			}
-			else {
-				login.append(value);
-			}
-		}
-	}
-
-	private StringBuilder quote(StringBuilder login, CharSequence string) {
-		login.append("\"").append(string).append("\"");
-		return login;
-	}
-
 	private ResponseEntity<byte[]> passthru(HttpServletRequest request, HttpEntity<byte[]> entity,
 			Map<String, Object> model) throws Exception {
 

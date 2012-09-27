@@ -1,12 +1,21 @@
 package org.cloudfoundry.identity.uaa.scim.groups;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.scim.*;
+import org.cloudfoundry.identity.uaa.scim.ScimCore;
+import org.cloudfoundry.identity.uaa.scim.ScimResourceAlreadyExistsException;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.util.StringUtils;
-
-import java.util.*;
 
 public class ScimGroupBootstrap implements InitializingBean {
 
@@ -17,7 +26,6 @@ public class ScimGroupBootstrap implements InitializingBean {
 	private Map<String, Set<String>> groupAdmins;
 
 	private final ScimGroupProvisioning scimGroupProvisioning;
-	private ScimGroupEndpoints groupEndpoints;
 
 	private final ScimGroupMembershipManager membershipManager;
 

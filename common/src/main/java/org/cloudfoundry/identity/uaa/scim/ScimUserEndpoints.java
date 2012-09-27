@@ -13,7 +13,13 @@
 package org.cloudfoundry.identity.uaa.scim;
 
 import java.security.SecureRandom;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -28,7 +34,6 @@ import org.cloudfoundry.identity.uaa.scim.groups.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.groups.ScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
-import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -77,8 +82,6 @@ public class ScimUserEndpoints implements InitializingBean {
 	private ScimUserProvisioning dao;
 
 	private ScimGroupMembershipManager membershipManager;
-
-	private Collection<String> schemas = Arrays.asList(ScimUser.SCHEMAS);
 
 	private static final Random passwordGenerator = new SecureRandom();
 	

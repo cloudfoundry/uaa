@@ -1,17 +1,18 @@
 package org.cloudfoundry.identity.uaa.scim.groups;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
+import java.util.Arrays;
+
+import javax.sql.DataSource;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.scim.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.NullPasswordValidator;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUserBootstrap;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
-import static org.junit.Assert.*;
-
-import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.jruby.RubyGlobal;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -22,9 +23,6 @@ import org.springframework.test.annotation.IfProfileValue;
 import org.springframework.test.annotation.ProfileValueSourceConfiguration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import javax.sql.DataSource;
-import java.util.Arrays;
 
 @ContextConfiguration("classpath:/test-data-source.xml")
 @RunWith(SpringJUnit4ClassRunner.class)

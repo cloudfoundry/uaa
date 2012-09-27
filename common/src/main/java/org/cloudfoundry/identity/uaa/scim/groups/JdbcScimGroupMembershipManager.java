@@ -1,25 +1,31 @@
 package org.cloudfoundry.identity.uaa.scim.groups;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.scim.*;
-import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.scim.InvalidScimResourceException;
+import org.cloudfoundry.identity.uaa.scim.JdbcPagingList;
+import org.cloudfoundry.identity.uaa.scim.ScimResourceNotFoundException;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
-import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
-
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.util.*;
 
 public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManager {
 
@@ -254,7 +260,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 		}
 
 		// check if the group exists and the member-id is a valid group or user id
-		ScimGroup group = groupProvisioning.retrieveGroup(groupId); // this will throw a ScimException if the group does not exist
+		groupProvisioning.retrieveGroup(groupId); // this will throw a ScimException if the group does not exist
 		// this will throw a ScimException if the group or user does not exist
 		if (member.getType() == ScimGroupMember.Type.GROUP) {
 			groupProvisioning.retrieveGroup(member.getMemberId());

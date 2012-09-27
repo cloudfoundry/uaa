@@ -13,18 +13,13 @@
 package org.cloudfoundry.identity.uaa.scim;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.cloudfoundry.identity.uaa.scim.json.JsonDateDeserializer;
-import org.cloudfoundry.identity.uaa.scim.json.JsonDateSerializer;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
-import org.codehaus.jackson.map.annotate.JsonDeserialize;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 import org.springframework.util.Assert;
 

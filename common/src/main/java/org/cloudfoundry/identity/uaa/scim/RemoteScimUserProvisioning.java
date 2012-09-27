@@ -13,7 +13,6 @@
 
 package org.cloudfoundry.identity.uaa.scim;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.http.HttpEntity;

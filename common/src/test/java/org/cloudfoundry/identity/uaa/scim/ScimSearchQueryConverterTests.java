@@ -1,22 +1,17 @@
 package org.cloudfoundry.identity.uaa.scim;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
 import org.cloudfoundry.identity.uaa.scim.SearchQueryConverter.ProcessedFilter;
+import org.junit.Test;
 
 public class ScimSearchQueryConverterTests {
 
 	private ScimSearchQueryConverter filterProcessor = new ScimSearchQueryConverter();
-
-	private final Log logger = LogFactory.getLog(getClass());
 
 	@Test
 	public void canConvertValidFilters() throws Exception {

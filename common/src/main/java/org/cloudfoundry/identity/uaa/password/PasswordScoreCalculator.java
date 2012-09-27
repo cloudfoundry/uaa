@@ -13,7 +13,6 @@
 
 package org.cloudfoundry.identity.uaa.password;
 
-import java.util.List;
 
 /**
  * Computes a strength/score for a given password

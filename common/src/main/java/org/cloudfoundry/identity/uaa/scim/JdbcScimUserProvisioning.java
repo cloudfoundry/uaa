@@ -17,19 +17,14 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Name;
-import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.scim.SearchQueryConverter.ProcessedFilter;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DuplicateKeyException;
@@ -43,7 +38,6 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.Assert;
-import org.springframework.util.StringUtils;
 
 /**
  * @author Luke Taylor
@@ -344,20 +338,6 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	public void setPasswordEncoder(PasswordEncoder passwordEncoder) {
 		Assert.notNull(passwordEncoder, "passwordEncoder cannot be null");
 		this.passwordEncoder = passwordEncoder;
-	}
-
-	private void normalizeGroups(ScimUser user) {
-		Set<Group> groups = new LinkedHashSet<Group>();
-		if (user.getGroups()!=null) {
-			groups.addAll(user.getGroups());
-		}
-		// Everyone is a user
-		groups.add(new Group(null, UaaAuthority.UAA_USER.getAuthority()));
-		if (user.getUserType()!=null && user.getUserType().contains("admin")) {
-			// Some people are also admins
-			groups.add(new Group(null, UaaAuthority.UAA_ADMIN.getAuthority()));
-		}
-		user.setGroups(new ArrayList<Group>(groups));
 	}
 
 	private static final class ScimUserRowMapper implements RowMapper<ScimUser> {
