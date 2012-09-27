@@ -105,7 +105,7 @@
 
 	<bean id="idConversionEndpoints" class="org.cloudfoundry.identity.uaa.scim.UserIdConversionEndpoints">
 		<property name="scimUserEndpoints" ref="scimUserEndpoints" />
-		<property name="enabled" value="${scim.userids-enabled:true}"/>
+		<property name="enabled" value="${scim.userids_enabled:true}"/>
 	</bean>
 
 	<http pattern="/User*/*/password" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
