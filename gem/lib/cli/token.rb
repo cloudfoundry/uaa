@@ -197,7 +197,7 @@ class TokenCli < CommonCli
     end
   end
 
-  define_option :all, "--[no-]all", "-a", "remove all contexts"
+  define_option :all, "--[no-]all", "remove all contexts"
   desc "token delete [contexts...]",
       "Delete current or specified context tokens and settings", :all do |*args|
     begin

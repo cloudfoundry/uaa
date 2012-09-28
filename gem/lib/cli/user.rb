@@ -23,15 +23,13 @@ class UserCli < CommonCli
   define_option :givenName, "--given_name <name>"
   define_option :familyName, "--family_name <name>"
   define_option :emails, "--emails <addresses>"
-  define_option :groups, "--groups <groups>"
   define_option :phoneNumbers, "--phones <phone_numbers>"
-  USER_INFO_OPTS = [:givenName, :familyName, :emails, :groups, :phoneNumbers]
+  USER_INFO_OPTS = [:givenName, :familyName, :emails, :phoneNumbers]
 
   def user_opts(info = {})
-    [:emails, :groups, :phoneNumbers].each do |o|
+    [:emails, :phoneNumbers].each do |o|
       next unless opts[o]
-      subattr = o == :groups ? :display : :value # TODO: fix this when group membership is complete
-      info[o] = Util.arglist(opts[o]).each_with_object([]) { |v, a| a << {subattr => v} }
+      info[o] = Util.arglist(opts[o]).each_with_object([]) { |v, a| a << {:value => v} }
     end
     n = [:givenName, :familyName].each_with_object({}) { |o, n| n[o] = opts[o] if opts[o] }
     info[:name] = n unless n.empty?
@@ -44,8 +42,9 @@ class UserCli < CommonCli
     complain e
   end
 
-  desc "users [attributes] [filter]", "List user accounts" do |attributes, filter|
-    pp acct_request { |ua| ua.query(attributes, filter) }
+  define_option :attrs, "-a", "--attributes <attr_names>", "list of attributes to get for each user"
+  desc "users [filter]", "List user accounts", :attrs do |filter|
+    pp acct_request { |ua| ua.query(opts[:attrs], filter) }
   end
 
   desc "user get [name]", "Get specific user account" do |name|
@@ -82,6 +81,10 @@ class UserCli < CommonCli
       ua.delete_by_name(username(name))
       "user account successfully deleted"
     }
+  end
+
+  desc "user ids [username|id...]", "Gets user names and ids for the given users" do |name, *users|
+    pp acct_request { |ua| ua.ids(name, *users) }
   end
 
   desc "password set [name]", "Set password", :password do |name|

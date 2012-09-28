@@ -33,8 +33,8 @@ describe TokenIssuer do
             @stub_uaa.scim.id("openid", :group)],
         scope: [@stub_uaa.scim.id("openid", :group)],
         access_token_validity: 60 * 60 * 24 * 8 )
-    @stub_uaa.scim.add(:user, username: "joe+admin", password: "?joe's%password$@ ",
-        groups: [@stub_uaa.scim.id("openid", :group)])
+    id = @stub_uaa.scim.add(:user, username: "joe+admin", password: "?joe's%password$@ ")
+    @stub_uaa.auto_groups.each {|g| @stub_uaa.scim.add_member(g, id)}
     @issuer = TokenIssuer.new(@stub_uaa.url, "test_client", "test_secret")
     @issuer.async = @async = false
     @state = {}

@@ -28,36 +28,39 @@ class GroupCli < CommonCli
 
   def gname(name) name || ask("Group name") end
 
-  desc "groups [attributes] [filter]", "List groups" do |attributes, filter|
-    pp acct_request { |ua| ua.query_groups(attributes, filter) }
+  desc "groups [filter]", "List groups", :attrs do |filter|
+    pp acct_request { |ua| ua.query_groups(opts[:attrs], filter) }
   end
 
   desc "group get [name]", "Get specific group information" do |name|
-    pp acct_request { |ua| ua.get_group(gname(name)) }
+    pp acct_request { |ua| ua.get_group_by_name(gname(name)) }
   end
 
   desc "group add [name]", "Adds a group" do |name|
-    pp acct_request { |ua| ua.add_group(gname(name)) }
+    pp acct_request { |ua| ua.add_group(displayName: gname(name)) }
   end
 
   desc "group delete [name]", "Delete group" do |name|
-    pp acct_request { |ua| ua.delete_group(gname(name)) }
+    pp acct_request { |ua| ua.delete_group(ua.group_id_from_name(gname(name))) }
   end
 
-  desc "group increase [name] [members...]", "add members to a group" do |name, *members|
-    pp acct_request { |ua| ua.update_group(gname(name), members: members) }
+  desc "member add [name] [members...]", "add members to a group" do |name, *members|
+    pp acct_request { |ua|
+      group = ua.get_group_by_name(gname(name))
+      info = ua.ids(*members)
+      group[:members] = info.each_with_object(group[:members] || []) {|m, o| o << m[:id] }
+      ua.update_group(group[:id], group)
+    }
   end
 
-  desc "group decrease [name] [members...]", "remove members from a group" do |name, *members|
-    dm = members.each_with_object([]) { |m, dm| dm << {value: m, operation: "delete"} }
-    pp acct_request { |ua| ua.update_group(gname(name), members: dm) }
+  desc "member delete [name] [members...]", "remove members from a group" do |name, *members|
+    pp acct_request { |ua|
+      group = ua.get_group_by_name(gname(name))
+      info = ua.ids(*members)
+      group[:members] = group[:members] - ua.ids
+      ua.update_group(group[:id], group)
+    }
   end
-
-  desc "group members [name] [username|id...]", "Gets user names and ids for the given users" do |name, *users|
-    pp acct_request { |ua| ua.members(name, *users) }
-  end
-
-
 
 end
 
