@@ -25,7 +25,7 @@ public class SearchResultsFactory {
 			results.add(map);
 		}
 
-		return new SearchResults<Map<String, Object>>(schemas, results, 1, count, input.size());
+		return new SearchResults<Map<String, Object>>(schemas, results, startIndex, count, input.size());
 	}
 
 	private static Map<String, Expression> buildExpressions(String[] attributes, AttributeNameMapper mapper) {
