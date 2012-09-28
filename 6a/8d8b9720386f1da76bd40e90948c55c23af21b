@@ -1,0 +1,7 @@
+Code-Review+2: Dave Syer <dsyer@vmware.com>
+Verified+1: CI Master <cf-ci@rbcon.com>
+Submitted-by: Joel D'sa <jdsa@vmware.com>
+Submitted-at: Fri, 28 Sep 2012 19:50:39 +0000
+Reviewed-on: http://reviews.cloudfoundry.org/9761
+Project: uaa
+Branch: refs/heads/release/1.2.0
