@@ -323,4 +323,14 @@ public class ScimUserEndpointsIntegrationTests {
 		assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
 	}
 
+	@Test
+	public void findUsersWithPagination() throws Exception {
+		@SuppressWarnings("rawtypes")
+		ResponseEntity<Map> response = serverRunning.getForObject(usersEndpoint + "?startIndex=1&count=3", Map.class);
+		@SuppressWarnings("unchecked")
+		Map<String, Object> results = response.getBody();
+		assertEquals(HttpStatus.OK, response.getStatusCode());
+		assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
+	}
+
 }
