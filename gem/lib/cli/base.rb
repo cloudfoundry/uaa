@@ -39,11 +39,11 @@ class Topic
   def self.desc(template, desc, *options, &handler)
     parts, argc = template.split(' '), 0
     cmd = parts.each_with_object([]) { |p, o|
-      case p
-      when /\.\.\.\]$/ then argc = -1; break o
-      when /^\[/ then argc = parts.length - o.length; break o
-      else o << p
+      if p =~ /^\[/
+        argc = parts[-1] =~ /\.\.\.\]$/ ? -1 : parts.length - o.length
+        break o
       end
+      o << p
     }
     cmd_key = cmd.join('_').to_sym
     define_method(cmd_key, handler)

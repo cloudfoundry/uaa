@@ -100,6 +100,12 @@ class TokenIssuer
     parse_implicit_params callback_query, in_params[:state]
   end
 
+  def autologin_uri(redirect_uri, credentials, scope = nil)
+    # post credentials to /autologin endpoint with client basic auth, get an autologin_code
+    # add code to args below
+    @target + authorize_path_args("code", redirect_uri, scope)
+  end
+
   # constructs a uri that the client is to return to the browser to direct
   # the user to the authorization server to get an authcode. The redirect_uri
   # is embedded in the returned uri so the authorization server can redirect

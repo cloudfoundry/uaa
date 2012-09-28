@@ -77,8 +77,8 @@ module Http
     end
     parsed_reply = Util.json_parse(body)
     if status >= 400
-      raise parsed_reply[:error] == "invalid_token"? InvalidToken :
-          TargetError.new(parsed_reply), "error response"
+      raise parsed_reply && parsed_reply[:error] == "invalid_token" ?
+          InvalidToken : TargetError.new(parsed_reply), "error response"
     end
     parsed_reply
   rescue JSON::ParserError

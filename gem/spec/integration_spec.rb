@@ -78,8 +78,7 @@ describe "UAA Integration:" do
     end
 
     it "finds the user by name" do
-      user_info = @user_acct.query_by_value("id", "username", @username)[:resources][0]
-      user_info[:id].should == @user_id
+      @user_acct.user_id_from_name(@username).should == @user_id
     end
 
     it "gets the user by id" do
