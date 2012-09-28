@@ -27,11 +27,11 @@ class StubScim
 
   # attribute types. Anything not listed is case-ignore string
   HIDDEN_ATTRS = [:rtype, :password, :client_secret]
-  READ_ONLY_ATTRS = [:id, :meta]
+  READ_ONLY_ATTRS = [:id, :meta, :groups]
   BOOLEANS = [:active]
   NUMBERS = [:access_token_validity, :refresh_token_validity]
   GROUPS = [:groups, :auto_approved_scope, :scope, :authorities]
-  REFERENCES = [:members, :owners, :readers] # references to users or groups
+  REFERENCES = [:members, :owners, :readers] + GROUPS # references to users or groups
   ENUMS = { authorized_grant_types: ["client_credentials", "implicit",
       "authorization_code", "password", "refresh_token"] }
   GENERAL_MULTI = [:emails, :phonenumbers, :ims, :photos, :entitlements,
@@ -59,6 +59,17 @@ class StubScim
         :scope, :auto_approved_scope, :access_token_validity,
         :refresh_token_validity, :redirect_uri, :authorities],
       group: COMMON_ATTRS + [:displayname, :members, :owners, :readers] }
+  VISIBLE_ATTRS = {user: LEGAL_ATTRS[:user] - HIDDEN_ATTRS,
+      client: LEGAL_ATTRS[:client] - HIDDEN_ATTRS, group: LEGAL_ATTRS[:group] - HIDDEN_ATTRS}
+
+  def self.searchable_attribute(attr)
+    attr = attr.to_sym
+    return false if HIDDEN_ATTRS.include?(attr)
+    LEGAL_ATTRS.each { |k, v| v.each { |a| return a if a == attr } }
+    false
+  end
+
+  def self.remove_hidden(attrs = nil) attrs - HIDDEN_ATTRS if attrs end
 
   def hide_attrs(thing, attrs = HIDDEN_ATTRS) attrs.each { |a| thing.delete(a) }; thing end
   def valid_id?(id, rtype) id && (t = @things_by_id[id]) && (rtype.nil? || t[:rtype] == rtype) end
@@ -66,11 +77,6 @@ class StubScim
 
   def ref_by_id(id, rtype = nil)
     (t = @things_by_id[id]) && (rtype.nil? || t[:rtype] == rtype) ? t : nil
-  end
-
-  def self.known_attribute(attr)
-    LEGAL_ATTRS.each { |k, v| v.each { |a| return a if a.to_s == attr } }
-    false
   end
 
   def valid_complex?(value, subattrs, simple_ok = false)
@@ -95,6 +101,7 @@ class StubScim
   def enforce_schema(rtype, thing)
     thing.each do |k, v|
       raise SchemaViolation, "illegal #{k} on #{rtype}" unless LEGAL_ATTRS[rtype].include?(k)
+      raise SchemaViolation, "attempt to modify read-only attribute #{k} on #{rtype}" if READ_ONLY_ATTRS.include?(k)
       valid_attr = case k
         when *BOOLEANS then v == !!v
         when *NUMBERS then v.is_a?(Integer)
@@ -110,26 +117,39 @@ class StubScim
     end
   end
 
-  def members(group_id)
-    @things_by_id.each_with_object([]) do |(k, t), members|
-        members << t[:id] if t[:groups] && t[:groups].include?(group_id)
-    end
+  def input!(thing)
+    REFERENCES.each {|a|
+      next unless thing[a]
+      thing[a] = thing[a].each_with_object(Set.new) { |r, s| s << (r.is_a?(Hash)? r[:value] : r )}
+    }
+    GENERAL_MULTI.each {|a|
+      next unless thing[a]
+      thing[a] = thing[a].each_with_object({}) {|v, o|
+        v = {value: v} unless v.is_a?(Hash)
+        k = URI.encode_www_form(t: [v[:type], v: v[:value]]).downcase # enforce values are unique by type and value
+        o[k] = v
+      }
+    }
   end
 
-  def put_members(group_id, members)
-    members.each do |member|
-      member = member[:value] if member.is_a? Hash
-      thing = ref_by_id(member)
-      (thing[:groups] ||= []) << group_id
-    end
+  def output(thing, attrs)
+    attrs = thing.keys if attrs.nil? || attrs.empty?
+    attrs.each_with_object({}) {|a, o|
+      next unless thing[a]
+      case a
+      when *REFERENCES then o[a] = thing[a].to_a
+      when *GENERAL_MULTI then o[a] = thing[a].values
+      else o[a] = thing[a]
+      end
+    }
   end
 
-  def normalize_references(thing, attrs)
-    attrs.each { |a| thing[a].map! { |r| r.is_a?(Hash)? r[:value]: r } if thing[a] }
+  def add_user_groups(gid, members)
+    members.each {|m| (m[:groups] ||= Set.new) << gid if m = ref_by_id(m, :user)} if members
   end
 
-  def normalize_multivalues(thing, attrs)
-    attrs.each { |a| thing[a].map! { |v| v.is_a?(Hash)? v: {value: v}} if thing[a] }
+  def remove_user_groups(gid, members)
+    members.each {|m| m[:groups].delete(gid) if m = ref_by_id(m, :user) } if members
   end
 
   public
@@ -137,7 +157,6 @@ class StubScim
   def initialize; @things_by_id, @things_by_name = {}, {} end
   def name(id, rtype = nil) (t = ref_by_id(id, rtype))? t[NAME_ATTR[t[:rtype]]]: nil end
   def id(name, rtype) (t = ref_by_name(name, rtype))? t[:id] : nil end
-  def get_by_name(name, rtype, include_hidden = false) get(id(name, rtype), rtype, include_hidden) end
 
   def add(rtype, stuff)
     unless stuff.is_a?(Hash) && (name = stuff[NAME_ATTR[rtype]])
@@ -145,20 +164,16 @@ class StubScim
     end
     raise AlreadyExists if @things_by_name.key?(name = rtype.to_s + name.downcase)
     enforce_schema(rtype, stuff)
-    stuff = stuff.merge(rtype: rtype, id: (id = SecureRandom.uuid),
+    stuff.merge!(rtype: rtype, id: (id = SecureRandom.uuid),
         meta: { created: Time.now.iso8601, last_modified: Time.now.iso8601, version: 1 })
-    if stuff[:members]
-      put_members(id, stuff[:members])
-      stuff.delete(:members)
-    end
-    normalize_references(stuff, GROUPS + REFERENCES)
-    normalize_multivalues(stuff, GENERAL_MULTI)
+    input!(stuff)
+    add_user_groups(id, stuff[:members])
     @things_by_id[id] = @things_by_name[name] = stuff
     id
   end
 
-  def update(id, stuff, match_version = nil)
-    raise NotFound unless thing = ref_by_id(id)
+  def update(id, stuff, match_version = nil, match_type = nil)
+    raise NotFound unless thing = ref_by_id(id, match_type)
     raise BadVersion if match_version && match_version != thing[:meta][:version]
     rtype = thing[:rtype]
     if newname = stuff[NAME_ATTR[rtype]]
@@ -172,42 +187,50 @@ class StubScim
     stuff = stuff.dup
     hide_attrs(stuff, [:rtype] + READ_ONLY_ATTRS)
     enforce_schema(rtype, stuff)
-    if stuff[:members]
-      put_members(id, stuff[:members])
-      stuff.delete(:members)
-    end
     if newname
       @things_by_name.delete(oldname)
       @things_by_name[newname] = thing
     end
-    normalize_references(stuff, GROUPS + REFERENCES)
-    normalize_multivalues(stuff, GENERAL_MULTI)
+    input!(stuff)
+    if stuff[:members]
+      members = thing[:members] || Set.new
+      remove_user_groups(id, members - stuff[:members])
+      add_user_groups(id, stuff[:members] - members)
+    end
     thing.merge! stuff
     thing[:meta][:version] += 1
     thing[:meta][:lastmodified] == Time.now.iso8601
     id
   end
 
+  def add_member(gid, member)
+    return unless g = ref_by_id(gid, :group)
+    (g[:members] ||= Set.new) << member
+    add_user_groups(gid, Set[member])
+  end
+
   def remove(id, rtype = nil)
     return unless thing = ref_by_id(id, rtype)
     @things_by_id.delete(id)
     rtype = thing[:rtype]
+    remove_user_groups(id, thing[:members])
     hide_attrs(@things_by_name.delete(rtype.to_s + thing[NAME_ATTR[rtype]].downcase))
   end
 
-  def get(id, rtype = nil, include_hidden = false)
+  def get(id, rtype = nil, *attrs)
     return unless thing = ref_by_id(id, rtype)
-    thing = thing.dup
-    thing[:members] = members(id) if thing[:rtype] == :group
-    include_hidden ? thing : hide_attrs(thing)
+    output(thing, attrs)
   end
 
-  def find(rtype, attrs = nil, filter_string = nil)
+  def get_by_name(name, rtype, *attrs)
+    return unless thing = ref_by_name(name, rtype)
+    output(thing, attrs)
+  end
+
+  def find(rtype, filter_string = nil, *attrs)
     filter = (ScimFilter.new(filter_string) if filter_string)
     @things_by_id.each_with_object([]) do |(k, v), o|
-      next unless rtype == v[:rtype] && (filter.nil? || filter.match?(v))
-      ent = attrs ? attrs.each_with_object({id: v[:id], meta: v[:meta]}) { |a, e| e[a] = v[a] } : v.dup
-      o << hide_attrs(ent)
+      o << output(v, attrs) if rtype == v[:rtype] && (filter.nil? || filter.match?(v))
     end
   end
 
@@ -251,7 +274,7 @@ class ScimFilter
     raise BadFilter unless (attr = eat_word) &&
         (op = eat_word("eq", "co", "sw", "pr", "gt", "ge", "lt", "le")) &&
         (op == "pr" || value = eat_json_string)
-    (attr_sym = StubScim.known_attribute(attr)) ?
+    (attr_sym = StubScim.searchable_attribute(attr)) ?
         [:item, attr_sym, op, value] : [:undefined, attr, op, value]
   end
 
@@ -271,15 +294,26 @@ class ScimFilter
 
   def eval_expr(entry, attr, op, value)
     return false unless val = entry[attr]
-    case op
-    when "pr"; true
-    when "eq"; val.casecmp(value) == 0
-    when "sw"; val =~ /^#{Regexp.escape(value)}/i
-    when "co"; val =~ /#{Regexp.escape(value)}/i
-    when "gt"; val.casecmp(value) > 0
-    when "ge"; val.casecmp(value) >= 0
-    when "lt"; val.casecmp(value) < 0
-    when "le"; val.casecmp(value) <= 0
+    return true if op == "pr"
+    case attr
+    when *StubScim::REFERENCES
+      return nil unless op == "eq"
+      val.each {|v| return true if v.casecmp(value) == 0 }
+      false
+    when *StubScim::GENERAL_MULTI
+      return nil unless op == "eq"
+      val.each {|k, v| return true if v.casecmp(value) == 0 }
+      false
+    else
+      case op
+      when "eq"; val.casecmp(value) == 0
+      when "sw"; val =~ /^#{Regexp.escape(value)}/i
+      when "co"; val =~ /#{Regexp.escape(value)}/i
+      when "gt"; val.casecmp(value) > 0
+      when "ge"; val.casecmp(value) >= 0
+      when "lt"; val.casecmp(value) < 0
+      when "le"; val.casecmp(value) <= 0
+      end
     end
   end
 

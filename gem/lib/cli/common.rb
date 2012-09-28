@@ -115,7 +115,7 @@ class MiscCli < CommonCli
   end
 
   define_option :force, "--[no-]force", "-f", "set context even if target UAA is not available"
-  desc "target [uaa_url]", "Display current or set new target" do |uaa_url|
+  desc "target [uaa_url]", "Display current or set new target", :force do |uaa_url|
     msg, info = nil, {}
     if uaa_url
       if uaa_url.to_i.to_s == uaa_url

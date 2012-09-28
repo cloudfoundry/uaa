@@ -33,6 +33,7 @@ describe Cli do
     @client_secret = ENV["UAA_CLIENT_SECRET"] || "adminsecret"
     @test_client = "clapp_#{Time.now.to_i}"
     @test_user = "sam_#{Time.now.to_i}"
+    @test_group = "janitors_#{Time.now.to_i}"
     @test_pwd = "correcthorsebatterystaple"
     if ENV["UAA_CLIENT_TARGET"]
       @target, @stub_uaa = ENV["UAA_CLIENT_TARGET"], nil
@@ -63,7 +64,7 @@ describe Cli do
   end
 
   it "should get commands in bash completion format" do
-    Cli.run("help commands -t").should_not be_nil
+    Cli.run("help commands").should_not be_nil
     [/--no-version/, /--version/, /^#{File.basename($0)}/, /help/].each do |s|
       Cli.output.string.should match(s)
     end
@@ -149,7 +150,7 @@ describe Cli do
 
   it "should update the test client as the admin client" do
     Cli.run("context #{@client_id}").should_not be_nil
-    Cli.run("client update #{@test_client} --authorities scim.write,scim.read,password.write").should_not be_nil
+    Cli.run("client update #{@test_client} --authorities scim.write,scim.read,password.write,uaa.admin").should_not be_nil
     Cli.output.string = ""
     Cli.run("client get #{@test_client}").should_not be_nil
     Cli.output.string.should match /scim\.read/
@@ -165,6 +166,7 @@ describe Cli do
 
   it "should create a user account with a new token" do
     Cli.run("token client get #{@test_client} -s testsecret").should_not be_nil
+    Cli.run("token decode")
     Cli.output.string = ""
     Cli.run("user add #{@test_user.capitalize} -p #{@test_pwd} --email #{@test_user}@example.com --family_name #{@test_user.capitalize} --given_name joe").should_not be_nil
     Cli.output.string.should_not match /insufficient_scope/
@@ -194,7 +196,7 @@ describe Cli do
 
   it "should update the user" do
     Cli.run "context #{@test_client}"
-    Cli.run("user update #{@test_user} --email #{@test_user}+1@example.com --phones 123-456-7890 --groups dashboard.user,openid,password.write").should_not be_nil
+    Cli.run("user update #{@test_user} --email #{@test_user}+1@example.com --phones 123-456-7890").should_not be_nil
     Cli.output.string = ""
     Cli.run("user get #{@test_user}").should_not be_nil
     Cli.output.string.should include(@test_user.capitalize)
@@ -211,8 +213,8 @@ describe Cli do
     Cli.output.string.should include("email: #{@test_user}+1@example.com")
   end
 
-  it "should get ids for usernames" do
-    Cli.run("group members dashboard.user #{@test_user}").should_not be_nil
+  it "should get ids for a username" do
+    Cli.run("user ids #{@test_user}").should_not be_nil
     Cli.output.string.should match /#{@test_user}/i
     Cli.output.string.should include("id")
   end
@@ -246,9 +248,31 @@ describe Cli do
 
   it "should decode the owner token" do
     Cli.run("token decode").should_not be_nil
-    ["user_name", "exp", "aud", "scope", "client_id", "email", "user_id"].each do |a|
+    ["user_name", "exp", "aud", "scope", "client_id", "email", "user_id", "openid", "password.write"].each do |a|
       Cli.output.string.should match a
     end
+  end
+
+  it "should create many users and a group as the test client" do
+    Cli.run "context #{@test_client}"
+    59.times { |i| Cli.run("user add #{@test_user.capitalize}-#{i} -p #{@test_pwd} " +
+        "--email #{@test_user}+#{i}@example.com --family_name #{@test_user.capitalize} --given_name joe") }
+    Cli.run("group add #{@test_group}").should_not be_nil
+    Cli.output.string = ""
+    Cli.run("groups -a displayName").should_not be_nil
+    Cli.output.string.should match @test_group
+  end
+
+  it "should add all users to the group" do
+    cmd = "member add #{@test_group}"
+    59.times { |i| cmd << " #{@test_user.capitalize}-#{i}" }
+    Cli.run cmd
+    Cli.output.string.should match @test_group
+  end
+
+  it "should list all users" do
+    Cli.run("users").should_not be_nil
+    #puts Cli.output.string
   end
 
   it "should delete a client registration as admin" do
