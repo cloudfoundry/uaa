@@ -1,22 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-
-    Cloud Foundry 2012.02.03 Beta
-    Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved.
-
-    This product is licensed to you under the Apache License, Version 2.0 (the "License").
-    You may not use this product except in compliance with the License.
-
-    This product includes a number of subcomponents with
-    separate copyright notices and license terms. Your use of these
-    subcomponents is subject to the terms and conditions of the
-    subcomponent's license, as noted in the LICENSE file.
-
--->
+<!-- Cloud Foundry 2012.02.03 Beta Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved. This product is licensed to 
+	you under the Apache License, Version 2.0 (the "License"). You may not use this product except in compliance with the License. 
+	This product includes a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents 
+	is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file. -->
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
-			 xmlns:sec="http://www.springframework.org/schema/security" xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
-			 xmlns:aop="http://www.springframework.org/schema/aop" xmlns:util="http://www.springframework.org/schema/util"
-			 xsi:schemaLocation="http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.1.xsd
+	xmlns:sec="http://www.springframework.org/schema/security" xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.1.xsd
 		http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2.xsd
 		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.1.xsd
 		http://www.springframework.org/schema/security/oauth http://www.springframework.org/schema/security/spring-security-oauth.xsd
@@ -34,15 +24,15 @@
 	</bean>
 
 	<bean id="scimUserProvisioning" class="org.cloudfoundry.identity.uaa.scim.JdbcScimUserProvisioning">
-		<constructor-arg ref="jdbcTemplate"/>
+		<constructor-arg ref="jdbcTemplate" />
 		<!-- Password validation turned off to match cloud controller policies -->
 		<property name="passwordValidator">
 			<bean class="org.cloudfoundry.identity.uaa.scim.ZxcvbnPasswordValidator">
-				<property name="scoreCalculator" ref="zxcvbnScoreCalculator"/>
+				<property name="scoreCalculator" ref="zxcvbnScoreCalculator" />
 			</bean>
 		</property>
 		<property name="queryConverter" ref="scimUserQueryConverter" />
-		<property name="deactivateOnDelete" value="${scim.delete.deactivate:true}"/>
+		<property name="deactivateOnDelete" value="${scim.delete.deactivate:true}" />
 	</bean>
 
 	<bean id="scimUserQueryConverter" class="org.cloudfoundry.identity.uaa.scim.ScimSearchQueryConverter">
@@ -50,142 +40,144 @@
 	</bean>
 
 	<bean id="scimGroupProvisioning" class="org.cloudfoundry.identity.uaa.scim.groups.JdbcScimGroupProvisioning">
-		<constructor-arg ref="jdbcTemplate"/>
+		<constructor-arg ref="jdbcTemplate" />
 	</bean>
 
 	<bean id="groupMembershipManager" class="org.cloudfoundry.identity.uaa.scim.groups.JdbcScimGroupMembershipManager">
-		<constructor-arg name="jdbcTemplate" ref="jdbcTemplate"/>
+		<constructor-arg name="jdbcTemplate" ref="jdbcTemplate" />
 		<property name="scimGroupProvisioning" ref="scimGroupProvisioning" />
 		<property name="scimUserProvisioning" ref="scimUserProvisioning" />
 	</bean>
 
 	<!-- Add a handler adapter with special knowledge of the ScimUser endpoints -->
-	<bean class="org.cloudfoundry.identity.uaa.config.HandlerAdapterFactoryBean"/>
+	<bean class="org.cloudfoundry.identity.uaa.config.HandlerAdapterFactoryBean" />
 
 	<util:map id="exceptionToStatusMap" key-type="java.lang.Class" value-type="org.springframework.http.HttpStatus">
-		<entry key="java.lang.IllegalArgumentException" value="BAD_REQUEST"/>
-		<entry key="java.lang.UnsupportedOperationException" value="BAD_REQUEST"/>
-		<entry key="org.cloudfoundry.identity.uaa.scim.InvalidPasswordException" value="BAD_REQUEST"/>
-		<entry key="org.cloudfoundry.identity.uaa.scim.InvalidScimResourceException" value="BAD_REQUEST"/>
-		<entry key="org.cloudfoundry.identity.uaa.scim.ScimResourceNotFoundException" value="NOT_FOUND"/>
+		<entry key="java.lang.IllegalArgumentException" value="BAD_REQUEST" />
+		<entry key="java.lang.UnsupportedOperationException" value="BAD_REQUEST" />
+		<entry key="org.cloudfoundry.identity.uaa.scim.InvalidPasswordException" value="BAD_REQUEST" />
+		<entry key="org.cloudfoundry.identity.uaa.scim.InvalidScimResourceException" value="BAD_REQUEST" />
+		<entry key="org.cloudfoundry.identity.uaa.scim.ScimResourceNotFoundException" value="NOT_FOUND" />
 		<entry key="org.cloudfoundry.identity.uaa.scim.ScimResourceAlreadyExistsException" value="CONFLICT" />
 		<entry key="org.cloudfoundry.identity.uaa.scim.ScimResourceConflictException" value="CONFLICT" />
-		<entry key="org.springframework.jdbc.BadSqlGrammarException" value="BAD_REQUEST"/>
+		<entry key="org.springframework.jdbc.BadSqlGrammarException" value="BAD_REQUEST" />
 	</util:map>
 
 	<bean id="scimUserEndpoints" class="org.cloudfoundry.identity.uaa.scim.ScimUserEndpoints">
-		<property name="scimUserProvisioning" ref="scimUserProvisioning"/>
+		<property name="scimUserProvisioning" ref="scimUserProvisioning" />
 		<property name="scimGroupMembershipManager" ref="groupMembershipManager" />
-		<property name="statuses" ref="exceptionToStatusMap"/>
+		<property name="statuses" ref="exceptionToStatusMap" />
 		<property name="messageConverters">
-			<bean class="org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter"/>
+			<bean class="org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter" />
 		</property>
 	</bean>
 
 	<bean id="scimGroupEndpoints" class="org.cloudfoundry.identity.uaa.scim.groups.ScimGroupEndpoints">
-		<constructor-arg name="scimGroupProvisioning" ref="scimGroupProvisioning"/>
+		<constructor-arg name="scimGroupProvisioning" ref="scimGroupProvisioning" />
 		<constructor-arg name="membershipManager" ref="groupMembershipManager" />
-		<property name="statuses" ref="exceptionToStatusMap"/>
+		<property name="statuses" ref="exceptionToStatusMap" />
 		<property name="messageConverters">
-			<bean class="org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter"/>
+			<bean class="org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter" />
 		</property>
 	</bean>
 
-	<http request-matcher-ref="groupEndpointsRequestMatcher" create-session="stateless"
-				authentication-manager-ref="emptyAuthenticationManager"
-				entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
-				xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/Groups*" access="scope=scim.read" method="GET"/>
-		<intercept-url pattern="/Groups/**" access="scope=scim.write" method="DELETE"/>
-		<intercept-url pattern="/Groups*" access="scope=scim.write" method="POST"/>
-		<intercept-url pattern="/Groups/**" access="scope=scim.write" method="PUT"/>
-		<custom-filter ref="scimResourceAuthenticationFilter" position="PRE_AUTH_FILTER"/>
-		<access-denied-handler ref="oauthAccessDeniedHandler"/>
+	<http request-matcher-ref="groupEndpointsRequestMatcher" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
+		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
+		xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/Groups*" access="scope=scim.read" method="GET" />
+		<intercept-url pattern="/Groups/**" access="scope=scim.write" method="DELETE" />
+		<intercept-url pattern="/Groups*" access="scope=scim.write" method="POST" />
+		<intercept-url pattern="/Groups/**" access="scope=scim.write" method="PUT" />
+		<custom-filter ref="scimResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
+		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
 
 	<bean id="idConversionEndpoints" class="org.cloudfoundry.identity.uaa.scim.UserIdConversionEndpoints">
 		<property name="scimUserEndpoints" ref="scimUserEndpoints" />
-		<property name="enabled" value="${scim.userids_enabled:true}"/>
+		<property name="enabled" value="${scim.userids_enabled:true}" />
 	</bean>
 
 	<http pattern="/User*/*/password" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
-				entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
-				xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/User*/*/password" access="IS_AUTHENTICATED_FULLY,scope=password.write"/>
-		<custom-filter ref="passwordResourceAuthenticationFilter" position="PRE_AUTH_FILTER"/>
-		<access-denied-handler ref="oauthAccessDeniedHandler"/>
+		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
+		xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/User*/*/password" access="IS_AUTHENTICATED_FULLY,scope=password.write" />
+		<custom-filter ref="passwordResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
+		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
 
-	<http request-matcher-ref="userEndPointRequestMatcher" create-session="stateless"
-				authentication-manager-ref="emptyAuthenticationManager"
-				entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
-				xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/User*/*" access="scope=scim.read" method="GET"/>
-		<intercept-url pattern="/User*/**" access="scope=scim.read" method="GET"/>
-		<intercept-url pattern="/Users/*" access="scope=scim.write" method="DELETE"/>
-		<intercept-url pattern="/User/*" access="scope=scim.write" method="DELETE"/>
-		<intercept-url pattern="/Users/*" access="scope=scim.write" method="PUT"/>
-		<intercept-url pattern="/User/*" access="scope=scim.write" method="PUT"/>
-		<intercept-url pattern="/User*" access="scope=scim.write" method="POST"/>
-		<intercept-url pattern="/**" access="ROLE_NONEXISTENT"/>
-		<custom-filter ref="scimResourceAuthenticationFilter" position="PRE_AUTH_FILTER"/>
-		<access-denied-handler ref="oauthAccessDeniedHandler"/>
+	<http request-matcher-ref="userEndPointRequestMatcher" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
+		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
+		xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/User*/*" access="scope=scim.read" method="GET" />
+		<intercept-url pattern="/User*/**" access="scope=scim.read" method="GET" />
+		<intercept-url pattern="/Users/*" access="scope=scim.write" method="DELETE" />
+		<intercept-url pattern="/User/*" access="scope=scim.write" method="DELETE" />
+		<intercept-url pattern="/Users/*" access="scope=scim.write" method="PUT" />
+		<intercept-url pattern="/User/*" access="scope=scim.write" method="PUT" />
+		<intercept-url pattern="/User*" access="scope=scim.write" method="POST" />
+		<intercept-url pattern="/**" access="ROLE_NONEXISTENT" />
+		<custom-filter ref="scimResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
+		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
 
 	<http pattern="/ids/Users*" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
 		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
 		xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
-		<custom-filter ref="scimResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
+		<custom-filter ref="idsResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
 
 	<oauth:resource-server id="passwordResourceAuthenticationFilter" token-services-ref="tokenServices"
-												 resource-id="password" entry-point-ref="oauthAuthenticationEntryPoint"/>
+		resource-id="password" entry-point-ref="oauthAuthenticationEntryPoint" />
 
 	<oauth:resource-server id="scimResourceAuthenticationFilter" token-services-ref="tokenServices"
-												 resource-id="scim" entry-point-ref="oauthAuthenticationEntryPoint"/>
+		resource-id="scim" entry-point-ref="oauthAuthenticationEntryPoint" />
+
+	<oauth:resource-server id="idsResourceAuthenticationFilter" token-services-ref="tokenServices"
+		entry-point-ref="oauthAuthenticationEntryPoint" />
 
 	<bean id="userEndPointRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
-		<constructor-arg value="/User"/>
+		<constructor-arg value="/User" />
 	</bean>
 
 	<bean id="groupEndpointsRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
-		<constructor-arg value="/Groups"/>
+		<constructor-arg value="/Groups" />
 	</bean>
 
 	<bean id="users" class="org.springframework.beans.factory.config.ListFactoryBean">
 		<property name="sourceList"
-							value="#{(@config['scim']==null or @config['scim']['users']==null)?@defaultUsers:@config['scim']['users']}"/>
+			value="#{(@config['scim']==null or @config['scim']['users']==null)?@defaultUsers:@config['scim']['users']}" />
 	</bean>
 
 	<bean id="scimUserBootstrap" class="org.cloudfoundry.identity.uaa.scim.ScimUserBootstrap">
-		<constructor-arg name="scimUserProvisioning" ref="scimUserProvisioning"/>
-		<constructor-arg name="scimGroupProvisioning" ref="scimGroupProvisioning"/>
-		<constructor-arg name="membershipManager" ref="groupMembershipManager"/>
-		<constructor-arg ref="users"/>
-		<property name="override" value="${scim.user.override:false}"/>
+		<constructor-arg name="scimUserProvisioning" ref="scimUserProvisioning" />
+		<constructor-arg name="scimGroupProvisioning" ref="scimGroupProvisioning" />
+		<constructor-arg name="membershipManager" ref="groupMembershipManager" />
+		<constructor-arg ref="users" />
+		<property name="override" value="${scim.user.override:false}" />
 	</bean>
 
 	<bean id="scimGroupBootstrap" class="org.cloudfoundry.identity.uaa.scim.groups.ScimGroupBootstrap">
-		<constructor-arg name="scimUserProvisioning" ref="scimUserProvisioning"/>
-		<constructor-arg name="scimGroupProvisioning" ref="scimGroupProvisioning"/>
-		<constructor-arg name="membershipManager" ref="groupMembershipManager"/>
+		<constructor-arg name="scimUserProvisioning" ref="scimUserProvisioning" />
+		<constructor-arg name="scimGroupProvisioning" ref="scimGroupProvisioning" />
+		<constructor-arg name="membershipManager" ref="groupMembershipManager" />
 		<property name="groups" ref="groups" />
 		<property name="groupMembers" ref="members" />
 	</bean>
 
 	<bean id="groups" class="java.lang.String">
-		<constructor-arg value="#{(@config['scim']==null or @config['scim']['groups']==null)?@defaultGroups:@config['scim']['groups']}" />
+		<constructor-arg
+			value="#{(@config['scim']==null or @config['scim']['groups']==null)?@defaultGroups:@config['scim']['groups']}" />
 	</bean>
 
 	<bean id="members" class="org.springframework.beans.factory.config.ListFactoryBean">
 		<property name="sourceList"
-							value="#{(@config['scim']==null or @config['scim']['group_membership']==null)?@defaultMembers:@config['scim']['group_membership']}"/>
+			value="#{(@config['scim']==null or @config['scim']['group_membership']==null)?@defaultMembers:@config['scim']['group_membership']}" />
 	</bean>
 
-	<util:list id="defaultUsers"/>
-	<util:list id="defaultMembers"/>
+	<util:list id="defaultUsers" />
+	<util:list id="defaultMembers" />
 	<bean id="defaultGroups" class="java.lang.String">
 		<constructor-arg value="" />
 	</bean>
