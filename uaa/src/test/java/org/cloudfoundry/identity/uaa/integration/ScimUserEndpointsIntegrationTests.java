@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.integration;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -301,6 +302,7 @@ public class ScimUserEndpointsIntegrationTests {
 		Map<String, Object> results = response.getBody();
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
+		assertTrue("There should be some resources", ((Collection<?>) results.get("resources")).size() > 0);
 	}
 
 	@Test

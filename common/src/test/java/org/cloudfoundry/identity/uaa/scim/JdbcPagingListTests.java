@@ -83,6 +83,13 @@ public class JdbcPagingListTests {
 			names.add(name);
 		}
 		assertEquals(5, names.size());
+		names = new HashSet<String>();
+		for (Map<String, Object> map : list) {
+			String name = (String) map.get("name");
+			assertNotNull(name);
+			names.add(name);
+		}
+		assertEquals(5, names.size());
 	}
 
 	@Test
