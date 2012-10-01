@@ -27,6 +27,7 @@ import java.util.TreeSet;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
@@ -243,11 +244,18 @@ public class ClientAdminBootstrap implements InitializingBean {
 			if (validity != null) {
 				client.setRefreshTokenValiditySeconds(validity);
 			}
+			// UAA does not use the resource ids in client registrations
+			client.setResourceIds(Collections.singleton("none"));
+			if (client.getScope().isEmpty()) {
+				client.setScope(Collections.singleton("uaa.none"));
+			}
+			if (client.getAuthorities().isEmpty()) {
+				client.setAuthorities(Collections.singleton(UaaAuthority.UAA_NONE));
+			}
 			for (String key : Arrays.asList("resource-ids", "scope", "authorized-grant-types", "authorities",
 					"redirect-uri", "secret", "id", "override", "access-token-validity", "refresh-token-validity")) {
 				info.remove(key);
 			}
-			client.setResourceIds(Collections.singleton("none"));
 			client.setAdditionalInformation(info);
 			try {
 				clientRegistrationService.addClientDetails(client);

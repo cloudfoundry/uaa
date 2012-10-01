@@ -68,7 +68,7 @@ public class JdbcScimUserProvisioningTests {
 
     private static final String SQL_INJECTION_FIELDS = "password,version,created,lastModified,username,email,givenName,familyName";
 
-    private static final String addUserSqlFormat = "insert into users (id, username, password, email, givenName, familyName, phoneNumber) values ('%s','%s','%s','%s','%s','%s','%s')";
+    private static final String addUserSqlFormat = "insert into users (id, username, password, email, givenName, familyName, phoneNumber, authorities) values ('%s','%s','%s','%s','%s','%s','%s', '%s')";
 
     private static final String deleteUserSqlFormat = "delete from users where id='%s'";
     
@@ -96,7 +96,7 @@ public class JdbcScimUserProvisioningTests {
 
     private void addUser(String id, String username, String password, String email, String givenName, String familyName, String phoneNumber) {
         TestUtils.assertNoSuchUser(template, "id", id);
-        template.execute(String.format(addUserSqlFormat, id, username, password, email, givenName, familyName, phoneNumber));
+        template.execute(String.format(addUserSqlFormat, id, username, password, email, givenName, familyName, phoneNumber, "uaa.user,org.foo"));
     }
 
     private void removeUser (String id) {
@@ -121,7 +121,7 @@ public class JdbcScimUserProvisioningTests {
 		Map<String, Object> map = template.queryForMap("select * from users where id=?", created.getId());
 		assertEquals(user.getUserName(), map.get("userName"));
 		assertEquals(user.getUserType(), map.get(UaaAuthority.UAA_USER.getUserType()));
-		assertEquals("uaa.user", created.getGroups().iterator().next().getExternalId());
+		assertEquals("uaa.user", created.getGroups().iterator().next().getDisplay());
 	}
 
 	@Test(expected = InvalidUserException.class)
@@ -349,6 +349,11 @@ public class JdbcScimUserProvisioningTests {
 	}
 
 	@Test
+	public void canRetrieveUsersWithGroupsFilter() {
+		assertEquals(2, db.retrieveUsers("groups.display co 'org.foo'").size());
+	}
+
+	@Test
 	public void canRetrieveUsersWithPhoneNumberFilter() {
 		assertEquals(1, db.retrieveUsers("phoneNumbers.value sw '+1-222'").size());
 	}
@@ -472,7 +477,7 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals("joe@joe.com", joe.getPrimaryEmail());
 		assertEquals("joe", joe.getUserName());
 		assertEquals("+1-222-1234567", joe.getPhoneNumbers().get(0).getValue());
-		assertEquals("uaa.user", joe.getGroups().iterator().next().getExternalId());
+		assertEquals("uaa.user", joe.getGroups().iterator().next().getDisplay());
 	}
 
 }

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Cloud Foundry 2012.02.03 Beta Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved. This product is licensed to 
+	you under the Apache License, Version 2.0 (the "License"). You may not use this product except in compliance with the License. 
+	This product includes a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents 
+	is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file. -->
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
+	xmlns:sec="http://www.springframework.org/schema/security" xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
+	xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2.xsd
+		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.1.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd">
+
+	<http pattern="/oauth/clients/*/secret" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
+		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
+		xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/oauth/clients/*/secret" access="IS_AUTHENTICATED_FULLY,scope=clients.secret" />
+		<custom-filter ref="clientResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
+		<access-denied-handler ref="oauthAccessDeniedHandler" />
+	</http>
+
+	<http pattern="/oauth/clients/**" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"
+		use-expressions="true" authentication-manager-ref="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/**" access="#oauth2.hasScope('clients.write')" method="DELETE" />
+		<intercept-url pattern="/**" access="#oauth2.hasScope('clients.write')" method="POST" />
+		<intercept-url pattern="/**" access="#oauth2.hasScope('clients.write')" method="PUT" />
+		<intercept-url pattern="/**" access="#oauth2.hasScope('clients.read')" method="GET" />
+		<custom-filter ref="clientResourceAuthenticationFilter" before="PRE_AUTH_FILTER" />
+		<access-denied-handler ref="oauthAccessDeniedHandler" />
+		<expression-handler ref="oauthWebExpressionHandler" />
+	</http>
+
+	<oauth:resource-server id="clientResourceAuthenticationFilter" token-services-ref="tokenServices"
+		resource-id="clients" entry-point-ref="oauthAuthenticationEntryPoint" />
+
+	<bean id="clientAdminEndpoints" class="org.cloudfoundry.identity.uaa.oauth.ClientAdminEndpoints">
+		<property name="clientRegistrationService" ref="clientRegistrationService" />
+		<property name="clientDetailsService" ref="clientDetails" />
+	</bean>
+
+</beans>

@@ -38,14 +38,15 @@ class TokenIssuer
   include Http
   attr_accessor :default_scope
 
-  def initialize(target, client_id, client_secret = nil, default_scope = nil)
+  def initialize(target, client_id, client_secret = nil, default_scope = nil, token_target = nil)
     @target, @client_id, @client_secret = target, client_id, client_secret
     @default_scope = default_scope
+    @token_target = token_target
   end
 
   # login prompts for use by app to collect credentials for implicit grant
   def prompts
-    reply = json_get '/login'
+    reply = json_get @target, '/login'
     return reply[:prompts] if reply && reply[:prompts]
     raise BadResponse, "No prompts in response from target #{@target}"
   end
@@ -70,7 +71,7 @@ class TokenIssuer
     # the other OAuth APIs when CFID-239 is done:
     # body = URI.encode_www_form(credentials.merge(credentials: true))
 
-    status, body, headers = request(:post, uri, body, headers)
+    status, body, headers = request(@target, :post, uri, body, headers)
     raise BadResponse, "status #{status}" unless status == 302
     req_uri, reply_uri = URI.parse(redir_uri), URI.parse(headers[:location])
     fragment, reply_uri.fragment = reply_uri.fragment, nil
@@ -154,7 +155,8 @@ class TokenIssuer
     headers = {content_type: "application/x-www-form-urlencoded", accept: "application/json",
         authorization: Http.basic_auth(@client_id, @client_secret) }
     body = URI.encode_www_form(params)
-    reply = json_parse_reply(*request(:post, '/oauth/token', body, headers))
+    request_token_target = @token_target || @target
+    reply = json_parse_reply(*request(request_token_target, :post, '/oauth/token', body, headers))
     raise BadResponse unless reply[:token_type] && reply[:access_token]
     Token.new reply
   end

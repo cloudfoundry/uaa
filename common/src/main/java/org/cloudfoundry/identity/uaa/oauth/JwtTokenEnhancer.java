@@ -12,7 +12,7 @@
  */
 package org.cloudfoundry.identity.uaa.oauth;
 
-import java.util.Collections;
+import java.security.Principal;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -20,6 +20,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.jwt.JwtHelper;
 import org.springframework.security.jwt.crypto.sign.InvalidSignatureException;
 import org.springframework.security.jwt.crypto.sign.MacSigner;
@@ -64,12 +66,19 @@ public class JwtTokenEnhancer implements TokenEnhancer, InitializingBean {
 	private String signingKey = verifierKey;
 
 	/**
+	 * Get the verification key for the token signatures. The principal has to be provided only if the key is secret
+	 * (shared not public).
+	 * 
+	 * @param principal the currently authenticated user if there is one
 	 * @return the key used to verify tokens
 	 */
 	@RequestMapping(value = "/token_key", method = RequestMethod.GET)
 	@ResponseBody
-	public Map<String, String> getKey() {
-		Map<String,String> result = new LinkedHashMap<String, String>();
+	public Map<String, String> getKey(Principal principal) {
+		if ((principal == null || principal instanceof AnonymousAuthenticationToken) && !isPublic(this.verifierKey)) {
+			throw new AccessDeniedException("You need to authenticate to see a shared key");
+		}
+		Map<String, String> result = new LinkedHashMap<String, String>();
 		result.put("alg", signer.algorithm());
 		result.put("value", verifierKey);
 		return result;
@@ -87,15 +96,22 @@ public class JwtTokenEnhancer implements TokenEnhancer, InitializingBean {
 
 		this.signingKey = key;
 
-		if (key.startsWith("-----BEGIN")) {
+		if (isPublic(key)) {
 			signer = new RsaSigner(key);
 			logger.info("Configured with RSA signing key");
 		}
 		else {
 			// Assume it's an HMAC key
-			verifierKey = key;
+			this.verifierKey = key;
 			signer = new MacSigner(key);
 		}
+	}
+
+	/**
+	 * @return true if the key has a public verifier
+	 */
+	private boolean isPublic(String key) {
+		return key.startsWith("-----BEGIN");
 	}
 
 	/**
@@ -120,8 +136,10 @@ public class JwtTokenEnhancer implements TokenEnhancer, InitializingBean {
 
 	public OAuth2AccessToken enhance(OAuth2AccessToken accessToken, OAuth2Authentication authentication) {
 		DefaultOAuth2AccessToken result = new DefaultOAuth2AccessToken(accessToken);
+		Map<String, Object> info = new LinkedHashMap<String, Object>(accessToken.getAdditionalInformation());
 		String tokenId = result.getValue();
-		result.setAdditionalInformation(Collections.<String, Object> singletonMap(TOKEN_ID, tokenId));
+		info.put(TOKEN_ID, tokenId);
+		result.setAdditionalInformation(info);
 		return result.setValue(createAccessTokenValue(result, authentication));
 	}
 

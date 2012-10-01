@@ -30,6 +30,6 @@ public interface AccessTokenConverter {
 	 * @return a map representation of the token suitable for a JSON response
 	 * 
 	 */
-	public abstract Map<String, Object> convertAccessToken(OAuth2AccessToken token,	OAuth2Authentication authentication);
+	public abstract Map<String, ?> convertAccessToken(OAuth2AccessToken token,	OAuth2Authentication authentication);
 
 }

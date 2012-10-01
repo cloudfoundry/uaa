@@ -15,13 +15,18 @@ package org.cloudfoundry.identity.uaa.integration;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Arrays;
+import java.util.Map;
+
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.StandardPasswordEncoder;
 import org.springframework.security.oauth2.client.test.OAuth2ContextConfiguration;
@@ -89,13 +94,17 @@ public class TokenAdminEndpointsIntegrationTests {
 	@OAuth2ContextConfiguration(resource = TokenResourceOwnerPassword.class)
 	public void testRevokeBogusToken() throws Exception {
 
-		HttpEntity<?> request = new HttpEntity<String>(context.getAccessToken().getValue());
-		assertEquals(
-				HttpStatus.NOT_FOUND,
-				serverRunning
-						.getRestTemplate()
-						.exchange(serverRunning.getUrl("/oauth/users/{user}/tokens/{token}"), HttpMethod.DELETE,
-								request, Void.class, testAccounts.getUserName(), "FOO").getStatusCode());
+		HttpHeaders headers = new HttpHeaders();
+		headers .setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+		HttpEntity<?> request = new HttpEntity<String>(context.getAccessToken().getValue(), headers);
+		@SuppressWarnings("rawtypes")
+		ResponseEntity<Map> response = serverRunning.getRestTemplate().exchange(
+				serverRunning.getUrl("/oauth/users/{user}/tokens/{token}"), HttpMethod.DELETE, request, Map.class,
+				testAccounts.getUserName(), "FOO");
+		assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+		@SuppressWarnings("unchecked")
+		Map<String,String> body = response.getBody();
+		assertEquals("not_found", body.get("error"));
 
 	}
 
@@ -165,8 +174,9 @@ public class TokenAdminEndpointsIntegrationTests {
 	static class TokenResourceOwnerPassword extends ResourceOwnerPasswordResourceDetails {
 		public TokenResourceOwnerPassword(TestAccounts testAccounts) {
 			ResourceOwnerPasswordResourceDetails resource = ((UaaTestAccounts) testAccounts)
-					.getResourceOwnerPasswordResource(new String[] { "tokens.read", "tokens.write" }, "oauth.clients.token", "token",
-							"tokenclientsecret", testAccounts.getUserName(), testAccounts.getPassword());
+					.getResourceOwnerPasswordResource(new String[] { "tokens.read", "tokens.write" },
+							"oauth.clients.token", "token", "tokenclientsecret", testAccounts.getUserName(),
+							testAccounts.getPassword());
 			OAuth2ContextConfiguration.ResourceHelper.initialize(resource, this);
 			setUsername(resource.getUsername());
 			setPassword(resource.getPassword());
