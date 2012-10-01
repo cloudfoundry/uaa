@@ -18,35 +18,32 @@ module CF::UAA
 
 class InfoCli < CommonCli
 
-  topic "System Information"
+  topic "System Information", "sys", "info"
+
+  def misc_request(&blk) Config.target ? (handle_request(&blk) || "success") : gripe("target not set") end
 
   desc "info", "get information about current target" do
-    misc_request { pp Misc.server Config.target }
+    pp misc_request { update_target_info(Misc.server(Config.target)) }
   end
 
   desc "me", "get authenticated user information" do
-    misc_request { pp Misc.whoami Config.target, auth_header }
+    pp misc_request { Misc.whoami Config.target, auth_header }
   end
 
   desc "prompts", "Show prompts for credentials required for implicit grant post" do
-    misc_request { pp Misc.server(Config.target)[:prompts] }
+    pp misc_request { update_target_info(Misc.server(Config.target))[:prompts] }
   end
 
-  desc "signing key", "get the UAA's token signing key(s)", [:client, :secret] do
-    misc_request { pp Misc.validation_key(Config.target, clientname, clientsecret) }
+  desc "signing key", "get the UAA's token signing key(s)", :client, :secret do
+    pp misc_request { Misc.validation_key(Config.target, clientname, clientsecret) }
   end
 
-  desc "stats", "Show UAA's current usage statistics", [:client, :secret] do
-    misc_request { pp Misc.varz(Config.target, clientname, clientsecret) }
+  desc "stats", "Show UAA's current usage statistics", :client, :secret do
+    pp misc_request { Misc.varz(Config.target, clientname, clientsecret) }
   end
 
   desc "password strength [password]", "calculate strength score of a password" do |pwd|
-    misc_request { pp Misc.password_strength(Config.target, userpwd(pwd)) }
-  end
-
-  def misc_request(&blk)
-    Misc.logger = Util.default_logger
-    Config.target ? handle_request(&blk) : say("target not set")
+    pp misc_request { Misc.password_strength(Config.target, userpwd(pwd)) }
   end
 
 end

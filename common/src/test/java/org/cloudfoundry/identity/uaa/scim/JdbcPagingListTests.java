@@ -86,6 +86,21 @@ public class JdbcPagingListTests {
 	}
 
 	@Test
+	public void testIterationWithDeletedElements() throws Exception {
+		list = new JdbcPagingList<Map<String, Object>>(template, "SELECT * from foo where id>=:id",
+				Collections.<String, Object> singletonMap("id", 0), new ColumnMapRowMapper(), 3);
+		template.update("DELETE from foo where id>3");
+		assertEquals(5, list.size());
+		Set<String> names = new HashSet<String>();
+		for (Map<String, Object> map : list) {
+			String name = (String) map.get("name");
+			assertNotNull(name);
+			names.add(name);
+		}
+		assertEquals(4, names.size());
+	}
+
+	@Test
 	public void testOrderBy() throws Exception {
 		list = new JdbcPagingList<Map<String, Object>>(template, "SELECT * from foo order by id asc",
 				Collections.<String, Object> singletonMap("id", 0), new ColumnMapRowMapper(), 3);
@@ -120,6 +135,19 @@ public class JdbcPagingListTests {
 	}
 
 	@Test
+	public void testIterationOverSubListWithSameSize() throws Exception {
+		list = new JdbcPagingList<Map<String, Object>>(template, "SELECT * from foo", new ColumnMapRowMapper(), 3);
+		list = list.subList(0, 5);
+		assertEquals(5, list.size());
+		int count = 0;
+		for (Map<String, Object> map : list) {
+			count++;
+			assertNotNull(map.get("name"));
+		}
+		assertEquals(5, count);
+	}
+
+	@Test
 	public void testSubListExtendsBeyondSize() throws Exception {
 		list = new JdbcPagingList<Map<String, Object>>(template, "SELECT * from foo", new ColumnMapRowMapper(), 3);
 		list = list.subList(1, 40);
@@ -130,6 +158,20 @@ public class JdbcPagingListTests {
 			assertNotNull(map.get("name"));
 		}
 		assertEquals(4, count);
+	}
+
+	@Test
+	public void testSubListFromDeletedElements() throws Exception {
+		list = new JdbcPagingList<Map<String, Object>>(template, "SELECT * from foo", new ColumnMapRowMapper(), 3);
+		template.update("DELETE from foo where id>3");
+		list = list.subList(1, 40);
+		assertEquals(4, list.size());
+		int count = 0;
+		for (Map<String, Object> map : list) {
+			count++;
+			assertNotNull(map.get("name"));
+		}
+		assertEquals(3, count); // count is less than original size estimate
 	}
 
 }

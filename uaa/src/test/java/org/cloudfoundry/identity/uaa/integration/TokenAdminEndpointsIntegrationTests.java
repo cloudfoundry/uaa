@@ -70,7 +70,7 @@ public class TokenAdminEndpointsIntegrationTests {
 
 		HttpEntity<?> request = new HttpEntity<String>(token.getValue());
 		assertEquals(
-				HttpStatus.NO_CONTENT,
+				HttpStatus.OK,
 				serverRunning
 						.getRestTemplate()
 						.exchange(serverRunning.getUrl("/oauth/users/{user}/tokens/{token}"), HttpMethod.DELETE,
@@ -89,13 +89,13 @@ public class TokenAdminEndpointsIntegrationTests {
 	@OAuth2ContextConfiguration(resource = TokenResourceOwnerPassword.class)
 	public void testRevokeBogusToken() throws Exception {
 
-		HttpEntity<?> request = new HttpEntity<String>(context.getAccessToken().getValue());
-		assertEquals(
-				HttpStatus.NOT_FOUND,
-				serverRunning
-						.getRestTemplate()
-						.exchange(serverRunning.getUrl("/oauth/users/{user}/tokens/{token}"), HttpMethod.DELETE,
-								request, Void.class, testAccounts.getUserName(), "FOO").getStatusCode());
+		HttpHeaders headers = new HttpHeaders();
+		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+		HttpEntity<?> request = new HttpEntity<String>(context.getAccessToken().getValue(), headers);
+		ResponseEntity<Void> response = serverRunning.getRestTemplate().exchange(
+				serverRunning.getUrl("/oauth/users/{user}/tokens/{token}"), HttpMethod.DELETE, request, Void.class,
+				testAccounts.getUserName(), "FOO");
+		assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
 
 	}
 
@@ -142,7 +142,7 @@ public class TokenAdminEndpointsIntegrationTests {
 
 		HttpEntity<?> request = new HttpEntity<String>(token.getValue());
 		assertEquals(
-				HttpStatus.NO_CONTENT,
+				HttpStatus.OK,
 				serverRunning
 						.getRestTemplate()
 						.exchange(serverRunning.getUrl("/oauth/clients/scim/tokens/" + hash), HttpMethod.DELETE,

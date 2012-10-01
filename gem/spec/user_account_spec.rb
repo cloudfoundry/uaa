@@ -25,7 +25,7 @@ describe UserAccount do
     #Util.default_logger(:trace)
     id, secret = "testclient", "testsecret"
     @stub_uaa = StubUAA.new(id, secret).run_on_thread
-    @stub_uaa.scim.update(@stub_uaa.scim.id(id, :client), groups:
+    @stub_uaa.scim.update(@stub_uaa.scim.id(id, :client), authorities:
         [@stub_uaa.scim.id("scim.read", :group), @stub_uaa.scim.id("scim.write", :group)])
     @issuer = TokenIssuer.new(@stub_uaa.url, id, secret)
     @token = @issuer.client_credentials_grant
@@ -38,11 +38,35 @@ describe UserAccount do
 
   it "should create a user account" do
     @email_addrs = 'jdoe@example.org'
-    result = frequest { subject.create("jdoe", "password", "jdoe@example.org", "John", "Doe") }
-    #puts result.inspect
+    result = frequest { subject.add(userName: "jdoe", password: "password",
+        emails: [{value: "jdoe@example.org"}], name: { givenName: "John", familyName: "Doe"}) }
     result[:id].should_not be_nil
-    #result[:emails].should =~ "jdoe@example.org"
+    result[:emails][0][:value].should == "jdoe@example.org"
     result[:password].should_not be
+  end
+
+  it "should match a simple eq filter" do
+    filtr = ScimFilter.new("username eq \"joe\"")
+    result = filtr.match?({username: "joe", id: "11111"})
+    result.should == true
+  end
+
+  it "should match a simple and filter" do
+    filtr = ScimFilter.new("username eq \"joe\" and id sw \"1111\"")
+    result = filtr.match?({username: "joe", id: "11111"})
+    result.should == true
+  end
+
+  it "should match a simple or filter" do
+    filtr = ScimFilter.new("username eq \"joe\" or id sw \"1111\" and foobar eq \"nothing\"")
+    result = filtr.match?({username: "joe", id: "11111"})
+    result.should == true
+  end
+
+  it "should match a simple or filter" do
+    filtr = ScimFilter.new("username eq \"joe\" or id sw \"1111\" and foobar eq \"nothing\"")
+    result = filtr.match?({username: "joe", id: "11111"})
+    result.should == true
   end
 
 =begin

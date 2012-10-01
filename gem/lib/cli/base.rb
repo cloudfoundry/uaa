@@ -20,9 +20,15 @@ module CF::UAA
 
 class Topic
 
+  class << self; attr_reader :synonyms end
+
   def self.option_defs ; @option_defs || {} end
   def self.commands; @commands || {} end
-  def self.topic(description = nil) description ? (@description = description) : @description end
+  def self.topic(*args)
+    return @description if args.empty?
+    @synonyms = (args[0].split(' ') + args[1..-1]).map(&:downcase)
+    @description = args[0]
+  end
 
   def self.define_option(key, *args)
     @option_defs ||= {}
@@ -30,14 +36,14 @@ class Topic
     @option_defs[key] = args
   end
 
-  def self.desc(template, desc, options = [], &handler)
+  def self.desc(template, desc, *options, &handler)
     parts, argc = template.split(' '), 0
     cmd = parts.each_with_object([]) { |p, o|
-      case p
-      when /\.\.\.\]$/ then argc = -1; break o
-      when /^\[/ then argc = parts.length - o.length; break o
-      else o << p
+      if p =~ /^\[/
+        argc = parts[-1] =~ /\.\.\.\]$/ ? -1 : parts.length - o.length
+        break o
       end
+      o << p
     }
     cmd_key = cmd.join('_').to_sym
     define_method(cmd_key, handler)
@@ -52,7 +58,8 @@ class Topic
 
   def ask(prompt); @highline.ask("#{prompt}:  ") end
   def ask_pwd(prompt); @highline.ask("#{prompt}:  ") { |q| q.echo = '*' } end
-  def say(*args); @output.puts args end
+  def say(msg); @output.puts(msg); msg end
+  def gripe(msg); @output.puts(msg) end
   def opts; @options end
 
   def terminal_columns
@@ -67,7 +74,6 @@ class Topic
   end
 
   def pp(obj, indent = 0, wrap = terminal_columns, label = nil)
-    #line = indent_count == 0 ? "#{label}": sprintf("%*c%s", indent_count * indent_size, ' ', label)
     case obj
     when Array
       if obj.empty? || !obj[0].is_a?(Hash) && !obj[0].is_a?(Array)
@@ -79,8 +85,10 @@ class Topic
     when Hash
       say_definition(indent, label, nil, nil, wrap) if label
       obj.each { |k, v| pp v, indent + 2, wrap, "#{k}: " }
+    when nil
     else say_definition(indent, label, obj.to_s, nil, wrap)
     end
+    obj
   end
 
   def say_definition(indent, term, text = nil, start = help_col_start, wrap = terminal_columns)
@@ -111,6 +119,7 @@ class Topic
       @output.printf("%s\n", line)
       cur = start
     end
+    nil
   end
 
   def opt_help(key, args)
@@ -127,6 +136,18 @@ class Topic
     [ short ? "#{short} | #{long}" : "#{long}", desc]
   end
 
+  def opt_strs(opts)
+    opts.each_with_object([]) { |o, a|
+      @cli_class.option_defs[o].each { |d|
+        case d
+        when /^-.$/ then a << d
+        when /^--\[no-\](\S+)/ then a << "--#{$1} --no-#{$1}"
+        when /^--(\S+)/ then a << "--#{$1}"
+        end
+      }
+    }.join(' ')
+  end
+
   def say_cmd_helper(info, suffix = nil)
     say_definition 2, info[:template], info[:desc]
     info[:options].each do |o|
@@ -140,12 +161,15 @@ class Topic
     say ""
     @cli_class.topics.each do |tpc|
       tpc.commands.each do |k, v|
-        return say_cmd_helper(v, "\n") if args[0..v[:parts].length - 1] == v[:parts]
+        if args[0..v[:parts].length - 1] == v[:parts]
+          say_cmd_helper(v, "\n")
+          return "help command"
+        end
       end
     end
     args = args.map(&:downcase)
-    @cli_class.topics.each { |tpc| return say_help(tpc) unless (args & tpc.topic.downcase.split(' ')).empty? }
-    say "No command or topic found to match: #{args.join(' ')}", ""
+    @cli_class.topics.each { |tpc| return say_help(tpc) unless (args & tpc.synonyms).empty? }
+    gripe "No command or topic found to match: #{args.join(' ')}\n"
   end
 
   def say_help(topic = nil)
@@ -155,13 +179,49 @@ class Topic
       @output.print "\n#{tpc.topic}\n"
       tpc.commands.each { |k, v| say_cmd_helper v }
     end
-    return @output.print("\n") if topic || !@cli_class.global_options
+    if topic || !@cli_class.global_options
+      @output.print("\n")
+      return topic ? "help topic" : "help"
+    end
     @output.print "\nGlobal options:\n"
     @cli_class.global_options.each do |o|
       odef, desc = opt_help(o, @cli_class.option_defs[o])
       say_definition 2, odef, desc
     end
     @output.print("\n")
+    "help"
+  end
+
+  def add_command(branches, parts, opts = nil)
+    if parts.empty?
+      return if opts.nil? || opts.empty?
+      return branches << {label: opt_strs(opts)}
+    end
+    if i = branches.find_index { |b| parts[0] == b[:label] }
+      parts.shift
+    else
+      branches << {label: parts.shift, sub: []}
+      i = -1
+    end
+    add_command(branches[i][:sub], parts, opts)
+  end
+
+  def print_tree(branches, indent)
+    return unless branches
+    branches.each do |b|
+      indent.times { @output.print "\t" };
+      @output.puts b[:label]
+      print_tree b[:sub], indent + 1
+    end
+  end
+
+  def say_commands
+    tree = {label: File.basename($0), sub: []}
+    @cli_class.topics.each {|t| t.commands.each {|k, v| add_command(tree[:sub], v[:parts].dup, v[:options])}}
+    add_command(tree[:sub], [], @cli_class.global_options)
+    @output.puts tree[:label]
+    print_tree(tree[:sub], 1)
+    "help commands"
   end
 
 end
@@ -198,19 +258,16 @@ class BaseCli
           # variable args, leave args alone
         elsif args.length > v[:argc]
           too_many_args(v[:parts].dup)
-          return self
+          return nil
         elsif args.length < v[:argc]
           (v[:argc] - args.length).times { args << nil }
         end
-        tpc.new(self, opts, @input, @output).send(k, *args)
-        return self
+        return tpc.new(self, opts, @input, @output).send(k, *args)
       end
     end
-    @output.puts "#{$0} subcommand not found"
-    self
+    @output.puts "#{File.basename($0)}: subcommand not found"
   rescue Exception => e
-    $stderr.puts "", "#{e.class}: #{e.message}", (e.backtrace if opts[:trace])
-    #$stderr.puts "", "#{e.class}: #{e.message}", e.backtrace
+    @output.puts "#{File.basename($0)} error", "#{e.class}: #{e.message}", (e.backtrace if opts[:trace])
   end
 
 end

@@ -12,17 +12,7 @@
  */
 package org.cloudfoundry.identity.uaa.scim;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 import javax.sql.DataSource;
 
@@ -44,6 +34,8 @@ import org.springframework.test.annotation.IfProfileValue;
 import org.springframework.test.annotation.ProfileValueSourceConfiguration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import static org.junit.Assert.*;
 
 /**
  * @author Luke Taylor
@@ -68,7 +60,7 @@ public class JdbcScimUserProvisioningTests {
 
     private static final String SQL_INJECTION_FIELDS = "password,version,created,lastModified,username,email,givenName,familyName";
 
-    private static final String addUserSqlFormat = "insert into users (id, username, password, email, givenName, familyName, phoneNumber) values ('%s','%s','%s','%s','%s','%s','%s')";
+    private static final String addUserSqlFormat = "insert into users (id, username, password, email, givenName, familyName, phoneNumber) values ('%s','%s','%s','%s','%s','%s', '%s')";
 
     private static final String deleteUserSqlFormat = "delete from users where id='%s'";
     
@@ -80,6 +72,13 @@ public class JdbcScimUserProvisioningTests {
         template = new JdbcTemplate(dataSource);
 
 		db = new JdbcScimUserProvisioning(template);
+		ScimSearchQueryConverter filterConverter = new ScimSearchQueryConverter();
+		Map<String, String> replaceWith = new HashMap<String, String>();
+		replaceWith.put("emails\\.value", "email");
+		replaceWith.put("groups\\.display", "authorities");
+		replaceWith.put("phoneNumbers\\.value", "phoneNumber");
+		filterConverter.setAttributeNameMapper(new SimpleAttributeNameMapper(replaceWith));
+		db.setQueryConverter(filterConverter);
 		BCryptPasswordEncoder pe = new BCryptPasswordEncoder(4);
 		
 		existingUserCount = template.queryForInt("select count(id) from users");
@@ -121,10 +120,10 @@ public class JdbcScimUserProvisioningTests {
 		Map<String, Object> map = template.queryForMap("select * from users where id=?", created.getId());
 		assertEquals(user.getUserName(), map.get("userName"));
 		assertEquals(user.getUserType(), map.get(UaaAuthority.UAA_USER.getUserType()));
-		assertEquals("uaa.user", created.getGroups().iterator().next().getExternalId());
+		assertNull(created.getGroups());
 	}
 
-	@Test(expected = InvalidUserException.class)
+	@Test(expected = InvalidScimResourceException.class)
 	public void cannotCreateUserWithNonAsciiUsername() {
 		ScimUser user = new ScimUser(null, "joe$eph", "Jo", "User");
 		user.addEmail("jo@blah.com");
@@ -139,19 +138,18 @@ public class JdbcScimUserProvisioningTests {
 
 		ScimUser joe = db.updateUser(JOE_ID, jo);
 
-		// Can't change username (yet)
-		assertEquals("joe", joe.getUserName());
+		// Can change username
+		assertEquals("josephine", joe.getUserName());
 		assertEquals("jo@blah.com", joe.getPrimaryEmail());
 		assertEquals("Jo", joe.getGivenName());
 		assertEquals("NewUser", joe.getFamilyName());
 		assertEquals(1, joe.getVersion());
 		assertEquals(JOE_ID, joe.getId());
-		assertEquals(UaaAuthority.UAA_ADMIN.getUserType(), joe.getUserType());
-		assertEquals(2, joe.getGroups().size()); // admin added implicitly
+		assertNull(joe.getGroups());
 	}
 
 	@Test
-	public void updateModifiesGroups() {
+	public void updateCannotModifyGroups() {
 		ScimUser jo = new ScimUser(null, "josephine", "Jo", "NewUser");
 		jo.addEmail("jo@blah.com");
 		jo.setGroups(Collections.singleton(new Group(null, "dash/user")));
@@ -159,7 +157,7 @@ public class JdbcScimUserProvisioningTests {
 		ScimUser joe = db.updateUser(JOE_ID, jo);
 
 		assertEquals(JOE_ID, joe.getId());
-		assertEquals(2, joe.getGroups().size()); // user added implicitly
+		assertNull(joe.getGroups());
 	}
 
 	@Test(expected = OptimisticLockingFailureException.class)
@@ -171,7 +169,7 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals("joe", joe.getUserName());
 	}
 
-	@Test(expected = InvalidUserException.class)
+	@Test(expected = InvalidScimResourceException.class)
 	public void updateWithBadUsernameIsError() {
 		ScimUser jo = new ScimUser(null, "jo$ephine", "Jo", "NewUser");
 		jo.addEmail("jo@blah.com");
@@ -199,7 +197,7 @@ public class JdbcScimUserProvisioningTests {
 		db.changePassword(JOE_ID, "notjoespassword", "newpassword");
 	}
 
-	@Test(expected = UserNotFoundException.class)
+	@Test(expected = ScimResourceNotFoundException.class)
 	public void cannotChangePasswordIfOldPasswordDoesntMatch() {
 		assertTrue(db.changePassword("9999", null, "newpassword"));
 	}
@@ -210,7 +208,7 @@ public class JdbcScimUserProvisioningTests {
 		assertJoe(joe);
 	}
 
-	@Test(expected = UserNotFoundException.class)
+	@Test(expected = ScimResourceNotFoundException.class)
 	public void cannotRetrieveNonexistentUser() {
 		ScimUser joe = db.retrieveUser("9999");
 		assertJoe(joe);
@@ -226,20 +224,20 @@ public class JdbcScimUserProvisioningTests {
         removeUser(tmpUserId);
 	}
 
-	@Test(expected = UserAlreadyExistsException.class)
+	@Test(expected = ScimResourceAlreadyExistsException.class)
 	public void cannotDeactivateExistingUserAndThenCreateHimAgain() {
         String tmpUserId = createUserForDelete();
         ScimUser deletedUser = db.removeUser(tmpUserId, 0);
         deletedUser.setActive(true);
 		try {
         db.createUser(deletedUser, "foobarspam1234");
-        } catch (UserAlreadyExistsException e) {
+        } catch (ScimResourceAlreadyExistsException e) {
             removeUser(tmpUserId);
             throw e;
         }
 	}
 
-	@Test(expected = UserNotFoundException.class)
+	@Test(expected = ScimResourceNotFoundException.class)
 	public void cannotDeactivateNonexistentUser() {
 		ScimUser joe = db.removeUser("9999", 0);
 		assertJoe(joe);
@@ -260,7 +258,7 @@ public class JdbcScimUserProvisioningTests {
         assertEquals(0, db.retrieveUsers("username eq '" + tmpUserId + "'").size());
     }
 
-    @Test //(expected = UserAlreadyExistsException.class)
+    @Test //(expected = ScimResourceAlreadyExistsException.class)
     public void canDeleteExistingUserAndThenCreateHimAgain() {
         String tmpUserId = createUserForDelete();
         db.setDeactivateOnDelete(false);
@@ -276,7 +274,7 @@ public class JdbcScimUserProvisioningTests {
         removeUser(user.getId());
     }
 
-    @Test(expected = UserNotFoundException.class)
+    @Test(expected = ScimResourceNotFoundException.class)
     public void cannotDeleteNonexistentUser() {
         db.setDeactivateOnDelete(false);
         ScimUser joe = db.removeUser("9999", 0);
@@ -346,6 +344,11 @@ public class JdbcScimUserProvisioningTests {
 	@Test
 	public void canRetrieveUsersWithEmailFilter() {
 		assertEquals(1, db.retrieveUsers("emails.value sw 'joe'").size());
+	}
+
+	@Test
+	public void canRetrieveUsersWithGroupsFilter() {
+		assertEquals(2, db.retrieveUsers("groups.display co 'uaa.user'").size());
 	}
 
 	@Test
@@ -472,7 +475,7 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals("joe@joe.com", joe.getPrimaryEmail());
 		assertEquals("joe", joe.getUserName());
 		assertEquals("+1-222-1234567", joe.getPhoneNumbers().get(0).getValue());
-		assertEquals("uaa.user", joe.getGroups().iterator().next().getExternalId());
+		assertNull(joe.getGroups());
 	}
 
 }

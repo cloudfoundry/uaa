@@ -48,19 +48,36 @@ class CommonCli < Topic
     result.nil? || result.empty? ? defary : result
   end
 
+  def complain(e)
+    case e
+    when TargetError then gripe "\n#{e.message}:\n#{JSON.pretty_generate(e.info)}"
+    when Exception
+      gripe "\n#{e.class}: #{e.message}"
+      gripe e.backtrace if trace?
+    when String then gripe e
+    else gripe "unknown type of gripe: #{e.class}, #{e}"
+    end
+  end
+
   def handle_request
-    return yield
-  rescue TargetError => e
-    say "\n#{e.message}:\n#{JSON.pretty_generate(e.info)}"
+    yield
   rescue Exception => e
-    say "\n#{e.class}: #{e.message}", (e.backtrace if trace?)
+    complain e
+  end
+
+  def update_target_info(info = nil)
+    return if !info && Config.target_value(:prompts)
+    info ||= Misc.server(Config.target)
+    Config.target_opts(prompts: info[:prompts])
+    Config.target_opts(token_endpoint: info[:token_endpoint]) if info[:token_endpoint]
+    info
   end
 
 end
 
 class MiscCli < CommonCli
 
-  topic "Miscellaneous"
+  topic "Miscellaneous", "misc"
 
   desc "version", "Display version" do
     say "UAA client #{VERSION}"
@@ -70,31 +87,51 @@ class MiscCli < CommonCli
   define_option :debug, "--[no-]debug", "-d", "display debug information"
   define_option :help, "--[no-]help", "-h", "display helpful information"
   define_option :version, "--[no-]version", "-v", "show version"
+  define_option :config, "--config [string|file]", "file to get/save configuration information or yaml string"
 
   desc "help [topic|command...]", "Display summary or details of command or topic" do |*args|
-    return version if opts[:version]
-    args.pop if args[0].nil?
+    # handle hidden command, output commands in form for bash completion
+    return say_commands if args.length == 1 && args[0] == "commands"
     args.empty? ? say_help : say_command_help(args)
   end
 
+  def normalize_url(url, scheme = nil)
+    url = url.strip.gsub(/\/*$/, "")
+    raise ArgumentError, "invalid whitespace in target url" if url =~ /\s/
+    unless url =~ /^https?:\/\//
+      return unless scheme
+      url = "#{scheme}://#{url}"
+    end
+    url = URI.parse(url)
+    url.host.downcase!
+    url.to_s.to_sym
+  end
+
+  def bad_uaa_url(url, info)
+    info.replace(Misc.server(url.to_s))
+    nil
+  rescue Exception => e
+    "failed to access #{url}: #{e.message}"
+  end
+
   define_option :force, "--[no-]force", "-f", "set context even if target UAA is not available"
-  desc "target [uaa_url]", "Display current or set new target" do |uaa_url|
-    msg = nil
+  desc "target [uaa_url]", "Display current or set new target", :force do |uaa_url|
+    msg, info = nil, {}
     if uaa_url
       if uaa_url.to_i.to_s == uaa_url
-        return say "invalid target index" unless url = Config.target?(uaa_url.to_i)
+        return gripe "invalid target index" unless url = Config.target?(uaa_url.to_i)
       elsif url = normalize_url(uaa_url)
-        return say msg if (msg = bad_uaa_url(url)) unless opts[:force] || Config.target?(url)
+        return gripe msg if (msg = bad_uaa_url(url, info)) unless opts[:force] || Config.target?(url)
       elsif !Config.target?(url = normalize_url(uaa_url, "https")) &&
             !Config.target?(url = normalize_url(uaa_url, "http"))
         if opts[:force]
           url = normalize_url(uaa_url, "https")
-        elsif bad_uaa_url(url = normalize_url(uaa_url, "https"))
-          return say msg if msg = bad_uaa_url(url = normalize_url(uaa_url, "http"))
+        elsif bad_uaa_url((url = normalize_url(uaa_url, "https")), info)
+          return gripe msg if msg = bad_uaa_url((url = normalize_url(uaa_url, "http")), info)
         end
       end
       Config.target = url # we now have a canonical url set to https if possible
-    end
+      update_target_info(info) if info[:prompts]
     return say "no target set" unless Config.target
     return say "target set to #{Config.target}" unless Config.context
     say "target set to #{Config.target}, with context #{Config.context}"
@@ -113,6 +150,7 @@ class MiscCli < CommonCli
       say ""
       splat = v[:current] ? '*' : ' '
       pp "[#{i}]#{splat}[#{k}]"
+      v.each { |tk, tv| pp tv, 2, terminal_columns, tk unless tk == :contexts }
       next unless v[:contexts]
       v[:contexts].each_with_index do |(sk, sv), si|
         next if ctx && ctx != sk
@@ -131,31 +169,10 @@ class MiscCli < CommonCli
     Config.context = ctx if ctx && Config.valid_context(ctx)
     (opts[:trace] ? Config.add_opts(trace: true) : Config.delete_attr(:trace)) if opts.key?(:trace)
     return say "no context set in target #{Config.target}" unless Config.context
-    #say "", "context set to #{Config.context}, with target #{Config.target}", ""
     config_pp Config.target, Config.context
   end
 
-  desc "contexts", "Display all contexts" do
-    config_pp
-  end
-
-  def normalize_url(url, scheme = nil)
-    raise ArgumentError, "invalid whitespace in target url" if url =~ /\s/
-    unless url =~ /^https?:\/\//
-      return unless scheme
-      url = "#{scheme}://#{url}"
-    end
-    url = URI.parse(url)
-    url.host.downcase!
-    url.to_s.to_sym
-  end
-
-  def bad_uaa_url(url)
-    Misc.server(url.to_s)
-    nil
-  rescue Exception => e
-    "failed to access #{url}: #{e.message}"
-  end
+  desc "contexts", "Display all contexts" do config_pp end
 
 end
 

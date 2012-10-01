@@ -130,10 +130,6 @@ public class UaaTestAccounts implements TestAccounts {
 		return getAuthorizationHeader("varz", "varz", "varzclientsecret");
 	}
 
-	public String getBatchAuthorizationHeader() {
-		return getAuthorizationHeader("batch", "batch_user", "batch_password");
-	}
-
 	public String getAuthorizationHeader(String prefix, String defaultUsername, String defaultPassword) {
 		String username = environment.getProperty(prefix + ".username", defaultUsername);
 		String password = environment.getProperty(prefix + ".password", defaultPassword);

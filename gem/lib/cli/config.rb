@@ -18,19 +18,18 @@ module CF::UAA
 
 class Config
 
-  class << self
-    attr_reader :target, :context
-  end
+  class << self; attr_reader :target, :context end
 
   def self.config; @config ? @config.dup : {} end
+  def self.loaded?; !!@config end
   def self.yaml; YAML.dump(Util.hash_keys(@config, :tostr)) end
-  def self.target?(tgt); tgt if @config[tgt = subhash_key(@config, tgt)] end
+  def self.target?(tgt) tgt if @config[tgt = subhash_key(@config, tgt)] end
 
   # if a yaml string is provided, config is loaded from the string, otherwise
   # config is assumed to be a file name to read and store config.
   # config can be retrieved in yaml form from Config.yaml
   def self.load(config = nil)
-    @config ||= {}
+    @config = {}
     return unless config
     if config =~ /^---/ || config == ""
       @config = config == "" ? {} : YAML.load(config)
@@ -45,6 +44,8 @@ class Config
           "Please review the new commands with 'uaac help'", ""
         exit 1
       }
+    else # file doesn't exist, make sure we can write it now
+      File.open(@config_file, 'w') { |f| f.write(" ") }
     end
     @config = Util.hash_keys(@config, :tosym)
     @context = current_subhash(@config[@target][:contexts]) if @target = current_subhash(@config)
@@ -52,7 +53,7 @@ class Config
 
   def self.save
     File.open(@config_file, 'w') { |f| YAML.dump(Util.hash_keys(@config, :tostr), f) } if @config_file
-    nil
+    true
   end
 
   def self.target=(tgt)
@@ -62,6 +63,19 @@ class Config
     @context = current_subhash(@config[t][:contexts])
     save
     @target = t
+  end
+
+  def self.target_opts(hash)
+    raise ArgumentError, "target not set" unless @target
+    return unless hash and !hash.empty?
+    raise ArgumentError, "'contexts' is a reserved key" if hash.key?(:contexts)
+    @config[@target].merge! hash
+    save
+  end
+
+  def self.target_value(attr)
+    raise ArgumentError, "target not set" unless @target
+    @config[@target][attr]
   end
 
   def self.context=(ctx)
@@ -109,6 +123,10 @@ class Config
     raise ArgumentError, "target and context not set" unless @target && @context
     @config[@target][:contexts][@context].delete(attr)
   end
+
+  # these are all class methods and so can't really be private, but the
+  # methods below here are not intended to be part of the public interface
+  private
 
   def self.current_subhash(hash)
     return unless hash

@@ -30,7 +30,6 @@ describe Http do
 
   before :all do
     @stub_http = Stub::Server.new(StubHttp, Util.default_logger(:info)).run_on_thread
-    @target = @stub_http.url
   end
 
   after :all do @stub_http.stop if @stub_http end
@@ -39,7 +38,7 @@ describe Http do
     @async = true
     frequest {
       f = Fiber.current
-      http = EM::HttpRequest.new("#{target}/").get
+      http = EM::HttpRequest.new("#{@stub_http.url}/").get
       http.errback { f.resume "error" }
       http.callback {
         http.response_header.http_status.should == 200
@@ -53,7 +52,7 @@ describe Http do
     @async = true
     frequest {
       f = Fiber.current
-      conn = EM::HttpRequest.new("#{target}/")
+      conn = EM::HttpRequest.new("#{@stub_http.url}/")
       req1 = conn.get keepalive: true
       req1.errback { f.resume "error1" }
       req1.callback {
@@ -89,27 +88,21 @@ describe Http do
     # to just make the domain name invalid with tildes, but this may not test
     # the desired code paths
     it "fail cleanly for a failed dns lookup" do
-      result = frequest {
-        @target = "http://bad~host~name/"
-        http_get("/")
-      }
+      result = frequest { http_get("http://bad~host~name/") }
       result.should be_an_instance_of BadTarget
     end
 
     it "fail cleanly for a get operation, no connection to address" do
-      result = frequest {
-        @target = "http://127.0.0.1:30000"
-        http_get("/")
-      }
+      result = frequest { http_get("http://127.0.0.1:30000/") }
       result.should be_an_instance_of BadTarget
     end
 
     it "fail cleanly for a get operation with bad response" do
-      frequest { http_get("/bad") }.should be_an_instance_of HTTPException
+      frequest { http_get(@stub_http.url, "/bad") }.should be_an_instance_of HTTPException
     end
 
     it "work for a get operation to a valid address" do
-      status, body, headers = frequest { http_get("/") }
+      status, body, headers = frequest { http_get(@stub_http.url, "/") }
       status.should == 200
       body.should match /welcome to stub http/
     end
@@ -122,7 +115,7 @@ describe Http do
       end
       @logger = clog = CustomLogger.new
       clog.log.should be_empty
-      frequest { http_get("/") }
+      frequest { http_get(@stub_http.url, "/") }
       clog.log.should_not be_empty
     end
   end

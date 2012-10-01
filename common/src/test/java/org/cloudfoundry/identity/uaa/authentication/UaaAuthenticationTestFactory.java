@@ -30,6 +30,10 @@ public class UaaAuthenticationTestFactory {
 		return new UaaAuthentication(getPrincipal(id, name, email), UaaAuthority.USER_AUTHORITIES, null);
 	}
 
+	public static AuthzAuthenticationRequest getAuthenticationRequest(String name) {
+		return new AuthzAuthenticationRequest(name, "password", null);
+	}
+
 	public static ScimUser getScimUser(String name, String email, String givenName, String familyName) {
 		ScimUser user = new ScimUser(null, name, givenName, familyName);
 		user.addEmail(email);

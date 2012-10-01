@@ -62,9 +62,9 @@ class ClientReg
     json_parse_reply *json_put("/oauth/clients/#{URI.encode(info[:client_id])}", info, @auth_header)
   end
 
-  def get(id); json_get "/oauth/clients/#{URI.encode(id)}", @auth_header end
-  def delete(id); http_delete "/oauth/clients/#{URI.encode(id)}", @auth_header end
-  def list; json_get "/oauth/clients", @auth_header end
+  def get(id) json_get @target, "/oauth/clients/#{URI.encode(id)}", @auth_header end
+  def delete(id) http_delete @target, "/oauth/clients/#{URI.encode(id)}", @auth_header end
+  def list; json_get @target, "/oauth/clients", @auth_header end
 
   def change_secret(client_id, new_secret, old_secret = nil)
     req = { secret: new_secret }

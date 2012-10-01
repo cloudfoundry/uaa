@@ -27,7 +27,6 @@ import org.cloudfoundry.identity.uaa.varz.VarzEndpoint;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.batch.admin.service.JobService;
 import org.springframework.context.support.GenericXmlApplicationContext;
 import org.springframework.core.env.PropertiesPropertySource;
 import org.springframework.core.io.FileSystemResource;
@@ -63,12 +62,6 @@ public class BootstrapTests {
 			}
 			context.close();
 		}
-	}
-
-	@Test
-	public void testBatchContextDefaults() throws Exception {
-		context = getServletContext("file:./src/main/webapp/WEB-INF/batch-servlet.xml");
-		assertNotNull(context.getBean("jobService", JobService.class));
 	}
 
 	@Test
@@ -112,11 +105,7 @@ public class BootstrapTests {
 			System.arraycopy(resources, 1, resourcesToLoad, 0, resourcesToLoad.length);
 		}
 
-		GenericXmlApplicationContext parent = new GenericXmlApplicationContext(
-				"file:./src/main/webapp/WEB-INF/applicationContext.xml");
-
 		GenericXmlApplicationContext context = new GenericXmlApplicationContext();
-		context.setParent(parent);
 		if (profiles != null) {
 			context.getEnvironment().setActiveProfiles(StringUtils.commaDelimitedListToStringArray(profiles));
 		}

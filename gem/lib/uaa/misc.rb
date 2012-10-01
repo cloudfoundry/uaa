@@ -33,11 +33,8 @@ class Misc
   end
 
   def self.check_id(target, token)
-    @target = target
-    reply = json_get("/check_id", "Bearer #{token}")
-
+    reply = json_get(target, "/check_id", "Bearer #{token}")
   # To verify the validity of the Token response, the Client MUST do the following:
-
   # - Check that the OP that responded was really the intended OP.
   # - The Client MUST validate that the client_id in the aud (audience) Claim
   #   is one it has registered for the Issuer identified by the value in the

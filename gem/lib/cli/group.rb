@@ -18,35 +18,48 @@ module CF::UAA
 
 class GroupCli < CommonCli
 
-  topic "Groups"
+  topic "Groups", "group"
 
-  desc "groups [attributes] [filter]", "List groups" do |attributes, filter|
-    pp group_request { |gr| gr.query(attributes, filter) }
+  def acct_request
+    (yield UserAccount.new(Config.target, auth_header)) || "success"
+  rescue TargetError => e
+    complain e
+  end
+
+  def gname(name) name || ask("Group name") end
+
+  desc "groups [filter]", "List groups", :attrs do |filter|
+    pp acct_request { |ua| ua.query_groups(opts[:attrs], filter) }
   end
 
   desc "group get [name]", "Get specific group information" do |name|
-    #name ||= ask("Group name")
-    pp group_request { |gr| gr.get_by_name(name) }
+    pp acct_request { |ua| ua.get_group_by_name(gname(name)) }
   end
 
   desc "group add [name]", "Adds a group" do |name|
-    pp group_request { |gr| gr.create(name) }
+    pp acct_request { |ua| ua.add_group(displayName: gname(name)) }
   end
 
   desc "group delete [name]", "Delete group" do |name|
-    #name ||= ask("Group name")
-    pp group_request { |gr| gr.delete_by_name(name) }
+    pp acct_request { |ua| ua.delete_group(ua.group_id_from_name(gname(name))) }
   end
 
-  private
+  desc "member add [name] [members...]", "add members to a group" do |name, *members|
+    pp acct_request { |ua|
+      group = ua.get_group_by_name(gname(name))
+      info = ua.ids(*members)
+      group[:members] = info.each_with_object(group[:members] || []) {|m, o| o << m[:id] }
+      ua.update_group(group[:id], group)
+    }
+  end
 
-  def group_request
-    "Group operations not implemented"
-    #return yield UserAccount.new(cur_target_url, auth_header, trace?)
-  #rescue TargetError => e
-    #say "#{e.message}:\n#{JSON.pretty_generate(e.info)}"
-  #rescue Exception => e
-    #say e.message, (e.backtrace if trace?)
+  desc "member delete [name] [members...]", "remove members from a group" do |name, *members|
+    pp acct_request { |ua|
+      group = ua.get_group_by_name(gname(name))
+      info = ua.ids(*members)
+      group[:members] = group[:members] - ua.ids
+      ua.update_group(group[:id], group)
+    }
   end
 
 end

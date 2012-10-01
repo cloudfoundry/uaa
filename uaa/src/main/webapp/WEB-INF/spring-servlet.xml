@@ -14,24 +14,41 @@
 		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.1.xsd
 		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
 
-	<!-- The data source has to be defined first -->
-	<import resource="spring-scim.xml" />
-	<import resource="oauth-clients.xml" />
-    <import resource="spring-password.xml" />
-
-	<context:property-placeholder properties-ref="applicationProperties" />
-
-	<bean id="messageSource" class="org.springframework.context.support.ResourceBundleMessageSource">
-		<property name="basename" value="messages" />
-	</bean>
+	<import resource="spring/data-source.xml" />
+	<import resource="spring/env.xml" />
+	<import resource="spring/audit.xml" />
 
 	<sec:http pattern="/resources/**" security="none" />
 	<sec:http pattern="/favicon.ico" security="none" />
 	<sec:http pattern="/index.html" security="none" />
 	<sec:http pattern="/login_info" security="none" />
-    <sec:http pattern="/password/**" security="none" />
+	<sec:http pattern="/password/**" security="none" />
 
-    <authentication-manager id="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security" />
+	<import resource="spring/oauth-clients.xml" />
+	<!-- The order of these imports is important because of Spring Security filter chain rules -->
+	<import resource="spring/oauth-endpoints.xml" />
+	<import resource="spring/login-server-security.xml" />
+	<import resource="spring/scim-endpoints.xml" />
+	<import resource="spring/token-admin-endpoints.xml" />
+	<import resource="spring/client-admin-endpoints.xml" />
+	<import resource="spring/resource-endpoints.xml" />
+	<import resource="spring/openid-endpoints.xml" />
+	<import resource="spring/password-endpoints.xml" />
+
+	<context:property-placeholder properties-ref="applicationProperties" />
+
+	<authentication-manager id="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security" />
+
+	<bean id="authenticationDetailsSource" class="org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetailsSource" />
+
+	<context:mbean-server id="mbeanServer" />
+
+	<context:mbean-export server="mbeanServer" default-domain="spring.application" registration="replaceExisting" />
+
+	<bean id="basicAuthenticationEntryPoint" class="org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint">
+		<property name="realmName" value="UAA/client" />
+		<property name="typeName" value="Basic" />
+	</bean>
 
 	<bean id="accessDecisionManager" class="org.springframework.security.access.vote.UnanimousBased">
 		<constructor-arg>
@@ -219,14 +236,20 @@
 
 	<http request-matcher-ref="uiRequestMatcher" access-denied-page="/" authentication-manager-ref="authzAuthenticationMgr"
 		xmlns="http://www.springframework.org/schema/security">
-		<!-- machine API access to the authorization process itself is allowed -->
 		<intercept-url pattern="/login**" access="IS_AUTHENTICATED_ANONYMOUSLY" />
-		<intercept-url pattern="/oauth/**" access="IS_AUTHENTICATED_FULLY" /> <!-- user *or* client -->
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<form-login authentication-failure-url="/login?error=true" login-page="/login" login-processing-url="/login.do"
 			username-parameter="username" default-target-url="/" password-parameter="password" authentication-details-source-ref="authenticationDetailsSource" />
 		<logout logout-url="/logout.do" success-handler-ref="logoutHandler" />
 	</http>
+
+	<!-- Deny-all "buffer" which a request will hit if it isn't matched by any of the other filter chains -->
+	<sec:http use-expressions="true" create-session="stateless" entry-point-ref="http403EntryPoint"
+		authentication-manager-ref="emptyAuthenticationManager">
+		<sec:intercept-url pattern="/**" access="denyAll" />
+	</sec:http>
+
+	<bean id="http403EntryPoint" class="org.springframework.security.web.authentication.Http403ForbiddenEntryPoint" />
 
 	<bean id="logoutHandler" class="org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler">
 		<property name="targetUrlParameter" value="redirect" />
@@ -238,6 +261,9 @@
 			<list>
 				<bean class="org.springframework.security.web.util.AntPathRequestMatcher">
 					<constructor-arg value="/" />
+				</bean>
+				<bean class="org.springframework.security.web.util.AntPathRequestMatcher">
+					<constructor-arg value="/home" />
 				</bean>
 				<bean class="org.springframework.security.web.util.AntPathRequestMatcher">
 					<constructor-arg value="/oauth/**" />

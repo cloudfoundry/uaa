@@ -36,11 +36,15 @@ end
 class TokenIssuer
 
   include Http
-  attr_accessor :default_scope
 
-  def initialize(target, client_id, client_secret = nil, default_scope = nil)
+  def initialize(target, client_id, client_secret = nil, token_target = nil)
+    # parameter in the position currently used by token_target used to be default_scope
+    if token_target && token_target !~ /^https?:\/\//
+      logger.warn "TokenIssuer default_scope is deprecated and ignored"
+      token_target = nil
+    end
     @target, @client_id, @client_secret = target, client_id, client_secret
-    @default_scope = default_scope
+    @token_target = token_target || target
   end
 
   # login prompts for use by app to collect credentials for implicit grant
@@ -96,6 +100,12 @@ class TokenIssuer
     parse_implicit_params callback_query, in_params[:state]
   end
 
+  def autologin_uri(redirect_uri, credentials, scope = nil)
+    # post credentials to /autologin endpoint with client basic auth, get an autologin_code
+    # add code to args below
+    @target + authorize_path_args("code", redirect_uri, scope)
+  end
+
   # constructs a uri that the client is to return to the browser to direct
   # the user to the authorization server to get an authcode. The redirect_uri
   # is embedded in the returned uri so the authorization server can redirect
@@ -139,6 +149,8 @@ class TokenIssuer
     raise BadResponse, "mismatched state" unless state && params.delete(:state) == state
     raise TargetError.new(params), "error response from #{@target}" if params[:error]
     raise BadResponse, "no type and token" unless params[:token_type] && params[:access_token]
+    exp = params[:expires_in].to_i
+    params[:expires_in] = exp if exp.to_s == params[:expires_in]
     Token.new params
   rescue URI::InvalidURIError, ArgumentError
     raise BadResponse, "received invalid response from target #{@target}"
@@ -146,7 +158,7 @@ class TokenIssuer
 
   # returns a CF::UAA::Token object which includes the access token and metadata.
   def request_token(params)
-    if scope = Util.arglist(params[:scope], @default_scope)
+    if scope = Util.arglist(params[:scope])
       params[:scope] = scope.join(' ')
     else
       params.delete(:scope)
@@ -154,14 +166,14 @@ class TokenIssuer
     headers = {content_type: "application/x-www-form-urlencoded", accept: "application/json",
         authorization: Http.basic_auth(@client_id, @client_secret) }
     body = URI.encode_www_form(params)
-    reply = json_parse_reply(*request(:post, '/oauth/token', body, headers))
+    reply = json_parse_reply(*request(@token_target, :post, '/oauth/token', body, headers))
     raise BadResponse unless reply[:token_type] && reply[:access_token]
     Token.new reply
   end
 
   def authorize_path_args(response_type, redirect_uri, scope, state = SecureRandom.uuid)
     params = {client_id: @client_id, response_type: response_type, redirect_uri: redirect_uri, state: state}
-    params[:scope] = scope = scope.join(' ') if scope = Util.arglist(scope, @default_scope)
+    params[:scope] = scope = scope.join(' ') if scope = Util.arglist(scope)
     if scope && scope.include?("openid")
       params[:nonce] = state
       params[:response_type] = "#{response_type} id_token"

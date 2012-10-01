@@ -15,8 +15,10 @@ package org.cloudfoundry.identity.uaa.authentication;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -31,6 +33,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
@@ -62,6 +65,29 @@ public class AuthzAuthenticationFilter implements Filter {
 
 	private List<String> parameterNames = Collections.emptyList();
 
+	private AuthenticationEntryPoint authenticationEntryPoint = new OAuth2AuthenticationEntryPoint();
+
+	private Set<String> methods = Collections.singleton(HttpMethod.POST.toString());
+	
+	/**
+	 * The filter fails on requests that don't have one of these HTTP methods.
+	 *  
+	 * @param methods the methods to set (defaults to POST)
+	 */
+	public void setMethods(Set<String> methods) {
+		this.methods = new HashSet<String>();
+		for (String method : methods) {
+			this.methods.add(method.toUpperCase());
+		}
+	}
+
+	/**
+	 * @param authenticationEntryPoint the authenticationEntryPoint to set
+	 */
+	public void setAuthenticationEntryPoint(AuthenticationEntryPoint authenticationEntryPoint) {
+		this.authenticationEntryPoint = authenticationEntryPoint;
+	}
+
 	/**
 	 * The name of the parameter to extract credentials from. Request parameters with these names are extracted and
 	 * passed as credentials to the authentication manager. A request that doesn't have any of the specified parameters
@@ -92,8 +118,8 @@ public class AuthzAuthenticationFilter implements Filter {
 		else {
 			logger.debug("Located credentials in request, with keys: " + loginInfo.keySet());
 			try {
-				if (!"POST".equals(req.getMethod().toUpperCase())) {
-					throw new BadCredentialsException("Credentials must be sent via POST");
+				if (methods!=null && !methods.contains(req.getMethod().toUpperCase())) {
+					throw new BadCredentialsException("Credentials must be sent by (one of methods): " + methods);
 				}
 				Authentication result = authenticationManager.authenticate(new AuthzAuthenticationRequest(loginInfo,
 						new UaaAuthenticationDetails(req)));
