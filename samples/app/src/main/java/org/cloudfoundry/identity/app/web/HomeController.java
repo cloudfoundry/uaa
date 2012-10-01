@@ -19,6 +19,7 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.client.OAuth2RestOperations;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,15 +29,15 @@ import org.springframework.web.client.RestOperations;
 public class HomeController {
 
 	private String userAuthorizationUri = "http://localhost:8080/uaa/oauth/authorize";
-	
+
 	private String dataUri = "http://localhost:8080/api/apps";
-	
+
 	private String tokensUri = "http://localhost:8080/uaa/oauth/users/{username}/tokens";
 
 	private RestOperations restTemplate;
 
 	private String logoutUrl;
-	
+
 	public void setRestTemplate(RestOperations restTemplate) {
 		this.restTemplate = restTemplate;
 	}
@@ -44,7 +45,7 @@ public class HomeController {
 	public void setTokensUri(String tokensUri) {
 		this.tokensUri = tokensUri;
 	}
-	
+
 	/**
 	 * @param logoutUrl the logoutUrl to set
 	 */
@@ -76,7 +77,23 @@ public class HomeController {
 	@RequestMapping("/home")
 	public String home(Model model, Principal principal) {
 		model.addAttribute("principal", principal);
-		model.addAttribute("tokens", restTemplate.getForEntity(tokensUri, List.class, principal.getName()).getBody());
+		try {
+			model.addAttribute("tokens", restTemplate.getForEntity(tokensUri, List.class, principal.getName())
+					.getBody());
+		}
+		catch (RuntimeException e) {
+			// Defensive workaround for token issues
+			try {
+				if (restTemplate instanceof OAuth2RestOperations) {
+					((OAuth2RestOperations) restTemplate).getOAuth2ClientContext().setAccessToken(null);
+					model.addAttribute("tokens", restTemplate.getForEntity(tokensUri, List.class, principal.getName())
+							.getBody());
+				}
+			}
+			catch (RuntimeException ex) {
+				model.addAttribute("error", ex);
+			}
+		}
 		return "home";
 	}
 
@@ -93,15 +110,15 @@ public class HomeController {
 		@SuppressWarnings("rawtypes")
 		ResponseEntity<List> tokens = restTemplate.getForEntity(tokensUri, List.class, principal.getName());
 		@SuppressWarnings("unchecked")
-		List<Map<String,String>> body = tokens.getBody();
+		List<Map<String, String>> body = tokens.getBody();
 		model.addAttribute("tokens", tokens.getBody());
 		if (!body.isEmpty()) {
-			Map<String,String> token = body.iterator().next();
+			Map<String, String> token = body.iterator().next();
 			restTemplate.delete(tokensUri + "/" + token.get("jti"), principal.getName());
 		}
 		return "redirect:/j_spring_security_logout";
 	}
-	
+
 	@RequestMapping("/logout")
 	public String logout(Model model, HttpServletRequest request) {
 		String redirect = request.getRequestURL().toString();

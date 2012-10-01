@@ -22,6 +22,7 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
+import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.stereotype.Controller;
@@ -68,9 +69,11 @@ public class AccessController {
 			// response.sendError(HttpServletResponse.SC_BAD_REQUEST);
 		}
 		else {
-			ClientDetails client = clientDetailsService.loadClientByClientId(clientAuth.getClientId());
+			BaseClientDetails client = new BaseClientDetails(clientDetailsService.loadClientByClientId(clientAuth.getClientId()));
+			client.setClientSecret(null);
 			model.put("auth_request", clientAuth);
-			model.put("client", client);
+			model.put("client", client); // TODO: remove this once it has gone from jsp pages
+			model.put("client_id", clientAuth.getClientId());
 			model.put("redirect_uri", getRedirectUri(client, clientAuth));
 			model.put("scopes", getScopes(client, clientAuth));
 			model.put("message",

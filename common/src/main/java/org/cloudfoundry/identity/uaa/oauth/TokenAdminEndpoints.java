@@ -18,9 +18,10 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.cloudfoundry.identity.uaa.rest.SimpleMessage;
+import org.cloudfoundry.identity.uaa.scim.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.scim.UserNotFoundException;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -35,6 +36,7 @@ import org.springframework.security.oauth2.common.exceptions.InvalidTokenExcepti
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.token.ConsumerTokenServices;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -65,21 +67,16 @@ public class TokenAdminEndpoints {
 	}
 
 	@RequestMapping(value = "/oauth/users/{user}/tokens/{token}", method = RequestMethod.DELETE)
-	public ResponseEntity<?> revokeUserToken(@PathVariable String user, @PathVariable String token,
-			Principal principal, @RequestParam(required = false, defaultValue = "true") boolean lookup)
-			throws Exception {
+	@ResponseBody
+	public SimpleMessage revokeUserToken(@PathVariable String user, @PathVariable String token, Principal principal,
+			@RequestParam(required = false, defaultValue = "true") boolean lookup) throws Exception {
 		String username = lookup ? getUserName(user) : user;
 		checkResourceOwner(username, principal);
 		String tokenValue = getTokenValue(tokenServices.findTokensByUserName(username), token);
 		if (tokenValue != null && tokenServices.revokeToken(tokenValue)) {
-			return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
+			return new SimpleMessage("ok", "user token revoked");
 		}
-		else {
-			Map<String, String> map = new HashMap<String, String>();
-			map.put("error", "not_found");
-			map.put("error_description", "Token not found");
-			return new ResponseEntity<Map<String, String>>(map, HttpStatus.NOT_FOUND);
-		}
+		throw new NoSuchTokenException("Token not found");
 	}
 
 	@RequestMapping("/oauth/clients/{client}/tokens")
@@ -91,19 +88,20 @@ public class TokenAdminEndpoints {
 	}
 
 	@RequestMapping(value = "/oauth/clients/{client}/tokens/{token}", method = RequestMethod.DELETE)
-	public ResponseEntity<?> revokeClientToken(@PathVariable String client, @PathVariable String token,
-			Principal principal) throws Exception {
+	@ResponseBody
+	public SimpleMessage revokeClientToken(@PathVariable String client, @PathVariable String token, Principal principal)
+			throws Exception {
 		checkClient(client, principal);
 		String tokenValue = getTokenValue(tokenServices.findTokensByClientId(client), token);
 		if (tokenValue != null && tokenServices.revokeToken(tokenValue)) {
-			return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
+			return new SimpleMessage("ok", "client token revoked");
 		}
-		else {
-			Map<String, String> map = new HashMap<String, String>();
-			map.put("error", "not_found");
-			map.put("error_description", "Token not found");
-			return new ResponseEntity<Map<String, String>>(map, HttpStatus.NOT_FOUND);
-		}
+		throw new NoSuchTokenException("Token not found");
+	}
+
+	@ExceptionHandler(NoSuchTokenException.class)
+	public ResponseEntity<Void> handleNoSuchToken(NoSuchTokenException e) {
+		return new ResponseEntity<Void>(HttpStatus.NOT_FOUND);
 	}
 
 	private String getUserName(String user) {
@@ -120,7 +118,7 @@ public class TokenAdminEndpoints {
 				}
 			}
 		}
-		catch (UserNotFoundException e) {
+		catch (ScimResourceNotFoundException e) {
 			// ignore
 		}
 		return username;

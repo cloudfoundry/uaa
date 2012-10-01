@@ -7,7 +7,6 @@
 	</configSuffixes>
 	<enableImports><![CDATA[false]]></enableImports>
 	<configs>
-		<config>src/main/resources/META-INF/spring/batch/jobs/jobs.xml</config>
 		<config>src/test/resources/test/config/test-override.xml</config>
 		<config>src/main/webapp/WEB-INF/spring/env.xml</config>
 		<config>src/main/webapp/WEB-INF/spring/data-source.xml</config>

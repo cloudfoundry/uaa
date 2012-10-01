@@ -54,6 +54,10 @@ public class UaaException extends RuntimeException {
 		this(DEFAULT_ERROR, msg, 400);
 	}
 
+	public UaaException(String msg, int status) {
+		this(DEFAULT_ERROR, msg, status);
+	}
+
 	public UaaException(String error, String description, int status) {
 		super(description);
 		this.error = error;

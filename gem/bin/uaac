@@ -1,7 +1,5 @@
 #!/usr/bin/env ruby
 
 $:.unshift File.expand_path File.join __FILE__, '..', '..', 'lib'
-
 require 'cli'
-
-CF::UAA::Cli.configure("#{ENV['HOME']}/.uaac.yml").run
+exit CF::UAA::Cli.configure("#{ENV['HOME']}/.uaac.yml").run ? 0 : 1

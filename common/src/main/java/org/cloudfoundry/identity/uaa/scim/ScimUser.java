@@ -13,18 +13,13 @@
 package org.cloudfoundry.identity.uaa.scim;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.cloudfoundry.identity.uaa.scim.json.JsonDateDeserializer;
-import org.cloudfoundry.identity.uaa.scim.json.JsonDateSerializer;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
-import org.codehaus.jackson.map.annotate.JsonDeserialize;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 import org.springframework.util.Assert;
 
@@ -36,9 +31,7 @@ import org.springframework.util.Assert;
  * @author Luke Taylor
  */
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
-public final class ScimUser {
-
-	public static final String[] SCHEMAS = new String[] { "urn:scim:schemas:core:1.0" };
+public final class ScimUser extends ScimCore {
 
 	@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 	public static final class Group {
@@ -46,12 +39,29 @@ public final class ScimUser {
 		
 		String display;
 
+		public static enum MembershipType { DIRECT, INDIRECT };
+		MembershipType membershipType;
+
+		public MembershipType getMembershipType() {
+			return membershipType;
+		}
+
+		public void setMembershipType(MembershipType membershipType) {
+			this.membershipType = membershipType;
+		}
+
 		public Group() {
+			this(null, null);
 		}
 		
 		public Group(String value, String display) {
+			this(value, display, MembershipType.DIRECT);
+		}
+
+		public Group(String value, String display, MembershipType type) {
 			this.value = value;
 			this.display = display;
+			this.membershipType = type;
 		}
 
 		public String getValue() {
@@ -76,6 +86,7 @@ public final class ScimUser {
 			int result = 1;
 			result = prime * result + ((display == null) ? 0 : display.hashCode());
 			result = prime * result + ((value == null) ? 0 : value.hashCode());
+			result = prime * result + ((membershipType == null) ? 0 : membershipType.hashCode());
 			return result;
 		}
 
@@ -100,7 +111,12 @@ public final class ScimUser {
 			}
 			else if (!value.equals(other.value))
 				return false;
-			return true;
+			return membershipType == other.membershipType;
+		}
+
+		@Override
+		public String toString() {
+			return String.format("(id: %s, name: %s, type: %s)", value, display, membershipType);
 		}
 	}
 
@@ -236,56 +252,6 @@ public final class ScimUser {
 
 	}
 
-	@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
-	public static final class Meta {
-		private int version = 0;
-
-		private Date created = new Date();
-
-		private Date lastModified = null;
-
-		public Meta() {
-		}
-
-		public Meta(Date created, Date lastModified, int version) {
-			this.created = created;
-			this.lastModified = lastModified;
-			this.version = version;
-		}
-
-		@JsonSerialize(using = JsonDateSerializer.class, include = JsonSerialize.Inclusion.NON_NULL)
-		public Date getCreated() {
-			return created;
-		}
-
-		@JsonDeserialize(using = JsonDateDeserializer.class)
-		public void setCreated(Date created) {
-			this.created = created;
-		}
-
-		@JsonSerialize(using = JsonDateSerializer.class, include = JsonSerialize.Inclusion.NON_NULL)
-		public Date getLastModified() {
-			return lastModified;
-		}
-
-		@JsonDeserialize(using = JsonDateDeserializer.class)
-		public void setLastModified(Date lastModified) {
-			this.lastModified = lastModified;
-		}
-
-		public void setVersion(int version) {
-			this.version = version;
-		}
-
-		public int getVersion() {
-			return version;
-		}
-	}
-
-	private String id;
-
-	private String externalId;
-
 	private String userName;
 
 	private Name name;
@@ -314,34 +280,15 @@ public final class ScimUser {
 
 	private boolean active = true;
 
-	private Meta meta = new Meta();
-
 	@JsonProperty
 	private String password;
 
-	public ScimUser() {
-	}
+	public ScimUser() { }
 
 	public ScimUser(String id, String userName, String givenName, String familyName) {
-		this.id = id;
+		super(id);
 		setUserName(userName);
 		this.name = new Name(givenName, familyName);
-	}
-
-	public String getId() {
-		return id;
-	}
-
-	void setId(String id) {
-		this.id = id;
-	}
-
-	public String getExternalId() {
-		return externalId;
-	}
-
-	public void setExternalId(String externalId) {
-		this.externalId = externalId;
 	}
 
 	public String getUserName() {
@@ -462,32 +409,6 @@ public final class ScimUser {
 
 	public void setActive(boolean active) {
 		this.active = active;
-	}
-
-	public Meta getMeta() {
-		return meta;
-	}
-
-	public void setMeta(Meta meta) {
-		this.meta = meta;
-	}
-
-	@JsonIgnore
-	public void setVersion(int version) {
-		meta.setVersion(version);
-	}
-
-	@JsonIgnore
-	public int getVersion() {
-		return meta.getVersion();
-	}
-
-	public void setSchemas(String[] schemas) {
-		Assert.isTrue(Arrays.equals(SCHEMAS, schemas), "Only schema '" + SCHEMAS[0] + "' is currently supported");
-	}
-
-	public String[] getSchemas() {
-		return SCHEMAS;
 	}
 
 	@JsonIgnore

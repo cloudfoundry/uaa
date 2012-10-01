@@ -15,7 +15,7 @@
 	<oauth:resource-server id="oauthResourceAuthenticationFilter" token-services-ref="tokenServices"
 		resource-id="oauth" entry-point-ref="oauthAuthenticationEntryPoint" />
 
-	<http request-matcher-ref="loginAuthorizeRequestMatcher" entry-point-ref="oauthAuthenticationEntryPoint"
+	<http request-matcher-ref="loginAuthorizeRequestMatcher" create-session="always" entry-point-ref="oauthAuthenticationEntryPoint"
 		authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
@@ -77,7 +77,7 @@
 
 	<beans profile="default">
 		<bean id="loginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LoginAuthenticationManager">
-			<property name="addNewAccounts" value="true" />
+			<property name="addNewAccounts" value="${login.addnew:true}" />
 			<property name="scimUserBootstrap" ref="scimUserBootstrap" />
 			<property name="userDatabase" ref="userDatabase" />
 		</bean>

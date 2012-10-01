@@ -18,12 +18,12 @@ import static org.junit.Assert.assertNotNull;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeSet;
 
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.security.StubSecurityContextAccessor;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -38,7 +38,7 @@ import org.springframework.util.StringUtils;
 
 /**
  * @author Dave Syer
- * 
+ *
  */
 public class UaaAuthorizationRequestFactoryTests {
 
@@ -194,39 +194,4 @@ public class UaaAuthorizationRequestFactoryTests {
 		parameters.put("scope", "read");
 		factory.validateParameters(parameters, new BaseClientDetails("foo", null, "read,write", "implicit", null));
 	}
-
-	private static class StubSecurityContextAccessor implements SecurityContextAccessor {
-
-		@Override
-		public boolean isClient() {
-			return false;
-		}
-
-		@Override
-		public boolean isUser() {
-			return false;
-		}
-
-		@Override
-		public boolean isAdmin() {
-			return false;
-		}
-
-		@Override
-		public String getUserId() {
-			return null;
-		}
-
-		@Override
-		public String getClientId() {
-			return null;
-		}
-
-		@Override
-		public Collection<? extends GrantedAuthority> getAuthorities() {
-			return Collections.emptySet();
-		}
-
-	}
-
 }

@@ -32,8 +32,21 @@
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
 
+	<http pattern="/clientinfo" create-session="stateless" entry-point-ref="basicAuthenticationEntryPoint"
+		authentication-manager-ref="clientAuthenticationManager" use-expressions="true"
+		xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/**" access="isFullyAuthenticated()" />
+		<anonymous enabled="false" />
+		<custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
+		<access-denied-handler ref="oauthAccessDeniedHandler" />
+	</http>
+
 	<bean id="checkTokenEndpoint" class="org.cloudfoundry.identity.uaa.oauth.CheckTokenEndpoint">
 		<property name="tokenServices" ref="tokenServices" />
+	</bean>
+
+	<bean id="clientInfoEndpoint" class="org.cloudfoundry.identity.uaa.oauth.ClientInfoEndpoint">
+		<property name="clientDetailsService" ref="clientDetails" />
 	</bean>
 
 </beans>

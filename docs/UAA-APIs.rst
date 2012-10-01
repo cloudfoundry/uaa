@@ -28,12 +28,12 @@ Configuration Options
 Several modes of operation and other optional features can be set in configuration files.  Settings for a handful of standard scenarios can be externalized and switched using environment variables or system properties.
 
 * Internal username/password authentication source
-  
+
   The UAA manages a user account database. These accounts can be used for password based authentication similar to existing Cloud Foundry user accounts. The UAA accounts can be configured with password policy such as length, accepted/required character types, expiration times, reset policy, etc.
 
 * Other Authentication sources
-  
-  Other standard external authentication sources can also be used. The most common and therefore the expected starting point are LDAP server, or an external OpenID provider (e.g. Google). Another expected authentication source would be Horizon Application Manager either through OAuth2 (preferred), or SAML protocols. General SAML2 support is not currently planned but could be added and would provide capabilities similar to OpenID and OAuth. 
+
+  Other standard external authentication sources can also be used. The most common and therefore the expected starting point are LDAP server, or an external OpenID provider (e.g. Google). Another expected authentication source would be Horizon Application Manager either through OAuth2 (preferred), or SAML protocols. General SAML2 support is not currently planned but could be added and would provide capabilities similar to OpenID and OAuth.
 
 Authentication and Delegated Authorization APIs
 ===============================================================
@@ -88,7 +88,7 @@ Client Obtains Token: ``POST /oauth/token``
 See `oauth2 token endpoint`_ below for a more detailed description.
 
 =============== =================================================
-Request         ``POST /oauth/token`` 
+Request         ``POST /oauth/token``
 Request Body    the authorization code (form encoded), e.g.::
 
                   code=F45jH
@@ -100,7 +100,7 @@ Response Body   ::
                   "access_token":"2YotnFZFEjr1zCsicMWpAA",
                   "token_type":"bearer",
                   "expires_in":3600,
-                  }        
+                  }
 
 =============== =================================================
 
@@ -117,7 +117,7 @@ Effectively this means that the endpoint is used to authenticate **and** obtain 
 
 .. note:: A GET mothod is used in the `relevant section <http://tools.ietf.org/html/draft-ietf-oauth-v2-22#section-4.2.1>`_ of the spec that talks about the implicit grant, but a POST is explicitly allowed in the section on the ``/oauth/authorize`` endpoint (see `OAuth2 section 3.1`_).
 
-All requests to this endpoint MUST be over SSL. 
+All requests to this endpoint MUST be over SSL.
 
 * Request: ``POST /oauth/authorize``
 * Request query component: some parameters specified by the spec, appended to the query component using the "application/x-www-form-urlencoded" format,
@@ -143,12 +143,12 @@ All requests to this endpoint MUST be over SSL.
 Implicit Grant for Browsers: ``GET /oauth/authorize``
 -------------------------------------------------------
 
-This works similarly to the previous section, but does not require the credentials to be POSTed as is needed for browser flows. 
+This works similarly to the previous section, but does not require the credentials to be POSTed as is needed for browser flows.
 
-#. The browser redirects to the ``/oauth/authorize`` endpoint with parameters in the query component as per the previous section. 
-#. The UAA presents the UI to authenticate the user and approve the scopes. 
-#. If the user authorizes the scopes for the requesting client, the UAA will redirect the browser to the ``redirect_uri`` provided (and pre-registered) by the client. 
-#. Since the reply parameters are encoded in the location fragment, the client application must get the access token in the reply fragment from user's browser -- typically by returning a page to the browser with some javascript which will post the access token to the client app. 
+#. The browser redirects to the ``/oauth/authorize`` endpoint with parameters in the query component as per the previous section.
+#. The UAA presents the UI to authenticate the user and approve the scopes.
+#. If the user authorizes the scopes for the requesting client, the UAA will redirect the browser to the ``redirect_uri`` provided (and pre-registered) by the client.
+#. Since the reply parameters are encoded in the location fragment, the client application must get the access token in the reply fragment from user's browser -- typically by returning a page to the browser with some javascript which will post the access token to the client app.
 
 Trusted Authentication from Login Server
 ----------------------------------------
@@ -275,7 +275,7 @@ This endpoint mirrors the OpenID Connect ``/check_id`` endpoint, so not very RES
         }
 
 Notes:
-  
+
 * The ``user_name`` is the same as you get from the `OpenID Connect`_ ``/userinfo`` endpoint.  The ``user_id`` field is the same as you would use to get the full user profile from ``/User``.
 * Many of the fields in the response are a courtesy, allowing the caller to avoid further round trip queries to pick up the same information (e.g. via the ``/User`` endpoint).
 * The ``aud`` claim is the resource ids that are the audience for the token.  A Resource Server should check that it is on this list or else reject the token.
@@ -294,7 +294,7 @@ Notes:
 OAuth2 Token Endpoint: ``POST /oauth/token``
 ----------------------------------------------
 
-An OAuth2 defined endpoint which accepts authorization code or refresh tokens and provides access_tokens. The access_tokens can then be used to gain access to resources within a resource server. 
+An OAuth2 defined endpoint which accepts authorization code or refresh tokens and provides access_tokens. The access_tokens can then be used to gain access to resources within a resource server.
 
 * Request: ``POST /oauth/token``
 
@@ -318,7 +318,7 @@ Request     ``GET /userinfo``
 Response    ``{"user_id":"olds","email":"olds@vmare.com"}``
 =========== ===============================================
 
-.. _login information api: 
+.. _login information api:
 
 Login Information API: ``GET /login``
 ---------------------------------------
@@ -482,11 +482,11 @@ See `SCIM - Changing Password <http://www.simplecloud.info/specs/draft-scim-rest
           "oldPassword": "oldpassword"
         }
 
-* Response Body: *empty*
+* Response Body: the updated details
 
 * Response Codes::
 
-        204 - Updated successfully
+        200 - Updated successfully
         400 - Bad Request
         401 - Unauthorized
         404 - Not found
@@ -547,12 +547,12 @@ Deleting accounts is handled in the back end logically using the `active` flag, 
 * Request: ``GET /Users?attributes=id,userName&filter=userName co 'bjensen' and active eq false``
 * Response Body: list of users matching the filter
 
-Query Group Membership
-----------------------
+Converting UserIds to Names
+---------------------------
 
-There is a SCIM-like endpoint for querying group membership, with the same filter and attribute syntax as ``/Users``, but with restrictions on how it can be used.  A special purpose endpoint for use as a user id/name translation api. It will be used by vmc so it has to be quite restricted in function (i.e. it's not a general purpose groups or users endpoint). You can only query it, as a user, for usernames and user ids in the same group as you. Otherwise the API is the same as /Users.
+There is a SCIM-like endpoint for converting usernames to names, with the same filter and attribute syntax as ``/Users``. It must be supplied with a ``filter`` parameter.  It is a special purpose endpoint for use as a user id/name translation api, and is should be disabled in production sites by setting ``scim.userids_enabled=false`` in the UAA configuration. It will be used by vmc so it has to be quite restricted in function (i.e. it's not a general purpose groups or users endpoint). Otherwise the API is the same as /Users.
 
-* Request: ``GET /Groups/{group}/Users``
+* Request: ``GET /ids/Users``
 * Response Body: list of users matching the filter
 
 Query the strength of a password: ``POST /password/score``
@@ -566,15 +566,17 @@ exposes this API which accepts a candidate password and returns a JSON message c
 .. _zxcvbn project: http://tech.dropbox.com/?p=165
 
 The use of this API does not guarantee that a password is strong (it is currently limited to English dictionary searches, for example), but it will protect against some of
-the worst choices that people make and will not unnecessarily penalise strong passwords.
+the worst choices that people make and will not unnecessarily penalise strong passwords. In addition to the password parameter itself, the client can pass a
+comma-separated list of user-specific data in the ``userData`` parameter. This can be used to pass things like the username, email or other biographical
+information known to the client which should result in a low score if it is used as part of the password.
 
-* Request: ``POST /password/score
+* Request: ``POST /password/score``
 
     POST /password/score HTTP/1.1
     Host: uaa.example.com
     Content-Type: application/x-www-form-encoded
 
-    password=password1
+    password=password1&userData=jane,janesdogsname,janescity
 
 * Response
     HTTP/1.1 200 OK
@@ -593,7 +595,6 @@ List Tokens for User: ``GET /oauth/users/{username}/tokens``
 -------------------------------------------------------------
 
 * Request: ``GET /oauth/users/{username}/tokens``
-* Access: allowed by clients with ``ROLE_ADMIN`` and for users to see their own tokens (as long as the client has ``ROLE_ADMIN``)
 * Request body: *empty*
 * Response body: a list of access tokens, *example* ::
 
@@ -613,16 +614,14 @@ Revoke Token by User: ``DELETE /oauth/users/{username}/tokens/{jti}``
 ----------------------------------------------------------------------------
 
 * Request: ``DELETE /oauth/users/{username}/tokens/{jti}``
-* Access: allowed by clients with ``ROLE_ADMIN`` and for users to revoke their own tokens (as long as the client has ``ROLE_ADMIN``)
 * Request body: *empty*
-* Response code: ``204 NO_CONTENT``
-* Response body: *empty*
+* Response code: ``200 OK``
+* Response body: a status message (hash)
 
 List Tokens for Client: ``GET /oauth/clients/{client_id}/tokens``
 ---------------------------------------------------------------------
 
 * Request: ``GET /oauth/clients/{client_id}/tokens``
-* Access: allowed by clients with ``ROLE_CLIENT``
 * Request body: *empty*
 * Response body: a list of access tokens, *example* ::
 
@@ -642,12 +641,12 @@ Revoke Token by Client: ``DELETE /oauth/clients/{client_id}/tokens/{jti}``
 --------------------------------------------------------------------------------
 
 * Request: ``DELETE /oauth/clients/{client_id}/tokens/{jti}``
-* Access: allowed by clients with ``ROLE_CLIENT``
 * Request body: *empty*
-* Reponse code: ``204`` (NO_CONTENT)
-* Response body: *empty* ::
+* Reponse code: ``200`` OK
+* Response body: a status message (hash) ::
 
-        HTTP/1.1 204 NO_CONTENT
+        HTTP/1.1 200 OK
+        { "status": "ok" }
 
 Get the Token Signing Key: ``GET /token_key``
 -----------------------------------------------
@@ -681,37 +680,36 @@ Client Registration Administration APIs
 List Clients: ``GET /oauth/clients``
 -----------------------------------------------------
 
-=============== ===============================================================
+==============  ===========================================================================
 Request         ``GET /oauth/clients``
-Access          Allowed by clients or users with ``ROLE_ADMIN`` and ``scope=read``
 Request body    client details
 Response code    ``200 OK`` if successful with client details in JSON response
-Response body   *example*::
+Response body   *example* ::
 
                   HTTP/1.1 200 OK
                   {foo: {
                     client_id : foo,
-                    scope : [read,write],
-                    resource_ids : [cloud_controller,scim],
-                    authorities : [ROLE_CLIENT,ROLE_ADMIN],
+                    scope : [uaa.none]
+                    resource_ids : [none],
+                    authorities : [cloud_controller.read,cloud_controller.write,scim.read],
                     authorized_grant_types : [client_credentials]
                   },
                   bar: {
                     client_id : bar,
-                    scope : [read,write],
-                    resource_ids : [cloud_controller,openid],
-                    authorities : [ROLE_CLIENT],
+                    scope : [cloud_controller.read,cloud_controller.write,openid],
+                    resource_ids : [none],
+                    authorities : [uaa.none],
                     authorized_grant_types : [authorization_code]
                   }}
 
-=============== ===============================================================
+==============  ===========================================================================
+
 
 Inspect Client: ``GET /oauth/clients/{client_id}``
 -----------------------------------------------------
 
 =============== ===============================================================
 Request         ``GET /oauth/clients/{client_id}``
-Access          Allowed by clients or users with ``ROLE_ADMIN`` and ``scope=read``
 Request body    client details
 Response code    ``200 OK`` if successful with client details in JSON response
 Response body   *example*::
@@ -719,9 +717,9 @@ Response body   *example*::
                   HTTP/1.1 200 OK
                   {
                     client_id : foo,
-                    scope : [read,write],
-                    resource_ids : [cloud_controller,scim],
-                    authorities : [ROLE_CLIENT,ROLE_ADMIN],
+                    scope : [uaa.none],
+                    resource_ids : [none],
+                    authorities : [cloud_controller.read,cloud_controller.write,scim.read],
                     authorized_grant_types : [client_credentials]
                   }
 
@@ -732,10 +730,9 @@ Register Client: ``POST /oauth/clients/{client_id}``
 
 ==============  ===============================================
 Request         ``POST /oauth/clients/{client_id}``
-Access          allowed by clients or users with ``ROLE_ADMIN`` and ``scope=write``
 Request body    client details
 Response code    ``201 CREATED`` if successful
-Response body   *empty*
+Response body   the client details
 ==============  ===============================================
 
 Example request::
@@ -744,9 +741,9 @@ Example request::
     {
       client_id : foo,
       client_secret : fooclientsecret, // optional for untrusted clients
-      scope : [read,write],
-      resource_ids : [cloud_controller,scim],
-      authorities : [ROLE_CLIENT,ROLE_ADMIN],
+      scope : [uaa.none],
+      resource_ids : [none],
+      authorities : [cloud_controller.read,cloud_controller.write,openid],
       authorized_grant_types : [client_credentials],
       access_token_validity: 43200
     }
@@ -758,20 +755,19 @@ Update Client: ``PUT /oauth/clients/{client_id}``
 
 ==============  ===============================================
 Request         ``PUT /oauth/clients/{client_id}``
-Access          allowed by clients or users with ``ROLE_ADMIN`` and ``scope=write``
 Request body    client details
-Response code   ``204 NO_CONTENT`` if successful
-Response body   *empty*
+Response code   ``200 OK`` if successful
+Response body   the updated details
 ==============  ===============================================
-        
+
 Example::
 
     PUT /oauth/clients/foo
     {
       client_id : foo,
-      scope : [read,write],
-      resource_ids : [cloud_controller,scim],
-      authorities : [ROLE_CLIENT,ROLE_ADMIN],
+      scope : [uaa.none],
+      resource_ids : [none],
+      authorities : [cloud_controller.read,cloud_controller.write,openid],
       authorized_grant_types : [client_credentials]
     }
 
@@ -783,10 +779,9 @@ Delete Client: ``DELETE /oauth/clients/{client_id}``
 
 ==============  ===============================================
 Request         ``DELETE /oauth/clients/{client_id}``
-Access          allowed by clients or users with ``ROLE_ADMIN`` and ``scope=write``
 Request body    *empty*
-Response code   ``204 NO_CONTENT``
-Response body   *empty*
+Response code   ``200 OK``
+Response body   the old client
 ==============  ===============================================
 
 
@@ -795,10 +790,9 @@ Change Client Secret: ``PUT /oauth/clients/{client_id}/secret``
 
 ==============  ===============================================
 Request         ``PUT /oauth/clients/{client_id}/secret``
-Access          allowed by clients or users with ``ROLE_ADMIN`` and ``scope=password``
 Request body    *secret change request*
-Reponse code    ``204 NO_CONTENT`` if successful
-Response body   *empty*
+Reponse code    ``200 OK`` if successful
+Response body   a status message (hash)
 ==============  ===============================================
 
 Example::
@@ -826,7 +820,7 @@ Internal Login Form: ``GET /login``
 Internal Login: ``POST /login``
 --------------------------------
 
-* Request: ``POST /login`` 
+* Request: ``POST /login``
 * Request Body, example -- depends on configuration (e.g. do we need OTP / PIN / password etc.)::
 
     username=:username&password=:password...
@@ -836,7 +830,7 @@ Internal Login: ``POST /login``
     Location: http://myapp.cloudfoundry.com/mycoolpage
     Set-Cookie: JSESSIONID=ldfjhsdhafgkasd
 
-* Response Codes:: 
+* Response Codes::
 
     302 - Found
     200 - Success
@@ -847,10 +841,10 @@ OAuth2 Authorization Confirmation: ``GET /oauth/authorize/confirm``
 * Request: ``GET /oauth/authorize/confirm``
 * Request Body: HTML form posts back to ``/oauth/authorize``::
 
-    Do you approve the application "foo" to access your CloudFoundry 
+    Do you approve the application "foo" to access your CloudFoundry
     resources with scope "read_cloudfoundry"? Approve/Deny.
 
-* Response Codes:: 
+* Response Codes::
 
     200 - Success
 
@@ -865,7 +859,7 @@ The precise form of this request is not given by the spec (which just says "obta
     Cookie: JSESSIONID=ldfjhsdhafgkasd
 
 * Response Header: location as defined in the spec (e.g. includes auth code for that grant type, and error information)
-* Response Codes:: 
+* Response Codes::
 
     302 - Found
 
@@ -882,7 +876,7 @@ Response Headers    ::
 
 ==================  ===============================================
 
-    
+
 Management Endpoints
 =====================
 

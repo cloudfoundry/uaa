@@ -93,12 +93,6 @@ public class VarzEndpoint implements EnvironmentAware {
 		this.server = server;
 	}
 
-	@RequestMapping("/healthz")
-	@ResponseBody
-	public String getHealthz() throws Exception {
-		return "ok\n";
-	}
-
 	@RequestMapping(value = { "/", "/varz" })
 	@ResponseBody
 	public Map<String, ?> getVarz(@ModelAttribute("baseUrl") String baseUrl) throws Exception {

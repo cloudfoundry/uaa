@@ -111,7 +111,7 @@ img.gsc-branding-img,img.gsc-branding-img-noclear,img.gcsc-branding-img,img.gcsc
 
 				<div class="confirm">
 					<p>
-						Do you authorize the application '${client.clientId}' at <a
+						Do you authorize the application '${client_id}' at <a
 							href="${redirect_uri}">${redirect_uri}</a> to access your Cloud
 						Foundry resources?
 					</p>

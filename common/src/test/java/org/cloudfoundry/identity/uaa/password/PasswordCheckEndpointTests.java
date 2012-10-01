@@ -27,11 +27,11 @@ public class PasswordCheckEndpointTests {
 		PasswordCheckEndpoint pc = new PasswordCheckEndpoint();
 		pc.setScoreCalculator(new ZxcvbnPasswordScoreCalculator(5));
 
-		PasswordScore score = pc.passwordScore("password1");
+		PasswordScore score = pc.passwordScore("password1", "");
 
 		assertTrue(score.getScore() == 0);
 
-		score = pc.passwordScore("thisisasufficientlylongstring");
+		score = pc.passwordScore("thisisasufficientlylongstring", "");
 		assertTrue(score.getScore() >= score.getRequiredScore());
 	}
 }

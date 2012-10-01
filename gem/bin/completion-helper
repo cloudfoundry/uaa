@@ -1,0 +1,80 @@
+#!/usr/bin/env ruby
+
+# given the indents, find sub-commands of a given command
+def find_sub_commands (lines, indents, i)
+  result = Array.new
+  x = i+1
+  while x < lines.size && indents[x] > indents[i]
+    if indents[x] - indents[i] == 1
+      result.push(x)
+    end
+    x = x+1
+  end
+  result
+end
+
+def find_sub_command_index (lines, sub_command_indices, sub_command)
+  sub_command_indices.each do |i|
+    if lines[i] == sub_command
+      return i
+    end
+  end
+  -1
+end
+
+# traverse sub-command tree with the given list of args
+def traverse_command_tree(lines, sub_command_indices, args)
+  #puts "traversing for #{args}"
+  x = 0
+  args.drop(1).each do |arg|
+    next if arg.start_with? ("-")
+    x = find_sub_command_index(lines, sub_command_indices[x], arg)
+    if x == -1
+      break
+    end
+  end
+  x
+end
+
+# use values in array1 as indices into array2 and find the subset from array2
+def find_subset(values, indices)
+  result = Array.new
+  indices.each do |i|
+    result.push(values[i])
+  end
+  result.join(' ')
+end
+
+def get_cache_filename(cmd)
+  curr_user = `whoami`.chomp
+  home_dir = `echo ~#{curr_user}`.chomp
+  "#{home_dir}/.#{cmd}-commands"
+end
+
+indent_char = "\t"
+command_file_name = get_cache_filename(ARGV[0])
+if !FileTest.exists?(command_file_name)
+  `#{ARGV[0]} help commands > #{command_file_name}`
+end
+lines = File.readlines(command_file_name)
+children = Array.new
+indents = Array.new
+
+lines.each_with_index do |line, i|
+  indents[i] = line.count(indent_char)
+end
+
+# now that we have computed the indent level for each line, remove new-lines and tabs
+lines.collect! { |line| line.gsub(/[#{indent_char}]/, '') }
+lines.collect! { |line| line.gsub(/[\n]/, '') }
+
+# pre-processing: find the sub-commands for command (using indent levels)
+lines.each_with_index do |line, i|
+  children[i] = find_sub_commands(lines, indents, i)
+end
+
+# now that a sub-command tree is available, parse it using the input arguments to find the auto-completion options
+x = traverse_command_tree(lines, children, ARGV.drop(1))
+puts x == -1 ? "" : find_subset(lines, children[x])
+
+

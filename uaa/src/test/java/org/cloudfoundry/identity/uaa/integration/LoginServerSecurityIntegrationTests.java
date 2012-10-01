@@ -35,6 +35,7 @@ import org.springframework.security.oauth2.client.test.BeforeOAuth2Context;
 import org.springframework.security.oauth2.client.test.OAuth2ContextConfiguration;
 import org.springframework.security.oauth2.client.test.OAuth2ContextSetup;
 import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
+import org.springframework.security.oauth2.client.token.grant.implicit.ImplicitResourceDetails;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -50,7 +51,7 @@ public class LoginServerSecurityIntegrationTests {
 
 	private final String JOE = "joe" + new RandomValueStringGenerator().generate().toLowerCase();
 
-	private final String userEndpoint = "/User";
+	private final String userEndpoint = "/Users";
 
 	private ScimUser joe;
 
@@ -105,7 +106,7 @@ public class LoginServerSecurityIntegrationTests {
 		HttpHeaders headers = new HttpHeaders();
 		ResponseEntity<Void> result = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password",
 				HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers), null, joe.getId());
-		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+		assertEquals(HttpStatus.OK, result.getStatusCode());
 
 		// The implicit grant for vmc requires extra parameters in the authorization request
 		context.setParameters(Collections.singletonMap("credentials",
@@ -153,7 +154,8 @@ public class LoginServerSecurityIntegrationTests {
 	@Test
 	@OAuth2ContextConfiguration(LoginClient.class)
 	public void testMissingUsernameIsError() throws Exception {
-		((RestTemplate) serverRunning.getRestTemplate()).setRequestFactory(new HttpComponentsClientHttpRequestFactory());
+		((RestTemplate) serverRunning.getRestTemplate())
+				.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
 		params.set("client_id", testAccounts.getDefaultImplicitResource().getClientId());
 		params.remove("username");
 		// Some of the user info is there but not enough to determine a username
@@ -170,9 +172,15 @@ public class LoginServerSecurityIntegrationTests {
 	@Test
 	@OAuth2ContextConfiguration(LoginClient.class)
 	public void testWrongUsernameIsError() throws Exception {
-		((RestTemplate) serverRunning.getRestTemplate()).setRequestFactory(new HttpComponentsClientHttpRequestFactory());
-		params.set("client_id", testAccounts.getDefaultImplicitResource().getClientId());
+		((RestTemplate) serverRunning.getRestTemplate())
+				.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
+		ImplicitResourceDetails resource = testAccounts.getDefaultImplicitResource();
+		params.set("client_id", resource.getClientId());
 		params.set("username", "bogus");
+		String redirect = resource.getPreEstablishedRedirectUri();
+		if (redirect != null) {
+			params.set("redirect_uri", redirect);
+		}
 		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAuthorizationUri(), params, headers);
 		assertEquals(HttpStatus.FOUND, response.getStatusCode());

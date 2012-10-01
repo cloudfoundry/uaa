@@ -86,7 +86,7 @@ public class VmcScimUserEndpointIntegrationTests {
 		HttpHeaders headers = new HttpHeaders();
 		ResponseEntity<Void> result = client.exchange(serverRunning.getUrl(usersEndpoint) + "/{id}/password",
 				HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers), null, joe.getId());
-		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+		assertEquals(HttpStatus.OK, result.getStatusCode());
 
 		// The implicit grant for vmc requires extra parameters in the authorization request
 		context.setParameters(Collections.singletonMap("credentials",
@@ -113,7 +113,7 @@ public class VmcScimUserEndpointIntegrationTests {
 		RestOperations client = serverRunning.getRestTemplate();
 		ResponseEntity<Void> result = client.exchange(serverRunning.getUrl(usersEndpoint) + "/{id}/password",
 				HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers), null, joe.getId());
-		assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+		assertEquals(HttpStatus.OK, result.getStatusCode());
 
 	}
 
@@ -137,7 +137,7 @@ public class VmcScimUserEndpointIntegrationTests {
 		@SuppressWarnings("unchecked")
 		Map<String, String> error = response.getBody();
 		// System.err.println(error);
-		assertEquals("access_denied", error.get("error"));
+		assertEquals("insufficient_scope", error.get("error"));
 	}
 
 	@Test

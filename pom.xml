@@ -5,7 +5,7 @@
 	<artifactId>cloudfoundry-identity-parent</artifactId>
 	<name>CloudFoundry Identity - Parent</name>
 	<packaging>pom</packaging>
-	<version>1.2.0.BUILD-SNAPSHOT</version>
+	<version>1.2.0</version>
     <url>http://github.com/cloudfoundry/uaa</url>
 	<modules>
 		<module>common</module>
@@ -15,7 +15,7 @@
 	<properties>
 		<spring.version>3.1.2.RELEASE</spring.version>
 		<spring.security.version>3.1.2.RELEASE</spring.security.version>
-		<spring.security.oauth.version>1.0.0.BUILD-SNAPSHOT</spring.security.oauth.version>
+		<spring.security.oauth.version>1.0.0.RC2a</spring.security.oauth.version>
 		<spring.security.jwt.version>1.0.0.M3</spring.security.jwt.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -282,7 +282,7 @@
 		<repository>
 			<id>spring-milestone</id>
 			<name>Spring Framework Milestone Repository</name>
-			<url>http://maven.springframework.org.s3.amazonaws.com/milestone</url>
+			<url>http://maven.springframework.org/milestone</url>
 		</repository>
 		<repository>
 			<!-- necessary for Spring Security OAuth SNAPSHOT dependency -->
