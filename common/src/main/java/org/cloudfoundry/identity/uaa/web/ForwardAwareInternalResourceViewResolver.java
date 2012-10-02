@@ -35,6 +35,10 @@ import org.springframework.web.servlet.view.InternalResourceViewResolver;
 public class ForwardAwareInternalResourceViewResolver extends InternalResourceViewResolver {
 
 	private static final String ACCEPT_HEADER = "Accept";
+	
+	public ForwardAwareInternalResourceViewResolver() {
+		setCache(false); // otherwise the content type gets fixed at HTML if browser loads page first
+	}
 
 	@Override
 	protected View createView(String viewName, Locale locale) throws Exception {
