@@ -52,7 +52,7 @@ class CommonCli < Topic
     case e
     when TargetError then gripe "\n#{e.message}:\n#{JSON.pretty_generate(e.info)}"
     when Exception
-      gripe "\n#{e.class}: #{e.message}"
+      gripe "\n#{e.class}: #{e.message}\n\n"
       gripe e.backtrace if trace?
     when String then gripe e
     else gripe "unknown type of gripe: #{e.class}, #{e}"
@@ -151,7 +151,7 @@ class MiscCli < CommonCli
       say ""
       splat = v[:current] ? '*' : ' '
       pp "[#{i}]#{splat}[#{k}]"
-      v.each { |tk, tv| pp tv, 2, terminal_columns, tk unless tk == :contexts }
+      v.each {|tk, tv| pp(tv, 2, terminal_columns, tk) unless [:contexts, :current, :prompts].include?(tk)}
       next unless v[:contexts]
       v[:contexts].each_with_index do |(sk, sv), si|
         next if ctx && ctx != sk
