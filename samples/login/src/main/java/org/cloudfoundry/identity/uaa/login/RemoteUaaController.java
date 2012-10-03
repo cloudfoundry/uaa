@@ -66,6 +66,8 @@ public class RemoteUaaController {
 
 	private static final String HOST = "Host";
 
+	private static final String COOKIE = "Cookie";
+
 	private static String DEFAULT_BASE_UAA_URL = "https://uaa.cloudfoundry.com";
 
 	private RestTemplate defaultTemplate = new RestTemplate();
@@ -81,6 +83,13 @@ public class RemoteUaaController {
 	 */
 	public void setAuthorizationTemplate(RestOperations authorizationTemplate) {
 		this.authorizationTemplate = authorizationTemplate;
+	}
+	
+	/**
+	 * @param defaultTemplate the defaultTemplate to set
+	 */
+	public void setDefaultTemplate(RestTemplate defaultTemplate) {
+		this.defaultTemplate = defaultTemplate;
 	}
 
 	public RemoteUaaController() {
@@ -142,7 +151,8 @@ public class RemoteUaaController {
 		requestHeaders.putAll(getRequestHeaders(headers));
 		requestHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 		requestHeaders.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
-		requestHeaders.remove("Cookie");
+		requestHeaders.remove(COOKIE);
+		requestHeaders.remove(COOKIE.toLowerCase());
 
 		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> response = authorizationTemplate.exchange(baseUrl + "/" + path, HttpMethod.POST,
@@ -241,9 +251,11 @@ public class RemoteUaaController {
 		outgoingHeaders.putAll(headers);
 		if (headers.getContentLength() >= 0) {
 			outgoingHeaders.remove(CONTENT_LENGTH);
+			outgoingHeaders.remove(CONTENT_LENGTH.toLowerCase());
 		}
 		if (headers.containsKey(TRANSFER_ENCODING)) {
 			outgoingHeaders.remove(TRANSFER_ENCODING);
+			outgoingHeaders.remove(TRANSFER_ENCODING.toLowerCase());
 		}
 		return outgoingHeaders;
 	}
@@ -253,6 +265,7 @@ public class RemoteUaaController {
 		HttpHeaders outgoingHeaders = new HttpHeaders();
 		outgoingHeaders.putAll(headers);
 		outgoingHeaders.remove(HOST);
+		outgoingHeaders.remove(HOST.toLowerCase());
 		outgoingHeaders.set(HOST, uaaHost);
 		logger.debug("Outgoing headers: " + outgoingHeaders);
 		return outgoingHeaders;
