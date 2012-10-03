@@ -35,17 +35,18 @@ class Config
       @config = config == "" ? {} : YAML.load(config)
       @config_file = nil
     elsif File.exists?(@config_file = config)
-      @config = YAML.load_file(@config_file)
-      @config.each { |k, v|
-        next unless k.to_s =~ / /
-        STDERR.puts "", "Invalid config file #{@config_file}.",
-          "If it's from an old version of uaac, please remove it.",
-          "Note that the uaac command structure has changed.",
-          "Please review the new commands with 'uaac help'", ""
-        exit 1
-      }
+      if (@config = YAML.load_file(@config_file)) && @config.is_a?(Hash)
+        @config.each { |k, v| break @config = nil if k.to_s =~ / / }
+      end
+      unless @config && @config.is_a?(Hash)
+          STDERR.puts "", "Invalid config file #{@config_file}.",
+            "If it's from an old version of uaac, please remove it.",
+            "Note that the uaac command structure has changed.",
+            "Please review the new commands with 'uaac help'", ""
+          exit 1
+      end
     else # file doesn't exist, make sure we can write it now
-      File.open(@config_file, 'w') { |f| f.write(" ") }
+      File.open(@config_file, 'w') { |f| f.write("--- {}\n\n") }
     end
     @config = Util.hash_keys(@config, :tosym)
     @context = current_subhash(@config[@target][:contexts]) if @target = current_subhash(@config)

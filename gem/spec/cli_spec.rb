@@ -255,7 +255,7 @@ describe Cli do
 
   it "should create many users and a group as the test client" do
     Cli.run "context #{@test_client}"
-    59.times { |i| Cli.run("user add #{@test_user.capitalize}-#{i} -p #{@test_pwd} " +
+    29.times { |i| Cli.run("user add #{@test_user.capitalize}-#{i} -p #{@test_pwd} " +
         "--email #{@test_user}+#{i}@example.com --family_name #{@test_user.capitalize} --given_name joe") }
     Cli.run("group add #{@test_group}").should_not be_nil
     Cli.output.string = ""
@@ -265,14 +265,15 @@ describe Cli do
 
   it "should add all users to the group" do
     cmd = "member add #{@test_group}"
-    59.times { |i| cmd << " #{@test_user.capitalize}-#{i}" }
+    29.times { |i| cmd << " #{@test_user.capitalize}-#{i}" }
     Cli.run cmd
     Cli.output.string.should match @test_group
   end
 
   it "should list all users" do
-    Cli.run("users").should_not be_nil
+    Cli.run("users -a userName").should_not be_nil
     #puts Cli.output.string
+    29.times { |i| Cli.output.string.should match "#{@test_user.capitalize}-#{i}" }
   end
 
   it "should delete a client registration as admin" do

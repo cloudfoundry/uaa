@@ -83,8 +83,11 @@ class UserCli < CommonCli
     }
   end
 
-  desc "user ids [username|id...]", "Gets user names and ids for the given users" do |name, *users|
-    pp acct_request { |ua| ua.ids(name, *users) }
+  desc "user ids [username|id...]", "Gets user names and ids for the given users" do |*users|
+    pp acct_request { |ua|
+      users = Util.arglist(ask("names or ids of users")) if !users || users.empty?
+      ua.ids(*users)
+    }
   end
 
   desc "password set [name]", "Set password", :password do |name|

@@ -86,7 +86,7 @@ class Topic
       say_definition(indent, label, nil, nil, wrap) if label
       obj.each { |k, v| pp v, indent + 2, wrap, "#{k}: " }
     when nil
-    else say_definition(indent, label, obj.to_s, nil, wrap)
+    else say_definition(indent, ("#{label}: " if label), obj.to_s, nil, wrap)
     end
     obj
   end
