@@ -35,22 +35,32 @@ import org.springframework.web.servlet.view.InternalResourceViewResolver;
 public class ForwardAwareInternalResourceViewResolver extends InternalResourceViewResolver {
 
 	private static final String ACCEPT_HEADER = "Accept";
+	
+	@Override
+	protected Object getCacheKey(String viewName, Locale locale) {
+		return super.getCacheKey(viewName + ";" + getRequestedMediaType(), locale);
+	}
 
 	@Override
 	protected View createView(String viewName, Locale locale) throws Exception {
 		View view = super.createView(viewName, locale);
 		if (viewName.startsWith(FORWARD_URL_PREFIX) || viewName.startsWith(REDIRECT_URL_PREFIX)) {
 			if (view instanceof AbstractView) {
-				RequestAttributes attrs = RequestContextHolder.getRequestAttributes();
-				Assert.isInstanceOf(ServletRequestAttributes.class, attrs);
-				HttpServletRequest request = ((ServletRequestAttributes) attrs).getRequest();
-				MediaType requestedMediaType = getMediaTypes(request);
+				MediaType requestedMediaType = getRequestedMediaType();
 				if (requestedMediaType != null) {
 					((AbstractView) view).setContentType(requestedMediaType.toString());
 				}
 			}
 		}
 		return view;
+	}
+
+	private MediaType getRequestedMediaType() {
+		RequestAttributes attrs = RequestContextHolder.getRequestAttributes();
+		Assert.isInstanceOf(ServletRequestAttributes.class, attrs);
+		HttpServletRequest request = ((ServletRequestAttributes) attrs).getRequest();
+		MediaType requestedMediaType = getMediaTypes(request);
+		return requestedMediaType;
 	}
 
 	private MediaType getMediaTypes(HttpServletRequest request) {

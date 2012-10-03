@@ -70,7 +70,7 @@ public class JdbcPagingList<E> extends AbstractList<E> {
 		if (index >= size) {
 			throw new ArrayIndexOutOfBoundsException(index);
 		}
-		if (current == null || index - start >= pageSize) {
+		if (current == null || index - start >= pageSize || index < start) {
 			current = parameterJdbcTemplate.query(getLimitSql(sql, index, pageSize), args, mapper);
 			start = index;
 		}

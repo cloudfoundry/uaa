@@ -272,7 +272,7 @@ public class ScimUserEndpoints implements InitializingBean {
 		List<ScimUser> input;
 		try {
 			input = dao.retrieveUsers(filter, sortBy, sortOrder.equals("ascending"));
-			for (ScimUser user : input) {
+			for (ScimUser user : input.subList(startIndex - 1, startIndex + count - 1)) {
 				syncGroups(user);
 			}
 		}
