@@ -8,6 +8,31 @@ data to understand the range of information available and the kinds of
 decisions that can be taken.  The UAA itself is a Resource Server, so
 the access decisions taken by the UAA are used as an example.
 
+- [UAA Security Features and Configuration](#uaa-security-features-and-configuration)
+	- [User Accounts](#user-accounts)
+		- [Security Metadata](#security-metadata)
+		- [Bootstrap](#bootstrap)
+		- [Account lockout policy](#account-lockout-policy)
+	- [OAuth Client Applications](#oauth-client-applications)
+		- [Security Metadata](#security-metadata)
+		- [Bootstrap](#bootstrap)
+		- [Demo Environment](#demo-environment)
+		- [VCAP Dev Setup](#vcap-dev-setup)
+	- [Token Scope Rules](#token-scope-rules)
+		- [User Tokens](#user-tokens)
+		- [Client Tokens](#client-tokens)
+	- [UAA Resources](#uaa-resources)
+		- [Token Management](#token-management)
+		- [Client Registration](#client-registration)
+		- [Client Secret Mangagement](#client-secret-mangagement)
+		- [Password Change](#password-change)
+		- [User Account Management](#user-account-management)
+		- [Username from ID Queries](#username-from-id-queries)
+		- [User Profiles](#user-profiles)
+		- [Token Resources for Providers](#token-resources-for-providers)
+		- [Management Information](#management-information)
+		- [Login Prompts](#login-prompts)
+
 ## User Accounts
 
 ### Security Metadata
