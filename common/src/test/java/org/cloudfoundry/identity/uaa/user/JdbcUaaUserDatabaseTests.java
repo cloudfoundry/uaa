@@ -14,7 +14,9 @@ package org.cloudfoundry.identity.uaa.user;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
+import java.util.Set;
 import java.util.UUID;
 
 import javax.sql.DataSource;
@@ -50,9 +52,29 @@ public class JdbcUaaUserDatabaseTests {
 
 	private static final String JOE_ID = "550e8400-e29b-41d4-a716-446655440000";
 
+	private static final String addUserSqlFormat = "insert into users (id, username, password, email, givenName, familyName, phoneNumber) values ('%s','%s','%s','%s','%s','%s','%s')";
+
+	private static final String addGroupSqlFormat = "insert into groups (id, displayName) values ('%s','%s')";
+
+	private static final String addMemberSqlFormat = "insert into group_membership (group_id, member_id, member_type, authorities) values ('%s', '%s', '%s', '%s')";
+
 	private static final String MABEL_ID = UUID.randomUUID().toString();
 
 	private JdbcTemplate template;
+
+	private void addUser(String id, String name, String password) {
+		TestUtils.assertNoSuchUser(template, "id", id);
+		template.execute(String.format(addUserSqlFormat, id, name, password, name, name, name, ""));
+	}
+
+	private void addGroup(String id, String name) {
+		TestUtils.assertNoSuchUser(template, "id", id);
+		template.execute(String.format(addGroupSqlFormat, id, name));
+	}
+
+	private void addMember(String gId, String mId, String mType, String authorities) {
+		template.execute(String.format(addMemberSqlFormat, gId, mId, mType, authorities));
+	}
 
 	@Before
 	public void initializeDb() throws Exception {
@@ -64,17 +86,16 @@ public class JdbcUaaUserDatabaseTests {
 		TestUtils.assertNoSuchUser(template, "userName", "jo@foo.com");
 
 		db = new JdbcUaaUserDatabase(template);
-		template.execute("insert into users (id, username, password, email, givenName, familyName) " + "values ('"
-				+ JOE_ID + "', 'joe','joespassword','joe@joe.com','Joe','User')");
-		template.execute("insert into users (id, username, password, email, givenName, familyName) " + "values ('"
-				+ MABEL_ID + "', 'mabel','mabelspassword','mabel@mabel.com','Mabel','User')");
+
+		addUser(JOE_ID, "joe", "joespassword");
+		addUser(MABEL_ID, "mabel", "mabelspassword");
+		addGroup("g1", "uaa.user");
 
 	}
 
 	@After
 	public void clearDb() throws Exception {
-		template.execute("delete from users where id = '" + JOE_ID + "'");
-		template.execute("delete from users where id = '" + MABEL_ID + "'");
+		TestUtils.deleteFrom(dataSource, "users", "groups", "group_membership");
 	}
 
 	@Test
@@ -83,7 +104,7 @@ public class JdbcUaaUserDatabaseTests {
 		assertNotNull(joe);
 		assertEquals(JOE_ID, joe.getId());
 		assertEquals("joe", joe.getUsername());
-		assertEquals("joe@joe.com", joe.getEmail());
+		assertEquals("joe", joe.getEmail());
 		assertEquals("joespassword", joe.getPassword());
 		assertEquals(UaaAuthority.USER_AUTHORITIES.toString(), joe.getAuthorities().toString());
 	}
@@ -95,9 +116,10 @@ public class JdbcUaaUserDatabaseTests {
 
 	@Test
 	public void getUserWithExtraAuthorities() {
-		// If the database happens to contain non-uaa authorities we pass them through
-		template.update("update users set authorities=? where id=?", "uaa.user,dash.admin", JOE_ID);
+		// only way to add to a user's authorities is by enrolling in corresponding groups
+		addGroup("g2", "dash.admin");
+		addMember("g2", JOE_ID, "USER", "READ");
 		UaaUser joe = db.retrieveUserByName("joe");
-		assertEquals("[uaa.user, dash.admin]", joe.getAuthorities().toString());
+		assertEquals("[dash.admin, uaa.user]", joe.getAuthorities().toString());
 	}
 }
