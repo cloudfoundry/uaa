@@ -202,7 +202,6 @@ describe Cli do
     Cli.output.string.should include(@test_user.capitalize)
     Cli.output.string.should include("#{@test_user}+1@example.com")
     Cli.output.string.should include("123-456-7890")
-    #Cli.output.string.should include("dashboard.user")
   end
 
   it "should get updated information in the token" do
@@ -263,17 +262,28 @@ describe Cli do
     Cli.output.string.should match @test_group
   end
 
+  it "should get attributes with case-insensitive attribute names" do
+    pending "cfid-48"
+    Cli.run("groups -a displayname").should_not be_nil
+    Cli.output.string.should match @test_group
+  end
+
   it "should add all users to the group" do
     cmd = "member add #{@test_group}"
     29.times { |i| cmd << " #{@test_user.capitalize}-#{i}" }
-    Cli.run cmd
+    Cli.run(cmd) # .should_not be_nil
     Cli.output.string.should match @test_group
   end
 
   it "should list all users" do
     Cli.run("users -a userName").should_not be_nil
-    #puts Cli.output.string
-    29.times { |i| Cli.output.string.should match "#{@test_user.capitalize}-#{i}" }
+    29.times { |i| Cli.output.string.should =~ /#{@test_user.capitalize}-#{i}/i }
+  end
+
+  it "should preserve case in usernames" do
+    pending "cfid-47"
+    Cli.run("users -a userName").should_not be_nil
+    29.times { |i| Cli.output.string.should =~ /#{@test_user.capitalize}-#{i}/ }
   end
 
   it "should delete a client registration as admin" do
