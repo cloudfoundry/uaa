@@ -22,7 +22,7 @@ class ClientCli < CommonCli
 
   def client_reg_request
     (yield ClientReg.new(Config.target, auth_header)) || "success" # no exception means success
-  rescue TargetError => e
+  rescue Exception => e
     complain e
   end
 
