@@ -1,0 +1,7 @@
+Code-Review+2: Dale Olds <olds@rbcon.com>
+Verified+1: CI Master <cf-ci@rbcon.com>
+Submitted-by: Joel D'sa <jdsa@vmware.com>
+Submitted-at: Fri, 05 Oct 2012 17:28:09 +0000
+Reviewed-on: http://reviews.cloudfoundry.org/10074
+Project: uaa
+Branch: refs/heads/release/1.2.2
