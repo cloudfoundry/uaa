@@ -14,9 +14,7 @@ package org.cloudfoundry.identity.uaa.user;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
-import java.util.Set;
 import java.util.UUID;
 
 import javax.sql.DataSource;
@@ -38,6 +36,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 /**
  * @author Luke Taylor
  * @author Dave Syer
+ * @author Vidya Valmikinathan
  */
 @ContextConfiguration("classpath:/test-data-source.xml")
 @RunWith(SpringJUnit4ClassRunner.class)

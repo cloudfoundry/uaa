@@ -12,26 +12,26 @@
  */
 package org.cloudfoundry.identity.uaa.user;
 
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
 
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.util.Assert;
-import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 /**
  * @author Luke Taylor
  * @author Dave Syer
+ * @author Vidya Valmikinathan
  */
 public class JdbcUaaUserDatabase implements UaaUserDatabase {
 
@@ -71,15 +71,10 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
 					rs.getTimestamp(7), rs.getTimestamp(8));
 		}
 
-		String getAuthorities(final String userId) {
+		private String getAuthorities(final String userId) {
 			List<String> authorities;
 			try {
-				authorities = jdbcTemplate.query(USER_AUTHORITIES_QUERY, new PreparedStatementSetter() {
-					@Override
-					public void setValues(PreparedStatement ps) throws SQLException {
-						ps.setString(1, userId);
-					}
-				}, new SingleColumnRowMapper<String>(String.class));
+				authorities = jdbcTemplate.queryForList(USER_AUTHORITIES_QUERY, String.class, userId);
 			} catch (EmptyResultDataAccessException ex) {
 				authorities = Collections.<String>emptyList();
 			}
