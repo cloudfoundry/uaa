@@ -29,21 +29,20 @@ import org.springframework.security.oauth2.common.exceptions.BadClientCredential
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.AuthorizationRequestFactory;
+import org.springframework.security.oauth2.provider.AuthorizationRequestManager;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
-import org.springframework.security.oauth2.provider.endpoint.ParametersValidator;
 
 /**
- * An {@link AuthorizationRequestFactory} that applies various UAA-specific rules to an authorization request,
+ * An {@link AuthorizationRequestManager} that applies various UAA-specific rules to an authorization request,
  * validating it and setting the default values for scopes and resource ids.
  * 
  * @author Dave Syer
  * 
  */
-public class UaaAuthorizationRequestFactory implements AuthorizationRequestFactory, ParametersValidator {
+public class UaaAuthorizationRequestManager implements AuthorizationRequestManager {
 
 	private final ClientDetailsService clientDetailsService;
 
@@ -55,7 +54,7 @@ public class UaaAuthorizationRequestFactory implements AuthorizationRequestFacto
 
 	private Collection<String> defaultScopes = new HashSet<String>();
 
-	public UaaAuthorizationRequestFactory(ClientDetailsService clientDetailsService) {
+	public UaaAuthorizationRequestManager(ClientDetailsService clientDetailsService) {
 		this.clientDetailsService = clientDetailsService;
 	}
 
@@ -153,6 +152,7 @@ public class UaaAuthorizationRequestFactory implements AuthorizationRequestFacto
 	 * @see org.springframework.security.oauth2.provider.endpoint.ParametersValidator#validateParameters(java.util.Map,
 	 * org.springframework.security.oauth2.provider.ClientDetails)
 	 */
+	@Override
 	public void validateParameters(Map<String, String> parameters, ClientDetails clientDetails) {
 		if (parameters.containsKey("scope")) {
 			Set<String> validScope = clientDetails.getScope();
@@ -173,6 +173,11 @@ public class UaaAuthorizationRequestFactory implements AuthorizationRequestFacto
 				throw new BadClientCredentialsException();
 			}
 		}
+	}
+	
+	@Override
+	public AuthorizationRequest updateBeforeApproval(AuthorizationRequest authorizationRequest) {
+		return authorizationRequest;
 	}
 
 	/**
