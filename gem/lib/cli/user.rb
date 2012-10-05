@@ -86,7 +86,7 @@ class UserCli < CommonCli
   desc "user ids [username|id...]", "Gets user names and ids for the given users" do |*users|
     pp acct_request { |ua|
       users = Util.arglist(ask("names or ids of users")) if !users || users.empty?
-      ua.ids(*users)
+      ua.ids_exclusive(*users)
     }
   end
 

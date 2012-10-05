@@ -72,7 +72,7 @@ class TokenCli < CommonCli
   def issuer_request(client_id, secret = nil)
     update_target_info
     yield TokenIssuer.new(Config.target.to_s, client_id, secret, Config.target_value(:token_endpoint))
-  rescue TargetError => e
+  rescue Exception => e
     complain e
   end
 

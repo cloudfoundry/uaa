@@ -22,6 +22,7 @@ require 'pp'
 #    ENV["UAA_CLIENT_SECRET"] = "adminsecret"
 # if UAA_CLIENT_TARGET is not configured, tests will use the internal stub server
 #    ENV["UAA_CLIENT_TARGET"] = "http://localhost:8080/uaa"
+#ENV["UAA_CLIENT_LOGIN"] = "http://localhost:8080/login"
 
 module CF::UAA
 
@@ -57,10 +58,12 @@ describe "UAA Integration:" do
     cr = ClientReg.new(@target, toki.client_credentials_grant.auth_header)
     admin_reg = cr.get(@client_id)
     admin_reg[:authorities] = admin_reg[:authorities] | ["scim.read", "scim.write", "password.write"]
+    admin_reg[:authorized_grant_types] = admin_reg[:authorized_grant_types] | ["authorization_code"]
     cr.update(admin_reg)
     admin_reg = cr.get(@client_id)
     admin_reg[:authorities].should include("scim.read")
     admin_reg[:authorities].should include("scim.write")
+    admin_reg[:authorized_grant_types].should include("authorization_code")
   end
 
   context "with a client credentials grant," do
@@ -119,6 +122,27 @@ describe "UAA Integration:" do
       contents = TokenCoder.decode(token.info[:access_token], nil, nil, false)
       contents[:user_name].should == @username
     end
+  end
+
+  context "with an authcode grant," do
+
+    if ENV["UAA_CLIENT_LOGIN"]
+      it "should get a uri to be sent to the user agent to initiate autologin" do
+        logn = ENV["UAA_CLIENT_LOGIN"]
+        toki = TokenIssuer.new(logn, @client_id, @client_secret)
+        redir_uri = "http://call.back/uri_path"
+        uri_parts = toki.autologin_uri(redir_uri, {username: @username, password: "newpassword"}).split('?')
+        uri_parts[0].should == "#{logn}/oauth/authorize"
+        params = Util.decode_form_to_hash(uri_parts[1])
+        params[:response_type].should == "code"
+        params[:client_id].should == @client_id
+        params[:scope].should be_nil
+        params[:redirect_uri].should == redir_uri
+        params[:state].should_not be_nil
+        params[:code].should_not be_nil
+      end
+    end
+
   end
 
   context "with a client credentials grant," do

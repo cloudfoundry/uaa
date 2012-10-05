@@ -11,6 +11,7 @@
 # subcomponent's license, as noted in the LICENSE file.
 #++
 
+require 'set'
 require 'cli/common'
 require 'uaa'
 
@@ -22,7 +23,7 @@ class GroupCli < CommonCli
 
   def acct_request
     (yield UserAccount.new(Config.target, auth_header)) || "success"
-  rescue TargetError => e
+  rescue Exception => e
     complain e
   end
 
@@ -44,11 +45,18 @@ class GroupCli < CommonCli
     pp acct_request { |ua| ua.delete_group(ua.group_id_from_name(gname(name))) }
   end
 
+  def id_set(objs)
+    objs.each_with_object(Set.new) {|o, s| s << o[:id] || o[:value] || o[:memberId]}
+  end
+
   desc "member add [name] [members...]", "add members to a group" do |name, *members|
     pp acct_request { |ua|
       group = ua.get_group_by_name(gname(name))
-      info = ua.ids(*members)
-      group[:members] = info.each_with_object(group[:members] || []) {|m, o| o << m[:id] }
+      old_ids = id_set(group[:members] || [])
+      new_ids = id_set(ua.ids(*members))
+      raise "not all members found, none added" unless new_ids.size == members.size
+      group[:members] = (old_ids + new_ids).to_a
+      raise "no new members given" unless group[:members].size > old_ids.size
       ua.update_group(group[:id], group)
     }
   end
@@ -56,8 +64,11 @@ class GroupCli < CommonCli
   desc "member delete [name] [members...]", "remove members from a group" do |name, *members|
     pp acct_request { |ua|
       group = ua.get_group_by_name(gname(name))
-      info = ua.ids(*members)
-      group[:members] = group[:members] - ua.ids
+      old_ids = id_set(group[:members] || [])
+      new_ids = id_set(ua.ids(*members))
+      raise "not all members found, none deleted" unless new_ids.size == members.size
+      group[:members] = (old_ids - new_ids).to_a
+      raise "no existing members to delete" unless group[:members].size < old_ids.size
       ua.update_group(group[:id], group)
     }
   end

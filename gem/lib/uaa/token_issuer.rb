@@ -66,20 +66,13 @@ class TokenIssuer
 
     # the accept header is only here so the uaa will issue error replies in json to aid debugging
     headers = {content_type: "application/x-www-form-urlencoded", accept: "application/json" }
-
-     # required for current UAA implementation
-    body = URI.encode_www_form(credentials: credentials.to_json)
-
-    # TODO: the above can be changed to the following to be consistent with
-    # the other OAuth APIs when CFID-239 is done:
-    # body = URI.encode_www_form(credentials.merge(credentials: true))
-
+    body = URI.encode_www_form(credentials.merge(source: "credentials"))
     status, body, headers = request(@target, :post, uri, body, headers)
     raise BadResponse, "status #{status}" unless status == 302
     req_uri, reply_uri = URI.parse(redir_uri), URI.parse(headers[:location])
     fragment, reply_uri.fragment = reply_uri.fragment, nil
-    return parse_implicit_params(fragment, state) if req_uri == reply_uri
-    raise BadResponse, "bad location header"
+    raise BadResponse, "bad location header" unless req_uri == reply_uri
+    parse_implicit_params(fragment, state)
   rescue URI::Error => e
     raise BadResponse, "bad location header in reply: #{e.message}"
   end
@@ -101,9 +94,12 @@ class TokenIssuer
   end
 
   def autologin_uri(redirect_uri, credentials, scope = nil)
-    # post credentials to /autologin endpoint with client basic auth, get an autologin_code
-    # add code to args below
-    @target + authorize_path_args("code", redirect_uri, scope)
+    headers = {content_type: "application/x-www-form-urlencoded", accept: "application/json",
+        authorization: Http.basic_auth(@client_id, @client_secret) }
+    body = URI.encode_www_form(credentials)
+    reply = json_parse_reply(*request(@target, :post, "/autologin", body, headers))
+    raise BadResponse, "no autologin code in reply" unless reply[:code]
+    @target + authorize_path_args("code", redirect_uri, scope, SecureRandom.uuid, code: reply[:code])
   end
 
   # constructs a uri that the client is to return to the browser to direct
@@ -171,8 +167,8 @@ class TokenIssuer
     Token.new reply
   end
 
-  def authorize_path_args(response_type, redirect_uri, scope, state = SecureRandom.uuid)
-    params = {client_id: @client_id, response_type: response_type, redirect_uri: redirect_uri, state: state}
+  def authorize_path_args(response_type, redirect_uri, scope, state = SecureRandom.uuid, args = {})
+    params = args.merge(client_id: @client_id, response_type: response_type, redirect_uri: redirect_uri, state: state)
     params[:scope] = scope = scope.join(' ') if scope = Util.arglist(scope)
     if scope && scope.include?("openid")
       params[:nonce] = state
