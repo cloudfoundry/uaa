@@ -16,6 +16,7 @@ require "rspec/core/rake_task"
 require "ci/reporter/rake/rspec"
 
 ENV['CI_REPORTS'] = File.expand_path("spec_reports")
+COV_REPORTS = File.expand_path("coverage")
 
 task :default => [:test]
 task :tests => [:test]
@@ -36,7 +37,7 @@ task :cov => [:pre_coverage, :test, :view_coverage]
 task :coverage => [:pre_coverage, :test]
 
 task :pre_coverage do
-  rm_rf "coverage"
+  rm_rf COV_REPORTS
   ENV['COVERAGE'] = "exclude-spec exclude-vendor"
 end
 
@@ -45,5 +46,5 @@ task :rcov_reports do
 end
 
 task :view_coverage do
-  `firefox #{File.join(File.dirname(__FILE__), 'coverage', 'index.html')}`
+  `firefox #{File.join(COV_REPORTS, 'index.html')}`
 end

@@ -77,16 +77,16 @@ class Topic
     case obj
     when Array
       if obj.empty? || !obj[0].is_a?(Hash) && !obj[0].is_a?(Array)
-        say_definition(indent, label, Util.strlist(obj), nil, wrap)
+        say_definition(indent, ("#{label}: " if label), Util.strlist(obj), nil, wrap)
       else
-        say_definition(indent, label, nil, nil, wrap) if label
+        say_definition(indent, "#{label}: ", nil, nil, wrap) if label
         obj.each {|o| pp o, indent, wrap, '-' }
       end
     when Hash
       say_definition(indent, label, nil, nil, wrap) if label
-      obj.each { |k, v| pp v, indent + 2, wrap, "#{k}: " }
+      obj.each {|k, v| pp v, indent + 2, wrap, k.to_s}
     when nil
-    else say_definition(indent, label, obj.to_s, nil, wrap)
+    else say_definition(indent, ("#{label}: " if label), obj.to_s, nil, wrap)
     end
     obj
   end

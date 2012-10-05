@@ -11,8 +11,9 @@
 # subcomponent's license, as noted in the LICENSE file.
 #++
 
-require 'uaa/util'
+require 'set'
 require 'time'
+require 'uaa/util'
 
 module CF::UAA
 

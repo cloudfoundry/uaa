@@ -99,3 +99,4 @@ One or More External Authentication Mechanisms for Users
 ----------------------------------------------------------------------
 
 If I have an account in a cloudfoundry instance and work on projects within multiple orgs, what happens if they have differing authentication policies? If the UAA allows me to have multiple authentication sources, I would need to sometimes re-authenticate when targeting a new Org. 
+

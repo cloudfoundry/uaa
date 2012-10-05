@@ -45,17 +45,16 @@ class UserAccount
   def query_object(path, attributes = nil, filter = nil)
     query = attributes ? {attributes: Util.strlist(attributes, ",")} : {}
     query[:filter] = filter if filter && !filter.empty?
-    info = []
+    query[:startIndex], info = 1, []
     while true
       qstr = query.empty?? "": "?#{URI.encode_www_form(query)}"
-      unless qinfo = json_get(@target, "#{path}#{qstr}", @auth_header)
-        raise BadResponse, "no content matched \"#{filter}\" at #{@target}#{path}"
+      unless (qinfo = json_get(@target, "#{path}#{qstr}", @auth_header)) && qinfo[:resources].is_a?(Array)
+        raise BadResponse, "invalid reply to query with \"#{filter}\" at #{@target}#{path}"
       end
-      return info unless qinfo[:resources] && !qinfo[:resources].empty?
       info.concat(qinfo[:resources])
       return info unless qinfo[:totalResults] && qinfo[:totalResults] > info.length
-      raise BadResponse, "incomplete pagination data from #{@target}#{path}" unless qinfo[:startIndex]  && qinfo[:itemsPerPage]
-      query[:startIndex] = qinfo[:startIndex] + qinfo[:itemsPerPage]
+      raise BadResponse, "incomplete pagination data from #{@target}#{path}" unless qinfo[:startIndex] && qinfo[:itemsPerPage]
+      query[:startIndex] = info.length + 1
     end
   end
 
@@ -70,6 +69,13 @@ class UserAccount
 
     # TODO: should be able to just return qinfo[0] here but uaa does not yet return all attributes for a query
     get_object(path, qinfo[0][:id])
+  end
+
+  def query_ids(path, users)
+    filter = users.each_with_object([]) { |u, o| o << "userName eq \"#{u}\" or id eq \"#{u}\"" }
+    qinfo = query_object(path, "userName,id", filter.join(" or "))
+    raise NotFound, "users not found in #{@target}#{path}" unless qinfo[0] && qinfo[0][:id]
+    qinfo
   end
 
   public
@@ -106,6 +112,8 @@ class UserAccount
   def delete_group(id) http_delete @target, "/Groups/#{URI.encode(id)}", @auth_header end
   def get_group_by_name(name) get_object_by_name("/Groups", "displayname", name) end
   def group_id_from_name(name) get_group_by_name(name)[:id] end
+  def ids_exclusive(*users) query_ids("/ids/Users", users) end
+  def ids(*users) query_ids("/Users", users) end
 
   def change_password(user_id, new_password, old_password = nil)
     password_request = { password: new_password }
@@ -115,13 +123,6 @@ class UserAccount
 
   def change_password_by_name(name, new_password, old_password = nil)
     change_password(user_id_from_name(name), new_password, old_password)
-  end
-
-  def ids(*users)
-    filter = users.each_with_object([]) { |u, o| o << "userName eq \"#{u}\" or id eq \"#{u}\"" }
-    qinfo = query_object("/ids/Users", "userName,id", filter.join(" or "))
-    raise NotFound, "users not found in #{@target}#{path}" unless qinfo[0] && qinfo[0][:id]
-    qinfo
   end
 
 end

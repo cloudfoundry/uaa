@@ -157,10 +157,11 @@ class StubUAAConn < Stub::Base
         return redir_err_f(cburi, state, "unauthorized_client")
       end
       if request.method == :post
-        unless request.headers[:content_type] =~ %r{application/x-www-form-urlencoded}
+        unless request.headers[:content_type] =~ %r{application/x-www-form-urlencoded} &&
+            (creds = Util.decode_form_to_hash(request.body)) &&
+            creds[:source] && creds[:source] == "credentials"
           return redir_err_f(cburi, state, "invalid_request")
         end
-        creds = Util.json_parse(Util.decode_form_to_hash(request.body)[:credentials], :downsym)
         unless user = find_user(creds[:username], creds[:password])
           return redir_err_f(cburi, state, "access_denied")
         end

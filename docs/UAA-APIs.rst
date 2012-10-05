@@ -59,7 +59,9 @@ Authorization Code Grant
 This is a completely vanilla as per the OAuth2_ spec, but we give a brief outline here for information purposes.
 
 Browser Requests Code: ``GET /oauth/authorize``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+*HTML Responses*
 
 * Request: ``GET /oauth/authorize``
 * Request Body: some parameters specified by the spec, appended to the query component using the ``application/x-www-form-urlencoded`` format,
@@ -81,6 +83,36 @@ Browser Requests Code: ``GET /oauth/authorize``
 * Response Codes::
 
         302 - Found
+
+Non-Browser Requests Code: ``GET /oauth/authorize``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+*JSON Responses*
+
+If the client asks for a JSON response (with an ``Accept`` header), and
+the user has not approved the grant yet, the UAA sends a JSON object
+with some useful information that can be rendered for a user to read
+and explicitly approve the grant::
+
+
+    {
+      "message":"To confirm or deny access POST to the following locations with the parameters requested.",
+      "scopes":[
+        {"text":"Access your data with scope 'openid'","code":"scope.openid"},
+        {"text":"Access your 'cloud_controller' resources with scope 'read'","code":"scope.cloud_controller.read"},
+        ...],
+      ...,
+      "client_id":"idtestapp",
+      "redirect_uri":"http://nowhere.com",
+      "options":{
+        "deny":{"location":"https://uaa.cloudfoundry.com/oauth/authorize","value":"false","path":"/oauth/authorize","key":"user_oauth_approval"},
+        "confirm":{"location":"https://uaa.cloudfoundry.com/oauth/authorize","value":"true","path":"/oauth/authorize","key":"user_oauth_approval"}
+      }
+    }
+
+The most useful information for constructing a user approval page is
+the list of requested scopes, the client id and the requested redirect
+URI.
 
 Client Obtains Token: ``POST /oauth/token``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -806,9 +838,10 @@ Example::
 UI Endpoints
 ==============
 
-.. note:: This section contains an initial proposal. These endpoints are not planned for the initial implementation phase.
-
-Web app clients need UI endpoints for the OAuth2 and OpenID redirects. Clients that do not ask for a JSON content type will get HTML.
+Web app clients need UI endpoints for the OAuth2 and OpenID
+redirects. Clients that do not ask for a JSON content type will get
+HTML.  Note that these UIs are whitelabeled and the branded versions
+used in Cloud Foundry are deployed in a separate component (the Login Server).
 
 Internal Login Form: ``GET /login``
 -------------------------------------
@@ -817,13 +850,13 @@ Internal Login Form: ``GET /login``
 * Response Body: form with all the relevant prompts
 * Response Codes: ``200 - Success``
 
-Internal Login: ``POST /login``
---------------------------------
+Internal Login: ``POST /login.do``
+-----------------------------------
 
-* Request: ``POST /login``
+* Request: ``POST /login.do``
 * Request Body, example -- depends on configuration (e.g. do we need OTP / PIN / password etc.)::
 
-    username=:username&password=:password...
+    username={username}&password={password}...
 
 * Response Header, includes location if redirect, and cookie for subsequent interaction (e.g. authorization)::
 
@@ -835,10 +868,17 @@ Internal Login: ``POST /login``
     302 - Found
     200 - Success
 
-OAuth2 Authorization Confirmation: ``GET /oauth/authorize/confirm``
---------------------------------------------------------------------
+Logout: `GET /logout.do`
+--------------------------------
 
-* Request: ``GET /oauth/authorize/confirm``
+The UAA can act as a Single Sign On server for the Cloud Foundry
+platform (and possibly user apps as well), so if a user logs out he
+logs out of all the apps.
+
+OAuth2 Authorization Confirmation: ``GET /oauth/authorize/confirm_access``
+---------------------------------------------------------------------------
+
+* Request: ``GET /oauth/authorize/confirm_access``
 * Request Body: HTML form posts back to ``/oauth/authorize``::
 
     Do you approve the application "foo" to access your CloudFoundry
@@ -963,5 +1003,3 @@ result to the most interesting areas to do with request processing.
 
 Beans from the Spring application context are exposed at
 ``/varz/spring.application``.
-
-
