@@ -70,10 +70,10 @@ public class AuthzAuthenticationFilter implements Filter {
 	private AuthenticationEntryPoint authenticationEntryPoint = new OAuth2AuthenticationEntryPoint();
 
 	private Set<String> methods = Collections.singleton(HttpMethod.POST.toString());
-	
+
 	/**
 	 * The filter fails on requests that don't have one of these HTTP methods.
-	 *  
+	 * 
 	 * @param methods the methods to set (defaults to POST)
 	 */
 	public void setMethods(Set<String> methods) {
@@ -114,24 +114,24 @@ public class AuthzAuthenticationFilter implements Filter {
 
 		Map<String, String> loginInfo = getCredentials(req);
 
-		if (loginInfo.isEmpty()) {
-			logger.debug("Request does not contain credentials. Ignoring.");
-		}
-		else {
-			logger.debug("Located credentials in request, with keys: " + loginInfo.keySet());
-			try {
-				if (methods!=null && !methods.contains(req.getMethod().toUpperCase())) {
+		try {
+			if (loginInfo.isEmpty()) {
+				throw new BadCredentialsException("Request does not contain credentials.");
+			}
+			else {
+				logger.debug("Located credentials in request, with keys: " + loginInfo.keySet());
+				if (methods != null && !methods.contains(req.getMethod().toUpperCase())) {
 					throw new BadCredentialsException("Credentials must be sent by (one of methods): " + methods);
 				}
 				Authentication result = authenticationManager.authenticate(new AuthzAuthenticationRequest(loginInfo,
 						new UaaAuthenticationDetails(req)));
 				SecurityContextHolder.getContext().setAuthentication(result);
 			}
-			catch (AuthenticationException e) {
-				logger.debug("Authentication failed");
-				authenticationEntryPoint.commence(req, res, e);
-				return;
-			}
+		}
+		catch (AuthenticationException e) {
+			logger.debug("Authentication failed");
+			authenticationEntryPoint.commence(req, res, e);
+			return;
 		}
 
 		chain.doFilter(request, response);

@@ -29,17 +29,6 @@
 	<http request-matcher-ref="oauthAuthorizeRequestMatcher" create-session="stateless" security="none"
 		xmlns="http://www.springframework.org/schema/security" />
 
-	<bean id="oauthAuthorizeRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
-		<constructor-arg value="/oauth/authorize" />
-		<property name="accept" value="application/json" />
-		<property name="parameters">
-			<map>
-				<entry key="response_type" value="token" />
-				<entry key="credentials" value="{" />
-			</map>
-		</property>
-	</bean>
-
 	<http pattern="/log*.do" xmlns="http://www.springframework.org/schema/security" authentication-manager-ref="remoteAuthenticationManager">
 		<intercept-url pattern="/login.do" access="IS_AUTHENTICATED_ANONYMOUSLY" />
 		<intercept-url pattern="/logout.do" access="IS_AUTHENTICATED_ANONYMOUSLY" />
