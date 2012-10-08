@@ -9,11 +9,6 @@ oauth:
       id: admin
       secret: adminsecret
 
-scim:
-  delete:
-    deactivate: false
-  userids_enabled: false
-
 password-policy:
   required-score: 0
 
