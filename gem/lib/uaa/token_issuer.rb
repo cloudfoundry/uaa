@@ -123,7 +123,7 @@ class TokenIssuer
       raise BadResponse, "received invalid response from target #{@target}"
     end
     request_token(grant_type: "authorization_code", code: authcode,
-        redirect_uri: ac_params[:redirect_uri], scope: ac_params[:scope])
+        redirect_uri: ac_params[:redirect_uri])
   end
 
   def owner_password_grant(username, password, scope = nil)
