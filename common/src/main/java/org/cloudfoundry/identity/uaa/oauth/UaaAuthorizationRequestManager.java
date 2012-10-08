@@ -175,11 +175,6 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
 		}
 	}
 	
-	@Override
-	public AuthorizationRequest updateBeforeApproval(AuthorizationRequest authorizationRequest) {
-		return authorizationRequest;
-	}
-
 	/**
 	 * Add or remove scopes derived from the current authenticated user's authorities (if any)
 	 * 

@@ -43,7 +43,7 @@ public class UaaUserApprovalHandler extends TokenServicesUserApprovalHandler {
 	public void setAutoApproveClients(String[] autoApproveClients) {
 		this.autoApproveClients = Arrays.asList(autoApproveClients);
 	}
-
+	
 	/**
 	 * Allows automatic approval for a white list of clients in the implicit grant case.
 	 * 
