@@ -65,8 +65,7 @@ import org.springframework.web.servlet.View;
 
 /**
  * User provisioning and query endpoints. Implements the core API from the Simple Cloud Identity Management (SCIM)
- * group. Exposes basic CRUD and query features for user accounts in a backend database. For operations on a single user
- * resource supports both "/Users" and "/User" (the latter was from an older version of the specification).
+ * group. Exposes basic CRUD and query features for user accounts in a backend database.
  * 
  * @author Luke Taylor
  * @author Dave Syer
@@ -149,21 +148,20 @@ public class ScimUserEndpoints implements InitializingBean {
 		return errorCounts;
 	}
 
-	@RequestMapping(value = { "/User/{userId}", "/Users/{userId}" }, method = RequestMethod.GET)
+	@RequestMapping(value = "/Users/{userId}", method = RequestMethod.GET)
 	@ResponseBody
 	public ScimUser getUser(@PathVariable String userId) {
 		return syncGroups(dao.retrieveUser(userId));
 	}
 
-	// /User is from an old version of the spec
-	@RequestMapping(value = { "/User", "/Users" }, method = RequestMethod.POST)
+	@RequestMapping(value = "/Users", method = RequestMethod.POST)
 	@ResponseStatus(HttpStatus.CREATED)
 	@ResponseBody
 	public ScimUser createUser(@RequestBody ScimUser user) {
 		return syncGroups(dao.createUser(user, user.getPassword() == null ? generatePassword() : user.getPassword()));
 	}
 
-	@RequestMapping(value = { "/User/{userId}", "/Users/{userId}" }, method = RequestMethod.PUT)
+	@RequestMapping(value = "/Users/{userId}", method = RequestMethod.PUT)
 	@ResponseBody
 	public ScimUser updateUser(@RequestBody ScimUser user, @PathVariable String userId,
 			@RequestHeader(value = "If-Match", required = false, defaultValue = "NaN") String etag) {
@@ -182,7 +180,7 @@ public class ScimUserEndpoints implements InitializingBean {
 		}
 	}
 
-	@RequestMapping(value = { "/User/{userId}/password", "/Users/{userId}/password" }, method = RequestMethod.PUT)
+	@RequestMapping(value = "/Users/{userId}/password", method = RequestMethod.PUT)
 	@ResponseBody
 	public SimpleMessage changePassword(@PathVariable String userId, @RequestBody PasswordChangeRequest change) {
 		checkPasswordChangeIsAllowed(userId, change.getOldPassword());
@@ -227,7 +225,7 @@ public class ScimUserEndpoints implements InitializingBean {
 
 	}
 
-	@RequestMapping(value = { "/User/{userId}", "/Users/{userId}" }, method = RequestMethod.DELETE)
+	@RequestMapping(value = "/Users/{userId}", method = RequestMethod.DELETE)
 	@ResponseBody
 	public ScimUser deleteUser(@PathVariable String userId,
 			@RequestHeader(value = "If-Match", required = false) String etag) {

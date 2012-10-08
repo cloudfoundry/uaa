@@ -34,6 +34,7 @@ import org.springframework.util.Assert;
  * request. There is no parsing of priorities in the header.
  */
 public final class UaaRequestMatcher implements RequestMatcher {
+
 	private static final Log logger = LogFactory.getLog(UaaRequestMatcher.class);
 
 	private final String path;
@@ -71,25 +72,34 @@ public final class UaaRequestMatcher implements RequestMatcher {
 	}
 
 	public boolean matches(HttpServletRequest request) {
+
+		String message = "";
 		if (logger.isDebugEnabled()) {
-			logger.debug("Checking match of request : '" + request.getRequestURI() + "'; against '"
-					+ request.getContextPath() + path + "' with parameters=" + parameters);
+			message = request.getRequestURI() + "'; '" + request.getContextPath() + path + "' with parameters="
+					+ parameters;
+			logger.debug("Checking match of request : '" + message);
 		}
 
 		if (!request.getRequestURI().startsWith(request.getContextPath() + path)) {
 			return false;
 		}
 
-		boolean parameterMatch = parameters.isEmpty();
+		boolean parameterMatch = true;
 		for (String key : parameters.keySet()) {
 			String value = request.getParameter(key);
-			parameterMatch = value != null ? value.startsWith(parameters.get(key)) : false;
+			parameterMatch &= value != null ? value.startsWith(parameters.get(key)) : false;
 		}
 		if (accepts == null && parameterMatch) {
+			if (logger.isDebugEnabled()) {
+				logger.debug("Matched request (no check for accept): '" + message);
+			}
 			return true;
 		}
 
 		if (request.getHeader("Accept") == null && parameterMatch) {
+			if (logger.isDebugEnabled()) {
+				logger.debug("Matched request (no accept header): '" + message);
+			}
 			return true;
 		}
 
@@ -97,11 +107,17 @@ public final class UaaRequestMatcher implements RequestMatcher {
 		for (MediaType acceptHeader : MediaType.parseMediaTypes(request.getHeader("Accept"))) {
 			for (MediaType accept : accepts) {
 				if (acceptHeader.includes(accept) && parameterMatch) {
+					if (logger.isDebugEnabled()) {
+						logger.debug("Matched request (acceptable media type): '" + message);
+					}
 					return true;
 				}
 			}
 		}
 
+		if (logger.isDebugEnabled()) {
+			logger.debug("Unmatched request : '" + message);
+		}
 		return false;
 	}
 
@@ -115,7 +131,7 @@ public final class UaaRequestMatcher implements RequestMatcher {
 			return false;
 		}
 
-		if(this.parameters == null) {
+		if (this.parameters == null) {
 			return true;
 		}
 
