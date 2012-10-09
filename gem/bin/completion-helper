@@ -28,9 +28,9 @@ def traverse_command_tree(lines, sub_command_indices, args)
   x = 0
   args.drop(1).each do |arg|
     next if arg.start_with? ("-")
-    x = find_sub_command_index(lines, sub_command_indices[x], arg)
-    if x == -1
-      break
+    nx = find_sub_command_index(lines, sub_command_indices[x], arg)
+    if nx != -1
+      x = nx
     end
   end
   x
