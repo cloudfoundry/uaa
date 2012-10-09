@@ -12,8 +12,11 @@
  */
 package org.cloudfoundry.identity.uaa.security;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.junit.After;
 import org.junit.Test;
@@ -31,6 +34,22 @@ public class DefaultSecurityContextAccessorTests {
 	@After
 	public void clearContext() throws Exception {
 		SecurityContextHolder.clearContext();
+	}
+
+	@Test
+	public void clientIsNotUser() throws Exception {
+		SecurityContextHolder.getContext().setAuthentication(
+				new UsernamePasswordAuthenticationToken("user", "password", UaaAuthority.ADMIN_AUTHORITIES));
+
+		assertFalse(new DefaultSecurityContextAccessor().isUser());
+	}
+
+	@Test
+	public void uaaUserIsUser() throws Exception {
+		SecurityContextHolder.getContext().setAuthentication(
+				UaaAuthenticationTestFactory.getAuthentication("1234", "user", "user@test.org"));
+
+		assertTrue(new DefaultSecurityContextAccessor().isUser());
 	}
 
 	@Test
