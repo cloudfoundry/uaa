@@ -337,4 +337,16 @@ public class ScimUserEndpointsIntegrationTests {
 		assertEquals(new Integer(2), (Integer) results.get("startIndex"));
 	}
 
+	@Test
+	public void findUsersWithExtremePagination() throws Exception {
+		@SuppressWarnings("rawtypes")
+		ResponseEntity<Map> response = serverRunning.getForObject(usersEndpoint + "?startIndex=0&count=3000", Map.class);
+		@SuppressWarnings("unchecked")
+		Map<String, Object> results = response.getBody();
+		System.err.println(results);
+		assertEquals(HttpStatus.OK, response.getStatusCode());
+		assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
+		assertEquals(new Integer(1), (Integer) results.get("startIndex"));
+	}
+
 }

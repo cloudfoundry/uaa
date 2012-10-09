@@ -269,6 +269,10 @@ public class ScimUserEndpoints implements InitializingBean {
 			@RequestParam(required = false, defaultValue = "1") int startIndex,
 			@RequestParam(required = false, defaultValue = "100") int count) {
 
+		if (startIndex<1) {
+			startIndex = 1;
+		}
+
 		List<ScimUser> input;
 		try {
 			input = dao.retrieveUsers(filter, sortBy, sortOrder.equals("ascending"));
