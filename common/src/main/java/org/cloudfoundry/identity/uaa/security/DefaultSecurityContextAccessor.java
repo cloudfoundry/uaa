@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.security;
 import java.util.Collection;
 import java.util.Collections;
 
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -41,7 +42,17 @@ public class DefaultSecurityContextAccessor implements SecurityContextAccessor {
 
 	@Override
 	public boolean isUser() {
-		return SecurityContextHolder.getContext().getAuthentication()!=null && !isClient();
+		Authentication a = SecurityContextHolder.getContext().getAuthentication();
+
+		if (a instanceof OAuth2Authentication) {
+			return !isClient();
+		}
+		
+		if (a instanceof UaaAuthentication) {
+			return true;
+		}
+
+		return false;
 	}
 
 	@Override
