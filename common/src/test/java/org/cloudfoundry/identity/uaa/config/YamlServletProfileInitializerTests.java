@@ -59,6 +59,7 @@ public class YamlServletProfileInitializerTests {
 				return null;
 			}
 		}).when(servletContext).log(Mockito.anyString());
+		Mockito.when(servletContext.getContextPath()).thenReturn("/context");
 		activeProfiles = System.getProperty("spring.profiles.active");
 	}
 
