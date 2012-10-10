@@ -12,12 +12,9 @@
  */
 package org.cloudfoundry.identity.uaa.integration;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import org.cloudfoundry.identity.uaa.scim.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -294,25 +291,37 @@ public class ScimUserEndpointsIntegrationTests {
 		assertEquals("User 9999 does not exist", error.get("message"));
 	}
 
+	@SuppressWarnings({"rawtypes", "unchecked"})
 	@Test
 	public void findUsers() throws Exception {
-		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> response = serverRunning.getForObject(usersEndpoint, Map.class);
-		@SuppressWarnings("unchecked")
-		Map<String, Object> results = response.getBody();
+
+		Map results = response.getBody();
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
 		assertTrue("There should be some resources", ((Collection<?>) results.get("resources")).size() > 0);
+		Map firstUser = (Map) ((List) results.get("resources")).get(0);
+		// [cfid-111] All attributes should be returned if no attributes supplied in query
+		assertTrue(firstUser.containsKey("id"));
+		assertTrue(firstUser.containsKey("userName"));
+		assertTrue(firstUser.containsKey("name"));
+		assertTrue(firstUser.containsKey("emails"));
+		assertTrue(firstUser.containsKey("groups"));
 	}
 
 	@Test
+	@SuppressWarnings({"rawtypes", "unchecked"})
 	public void findUsersWithAttributes() throws Exception {
-		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> response = serverRunning.getForObject(usersEndpoint + "?attributes=id,userName", Map.class);
-		@SuppressWarnings("unchecked")
 		Map<String, Object> results = response.getBody();
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
+		Map firstUser = (Map) ((List) results.get("resources")).get(0);
+		// All attributes should be returned if no attributes supplied in query
+		assertTrue(firstUser.containsKey("id"));
+		assertTrue(firstUser.containsKey("userName"));
+		assertFalse(firstUser.containsKey("name"));
+		assertFalse(firstUser.containsKey("emails"));
 	}
 
 	@Test

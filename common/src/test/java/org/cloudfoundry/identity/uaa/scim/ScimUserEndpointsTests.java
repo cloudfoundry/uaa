@@ -55,7 +55,7 @@ import org.springframework.web.servlet.View;
 /**
  * @author Dave Syer
  * @author Luke Taylor
- * 
+ *
  */
 public class ScimUserEndpointsTests {
 
@@ -401,29 +401,27 @@ public class ScimUserEndpointsTests {
 
 	@Test
 	public void testFindAllIds() {
-		SearchResults<Map<String, Object>> results = endpoints.findUsers("id", "id pr", null, "ascending", 1, 100);
+		SearchResults<?> results = endpoints.findUsers("id", "id pr", null, "ascending", 1, 100);
 		assertEquals(2, results.getTotalResults());
 	}
 
 	@Test
 	public void testFindPageOfIds() {
-		SearchResults<Map<String, Object>> results = endpoints.findUsers("id", "id pr", null, "ascending", 1, 1);
+		SearchResults<?> results = endpoints.findUsers("id", "id pr", null, "ascending", 1, 1);
 		assertEquals(2, results.getTotalResults());
 		assertEquals(1, results.getResources().size());
 	}
 
 	@Test
 	public void testFindAllNames() {
-		SearchResults<Map<String, Object>> results = endpoints
-				.findUsers("userName", "id pr", null, "ascending", 1, 100);
+		SearchResults<?> results = endpoints.findUsers("userName", "id pr", null, "ascending", 1, 100);
 		Collection<Object> values = getSetFromMaps(results.getResources(), "userName");
 		assertTrue(values.contains("olds"));
 	}
 
 	@Test
 	public void testFindAllEmails() {
-		SearchResults<Map<String, Object>> results = endpoints.findUsers("emails.value", "id pr", null, "ascending", 1,
-				100);
+		SearchResults<?> results = endpoints.findUsers("emails.value", "id pr", null, "ascending", 1, 100);
 		Collection<Object> values = getSetFromMaps(results.getResources(), "emails.value");
 		assertTrue(values.contains(Arrays.asList("olds@vmware.com")));
 	}
@@ -432,24 +430,22 @@ public class ScimUserEndpointsTests {
 	public void testInvalidFilterExpression() {
 		expected.expect(ScimException.class);
 		expected.expectMessage(containsString("Invalid filter"));
-		SearchResults<Map<String, Object>> results = endpoints.findUsers("id", "userName qq 'd'", null, "ascending", 1,
-				100);
+		SearchResults<?> results = endpoints.findUsers("id", "userName qq 'd'", null, "ascending", 1, 100);
 		assertEquals(0, results.getTotalResults());
 	}
 
+	@SuppressWarnings("unchecked")
 	@Test
 	public void testFindIdsByUserName() {
-		SearchResults<Map<String, Object>> results = endpoints.findUsers("id", "userName eq 'jdsa'", null, "ascending",
-				1, 100);
+		SearchResults<?> results = endpoints.findUsers("id", "userName eq 'jdsa'", null, "ascending", 1, 100);
 		assertEquals(1, results.getTotalResults());
 		assertEquals(1, results.getSchemas().size()); // System.err.println(results.getValues());
-		assertEquals(joel.getId(), results.getResources().iterator().next().get("id"));
+		assertEquals(joel.getId(), ((Map<String, Object>) results.getResources().iterator().next()).get("id"));
 	}
 
 	@Test
 	public void testFindIdsByUserNameContains() {
-		SearchResults<Map<String, Object>> results = endpoints.findUsers("id", "userName co 'd'", null, "ascending", 1,
-				100);
+		SearchResults<?> results = endpoints.findUsers("id", "userName co 'd'", null, "ascending", 1, 100);
 		assertEquals(2, results.getTotalResults());
 		assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
 				.contains(joel.getId()));
@@ -458,14 +454,13 @@ public class ScimUserEndpointsTests {
 	@Test
 	@Ignore
 	public void testFindIdsByNameExists() {
-		SearchResults<Map<String, Object>> results = endpoints.findUsers("id", "name pr", null, "ascending", 1, 100);
+		SearchResults<?> results = endpoints.findUsers("id", "name pr", null, "ascending", 1, 100);
 		assertEquals(2, results.getTotalResults());
 	}
 
 	@Test
 	public void testFindIdsByUserNameStartWith() {
-		SearchResults<Map<String, Object>> results = endpoints.findUsers("id", "userName sw 'j'", null, "ascending", 1,
-				100);
+		SearchResults<?> results = endpoints.findUsers("id", "userName sw 'j'", null, "ascending", 1, 100);
 		assertEquals(1, results.getTotalResults());
 		assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
 				.contains(joel.getId()));
@@ -473,8 +468,7 @@ public class ScimUserEndpointsTests {
 
 	@Test
 	public void testFindIdsByEmailContains() {
-		SearchResults<Map<String, Object>> results = endpoints.findUsers("id", "emails.value sw 'j'", null,
-				"ascending", 1, 100);
+		SearchResults<?> results = endpoints.findUsers("id", "emails.value sw 'j'", null, "ascending", 1, 100);
 		assertEquals(1, results.getTotalResults());
 		assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
 				.contains(joel.getId()));
@@ -482,15 +476,13 @@ public class ScimUserEndpointsTests {
 
 	@Test
 	public void testFindIdsByEmailContainsWithEmptyResult() {
-		SearchResults<Map<String, Object>> results = endpoints.findUsers("id", "emails.value sw 'z'", null,
-				"ascending", 1, 100);
+		SearchResults<?> results = endpoints.findUsers("id", "emails.value sw 'z'", null, "ascending", 1, 100);
 		assertEquals(0, results.getTotalResults());
 	}
 
 	@Test
 	public void testFindIdsWithBooleanExpression() {
-		SearchResults<Map<String, Object>> results = endpoints.findUsers("id", "userName co 'd' and id pr", null,
-				"ascending", 1, 100);
+		SearchResults<?> results = endpoints.findUsers("id", "userName co 'd' and id pr", null, "ascending", 1, 100);
 		assertEquals(2, results.getTotalResults());
 		assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
 				.contains(joel.getId()));
@@ -498,17 +490,18 @@ public class ScimUserEndpointsTests {
 
 	@Test
 	public void testFindIdsWithBooleanExpressionIvolvingEmails() {
-		SearchResults<Map<String, Object>> results = endpoints.findUsers("id",
+		SearchResults<?> results = endpoints.findUsers("id",
 				"userName co 'd' and emails.value co 'vmware'", null, "ascending", 1, 100);
 		assertEquals(2, results.getTotalResults());
 		assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
 				.contains(joel.getId()));
 	}
 
-	private Collection<Object> getSetFromMaps(Collection<Map<String, Object>> resources, String key) {
+	@SuppressWarnings("unchecked")
+	private Collection<Object> getSetFromMaps(Collection<?> resources, String key) {
 		Collection<Object> result = new ArrayList<Object>();
-		for (Map<String, Object> map : resources) {
-			result.add(map.get(key));
+		for (Object map : resources) {
+			result.add(((Map<String, Object>)map).get(key));
 		}
 		return result;
 	}

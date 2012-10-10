@@ -77,16 +77,17 @@ public class ScimUserBootstrapTests {
 		assertEquals(2, users.size());
 	}
 
+	@SuppressWarnings("unchecked")
 	@Test
 	public void canAddUserWithAuthorities() throws Exception {
 		UaaUser joe = new UaaUser("joe", "password", "joe@test.org", "Joe", "User");
 		joe = joe.authorities(AuthorityUtils.commaSeparatedStringToAuthorityList("openid,read"));
 		ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
 		bootstrap.afterPropertiesSet();
-		Collection<Map<String, Object>> users = userEndpoints.findUsers("id", "id pr", "id", "ascending", 1, 100).getResources();
+		Collection<?> users = userEndpoints.findUsers("id", "id pr", "id", "ascending", 1, 100).getResources();
 		assertEquals(1, users.size());
 
-		String id = (String) users.iterator().next().get("id");
+		String id = (String) ((Map<String,Object>)users.iterator().next()).get("id");
 		ScimUser user = userEndpoints.getUser(id);
 		// uaa.user is always added
 		assertEquals(3, user.getGroups().size());
@@ -103,7 +104,7 @@ public class ScimUserBootstrapTests {
 		bootstrap.afterPropertiesSet();
 		Collection<ScimUser> users = db.retrieveUsers();
 		assertEquals(1, users.size());
-		assertEquals("Bloggs", users.iterator().next().getFamilyName());	
+		assertEquals("Bloggs", users.iterator().next().getFamilyName());
 	}
 
 }

@@ -86,7 +86,7 @@ public class UserIdConversionEndpoints implements InitializingBean {
 
 	@RequestMapping(value = "/ids/Users", method = RequestMethod.GET)
 	@ResponseBody
-	public SearchResults<Map<String, Object>> findUsers(
+	public SearchResults<?> findUsers(
 			@RequestParam(required = true, defaultValue = "") String filter,
 			@RequestParam(required = false, defaultValue = "ascending") String sortOrder,
 			@RequestParam(required = false, defaultValue = "1") int startIndex,
