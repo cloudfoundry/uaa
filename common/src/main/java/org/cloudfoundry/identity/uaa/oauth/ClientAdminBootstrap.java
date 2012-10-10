@@ -16,20 +16,17 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -37,7 +34,7 @@ import org.springframework.security.oauth2.provider.ClientRegistrationService;
 
 /**
  * @author Dave Syer
- * 
+ *
  */
 public class ClientAdminBootstrap implements InitializingBean {
 
@@ -47,26 +44,13 @@ public class ClientAdminBootstrap implements InitializingBean {
 
 	private ClientRegistrationService clientRegistrationService;
 
-	private Map<String, String> authoritiesToScopes = new HashMap<String, String>();
-
-	private Collection<String> validScopes = Arrays.asList("password.write", "openid", "cloud_controller.read",
-			"cloud_controller.write", "clients.read", "clients.write", "clients.secret", "tokens.read", "tokens.write",
-			"scim.read", "scim.write");
-
 	private String domain = "cloudfoundry\\.com";
-
-	{
-		authoritiesToScopes.put("ROLE_UNTRUSTED", "uaa.none");
-		authoritiesToScopes.put("ROLE_RESOURCE", "uaa.resource");
-		authoritiesToScopes.put("ROLE_LOGIN", "uaa.login");
-		authoritiesToScopes.put("ROLE_ADMIN", "uaa.admin");
-	}
 
 	/**
 	 * The domain suffix (default "cloudfoundry.com") used to detect http redirects. If an http callback in this domain
 	 * is found in a client registration and there is no corresponding value with https as well, then the https value
 	 * will be added.
-	 * 
+	 *
 	 * @param domain the domain to set
 	 */
 	public void setDomain(String domain) {
@@ -90,7 +74,7 @@ public class ClientAdminBootstrap implements InitializingBean {
 
 	@Override
 	public void afterPropertiesSet() throws Exception {
-		convertLegacyClients();
+		deleteLegacyClients();
 		addHttpsCallbacks();
 		addNewClients();
 	}
@@ -102,9 +86,6 @@ public class ClientAdminBootstrap implements InitializingBean {
 		List<ClientDetails> clients = clientRegistrationService.listClientDetails();
 
 		for (ClientDetails client : clients) {
-			if (client.getClientId().startsWith("legacy_")) {
-				continue;
-			}
 			Set<String> registeredRedirectUri = client.getRegisteredRedirectUri();
 			if (registeredRedirectUri == null || registeredRedirectUri.isEmpty()) {
 				continue;
@@ -126,105 +107,21 @@ public class ClientAdminBootstrap implements InitializingBean {
 	}
 
 	/**
-	 * Convert legacy clients to best guess for new scopes and authorities.
+	 * Delete legacy clients if present.
 	 */
-	private void convertLegacyClients() {
-
+	private void deleteLegacyClients() {
 		List<ClientDetails> clients = clientRegistrationService.listClientDetails();
 
 		for (ClientDetails client : clients) {
 			if (client.getClientId().startsWith("legacy_")) {
-				continue;
-			}
-			if (!client.getAuthorities().toString().contains("ROLE_")) {
-				logger.info("Already converted: " + client);
-				continue;
-			}
-			logger.info("Converting: " + client);
-			try {
-				BaseClientDetails legacyClient = new BaseClientDetails(client);
-				legacyClient.setClientId("legacy_" + client.getClientId());
-				if (!clients.contains(legacyClient)) {
-					clientRegistrationService.addClientDetails(legacyClient);
-				}
-			}
-			catch (ClientAlreadyExistsException e) {
-				// Should not happen
-				logger.error("Error creating legacy copy of: " + client);
-			}
-
-			BaseClientDetails newClient = new BaseClientDetails(client);
-			newClient.setResourceIds(Collections.singleton("none"));
-			Set<String> userScopes = getUserScopes(client);
-			// Use sorted set to make testing easier
-			Set<String> clientScopes = new TreeSet<String>(getClientScopes(client));
-			if (client.getAuthorizedGrantTypes().equals(Collections.singleton("client_credentials"))) {
-				userScopes = Collections.singleton("uaa.none");
-				clientScopes.addAll(getUserScopes(client));
-			}
-			newClient.setScope(userScopes);
-			newClient.setAuthorities(AuthorityUtils.createAuthorityList(clientScopes.toArray(new String[clientScopes
-					.size()])));
-			Integer validity = newClient.getAccessTokenValiditySeconds();
-			if (validity != null && validity == 0) {
-				newClient.setAccessTokenValiditySeconds(null);
-			}
-			validity = newClient.getRefreshTokenValiditySeconds();
-			if (validity != null && validity == 0) {
-				newClient.setRefreshTokenValiditySeconds(null);
-			}
-			logger.info("Converted: " + newClient);
-			clientRegistrationService.updateClientDetails(newClient);
-
-		}
-
-	}
-
-	private Set<String> getUserScopes(ClientDetails client) {
-		Set<String> result = new TreeSet<String>();
-		Set<String> resourceIds = client.getResourceIds();
-		Set<String> scopes = client.getScope();
-		for (String scope : scopes) {
-			if (scope.equals("openid")) {
-				result.add(scope);
-			}
-			else if (scope.equals("password")) {
-				if (resourceIds.contains("password")) {
-					result.add("password.write");
-				}
-				if (resourceIds.contains("clients")) {
-					result.add("clients.secret");
-				}
-			}
-			else {
-				for (String resource : resourceIds) {
-					String value = resource + "." + scope;
-					if (validScopes.contains(value)) {
-						result.add(value);
-					}
+				logger.info("Deleting legacy client " + client.getClientId());
+				try {
+					clientRegistrationService.removeClientDetails(client.getClientId());
+				} catch (Exception e) {
+					logger.error("Failed to remove client.", e);
 				}
 			}
 		}
-		if (result.isEmpty()) {
-			// Safety measure, just to prevent errors (empty means all scopes are allowed)
-			result.add("uaa.none");
-		}
-		return result;
-	}
-
-	private Set<String> getClientScopes(ClientDetails client) {
-		Set<String> result = new TreeSet<String>();
-		Set<String> authorities = AuthorityUtils.authorityListToSet(client.getAuthorities());
-		for (String authority : authorities) {
-			if (authoritiesToScopes.containsKey(authority)) {
-				result.add(authoritiesToScopes.get(authority));
-			}
-		}
-		if (result.isEmpty()) {
-			// Safety measure, just to prevent errors (empty means all scopes are allowed)
-			result.add("uaa.none");
-		}
-		return result;
 	}
 
 	private void addNewClients() throws Exception {

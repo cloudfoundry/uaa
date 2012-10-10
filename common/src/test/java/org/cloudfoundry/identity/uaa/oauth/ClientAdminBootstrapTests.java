@@ -13,13 +13,15 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
+import static org.mockito.Mockito.*;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -28,13 +30,20 @@ import org.yaml.snakeyaml.Yaml;
 
 /**
  * @author Dave Syer
- * 
+ * @author Luke Taylor
  */
 public class ClientAdminBootstrapTests {
 
-	private ClientAdminBootstrap bootstrap = new ClientAdminBootstrap();
+	private ClientAdminBootstrap bootstrap;
 
-	private ClientRegistrationService clientRegistrationService = Mockito.mock(ClientRegistrationService.class);
+	private ClientRegistrationService clientRegistrationService;
+
+	@Before
+	public void setUp() {
+		bootstrap = new ClientAdminBootstrap();
+		clientRegistrationService = mock(ClientRegistrationService.class);
+		bootstrap.setClientRegistrationService(clientRegistrationService);
+	}
 
 	@Test
 	public void testSimpleAddClient() throws Exception {
@@ -50,125 +59,69 @@ public class ClientAdminBootstrapTests {
 	}
 
 	@Test
-	public void testClientWithOpenIdOnly() throws Exception {
-		BaseClientDetails input = new BaseClientDetails("foo", "openid", "openid", "authorization_code", "ROLE_CLIENT");
-		BaseClientDetails output = new BaseClientDetails("foo", "none", "openid", "authorization_code", "uaa.none");
-		doSimpleTestWithLegacyClient(input, output);
-	}
-
-	@Test
-	public void testAuthCodeClientWithCloudController() throws Exception {
-		BaseClientDetails client = new BaseClientDetails("foo", "openid,cloud_controller", "openid,read,write",
-				"authorization_code", "ROLE_CLIENT", null);
-		BaseClientDetails output = new BaseClientDetails("foo", "none",
-				"openid,cloud_controller.read,cloud_controller.write", "authorization_code", "uaa.none", null);
-		doSimpleTestWithLegacyClient(client, output);
-	}
-
-	@Test
-	public void testAdminClient() throws Exception {
-		BaseClientDetails input = new BaseClientDetails("foo", "clients,tokens", "read,write,password",
-				"client_credentials", "ROLE_ADMIN", null);
-		BaseClientDetails output = new BaseClientDetails("foo", "none", "uaa.none", "client_credentials",
-				"clients.read,clients.secret,clients.write,tokens.read,tokens.write,uaa.admin", null);
-		doSimpleTestWithLegacyClient(input, output);
-	}
-
-	@Test
-	public void testCloudController() throws Exception {
-		BaseClientDetails input = new BaseClientDetails("foo", "password,scim,tokens", "read,write,password",
-				"client_credentials", "ROLE_CLIENT,ROLE_ADMIN", null);
-		BaseClientDetails output = new BaseClientDetails("foo", "none", "uaa.none", "client_credentials",
-				"password.write,scim.read,scim.write,tokens.read,tokens.write,uaa.admin", null);
-		doSimpleTestWithLegacyClient(input, output);
-	}
-
-	@Test
 	public void testOverrideClient() throws Exception {
-		bootstrap.setClientRegistrationService(clientRegistrationService);
 		Map<String, Object> map = new HashMap<String, Object>();
 		map.put("secret", "bar");
 		map.put("override", true);
 		bootstrap.setClients(Collections.singletonMap("foo", map));
-		Mockito.doThrow(new ClientAlreadyExistsException("Planned")).when(clientRegistrationService)
-				.addClientDetails(Mockito.any(ClientDetails.class));
+		doThrow(new ClientAlreadyExistsException("Planned")).when(clientRegistrationService)
+				.addClientDetails(any(ClientDetails.class));
 		bootstrap.afterPropertiesSet();
-		Mockito.verify(clientRegistrationService, Mockito.times(1)).addClientDetails(Mockito.any(ClientDetails.class));
-		Mockito.verify(clientRegistrationService, Mockito.times(1)).updateClientDetails(
-				Mockito.any(ClientDetails.class));
-		Mockito.verify(clientRegistrationService, Mockito.times(1)).updateClientSecret("foo", "bar");
+		verify(clientRegistrationService, times(1)).addClientDetails(any(ClientDetails.class));
+		verify(clientRegistrationService, times(1)).updateClientDetails(
+				any(ClientDetails.class));
+		verify(clientRegistrationService, times(1)).updateClientSecret("foo", "bar");
 	}
 
 	@Test
 	public void testOverrideClientWithYaml() throws Exception {
-		bootstrap.setClientRegistrationService(clientRegistrationService);
 		@SuppressWarnings("unchecked")
 		Map<String, Object> map = new Yaml().loadAs("id: foo\noverride: true\nsecret: bar\n"
 				+ "access-token-validity: 100", Map.class);
 		bootstrap.setClients(Collections.singletonMap("foo", map));
-		Mockito.doThrow(new ClientAlreadyExistsException("Planned")).when(clientRegistrationService)
-				.addClientDetails(Mockito.any(ClientDetails.class));
+		doThrow(new ClientAlreadyExistsException("Planned")).when(clientRegistrationService)
+				.addClientDetails(any(ClientDetails.class));
 		bootstrap.afterPropertiesSet();
-		Mockito.verify(clientRegistrationService, Mockito.times(1)).addClientDetails(Mockito.any(ClientDetails.class));
-		Mockito.verify(clientRegistrationService, Mockito.times(1)).updateClientDetails(
-				Mockito.any(ClientDetails.class));
-		Mockito.verify(clientRegistrationService, Mockito.times(1)).updateClientSecret("foo", "bar");
+		verify(clientRegistrationService, times(1)).addClientDetails(any(ClientDetails.class));
+		verify(clientRegistrationService, times(1)).updateClientDetails(
+				any(ClientDetails.class));
+		verify(clientRegistrationService, times(1)).updateClientSecret("foo", "bar");
 	}
 
 	@Test
-	public void testLegacySkippedController() throws Exception {
+	public void testLegacyClientIsRemoved() throws Exception {
 		BaseClientDetails input = new BaseClientDetails("legacy_foo", "password,scim,tokens", "read,write,password",
 				"client_credentials", "ROLE_CLIENT,ROLE_ADMIN", null);
-		bootstrap.setClientRegistrationService(clientRegistrationService);
-		Mockito.when(clientRegistrationService.listClientDetails()).thenReturn(Arrays.<ClientDetails> asList(input));
+		when(clientRegistrationService.listClientDetails()).thenReturn(Arrays.<ClientDetails> asList(input));
 		bootstrap.afterPropertiesSet();
-		Mockito.verify(clientRegistrationService, Mockito.times(0)).addClientDetails(Mockito.any(ClientDetails.class));
+		verify(clientRegistrationService, times(1)).removeClientDetails("legacy_foo");
 	}
 
 	@Test
-	public void testLegacyHttpsAdded() throws Exception {
+	public void testHttpsUrlIsAddedIfNotPresent() throws Exception {
 		bootstrap.setDomain("bar.com");
 		BaseClientDetails input = new BaseClientDetails("foo", "password,scim,tokens", "read,write,password",
-				"client_credentials", "ROLE_CLIENT,ROLE_ADMIN", "http://foo.bar.com/spam");
-		bootstrap.setClientRegistrationService(clientRegistrationService);
-		Mockito.when(clientRegistrationService.listClientDetails()).thenReturn(Arrays.<ClientDetails> asList(input));
+				"client_credentials", "uaa.none", "http://foo.bar.com/spam");
+		when(clientRegistrationService.listClientDetails()).thenReturn(Arrays.<ClientDetails> asList(input));
 		bootstrap.afterPropertiesSet();
-		// legacy is added but the https is not re-added
-		Mockito.verify(clientRegistrationService, Mockito.times(1)).addClientDetails(Mockito.any(ClientDetails.class));
-		Mockito.verify(clientRegistrationService, Mockito.times(2)).updateClientDetails(
-				Mockito.any(ClientDetails.class));
+		verify(clientRegistrationService, times(1)).updateClientDetails(any(ClientDetails.class));
 	}
 
 	@Test
-	public void testLegacyHttpsAlreadyPresent() throws Exception {
+	public void testHttpsUrlIsNotAddedIfAlreadyPresent() throws Exception {
 		bootstrap.setDomain("bar.com");
 		BaseClientDetails input = new BaseClientDetails("foo", "password,scim,tokens", "read,write,password",
-				"client_credentials", "ROLE_CLIENT,ROLE_ADMIN", "http://foo.bar.com,https://foo.bar.com");
-		bootstrap.setClientRegistrationService(clientRegistrationService);
-		Mockito.when(clientRegistrationService.listClientDetails()).thenReturn(Arrays.<ClientDetails> asList(input));
+				"client_credentials", "uaa.none", "http://foo.bar.com,https://foo.bar.com");
+		when(clientRegistrationService.listClientDetails()).thenReturn(Arrays.<ClientDetails> asList(input));
 		bootstrap.afterPropertiesSet();
-		// legacy is added but the https is not re-added
-		Mockito.verify(clientRegistrationService, Mockito.times(1)).addClientDetails(Mockito.any(ClientDetails.class));
-		Mockito.verify(clientRegistrationService, Mockito.times(1)).updateClientDetails(
-				Mockito.any(ClientDetails.class));
+		verify(clientRegistrationService, never()).updateClientDetails(any(ClientDetails.class));
 	}
 
 	private void doSimpleTest(Map<String, Object> map, BaseClientDetails output) throws Exception {
-		bootstrap.setClientRegistrationService(clientRegistrationService);
-		Mockito.when(clientRegistrationService.listClientDetails()).thenReturn(Collections.<ClientDetails> emptyList());
+		when(clientRegistrationService.listClientDetails()).thenReturn(Collections.<ClientDetails> emptyList());
 		bootstrap.setClients(Collections.singletonMap((String) map.get("id"), map));
 		bootstrap.afterPropertiesSet();
-		Mockito.verify(clientRegistrationService).addClientDetails(output);
-	}
-
-	private void doSimpleTestWithLegacyClient(BaseClientDetails input, BaseClientDetails output) throws Exception {
-		bootstrap.setClientRegistrationService(clientRegistrationService);
-		Mockito.when(clientRegistrationService.listClientDetails()).thenReturn(Arrays.<ClientDetails> asList(input));
-		bootstrap.afterPropertiesSet();
-		Mockito.verify(clientRegistrationService).updateClientDetails(output);
-		BaseClientDetails legacy = new BaseClientDetails(input);
-		legacy.setClientId("legacy_" + input.getClientId());
-		Mockito.verify(clientRegistrationService).addClientDetails(legacy);
+		verify(clientRegistrationService).addClientDetails(output);
 	}
 
 }
