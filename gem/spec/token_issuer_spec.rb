@@ -31,10 +31,11 @@ describe TokenIssuer do
             "password", "implicit", "refresh_token"],
         authorities: [readers, @stub_uaa.scim.id("scim.read", :group),
             @stub_uaa.scim.id("openid", :group)],
-        scope: [@stub_uaa.scim.id("openid", :group)],
+        scope: [@stub_uaa.scim.id("openid", :group), readers],
         access_token_validity: 60 * 60 * 24 * 8 )
     id = @stub_uaa.scim.add(:user, username: "joe+admin", password: "?joe's%password$@ ")
     @stub_uaa.auto_groups.each {|g| @stub_uaa.scim.add_member(g, id)}
+    @stub_uaa.scim.add_member(readers, id)
     @issuer = TokenIssuer.new(@stub_uaa.url, "test_client", "test_secret")
     @issuer.async = @async = false
     @state = {}
@@ -112,7 +113,7 @@ describe TokenIssuer do
 
     it "should get an access token" do
       result = frequest { subject.implicit_grant_with_creds(username: "joe+admin", password: "?joe's%password$@ ") }
-      check_good_token result, "openid", "test_client"
+      check_good_token result, "openid logs.read", "test_client"
     end
 
     it "should reject an access token with wrong state" do
@@ -146,12 +147,27 @@ describe TokenIssuer do
     it "should get an access token with an authorization code" do
       cburi = "http://call.back/uri_path"
       redir_uri = subject.authcode_uri(cburi)
-      status, body, headers = frequest { subject.http_get(redir_uri) }
+      test_uri = "#{redir_uri}&#{URI.encode_www_form(emphatic_user: 'joe+admin')}"
+      status, body, headers = frequest { subject.http_get(test_uri) }
       status.should == 302
       m = %r{^#{Regexp.escape(cburi)}\?(.*)$}.match(headers[:location])
       m.should_not be_nil
       result = frequest { subject.authcode_grant(redir_uri, m[1]) }
-      check_good_token result, "openid", "test_client"
+      check_good_token result, "openid logs.read", "test_client"
+      result.info[:refresh_token].should_not be_nil
+      @state[:refresh_token] = result.info[:refresh_token]
+    end
+
+    it "should get an access token with a specific scope" do
+      cburi = "http://call.back/uri_path"
+      redir_uri = subject.authcode_uri(cburi, "logs.read")
+      test_uri = "#{redir_uri}&#{URI.encode_www_form(emphatic_user: 'joe+admin')}"
+      status, body, headers = frequest { subject.http_get(test_uri) }
+      status.should == 302
+      m = %r{^#{Regexp.escape(cburi)}\?(.*)$}.match(headers[:location])
+      m.should_not be_nil
+      result = frequest { subject.authcode_grant(redir_uri, m[1]) }
+      check_good_token result, "logs.read", "test_client"
       result.info[:refresh_token].should_not be_nil
       @state[:refresh_token] = result.info[:refresh_token]
     end
@@ -167,6 +183,11 @@ describe TokenIssuer do
 
     it "should get an access token with a refresh token" do
       result = frequest { subject.refresh_token_grant(@state[:refresh_token]) }
+      check_good_token result, "openid logs.read", "test_client"
+    end
+
+    it "should get an access token with specific scope" do
+      result = frequest { subject.refresh_token_grant(@state[:refresh_token], "openid") }
       check_good_token result, "openid", "test_client"
     end
   end
