@@ -18,6 +18,7 @@ import java.util.Properties;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
 
+import org.apache.log4j.MDC;
 import org.cloudfoundry.identity.uaa.config.YamlProcessor.ResolutionMethod;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.core.env.ConfigurableEnvironment;
@@ -128,6 +129,8 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 		catch (FileNotFoundException e) {
 			servletContext.log("Error loading log4j config from location: " + log4jConfigLocation, e);
 		}
+		
+		MDC.put("context", servletContext.getContextPath());
 
 	}
 
