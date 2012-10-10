@@ -18,6 +18,7 @@ import java.util.Properties;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
 
+import org.apache.log4j.MDC;
 import org.cloudfoundry.identity.uaa.config.YamlProcessor.ResolutionMethod;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.core.env.ConfigurableEnvironment;
@@ -90,9 +91,9 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 			factory.setResources(new Resource[] { resource });
 			Properties properties = factory.getObject();
 			applySpringProfiles(properties, applicationContext.getEnvironment(), servletContext);
-			applyLog4jConfiguration(properties, applicationContext.getEnvironment(), servletContext);
 			applicationContext.getEnvironment().getPropertySources()
 					.addLast(new PropertiesPropertySource("servletConfigYaml", properties));
+			applyLog4jConfiguration(properties, applicationContext.getEnvironment(), servletContext);
 		}
 		catch (Exception e) {
 			servletContext.log("Error loading YAML environment properties from location: " + resource, e);
@@ -128,6 +129,8 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 		catch (FileNotFoundException e) {
 			servletContext.log("Error loading log4j config from location: " + log4jConfigLocation, e);
 		}
+		
+		MDC.put("context", servletContext.getContextPath());
 
 	}
 
