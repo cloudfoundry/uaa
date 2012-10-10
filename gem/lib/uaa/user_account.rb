@@ -42,38 +42,32 @@ class UserAccount
     json_parse_reply(*json_patch(@target, "#{path}/#{URI.encode(id)}", info, @auth_header))
   end
 
-  def query_object(path, attributes = nil, filter = nil)
-    query = attributes ? {attributes: Util.strlist(attributes, ",")} : {}
-    query[:filter] = filter if filter && !filter.empty?
-    query[:startIndex], info = 1, []
-    while true
-      qstr = query.empty?? "": "?#{URI.encode_www_form(query)}"
-      unless (qinfo = json_get(@target, "#{path}#{qstr}", @auth_header)) && qinfo[:resources].is_a?(Array)
-        raise BadResponse, "invalid reply to query with \"#{filter}\" at #{@target}#{path}"
-      end
-      info.concat(qinfo[:resources])
-      return info unless qinfo[:totalResults] && qinfo[:totalResults] > info.length
-      raise BadResponse, "incomplete pagination data from #{@target}#{path}" unless qinfo[:startIndex] && qinfo[:itemsPerPage]
-      query[:startIndex] = info.length + 1
+  # supported query keys are: attributes, filter, startIndex, count
+  # output hash keys are: resources, totalResults, itemsPerPage
+  def query_objects(path, query)
+    query = query.reject {|k, v| v.nil? }
+    query[:attributes] = Util.strlist(Util.arglist(query[:attributes]), ",") if query[:attributes]
+    qstr = query.empty?? "": "?#{URI.encode_www_form(query)}"
+    unless (info = json_get(@target, "#{path}#{qstr}", @auth_header)).is_a?(Hash) && info[:resources].is_a?(Array)
+      raise BadResponse, "invalid reply to query of #{@target}#{path}"
     end
-  end
-
-  def query_by_value(path, attributes, filter_attribute, filter_value)
-    query_object(path, attributes, "#{filter_attribute} eq \"#{filter_value}\"")
+    info
   end
 
   def get_object(path, id) json_get(@target, "#{path}/#{URI.encode(id)}", @auth_header) end
   def get_object_by_name(path, name_attr, name)
-    qinfo = query_by_value(path, nil, name_attr, name)
-    raise NotFound, "#{name} not found in #{@target}#{path}" unless qinfo[0] && qinfo[0][:id]
+    info = query_objects(path, filter: "#{name_attr} eq \"#{name}\"")
+    unless info && info[:resources] && info[:resources][0] && (id = info[:resources][0][:id])
+      raise NotFound, "#{name} not found in #{@target}#{path}"
+    end
 
-    # TODO: should be able to just return qinfo[0] here but uaa does not yet return all attributes for a query
-    get_object(path, qinfo[0][:id])
+    # TODO: should be able to just return info[:resources][0] here but uaa does not yet return all attributes for a query
+    get_object(path, id)
   end
 
-  def query_ids(path, users)
+  def all_ids(method, users)
     filter = users.each_with_object([]) { |u, o| o << "userName eq \"#{u}\" or id eq \"#{u}\"" }
-    qinfo = query_object(path, "userName,id", filter.join(" or "))
+    qinfo = all_pages(method, attributes: "userName,id", filter: filter.join(" or "))
     raise NotFound, "users not found in #{@target}#{path}" unless qinfo[0] && qinfo[0][:id]
     qinfo
   end
@@ -96,10 +90,17 @@ class UserAccount
     add(info)
   end
 
+  def query(attributes = nil, filter = nil)
+    logger.warn "#{self.class}##{__method__} is deprecated. Please use #{self.class}#query_users"
+    query = attributes ? {attributes: attributes}: {}
+    query[:filter] = filter if filter
+    query_objects("/Users", query)
+  end
+
   def add(info) add_object("/Users", info) end
   def update(user_id, info) update_object("/Users", user_id, info) end
   def patch(user_id, info, attributes_to_delete = nil) patch_object("/Users", user_id, info, attributes_to_delete) end
-  def query(attributes = nil, filter = nil) query_object("/Users", attributes, filter) end
+  def query_users(query) query_objects("/Users", query) end
   def get(user_id) get_object("/Users", user_id) end
   def get_by_name(name) get_object_by_name("/Users", "username", name) end
   def user_id_from_name(name) get_by_name(name)[:id] end
@@ -107,13 +108,12 @@ class UserAccount
   def delete_by_name(name) delete user_id_from_name(name) end
   def add_group(info) add_object("/Groups", info) end
   def update_group(id, info, attributes_to_delete = nil) update_object("/Groups", id, info) end
-  def query_groups(attributes = nil, filter = nil) query_object("/Groups", attributes, filter) end
+  def query_groups(query) query_objects("/Groups", query) end
   def get_group(id) json_get(@target, "/Groups/#{URI.encode(id)}", @auth_header) end
   def delete_group(id) http_delete @target, "/Groups/#{URI.encode(id)}", @auth_header end
   def get_group_by_name(name) get_object_by_name("/Groups", "displayname", name) end
   def group_id_from_name(name) get_group_by_name(name)[:id] end
-  def ids_exclusive(*users) query_ids("/ids/Users", users) end
-  def ids(*users) query_ids("/Users", users) end
+  def query_ids(query) query_objects("/ids/Users", query) end
 
   def change_password(user_id, new_password, old_password = nil)
     password_request = { password: new_password }
@@ -124,6 +124,24 @@ class UserAccount
   def change_password_by_name(name, new_password, old_password = nil)
     change_password(user_id_from_name(name), new_password, old_password)
   end
+
+  # collects all pages of entries from a query, returns array of results. Method can be
+  # any method that takes a single query arg. currently :query_users and :query_groups
+  def all_pages(method, query)
+    query = query.reject {|k, v| v.nil? }
+    query[:startIndex], info = 1, []
+    while true
+      qinfo = send(method, query)
+      return info unless qinfo[:resources] && !qinfo[:resources].empty?
+      info.concat(qinfo[:resources])
+      return info unless qinfo[:totalResults] && qinfo[:totalResults] > info.length
+      raise BadResponse, "incomplete pagination data from #{@target}#{path}" unless qinfo[:startIndex] && qinfo[:itemsPerPage]
+      query[:startIndex] = info.length + 1
+    end
+  end
+
+  def ids_exclusive(*users) all_ids(:query_ids, users) end
+  def ids(*users) all_ids(:query_users, users) end
 
 end
 

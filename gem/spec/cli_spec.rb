@@ -169,7 +169,7 @@ describe Cli do
     Cli.run("token decode")
     Cli.output.string = ""
     Cli.run("user add #{@test_user.capitalize} -p #{@test_pwd} --email #{@test_user}@example.com --family_name #{@test_user.capitalize} --given_name joe").should_not be_nil
-    Cli.output.string.should_not match /insufficient_scope/
+    Cli.output.string.should_not match(/insufficient_scope/)
     Cli.output.string = ""
     Cli.run("user get #{@test_user}").should_not be_nil
     Cli.output.string.should match @test_user.capitalize
@@ -214,7 +214,7 @@ describe Cli do
 
   it "should get ids for a username" do
     Cli.run("user ids #{@test_user}").should_not be_nil
-    Cli.output.string.should match /#{@test_user}/i
+    Cli.output.string.should match(/#{@test_user}/i)
     Cli.output.string.should include("id")
   end
 
@@ -241,7 +241,7 @@ describe Cli do
   end
 
   it "should login with owner password grant" do
-    Cli.run("token owner get #{@test_client} -s testsecret #{@test_user} -p newpwd").should_not be_nil
+    Cli.run("token owner get #{@test_client} -s testsecret #{@test_user} -p newpwd" ).should_not be_nil
     Cli.output.string.should match "Successfully fetched token"
   end
 
@@ -268,13 +268,6 @@ describe Cli do
     Cli.output.string.should match @test_group
   end
 
-  it "should add all users to the group" do
-    cmd = "member add #{@test_group}"
-    29.times { |i| cmd << " #{@test_user.capitalize}-#{i}" }
-    Cli.run(cmd) # .should_not be_nil
-    Cli.output.string.should match @test_group
-  end
-
   it "should list all users" do
     Cli.run("users -a userName").should_not be_nil
     29.times { |i| Cli.output.string.should =~ /#{@test_user.capitalize}-#{i}/i }
@@ -286,11 +279,41 @@ describe Cli do
     29.times { |i| Cli.output.string.should =~ /#{@test_user.capitalize}-#{i}/ }
   end
 
+  it "should list a page of users" do
+    Cli.run("users -a userName --count 13 --start 5").should_not be_nil
+    Cli.output.string.should match(/itemsPerPage: 13/)
+    Cli.output.string.should match(/startIndex: 5/)
+  end
+
+  it "should add users to the group" do
+    cmd = "member add #{@test_group}"
+    29.times { |i| cmd << " #{@test_user.capitalize}-#{i}" }
+    Cli.run(cmd).should_not be_nil
+    Cli.output.string.should match @test_group
+  end
+
+  it "should add one user to the group" do
+    Cli.run("member add #{@test_group} #{@test_user.capitalize}").should_not be_nil
+    Cli.output.string.should match @test_group
+  end
+
+  it "should delete all members from a group" do
+    cmd = "member delete #{@test_group} #{@test_user.capitalize}"
+    29.times { |i| cmd << " #{@test_user.capitalize}-#{i}" }
+    Cli.run(cmd)#.should_not be_nil
+    Cli.output.string.should match @test_group
+    # and they should really be gone
+    Cli.output.string = ""
+    Cli.run("group get #{@test_group}")
+    Cli.output.string.should match(/members: \n/i)
+  end
+
   it "should delete a client registration as admin" do
     Cli.run "context #{@client_id}"
-    Cli.run("client delete #{@test_client}").should_not be_nil
+    Cli.run("client delete #{@test_client}") #.should_not be_nil
     Cli.output.string = ""
-    Cli.run("clients").should_not be_nil
+    Cli.run("clients") #.should_not be_nil
+    #puts Cli.output.string
     Cli.output.string.should_not match @test_client
     Cli.output.string.should_not match 'error'
   end

@@ -29,8 +29,15 @@ class GroupCli < CommonCli
 
   def gname(name) name || ask("Group name") end
 
-  desc "groups [filter]", "List groups", :attrs do |filter|
-    pp acct_request { |ua| ua.query_groups(opts[:attrs], filter) }
+  desc "groups [filter]", "List groups", :attrs, :start, :count do |filter|
+    pp acct_request { |ua|
+      query = { attributes: opts[:attrs], filter: filter }
+      if opts[:start] || opts[:count]
+        ua.query_groups(query.merge!(startIndex: opts[:start], count: opts[:count]))
+      else
+        ua.all_pages(:query_groups, query)
+      end
+    }
   end
 
   desc "group get [name]", "Get specific group information" do |name|
@@ -46,7 +53,9 @@ class GroupCli < CommonCli
   end
 
   def id_set(objs)
-    objs.each_with_object(Set.new) {|o, s| s << o[:id] || o[:value] || o[:memberId]}
+    objs.each_with_object(Set.new) {|o, s|
+      s << (o.is_a?(String)? o: (o[:id] || o[:value] || o[:memberId]))
+    }
   end
 
   desc "member add [name] [members...]", "add members to a group" do |name, *members|
@@ -69,6 +78,7 @@ class GroupCli < CommonCli
       raise "not all members found, none deleted" unless new_ids.size == members.size
       group[:members] = (old_ids - new_ids).to_a
       raise "no existing members to delete" unless group[:members].size < old_ids.size
+      #group.delete(:members) if group[:members].empty?
       ua.update_group(group[:id], group)
     }
   end
