@@ -15,11 +15,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,7 +60,7 @@ public class ScimGroupEndpoints {
 
 	@RequestMapping(value = {"/Groups"}, method = RequestMethod.GET)
 	@ResponseBody
-	public SearchResults<Map<String, Object>> listGroups(@RequestParam(value = "attributes", required = false, defaultValue = "id") String attributesCommaSeparated,
+	public SearchResults<?> listGroups(@RequestParam(value = "attributes", required = false) String attributesCommaSeparated,
 									  @RequestParam(required = false, defaultValue = "id pr") String filter,
 									  @RequestParam(required = false, defaultValue = "created") String sortBy,
 									  @RequestParam(required = false, defaultValue = "ascending") String sortOrder,
@@ -67,12 +69,16 @@ public class ScimGroupEndpoints {
 		List<ScimGroup> input;
 		try {
 			input = dao.retrieveGroups(filter, sortBy, "ascending".equalsIgnoreCase(sortOrder));
-			for (ScimGroup group : input) {
+			for (ScimGroup group : input.subList(startIndex - 1, startIndex + count - 1)) {
 				group.setMembers(membershipManager.getMembers(group.getId()));
 			}
 		}
 		catch (IllegalArgumentException e) {
 			throw new ScimException("Invalid filter expression: [" + filter + "]", HttpStatus.BAD_REQUEST);
+		}
+
+		if (!StringUtils.hasLength(attributesCommaSeparated)) {
+			return new SearchResults<ScimGroup>(Arrays.asList(ScimGroup.SCHEMAS), input, startIndex, count, input.size());
 		}
 
 		String[] attributes = attributesCommaSeparated.split(",");
