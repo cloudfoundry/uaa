@@ -102,7 +102,7 @@ public class ScimGroupEndpointsTests {
 		return new ScimGroupMember(id, t, a);
 	}
 
-	private void validateSearchResults (SearchResults<Map<String, Object>> results, int expectedSize) {
+	private void validateSearchResults (SearchResults<?> results, int expectedSize) {
 		assertNotNull(results);
 		assertNotNull(results.getResources());
 		assertEquals(expectedSize, results.getResources().size());
