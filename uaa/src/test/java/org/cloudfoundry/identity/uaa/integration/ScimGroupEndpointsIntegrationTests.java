@@ -259,18 +259,20 @@ public class ScimGroupEndpointsIntegrationTests {
 		assertEquals("scim_resource_not_found", g.get("error"));
 	}
 
-	@Ignore // bug to be fixed: https://www.pivotaltracker.com/story/show/36822377
 	@Test
 	public void deleteMemberGroupUpdatesGroup() {
 		ScimGroup g1 = createGroup(CFID, VIDYA);
 		ScimGroupMember m2 = new ScimGroupMember(g1.getId(), ScimGroupMember.Type.GROUP, ScimGroup.GROUP_MEMBER);
 		ScimGroup g2 = createGroup(CF_DEV, DALE, m2);
-		deleteResource(groupEndpoint, CFID);
+		assertTrue(g2.getMembers().contains(m2));
+		validateUserGroups(VIDYA.getMemberId(), CFID, CF_DEV);
+
+		deleteResource(groupEndpoint, g1.getId());
 
 		// check that parent group is updated
 		ScimGroup g3 = client.getForObject(serverRunning.getUrl(groupEndpoint + "/{id}"), ScimGroup.class, g2.getId());
 		assertEquals(1, g3.getMembers().size());
-		assertTrue(g3.getMembers().contains(DALE));
+		assertFalse(g3.getMembers().contains(m2));
 	}
 
 	@Test
