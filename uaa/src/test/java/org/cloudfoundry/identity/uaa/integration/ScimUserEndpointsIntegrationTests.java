@@ -13,11 +13,11 @@
 package org.cloudfoundry.identity.uaa.integration;
 
 import static org.junit.Assert.*;
-
 import java.util.*;
 
 import org.cloudfoundry.identity.uaa.scim.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.groups.ScimGroup;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Assume;
 import org.junit.Before;
@@ -207,7 +207,30 @@ public class ScimUserEndpointsIntegrationTests {
 		assertEquals(JOE, joe1.getUserName());
 
 		assertEquals(joe.getId(), joe1.getId());
+		assertNull(joe1.getUserType()); // check that authorities was not updated
 
+	}
+
+	@Test
+	public void updateUserGroupsDoesNothing() {
+		ResponseEntity<ScimUser> response = createUser(JOE, "Joe", "User", "joe@blah.com");
+		ScimUser joe = response.getBody();
+		assertEquals(JOE, joe.getUserName());
+		assertEquals(1, joe.getGroups().size()); // all users are part of uaa.user group
+		assertEquals("uaa.user", joe.getGroups().iterator().next().getDisplay());
+
+		joe.setGroups(Arrays.asList(new ScimUser.Group(UUID.randomUUID().toString(), "uaa.admin")));
+
+		HttpHeaders headers = new HttpHeaders();
+		headers.add("If-Match", "\"" + joe.getVersion() + "\"");
+		response = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}", HttpMethod.PUT,
+										  new HttpEntity<ScimUser>(joe, headers), ScimUser.class, joe.getId());
+		ScimUser joe1 = response.getBody();
+		assertEquals(JOE, joe1.getUserName());
+
+		assertEquals(joe.getId(), joe1.getId());
+		assertEquals(1, joe1.getGroups().size()); // all users are part of uaa.user group
+		assertEquals("uaa.user", joe1.getGroups().iterator().next().getDisplay());
 	}
 
 	// curl -v -H "Content-Type: application/json" -X PUT -H "Accept: application/json" --data
