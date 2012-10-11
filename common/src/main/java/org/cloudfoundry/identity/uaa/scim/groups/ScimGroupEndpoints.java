@@ -101,7 +101,13 @@ public class ScimGroupEndpoints {
 		ScimGroup created = dao.createGroup(group);
 		if (group.getMembers() != null) {
 			for (ScimGroupMember member : group.getMembers()) {
-				membershipManager.addMember(created.getId(), member);
+				try {
+					membershipManager.addMember(created.getId(), member);
+				} catch (ScimException ex) {
+					logger.warn("Attempt to add invalid member: " + member.getMemberId() + " to group: " + group.getId());
+					dao.removeGroup(created.getId(), created.getVersion());
+					throw new ScimException("Invalid group member: " + member.getMemberId(), HttpStatus.BAD_REQUEST);
+				}
 			}
 		}
 		created.setMembers(membershipManager.getMembers(created.getId()));
