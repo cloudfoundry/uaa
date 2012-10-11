@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.integration;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Arrays;
@@ -71,7 +72,8 @@ public class NativeApplicationIntegrationTests {
 		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
 		ResponseEntity<String> response = serverRunning.postForString("/oauth/token", formData, headers);
 		assertEquals(HttpStatus.OK, response.getStatusCode());
-		assertEquals("no-store", response.getHeaders().getFirst("Cache-Control"));
+		assertTrue("Wrong Cache-Control header: " + response.getHeaders(), response.getHeaders().get("Cache-Control")
+				.contains("no-store"));
 	}
 
 	/**

@@ -122,6 +122,27 @@
 
 	<mvc:default-servlet-handler />
 
+	<mvc:interceptors>
+		<bean class="org.springframework.web.servlet.mvc.WebContentInterceptor">
+			<property name="cacheSeconds" value="-1" /> <!-- no headers by default -->
+			<property name="cacheMappings">
+				<props>
+					<prop key="/">0</prop>
+					<prop key="/home">0</prop>
+					<prop key="/userinfo">0</prop>
+					<prop key="/clientinfo">0</prop>
+					<prop key="/check_token">600</prop>
+					<prop key="/oauth/clients/**">600</prop>
+					<prop key="/Users/**">600</prop>
+					<prop key="/ids/**">600</prop>
+					<prop key="/Groups/**">600</prop>
+					<prop key="/login">600</prop>
+					<prop key="/token_key">600</prop>
+				</props>
+			</property>
+		</bean>
+	</mvc:interceptors>
+
 	<bean id="viewResolver" class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
 		<property name="mediaTypes">
 			<map>

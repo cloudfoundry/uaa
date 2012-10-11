@@ -66,7 +66,8 @@ public class RefreshTokenSupportIntegrationTests {
 		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, headers);
 		assertEquals(HttpStatus.OK, response.getStatusCode());
-		assertEquals("no-store", response.getHeaders().getFirst("Cache-Control"));
+		assertTrue("Wrong Cache-Control header: " + response.getHeaders(), response.getHeaders().get("Cache-Control")
+				.contains("no-store"));
 
 		@SuppressWarnings("unchecked")
 		OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(response.getBody());
@@ -78,12 +79,14 @@ public class RefreshTokenSupportIntegrationTests {
 		formData.add("refresh_token", accessToken.getRefreshToken().getValue());
 		response = serverRunning.postForMap("/oauth/token", formData, headers);
 		assertEquals(HttpStatus.OK, response.getStatusCode());
-		assertEquals("no-store", response.getHeaders().getFirst("Cache-Control"));
+		assertTrue("Wrong Cache-Control header: " + response.getHeaders(), response.getHeaders().get("Cache-Control")
+				.contains("no-store"));
 		@SuppressWarnings("unchecked")
 		OAuth2AccessToken newAccessToken = DefaultOAuth2AccessToken.valueOf(response.getBody());
 		try {
 			JwtHelper.decode(newAccessToken.getValue());
-		} catch (IllegalArgumentException e) {
+		}
+		catch (IllegalArgumentException e) {
 			fail("Refreshed token was not a JWT");
 		}
 		assertFalse("New access token should be different to the old one.",
