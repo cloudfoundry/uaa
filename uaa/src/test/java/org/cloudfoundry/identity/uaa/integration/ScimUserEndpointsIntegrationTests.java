@@ -12,12 +12,20 @@
  */
 package org.cloudfoundry.identity.uaa.integration;
 
-import static org.junit.Assert.*;
-import java.util.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import org.cloudfoundry.identity.uaa.scim.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.groups.ScimGroup;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Assume;
 import org.junit.Before;
@@ -314,15 +322,17 @@ public class ScimUserEndpointsIntegrationTests {
 		assertEquals("User 9999 does not exist", error.get("message"));
 	}
 
-	@SuppressWarnings({"rawtypes", "unchecked"})
 	@Test
 	public void findUsers() throws Exception {
+		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> response = serverRunning.getForObject(usersEndpoint, Map.class);
 
+		@SuppressWarnings("rawtypes")
 		Map results = response.getBody();
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
 		assertTrue("There should be some resources", ((Collection<?>) results.get("resources")).size() > 0);
+		@SuppressWarnings("rawtypes")
 		Map firstUser = (Map) ((List) results.get("resources")).get(0);
 		// [cfid-111] All attributes should be returned if no attributes supplied in query
 		assertTrue(firstUser.containsKey("id"));

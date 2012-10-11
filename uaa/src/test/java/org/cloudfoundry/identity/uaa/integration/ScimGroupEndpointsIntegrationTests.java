@@ -1,20 +1,39 @@
 package org.cloudfoundry.identity.uaa.integration;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.scim.PasswordChangeRequest;
-import org.cloudfoundry.identity.uaa.scim.ScimCore;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.groups.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.groups.ScimGroupMember;
-import org.junit.*;
-import org.springframework.http.*;
+import org.junit.After;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.Test;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.jwt.Jwt;
 import org.springframework.security.jwt.JwtHelper;
 import org.springframework.security.oauth2.client.test.OAuth2ContextConfiguration;
 import org.springframework.security.oauth2.client.test.OAuth2ContextSetup;
-import org.springframework.security.oauth2.client.token.grant.code.AuthorizationCodeResourceDetails;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -22,13 +41,6 @@ import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestOperations;
-
-import java.net.URI;
-import java.util.*;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 @OAuth2ContextConfiguration(OAuth2ContextConfiguration.ClientCredentials.class)
 public class ScimGroupEndpointsIntegrationTests {
@@ -128,6 +140,7 @@ public class ScimGroupEndpointsIntegrationTests {
 		ScimGroup g = new ScimGroup(name);
 		List<ScimGroupMember> m = members != null ? Arrays.asList(members) : Collections.<ScimGroupMember> emptyList();
 		g.setMembers(m);
+		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> r = client.exchange(serverRunning.getUrl(groupEndpoint + "/{id}"), HttpMethod.PUT,
 															 new HttpEntity<ScimGroup>(g, headers), Map.class, id);
 		logger.warn(r.getBody());
@@ -182,11 +195,13 @@ public class ScimGroupEndpointsIntegrationTests {
 		ScimGroupMember m2 = new ScimGroupMember("wrongid");
 		g.setMembers(Arrays.asList(VIDYA, m2));
 
+		@SuppressWarnings("unchecked")
 		Map<String, String> g1 = client.postForEntity(serverRunning.getUrl(groupEndpoint), g, Map.class).getBody();
 		assertTrue(g1.containsKey("error"));
 		assertEquals("scim_resource_not_found", g1.get("error"));
 
 		// check that the group was not created
+		@SuppressWarnings("unchecked")
 		Map<String, String> g2 = client.getForObject(serverRunning.getUrl(groupEndpoint + "?filter=displayName eq '{name}'"), Map.class, CFID);
 		assertTrue(g2.containsKey("totalResults"));
 		assertEquals("0", g2.get("totalResults"));
@@ -211,6 +226,7 @@ public class ScimGroupEndpointsIntegrationTests {
 	@Test
 	public void createExistingGroupFailsCorrectly() {
 		ScimGroup g1 = createGroup(CFID);
+		@SuppressWarnings("unchecked")
 		Map<String, String> g2 = client.postForEntity(serverRunning.getUrl(groupEndpoint), g1, Map.class).getBody();
 		assertTrue(g2.containsKey("error"));
 		assertEquals("scim_resource_already_exists", g2.get("error"));
@@ -225,6 +241,7 @@ public class ScimGroupEndpointsIntegrationTests {
 		deleteResource(groupEndpoint, g1.getId());
 
 		// check that the group does not exist anymore
+		@SuppressWarnings("unchecked")
 		Map<String, Object> g2 = client.getForObject(serverRunning.getUrl(groupEndpoint + "?filter=displayName eq '{name}'"), Map.class, DELETE_ME);
 		assertTrue(g2.containsKey("totalResults"));
 		assertEquals(0, g2.get("totalResults"));
@@ -236,6 +253,7 @@ public class ScimGroupEndpointsIntegrationTests {
 
 	@Test
 	public void deleteNonExistentGroupFailsCorrectly() {
+		@SuppressWarnings("unchecked")
 		Map<String, Object> g = deleteResource(groupEndpoint, DELETE_ME).getBody();
 		assertTrue(g.containsKey("error"));
 		assertEquals("scim_resource_not_found", g.get("error"));

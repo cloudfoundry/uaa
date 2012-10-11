@@ -51,6 +51,8 @@ public class UserInfoEndpointIntegrationTests {
 		String map = user.getBody();
 		assertTrue(testAccounts.getUserName(), map.contains("user_id"));
 		assertTrue(testAccounts.getEmail(), map.contains("email"));
+		
+		System.err.println(user.getHeaders());
 
 	}
 
