@@ -10,11 +10,14 @@
 package org.cloudfoundry.identity.uaa.varz;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -26,6 +29,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.context.expression.MapAccessor;
 import org.springframework.core.env.Environment;
@@ -55,6 +59,8 @@ public class VarzEndpoint implements EnvironmentAware {
 	private Properties environmentProperties = new Properties();
 
 	private Properties buildProperties = new Properties();
+
+	private ObjectMapper objectMapper = new ObjectMapper();
 
 	public VarzEndpoint() {
 		try {
@@ -106,6 +112,10 @@ public class VarzEndpoint implements EnvironmentAware {
 		result.put("mem", getValueFromMap(memory, "memory.heap_memory_usage.used", Long.class) / 1024);
 		result.put("memory", getValueFromMap(memory, "memory"));
 
+		Map<String, ?> tomcat = getDomain("Catalina", "*");
+		putIfNotNull(result, "thread_pool", tomcat.get("thread_pool"));
+		putIfNotNull(result, "global_request_processor", tomcat.get("global_request_processor"));
+
 		if (!buildProperties.isEmpty()) {
 			result.put("app", UaaStringUtils.getMapFromProperties(buildProperties, "build."));
 		}
@@ -122,13 +132,15 @@ public class VarzEndpoint implements EnvironmentAware {
 			// Information about audit (counts)
 			putIfNotNull(result, "audit_service",
 					getValueFromMap(spring, "#this['logging_audit_service']?.logging_audit_service"));
+			// Information about data source
+			putIfNotNull(result, "data_source", getValueFromMap(spring, "#this['data_source']?.data_source"));
 		}
 		// Application config properties
 		putIfNotNull(result, "config", environmentProperties);
 		if (environment != null) {
 			result.put("spring.profiles.active", environment.getActiveProfiles());
 		}
-		return result;
+		return sanitize(result);
 	}
 
 	private Map<String, String> getLinks(String baseUrl, Collection<String> paths) {
@@ -213,28 +225,92 @@ public class VarzEndpoint implements EnvironmentAware {
 
 		// Prevent known stack overflows introspecting tomcat mbeans
 		if (domain.equals("Catalina") || domain.equals("*") || domain.equals("tomcat")) {
-			if (!pattern.contains("type=")) {
-				pattern = "type=GlobalRequestProcessor," + pattern;
+
+			// Restrict the types that can be used
+			Map<String, Object> beans = new LinkedHashMap<String, Object>();
+			List<String> types = Arrays.asList("GlobalRequestProcessor", "ThreadPool");
+			if (pattern.contains("type=GlobalRequestProcessor")) {
+				types = Arrays.asList("GlobalRequestProcessor");
 			}
-			result.putAll(getMBeans("Catalina", "*"));
-			Map<String, ?> tomcat = getMBeans("*", "type=GlobalRequestProcessor,*");
-			if (!tomcat.isEmpty()) {
-				if (tomcat.size() == 1) {
-					// tomcat 6.0.23, 6.0.35 have different default domains so normalize...
-					@SuppressWarnings("unchecked")
-					Map<String, ?> map = (Map<String, ?>) tomcat.values().iterator().next();
-					result.putAll(map);
-				}
-				else {
-					result.putAll(tomcat);
-				}
+			else if (pattern.contains("type=ThreadPool")) {
+				types = Arrays.asList("ThreadPool");
 			}
+			else if (pattern.contains("type=")) {
+				beans.put("ignored_pattern", pattern);
+				beans.put("message",
+						"Tomcat MBeans are not available except 'type=GlobalRequestProcessor,*' or 'type=ThreadPool,*'");
+				pattern = "*"; // ignore other types
+				types = Collections.emptyList();
+			}
+
+			for (String type : types) {
+				Map<String, ?> tomcat = getMBeans("*", pattern.contains("type=") ? pattern : "type=" + type + ","
+						+ pattern);
+				if (!tomcat.isEmpty()) {
+					if (tomcat.size() == 1) {
+						// tomcat 6.0.23, 6.0.35 have different default domains so normalize...
+						@SuppressWarnings("unchecked")
+						Map<String, ?> map = (Map<String, ?>) tomcat.values().iterator().next();
+						beans.putAll(map);
+					}
+					else {
+						beans.putAll(tomcat);
+					}
+				}
+
+			}
+
+			result.put("Catalina", beans);
 		}
 		else {
 			result.putAll(getMBeans(domain, pattern));
 		}
 
+		// Don't need the key if there's only the domain (normally the case)
+		if (result.size() == 1) {
+			result = getMap(result, domain);
+		}
+
+		return sanitize(result);
+
+	}
+
+	private Map<String, ?> sanitize(Map<String, Object> input) {
+		Map<String, Object> result = new LinkedHashMap<String, Object>(input);
+		doSanitize(result);
 		return result;
+	}
+
+	private void doSanitize(Map<String, Object> result) {
+		LinkedHashSet<String> keys = new LinkedHashSet<String>(result.keySet());
+		for (String key : keys) {
+			Object value = result.remove(key);
+			key = unquote(key);
+			if (value instanceof Map) {
+				@SuppressWarnings("unchecked")
+				Map<String, Object> map = new LinkedHashMap<String, Object>((Map<String, Object>) value);
+				doSanitize(map);
+				result.put(key, map);
+			}
+			else {
+				try {
+					result.put(key, objectMapper.readValue(objectMapper.writeValueAsString(value), Object.class));
+				}
+				catch (Exception e) {
+					result.put(key, "error:<" + e.getMessage() + ">");
+				}
+			}
+		}
+	}
+
+	private String unquote(String key) {
+		if (key.startsWith("\"")) {
+			key = key.substring(1);
+		}
+		if (key.endsWith("\"")) {
+			key = key.substring(0,key.length()-1);
+		}
+		return key;
 	}
 
 	private Map<String, ?> getMBeans(String domain, String pattern) throws Exception {
