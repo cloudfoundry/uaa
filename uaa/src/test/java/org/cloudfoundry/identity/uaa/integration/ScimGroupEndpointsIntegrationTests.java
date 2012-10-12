@@ -188,7 +188,6 @@ public class ScimGroupEndpointsIntegrationTests {
 		validateUserGroups(VIDYA.getMemberId(), CFID);
 	}
 
-	@Ignore // bug to be fixed: https://www.pivotaltracker.com/story/show/36823569
 	@Test
 	public void createGroupWithInvalidMembersFailsCorrectly() {
 		ScimGroup g = new ScimGroup(CFID);
@@ -196,15 +195,18 @@ public class ScimGroupEndpointsIntegrationTests {
 		g.setMembers(Arrays.asList(VIDYA, m2));
 
 		@SuppressWarnings("unchecked")
-		Map<String, String> g1 = client.postForEntity(serverRunning.getUrl(groupEndpoint), g, Map.class).getBody();
+		ResponseEntity<Map> r = client.postForEntity(serverRunning.getUrl(groupEndpoint), g, Map.class);
+		Map<String, String> g1 = r.getBody();
+		assertEquals(HttpStatus.BAD_REQUEST, r.getStatusCode());
 		assertTrue(g1.containsKey("error"));
-		assertEquals("scim_resource_not_found", g1.get("error"));
+		assertTrue(g1.containsKey("message"));
+		assertTrue(g1.get("message").contains("Invalid group member"));
 
 		// check that the group was not created
 		@SuppressWarnings("unchecked")
 		Map<String, String> g2 = client.getForObject(serverRunning.getUrl(groupEndpoint + "?filter=displayName eq '{name}'"), Map.class, CFID);
 		assertTrue(g2.containsKey("totalResults"));
-		assertEquals("0", g2.get("totalResults"));
+		assertEquals(0, g2.get("totalResults"));
 	}
 
 	@Test
