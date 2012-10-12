@@ -32,7 +32,7 @@
 			</bean>
 		</property>
 		<property name="queryConverter" ref="scimUserQueryConverter" />
-		<property name="deactivateOnDelete" value="${scim.delete.deactivate:true}" />
+		<property name="deactivateOnDelete" value="${scim.delete.deactivate:false}" />
 	</bean>
 
 	<bean id="scimUserQueryConverter" class="org.cloudfoundry.identity.uaa.scim.ScimSearchQueryConverter">
@@ -92,9 +92,13 @@
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
 
+	<bean id="userIdsEnabled" class="java.lang.Boolean">
+		<constructor-arg value="${scim.userids_enabled:false}" />
+	</bean>
+
 	<bean id="idConversionEndpoints" class="org.cloudfoundry.identity.uaa.scim.UserIdConversionEndpoints">
 		<property name="scimUserEndpoints" ref="scimUserEndpoints" />
-		<property name="enabled" value="${scim.userids_enabled:true}" />
+		<property name="enabled" ref="userIdsEnabled" />
 	</bean>
 
 	<http pattern="/User*/*/password" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
@@ -192,6 +196,9 @@
 		</util:list>
 		<bean id="defaultGroups" class="java.lang.String">
 			<constructor-arg value="acme,acme.dev,acme.qa" />
+		</bean>
+		<bean id="userIdsEnabled" class="java.lang.Boolean">
+			<constructor-arg value="${scim.userids_enabled:true}" />
 		</bean>
 	</beans>
 

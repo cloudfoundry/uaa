@@ -13,13 +13,7 @@
 package org.cloudfoundry.identity.uaa.scim;
 
 import java.security.SecureRandom;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -67,10 +61,10 @@ import org.springframework.web.servlet.View;
  * User provisioning and query endpoints. Implements the core API from the Simple Cloud Identity Management (SCIM)
  * group. Exposes basic CRUD and query features for user accounts in a backend database. For operations on a single user
  * resource supports both "/Users" and "/User" (the latter was from an older version of the specification).
- * 
+ *
  * @author Luke Taylor
  * @author Dave Syer
- * 
+ *
  * @see <a href="http://www.simplecloud.info">SCIM specs</a>
  */
 @Controller
@@ -84,7 +78,7 @@ public class ScimUserEndpoints implements InitializingBean {
 	private ScimGroupMembershipManager membershipManager;
 
 	private static final Random passwordGenerator = new SecureRandom();
-	
+
 	private final Map<String, AtomicInteger> errorCounts = new ConcurrentHashMap<String, AtomicInteger>();
 
 	private AtomicInteger scimUpdates = new AtomicInteger();
@@ -111,7 +105,7 @@ public class ScimUserEndpoints implements InitializingBean {
 
 	/**
 	 * Map from exception type to Http status.
-	 * 
+	 *
 	 * @param statuses the statuses to set
 	 */
 	public void setStatuses(Map<Class<? extends Exception>, HttpStatus> statuses) {
@@ -261,13 +255,17 @@ public class ScimUserEndpoints implements InitializingBean {
 
 	@RequestMapping(value = "/Users", method = RequestMethod.GET)
 	@ResponseBody
-	public SearchResults<Map<String, Object>> findUsers(
-			@RequestParam(value = "attributes", required = false, defaultValue = "id") String attributesCommaSeparated,
+	public SearchResults<?> findUsers(
+			@RequestParam(value = "attributes", required = false) String attributesCommaSeparated,
 			@RequestParam(required = false, defaultValue = "id pr") String filter,
 			@RequestParam(required = false) String sortBy,
 			@RequestParam(required = false, defaultValue = "ascending") String sortOrder,
 			@RequestParam(required = false, defaultValue = "1") int startIndex,
 			@RequestParam(required = false, defaultValue = "100") int count) {
+
+		if (startIndex<1) {
+			startIndex = 1;
+		}
 
 		List<ScimUser> input;
 		try {
@@ -278,6 +276,11 @@ public class ScimUserEndpoints implements InitializingBean {
 		}
 		catch (IllegalArgumentException e) {
 			throw new ScimException("Invalid filter expression: [" + filter + "]", HttpStatus.BAD_REQUEST);
+		}
+
+		if (!StringUtils.hasLength(attributesCommaSeparated)) {
+			// Return all user data
+			return new SearchResults<ScimUser>(SearchResultsFactory.schemas, input, startIndex, count, input.size());
 		}
 
 		AttributeNameMapper mapper = new SimpleAttributeNameMapper(Collections.<String, String> singletonMap("emails\\.(.*)", "emails.![$1]"));

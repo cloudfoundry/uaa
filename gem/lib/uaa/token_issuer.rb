@@ -122,8 +122,7 @@ class TokenIssuer
     rescue URI::InvalidURIError, ArgumentError, BadResponse
       raise BadResponse, "received invalid response from target #{@target}"
     end
-    request_token(grant_type: "authorization_code", code: authcode,
-        redirect_uri: ac_params[:redirect_uri], scope: ac_params[:scope])
+    request_token(grant_type: "authorization_code", code: authcode, redirect_uri: ac_params[:redirect_uri])
   end
 
   def owner_password_grant(username, password, scope = nil)
@@ -154,10 +153,8 @@ class TokenIssuer
 
   # returns a CF::UAA::Token object which includes the access token and metadata.
   def request_token(params)
-    if scope = Util.arglist(params[:scope])
-      params[:scope] = scope.join(' ')
-    else
-      params.delete(:scope)
+    if scope = Util.arglist(params.delete(:scope))
+      params[:scope] = Util.strlist(scope)
     end
     headers = {content_type: "application/x-www-form-urlencoded", accept: "application/json",
         authorization: Http.basic_auth(@client_id, @client_secret) }
@@ -169,7 +166,7 @@ class TokenIssuer
 
   def authorize_path_args(response_type, redirect_uri, scope, state = SecureRandom.uuid, args = {})
     params = args.merge(client_id: @client_id, response_type: response_type, redirect_uri: redirect_uri, state: state)
-    params[:scope] = scope = scope.join(' ') if scope = Util.arglist(scope)
+    params[:scope] = scope = Util.strlist(scope) if scope = Util.arglist(scope)
     if scope && scope.include?("openid")
       params[:nonce] = state
       params[:response_type] = "#{response_type} id_token"

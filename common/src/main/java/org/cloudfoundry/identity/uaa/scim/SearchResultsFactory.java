@@ -7,7 +7,7 @@ import org.springframework.expression.spel.support.StandardEvaluationContext;
 import java.util.*;
 
 public class SearchResultsFactory {
-	private static final Collection<String> schemas = Arrays.asList(ScimUser.SCHEMAS);
+	static final Collection<String> schemas = Arrays.asList(ScimUser.SCHEMAS);
 
 	public static <T> SearchResults<Map<String, Object>> buildSearchResultFrom (List<T> input, int startIndex, int count, String[] attributes) {
 		return buildSearchResultFrom(input,  startIndex,  count,  attributes, new SimpleAttributeNameMapper(Collections.<String, String> emptyMap()));

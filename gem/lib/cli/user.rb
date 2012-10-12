@@ -42,9 +42,18 @@ class UserCli < CommonCli
     complain e
   end
 
-  define_option :attrs, "-a", "--attributes <attr_names>", "list of attributes to get for each user"
-  desc "users [filter]", "List user accounts", :attrs do |filter|
-    pp acct_request { |ua| ua.query(opts[:attrs], filter) }
+  define_option :attrs, "-a", "--attributes <names>", "output for each user"
+  define_option :start, "--start <number>", "start of output page"
+  define_option :count, "--count <number>", "max number per page"
+  desc "users [filter]", "List user accounts", :attrs, :start, :count do |filter|
+    pp acct_request { |ua|
+      query = { attributes: opts[:attrs], filter: filter }
+      if opts[:start] || opts[:count]
+        ua.query_users(query.merge!(startIndex: opts[:start], count: opts[:count]))
+      else
+        ua.all_pages(:query_users, query)
+      end
+    }
   end
 
   desc "user get [name]", "Get specific user account" do |name|

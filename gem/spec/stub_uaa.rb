@@ -105,12 +105,6 @@ class StubUAAConn < Stub::Base
     client if client && client[:client_secret] == ah[1]
   end
 
-  # TODO: need to save scope, timeout, client, redir_url, user_id, etc
-  # when redeeming an authcode, code and redir_url must match
-  def auth_code(client_id, code = nil)
-    8989 if code.nil? || code == 8989 # just stubbed enough for tests
-  end
-
   def find_user(name, pwd = nil)
     user = server.scim.get_by_name(name, :user, :password, :id, :emails, :username, :groups)
     user if user && (!pwd || user[:password] == pwd)
@@ -143,6 +137,17 @@ class StubUAAConn < Stub::Base
   def redir_err_f(cburi, state, msg); redir_with_fragment(cburi, error: msg, state: state) end
   def redir_err_q(cburi, state, msg); redir_with_query(cburi, error: msg, state: state) end
 
+  # returns granted scopes
+  # TODO: doesn't handle actual user authorization yet
+  def calc_scope(client, user, requested_scope)
+    possible_scope = ids_to_names(client[user ? :scope : :authorities])
+    requested_scope = Util.arglist(requested_scope) || []
+    return unless (requested_scope - possible_scope).empty?
+    requested_scope = possible_scope if requested_scope.empty?
+    granted_scopes = user ? (ids_to_names(user[:groups]) & requested_scope) : requested_scope # handle auto-deny
+    Util.strlist(granted_scopes) unless granted_scopes.empty?
+  end
+
   route [:post, :get], %r{^/oauth/authorize\?(.*)} do
     query = Util.decode_form_to_hash(match[1])
     client = server.scim.get_by_name(query[:client_id], :client)
@@ -168,14 +173,10 @@ class StubUAAConn < Stub::Base
       else
         return reply.status = 501 # TODO: how to authN user and ask for authorizations?
       end
-      possible_scope = ids_to_names(client[:scope])
-      requested_scope = query[:scope] ? Util.arglist(query[:scope]) : possible_scope
-      granted_scope = ids_to_names(user[:groups]) & requested_scope # handle auto-deny
-      if granted_scope.empty? || !(requested_scope - possible_scope).empty?
+      unless (granted_scope = calc_scope(client, user, query[:scope]))
         return redir_err_f(cburi, state, "invalid_scope")
       end
       # TODO: how to stub any remaining scopes that are not auto-approve?
-      granted_scope = Util.strlist(granted_scope)
       return redir_with_fragment(cburi, token_reply_info(client, granted_scope, user, query[:state]))
     end
     return redir_err_q(cburi, state, "invalid_request") unless request.method == :get
@@ -183,8 +184,43 @@ class StubUAAConn < Stub::Base
     unless client[:authorized_grant_types].include?("authorization_code")
       return redir_err_f(cburi, state, "unauthorized_client")
     end
-    # TODO: calculate scope, get user id
-    redir_with_query(cburi, state: state, code: auth_code(client[:id]))
+    return reply.status = 501 unless query[:emphatic_user] # TODO: how to authN user and ask for authorizations?
+    return redir_err_f(cburi, state, "access_denied") unless user = find_user(query[:emphatic_user])
+    scope = calc_scope(client, user, query[:scope])
+    redir_with_query(cburi, state: state, code: assign_auth_code(client[:id], user[:id], scope, cburi))
+  end
+
+  # if required and optional arrays are given, extra params are an error
+  def bad_params?(params, required, optional = nil)
+    required.each {|r|
+      next if params[r]
+      reply.json(400, error: "invalid_request", error_description: "no #{k} in request")
+      return true
+    }
+    return false unless optional
+    params.each {|k, v|
+      next if required.include?(k) || optional.include?(k)
+      reply.json(400, error: "invalid_request", error_description: "#{k} not allowed")
+      return true
+    }
+    false
+  end
+
+  # TODO: need to save scope, timeout, client, redir_url, user_id, etc
+  # when redeeming an authcode, code and redir_url must match
+  @authcode_store = {}
+  class << self; attr_accessor :authcode_store end
+  def assign_auth_code(client_id, user_id, scope, redir_uri)
+    code = SecureRandom.base64(8)
+    raise "authcode collision" if self.class.authcode_store[code]
+    self.class.authcode_store[code] = {client_id: client_id, user_id: user_id,
+        scope: scope, redir_uri: redir_uri}
+    code
+  end
+  def redeem_auth_code(client_id, redir_uri, code)
+    return unless info = self.class.authcode_store.delete(code)
+    return unless info[:client_id] == client_id && info[:redir_uri] == redir_uri
+    [info[:user_id], info[:scope]]
   end
 
   route :post, "/oauth/token", content_type: %r{application/x-www-form-urlencoded},
@@ -193,36 +229,35 @@ class StubUAAConn < Stub::Base
       reply.headers[:www_authenticate] = "basic"
       return reply.json(401, error: "invalid_client")
     end
-    params = Util.decode_form_to_hash(request.body)
-    unless params[:grant_type]
-      return reply.json(400, error: "invalid_request", error_description: "no grant type in request")
-    end
+    return if bad_params?(params = Util.decode_form_to_hash(request.body), [:grant_type])
     unless client[:authorized_grant_types].include?(params[:grant_type])
       return reply.json(400, error: "unauthorized_client")
     end
-    case params[:grant_type]
-    when "authorization_code" # should have params: code, redirect_uri
-      scope = ids_to_names(client[:scope]) # need to get requested scope
-      return reply.json(400, error: "invalid_grant") unless auth_code(client[:id])
-      reply.json(token_reply_info(client, scope, nil, nil, true))
+    case params.delete(:grant_type)
+    when "authorization_code"
+       # TODO: need authcode store with requested scope, redir_uri must match
+      return if bad_params?(params, [:code, :redirect_uri], [])
+      user_id, scope = redeem_auth_code(client[:id], params[:redirect_uri], params[:code])
+      return reply.json(400, error: "invalid_grant") unless user_id && scope
+      user = server.scim.get(user, :user, :id, :emails, :username)
+      reply.json(token_reply_info(client, scope, user, nil, true))
     when "password"
+      return if bad_params?(params, [:username, :password], [:scope])
       user = find_user(params[:username], params[:password])
       return reply.json(400, error: "invalid_grant") unless user
-      possible_scope = ids_to_names(client[:scope])
-      requested_scope = params[:scope] ? Util.arglist(params[:scope]) : possible_scope
-      granted_scope = ids_to_names(user[:groups]) & requested_scope # handle auto-deny
-      if granted_scope.empty? || !(requested_scope - possible_scope).empty?
-        return reply.json(400, error: "invalid_scope")
-      end
-      reply.json(token_reply_info(client, granted_scope, user))
+      scope = calc_scope(client, user, params[:scope])
+      return reply.json(400, error: "invalid_scope") unless scope
+      reply.json(token_reply_info(client, scope, user))
     when "client_credentials"
-      scope = ids_to_names(client[:authorities])
-      scope = Util.strlist(Util.arglist(params[:scope], scope) & scope)
-      return reply.json(400, error: "invalid_scope") if scope.empty?
+      return if bad_params?(params, [], [:scope])
+      scope = calc_scope(client, nil, params[:scope])
+      return reply.json(400, error: "invalid_scope") unless scope
       reply.json(token_reply_info(client, scope))
     when "refresh_token"
-      # TODO: max scope should come from refresh token
+      return if bad_params?(params, [:refresh_token], [:scope])
       return reply.json(400, error: "invalid_grant") unless params[:refresh_token] == "universal_refresh_token"
+      # TODO: max scope should come from refresh token, or user from refresh token
+      # this should use calc_scope when we know the user
       scope = ids_to_names(client[:scope])
       scope = Util.strlist(Util.arglist(params[:scope], scope) & scope)
       return reply.json(400, error: "invalid_scope") if scope.empty?
@@ -255,7 +290,8 @@ class StubUAAConn < Stub::Base
 
   route :get, '/oauth/clients' do
     return unless valid_token("clients.read")
-    reply_in_kind server.scim.find(:client).each_with_object({}) { |c, o| o[c[:client_id]] = scim_to_client(c) }
+    info, _ = server.scim.find(:client)
+    reply_in_kind(info.each_with_object({}) { |c, o| o[c[:client_id]] = scim_to_client(c) })
   end
 
   route :post, '/oauth/clients', content_type: %r{application/json} do
@@ -314,19 +350,26 @@ class StubUAAConn < Stub::Base
     reply_in_kind server.scim.get(id, rtype, *StubScim::VISIBLE_ATTRS[rtype])
   end
 
+  def sanitize_int(arg, default, min, max = nil)
+    return default if arg.nil?
+    return unless arg.to_i.to_s == arg && (i = arg.to_i) >= min
+    max && i > max ? max : i
+  end
+
+  def page_query(rtype, query, attrs)
+    if query[:attributes]
+      attrs = attrs & Util.arglist(query[:attributes]).each_with_object([]) {|a, o| o << a.downcase.to_sym}
+    end
+    start, count = sanitize_int(query[:startindex], 1, 1), sanitize_int(query[:count], 15, 1, 3000)
+    return bad_request("invalid startIndex or count") unless start && count
+    info, total = server.scim.find(rtype, start - 1, count, query[:filter], attrs)
+    reply_in_kind(resources: info, itemsPerPage: info.length, startIndex: start, totalResults: total)
+  end
+
   route :get, %r{^/(Users|Groups)(\?|$)(.*)} do
     return unless valid_token("scim.read")
     rtype = match[1] == "Users"? :user : :group
-    query = Util.decode_form_to_hash(match[3])
-    if query[:attributes]
-      attrs = Util.arglist(query[:attributes]).each_with_object([]) {|a, o| o << a.downcase.to_sym}
-      attrs = StubScim.remove_hidden(attrs)
-    else
-      attrs = *StubScim::VISIBLE_ATTRS[rtype]
-    end
-    info = server.scim.find(rtype, query[:filter], *attrs)
-    return not_found("no objects matched #{query[:filter]}") if info.empty?
-    reply_in_kind(resources: info)
+    page_query(rtype, Util.decode_form_to_hash(match[3]), StubScim::VISIBLE_ATTRS[rtype])
   end
 
   route :get, %r{^/(Users|Groups)/([^/]+)$} do
@@ -336,7 +379,7 @@ class StubUAAConn < Stub::Base
     reply_in_kind(obj)
   end
 
-  route :delete, %r{^/(Users|Groups)/([^/]+)} do
+  route :delete, %r{^/(Users|Groups)/([^/]+)$} do
     return unless valid_token("scim.write")
     not_found(match[2]) unless server.scim.remove(match[2], match[1] == "Users"? :user : :group)
   end
@@ -356,12 +399,7 @@ class StubUAAConn < Stub::Base
   end
 
   route :get, %r{^/ids/Users(\?|$)(.*)} do
-    query = Util.decode_form_to_hash(match[2])
-    attrs = (Util.arglist(query[:attributes]).each_with_object([]) {|a, o| o << a.downcase.to_sym} if query[:attributes])
-    attrs = [:username, :id] | (attrs ? [:userName, :id] & attrs : [])
-    users = server.scim.find(:user, query[:filter], *attrs)
-    return not_found("no objects matched #{query[:filter]}") if users.empty?
-    reply_in_kind(resources: users)
+    page_query(:user, Util.decode_form_to_hash(match[2]), [:username, :id])
   end
 
 end

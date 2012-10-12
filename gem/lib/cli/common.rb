@@ -114,7 +114,7 @@ class MiscCli < CommonCli
     "failed to access #{url}: #{e.message}"
   end
 
-  define_option :force, "--[no-]force", "-f", "set context even if target UAA is not available"
+  define_option :force, "--[no-]force", "-f", "set even if target does not respond"
   desc "target [uaa_url]", "Display current or set new target", :force do |uaa_url|
     msg, info = nil, {}
     if uaa_url

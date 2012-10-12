@@ -12,15 +12,12 @@
  */
 package org.cloudfoundry.identity.uaa.integration;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import static org.junit.Assert.*;
+import java.util.*;
 
 import org.cloudfoundry.identity.uaa.scim.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.groups.ScimGroup;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Assume;
 import org.junit.Before;
@@ -210,7 +207,30 @@ public class ScimUserEndpointsIntegrationTests {
 		assertEquals(JOE, joe1.getUserName());
 
 		assertEquals(joe.getId(), joe1.getId());
+		assertNull(joe1.getUserType()); // check that authorities was not updated
 
+	}
+
+	@Test
+	public void updateUserGroupsDoesNothing() {
+		ResponseEntity<ScimUser> response = createUser(JOE, "Joe", "User", "joe@blah.com");
+		ScimUser joe = response.getBody();
+		assertEquals(JOE, joe.getUserName());
+		assertEquals(1, joe.getGroups().size()); // all users are part of uaa.user group
+		assertEquals("uaa.user", joe.getGroups().iterator().next().getDisplay());
+
+		joe.setGroups(Arrays.asList(new ScimUser.Group(UUID.randomUUID().toString(), "uaa.admin")));
+
+		HttpHeaders headers = new HttpHeaders();
+		headers.add("If-Match", "\"" + joe.getVersion() + "\"");
+		response = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}", HttpMethod.PUT,
+										  new HttpEntity<ScimUser>(joe, headers), ScimUser.class, joe.getId());
+		ScimUser joe1 = response.getBody();
+		assertEquals(JOE, joe1.getUserName());
+
+		assertEquals(joe.getId(), joe1.getId());
+		assertEquals(1, joe1.getGroups().size()); // all users are part of uaa.user group
+		assertEquals("uaa.user", joe1.getGroups().iterator().next().getDisplay());
 	}
 
 	// curl -v -H "Content-Type: application/json" -X PUT -H "Accept: application/json" --data
@@ -294,25 +314,37 @@ public class ScimUserEndpointsIntegrationTests {
 		assertEquals("User 9999 does not exist", error.get("message"));
 	}
 
+	@SuppressWarnings({"rawtypes", "unchecked"})
 	@Test
 	public void findUsers() throws Exception {
-		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> response = serverRunning.getForObject(usersEndpoint, Map.class);
-		@SuppressWarnings("unchecked")
-		Map<String, Object> results = response.getBody();
+
+		Map results = response.getBody();
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
 		assertTrue("There should be some resources", ((Collection<?>) results.get("resources")).size() > 0);
+		Map firstUser = (Map) ((List) results.get("resources")).get(0);
+		// [cfid-111] All attributes should be returned if no attributes supplied in query
+		assertTrue(firstUser.containsKey("id"));
+		assertTrue(firstUser.containsKey("userName"));
+		assertTrue(firstUser.containsKey("name"));
+		assertTrue(firstUser.containsKey("emails"));
+		assertTrue(firstUser.containsKey("groups"));
 	}
 
 	@Test
+	@SuppressWarnings({"rawtypes", "unchecked"})
 	public void findUsersWithAttributes() throws Exception {
-		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> response = serverRunning.getForObject(usersEndpoint + "?attributes=id,userName", Map.class);
-		@SuppressWarnings("unchecked")
 		Map<String, Object> results = response.getBody();
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
+		Map firstUser = (Map) ((List) results.get("resources")).get(0);
+		// All attributes should be returned if no attributes supplied in query
+		assertTrue(firstUser.containsKey("id"));
+		assertTrue(firstUser.containsKey("userName"));
+		assertFalse(firstUser.containsKey("name"));
+		assertFalse(firstUser.containsKey("emails"));
 	}
 
 	@Test
@@ -335,6 +367,18 @@ public class ScimUserEndpointsIntegrationTests {
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
 		assertEquals(new Integer(2), (Integer) results.get("startIndex"));
+	}
+
+	@Test
+	public void findUsersWithExtremePagination() throws Exception {
+		@SuppressWarnings("rawtypes")
+		ResponseEntity<Map> response = serverRunning.getForObject(usersEndpoint + "?startIndex=0&count=3000", Map.class);
+		@SuppressWarnings("unchecked")
+		Map<String, Object> results = response.getBody();
+		System.err.println(results);
+		assertEquals(HttpStatus.OK, response.getStatusCode());
+		assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
+		assertEquals(new Integer(1), (Integer) results.get("startIndex"));
 	}
 
 }

@@ -228,11 +228,14 @@ class StubScim
     output(thing, attrs)
   end
 
-  def find(rtype, filter_string = nil, *attrs)
-    filter = (ScimFilter.new(filter_string) if filter_string)
-    @things_by_id.each_with_object([]) do |(k, v), o|
-      o << output(v, attrs) if rtype == v[:rtype] && (filter.nil? || filter.match?(v))
-    end
+  def find(rtype, start = 0, count = nil, filter_string = nil, attrs = nil)
+    filter, total = ScimFilter.new(filter_string), 0
+    objs = @things_by_id.each_with_object([]) { |(k, v), o|
+      next unless rtype == v[:rtype] && filter.match?(v)
+      o << output(v, attrs) if total >= start && (count.nil? || o.length < count)
+      total += 1
+    }
+    [objs, total]
   end
 
 end
@@ -341,16 +344,20 @@ class ScimFilter
   public
 
   def initialize(filter_string)
-    @input = StringScanner.new(filter_string)
-    @filter = eat_phrase
-    raise BadFilter unless @input.eos?
+    if filter_string.nil?
+      @filter = true
+    else
+      @input = StringScanner.new(filter_string)
+      @filter = eat_phrase
+      raise BadFilter unless @input.eos?
+    end
     self
   rescue BadFilter => b
     raise BadFilter, "invalid filter expression at offset #{@input.pos}: #{@input.string}"
   end
 
   def match?(entry)
-    eval(entry, @filter)
+    @filter == true || eval(entry, @filter)
   end
 
 end

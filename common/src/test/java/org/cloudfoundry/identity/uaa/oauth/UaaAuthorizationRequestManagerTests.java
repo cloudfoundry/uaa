@@ -40,9 +40,9 @@ import org.springframework.util.StringUtils;
  * @author Dave Syer
  *
  */
-public class UaaAuthorizationRequestFactoryTests {
+public class UaaAuthorizationRequestManagerTests {
 
-	private UaaAuthorizationRequestFactory factory;
+	private UaaAuthorizationRequestManager factory;
 
 	private ClientDetailsService clientDetailsService = Mockito.mock(ClientDetailsService.class);
 
@@ -53,7 +53,7 @@ public class UaaAuthorizationRequestFactoryTests {
 	@Before
 	public void init() {
 		parameters.put("client_id", "foo");
-		factory = new UaaAuthorizationRequestFactory(clientDetailsService);
+		factory = new UaaAuthorizationRequestManager(clientDetailsService);
 		factory.setSecurityContextAccessor(new StubSecurityContextAccessor());
 		Mockito.when(clientDetailsService.loadClientByClientId("foo")).thenReturn(client);
 	}
