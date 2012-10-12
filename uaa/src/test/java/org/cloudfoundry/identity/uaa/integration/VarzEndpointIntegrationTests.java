@@ -53,6 +53,7 @@ public class VarzEndpointIntegrationTests {
 
 		String map = response.getBody();
 		assertTrue(map.contains("spring.application"));
+		assertTrue(map.contains("Catalina"));
 
 	}
 
