@@ -152,6 +152,7 @@ public class ScimGroupEndpoints {
 		logger.debug("deleting group: " + group);
 		dao.removeGroup(groupId, getVersion(groupId, etag));
 		membershipManager.removeMembersByGroupId(groupId);
+		membershipManager.removeMembersByMemberId(groupId);
 		return group;
 	}
 
