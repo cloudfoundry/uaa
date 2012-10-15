@@ -104,7 +104,7 @@ object OAuthComponents {
 //        println("Auth code: " + code)
         s.setAttribute("code", code)
       case l =>
-        println("Location %s didn't contain an authorization code".format(l))
+        println("\nLocation '%s' didn't contain an authorization code".format(l))
         s
     }
 
@@ -169,7 +169,7 @@ object OAuthComponents {
       http("Logged Out")
         .get("${location}")
         .headers(plainHeaders)
-        .check(status.is(200)))
+        .check(status.in(Seq(200,302))))
     .exec(clearCookies)
 
   /**
@@ -182,15 +182,14 @@ object OAuthComponents {
   def authorizationCodeLogin(username: String, password: String, client:Client): ChainBuilder = {
     val redirectUri = client.redirectUri.getOrElse(throw new RuntimeException("Client does not have a redirectUri"))
 
-    chain
-      .exec(
+     bootstrap.exec(
         http("Authorization Request")
-          .post("/oauth/authorize")
-          .param("client_id", client.id)
-          .param("scope", client.scopes.mkString(" "))
-          .param("redirect_uri", redirectUri)
-          .param("response_type", "code")
-          .headers(plainHeaders)
+          .get("/oauth/authorize")
+          .queryParam("client_id", client.id)
+//          .queryParam("scope", client.scopes.mkString(" "))
+          .queryParam("redirect_uri", redirectUri)
+          .queryParam("response_type", "code")
+//          .headers(plainHeaders)
           .check(status.is(302)))
       .exec(login(username, password))
 //      .exec((s: Session) => {
@@ -200,13 +199,13 @@ object OAuthComponents {
 //      })
       .exec(
         http("Reload")
-          .get("/oauth/authorize")
+          .get("${location}")
           .check(status.saveAs("status"), saveLocation()))
-      .doIf(statusIs(200), chain.exec( // Not auto-approved, so we do the approval page
+      .doIf(statusIs(200))(chain.exec( // Not auto-approved, so we do the approval page
         http("Authorization Approval")
           .post("/oauth/authorize")
           .param("user_oauth_approval", "true")
-          .headers(plainHeaders)
+//          .headers(plainHeaders)
           .check(status.is(302), saveLocation())))
       .exec((s: Session) => { extractAuthzCode(s) })
       .exec((s: Session) => { clearCookies(s) })

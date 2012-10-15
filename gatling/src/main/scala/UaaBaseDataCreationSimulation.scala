@@ -6,7 +6,7 @@ import uaa.Config._
 import uaa.ScimApi._
 import uaa.UaaApi._
 import uaa.OAuthComponents._
-import uaa.{UniqueUsernamePasswordFeeder, User}
+import uaa.UniqueUsernamePasswordFeeder
 
 /**
  * @author Luke Taylor
@@ -14,7 +14,7 @@ import uaa.{UniqueUsernamePasswordFeeder, User}
 class UaaBaseDataCreationSimulation extends Simulation {
   val registerClients = scenario("Register clients")
     .exec(adminClientLogin())
-    .doIf(haveAccessToken, chain.exec(
+    .doIf(haveAccessToken)(chain.exec(
         registerClient(scimClient)
       )
       .exec(

@@ -26,5 +26,7 @@ case class UsernamePasswordFeeder(prefix: String = "shaun", password: String = "
     counter += 1
     Map("username" -> (prefix + counter), "password" -> password)
   }
+
+  def hasNext = true
 }
 

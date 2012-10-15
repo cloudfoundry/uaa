@@ -19,5 +19,5 @@ case class UniqueUsernamePasswordFeeder(usrs: Seq[User], password: Option[String
     Map("username" -> user.username, "password" -> pass)
   }
 
-  def hasMore = !users.isEmpty
+  def hasNext = !users.isEmpty
 }

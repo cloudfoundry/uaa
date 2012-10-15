@@ -15,24 +15,21 @@ regularly.
 ### Running using the script and a downloaded Gatling bundle
 
 Download and unpack the `gatling-charts-highcharts` bundle,
-[version 1.2.5](https://github.com/downloads/excilys/gatling/gatling-charts-highcharts-1.2.5-bundle.tar.gz).
+[version 1.3.3](https://github.com/downloads/excilys/gatling/gatling-charts-highcharts-1.3.3-bundle.tar.gz).
 Set the `GATLING_HOME` environment variable to point to this directory.
 
 Change to the `uaa/gatling` directory and run the `gatling` script there. It should give you a menu of the available
 simulations:
 
     /Users/luke/Work/uaa/gatling
-    GATLING_HOME is set to /Users/luke/Work/tools/gatling-charts-highcharts-1.2.5
+    GATLING_HOME is set to /Users/luke/Work/tools/gatling-charts-highcharts-1.3.3
     Collecting simulations...
     Choose a simulation number:
          [0] AccountLockoutSimulation
-         [1] AcmBaseDataCreationSimulation
-         [2] AcmPermissionSetCreationSimulation
-         [3] AcmSmokeSimulation
-         [4] ScimWorkoutSimulation
-         [5] UaaBaseDataCreationSimulation
-         [6] UaaSmokeSimulation
-         [7] VarzSimulation
+         [1] ScimWorkoutSimulation
+         [2] UaaBaseDataCreationSimulation
+         [3] UaaSmokeSimulation
+         [4] VarzSimulation
 
 
 ### Targeting a UAA
@@ -47,7 +44,7 @@ Running the script is slow as it runs the scala compiler each time. Using `sbt` 
 
 ### Running with `sbt`
 
-Install `sbt` version 0.11.3 as described in [the project wiki](https://github.com/harrah/xsbt/wiki/Getting-Started-Setup).
+Install `sbt` version 0.12 as described in [the bt website](http://www.scala-sbt.org/release/docs/Getting-Started/Setup).
 The gatling directory is also an `sbt` project and includes a custom gatling plugin. You don't need to download the gatling
 bundle in this case. The required jars will be downloaded by `sbt`.
 
@@ -61,13 +58,10 @@ Run sbt, and then type the `gatling` command from within the `sbt` console:
 
     Choose a simulation number:
          [0] AccountLockoutSimulation
-         [1] AcmBaseDataCreationSimulation
-         [2] AcmPermissionSetCreationSimulation
-         [3] AcmSmokeSimulation
-         [4] ScimWorkoutSimulation
-         [5] UaaBaseDataCreationSimulation
-         [6] UaaSmokeSimulation
-         [7] VarzSimulation
+         [1] ScimWorkoutSimulation
+         [2] UaaBaseDataCreationSimulation
+         [3] UaaSmokeSimulation
+         [4] VarzSimulation
 
 The environment variables for the UAA instance can be set as described in the previous section.
 

@@ -9,35 +9,36 @@ import uaa.UsernamePasswordFeeder
 import uaa.OAuthComponents._
 
 class UaaSmokeSimulation extends Simulation {
-  val Duration = sys.env.getOrElse("GATLING_DURATION", "60").toInt
+  val Duration = sys.env.getOrElse("GATLING_DURATION", "600").toInt
 
   val authzCodeLogin = scenario("Authorization Code Login")
     .feed(UsernamePasswordFeeder())
-    .loop(
+    .during(Duration) {
       authorizationCodeLogin(appClient)
-    .pause(0, 2)).during(Duration)
-
+      .pause(0, 2)
+    }
 
   val uiLoginLogout = scenario("UI Login/Logout")
     .feed(UsernamePasswordFeeder())
-    .loop(
+    .during(Duration) {
       chain.exec(login)
       .pause(0, 2000, TimeUnit.MILLISECONDS)
       .insertChain(logout)
-    ).during(Duration)
+  }
 
   val vmcUserLogins = scenario("VMC Login")
-    .loop(
+    .during(Duration) {
       chain.feed(UsernamePasswordFeeder())
     // Uses the session values for username/password provided by the feeder
         .exec(vmcLogin())
         .pause(0, 2000, TimeUnit.MILLISECONDS)
 //        .exec((s: Session) => {println("User: %s, token: %s" format(s.getAttribute("username"), s.getAttribute("access_token"))); s})
-    ).during(Duration)
+    }
 
   val passwordScores = scenario("Password score API")
-    .loop(chain.exec(
-      http("Check complex password")
+    .during(Duration) {
+      bootstrap.exec(
+       http("Check complex password")
       .post("/password/score")
       .param("password", "coRrecth0rseba++ery9.23.2007staple$")
       .check(status is 200, jsonPath("//score") is "10"))
@@ -51,16 +52,15 @@ class UaaSmokeSimulation extends Simulation {
         .post("/password/score")
         .param("password", "sdfghhju")
         .check(status is 200, jsonPath("//score") is "1"))
-
-  ).during(Duration)
+    }
 
 
   def apply = {
     Seq(
-      uiLoginLogout.configure users 2 ramp 10 protocolConfig uaaHttpConfig
-      , authzCodeLogin.configure users 2 ramp 10 protocolConfig uaaHttpConfig
-      , passwordScores.configure users  3 ramp 10 protocolConfig uaaHttpConfig
-      , vmcUserLogins.configure users 10 ramp 10 protocolConfig uaaHttpConfig
+//      uiLoginLogout.configure users 2 ramp 10 protocolConfig loginHttpConfig
+      authzCodeLogin.configure users 2 ramp 10 protocolConfig loginHttpConfig
+//      , passwordScores.configure users  3 ramp 10 protocolConfig uaaHttpConfig
+//      , vmcUserLogins.configure users 10 ramp 10 protocolConfig loginHttpConfig
     )
   }
 }

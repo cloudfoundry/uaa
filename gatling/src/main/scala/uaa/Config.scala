@@ -20,7 +20,7 @@ import io.Source
  */
 object Config {
   // Number of base data users to create
-  val nUsers = 1000
+  val nUsers = 10000
 
   def yetiTarget = for {
     userHome <- sys.props.get("user.home")
@@ -28,13 +28,15 @@ object Config {
     if (yetiFile.exists())
     content = Source.fromFile(yetiFile).getLines().toSeq
     if (content.length > 1)
-    target <- "target: api\\.(.*)".r.findPrefixMatchOf(content(1)).map(_.group(1).trim)
+    target <- "target: (.*)".r.findPrefixMatchOf(content(1)).map(_.group(1).trim)
   } yield {
-    "http://uaa." + target
+    target
   }
 
-  def urlBase = (sys.env.get("VCAP_BVT_TARGET") map (_.replace("api.", "http://uaa.")) orElse
-                  yetiTarget).getOrElse("http://localhost:8080/uaa")
+  def baseUrl = (sys.env.get("VCAP_BVT_TARGET") orElse yetiTarget) map (_.replace("api.", ""))
+
+  private def prependHttp(url: String) = if (url.startsWith("http")) url else "http://" + url
+
 
   // The bootstrap admin user
   val admin_client_id = sys.env.getOrElse("VCAP_BVT_ADMIN_CLIENT", "admin")
@@ -62,8 +64,15 @@ object Config {
   val users: Seq[User] = (1 to nUsers).map(i => User("shaun" + i, "password"))
 
   def uaaHttpConfig = {
-    println("**** Targeting UAA at: " + urlBase)
-    httpConfig.baseURL(urlBase).disableFollowRedirect.disableAutomaticReferer
+    val uaaUrl = baseUrl map (prependHttp) map (_.replace("://", "://uaa.")) getOrElse "http://localhost:8080/uaa"
+    println("**** Targeting UAA at: " + uaaUrl)
+    httpConfig.baseURL(uaaUrl).disableFollowRedirect.disableAutomaticReferer
+  }
+
+  def loginHttpConfig = {
+    val loginUrl = baseUrl map (prependHttp) map (_.replace("://", "://lgn.")) getOrElse "http://localhost:8080/uaa"
+    println("**** Targeting Login server at: " + loginUrl)
+    httpConfig.baseURL(loginUrl).disableFollowRedirect.disableAutomaticReferer
   }
 
 }

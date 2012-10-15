@@ -39,12 +39,12 @@ object ScimApi {
     chain.exec(
       scimClientLogin()
     )
-    .doIf(haveAccessToken,
+    .doIf(haveAccessToken)(
       chain.loop(
       chain.feed(userFeeder)
         .exec((s: Session) => {println("Creating user: %s" format(s.getAttribute("username"))); s})
         .exec(createUser)
-    ).asLongAs(s => {userFeeder.hasMore}))
+    ).asLongAs(s => {userFeeder.hasNext}))
 
   /**
    * Creates a SCIM user.
