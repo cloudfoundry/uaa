@@ -5,7 +5,7 @@
 	<artifactId>cloudfoundry-identity-parent</artifactId>
 	<name>CloudFoundry Identity - Parent</name>
 	<packaging>pom</packaging>
-	<version>1.2.3</version>
+	<version>1.2.4</version>
     <url>http://github.com/cloudfoundry/uaa</url>
 	<modules>
 		<module>common</module>
@@ -313,7 +313,7 @@
       <url>http://github.com/cloudfoundry/uaa</url>
       <connection>scm:git:git://github.com/cloudfoundry/uaa.git</connection>
       <developerConnection>scm:git:ssh://git@github.com/cloudfoundry/uaa.git</developerConnection>
-      <tag>1.2.3</tag>
+      <tag>1.2.4</tag>
   </scm>
     <issueManagement>
       <system>JIRA</system>
