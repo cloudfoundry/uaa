@@ -140,7 +140,6 @@ class Topic
     opts.each_with_object([]) { |o, a|
       @cli_class.option_defs[o].each { |d|
         case d
-        when /^-.$/ then a << d
         when /^--\[no-\](\S+)/ then a << "--#{$1} --no-#{$1}"
         when /^--(\S+)/ then a << "--#{$1}"
         end

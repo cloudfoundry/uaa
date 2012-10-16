@@ -141,7 +141,7 @@ class TokenCli < CommonCli
   def use_browser(client_id, secret = nil)
     catcher = Stub::Server.new(TokenCatcher,
         Util.default_logger(debug? ? :debug : trace? ? :trace : :info),
-        client_id: client_id, client_secret: secret).run_on_thread
+        client_id: client_id, client_secret: secret).run_on_thread("localhost", opts[:port])
     uri = issuer_request(client_id, secret) { |ti|
       secret ? ti.authcode_uri("#{catcher.url}/authcode", opts[:scope]) :
           ti.implicit_uri("#{catcher.url}/callback", opts[:scope])
@@ -170,12 +170,13 @@ class TokenCli < CommonCli
     end
   end
 
+  define_option :port, "--port <number>", "pin internal server to specific port"
   define_option :vmc, "--[no-]vmc", "save token in the ~/.vmc_tokens file"
   desc "token authcode get", "Gets a token using the authcode flow with browser",
-      :client, :secret, :scope, :vmc do use_browser(clientname, clientsecret) end
+      :client, :secret, :scope, :vmc, :port do use_browser(clientname, clientsecret) end
 
   desc "token implicit get", "Gets a token using the implicit flow with browser",
-      :client, :scope, :vmc do use_browser opts[:client] || "vmc" end
+      :client, :scope, :vmc, :port do use_browser opts[:client] || "vmc" end
 
   define_option :key, "--key <key>", "Token validation key"
   desc "token decode [token] [tokentype]", "Show token contents as parsed locally or by the UAA. " +
