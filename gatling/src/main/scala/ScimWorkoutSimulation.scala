@@ -11,12 +11,12 @@ import uaa.UsernamePasswordFeeder
 class ScimWorkoutSimulation extends Simulation {
   val scimWorkout = scenario("SCIM workout")
     .exec(scimClientLogin())
-    .loop(
-      chain.feed(UsernamePasswordFeeder())
+    .repeat(50) {
+      bootstrap.feed(UsernamePasswordFeeder())
       .exec(findUserByName)
       .exec(getUser)
 //      .exec(updateUser)
-    ).times(50)
+    }
 
   def apply = {
     Seq(

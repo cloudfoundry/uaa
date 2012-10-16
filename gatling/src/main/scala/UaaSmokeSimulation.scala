@@ -4,7 +4,8 @@ import com.excilys.ebi.gatling.core.Predef._
 import com.excilys.ebi.gatling.http.Predef._
 import java.util.concurrent.TimeUnit
 import uaa.Config._
-import uaa.UsernamePasswordFeeder
+import uaa.ScimApi._
+import uaa.{UniqueUsernamePasswordFeeder, User, UsernamePasswordFeeder}
 
 import uaa.OAuthComponents._
 
@@ -35,6 +36,27 @@ class UaaSmokeSimulation extends Simulation {
 //        .exec((s: Session) => {println("User: %s, token: %s" format(s.getAttribute("username"), s.getAttribute("access_token"))); s})
     }
 
+  val random = new scala.util.Random()
+
+  val randomUserFeeder = new Feeder() {
+    def hasNext = true
+    def next() = Map("username" -> ("randy_" + random.nextLong()), "password" -> "password")
+  }
+
+  import bootstrap._
+
+  val scimWorkout = scenario("SCIM workout")
+    .exec(scimClientLogin())
+    .doIf(haveAccessToken) {
+       during(Duration) {
+         feed(randomUserFeeder)
+          .exec(createUser)
+          .exec(findUserByName)
+          .exec(getUser)
+          .pause(0, 2000, TimeUnit.MILLISECONDS)
+       }
+    }
+
   val passwordScores = scenario("Password score API")
     .during(Duration) {
       bootstrap.exec(
@@ -57,10 +79,11 @@ class UaaSmokeSimulation extends Simulation {
 
   def apply = {
     Seq(
-      uiLoginLogout.configure users 2 ramp 10 protocolConfig loginHttpConfig
-      , authzCodeLogin.configure users 10 ramp 10 protocolConfig loginHttpConfig
-      , passwordScores.configure users  1 ramp 10 protocolConfig uaaHttpConfig
-      , vmcUserLogins.configure users 10 ramp 10 protocolConfig uaaHttpConfig
+       uiLoginLogout.configure users 2 ramp 10 protocolConfig loginHttpConfig
+       , scimWorkout.configure users 10 ramp 10 protocolConfig uaaHttpConfig
+       , authzCodeLogin.configure users 5 ramp 10 protocolConfig loginHttpConfig
+       , passwordScores.configure users 1 ramp 10 protocolConfig uaaHttpConfig
+       , vmcUserLogins.configure users 10 ramp 10 protocolConfig uaaHttpConfig
     )
   }
 }
