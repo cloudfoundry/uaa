@@ -313,7 +313,7 @@
       <url>http://github.com/cloudfoundry/uaa</url>
       <connection>scm:git:git://github.com/cloudfoundry/uaa.git</connection>
       <developerConnection>scm:git:ssh://git@github.com/cloudfoundry/uaa.git</developerConnection>
-      <tag>1.2.3</tag>
+      <tag>1.2.4</tag>
   </scm>
     <issueManagement>
       <system>JIRA</system>
