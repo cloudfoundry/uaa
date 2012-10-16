@@ -15,14 +15,13 @@ case class Client(id: String, secret: String, scopes: Seq[String], resources: Se
     }
     """{
           "client_id" : "%s",
-          "client_secret" : "%s",
-          "client_sceret" : "%s",%s
+          "client_secret" : "%s", %s
           "scope" : [%s],
           "resource_ids" : [%s],
           "authorities" : [%s],
           "authorized_grant_types" : [%s]
     }
-    """.format(id, secret, secret, redirectJson, fmt(scopes), fmt(resources), fmt(authorities), fmt(grants))
+    """.format(id, secret, redirectJson, fmt(scopes), fmt(resources), fmt(authorities), fmt(grants))
   }
 
   private def fmt(seq: Seq[String]) = seq.mkString("\"", "\",\"", "\"")

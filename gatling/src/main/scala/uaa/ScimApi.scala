@@ -54,7 +54,7 @@ object ScimApi {
    */
   def createUser =
       http("Create User")
-        .post("/User")
+        .post("/Users")
         .header("Authorization", "Bearer ${access_token}")
         .body("""{"name":{"givenName":"Shaun","familyName":"Sheep","formatted":"Shaun the Sheep"},"password":"${password}","userName":"${username}","emails":[{"value":"${username}@blah.com"}]}""")
         .asJSON
@@ -78,7 +78,7 @@ object ScimApi {
    */
   def getUser =
     http("Get User")
-      .get("/User/${userId}")
+      .get("/Users/${userId}")
       .header("Authorization", "Bearer ${access_token}")
       .asJSON
       .check(status.is(200), regex(".*").saveAs("scimUser"))
@@ -88,7 +88,7 @@ object ScimApi {
    */
   def updateUser =
     http("Update user")
-      .put("/User/${userId}")
+      .put("/Users/${userId}")
       .header("Authorization", "Bearer ${access_token}")
       .body("${scimUser")
       .asJSON
@@ -97,7 +97,7 @@ object ScimApi {
 
   def changePassword =
       http("Change Password")
-        .put("/User/${userId}/password")
+        .put("/Users/${userId}/password")
         .header("Authorization", "Bearer ${access_token}")
         .body("""{"password":"${password}"}""")
         .asJSON

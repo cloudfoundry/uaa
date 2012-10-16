@@ -57,10 +57,10 @@ class UaaSmokeSimulation extends Simulation {
 
   def apply = {
     Seq(
-//      uiLoginLogout.configure users 2 ramp 10 protocolConfig loginHttpConfig
-      authzCodeLogin.configure users 2 ramp 10 protocolConfig loginHttpConfig
-//      , passwordScores.configure users  3 ramp 10 protocolConfig uaaHttpConfig
-//      , vmcUserLogins.configure users 10 ramp 10 protocolConfig loginHttpConfig
+      uiLoginLogout.configure users 2 ramp 10 protocolConfig loginHttpConfig
+      , authzCodeLogin.configure users 10 ramp 10 protocolConfig loginHttpConfig
+      , passwordScores.configure users  1 ramp 10 protocolConfig uaaHttpConfig
+      , vmcUserLogins.configure users 10 ramp 10 protocolConfig uaaHttpConfig
     )
   }
 }

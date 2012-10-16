@@ -66,13 +66,13 @@ object Config {
   def uaaHttpConfig = {
     val uaaUrl = baseUrl map (prependHttp) map (_.replace("://", "://uaa.")) getOrElse "http://localhost:8080/uaa"
     println("**** Targeting UAA at: " + uaaUrl)
-    httpConfig.baseURL(uaaUrl).disableFollowRedirect.disableAutomaticReferer
+    httpConfig.baseURL(uaaUrl).disableFollowRedirect.disableAutomaticReferer.warmUp(uaaUrl)
   }
 
   def loginHttpConfig = {
     val loginUrl = baseUrl map (prependHttp) map (_.replace("://", "://lgn.")) getOrElse "http://localhost:8080/uaa"
     println("**** Targeting Login server at: " + loginUrl)
-    httpConfig.baseURL(loginUrl).disableFollowRedirect.disableAutomaticReferer
+    httpConfig.baseURL(loginUrl).disableFollowRedirect.disableAutomaticReferer.warmUp(loginUrl)
   }
 
 }
