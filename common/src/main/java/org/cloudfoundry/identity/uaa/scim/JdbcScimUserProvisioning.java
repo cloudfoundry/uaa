@@ -158,6 +158,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		logger.info("Creating new user: " + user.getUserName());
 
 		final String id = UUID.randomUUID().toString();
+		final String encPassword = passwordEncoder.encode(password);
 		try {
 			jdbcTemplate.update(CREATE_USER_SQL, new PreparedStatementSetter() {
 				public void setValues(PreparedStatement ps) throws SQLException {
@@ -172,7 +173,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 					ps.setBoolean(9, user.isActive());
 					String phoneNumber = extractPhoneNumber(user);
 					ps.setString(10, phoneNumber);
-					ps.setString(11, passwordEncoder.encode(password));
+					ps.setString(11, encPassword);
 				}
 
 			});
@@ -332,7 +333,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	/**
 	 * The encoder used to hash passwords before storing them in the database.
-	 * 
+	 *
 	 * Defaults to a {@link BCryptPasswordEncoder}.
 	 */
 	public void setPasswordEncoder(PasswordEncoder passwordEncoder) {
