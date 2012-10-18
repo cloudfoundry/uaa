@@ -195,12 +195,12 @@ class Server
     @connections, @status, @sig, @em_thread = [], :stopped, nil, nil
   end
 
-  def start(hostname = "localhost", port = 0)
+  def start(hostname = "localhost", port = nil)
     raise ArgumentError, "attempt to start a server that's already running" unless @status == :stopped
     @host = hostname
     logger.debug "starting #{self.class} server #{@host}"
     EM.schedule do
-      @sig = EM.start_server(@host, port, Connection) { |c| initialize_connection(c) }
+      @sig = EM.start_server(@host, port || 0, Connection) { |c| initialize_connection(c) }
       @port = Socket.unpack_sockaddr_in(EM.get_sockname(@sig))[0]
       logger.debug "#{self.class} server started at #{url}, signature #{@sig}"
     end
