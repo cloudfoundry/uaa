@@ -127,7 +127,6 @@ public class ScimGroupEndpoints {
 		if (etag == null) {
 			throw new ScimException("Missing If-Match for PUT", HttpStatus.BAD_REQUEST);
 		}
-		checkIfUpdateAllowed(groupId);
 		logger.debug("updating group: " + groupId);
 		int version = getVersion(groupId, etag);
 		group.setVersion(version);
@@ -166,19 +165,6 @@ public class ScimGroupEndpoints {
 		membershipManager.removeMembersByGroupId(groupId);
 		membershipManager.removeMembersByMemberId(groupId);
 		return group;
-	}
-
-	protected void checkIfUpdateAllowed(String groupId) {
-		if (context.isAdmin()) {
-			return;
-		}
-		if (context.isUser()) {
-			if (membershipManager.getAdminMembers(groupId).contains(new ScimGroupMember(context.getUserId()))) {
-				return;
-			} else
-				throw new ScimException(context.getUserId() + " does not have privileges to update group: " + groupId, HttpStatus.UNAUTHORIZED);
-		}
-		throw new ScimException("Only group members with required privileges can update group", HttpStatus.UNAUTHORIZED);
 	}
 
 	@ExceptionHandler
