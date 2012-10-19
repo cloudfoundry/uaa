@@ -26,6 +26,16 @@ public interface ScimGroupMembershipManager {
 	List<ScimGroupMember> getMembers(String groupId) throws ScimResourceNotFoundException;
 
 	/**
+	 * Retrieve members that have the specified authority on the group
+	 *
+	 * @param groupId
+	 * @param permission
+	 * @return
+	 * @throws ScimResourceNotFoundException
+	 */
+	List<ScimGroupMember> getMembers(String groupId, ScimGroup.Authority permission) throws ScimResourceNotFoundException;
+
+	/**
 	 * Retrieve all groups that the given member belongs to
 	 * @param memberId
 	 * @param transitive true means indirect/transitive membership is also processed (nested groups)
@@ -43,8 +53,6 @@ public interface ScimGroupMembershipManager {
 	 * @throws MemberNotFoundException
 	 */
 	ScimGroupMember getMemberById(String groupId, String memberId) throws ScimResourceNotFoundException, MemberNotFoundException;
-
-	List<ScimGroupMember> getAdminMembers(String groupId) throws ScimResourceNotFoundException;
 
 	/**
 	 * Update a particular member's membership details

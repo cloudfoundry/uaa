@@ -178,45 +178,6 @@ public class ScimGroupEndpointsTests {
 
 	}
 
-	@Test
-	public void canCheckIfUpdateAllowed() {
-		ScimGroupMember m1 = createMember(ScimGroupMember.Type.USER, ScimGroup.GROUP_MEMBER);
-		ScimGroupMember m2 = createMember(ScimGroupMember.Type.USER, ScimGroup.GROUP_ADMIN);
-		String gId = addGroup("test", Arrays.asList(m1, m2));
-
-		SecurityContextAccessor context = Mockito.mock(DefaultSecurityContextAccessor.class);
-		Mockito.when(context.isAdmin()).thenReturn(false);
-		Mockito.when(context.isUser()).thenReturn(true);
-		Mockito.when(context.getUserId()).thenReturn(m2.getMemberId());
-		endpoints.setContext(context);
-
-		endpoints.checkIfUpdateAllowed(gId);
-
-		Mockito.when(context.isAdmin()).thenReturn(true);
-		Mockito.when(context.getUserId()).thenReturn(m1.getMemberId());
-		endpoints.setContext(context);
-
-		endpoints.checkIfUpdateAllowed(gId);
-		endpoints.checkIfUpdateAllowed("invalidgroup");
-
-		Mockito.when(context.getUserId()).thenReturn("invaliduser");
-		endpoints.setContext(context);
-
-		endpoints.checkIfUpdateAllowed(gId);
-		endpoints.checkIfUpdateAllowed("invalidgroup");
-
-	}
-
-	@Test(expected = ScimException.class)
-	public void canCheckIfUpdateAllowedFails() {
-		SecurityContextAccessor context = Mockito.mock(DefaultSecurityContextAccessor.class);
-		Mockito.when(context.isAdmin()).thenReturn(false);
-		Mockito.when(context.getUserId()).thenReturn("m2");
-		endpoints.setContext(context);
-
-		endpoints.checkIfUpdateAllowed("g3");
-	}
-
 	private void enableUpdates() {
 		SecurityContextAccessor context = Mockito.mock(DefaultSecurityContextAccessor.class);
 		Mockito.when(context.isAdmin()).thenReturn(true);
