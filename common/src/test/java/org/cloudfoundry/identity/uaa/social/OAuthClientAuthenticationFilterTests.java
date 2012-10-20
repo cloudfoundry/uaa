@@ -57,7 +57,7 @@ public class OAuthClientAuthenticationFilterTests {
 	}
 
 	@Test
-	public void testFacebookAuthentication() throws Exception {
+	public void testTwitterAuthentication() throws Exception {
 		OAuthRestTemplate restTemplate = new OAuthRestTemplate(resource);
 		setUpContext("twitter.token", "twitter.secret", "twitter.key", "twitter.shared");
 		filter.setRestTemplate(restTemplate);
