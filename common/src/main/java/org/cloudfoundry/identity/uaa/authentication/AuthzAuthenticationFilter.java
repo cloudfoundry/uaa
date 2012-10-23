@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.authentication;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -27,6 +28,7 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.logging.Log;
@@ -113,6 +115,8 @@ public class AuthzAuthenticationFilter implements Filter {
 		HttpServletResponse res = (HttpServletResponse) response;
 
 		Map<String, String> loginInfo = getCredentials(req);
+		
+		boolean buggyRubyAcceptHeader = false;
 
 		try {
 			if (loginInfo.isEmpty()) {
@@ -130,7 +134,32 @@ public class AuthzAuthenticationFilter implements Filter {
 		}
 		catch (AuthenticationException e) {
 			logger.debug("Authentication failed");
-			authenticationEntryPoint.commence(req, res, e);
+			
+			String acceptHeaderValue = req.getHeader("accept");
+			String clientId = req.getParameter("client_id");
+			if (acceptHeaderValue.equals("*/*; q=0.5, application/xml") && clientId.equals("vmc")) {
+				buggyRubyAcceptHeader = true;
+			}
+			
+			HttpServletRequest jsonAcceptingRequest = new HttpServletRequestWrapper(req) {
+				
+				@SuppressWarnings("unchecked")
+				@Override
+				public Enumeration<String> getHeaders(String name) {
+					if (name.equals("accept")) {
+						return new JsonInjectedEnumeration(((HttpServletRequest)getRequest()).getHeaders(name));
+					} else {
+						return ((HttpServletRequest)getRequest()).getHeaders(name);
+					}
+				}
+			};
+			
+			if (buggyRubyAcceptHeader) {
+				authenticationEntryPoint.commence(jsonAcceptingRequest, res, e);
+			}
+			else {
+				authenticationEntryPoint.commence(req, res, e);
+			}
 			return;
 		}
 
@@ -169,4 +198,25 @@ public class AuthzAuthenticationFilter implements Filter {
 	public void destroy() {
 	}
 
+	
+	static class JsonInjectedEnumeration implements Enumeration<String> {
+		private Enumeration<String> underlying;
+		
+		public JsonInjectedEnumeration(Enumeration<String> underlying) {
+			this.underlying = underlying;
+		}
+		
+		@Override
+		public boolean hasMoreElements() {
+			return underlying.hasMoreElements();
+		}
+
+		@Override
+		public String nextElement() {
+			Object ret = underlying.nextElement();
+			System.out.println(ret);
+			return "application/json";
+		}
+		
+	}
 }
