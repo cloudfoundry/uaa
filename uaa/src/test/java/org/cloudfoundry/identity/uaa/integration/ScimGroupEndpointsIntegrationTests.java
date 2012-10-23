@@ -5,7 +5,12 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.net.URI;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -16,7 +21,6 @@ import org.cloudfoundry.identity.uaa.scim.groups.ScimGroupMember;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.http.HttpEntity;
@@ -161,6 +165,7 @@ public class ScimGroupEndpointsIntegrationTests {
 
 	@Test
 	public void getGroupsWithoutAttributesReturnsAllData() {
+		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> response = client.getForEntity(serverRunning.getUrl(groupEndpoint), Map.class);
 
 		@SuppressWarnings("rawtypes")
@@ -206,8 +211,9 @@ public class ScimGroupEndpointsIntegrationTests {
 		ScimGroupMember m2 = new ScimGroupMember("wrongid");
 		g.setMembers(Arrays.asList(VIDYA, m2));
 
-		@SuppressWarnings("unchecked")
+		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> r = client.postForEntity(serverRunning.getUrl(groupEndpoint), g, Map.class);
+		@SuppressWarnings("unchecked")
 		Map<String, String> g1 = r.getBody();
 		assertEquals(HttpStatus.BAD_REQUEST, r.getStatusCode());
 		assertTrue(g1.containsKey("error"));
