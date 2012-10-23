@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.authentication;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -27,6 +28,7 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.logging.Log;
@@ -127,11 +129,21 @@ public class AuthzAuthenticationFilter implements Filter {
 						new UaaAuthenticationDetails(req)));
 				SecurityContextHolder.getContext().setAuthentication(result);
 			}
-		}
-		catch (AuthenticationException e) {
-			logger.debug("Authentication failed");
-			authenticationEntryPoint.commence(req, res, e);
-			return;
+			catch (AuthenticationException e) {
+				logger.debug("Authentication failed");
+				HttpServletRequest jsonAcceptingRequest = new HttpServletRequestWrapper(req) {
+					@Override
+					public Enumeration<String> getHeaders(String name) {
+						if (name.equals("accept")) {
+							return new JsonInjectedEnumeration(((HttpServletRequest)getRequest()).getHeaders(name));
+						} else {
+							return ((HttpServletRequest)getRequest()).getHeaders(name);
+						}
+					}
+				};
+				authenticationEntryPoint.commence(jsonAcceptingRequest, res, e);
+				return;
+			}
 		}
 
 		chain.doFilter(request, response);
@@ -169,4 +181,25 @@ public class AuthzAuthenticationFilter implements Filter {
 	public void destroy() {
 	}
 
+	
+	static class JsonInjectedEnumeration implements Enumeration {
+		private Enumeration underlying;
+		
+		public JsonInjectedEnumeration(Enumeration underlying) {
+			this.underlying = underlying;
+		}
+		
+		@Override
+		public boolean hasMoreElements() {
+			return underlying.hasMoreElements();
+		}
+
+		@Override
+		public Object nextElement() {
+			Object ret = underlying.nextElement();
+			System.out.println(ret);
+			return "application/json";
+		}
+		
+	}
 }
