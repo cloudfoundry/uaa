@@ -107,4 +107,18 @@ public class ScimUserBootstrapTests {
 		assertEquals("Bloggs", users.iterator().next().getFamilyName());
 	}
 
+	@Test
+	public void failedAttemptToUpdateUsersNotFatal() throws Exception {
+		UaaUser joe = new UaaUser("joe", "password", "joe@test.org", "Joe", "User");
+		ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
+		bootstrap.afterPropertiesSet();
+		joe = new UaaUser("joe", "new", "joe@test.org", "Joe", "Bloggs");
+		bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
+		bootstrap.setOverride(false);
+		bootstrap.afterPropertiesSet();
+		Collection<ScimUser> users = db.retrieveUsers();
+		assertEquals(1, users.size());
+		assertEquals("User", users.iterator().next().getFamilyName());
+	}
+
 }

@@ -91,7 +91,9 @@ public class ScimUserBootstrap implements InitializingBean {
 			if (!override) {
 				logger.debug("Not registering existing user: " + user);
 				// We don't update existing accounts - use the ScimUserProvisioning for that
+				return scimUser;
 			} else {
+				logger.info("Updating user account: " + user);
 				ScimUser existingUser = users.iterator().next();
 				String id = existingUser.getId();
 				int version = existingUser.getVersion();
