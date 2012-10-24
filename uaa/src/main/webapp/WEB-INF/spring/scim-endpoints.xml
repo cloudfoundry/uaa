@@ -81,13 +81,29 @@
 		</property>
 	</bean>
 
+	<bean id="groupAccessDecisionManager" class="org.springframework.security.access.vote.AffirmativeBased">
+		<constructor-arg>
+			<list>
+				<bean id="groupVoter" class="org.cloudfoundry.identity.uaa.scim.groups.GroupVoter">
+					<property name="membershipManager" ref="groupMembershipManager" />
+					<property name="groupPrefix" value="memberScope=" />
+				</bean>
+				<bean class="org.springframework.security.oauth2.provider.vote.ScopeVoter">
+					<property name="scopePrefix" value="scope=" />
+				</bean>
+				<bean class="org.springframework.security.access.vote.RoleVoter" />
+				<bean class="org.springframework.security.access.vote.AuthenticatedVoter" />
+			</list>
+		</constructor-arg>
+	</bean>
+
 	<http pattern="/Groups/**" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
-		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
+		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="groupAccessDecisionManager"
 		xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/Groups/**" access="scope=scim.read" method="GET" />
 		<intercept-url pattern="/Groups/**" access="scope=scim.write" method="DELETE" />
-		<intercept-url pattern="/Groups/**" access="scope=scim.write" method="PUT" />
 		<intercept-url pattern="/Groups" access="scope=scim.write" method="POST" />
+		<intercept-url pattern="/Groups/**" access="scope=scim.write,memberScope=write" method="PUT" />
 		<intercept-url pattern="/**" access="ROLE_NONEXISTENT" />
 		<custom-filter ref="scimResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
 		<access-denied-handler ref="oauthAccessDeniedHandler" />

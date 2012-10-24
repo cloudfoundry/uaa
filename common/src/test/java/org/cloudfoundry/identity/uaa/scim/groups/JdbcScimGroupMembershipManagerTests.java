@@ -199,10 +199,10 @@ public class JdbcScimGroupMembershipManagerTests {
 		addMember("g1", "m3", "USER", "READ,WRITE");
 		addMember("g1", "g2", "GROUP", "READ");
 
-		assertEquals(1, dao.getAdminMembers("g1").size());
-		assertTrue(dao.getAdminMembers("g1").contains(new ScimGroupMember("m3")));
+		assertEquals(1, dao.getMembers("g1", ScimGroup.Authority.WRITE).size());
+		assertTrue(dao.getMembers("g1", ScimGroup.Authority.WRITE).contains(new ScimGroupMember("m3")));
 
-		assertEquals(0, dao.getAdminMembers("g2").size());
+		assertEquals(0, dao.getMembers("g2", ScimGroup.Authority.WRITE).size());
 	}
 
 	@Test

@@ -4,12 +4,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -45,7 +40,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 
 	public static final String GET_GROUPS_BY_MEMBER_SQL = String.format("select distinct(group_id) from %s where member_id=?", MEMBERSHIP_TABLE);
 
-	public static final String GET_ADMIN_MEMBERS_SQL = String.format("select %s from %s where group_id=:id and lower(authorities) like '%%write%%'", MEMBERSHIP_FIELDS, MEMBERSHIP_TABLE);
+	public static final String GET_MEMBERS_WITH_AUTHORITY_SQL = String.format("select %s from %s where group_id=? and lower(authorities) like ?", MEMBERSHIP_FIELDS, MEMBERSHIP_TABLE);
 
 	public static final String GET_MEMBER_SQl = String.format("select %s from %s where group_id=? and member_id=?", MEMBERSHIP_FIELDS, MEMBERSHIP_TABLE);
 
@@ -138,8 +133,18 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 	}
 
 	@Override
-	public List<ScimGroupMember> getAdminMembers(String groupId) throws ScimResourceNotFoundException {
-		return new JdbcPagingList<ScimGroupMember>(jdbcTemplate, GET_ADMIN_MEMBERS_SQL, Collections.<String, String>singletonMap("id", groupId), rowMapper, 100);
+	public List<ScimGroupMember> getMembers(final String groupId, final ScimGroup.Authority permission) throws ScimResourceNotFoundException {
+		logger.debug("getting members of type: " + permission + " from group: " + groupId);
+		List<ScimGroupMember> members = new ArrayList<ScimGroupMember>();
+		members.addAll(jdbcTemplate.query(GET_MEMBERS_WITH_AUTHORITY_SQL, new PreparedStatementSetter() {
+			@Override
+			public void setValues(PreparedStatement ps) throws SQLException {
+				ps.setString(1, groupId);
+				ps.setString(2, "%" + permission.toString().toLowerCase() + "%");
+			}
+		}, rowMapper)
+		);
+	    return members;
 	}
 
 	@Override
