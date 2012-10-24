@@ -1,5 +1,17 @@
 package org.cloudfoundry.identity.uaa.integration;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.scim.PasswordChangeRequest;
@@ -151,6 +163,23 @@ public class ScimGroupEndpointsIntegrationTests {
 	}
 
 	@Test
+	public void getGroupsWithoutAttributesReturnsAllData() {
+		@SuppressWarnings("rawtypes")
+		ResponseEntity<Map> response = client.getForEntity(serverRunning.getUrl(groupEndpoint), Map.class);
+
+		@SuppressWarnings("rawtypes")
+		Map results = response.getBody();
+		assertEquals(HttpStatus.OK, response.getStatusCode());
+		assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
+		assertTrue("There should be some resources", ((Collection<?>) results.get("resources")).size() > 0);
+		@SuppressWarnings("rawtypes")
+		Map firstGroup = (Map) ((List) results.get("resources")).get(0);
+		assertTrue(firstGroup.containsKey("id"));
+		assertTrue(firstGroup.containsKey("displayName"));
+		assertTrue(firstGroup.containsKey("members"));
+	}
+
+	@Test
 	public void createGroupSucceeds() throws Exception {
 		ScimGroup g1 = createGroup(CFID);
 		// Check we can GET the group
@@ -182,9 +211,14 @@ public class ScimGroupEndpointsIntegrationTests {
 		ScimGroupMember m2 = new ScimGroupMember("wrongid");
 		g.setMembers(Arrays.asList(VIDYA, m2));
 
-		Map<String, String> g1 = client.postForEntity(serverRunning.getUrl(groupEndpoint), g, Map.class).getBody();
+		@SuppressWarnings("rawtypes")
+		ResponseEntity<Map> r = client.postForEntity(serverRunning.getUrl(groupEndpoint), g, Map.class);
+		@SuppressWarnings("unchecked")
+		Map<String, String> g1 = r.getBody();
+		assertEquals(HttpStatus.BAD_REQUEST, r.getStatusCode());
 		assertTrue(g1.containsKey("error"));
-		assertEquals("scim_resource_not_found", g1.get("error"));
+		assertTrue(g1.containsKey("message"));
+		assertTrue(g1.get("message").contains("Invalid group member"));
 
 		// check that the group was not created
 		Map<String, String> g2 = client.getForObject(serverRunning.getUrl(groupEndpoint + "?filter=displayName eq '{name}'"), Map.class, CFID);
