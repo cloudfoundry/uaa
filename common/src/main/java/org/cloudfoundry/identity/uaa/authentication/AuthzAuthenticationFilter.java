@@ -222,7 +222,7 @@ public class AuthzAuthenticationFilter implements Filter {
 
 		@Override
 		public String nextElement() {
-			Object ret = underlying.nextElement();
+			underlying.nextElement();
 			return "application/json";
 		}
 		
