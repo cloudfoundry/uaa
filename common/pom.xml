@@ -258,14 +258,6 @@
 			<scope>test</scope>
 		</dependency>
 
-		<!-- Only needed for CC token serialization PoC -->
-		<dependency>
-			<groupId>org.jruby</groupId>
-			<artifactId>jruby</artifactId>
-			<version>1.6.5</version>
-			<scope>test</scope>
-		</dependency>
-
 	</dependencies>
 
 </project>
