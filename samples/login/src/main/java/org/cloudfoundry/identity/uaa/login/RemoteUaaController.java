@@ -1,10 +1,8 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URLDecoder;
 import java.security.Principal;
 import java.util.Arrays;
 import java.util.Collections;
@@ -182,7 +180,7 @@ public class RemoteUaaController {
 	@ResponseBody
 	public ResponseEntity<byte[]> approveOrDeny(HttpServletRequest request, HttpEntity<byte[]> entity,
 			Map<String, Object> model, SessionStatus sessionStatus) throws Exception {
-		sessionStatus.setComplete();
+  		sessionStatus.setComplete();
 		return passthru(request, entity, model);
 	}
 
@@ -272,14 +270,7 @@ public class RemoteUaaController {
 	}
 
 	private String extractPath(HttpServletRequest request) {
-		String query = request.getQueryString();
-		try {
-			query = query == null ? "" : "?" + URLDecoder.decode(query, "UTF-8");
-		}
-		catch (UnsupportedEncodingException e) {
-			throw new IllegalStateException("Cannot decode query string: " + query);
-		}
-		String path = request.getRequestURI() + query;
+		String path = request.getRequestURI(); // query not included because this is only used for POST
 		String context = request.getContextPath();
 		path = path.substring(context.length());
 		if (path.startsWith("/")) {

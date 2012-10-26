@@ -19,6 +19,8 @@
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions"%>
 <%@ taglib prefix="spring" uri="http://www.springframework.org/tags"%>
 
+<c:url var="authorizeUrl" value="/oauth/authorize" />
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -50,7 +52,7 @@
 								</div>
 							</form>
 							<form id="denialForm" name="denialForm" method="POST">
-								<input name="${options.deny.key}" value="${options.deny.value}" type="hidden" />
+								<input name="${options.deny.key}" action="${authorizeUrl}" value="${options.deny.value}" type="hidden" />
 								<div class="buttons">
 									<button type="submit">Deny</button>
 								</div>
