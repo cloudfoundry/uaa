@@ -1,29 +1,40 @@
 package org.cloudfoundry.identity.uaa.scim.groups;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
+import javax.sql.DataSource;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.scim.*;
-import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
-import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.scim.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.NullPasswordValidator;
+import org.cloudfoundry.identity.uaa.scim.ScimResourceNotFoundException;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserEndpoints;
+import org.cloudfoundry.identity.uaa.scim.SearchResults;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
-
-import static org.junit.Assert.*;
-
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.IfProfileValue;
 import org.springframework.test.annotation.ProfileValueSourceConfiguration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import javax.sql.DataSource;
-import java.util.*;
 
 @ContextConfiguration("classpath:/test-data-source.xml")
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -169,19 +180,12 @@ public class ScimGroupEndpointsTests {
 
 		g.setDisplayName("superadmin");
 		g.getMembers().get(0).setAuthorities(ScimGroup.GROUP_MEMBER);
-		enableUpdates();
 		ScimGroup g1 = endpoints.updateGroup(g, g.getId(), "*");
 
 		validateGroup(g1, "superadmin", 1);
 		assertEquals(ScimGroup.GROUP_MEMBER, g1.getMembers().get(0).getAuthorities());
 		validateUserGroups(g.getMembers().get(0).getMemberId(), "superadmin");
 
-	}
-
-	private void enableUpdates() {
-		SecurityContextAccessor context = Mockito.mock(DefaultSecurityContextAccessor.class);
-		Mockito.when(context.isAdmin()).thenReturn(true);
-		endpoints.setContext(context);
 	}
 
 	@Test

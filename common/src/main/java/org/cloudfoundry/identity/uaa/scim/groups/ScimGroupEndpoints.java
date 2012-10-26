@@ -1,12 +1,19 @@
 package org.cloudfoundry.identity.uaa.scim.groups;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReport;
-import org.cloudfoundry.identity.uaa.scim.*;
-import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
-import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.scim.ScimException;
+import org.cloudfoundry.identity.uaa.scim.SearchResults;
+import org.cloudfoundry.identity.uaa.scim.SearchResultsFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.expression.spel.SpelEvaluationException;
@@ -16,15 +23,17 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
-
-import javax.servlet.http.HttpServletRequest;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 @Controller
 public class ScimGroupEndpoints {
@@ -33,17 +42,11 @@ public class ScimGroupEndpoints {
 
 	private ScimGroupMembershipManager membershipManager;
 
-	private SecurityContextAccessor context = new DefaultSecurityContextAccessor();
-
 	private Map<Class<? extends Exception>, HttpStatus> statuses = new HashMap<Class<? extends Exception>, HttpStatus>();
 
 	private HttpMessageConverter<?>[] messageConverters = new RestTemplate().getMessageConverters().toArray(new HttpMessageConverter<?>[0]);
 
 	private final Log logger = LogFactory.getLog(getClass());
-
-	public void setContext(SecurityContextAccessor context) {
-		this.context = context;
-	}
 
 	public void setStatuses(Map<Class<? extends Exception>, HttpStatus> statuses) {
 		this.statuses = statuses;

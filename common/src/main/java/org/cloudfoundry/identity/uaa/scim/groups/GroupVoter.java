@@ -1,22 +1,14 @@
 package org.cloudfoundry.identity.uaa.scim.groups;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import java.util.Collection;
+
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
-import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.springframework.security.access.AccessDecisionVoter;
 import org.springframework.security.access.ConfigAttribute;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.web.FilterInvocation;
-import org.springframework.security.web.util.UrlUtils;
 import org.springframework.util.StringUtils;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Set;
 
 public class GroupVoter implements AccessDecisionVoter<Object> {
 
