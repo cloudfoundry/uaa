@@ -1,0 +1,8 @@
+#!/usr/bin/env ruby
+
+$:.unshift File.expand_path File.join __FILE__, '..', '..', 'lib'
+$:.unshift File.expand_path File.join __FILE__, '..', '..', 'spec'
+require 'stub_uaa'
+
+CF::UAA::Util.default_logger(:trace)
+CF::UAA::StubUAA.new.run('localhost', 8080)

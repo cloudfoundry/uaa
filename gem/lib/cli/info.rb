@@ -20,7 +20,7 @@ class InfoCli < CommonCli
 
   topic "System Information", "sys", "info"
 
-  def misc_request(&blk) Config.target ? (handle_request(&blk) || "success") : gripe("target not set") end
+  def misc_request(&blk) Config.target ? handle_request(&blk) : gripe("target not set") end
 
   desc "info", "get information about current target" do
     pp misc_request { update_target_info(Misc.server(Config.target)) }
@@ -35,7 +35,10 @@ class InfoCli < CommonCli
   end
 
   desc "signing key", "get the UAA's token signing key(s)", :client, :secret do
-    pp misc_request { Misc.validation_key(Config.target, clientname, clientsecret) }
+    info = misc_request { Misc.validation_key(Config.target, 
+        (clientname if opts.key?(:client)), (clientsecret if opts.key?(:client))) }
+    Config.target_opts(signing_alg: info[:alg], signing_key: info[:value])
+	pp info
   end
 
   desc "stats", "Show UAA's current usage statistics", :client, :secret do

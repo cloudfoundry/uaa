@@ -43,6 +43,12 @@ class StubUAAConn < Stub::Base
   def names_to_ids(names, rtype); names ? names.map { |name| server.scim.id(name, rtype) } : [] end
   def bad_request(message = nil); reply_in_kind(400, error: "bad request#{message ? ',' : ''} #{message}") end
   def not_found(name = nil); reply_in_kind(404, error: "#{name} not found") end
+  def encode_cookie(obj = {}) Base64::urlsafe_encode64(obj.to_json).gsub(/=*$/, '') end
+  def decode_cookie(str)
+    return unless str
+    str << '=' until str.length % 4 == 0
+    Util.json_parse(Base64::urlsafe_decode64(str))
+  end
 
   def primary_email(emails)
     return unless emails
@@ -50,16 +56,21 @@ class StubUAAConn < Stub::Base
     emails[0][:value]
   end
 
+
   #----------------------------------------------------------------------------
   # miscellaneous endpoints
   #
 
   def default_route; reply_in_kind(404, error: "not found", error_description: "unknown path #{request.path}") end
 
+  route :get, '/favicon.ico' do
+    reply.headers[:content_type] = "image/vnd.microsoft.icon"
+    reply.body = File.read File.expand_path(File.join(__FILE__, '..', '..', 'lib', 'cli', 'favicon.ico'))
+  end
+
   route :get, '/' do reply_in_kind "welcome to stub UAA, version #{VERSION}" end
   route :get, '/varz' do reply_in_kind(mem: 0, type: 'UAA', app: { version: VERSION } ) end
   route :get, '/token_key' do reply_in_kind(alg: "none", value: "none") end
-  route :get, '/login' do reply_in_kind(server.info) end
 
   route :post, '/password/score', content_type: %r{application/x-www-form-urlencoded} do
     info = Util.decode_form_to_hash(request.body)
@@ -73,6 +84,48 @@ class StubUAAConn < Stub::Base
         (info = server.scim.get(tokn[:user_id], :user, :username, :id, :emails)) && info[:username]
     reply_in_kind(user_id: info[:id], user_name: info[:username], email: primary_email(info[:emails]))
   end
+
+  route :get, '/login' do
+    return reply_in_kind(server.info) unless request.headers[:accept] =~ /text\/html/
+    session = decode_cookie(request.cookies[:stubsession]) || {}
+    if session[:username]
+      page = <<-DATA.gsub(/^ +/, '')
+        you are logged in as #{session[:username]}
+        <form id='logout' action='login.do' method='get' accept-charset='UTF-8'>
+        <input type='submit' name='submit' value='Logout' /></form>
+      DATA
+    else
+      page = <<-DATA.gsub(/^ +/, '')
+        <form id='login' action='login.do' method='post' accept-charset='UTF-8'>
+        <fieldset><legend>Login</legend><label for='username'>User name:</label>
+        <input type='text' name='username' id='username' maxlength='50' />
+        <label for='password'>Password:</label>
+        <input type='password' name='password' id='password' maxlength='50' />
+        <input type='submit' name='submit' value='Login' /></fieldset></form>
+      DATA
+    end
+    reply.html page
+    #reply.set_cookie(:stubsession, encode_cookie(session), httponly: nil)
+  end
+
+  route :post, '/login.do', content_type: %r{application/x-www-form-urlencoded} do
+    unless request.headers[:content_type] =~ %r{application/x-www-form-urlencoded}
+      return reply_in_kind(400, error_description: "need form encoded content")
+    end
+    session = Util.decode_form_to_hash(request.body)
+    reply.headers[:location] = "login"
+    reply.status = 302
+    reply.set_cookie(:stubsession, encode_cookie(session), httponly: nil)
+  end
+
+  route :get, %r{^/login.do(\?|$)(.*)} do
+    pp Util.decode_form_to_hash(match[2])
+    reply.headers[:location] = "login"
+    reply.status = 302
+    reply.set_cookie(:stubsession, encode_cookie(), max_age: -1)
+    #reply.set_cookie(:stubsession, encode_cookie(), expires: "Thu, 01-Jan-1970 00:00:01 GMT")
+  end
+
 
   #----------------------------------------------------------------------------
   # oauth2 endpoints and helpers
