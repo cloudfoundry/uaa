@@ -114,7 +114,7 @@ public class TestAccountSetup extends TestWatchman {
 	private void createVmcClient(RestOperations client) {
 		BaseClientDetails clientDetails = new BaseClientDetails("vmc", "cloud_controller,openid,password",
 				"openid,cloud_controller.read,password.write,tokens.read,tokens.write", "implicit", "uaa.none",
-				"http://uaa.cloudfoundry.com/redirect/vmc");
+				"https://uaa.cloudfoundry.com/redirect/vmc");
 		createClient(client, testAccounts.getClientDetails("oauth.clients.vmc", clientDetails));
 	}
 

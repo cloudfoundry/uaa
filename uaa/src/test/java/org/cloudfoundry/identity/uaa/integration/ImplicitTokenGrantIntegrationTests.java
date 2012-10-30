@@ -46,7 +46,7 @@ public class ImplicitTokenGrantIntegrationTests {
 	
 	private String implicitUrl() {
 		URI uri = serverRunning.buildUri("/oauth/authorize").queryParam("response_type", "token")
-				.queryParam("client_id", "vmc").queryParam("redirect_uri", "http://uaa.cloudfoundry.com/redirect/vmc")
+				.queryParam("client_id", "vmc").queryParam("redirect_uri", "https://uaa.cloudfoundry.com/redirect/vmc")
 				.queryParam("scope", "cloud_controller.read").build();
 		return uri.toString();
 	}
@@ -82,7 +82,7 @@ public class ImplicitTokenGrantIntegrationTests {
 
 		assertNotNull(result.getHeaders().getLocation());
 		assertTrue(result.getHeaders().getLocation().toString()
-				.matches("http://uaa.cloudfoundry.com/redirect/vmc#access_token=.+"));
+				.matches("https://uaa.cloudfoundry.com/redirect/vmc#access_token=.+"));
 
 	}
 
@@ -102,7 +102,7 @@ public class ImplicitTokenGrantIntegrationTests {
 		URI location = result.getHeaders().getLocation();
 		assertNotNull(location);
 		assertTrue("Wrong location: " + location, location.toString()
-				.matches("http://uaa.cloudfoundry.com/redirect/vmc#access_token=.+"));
+				.matches("https://uaa.cloudfoundry.com/redirect/vmc#access_token=.+"));
 
 	}
 
@@ -139,7 +139,7 @@ public class ImplicitTokenGrantIntegrationTests {
 
 		assertNotNull(result.getHeaders().getLocation());
 		assertTrue(result.getHeaders().getLocation().toString()
-				.matches("http://uaa.cloudfoundry.com/redirect/vmc#access_token=.+"));
+				.matches("https://uaa.cloudfoundry.com/redirect/vmc#access_token=.+"));
 	}
 
 }

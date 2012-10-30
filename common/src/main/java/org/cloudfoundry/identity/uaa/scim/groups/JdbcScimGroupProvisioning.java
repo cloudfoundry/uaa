@@ -72,7 +72,7 @@ public class JdbcScimGroupProvisioning implements ScimGroupProvisioning {
 	@Override
 	public List<ScimGroup> retrieveGroups(String filter, String sortBy, boolean ascending) {
 		ProcessedFilter where = queryConverter.convert(filter, StringUtils.hasText(sortBy) ? sortBy : "created", ascending);
-		logger.debug("Filtering users with SQL: " + where);
+		logger.debug("Filtering groups with SQL: " + where);
 
 		try {
 			List<ScimGroup> groups = new JdbcPagingList<ScimGroup>(jdbcTemplate, GET_GROUPS_SQL + " where " + where.getSql(), where.getParams(), rowMapper, 200);

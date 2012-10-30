@@ -210,7 +210,7 @@ public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper 
 	}
 
 	public String getUserUri() {
-		return getUrl("/User");
+		return getUrl("/Users");
 	}
 
 	public String getUrl(String path) {

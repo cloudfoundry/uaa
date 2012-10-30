@@ -14,7 +14,6 @@ package org.cloudfoundry.identity.uaa.integration;
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
@@ -121,9 +120,8 @@ public class UaaTestAccounts implements TestAccounts {
 	 * @return true if this Spring profile is enabled on the server
 	 */
 	public boolean isProfileActive(String profile) {
-		List<String> profiles = Arrays.asList(environment.getActiveProfiles());
 		logger.debug(String.format("Checking for %s profile in: [%s]", profile, environment));
-		return profile != null && profiles.contains(profile);
+		return profile != null && environment.acceptsProfiles(profile);
 	}
 
 	public String getVarzAuthorizationHeader() {
@@ -264,7 +262,7 @@ public class UaaTestAccounts implements TestAccounts {
 	}
 
 	public ImplicitResourceDetails getDefaultImplicitResource() {
-		return getImplicitResource("oauth.clients.vmc", "vmc", "http://uaa.cloudfoundry.com/redirect/vmc");
+		return getImplicitResource("oauth.clients.vmc", "vmc", "https://uaa.cloudfoundry.com/redirect/vmc");
 	}
 
 	public AuthorizationCodeResourceDetails getDefaultAuthorizationCodeResource() {

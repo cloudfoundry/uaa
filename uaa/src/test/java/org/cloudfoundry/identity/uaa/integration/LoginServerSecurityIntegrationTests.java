@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.integration;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
 import java.util.Map;
@@ -117,7 +118,12 @@ public class LoginServerSecurityIntegrationTests {
 	@Test
 	@OAuth2ContextConfiguration(LoginClient.class)
 	public void testLoginServerCanAuthenticateUserForVmc() throws Exception {
-		params.set("client_id", testAccounts.getDefaultImplicitResource().getClientId());
+		ImplicitResourceDetails resource = testAccounts.getDefaultImplicitResource();
+		params.set("client_id", resource.getClientId());
+		String redirect = resource.getPreEstablishedRedirectUri();
+		if (redirect != null) {
+			params.set("redirect_uri", redirect);
+		}
 		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAuthorizationUri(), params, headers);
 		assertEquals(HttpStatus.FOUND, response.getStatusCode());
@@ -185,9 +191,17 @@ public class LoginServerSecurityIntegrationTests {
 		}
 		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAuthorizationUri(), params, headers);
-		assertEquals(HttpStatus.FOUND, response.getStatusCode());
-		String results = response.getHeaders().getLocation().getFragment();
-		assertNotNull("There should be an error: " + results, results.contains("error"));
+		if (testAccounts.isProfileActive("default")) {
+			// In the default profile user accounts are automatically provisioned
+			assertEquals(HttpStatus.FOUND, response.getStatusCode());
+			String results = response.getHeaders().getLocation().getFragment();
+			assertTrue("There should be an access token: " + results, results.contains("access_token"));
+		} else { // user account is not automatically provisioned
+			assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+			@SuppressWarnings("unchecked")
+			Map<String,String> results = response.getBody();
+			assertNotNull("There should be an error: " + results, results.containsKey("error"));			
+		}
 	}
 
 	private static class LoginClient extends ClientCredentialsResourceDetails {
