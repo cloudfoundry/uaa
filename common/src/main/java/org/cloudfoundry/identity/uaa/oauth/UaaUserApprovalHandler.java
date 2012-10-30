@@ -12,9 +12,7 @@
  */
 package org.cloudfoundry.identity.uaa.oauth;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
+import java.util.*;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
@@ -27,6 +25,8 @@ import org.springframework.security.oauth2.provider.approval.TokenServicesUserAp
 public class UaaUserApprovalHandler extends TokenServicesUserApprovalHandler {
 
 	private Collection<String> autoApproveClients = new HashSet<String>();
+
+	private Map<String, Collection<String>> autoApproveClientScopes = new HashMap<String, Collection<String>>();
 
 	private boolean useTokenServices = true;
 
@@ -43,7 +43,14 @@ public class UaaUserApprovalHandler extends TokenServicesUserApprovalHandler {
 	public void setAutoApproveClients(String[] autoApproveClients) {
 		this.autoApproveClients = Arrays.asList(autoApproveClients);
 	}
-	
+
+	public void setAutoApproveClientScopes(Map<String, Collection<String>> autoApproveClientScopes) {
+		this.autoApproveClientScopes = autoApproveClientScopes;
+		if (this.autoApproveClientScopes == null) {
+			this.autoApproveClientScopes = Collections.emptyMap();
+		}
+	}
+
 	/**
 	 * Allows automatic approval for a white list of clients in the implicit grant case.
 	 * 
@@ -59,7 +66,12 @@ public class UaaUserApprovalHandler extends TokenServicesUserApprovalHandler {
 		if (!userAuthentication.isAuthenticated()) {
 			return false;
 		}
-		return authorizationRequest.isApproved() || autoApproveClients.contains(authorizationRequest.getClientId());
+//		return authorizationRequest.isApproved() || autoApproveClients.contains(authorizationRequest.getClientId());
+		String clientId = authorizationRequest.getClientId();
+		Collection<String> requestedScopes = authorizationRequest.getScope();
+		return authorizationRequest.isApproved()
+				|| autoApproveClients.contains(clientId)
+				|| (autoApproveClientScopes.containsKey(clientId) && autoApproveClientScopes.get(clientId).containsAll(requestedScopes));
 	}
 
 }
