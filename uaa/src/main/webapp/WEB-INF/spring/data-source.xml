@@ -24,6 +24,9 @@
 		<property name="url" value="${database.url}" />
 		<property name="username" value="${database.username}" />
 		<property name="password" value="${database.password}" />
+		<property name="validationInterval" value="5000"/>
+		<property name="validationQuery" value="select 1"/>
+		<property name="testOnBorrow" value="true"/>
 	</bean>
 
 	<bean class="org.springframework.jmx.export.MBeanExporter">
