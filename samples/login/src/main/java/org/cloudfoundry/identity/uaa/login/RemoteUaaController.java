@@ -115,7 +115,7 @@ public class RemoteUaaController {
 		}
 	}
 
-	@RequestMapping(value = { "/login", "/login_info" }, method = RequestMethod.GET)
+	@RequestMapping(value = { "/login", "/info" }, method = RequestMethod.GET)
 	public String prompts(HttpServletRequest request, @RequestHeader HttpHeaders headers, Model model,
 			Principal principal) throws Exception {
 		String path = extractPath(request);

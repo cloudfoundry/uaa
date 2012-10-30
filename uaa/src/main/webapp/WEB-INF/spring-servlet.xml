@@ -21,7 +21,8 @@
 	<sec:http pattern="/resources/**" security="none" />
 	<sec:http pattern="/favicon.ico" security="none" />
 	<sec:http pattern="/index.html" security="none" />
-	<sec:http pattern="/login_info" security="none" />
+	<sec:http pattern="/login" security="none" />
+	<sec:http pattern="/info" security="none" />
 	<sec:http pattern="/password/**" security="none" />
 
 	<import resource="spring/oauth-clients.xml" />
