@@ -180,7 +180,7 @@ class TokenCli < CommonCli
 
   define_option :key, "--key <key>", "Token validation key"
   desc "token decode [token] [tokentype]", "Show token contents as parsed locally or by the UAA. " +
-      "Decodes locally unless --client and --secret are given. Validates locally if --key given",
+   "Decodes locally unless --client and --secret are given. Validates locally if --key given or server's signing key has been retrieved",
       :key, :client, :secret do |token, ttype|
     ttype = "bearer" if token && !ttype
     token ||= Config.value(:access_token)
@@ -190,9 +190,10 @@ class TokenCli < CommonCli
       if opts[:client] && opts[:secret]
         pp Misc.decode_token(Config.target, opts[:client], opts[:secret], token, ttype)
       else
-        info = TokenCoder.decode(token, opts[:key], opts[:key], !!opts[:key])
-        say info.inspect if trace?
-        say "\nNote: no key given to validate token signature\n\n" unless opts[:key]
+		seckey = opts[:key] || (Config.target_value(:signing_key) if Config.target_value(:signing_alg) !~ /rsa$/i)
+		pubkey = opts[:key] || (Config.target_value(:signing_key) if Config.target_value(:signing_alg) =~ /rsa$/i)
+        info = TokenCoder.decode(token, seckey, pubkey, seckey || pubkey)
+        say seckey || pubkey ? "\nValid token signature\n\n": "\nNote: no key given to validate token signature\n\n"
         pp info
       end
     end
