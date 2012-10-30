@@ -50,11 +50,11 @@ CREATE TABLE OAUTH_CLIENT_DETAILS (
 ) ;
 
 CREATE TABLE GROUPS (
-  id VARCHAR(36) PRIMARY KEY,
+  id VARCHAR(36) not null primary key,
   displayName VARCHAR(255) not null,
   created TIMESTAMP default current_timestamp not null,
   lastModified TIMESTAMP default current_timestamp not null,
-  version BIGINT default 0 not null,
+  version INTEGER default 0 not null,
   constraint unique_uk_2 unique(displayName)
 ) ;
 
@@ -64,5 +64,5 @@ CREATE TABLE GROUP_MEMBERSHIP (
   member_type VARCHAR(8) default 'USER' not null,
   authorities VARCHAR(255) default 'READ' not null,
   added TIMESTAMP default current_timestamp not null,
-  PRIMARY KEY (group_id, member_id)
+  primary key (group_id, member_id)
 ) ;
