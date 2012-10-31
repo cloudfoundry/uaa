@@ -14,11 +14,12 @@ package org.cloudfoundry.identity.uaa.user;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.scim.groups.JdbcScimGroupMembershipManager;
+import org.cloudfoundry.identity.uaa.scim.groups.ScimGroup;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -45,6 +46,12 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
 	private JdbcTemplate jdbcTemplate;
 
 	private final RowMapper<UaaUser> mapper = new UaaUserRowMapper();
+
+	private Set<String> defaultAuthorities = new HashSet<String>();
+
+	public void setDefaultAuthorities(Set<String> defaultAuthorities) {
+		this.defaultAuthorities = defaultAuthorities;
+	}
 
 	public JdbcUaaUserDatabase(JdbcTemplate jdbcTemplate) {
 		Assert.notNull(jdbcTemplate);
@@ -78,7 +85,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
 			} catch (EmptyResultDataAccessException ex) {
 				authorities = Collections.<String>emptyList();
 			}
-			authorities.add("uaa.user"); // everybody is a user
+			authorities.addAll(defaultAuthorities);
 			return StringUtils.collectionToCommaDelimitedString(new HashSet<String>(authorities));
 		}
 	}

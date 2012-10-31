@@ -69,6 +69,7 @@ public class JdbcScimGroupMembershipManagerTests {
 		dao = new JdbcScimGroupMembershipManager(template);
 		dao.setScimGroupProvisioning(gdao);
 		dao.setScimUserProvisioning(udao);
+		dao.setDefaultUserGroups(Collections.singleton("uaa.user"));
 
 		addGroup("g1", "test1");
 		addGroup("g2", "test2");
@@ -110,6 +111,7 @@ public class JdbcScimGroupMembershipManagerTests {
 		if (gNm != null) {
 			expectedAuthorities = new HashSet<String>(Arrays.asList(gNm));
 		}
+		expectedAuthorities.add("uaa.user");
 
 		assertEquals(expectedAuthorities.size(), directGroups.size() + indirectGroups.size());
 		for (ScimGroup group : directGroups) {
@@ -142,7 +144,7 @@ public class JdbcScimGroupMembershipManagerTests {
 
 		groups = dao.getGroupsWithMember("m3", true);
 		assertNotNull(groups);
-		assertEquals(2, groups.size());
+		assertEquals(3, groups.size());
 	}
 
 	@Test
@@ -187,8 +189,6 @@ public class JdbcScimGroupMembershipManagerTests {
 
 	@Test
 	public void canGetDefaultGroupsUsingGetGroupsForMember() {
-		addGroup("uaa.user", "uaa.user");
-		addGroup("uaa.admin", "uaa.admin");
 		Set<ScimGroup> groups = dao.getGroupsWithMember("m1", false);
 		assertNotNull(groups);
 		assertEquals(1, groups.size());
