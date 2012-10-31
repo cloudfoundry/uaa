@@ -47,6 +47,7 @@
 		<constructor-arg name="jdbcTemplate" ref="jdbcTemplate" />
 		<property name="scimGroupProvisioning" ref="scimGroupProvisioning" />
 		<property name="scimUserProvisioning" ref="scimUserProvisioning" />
+		<property name="defaultUserGroups" ref="defaultUserAuthorities" />
 	</bean>
 
 	<!-- Add a handler adapter with special knowledge of the ScimUser endpoints -->

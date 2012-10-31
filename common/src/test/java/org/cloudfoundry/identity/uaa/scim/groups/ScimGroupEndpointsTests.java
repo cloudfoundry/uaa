@@ -70,13 +70,15 @@ public class ScimGroupEndpointsTests {
 		mm = new JdbcScimGroupMembershipManager(template);
 		mm.setScimGroupProvisioning(dao);
 		mm.setScimUserProvisioning(udao);
+		mm.setDefaultUserGroups(Collections.singleton("uaa.user"));
+
 		endpoints = new ScimGroupEndpoints(dao, mm);
 		userEndpoints = new ScimUserEndpoints();
 		userEndpoints.setScimUserProvisioning(udao);
 		userEndpoints.setScimGroupMembershipManager(mm);
 
 		groupIds = new ArrayList<String>();
-		groupIds.add(addGroup("uaa.user", Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroup.GROUP_MEMBER),
+		groupIds.add(addGroup("uaa.resource", Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroup.GROUP_MEMBER),
 															   createMember(ScimGroupMember.Type.GROUP, ScimGroup.GROUP_MEMBER),
 															   createMember(ScimGroupMember.Type.USER, ScimGroup.GROUP_ADMIN)))
 		);
@@ -143,7 +145,7 @@ public class ScimGroupEndpointsTests {
 
 	@Test
 	public void testListGroups() throws Exception {
-		validateSearchResults(endpoints.listGroups("id,displayName", "id pr", "created", "ascending", 1, 100), 5);
+		validateSearchResults(endpoints.listGroups("id,displayName", "id pr", "created", "ascending", 1, 100), 6);
 	}
 
 	@Test
@@ -159,7 +161,7 @@ public class ScimGroupEndpointsTests {
 	@Test
 	public void testGetGroup() throws Exception {
 		ScimGroup g = endpoints.getGroup(groupIds.get(0));
-		validateGroup(g, "uaa.user", 3);
+		validateGroup(g, "uaa.resource", 3);
 	}
 
 	@Test
