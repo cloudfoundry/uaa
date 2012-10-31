@@ -12,6 +12,8 @@
  */
 package org.cloudfoundry.identity.uaa.authentication;
 
+import java.io.Serializable;
+
 import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
@@ -22,7 +24,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetails;
  * @author Luke Taylor
  * @author Dave Syer
  */
-public class UaaAuthenticationDetails {
+public class UaaAuthenticationDetails implements Serializable {
 
 	private final String origin;
 
