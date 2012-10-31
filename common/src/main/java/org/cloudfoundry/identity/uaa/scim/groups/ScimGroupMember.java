@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.scim.groups;
 
+import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 
 import java.util.List;
@@ -7,6 +8,7 @@ import java.util.List;
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class ScimGroupMember {
 
+	@JsonProperty("value")
 	private String memberId;
 
 	@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
