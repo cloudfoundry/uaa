@@ -56,6 +56,19 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 
 	private ScimGroupProvisioning groupProvisioning;
 
+	private Set<ScimGroup> defaultUserGroups = new HashSet<ScimGroup>();
+
+	public void setDefaultUserGroups(Set<String> groupNames) {
+		for (String name : groupNames) {
+			List<ScimGroup> g = groupProvisioning.retrieveGroups(String.format("displayName co '%s'", name));
+			if (!g.isEmpty()) {
+				defaultUserGroups.add(g.get(0));
+			} else { // default group must exist, hence if not already present, create it
+				defaultUserGroups.add(groupProvisioning.createGroup(new ScimGroup(name)));
+			}
+		}
+	}
+
 	public void setScimUserProvisioning(ScimUserProvisioning userProvisioning) {
 		this.userProvisioning = userProvisioning;
 	}
@@ -124,11 +137,9 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 			}
 		}
 
-		try {
-			userProvisioning.retrieveUser(memberId); // this is merely to check that the member is a valid end-user
-			results.addAll(groupProvisioning.retrieveGroups("displayName co 'uaa.user'"));
-		} catch (ScimResourceNotFoundException e) { } // do nothing if the member if not an end user
-
+		if (isUser(memberId)) {
+			results.addAll(defaultUserGroups);
+		}
 		return new HashSet<ScimGroup>(results);
 	}
 
@@ -252,11 +263,21 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 				ps.setString(1, memberId);
 			}
 		});
-		if (deleted != groups.size()) {
-			throw new IncorrectResultSizeDataAccessException("unexpected number of members removed", groups.size(), deleted);
+		int expectedDelete = isUser(memberId) ? groups.size() - defaultUserGroups.size() : groups.size();
+		if (deleted != expectedDelete) {
+			throw new IncorrectResultSizeDataAccessException("unexpected number of members removed", expectedDelete, deleted);
 		}
 
 		return groups;
+	}
+
+	private boolean isUser(String uuid) {
+		try {
+			userProvisioning.retrieveUser(uuid);
+			return true;
+		} catch (ScimResourceNotFoundException ex) {
+			return false;
+		}
 	}
 
 	private void validateRequest(String groupId, ScimGroupMember member) {

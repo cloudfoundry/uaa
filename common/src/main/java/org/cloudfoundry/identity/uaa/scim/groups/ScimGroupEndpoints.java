@@ -164,9 +164,9 @@ public class ScimGroupEndpoints {
 								 @RequestHeader(value = "If-Match", required = false, defaultValue = "*") String etag) {
 		ScimGroup group = getGroup(groupId);
 		logger.debug("deleting group: " + group);
-		dao.removeGroup(groupId, getVersion(groupId, etag));
 		membershipManager.removeMembersByGroupId(groupId);
 		membershipManager.removeMembersByMemberId(groupId);
+		dao.removeGroup(groupId, getVersion(groupId, etag));
 		return group;
 	}
 

@@ -3,12 +3,22 @@ oauth:
    ssl: # set this to "true" to force https to be used by the user approval page
   clients:
     admin:
-      authorized-grant-types: client_credentials
-      scope: uaa.none
-      authorities: uaa.admin,clients.read,clients.write,clients.secret,tokens.read,tokens.write
+      authorized-grant-types: client_credentials,authorization_code
+      scope: scim.read,scim.write
+      authorities: uaa.admin,clients.read,clients.write,clients.secret,tokens.read,tokens.write,scim.read,scim.write
       id: admin
       secret: adminsecret
+    dashboard:
+      authorized-grant-types: client_credentials,authorization_code
+      scope: dashboard.user,openid
+      authorities: uaa.admin,scim.read,scim.write
+      id: dashboard
+      secret: dbsecret
 
+scim:
+  users:
+  - vidya|test
+  - marissa|koala|marissa@test.org|Marissa|Bloggs|uaa.user,tokens.read,tokens.write,scim.read,scim.write
 password-policy:
   required-score: 0
 
