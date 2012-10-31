@@ -59,6 +59,7 @@
 		<constructor-arg ref="loginAuthenticationMgr" />
 		<property name="parameterNames">
 			<list>
+				<value>login</value>
 				<value>username</value>
 				<value>given_name</value>
 				<value>family_name</value>
