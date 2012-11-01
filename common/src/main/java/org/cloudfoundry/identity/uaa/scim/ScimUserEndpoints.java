@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.scim;
 
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -25,15 +26,18 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReport;
-import org.cloudfoundry.identity.uaa.rest.SimpleMessage;
-import org.cloudfoundry.identity.uaa.scim.groups.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.groups.ScimGroupMembershipManager;
-import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
-import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.scim.api.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
+import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException;
+import org.cloudfoundry.identity.uaa.scim.dao.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.api.ScimGroupMembershipManager;
+import org.cloudfoundry.identity.uaa.scim.dao.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.api.AttributeNameMapper;
+import org.cloudfoundry.identity.uaa.scim.dao.SearchResults;
+import org.cloudfoundry.identity.uaa.scim.impl.SearchResultsFactory;
+import org.cloudfoundry.identity.uaa.scim.impl.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -76,8 +80,6 @@ import org.springframework.web.servlet.View;
 @ManagedResource
 public class ScimUserEndpoints implements InitializingBean {
 
-	private final Log logger = LogFactory.getLog(getClass());
-
 	private ScimUserProvisioning dao;
 
 	private ScimGroupMembershipManager membershipManager;
@@ -90,14 +92,10 @@ public class ScimUserEndpoints implements InitializingBean {
 
 	private AtomicInteger scimDeletes = new AtomicInteger();
 
-	private AtomicInteger scimPasswordChanges = new AtomicInteger();
-
 	private Map<Class<? extends Exception>, HttpStatus> statuses = new HashMap<Class<? extends Exception>, HttpStatus>();
 
 	private HttpMessageConverter<?>[] messageConverters = new RestTemplate().getMessageConverters().toArray(
 			new HttpMessageConverter<?>[0]);
-
-	private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
 
 	/**
 	 * Set the message body converters to use.
@@ -138,11 +136,6 @@ public class ScimUserEndpoints implements InitializingBean {
 		return scimDeletes.get();
 	}
 
-	@ManagedMetric(metricType = MetricType.COUNTER, displayName = "User Password Change Count (Since Startup)")
-	public int getUserPasswordChanges() {
-		return scimPasswordChanges.get();
-	}
-
 	@ManagedMetric(displayName = "Error Counts")
 	public Map<String, AtomicInteger> getErrorCounts() {
 		return errorCounts;
@@ -178,51 +171,6 @@ public class ScimUserEndpoints implements InitializingBean {
 		catch (OptimisticLockingFailureException e) {
 			throw new ScimResourceConflictException(e.getMessage());
 		}
-	}
-
-	@RequestMapping(value = "/Users/{userId}/password", method = RequestMethod.PUT)
-	@ResponseBody
-	public SimpleMessage changePassword(@PathVariable String userId, @RequestBody PasswordChangeRequest change) {
-		checkPasswordChangeIsAllowed(userId, change.getOldPassword());
-		if (!dao.changePassword(userId, change.getOldPassword(), change.getPassword())) {
-			throw new InvalidPasswordException("Password not changed for user: " + userId);
-		}
-		scimPasswordChanges.incrementAndGet();
-		return new SimpleMessage("ok", "password updated");
-	}
-
-	private void checkPasswordChangeIsAllowed(String userId, String oldPassword) {
-		if (securityContextAccessor.isClient()) {
-			// Trusted client (not acting on behalf of user)
-			return;
-		}
-
-		// Call is by or on behalf of end user
-		String currentUser = securityContextAccessor.getUserId();
-
-		if (securityContextAccessor.isAdmin()) {
-
-			// even an admin needs to provide the old value to change his password
-			if (userId.equals(currentUser) && !StringUtils.hasText(oldPassword)) {
-				throw new InvalidPasswordException("Previous password is required even for admin");
-			}
-
-		}
-		else {
-
-			if (!userId.equals(currentUser)) {
-				logger.warn("User with id " + currentUser + " attempting to change password for user " + userId);
-				// TODO: This should be audited when we have non-authentication events in the log
-				throw new InvalidPasswordException("Bad request. Not permitted to change another user's password");
-			}
-
-			// User is changing their own password, old password is required
-			if (!StringUtils.hasText(oldPassword)) {
-				throw new InvalidPasswordException("Previous password is required");
-			}
-
-		}
-
 	}
 
 	@RequestMapping(value = "/Users/{userId}", method = RequestMethod.DELETE)
@@ -284,13 +232,13 @@ public class ScimUserEndpoints implements InitializingBean {
 
 		if (!StringUtils.hasLength(attributesCommaSeparated)) {
 			// Return all user data
-			return new SearchResults<ScimUser>(SearchResultsFactory.schemas, input, startIndex, count, input.size());
+			return new SearchResults<ScimUser>(Arrays.asList(ScimUser.SCHEMAS), input, startIndex, count, input.size());
 		}
 
 		AttributeNameMapper mapper = new SimpleAttributeNameMapper(Collections.<String, String> singletonMap("emails\\.(.*)", "emails.![$1]"));
 		String[] attributes = attributesCommaSeparated.split(",");
 		try {
-			return SearchResultsFactory.buildSearchResultFrom(input, startIndex, count, attributes, mapper);
+			return SearchResultsFactory.buildSearchResultFrom(input, startIndex, count, attributes, mapper, Arrays.asList(ScimUser.SCHEMAS));
 		} catch (SpelParseException e) {
 			throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST);
 		} catch (SpelEvaluationException e) {
@@ -367,10 +315,6 @@ public class ScimUserEndpoints implements InitializingBean {
 
 	public void setScimGroupMembershipManager(ScimGroupMembershipManager membershipManager) {
 		this.membershipManager = membershipManager;
-	}
-
-	void setSecurityContextAccessor(SecurityContextAccessor securityContextAccessor) {
-		this.securityContextAccessor = securityContextAccessor;
 	}
 
 	@Override

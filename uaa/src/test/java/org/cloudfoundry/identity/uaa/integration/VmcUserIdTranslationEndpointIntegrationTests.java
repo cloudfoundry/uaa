@@ -19,9 +19,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 
-import org.cloudfoundry.identity.uaa.scim.PasswordChangeRequest;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
+import org.cloudfoundry.identity.uaa.scim.dao.PasswordChangeRequest;
+import org.cloudfoundry.identity.uaa.scim.dao.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.dao.ScimUser.Group;
 import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;

@@ -19,8 +19,8 @@ import static org.junit.Assert.assertTrue;
 import java.util.Collections;
 import java.util.Map;
 
-import org.cloudfoundry.identity.uaa.scim.PasswordChangeRequest;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.dao.PasswordChangeRequest;
+import org.cloudfoundry.identity.uaa.scim.dao.ScimUser;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;

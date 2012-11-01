@@ -9,7 +9,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.event.UserAuthenticationSuccessEvent;
-import org.cloudfoundry.identity.uaa.scim.ScimUserBootstrap;
+import org.cloudfoundry.identity.uaa.scim.util.ScimUserBootstrap;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
