@@ -12,6 +12,7 @@
  */
 package org.cloudfoundry.identity.uaa.scim;
 
+import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.hamcrest.Description;
 import org.junit.internal.matchers.TypeSafeMatcher;
 import org.springframework.http.HttpStatus;

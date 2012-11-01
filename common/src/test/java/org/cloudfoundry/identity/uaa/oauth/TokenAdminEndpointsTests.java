@@ -20,8 +20,8 @@ import java.util.Collection;
 import java.util.Collections;
 
 import org.cloudfoundry.identity.uaa.rest.SimpleMessage;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.dao.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.api.ScimUserProvisioning;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.springframework.security.access.AccessDeniedException;

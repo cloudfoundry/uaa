@@ -18,8 +18,8 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUser.Name;
+import org.cloudfoundry.identity.uaa.scim.dao.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.dao.ScimUser.Name;
 import org.springframework.core.env.Environment;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.client.resource.OAuth2ProtectedResourceDetails;

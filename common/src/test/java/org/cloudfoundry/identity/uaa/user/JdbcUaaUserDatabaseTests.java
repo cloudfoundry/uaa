@@ -21,12 +21,6 @@ import java.util.UUID;
 
 import javax.sql.DataSource;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.scim.JdbcScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.scim.NullPasswordValidator;
-import org.cloudfoundry.identity.uaa.scim.groups.JdbcScimGroupMembershipManager;
-import org.cloudfoundry.identity.uaa.scim.groups.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.junit.After;
