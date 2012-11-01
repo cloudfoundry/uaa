@@ -18,7 +18,7 @@ import static org.junit.Assert.assertNotNull;
 
 import java.util.HashMap;
 
-import org.cloudfoundry.identity.uaa.scim.ScimException;
+import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

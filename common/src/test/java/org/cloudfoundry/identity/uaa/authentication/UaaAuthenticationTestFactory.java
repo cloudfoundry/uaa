@@ -12,7 +12,7 @@
  */
 package org.cloudfoundry.identity.uaa.authentication;
 
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.dao.ScimUser;
 import org.cloudfoundry.identity.uaa.user.MockUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 

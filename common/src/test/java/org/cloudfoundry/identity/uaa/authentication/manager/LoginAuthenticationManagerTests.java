@@ -20,7 +20,7 @@ import java.util.Arrays;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.scim.ScimUserBootstrap;
+import org.cloudfoundry.identity.uaa.scim.util.ScimUserBootstrap;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserTestFactory;
