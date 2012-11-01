@@ -62,6 +62,8 @@ public class ScimGroupEndpointsIntegrationTests {
 	private List<String> groupIds = new ArrayList<String>();
 
 	private final Log logger = LogFactory.getLog(getClass());
+	
+	private static final List<String> defaultGroups = Arrays.asList("openid","cloud_controller.read","cloud_controller.write","password.write","tokens.write","tokens.read","scim.userids","uaa.user");
 
 	@Rule
 	public ServerRunning serverRunning = ServerRunning.isRunning();
@@ -153,9 +155,9 @@ public class ScimGroupEndpointsIntegrationTests {
 
 	private void validateUserGroups(String id, String... groups) {
 		List<String> groupNames = groups != null ? Arrays.asList(groups) : Collections.<String> emptyList();
-		assertEquals(groupNames.size() + 1, getUser(id).getGroups().size());
+		assertEquals(groupNames.size() + defaultGroups.size(), getUser(id).getGroups().size()); // there are 8 default user groups configured
 		for (ScimUser.Group g : getUser(id).getGroups()) {
-			assertTrue("uaa.user".equals(g.getDisplay()) || groupNames.contains(g.getDisplay()));
+			assertTrue(defaultGroups.contains(g.getDisplay()) || groupNames.contains(g.getDisplay()));
 		}
 	}
 

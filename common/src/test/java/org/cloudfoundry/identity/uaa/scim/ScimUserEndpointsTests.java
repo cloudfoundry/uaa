@@ -102,6 +102,7 @@ public class ScimUserEndpointsTests {
 		mm.setScimUserProvisioning(dao);
 		JdbcScimGroupProvisioning gdao = new JdbcScimGroupProvisioning(jdbcTemplate);
 		mm.setScimGroupProvisioning(gdao);
+		mm.setDefaultUserGroups(Collections.singleton("uaa.user"));
 		endpoints.setScimGroupMembershipManager(mm);
 		groupEndpoints = new ScimGroupEndpoints(gdao, mm);
 		joel = new ScimUser(null, "jdsa", "Joel", "D'sa");
@@ -147,9 +148,6 @@ public class ScimUserEndpointsTests {
 
 	@Test
 	public void groupsIsSyncedCorrectlyOnCreate() {
-		// uaa.user group must already exist before all users are automatically enrolled in it
-		createdGroups.add(groupEndpoints.createGroup(new ScimGroup("uaa.user")));
-
 		ScimUser user = new ScimUser(null, "dave", "David", "Syer");
 		user.addEmail("dsyer@vmware.com");
 		user.setGroups(Arrays.asList(new ScimUser.Group(null, "test1")));
@@ -162,9 +160,6 @@ public class ScimUserEndpointsTests {
 
 	@Test
 	public void groupsIsSyncedCorrectlyOnUpdate() {
-		// uaa.user group must already exist before all users are automatically enrolled in it
-		createdGroups.add(groupEndpoints.createGroup(new ScimGroup("uaa.user")));
-
 		ScimUser user = new ScimUser(null, "dave", "David", "Syer");
 		user.addEmail("dsyer@vmware.com");
 		endpoints.setSecurityContextAccessor(mockSecurityContext(user));
@@ -179,9 +174,6 @@ public class ScimUserEndpointsTests {
 
 	@Test
 	public void groupsIsSyncedCorrectlyOnGet() {
-		// uaa.user group must already exist before all users are automatically enrolled in it
-		createdGroups.add(groupEndpoints.createGroup(new ScimGroup("uaa.user")));
-
 		ScimUser user = new ScimUser(null, "dave", "David", "Syer");
 		user.addEmail("dsyer@vmware.com");
 		endpoints.setSecurityContextAccessor(mockSecurityContext(user));
