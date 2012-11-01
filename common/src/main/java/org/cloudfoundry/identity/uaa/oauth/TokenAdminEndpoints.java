@@ -19,7 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.rest.SimpleMessage;
-import org.cloudfoundry.identity.uaa.scim.ScimResourceNotFoundException;
+import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;

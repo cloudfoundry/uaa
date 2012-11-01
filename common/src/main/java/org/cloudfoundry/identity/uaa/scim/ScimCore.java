@@ -30,7 +30,7 @@ public abstract class ScimCore {
 		return id;
 	}
 
-	void setId(String id) {
+	public void setId(String id) {
 		this.id = id;
 	}
 

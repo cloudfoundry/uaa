@@ -12,16 +12,16 @@
  */
 package org.cloudfoundry.identity.uaa.scim;
 
+import org.codehaus.jackson.annotate.JsonIgnore;
+import org.codehaus.jackson.annotate.JsonProperty;
+import org.codehaus.jackson.map.annotate.JsonSerialize;
+import org.springframework.util.Assert;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-
-import org.codehaus.jackson.annotate.JsonIgnore;
-import org.codehaus.jackson.annotate.JsonProperty;
-import org.codehaus.jackson.map.annotate.JsonSerialize;
-import org.springframework.util.Assert;
 
 /**
  * Object to hold SCIM data for Jackson to map to and from JSON
@@ -299,7 +299,7 @@ public final class ScimUser extends ScimCore {
 		return password;
 	}
 
-	protected void setPassword(String password) {
+	public void setPassword(String password) {
 		this.password = password;
 	}
 

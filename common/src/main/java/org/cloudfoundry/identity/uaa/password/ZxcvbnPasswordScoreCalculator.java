@@ -13,6 +13,9 @@
 
 package org.cloudfoundry.identity.uaa.password;
 
+import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordScore;
+import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordScoreCalculator;
+
 import static szxcvbn.ZxcvbnHelper.*;
 
 import java.util.Arrays;

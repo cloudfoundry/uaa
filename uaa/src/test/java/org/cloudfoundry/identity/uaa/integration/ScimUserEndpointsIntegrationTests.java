@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.cloudfoundry.identity.uaa.scim.PasswordChangeRequest;
+import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Assume;
@@ -136,7 +136,7 @@ public class ScimUserEndpointsIntegrationTests {
 
 		// Check we can GET the user
 		ResponseEntity<ScimUser> result = client.getForEntity(serverRunning.getUrl(userEndpoint + "/{id}"),
-				ScimUser.class, joe.getId());
+																	 ScimUser.class, joe.getId());
 		assertEquals("\"" + joe.getVersion() + "\"", result.getHeaders().getFirst("ETag"));
 	}
 
@@ -193,7 +193,7 @@ public class ScimUserEndpointsIntegrationTests {
 				Map.class));
 		map.put("nottheusername", JOE + "0");
 		ResponseEntity<Map> response = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}", HttpMethod.PUT,
-				new HttpEntity<Map>(map, headers), Map.class, joe.getId());
+															  new HttpEntity<Map>(map, headers), Map.class, joe.getId());
 		Map<String, Object> joe1 = response.getBody();
 		assertTrue("Wrong message: " + joe1, ((String) joe1.get("message")).toLowerCase().contains("unrecognized field"));
 
@@ -304,7 +304,7 @@ public class ScimUserEndpointsIntegrationTests {
 
 		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> response = client.exchange(serverRunning.getUrl(userEndpoint + "/{id}"), HttpMethod.DELETE,
-				new HttpEntity<Void>((Void) null), Map.class, deleteMe.getId());
+															  new HttpEntity<Void>((Void) null), Map.class, deleteMe.getId());
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 	}
 
@@ -312,7 +312,7 @@ public class ScimUserEndpointsIntegrationTests {
 	public void getReturnsNotFoundForNonExistentUser() throws Exception {
 		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> response = client.exchange(serverRunning.getUrl(userEndpoint + "/{id}"), HttpMethod.GET,
-				new HttpEntity<Void>((Void) null), Map.class, "9999");
+															  new HttpEntity<Void>((Void) null), Map.class, "9999");
 		@SuppressWarnings("unchecked")
 		Map<String, String> error = response.getBody();
 		assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());

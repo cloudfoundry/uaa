@@ -14,10 +14,10 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.scim.PasswordChangeRequest;
+import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.groups.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.groups.ScimGroupMember;
+import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
