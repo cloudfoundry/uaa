@@ -20,7 +20,7 @@ import java.util.Arrays;
 import javax.sql.DataSource;
 
 import org.cloudfoundry.identity.uaa.integration.TestProfileEnvironment;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.users.ScimUser;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;

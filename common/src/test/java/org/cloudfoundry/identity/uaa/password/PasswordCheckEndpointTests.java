@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.password;
 
 import static junit.framework.Assert.assertTrue;
 
+import org.cloudfoundry.identity.uaa.scim.users.PasswordScore;
 import org.junit.Test;
 
 /**

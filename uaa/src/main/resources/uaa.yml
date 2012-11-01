@@ -5,7 +5,7 @@ oauth:
     admin:
       authorized-grant-types: client_credentials
       scope: uaa.none
-      authorities: uaa.admin,clients.read,clients.write,clients.secret,tokens.read,tokens.write
+      authorities: uaa.admin,clients.read,clients.write,clients.secret,tokens.read,tokens.write,scim.read,scim.write,password.write
       id: admin
       secret: adminsecret
 

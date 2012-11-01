@@ -6,7 +6,9 @@ import static org.junit.Assert.assertNotNull;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.cloudfoundry.identity.uaa.scim.SearchQueryConverter.ProcessedFilter;
+import org.cloudfoundry.identity.uaa.scim.query.SearchQueryConverter.ProcessedFilter;
+import org.cloudfoundry.identity.uaa.scim.query.ScimSearchQueryConverter;
+import org.cloudfoundry.identity.uaa.scim.query.SimpleAttributeNameMapper;
 import org.junit.Test;
 
 public class ScimSearchQueryConverterTests {

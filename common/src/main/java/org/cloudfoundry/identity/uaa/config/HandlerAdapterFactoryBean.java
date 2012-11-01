@@ -18,7 +18,7 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletResponse;
 
-import org.cloudfoundry.identity.uaa.scim.ScimCore;
+import org.cloudfoundry.identity.uaa.scim.core.ScimCore;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.context.ApplicationContext;

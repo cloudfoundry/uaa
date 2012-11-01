@@ -18,17 +18,18 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.internal.matchers.StringContains.containsString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.util.*;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter;
+import org.cloudfoundry.identity.uaa.scim.core.InvalidScimResourceException;
+import org.cloudfoundry.identity.uaa.scim.core.ScimException;
 import org.cloudfoundry.identity.uaa.scim.groups.*;
-import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.scim.query.ScimSearchQueryConverter;
+import org.cloudfoundry.identity.uaa.scim.query.SearchResults;
+import org.cloudfoundry.identity.uaa.scim.query.SimpleAttributeNameMapper;
+import org.cloudfoundry.identity.uaa.scim.users.*;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -47,10 +48,19 @@ import org.springframework.jdbc.datasource.embedded.EmbeddedDatabase;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.servlet.View;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * @author Dave Syer
@@ -151,7 +161,6 @@ public class ScimUserEndpointsTests {
 		ScimUser user = new ScimUser(null, "dave", "David", "Syer");
 		user.addEmail("dsyer@vmware.com");
 		user.setGroups(Arrays.asList(new ScimUser.Group(null, "test1")));
-		endpoints.setSecurityContextAccessor(mockSecurityContext(user));
 		ScimUser created = endpoints.createUser(user);
 		createdUsers.add(created);
 
@@ -162,7 +171,6 @@ public class ScimUserEndpointsTests {
 	public void groupsIsSyncedCorrectlyOnUpdate() {
 		ScimUser user = new ScimUser(null, "dave", "David", "Syer");
 		user.addEmail("dsyer@vmware.com");
-		endpoints.setSecurityContextAccessor(mockSecurityContext(user));
 		ScimUser created = endpoints.createUser(user);
 		createdUsers.add(created);
 		validateUserGroups(created, "uaa.user");
@@ -176,7 +184,6 @@ public class ScimUserEndpointsTests {
 	public void groupsIsSyncedCorrectlyOnGet() {
 		ScimUser user = new ScimUser(null, "dave", "David", "Syer");
 		user.addEmail("dsyer@vmware.com");
-		endpoints.setSecurityContextAccessor(mockSecurityContext(user));
 		ScimUser created = endpoints.createUser(user);
 		createdUsers.add(created);
 
@@ -194,7 +201,6 @@ public class ScimUserEndpointsTests {
 	public void userGetsADefaultPassword() {
 		ScimUser user = new ScimUser(null, "dave", "David", "Syer");
 		user.addEmail("dsyer@vmware.com");
-		endpoints.setSecurityContextAccessor(mockSecurityContext(user));
 		ScimUser created = endpoints.createUser(user);
 		createdUsers.add(created);
 		assertNull("A newly created user revealed its password", created.getPassword());
@@ -208,7 +214,6 @@ public class ScimUserEndpointsTests {
 	@Test
 	public void userWithNoEmailNotAllowed() {
 		ScimUser user = new ScimUser(null, "dave", "David", "Syer");
-		endpoints.setSecurityContextAccessor(mockSecurityContext(user));
 		try {
 			endpoints.createUser(user);
 			fail("Expected InvalidScimResourceException");
@@ -256,7 +261,6 @@ public class ScimUserEndpointsTests {
 		ScimUser user = new ScimUser(null, "dave", "David", "Syer");
 		user.addEmail("dsyer@vmware.com");
 		ReflectionTestUtils.setField(user, "password", "foo");
-		endpoints.setSecurityContextAccessor(mockSecurityContext(user));
 		ScimUser created = endpoints.createUser(user);
 		createdUsers.add(created);
 		assertNull("A newly created user revealed its password", created.getPassword());
@@ -265,70 +269,6 @@ public class ScimUserEndpointsTests {
 				created.getId());
 		assertEquals("foo", password);
 	}
-
-	@Test
-	public void userCanChangeTheirOwnPasswordIfTheySupplyCorrectCurrentPassword() {
-		endpoints.setSecurityContextAccessor(mockSecurityContext(joel));
-		PasswordChangeRequest change = new PasswordChangeRequest();
-		change.setOldPassword("password");
-		change.setPassword("newpassword");
-		endpoints.changePassword(joel.getId(), change);
-	}
-
-	@Test(expected = ScimException.class)
-	public void userCantChangeAnotherUsersPassword() {
-		endpoints.setSecurityContextAccessor(mockSecurityContext(joel));
-		PasswordChangeRequest change = new PasswordChangeRequest();
-		change.setOldPassword("password");
-		change.setPassword("newpassword");
-		endpoints.changePassword(dale.getId(), change);
-	}
-
-	@Test
-	public void adminCanChangeAnotherUsersPassword() {
-		SecurityContextAccessor sca = mockSecurityContext(dale);
-		when(sca.isAdmin()).thenReturn(true);
-		endpoints.setSecurityContextAccessor(sca);
-		PasswordChangeRequest change = new PasswordChangeRequest();
-		change.setPassword("newpassword");
-		endpoints.changePassword(joel.getId(), change);
-	}
-
-	@Test(expected = ScimException.class)
-	public void changePasswordRequestFailsForUserWithoutCurrentPassword() {
-		endpoints.setSecurityContextAccessor(mockSecurityContext(joel));
-		PasswordChangeRequest change = new PasswordChangeRequest();
-		change.setPassword("newpassword");
-		endpoints.changePassword(joel.getId(), change);
-	}
-
-	@Test(expected = ScimException.class)
-	public void changePasswordRequestFailsForAdminWithoutOwnCurrentPassword() {
-		endpoints.setSecurityContextAccessor(mockSecurityContext(joel));
-		PasswordChangeRequest change = new PasswordChangeRequest();
-		change.setPassword("newpassword");
-		endpoints.changePassword(joel.getId(), change);
-	}
-
-	@Test
-	public void clientCanChangeUserPasswordWithoutCurrentPassword() {
-		SecurityContextAccessor sca = mockSecurityContext(joel);
-		when(sca.isClient()).thenReturn(true);
-		endpoints.setSecurityContextAccessor(sca);
-		PasswordChangeRequest change = new PasswordChangeRequest();
-		change.setPassword("newpassword");
-		endpoints.changePassword(joel.getId(), change);
-	}
-
-	@Test(expected = BadCredentialsException.class)
-	public void changePasswordFailsForUserIfTheySupplyWrongCurrentPassword() {
-		endpoints.setSecurityContextAccessor(mockSecurityContext(joel));
-		PasswordChangeRequest change = new PasswordChangeRequest();
-		change.setPassword("newpassword");
-		change.setOldPassword("wrongpassword");
-		endpoints.changePassword(joel.getId(), change);
-	}
-
 	@Test
 	public void deleteIsAllowedWithCorrectVersionInEtag() {
 		ScimUser exGuy = new ScimUser(null, "deleteme", "Expendable", "Guy");
@@ -382,13 +322,6 @@ public class ScimUserEndpointsTests {
 			}
 		}
 		assertEquals(expected, isMember);
-	}
-
-	private SecurityContextAccessor mockSecurityContext(ScimUser user) {
-		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
-		String id = user.getId();
-		when(sca.getUserId()).thenReturn(id);
-		return sca;
 	}
 
 	@Test

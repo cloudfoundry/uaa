@@ -18,8 +18,8 @@ import static org.junit.Assert.assertNotNull;
 import java.util.Collections;
 import java.util.Map;
 
-import org.cloudfoundry.identity.uaa.scim.PasswordChangeRequest;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.users.PasswordChangeRequest;
+import org.cloudfoundry.identity.uaa.scim.users.ScimUser;
 import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;

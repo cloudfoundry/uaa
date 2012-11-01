@@ -1,8 +1,8 @@
 package org.cloudfoundry.identity.uaa.scim.groups;
 
-import org.cloudfoundry.identity.uaa.scim.InvalidScimResourceException;
-import org.cloudfoundry.identity.uaa.scim.ScimResourceAlreadyExistsException;
-import org.cloudfoundry.identity.uaa.scim.ScimResourceNotFoundException;
+import org.cloudfoundry.identity.uaa.scim.core.InvalidScimResourceException;
+import org.cloudfoundry.identity.uaa.scim.core.ScimResourceAlreadyExistsException;
+import org.cloudfoundry.identity.uaa.scim.core.ScimResourceNotFoundException;
 
 import java.util.List;
 

@@ -13,6 +13,8 @@
 
 package org.cloudfoundry.identity.uaa.password;
 
+import org.cloudfoundry.identity.uaa.scim.users.PasswordScore;
+import org.cloudfoundry.identity.uaa.scim.users.PasswordScoreCalculator;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestMapping;

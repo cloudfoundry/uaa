@@ -17,8 +17,10 @@ import javax.sql.DataSource;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.scim.JdbcScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.scim.NullPasswordValidator;
+import org.cloudfoundry.identity.uaa.scim.JdbcScimGroupMembershipManager;
+import org.cloudfoundry.identity.uaa.scim.MemberNotFoundException;
+import org.cloudfoundry.identity.uaa.scim.users.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.users.NullPasswordValidator;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.junit.After;

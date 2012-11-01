@@ -17,6 +17,9 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.List;
 
+import org.cloudfoundry.identity.uaa.scim.users.PasswordChangeRequest;
+import org.cloudfoundry.identity.uaa.scim.users.RemoteScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.users.ScimUser;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

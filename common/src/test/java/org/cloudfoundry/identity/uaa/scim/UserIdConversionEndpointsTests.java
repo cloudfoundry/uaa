@@ -17,6 +17,9 @@ import static org.junit.internal.matchers.StringContains.containsString;
 
 import java.util.Collection;
 
+import org.cloudfoundry.identity.uaa.scim.core.ScimException;
+import org.cloudfoundry.identity.uaa.scim.users.ScimUserEndpoints;
+import org.cloudfoundry.identity.uaa.openid.UserIdConversionEndpoints;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.junit.Before;
 import org.junit.Rule;
@@ -47,7 +50,6 @@ public class UserIdConversionEndpointsTests {
 	@SuppressWarnings("unchecked")
 	@Before
 	public void init() {
-		endpoints.setSecurityContextAccessor(securityContextAccessor);
 		endpoints.setScimUserEndpoints(scimUserEndpoints);
 		endpoints.setEnabled(true);
 		Mockito.when(securityContextAccessor.getAuthorities()).thenReturn(authorities);

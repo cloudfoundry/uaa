@@ -11,9 +11,11 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReport;
-import org.cloudfoundry.identity.uaa.scim.ScimException;
-import org.cloudfoundry.identity.uaa.scim.SearchResults;
-import org.cloudfoundry.identity.uaa.scim.SearchResultsFactory;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
+import org.cloudfoundry.identity.uaa.scim.core.ScimCore;
+import org.cloudfoundry.identity.uaa.scim.core.ScimException;
+import org.cloudfoundry.identity.uaa.scim.query.SearchResults;
+import org.cloudfoundry.identity.uaa.scim.query.SearchResultsFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.expression.spel.SpelEvaluationException;
@@ -86,7 +88,7 @@ public class ScimGroupEndpoints {
 
 		String[] attributes = attributesCommaSeparated.split(",");
 		try {
-			return SearchResultsFactory.buildSearchResultFrom(input, startIndex, count, attributes);
+			return SearchResultsFactory.buildSearchResultFrom(input, startIndex, count, attributes, Arrays.asList(ScimCore.SCHEMAS));
 		} catch (SpelParseException e) {
 			throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST);
 		} catch (SpelEvaluationException e) {

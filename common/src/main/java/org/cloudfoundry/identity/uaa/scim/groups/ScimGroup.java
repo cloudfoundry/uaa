@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.scim.groups;
 
-import org.cloudfoundry.identity.uaa.scim.ScimCore;
+import org.cloudfoundry.identity.uaa.scim.core.ScimCore;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 
 import java.util.Arrays;

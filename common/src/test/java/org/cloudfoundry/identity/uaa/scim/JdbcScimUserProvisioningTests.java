@@ -12,11 +12,16 @@
  */
 package org.cloudfoundry.identity.uaa.scim;
 
-import java.util.*;
-
 import javax.sql.DataSource;
 
-import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
+import org.cloudfoundry.identity.uaa.scim.core.InvalidScimResourceException;
+import org.cloudfoundry.identity.uaa.scim.core.ScimResourceAlreadyExistsException;
+import org.cloudfoundry.identity.uaa.scim.core.ScimResourceNotFoundException;
+import org.cloudfoundry.identity.uaa.scim.query.ScimSearchQueryConverter;
+import org.cloudfoundry.identity.uaa.scim.query.SimpleAttributeNameMapper;
+import org.cloudfoundry.identity.uaa.scim.users.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.users.ScimUser.Group;
+import org.cloudfoundry.identity.uaa.scim.users.ScimUser;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
@@ -35,7 +40,19 @@ import org.springframework.test.annotation.ProfileValueSourceConfiguration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import static org.junit.Assert.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 
 /**
  * @author Luke Taylor

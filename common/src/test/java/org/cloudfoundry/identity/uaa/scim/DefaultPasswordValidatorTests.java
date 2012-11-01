@@ -12,6 +12,9 @@
  */
 package org.cloudfoundry.identity.uaa.scim;
 
+import org.cloudfoundry.identity.uaa.scim.users.DefaultPasswordValidator;
+import org.cloudfoundry.identity.uaa.scim.users.InvalidPasswordException;
+import org.cloudfoundry.identity.uaa.scim.users.ScimUser;
 import org.junit.Test;
 
 /**
