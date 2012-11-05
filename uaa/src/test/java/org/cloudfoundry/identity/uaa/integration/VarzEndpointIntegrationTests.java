@@ -33,13 +33,13 @@ public class VarzEndpointIntegrationTests {
 	public ServerRunning serverRunning = ServerRunning.isRunning();
 
 	private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
-	
+
 	@Before
 	public void checkVcap() {
 		// If running against vcap we don't know the varz password
-		Assume.assumeTrue(!testAccounts.isProfileActive("vcap"));		
+		Assume.assumeTrue(!testAccounts.isProfileActive("vcap"));
 	}
-	
+
 	/**
 	 * tests a happy-day flow of the <code>/varz</code> endpoint
 	 */
@@ -48,12 +48,12 @@ public class VarzEndpointIntegrationTests {
 
 		HttpHeaders headers = new HttpHeaders();
 		headers.add("Authorization", testAccounts.getVarzAuthorizationHeader());
-		ResponseEntity<String> response = serverRunning.getForString("/varz", headers);
+		ResponseEntity<String> response = serverRunning.getForString("/varz/domains", headers);
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 
 		String map = response.getBody();
 		assertTrue(map.contains("spring.application"));
-		assertTrue(map.contains("Catalina"));
+		assertTrue(map.contains("Catalina") || map.contains("Tomcat"));
 
 	}
 
