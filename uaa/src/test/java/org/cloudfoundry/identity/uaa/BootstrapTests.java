@@ -23,7 +23,6 @@ import org.cloudfoundry.identity.uaa.oauth.UaaUserApprovalHandler;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
-import org.cloudfoundry.identity.uaa.varz.VarzEndpoint;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -62,12 +61,6 @@ public class BootstrapTests {
 			}
 			context.close();
 		}
-	}
-
-	@Test
-	public void testVarzContextDefaults() throws Exception {
-		context = getServletContext("file:./src/main/webapp/WEB-INF/varz-servlet.xml");
-		assertNotNull(context.getBean("varzEndpoint", VarzEndpoint.class));
 	}
 
 	@Test

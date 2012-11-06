@@ -24,6 +24,7 @@
 	<sec:http pattern="/login" security="none" />
 	<sec:http pattern="/info" security="none" />
 	<sec:http pattern="/password/**" security="none" />
+	<sec:http pattern="/healthz/**" security="none" />
 
 	<import resource="spring/oauth-clients.xml" />
 	<!-- The order of these imports is important because of Spring Security filter chain rules -->
@@ -149,5 +150,6 @@
 	<bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.authentication.login.LoginInfoEndpoint" />
 
 	<bean id="homeController" class="org.cloudfoundry.identity.uaa.home.HomeController" />
+	<bean id="healthzEndpoint" class="org.cloudfoundry.identity.uaa.web.HealthzEndpoint" />
 
 </beans>
