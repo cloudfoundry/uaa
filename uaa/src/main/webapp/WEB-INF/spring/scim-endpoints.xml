@@ -91,6 +91,7 @@
 				</bean>
 				<bean class="org.springframework.security.oauth2.provider.vote.ScopeVoter">
 					<property name="scopePrefix" value="scope=" />
+					<property name="throwException" value="false" />
 				</bean>
 				<bean class="org.springframework.security.access.vote.RoleVoter" />
 				<bean class="org.springframework.security.access.vote.AuthenticatedVoter" />
@@ -104,7 +105,7 @@
 		<intercept-url pattern="/Groups/**" access="scope=scim.read" method="GET" />
 		<intercept-url pattern="/Groups/**" access="scope=scim.write" method="DELETE" />
 		<intercept-url pattern="/Groups" access="scope=scim.write" method="POST" />
-		<intercept-url pattern="/Groups/**" access="scope=scim.write,memberScope=write" method="PUT" />
+		<intercept-url pattern="/Groups/**" access="scope=scim.write,scope=groups.update,memberScope=write" method="PUT" />
 		<intercept-url pattern="/**" access="ROLE_NONEXISTENT" />
 		<custom-filter ref="scimResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
