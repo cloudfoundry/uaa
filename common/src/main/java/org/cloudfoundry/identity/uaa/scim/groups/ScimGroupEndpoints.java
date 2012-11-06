@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -11,7 +12,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReport;
+import org.cloudfoundry.identity.uaa.scim.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.ScimException;
+import org.cloudfoundry.identity.uaa.scim.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.SearchResultsFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -115,7 +118,7 @@ public class ScimGroupEndpoints {
 				} catch (ScimException ex) {
 					logger.warn("Attempt to add invalid member: " + member.getMemberId() + " to group: " + group.getId());
 					dao.removeGroup(created.getId(), created.getVersion());
-					throw new ScimException("Invalid group member: " + member.getMemberId(), HttpStatus.BAD_REQUEST);
+					throw new InvalidScimResourceException("Invalid group member: " + member.getMemberId());
 				}
 			}
 		}
@@ -133,6 +136,8 @@ public class ScimGroupEndpoints {
 		logger.debug("updating group: " + groupId);
 		int version = getVersion(groupId, etag);
 		group.setVersion(version);
+
+		ScimGroup existing = getGroup(groupId);
 		try {
 			ScimGroup updated = dao.updateGroup(groupId, group);
 			if (group.getMembers() != null) {
@@ -140,8 +145,18 @@ public class ScimGroupEndpoints {
 			}
 			updated.setMembers(membershipManager.getMembers(updated.getId()));
 			return updated;
-		} catch (IncorrectResultSizeDataAccessException e) {
-			throw new ScimException(e.getMessage(), HttpStatus.CONFLICT);
+		} catch (IncorrectResultSizeDataAccessException ex) {
+			logger.error("Error updating group, restoring to previous state");
+			// restore to correct state before reporting error
+			existing.setVersion(getVersion(groupId, "*"));
+			dao.updateGroup(groupId, existing);
+			throw new ScimException(ex.getMessage(), ex, HttpStatus.CONFLICT);
+		} catch (ScimResourceNotFoundException ex) {
+			logger.error("Error updating group, restoring to previous state: " + existing);
+			// restore to correct state before reporting error
+			existing.setVersion(getVersion(groupId, "*"));
+			dao.updateGroup(groupId, existing);
+			throw new ScimException(ex.getMessage(), ex, HttpStatus.BAD_REQUEST);
 		}
 	}
 
@@ -164,9 +179,14 @@ public class ScimGroupEndpoints {
 								 @RequestHeader(value = "If-Match", required = false, defaultValue = "*") String etag) {
 		ScimGroup group = getGroup(groupId);
 		logger.debug("deleting group: " + group);
-		membershipManager.removeMembersByGroupId(groupId);
-		membershipManager.removeMembersByMemberId(groupId);
-		dao.removeGroup(groupId, getVersion(groupId, etag));
+		try {
+			membershipManager.removeMembersByGroupId(groupId);
+			membershipManager.removeMembersByMemberId(groupId);
+			dao.removeGroup(groupId, getVersion(groupId, etag));
+		} catch (IncorrectResultSizeDataAccessException ex) {
+			logger.error("error deleting group, restoring system to previous state");
+			throw new ScimException("error deleting group: " + groupId, ex, HttpStatus.CONFLICT);
+		}
 		return group;
 	}
 
@@ -194,14 +214,14 @@ public class ScimGroupEndpoints {
 
 	private int getVersion(String groupId, String etag) {
 		String value = etag.trim();
-		if (value.equals("*")) {
-			return dao.retrieveGroup(groupId).getVersion();
-		}
 		while (value.startsWith("\"")) {
 			value = value.substring(1);
 		}
 		while (value.endsWith("\"")) {
 			value = value.substring(0, value.length() - 1);
+		}
+		if (value.equals("*")) {
+			return dao.retrieveGroup(groupId).getVersion();
 		}
 		try {
 			return Integer.valueOf(value);

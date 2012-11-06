@@ -338,6 +338,15 @@ public class ScimUserEndpointsTests {
 		endpoints.deleteUser(exGuy.getId(), Integer.toString(exGuy.getMeta().getVersion()));
 	}
 
+	@Test
+	public void deleteIsAllowedWithQuotedEtag() {
+		ScimUser exGuy = new ScimUser(null, "deleteme", "Expendable", "Guy");
+		exGuy.addEmail("exguy@imonlyheretobedeleted.com");
+		exGuy = dao.createUser(exGuy, "exguyspassword");
+		createdUsers.add(exGuy);
+		endpoints.deleteUser(exGuy.getId(), "\"*");
+	}
+
 	@Test(expected = OptimisticLockingFailureException.class)
 	public void deleteIsNotAllowedWithWrongVersionInEtag() {
 		ScimUser exGuy = new ScimUser(null, "deleteme2", "Expendable", "Guy");

@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 import javax.sql.DataSource;
@@ -41,6 +42,8 @@ public class JdbcScimGroupProvisioningTests {
 	private JdbcScimGroupProvisioning dao;
 
 	private static final String addGroupSqlFormat = "insert into groups (id, displayName) values ('%s','%s')";
+
+	private static final String SQL_INJECTION_FIELDS = "displayName,version,created,lastModified";
 
 	private int existingGroupCount = -1;
 
@@ -185,5 +188,35 @@ public class JdbcScimGroupProvisioningTests {
 	private void addGroup(String id, String name) {
 		TestUtils.assertNoSuchUser(template, "id", id);
 		template.execute(String.format(addGroupSqlFormat, id, name));
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void sqlInjectionAttack1Fails() {
+		dao.retrieveGroups("displayName='something'; select " + SQL_INJECTION_FIELDS
+															  + " from groups where displayName='something'");
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void sqlInjectionAttack2Fails() {
+		dao.retrieveGroups("displayName gt 'a'; select " + SQL_INJECTION_FIELDS
+								   + " from groups where displayName='something'");
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void sqlInjectionAttack3Fails() {
+		dao.retrieveGroups("displayName eq 'something'; select " + SQL_INJECTION_FIELDS
+								   + " from groups where displayName='something'");
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void sqlInjectionAttack4Fails() {
+		dao.retrieveGroups("displayName eq 'something'; select id from groups where id='''; select " + SQL_INJECTION_FIELDS
+								   + " from groups where displayName='something'");
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void sqlInjectionAttack5Fails() {
+		dao.retrieveGroups("displayName eq 'something''; select " + SQL_INJECTION_FIELDS
+								   + " from groups where displayName='something''");
 	}
 }
