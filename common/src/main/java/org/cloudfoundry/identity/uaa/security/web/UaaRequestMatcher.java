@@ -21,6 +21,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.web.util.RequestMatcher;
 import org.springframework.util.Assert;
@@ -41,6 +42,8 @@ public final class UaaRequestMatcher implements RequestMatcher {
 
 	private List<MediaType> accepts;
 
+	private HttpMethod method;
+
 	private Map<String, String> parameters = new HashMap<String, String>();
 
 	public UaaRequestMatcher(String path) {
@@ -49,6 +52,15 @@ public final class UaaRequestMatcher implements RequestMatcher {
 			throw new IllegalArgumentException("UaaRequestMatcher is not intended for use with wildcards");
 		}
 		this.path = path;
+	}
+
+	/**
+	 * The HttpMethod that the request should be made with. Optional (if null, then all values match)
+	 *
+	 * @param method
+	 */
+	public void setMethod(HttpMethod method) {
+		this.method = method;
 	}
 
 	/**
@@ -81,6 +93,10 @@ public final class UaaRequestMatcher implements RequestMatcher {
 		}
 
 		if (!request.getRequestURI().startsWith(request.getContextPath() + path)) {
+			return false;
+		}
+
+		if (method != null && !method.toString().equals(request.getMethod().toUpperCase())) {
 			return false;
 		}
 
@@ -131,6 +147,10 @@ public final class UaaRequestMatcher implements RequestMatcher {
 			return false;
 		}
 
+		if (this.method != null && other.method != null && this.method != other.method) {
+			return false;
+		}
+
 		if (this.parameters == null) {
 			return true;
 		}
@@ -145,6 +165,9 @@ public final class UaaRequestMatcher implements RequestMatcher {
 	@Override
 	public int hashCode() {
 		int code = 31 ^ path.hashCode();
+		if (method != null) {
+			code ^= method.hashCode();
+		}
 		if (accepts != null) {
 			code ^= accepts.hashCode();
 		}

@@ -91,20 +91,37 @@
 				</bean>
 				<bean class="org.springframework.security.oauth2.provider.vote.ScopeVoter">
 					<property name="scopePrefix" value="scope=" />
+					<property name="throwException" value="false" />
 				</bean>
-				<bean class="org.springframework.security.access.vote.RoleVoter" />
 				<bean class="org.springframework.security.access.vote.AuthenticatedVoter" />
 			</list>
 		</constructor-arg>
 	</bean>
 
+	<http request-matcher-ref="groupsUpdateRequestMatcher" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
+				entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="groupAccessDecisionManager"
+				xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/**" access="scope=scim.write,scope=groups.update,memberScope=write" method="PUT" />
+		<custom-filter ref="scimResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
+		<access-denied-handler ref="oauthAccessDeniedHandler" />
+	</http>
+
+	<bean id="groupsUpdateRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
+		<constructor-arg value="/Groups" />
+		<property name="method" value="PUT" />
+		<property name="accept">
+			<list>
+				<value>application/json</value>
+			</list>
+		</property>
+	</bean>
+
 	<http pattern="/Groups/**" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
-		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="groupAccessDecisionManager"
+		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
 		xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/Groups/**" access="scope=scim.read" method="GET" />
 		<intercept-url pattern="/Groups/**" access="scope=scim.write" method="DELETE" />
 		<intercept-url pattern="/Groups" access="scope=scim.write" method="POST" />
-		<intercept-url pattern="/Groups/**" access="scope=scim.write,memberScope=write" method="PUT" />
 		<intercept-url pattern="/**" access="ROLE_NONEXISTENT" />
 		<custom-filter ref="scimResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
