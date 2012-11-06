@@ -239,14 +239,14 @@ public class ScimUserEndpoints implements InitializingBean {
 
 	private int getVersion(String userId, String etag) {
 		String value = etag.trim();
-		if (value.equals("*")) {
-			return dao.retrieveUser(userId).getVersion();
-		}
 		while (value.startsWith("\"")) {
 			value = value.substring(1);
 		}
 		while (value.endsWith("\"")) {
 			value = value.substring(0, value.length() - 1);
+		}
+		if (value.equals("*")) {
+			return dao.retrieveUser(userId).getVersion();
 		}
 		try {
 			return Integer.valueOf(value);
