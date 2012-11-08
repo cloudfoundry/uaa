@@ -19,7 +19,7 @@
 
 	<h1>Sample Home Page</h1>
 
-	<p>Welcome ${principal.principal.name}</p>
+	<p>Welcome ${principal.name}</p>
 	<h3>Technical Information</h3>
 	<p>Your principal object is....: ${principal}</p>
 	<p>Your OAuth2 tokens: ${tokens}</p>

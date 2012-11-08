@@ -11,7 +11,7 @@
  * subcomponent's license, as noted in the LICENSE file.
  */
 
-package org.cloudfoundry.identity.uaa.social;
+package org.cloudfoundry.identity.uaa.client;
 
 import static org.junit.Assert.assertTrue;
 
@@ -25,6 +25,9 @@ import org.springframework.security.oauth2.common.AuthenticationScheme;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 
 /**
+ * Tests some real internet-based OAuth2 user info providers. To run these tests you need to get access tokens for the
+ * relevant providers and set them up as system properties.
+ * 
  * @author Dave Syer
  * 
  */
@@ -47,7 +50,7 @@ public class OAuth2ClientAuthenticationFilterTests {
 		filter.setRestTemplate(restTemplate);
 		filter.setUserInfoUrl("https://uaa.cloudfoundry.com/userinfo");
 		filter.afterPropertiesSet();
-		SocialClientUserDetails user = filter.getUserDetails();
+		SocialClientUserDetails user = (SocialClientUserDetails) filter.getPrincipal();
 		assertTrue(!user.getAuthorities().isEmpty());
 	}
 
@@ -58,7 +61,7 @@ public class OAuth2ClientAuthenticationFilterTests {
 		filter.setRestTemplate(restTemplate);
 		filter.setUserInfoUrl("https://api.github.com/user");
 		filter.afterPropertiesSet();
-		SocialClientUserDetails user = filter.getUserDetails();
+		SocialClientUserDetails user = (SocialClientUserDetails) filter.getPrincipal();
 		assertTrue(!user.getAuthorities().isEmpty());
 	}
 
@@ -71,7 +74,7 @@ public class OAuth2ClientAuthenticationFilterTests {
 		filter.setRestTemplate(restTemplate);
 		filter.setUserInfoUrl("https://graph.facebook.com/me");
 		filter.afterPropertiesSet();
-		SocialClientUserDetails user = filter.getUserDetails();
+		SocialClientUserDetails user = (SocialClientUserDetails) filter.getPrincipal();
 		assertTrue(!user.getAuthorities().isEmpty());
 	}
 

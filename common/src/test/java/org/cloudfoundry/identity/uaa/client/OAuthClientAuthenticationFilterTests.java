@@ -11,7 +11,7 @@
  * subcomponent's license, as noted in the LICENSE file.
  */
 
-package org.cloudfoundry.identity.uaa.social;
+package org.cloudfoundry.identity.uaa.client;
 
 import static org.junit.Assert.assertTrue;
 
@@ -27,6 +27,9 @@ import org.springframework.security.oauth.consumer.OAuthSecurityContextImpl;
 import org.springframework.security.oauth.consumer.client.OAuthRestTemplate;
 
 /**
+ * Tests some real internet-based OAuth user info providers. To run these tests you need to get tokens keys and secrets
+ * for the relevant providers and set them up as system properties.
+ * 
  * @author Dave Syer
  * 
  */
@@ -63,7 +66,7 @@ public class OAuthClientAuthenticationFilterTests {
 		filter.setRestTemplate(restTemplate);
 		filter.setUserInfoUrl("https://api.twitter.com/1/account/verify_credentials.json");
 		filter.afterPropertiesSet();
-		SocialClientUserDetails user = filter.getUserDetails();
+		SocialClientUserDetails user = (SocialClientUserDetails) filter.getPrincipal();
 		assertTrue(!user.getAuthorities().isEmpty());
 	}
 
@@ -74,7 +77,7 @@ public class OAuthClientAuthenticationFilterTests {
 		filter.setRestTemplate(restTemplate);
 		filter.setUserInfoUrl("http://api.linkedin.com/v1/people/~:(id,first-name,last-name,formatted-name,api-standard-profile-request,public-profile-url)?format=json");
 		filter.afterPropertiesSet();
-		SocialClientUserDetails user = filter.getUserDetails();
+		SocialClientUserDetails user = (SocialClientUserDetails) filter.getPrincipal();
 		assertTrue(!user.getAuthorities().isEmpty());
 	}
 

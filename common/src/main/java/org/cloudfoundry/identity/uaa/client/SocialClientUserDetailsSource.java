@@ -11,14 +11,15 @@
  * subcomponent's license, as noted in the LICENSE file.
  */
 
-package org.cloudfoundry.identity.uaa.social;
+package org.cloudfoundry.identity.uaa.client;
 
 import java.util.List;
 import java.util.Map;
 
-import org.cloudfoundry.identity.uaa.social.SocialClientUserDetails.Source;
+import org.cloudfoundry.identity.uaa.client.SocialClientUserDetails.Source;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
 import org.springframework.util.Assert;
 import org.springframework.web.client.RestOperations;
@@ -41,7 +42,7 @@ import org.springframework.web.client.RestOperations;
  * @author Dave Syer
  * 
  */
-public class SocialClientUserDetailsSource implements InitializingBean {
+public class SocialClientUserDetailsSource implements InitializingBean, PreAuthenticatedPrincipalSource<Authentication> {
 
 	private RestOperations restTemplate;
 
@@ -73,7 +74,7 @@ public class SocialClientUserDetailsSource implements InitializingBean {
 		Assert.state(userInfoUrl != null, "User info URL must be provided");
 		Assert.state(restTemplate != null, "RestTemplate URL must be provided");
 	}
-
+	
 	/**
 	 * Get as much generic information as possible about the current user from the remote endpoint. The aim is to
 	 * collect as much of the properties of a {@link SocialClientUserDetails} as possible but not to fail if there is an
@@ -82,7 +83,8 @@ public class SocialClientUserDetailsSource implements InitializingBean {
 	 * 
 	 * @return some user details
 	 */
-	public SocialClientUserDetails getUserDetails() {
+	@Override
+	public Authentication getPrincipal() {
 		@SuppressWarnings("unchecked")
 		Map<String, String> map = restTemplate.getForObject(userInfoUrl, Map.class);
 		String userName = getUserName(map);
@@ -102,7 +104,7 @@ public class SocialClientUserDetailsSource implements InitializingBean {
 		user.setExternalId(getUserId(map));
 		String fullName = getFullName(map);
 		if (fullName != null) {
-			user.setName(fullName);
+			user.setFullName(fullName);
 		}
 		if (email != null) {
 			user.setEmail(email);

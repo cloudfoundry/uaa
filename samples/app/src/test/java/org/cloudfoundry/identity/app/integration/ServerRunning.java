@@ -178,7 +178,7 @@ public class ServerRunning extends TestWatchman implements RestTemplateHolder, U
 	}
 
 	public String getUserUri() {
-		return getAuthServerUrl("/User");
+		return getAuthServerUrl("/Users");
 	}
 
 	public String getAuthServerUrl(String path) {

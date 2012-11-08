@@ -63,12 +63,6 @@ public class AuthenticationIntegrationTests {
 		assertNotNull("Expected cookie in " + result.getHeaders(), cookie);
 		appHeaders.set("Cookie", cookie);
 
-		assertTrue("Wrong location: " + location, location.contains("/login"));
-		// *** GET /app/login
-		result = serverRunning.getForResponse(location, appHeaders);
-		assertEquals(HttpStatus.FOUND, result.getStatusCode());
-		location = result.getHeaders().getLocation().toString();
-
 		assertTrue("Wrong location: " + location, location.contains("/oauth/authorize"));
 		// *** GET /uaa/oauth/authorize
 		result = serverRunning.getForResponse(location, uaaHeaders);
@@ -115,15 +109,8 @@ public class AuthenticationIntegrationTests {
 
 		location = result.getHeaders().getLocation().toString();
 
-		assertTrue("Wrong location: " + location, location.contains(serverRunning.getUrl("/login")));
-		// *** GET /app/login
-		result = serverRunning.getForResponse(location, appHeaders);
-
-		assertEquals(HttpStatus.FOUND, result.getStatusCode());
-		location = result.getHeaders().getLocation().toString();
-
 		// SUCCESS
-		assertTrue("Wrong location: " + location, location.endsWith("/id"));
+		assertTrue("Wrong location: " + location, location.contains("/id"));
 
 		// *** GET /app/id
 		result = serverRunning.getForResponse(location, appHeaders);

@@ -11,11 +11,11 @@
  * subcomponent's license, as noted in the LICENSE file.
  */
 
-package org.cloudfoundry.identity.uaa.social;
+package org.cloudfoundry.identity.uaa.client;
 
 import static org.junit.Assert.*;
 
-import org.cloudfoundry.identity.uaa.social.SocialClientUserDetails.Source;
+import org.cloudfoundry.identity.uaa.client.SocialClientUserDetails.Source;
 import org.junit.Test;
 
 /**

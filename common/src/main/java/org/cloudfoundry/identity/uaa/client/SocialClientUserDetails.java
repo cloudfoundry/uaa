@@ -10,12 +10,12 @@
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  */
-package org.cloudfoundry.identity.uaa.social;
+package org.cloudfoundry.identity.uaa.client;
 
 import java.util.Collection;
 
+import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.User;
 
 /**
  * Customized {@code UserDetails} implementation.
@@ -23,7 +23,7 @@ import org.springframework.security.core.userdetails.User;
  * @author Luke Taylor
  * @author Dave Syer
  */
-public class SocialClientUserDetails extends User {
+public class SocialClientUserDetails extends AbstractAuthenticationToken {
 
 	public static class Source {
 
@@ -69,6 +69,8 @@ public class SocialClientUserDetails extends User {
 		}
 	}
 
+	private String username;
+	
 	private String email;
 
 	private String name;
@@ -78,7 +80,9 @@ public class SocialClientUserDetails extends User {
 	private String source;
 
 	public SocialClientUserDetails(String username, Collection<? extends GrantedAuthority> authorities) {
-		super(username, "unused", authorities);
+		super(authorities);
+		setAuthenticated(authorities!=null && !authorities.isEmpty());
+		this.username = username;
 	}
 
 	public String getEmail() {
@@ -98,11 +102,16 @@ public class SocialClientUserDetails extends User {
 	}
 
 	public String getName() {
-		return name;
+		// This is used as the principal name (which could then be used to look up tokens etc)
+		return username;
 	}
 
-	public void setName(String name) {
+	public void setFullName(String name) {
 		this.name = name;
+	}
+	
+	public String getFullName() {
+		return this.name;
 	}
 
 	public String getSource() {
@@ -111,5 +120,19 @@ public class SocialClientUserDetails extends User {
 
 	public void setSource(String source) {
 		this.source = source;
+	}
+	
+	public String getUsername() {
+		return username;
+	}
+
+	@Override
+	public Object getCredentials() {
+		return "N/A";
+	}
+
+	@Override
+	public Object getPrincipal() {
+		return this.username;
 	}
 }
