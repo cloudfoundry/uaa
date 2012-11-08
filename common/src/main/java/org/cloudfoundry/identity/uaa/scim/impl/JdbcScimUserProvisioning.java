@@ -250,11 +250,12 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		if (oldPassword != null) {
 			checkPasswordMatches(id, oldPassword);
 		}
-
+		passwordValidator.validate(newPassword, retrieveUser(id));
+		final String encNewPassword = passwordEncoder.encode(newPassword);
 		int updated = jdbcTemplate.update(CHANGE_PASSWORD_SQL, new PreparedStatementSetter() {
 			public void setValues(PreparedStatement ps) throws SQLException {
 				ps.setTimestamp(1, new Timestamp(new Date().getTime()));
-				ps.setString(2, passwordEncoder.encode(newPassword));
+				ps.setString(2, encNewPassword);
 				ps.setString(3, id);
 			}
 		});

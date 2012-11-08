@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.scim.impl;
 
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
+import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
@@ -194,16 +195,16 @@ public class JdbcScimUserProvisioningTests {
 
 	@Test
 	public void canChangePasswordWithouOldPassword() throws Exception {
-		assertTrue(db.changePassword(JOE_ID, null, "newpassword"));
+		assertTrue(db.changePassword(JOE_ID, null, "koala123$marissa"));
 		String storedPassword = template.queryForObject("SELECT password from USERS where ID=?", String.class, JOE_ID);
-		assertTrue(BCrypt.checkpw("newpassword", storedPassword));
+		assertTrue(BCrypt.checkpw("koala123$marissa", storedPassword));
 	}
 
 	@Test
 	public void canChangePasswordWithCorrectOldPassword() throws Exception {
-		assertTrue(db.changePassword(JOE_ID, "joespassword", "newpassword"));
+		assertTrue(db.changePassword(JOE_ID, "joespassword", "koala123$marissa"));
 		String storedPassword = template.queryForObject("SELECT password from USERS where ID=?", String.class, JOE_ID);
-		assertTrue(BCrypt.checkpw("newpassword", storedPassword));
+		assertTrue(BCrypt.checkpw("koala123$marissa", storedPassword));
 	}
 
 	@Test(expected = BadCredentialsException.class)
@@ -214,6 +215,11 @@ public class JdbcScimUserProvisioningTests {
 	@Test(expected = ScimResourceNotFoundException.class)
 	public void cannotChangePasswordIfOldPasswordDoesntMatch() {
 		assertTrue(db.changePassword("9999", null, "newpassword"));
+	}
+
+	@Test(expected = InvalidPasswordException.class)
+	public void cannotChangePasswordToNewInvalidPassword() {
+		db.changePassword(JOE_ID, "joespassword", "koala123$");
 	}
 
 	@Test
