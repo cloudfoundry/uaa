@@ -6,12 +6,12 @@ import uaa.Config._
 import uaa.ScimApi._
 import uaa.UaaApi._
 import uaa.OAuthComponents._
-import uaa.UniqueUsernamePasswordFeeder
+import uaa.{UniqueGroupFeeder, UniqueUsernamePasswordFeeder}
 
 /**
  * @author Luke Taylor
  */
-class UaaBaseDataCreationSimulation extends Simulation {
+class UaaUserDataCreationSimulation extends Simulation {
   val registerClients = scenario("Register clients")
     .exec(adminClientLogin())
     .doIf(haveAccessToken)(chain.exec(
@@ -33,4 +33,28 @@ class UaaBaseDataCreationSimulation extends Simulation {
     )
   }
 
+}
+
+/**
+ * @author Vidya Valmikinathan
+ */
+class UaaGroupDataCreationSimulation extends Simulation {
+  val registerClients = scenario("Register clients")
+    .exec(adminClientLogin())
+    .doIf(haveAccessToken)(chain.exec(
+    registerClient(scimClient)
+    )
+    .exec(registerClient(appClient))
+  )
+
+  def createGroups = scenario("Create groups")
+    .pause(5)
+    .insertChain(createScimGroups(UniqueGroupFeeder()))
+
+  def apply = {
+    Seq(
+      registerClients.configure users 1 protocolConfig uaaHttpConfig,
+      createGroups.configure users 5 protocolConfig uaaHttpConfig
+    )
+  }
 }

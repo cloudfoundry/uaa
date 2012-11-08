@@ -19,10 +19,11 @@ import uaa.OAuthComponents._
 
 import uaa.Config._
 import com.excilys.ebi.gatling.http.Predef._
-import com.excilys.ebi.gatling.core.feeder.Feeder
+import com.excilys.ebi.gatling.core.action.builder.ActionBuilder
 
 /**
  * @author Luke Taylor
+ * @author Vidya Valmikinathan
  */
 object ScimApi {
   def scimClientLogin() = clientCredentialsAccessTokenRequest(
@@ -44,7 +45,59 @@ object ScimApi {
       chain.feed(userFeeder)
         .exec((s: Session) => {println("Creating user: %s" format(s.getAttribute("username"))); s})
         .exec(createUser)
-    ).asLongAs(s => {userFeeder.hasNext}))
+      ).asLongAs(s => {userFeeder.hasNext})
+    )
+
+  def createScimGroups(groupFeeder: UniqueGroupFeeder): ChainBuilder =
+    chain.exec(
+      scimClientLogin()
+    )
+    .doIf(haveAccessToken)(
+      chain.loop(
+        chain.feed(groupFeeder)
+          .exec(findUserByName("memberName_1", "memberId_1"))
+          .exec(findUserByName("memberName_2", "memberId_2"))
+          .exec(createGroup)
+      ).asLongAs(s => {groupFeeder.hasNext})
+    )
+
+  /**
+   * Finds a user and stores their ID in the session as `userId`. Uses the session attribute "username" for the
+   * search.
+   */
+  def findUserByName(input: String, output: String) : ActionBuilder = {
+    http("Find user by name")
+      .get("/Users")
+      .queryParam("attributes", "id")
+      .queryParam("filter","userName eq '${" + input + "}'")
+      .header("Authorization", "Bearer ${access_token}")
+      .asJSON
+      .check(status.is(200), regex(""""id":"(.*?)"""").saveAs(output))
+  }
+
+  def findUserByName (input: String) : ActionBuilder = {
+    findUserByName(input, "userId")
+  }
+
+  /**
+   * Find a group by name
+   * @param input name of the session attribute that has the group name to lookup
+   * @param output name of the session attribute in which to store the group's id
+   * @return
+   */
+  def findGroupByName(input: String, output:String) : ActionBuilder = {
+    http("Find user by name")
+      .get("/Groups")
+      .queryParam("attributes", "id")
+      .queryParam("filter","displayName eq '${" + input + "}'")
+      .header("Authorization", "Bearer ${access_token}")
+      .asJSON
+      .check(status.is(200), regex(""""id":"(.*?)"""").saveAs(output))
+  }
+
+  def findGroupByName : ActionBuilder = {
+    findGroupByName("displayName", "groupId")
+  }
 
   /**
    * Creates a SCIM user.
@@ -61,27 +114,46 @@ object ScimApi {
         .check(status.is(201), regex(""""id":"(.*?)"""").saveAs("__scimUserId"))
 
   /**
-   * Finds a user and stores their ID in the session as `userId`. Uses the session attribute "username" for the
-   * search.
+   * Create a SCIM group.
    */
-  def findUserByName =
-    http("Find user by name")
-      .get("/Users")
-      .queryParam("attributes", "id")
-      .queryParam("filter","userName eq '${username}'")
-      .header("Authorization", "Bearer ${access_token}")
-      .asJSON
-      .check(status.is(200), regex(""""id":"(.*?)"""").saveAs("userId"))
+  def createGroup =
+      http("Create Group")
+        .post("/Groups")
+        .header("Authorization", "Bearer ${access_token}")
+        .body("""{"displayName":"${displayName}","members":[{"value":"${memberId_1}"},{"value":"${memberId_2}"}]}""")
+        .asJSON
+        .check(status.is(201), regex(""""id":"(.*?)"""").saveAs("__scimGroupId"))
 
   /**
    * Pulls a user by  `userId` and stores the data under `scimUser`
    */
-  def getUser =
+  def getUser (prefix: String) : ActionBuilder =
     http("Get User")
       .get("/Users/${userId}")
       .header("Authorization", "Bearer ${access_token}")
       .asJSON
-      .check(status.is(200), regex(".*").saveAs("scimUser"))
+      .check(status.is(200), regex(".*").saveAs(prefix + "User"), regex(""""id":"(.*?)"""").saveAs(prefix + "Id"))
+
+  def getUser : ActionBuilder = {
+    getUser("user")
+  }
+
+  /**
+   * Fetch a group using SCIM APIs.
+   *
+   * @param prefix prefix for session attributes to which to store the fetched group
+   * @return
+   */
+  def getGroup (prefix: String) : ActionBuilder =
+    http("Get Group")
+      .get("/Groups/${groupId}")
+      .header("Authorization", "Bearer ${access_token}")
+      .asJSON
+      .check(status.is(200), regex(".*").saveAs("scimGroup"), regex("""\[.*?}\]""").saveAs("memberJson"), regex(""""id":"(.*?)"""").saveAs(prefix + "Id"))
+
+  def getGroup : ActionBuilder = {
+    getGroup("group")
+  }
 
   /**
    * Performs an update using the data in `scimUser`.
@@ -90,10 +162,51 @@ object ScimApi {
     http("Update user")
       .put("/Users/${userId}")
       .header("Authorization", "Bearer ${access_token}")
-      .body("${scimUser")
+      .body("${scimUser}")
       .asJSON
       .check(status.is(204))
 
+  /**
+   * Add a user as a member to a group
+   * @param member the id of the user to add
+   * @return
+   */
+  def addGroupMember (member: String) =
+    http("Add member to group")
+      .put("/Groups/${groupId}")
+      .header("Authorization", "Bearer ${access_token}")
+      .header("If-Match", "*")
+      .body((s: Session) => getUpdatedGroupJson(s.getAttribute("scimGroup").toString, s.getAttribute("memberJson").toString, s.getAttribute(member).toString))
+      .asJSON
+      .check(status.is(200), regex(".*").saveAs("scimGroup"), regex("""\[.*?}\]""").saveAs("memberJson"))
+
+  /**
+   * Add a group as member to another group.
+   */
+  def nestGroup =
+    http("Add member to group")
+      .put("/Groups/${groupId}")
+      .header("Authorization", "Bearer ${access_token}")
+      .header("If-Match", "*")
+      .body((s: Session) => getUpdatedGroupJson(s.getAttribute("scimGroup").toString,
+                                                s.getAttribute("memberJson").toString,
+                                                s.getAttribute("memberId").toString,
+                                                "GROUP"))
+      .asJSON
+      .check(status.is(200), regex(""""id":"(.*?)"""").saveAs("memberId"))
+
+  /**
+   * Add a member to a given JSON representation of a group
+   * @param groupJson current JSON representation of a group
+   * @param memberJson substring of groupJson that lists current members of the group
+   * @param newMemberId id of new member to be added
+   * @param memberType 'USER' or 'GROUP'
+   * @return JSON representation of group that can be used in a PUT request body
+   */
+  def getUpdatedGroupJson(groupJson: String, memberJson: String, newMemberId: String, memberType: String = "USER") = {
+    val updatedMembersJson = """[ %s, { "value": "%s", "type": "%s", "authorities": ["READ"] } ]""" format(memberJson.substring(1).dropRight(1), newMemberId, memberType)
+    groupJson.replace(memberJson, updatedMembersJson)
+  }
 
   def changePassword =
       http("Change Password")

@@ -5,7 +5,13 @@ import com.excilys.ebi.gatling.core.Predef._
 import uaa.Config._
 import uaa.OAuthComponents._
 
-case class User(username: String, password: String)
+case class User(username: String, password: String) {
+  override def toString = {
+    username
+  }
+}
+
+case class Group(displayName: String, members: Seq[User])
 
 case class Client(id: String, secret: String, scopes: Seq[String], resources: Seq[String], authorities: Seq[String], grants: Seq[String] = Seq("client_credentials"), redirectUri: Option[String] = None) {
   val toJson = {
