@@ -19,10 +19,10 @@ import uaa.OAuthComponents._
 
 import uaa.Config._
 import com.excilys.ebi.gatling.http.Predef._
-import com.excilys.ebi.gatling.core.feeder.Feeder
 
 /**
  * @author Luke Taylor
+ * @author Vidya Valmikinathan
  */
 object ScimApi {
   def scimClientLogin() = clientCredentialsAccessTokenRequest(
@@ -44,7 +44,42 @@ object ScimApi {
       chain.feed(userFeeder)
         .exec((s: Session) => {println("Creating user: %s" format(s.getAttribute("username"))); s})
         .exec(createUser)
-    ).asLongAs(s => {userFeeder.hasNext}))
+      ).asLongAs(s => {userFeeder.hasNext})
+    )
+
+  def createScimGroups(groupFeeder: UniqueGroupFeeder): ChainBuilder =
+    chain.exec(
+      scimClientLogin()
+    )
+    .doIf(haveAccessToken)(
+      chain.loop(
+        chain.feed(groupFeeder)
+          .exec(getMemberUser("memberName_1", "memberId_1"))
+          .exec(getMemberUser("memberName_2", "memberId_2"))
+          .exec(createGroup)
+      ).asLongAs(s => {groupFeeder.hasNext})
+    )
+
+  def getMemberUser(input: String, output: String) = {
+    http("Find user by name")
+      .get("/Users")
+      .queryParam("attributes", "id")
+      .queryParam("filter","userName eq '${" + input + "}'")
+      .header("Authorization", "Bearer ${access_token}")
+      .asJSON
+      .check(status.is(200), regex(""""id":"(.*?)"""").saveAs(output))
+  }
+
+  def getMemberGroup(input: String, output:String) = {
+    http("Find user by name")
+      .get("/Groups")
+      .queryParam("attributes", "id")
+      .queryParam("filter","displayName eq '${" + input + "}'")
+      .header("Authorization", "Bearer ${access_token}")
+      .asJSON
+      .check(status.is(200), regex(""""id":"(.*?)"""").saveAs(output))
+  }
+
 
   /**
    * Creates a SCIM user.
@@ -61,17 +96,43 @@ object ScimApi {
         .check(status.is(201), regex(""""id":"(.*?)"""").saveAs("__scimUserId"))
 
   /**
+   * Creates a SCIM group.
+   *
+   * A suitable access token must already be available in the session, as well as displayName and memberIds.
+   *
+   */
+  def createGroup =
+      http("Create Group")
+        .post("/Groups")
+        .header("Authorization", "Bearer ${access_token}")
+        .body("""{"displayName":"${displayName}","members":[{"value":"${memberId_1}"},{"value":"${memberId_2}"}]}""")
+        .asJSON
+        .check(status.is(201), regex(""""id":"(.*?)"""").saveAs("__scimGroupId"))
+
+
+  /**
    * Finds a user and stores their ID in the session as `userId`. Uses the session attribute "username" for the
    * search.
    */
-  def findUserByName =
+  def findUserByName (input: String) = {
     http("Find user by name")
       .get("/Users")
       .queryParam("attributes", "id")
-      .queryParam("filter","userName eq '${username}'")
+      .queryParam("filter","userName eq '${" + input + "}'")
       .header("Authorization", "Bearer ${access_token}")
       .asJSON
       .check(status.is(200), regex(""""id":"(.*?)"""").saveAs("userId"))
+  }
+
+  def findGroupByName =
+    http("Find group by name")
+      .get("/Groups")
+      .queryParam("attributes", "id,members")
+      .queryParam("filter","displayName eq '${displayName}'")
+      .header("Authorization", "Bearer ${access_token}")
+      .asJSON
+      .check(status.is(200), regex(""""id":"(.*?)"""").saveAs("groupId"), regex(""""value":"(.*?)"""").saveAs("memberId"))
+
 
   /**
    * Pulls a user by  `userId` and stores the data under `scimUser`
@@ -83,6 +144,28 @@ object ScimApi {
       .asJSON
       .check(status.is(200), regex(".*").saveAs("scimUser"))
 
+  def getMemberUser =
+    http("Get Member User")
+      .get("/Users/${memberId}")
+      .header("Authorization", "Bearer ${access_token}")
+      .asJSON
+      .check(status.is(200), regex(".*").saveAs("memberUser"), regex(""""id":"(.*?)"""").saveAs("memberId"))
+
+  def getGroup =
+    http("Get Group")
+      .get("/Groups/${groupId}")
+      .header("Authorization", "Bearer ${access_token}")
+      .asJSON
+      .check(status.is(200), regex(".*").saveAs("scimGroup"), regex("""\[.*?}\]""").saveAs("memberJson"))
+
+  def getMemberGroup =
+    http("Get Member Group")
+      .get("/Groups/${memberId}")
+      .header("Authorization", "Bearer ${access_token}")
+      .asJSON
+      .check(status.is(200), regex(".*").saveAs("memberGroup"), regex(""""id":"(.*?)"""").saveAs("memberId"))
+
+
   /**
    * Performs an update using the data in `scimUser`.
    */
@@ -90,10 +173,38 @@ object ScimApi {
     http("Update user")
       .put("/Users/${userId}")
       .header("Authorization", "Bearer ${access_token}")
-      .body("${scimUser")
+      .body("${scimUser}")
       .asJSON
       .check(status.is(204))
 
+  def addGroupMember (member: String) =
+    http("Add member to group")
+      .put("/Groups/${groupId}")
+      .header("Authorization", "Bearer ${access_token}")
+      .header("If-Match", "*")
+      .body((s: Session) => getUpdatedGroupJson(s.getAttribute("scimGroup").toString, s.getAttribute("memberJson").toString, s.getAttribute(member).toString))
+      .asJSON
+      .check(status.is(200), regex(".*").saveAs("scimGroup"), regex("""\[.*?}\]""").saveAs("memberJson"))
+
+  def nestGroup =
+    http("Add member to group")
+      .put("/Groups/${groupId}")
+      .header("Authorization", "Bearer ${access_token}")
+      .header("If-Match", "*")
+      .body((s: Session) => getUpdatedGroupJson(s.getAttribute("scimGroup").toString,
+                                                s.getAttribute("memberJson").toString,
+                                                s.getAttribute("memberId").toString,
+                                                "GROUP"))
+      .asJSON
+      .check(status.is(200), regex(""""id":"(.*?)"""").saveAs("memberId"))
+
+
+  def getUpdatedGroupJson(groupJson: String, memberJson: String, newMemberId: String, memberType: String = "USER") = {
+    val updatedMembersJson = """[ %s, { "value": "%s", "type": "%s", "authorities": ["READ"] } ]""" format(memberJson.substring(1).dropRight(1), newMemberId, memberType)
+    val result = groupJson.replace(memberJson, updatedMembersJson)
+//    if (memberType == "USER") println("\n\n>>>> " + result)
+    result
+  }
 
   def changePassword =
       http("Change Password")

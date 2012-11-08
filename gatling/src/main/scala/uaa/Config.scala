@@ -20,7 +20,13 @@ import io.Source
  */
 object Config {
   // Number of base data users to create
-  val nUsers = 10000
+  val nUsers = 1000
+
+  // Number of base data groups to create
+  val nGroups = 500
+
+  // Average number of members in a group
+  val avgGroupSize = nUsers/nGroups
 
   def yetiTarget = for {
     userHome <- sys.props.get("user.home")
@@ -62,6 +68,9 @@ object Config {
 
   // The base user data
   val users: Seq[User] = (1 to nUsers).map(i => User("shaun" + i, "password"))
+
+  // The base group data
+  val groups: Seq[Group] = (1 to nGroups).map(i => Group("acme." + i, Seq(User("shaun" + i, "password"))))
 
   def uaaHttpConfig = {
     val uaaUrl = baseUrl map (prependHttp) map (_.replace("://", "://uaa.")) getOrElse "http://localhost:8080/uaa"
