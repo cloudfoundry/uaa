@@ -108,7 +108,7 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
 						throw new BadCredentialsException("Bad credentials");
 					}
 				}
-				Authentication success = new UaaAuthentication(new UaaPrincipal(user), UaaAuthority.USER_AUTHORITIES,
+				Authentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(),
 						(UaaAuthenticationDetails) req.getDetails());
 				eventPublisher.publishEvent(new UserAuthenticationSuccessEvent(user, success));
 				return success;

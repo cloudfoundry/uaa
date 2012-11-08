@@ -90,6 +90,16 @@ public class LoginAuthenticationManagerTests {
 		assertEquals(user.getId(), ((UaaPrincipal) authentication.getPrincipal()).getId());
 	}
 
+	@Test
+	public void testHappyDayWithAuthorities() {
+		UaaUser user = UaaUserTestFactory.getAdminUser("FOO", "foo", "fo@test.org", "Foo", "Bar");
+		Mockito.when(userDatabase.retrieveUserByName("foo")).thenReturn(user);
+		Authentication authentication = manager.authenticate(UaaAuthenticationTestFactory
+				.getAuthenticationRequest("foo"));
+		assertEquals(user.getUsername(), ((UaaPrincipal) authentication.getPrincipal()).getName());
+		assertEquals(user.getAuthorities(), authentication.getAuthorities());
+	}
+
 	@Test(expected = BadCredentialsException.class)
 	public void testUserNotFoundNoAutoAdd() {
 		Mockito.when(userDatabase.retrieveUserByName("foo")).thenThrow(new UsernameNotFoundException("planned"));
