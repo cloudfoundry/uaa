@@ -10,7 +10,6 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimUserBootstrap;
-import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.springframework.context.ApplicationEventPublisher;
@@ -108,7 +107,7 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
 						throw new BadCredentialsException("Bad credentials");
 					}
 				}
-				Authentication success = new UaaAuthentication(new UaaPrincipal(user), UaaAuthority.USER_AUTHORITIES,
+				Authentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(),
 						(UaaAuthenticationDetails) req.getDetails());
 				eventPublisher.publishEvent(new UserAuthenticationSuccessEvent(user, success));
 				return success;
