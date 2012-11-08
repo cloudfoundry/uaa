@@ -1,5 +1,22 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
+import javax.sql.DataSource;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter;
@@ -17,9 +34,7 @@ import org.cloudfoundry.identity.uaa.scim.impl.NullPasswordValidator;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -37,22 +52,6 @@ import org.springframework.test.annotation.ProfileValueSourceConfiguration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.servlet.View;
-
-import javax.sql.DataSource;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 @ContextConfiguration("classpath:/test-data-source.xml")
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -233,10 +232,9 @@ public class ScimGroupEndpointsTests {
 	public void testCreateExistingGroupFails() {
 		ScimGroup g = new ScimGroup("", "clients.read");
 		g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroup.GROUP_ADMIN)));
-		ScimGroup g1 = endpoints.createGroup(g);
-
+		endpoints.createGroup(g);
 		expectedEx.expect(ScimResourceAlreadyExistsException.class);
-		ScimGroup g2 = endpoints.createGroup(g);
+		endpoints.createGroup(g);
 	}
 
 	@Test
@@ -245,7 +243,7 @@ public class ScimGroupEndpointsTests {
 		g.setMembers(Arrays.asList(new ScimGroupMember("non-existent id", ScimGroupMember.Type.USER, ScimGroup.GROUP_ADMIN)));
 
 		try {
-			ScimGroup g1 = endpoints.createGroup(g);
+			endpoints.createGroup(g);
 			fail("must have thrown exception");
 		} catch (InvalidScimResourceException ex) {
 			// ensure that the group was not created
@@ -394,8 +392,7 @@ public class ScimGroupEndpointsTests {
 		map.put(UnsupportedOperationException.class, HttpStatus.BAD_REQUEST);
 		map.put(BadSqlGrammarException.class, HttpStatus.BAD_REQUEST);
 		endpoints.setStatuses(map);
-		HttpMessageConverter[] converters = {new ExceptionReportHttpMessageConverter()};
-		endpoints.setMessageConverters(converters);
+		endpoints.setMessageConverters(new HttpMessageConverter<?>[] {new ExceptionReportHttpMessageConverter()});
 
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		validateView(endpoints.handleException(new ScimResourceNotFoundException(""), request), HttpStatus.NOT_FOUND);
