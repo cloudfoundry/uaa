@@ -12,7 +12,6 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.expression.spel.SpelEvaluationException;
 import org.springframework.expression.spel.SpelParseException;
@@ -196,8 +195,6 @@ public class ScimGroupEndpoints {
 		ScimException e = new ScimException("Unexpected error", t, HttpStatus.INTERNAL_SERVER_ERROR);
 		if (t instanceof ScimException) {
 			e = (ScimException) t;
-		} else if (t instanceof DataIntegrityViolationException) {
-			e = new ScimException(t.getMessage(), t, HttpStatus.BAD_REQUEST);
 		} else {
 			Class<?> clazz = t.getClass();
 			for (Class<?> key : statuses.keySet()) {

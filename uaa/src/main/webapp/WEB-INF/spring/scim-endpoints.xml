@@ -54,6 +54,9 @@
 	<bean class="org.cloudfoundry.identity.uaa.config.HandlerAdapterFactoryBean" />
 
 	<util:map id="exceptionToStatusMap" key-type="java.lang.Class" value-type="org.springframework.http.HttpStatus">
+		<entry key="org.springframework.dao.DataIntegrityViolationException" value="BAD_REQUEST" />
+		<entry key="org.springframework.http.converter.HttpMessageConversionException" value="BAD_REQUEST" />
+		<entry key="org.springframework.web.HttpMediaTypeException" value="BAD_REQUEST" />
 		<entry key="java.lang.IllegalArgumentException" value="BAD_REQUEST" />
 		<entry key="java.lang.UnsupportedOperationException" value="BAD_REQUEST" />
 		<entry key="org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException" value="BAD_REQUEST" />

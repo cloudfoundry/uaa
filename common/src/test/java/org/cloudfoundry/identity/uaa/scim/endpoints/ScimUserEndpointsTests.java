@@ -43,6 +43,7 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageConversionException;
 import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabase;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
@@ -50,6 +51,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.HttpMediaTypeException;
 import org.springframework.web.servlet.View;
 
 import java.util.ArrayList;
@@ -128,6 +130,15 @@ public class ScimUserEndpointsTests {
 		dale.addEmail("olds@vmware.com");
 		joel = dao.createUser(joel, "password");
 		dale = dao.createUser(dale, "password");
+
+		Map<Class<? extends Exception>, HttpStatus> map = new HashMap<Class<? extends Exception>, HttpStatus>();
+		map.put(IllegalArgumentException.class, HttpStatus.BAD_REQUEST);
+		map.put(UnsupportedOperationException.class, HttpStatus.BAD_REQUEST);
+		map.put(BadSqlGrammarException.class, HttpStatus.BAD_REQUEST);
+		map.put(DataIntegrityViolationException.class, HttpStatus.BAD_REQUEST);
+		map.put(HttpMessageConversionException.class, HttpStatus.BAD_REQUEST);
+		map.put(HttpMediaTypeException.class, HttpStatus.BAD_REQUEST);
+		endpoints.setStatuses(map);
 	}
 
 	@AfterClass
