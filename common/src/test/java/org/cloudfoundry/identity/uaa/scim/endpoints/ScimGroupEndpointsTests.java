@@ -42,6 +42,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.HttpMessageConversionException;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -51,6 +52,7 @@ import org.springframework.test.annotation.IfProfileValue;
 import org.springframework.test.annotation.ProfileValueSourceConfiguration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.web.HttpMediaTypeException;
 import org.springframework.web.servlet.View;
 
 @ContextConfiguration("classpath:/test-data-source.xml")
@@ -391,6 +393,9 @@ public class ScimGroupEndpointsTests {
 		map.put(IllegalArgumentException.class, HttpStatus.BAD_REQUEST);
 		map.put(UnsupportedOperationException.class, HttpStatus.BAD_REQUEST);
 		map.put(BadSqlGrammarException.class, HttpStatus.BAD_REQUEST);
+		map.put(DataIntegrityViolationException.class, HttpStatus.BAD_REQUEST);
+		map.put(HttpMessageConversionException.class, HttpStatus.BAD_REQUEST);
+		map.put(HttpMediaTypeException.class, HttpStatus.BAD_REQUEST);
 		endpoints.setStatuses(map);
 		endpoints.setMessageConverters(new HttpMessageConverter<?>[] {new ExceptionReportHttpMessageConverter()});
 
