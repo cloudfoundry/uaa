@@ -59,12 +59,8 @@
 		<entry key="org.springframework.web.HttpMediaTypeException" value="BAD_REQUEST" />
 		<entry key="java.lang.IllegalArgumentException" value="BAD_REQUEST" />
 		<entry key="java.lang.UnsupportedOperationException" value="BAD_REQUEST" />
-		<entry key="org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException" value="BAD_REQUEST" />
-		<entry key="org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException" value="BAD_REQUEST" />
-		<entry key="org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException" value="NOT_FOUND" />
-		<entry key="org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException" value="CONFLICT" />
-		<entry key="org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException" value="CONFLICT" />
 		<entry key="org.springframework.jdbc.BadSqlGrammarException" value="BAD_REQUEST" />
+		<entry key="org.springframework.security.core.AuthenticationException" value="UNAUTHORIZED" />
 	</util:map>
 
 	<bean id="scimUserEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints">
@@ -141,6 +137,10 @@
 
 	<bean id="passwordChangeEndpoint" class="org.cloudfoundry.identity.uaa.password.PasswordChangeEndpoint">
 		<constructor-arg ref="scimUserProvisioning" />
+		<property name="messageConverters">
+			<bean class="org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter" />
+		</property>
+		<property name="statuses" ref="exceptionToStatusMap" />
 	</bean>
 
 	<http pattern="/User*/*/password" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
