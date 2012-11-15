@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -260,6 +261,8 @@ public class ClientAdminEndpoints implements InitializingBean {
 	private ClientDetails validateClient(ClientDetails prototype, boolean create) {
 
 		BaseClientDetails client = new BaseClientDetails(prototype);
+		
+		client.setAdditionalInformation(prototype.getAdditionalInformation());
 
 		String clientId = client.getClientId();
 		if (create && reservedClientIds.contains(clientId)) {
@@ -454,6 +457,16 @@ public class ClientAdminEndpoints implements InitializingBean {
 		if (details.getScope() == null || details.getScope().isEmpty()) {
 			details.setScope(existing.getScope());
 		}
+		
+		Map<String, Object> additionalInformation = new HashMap<String, Object>(input.getAdditionalInformation());
+		additionalInformation.putAll(existing.getAdditionalInformation());
+		for (String key : Collections.unmodifiableSet(additionalInformation.keySet())) {
+			if (additionalInformation.get(key)==null) {
+				additionalInformation.remove(key);
+			}
+		}
+		details.setAdditionalInformation(additionalInformation);
+		
 		return details;
 	}
 
