@@ -74,8 +74,7 @@ public class PasswordChangeEndpointTests {
 		endpoints.changePassword(joel.getId(), change);
 	}
 
-	@Ignore
-	@Test(expected = ScimException.class)
+	@Test(expected = BadCredentialsException.class)
 	public void userCantChangeAnotherUsersPassword() {
 		endpoints.setSecurityContextAccessor(mockSecurityContext(joel));
 		PasswordChangeRequest change = new PasswordChangeRequest();
@@ -94,7 +93,7 @@ public class PasswordChangeEndpointTests {
 		endpoints.changePassword(joel.getId(), change);
 	}
 
-	@Test(expected = ScimException.class)
+	@Test(expected = BadCredentialsException.class)
 	public void changePasswordRequestFailsForUserWithoutCurrentPassword() {
 		endpoints.setSecurityContextAccessor(mockSecurityContext(joel));
 		PasswordChangeRequest change = new PasswordChangeRequest();
@@ -102,7 +101,7 @@ public class PasswordChangeEndpointTests {
 		endpoints.changePassword(joel.getId(), change);
 	}
 
-	@Test(expected = ScimException.class)
+	@Test(expected = BadCredentialsException.class)
 	public void changePasswordRequestFailsForAdminWithoutOwnCurrentPassword() {
 		endpoints.setSecurityContextAccessor(mockSecurityContext(joel));
 		PasswordChangeRequest change = new PasswordChangeRequest();
@@ -128,5 +127,16 @@ public class PasswordChangeEndpointTests {
 		change.setOldPassword("wrongpassword");
 		endpoints.changePassword(joel.getId(), change);
 	}
+
+	@Test (expected = BadCredentialsException.class)
+	public void changePasswordForNonExistentUserFailsCorrectly() {
+		ScimUser nonExistentUser = new ScimUser("invalid-id", "invalid-unm", "invalid-fnm", "invalid-lnm");
+		endpoints.setSecurityContextAccessor(mockSecurityContext(nonExistentUser));
+		PasswordChangeRequest change = new PasswordChangeRequest();
+		change.setPassword("newpassword");
+		change.setOldPassword("wrongpassword");
+		endpoints.changePassword(nonExistentUser.getId(), change);
+	}
+
 
 }
