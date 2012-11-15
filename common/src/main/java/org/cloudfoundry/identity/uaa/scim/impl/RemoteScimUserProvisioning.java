@@ -90,7 +90,7 @@ public class RemoteScimUserProvisioning implements ScimUserProvisioning {
 	}
 
 	@Override
-	public boolean changePassword(String id, String oldPassword, String newPassword) throws ScimResourceNotFoundException {
+	public boolean changePassword(String id, String oldPassword, String newPassword) {
 		PasswordChangeRequest request = new PasswordChangeRequest();
 		request.setOldPassword(oldPassword);
 		request.setPassword(newPassword);
