@@ -12,6 +12,8 @@
  */
 package org.cloudfoundry.identity.uaa.scim.impl;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
@@ -95,6 +97,7 @@ public class JdbcScimUserProvisioningTests {
 		filterConverter.setAttributeNameMapper(new SimpleAttributeNameMapper(replaceWith));
 		db.setQueryConverter(filterConverter);
 		BCryptPasswordEncoder pe = new BCryptPasswordEncoder(4);
+		db.setPasswordEncoder(pe);
 		
 		existingUserCount = template.queryForInt("select count(id) from users");
 
@@ -212,7 +215,7 @@ public class JdbcScimUserProvisioningTests {
 		db.changePassword(JOE_ID, "notjoespassword", "newpassword");
 	}
 
-	@Test(expected = ScimResourceNotFoundException.class)
+	@Test(expected = BadCredentialsException.class)
 	public void cannotChangePasswordIfOldPasswordDoesntMatch() {
 		assertTrue(db.changePassword("9999", null, "newpassword"));
 	}

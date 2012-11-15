@@ -37,7 +37,7 @@ public interface ScimUserProvisioning {
 
 	public ScimUser updateUser(String id, ScimUser user) throws InvalidScimResourceException, ScimResourceNotFoundException;
 
-	public boolean changePassword(String id, String oldPassword, String newPassword) throws ScimResourceNotFoundException;
+	public boolean changePassword(String id, String oldPassword, String newPassword);
 
 	public ScimUser removeUser(String id, int version) throws ScimResourceNotFoundException;
 

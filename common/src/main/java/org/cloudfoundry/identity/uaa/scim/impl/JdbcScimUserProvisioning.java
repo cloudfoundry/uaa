@@ -35,6 +35,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -245,12 +246,16 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	}
 
 	@Override
-	public boolean changePassword(final String id, String oldPassword, final String newPassword)
-			throws ScimResourceNotFoundException {
-		if (oldPassword != null) {
+	public boolean changePassword(final String id, String oldPassword, final String newPassword) {
+		if (StringUtils.hasText(oldPassword)) {
 			checkPasswordMatches(id, oldPassword);
 		}
-		passwordValidator.validate(newPassword, retrieveUser(id));
+		try {
+			passwordValidator.validate(newPassword, retrieveUser(id));
+		} catch (ScimResourceNotFoundException ex) {
+			throw new BadCredentialsException("Invalid credentials");
+		}
+
 		final String encNewPassword = passwordEncoder.encode(newPassword);
 		int updated = jdbcTemplate.update(CHANGE_PASSWORD_SQL, new PreparedStatementSetter() {
 			public void setValues(PreparedStatement ps) throws SQLException {
@@ -259,11 +264,9 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 				ps.setString(3, id);
 			}
 		});
-		if (updated == 0) {
-			throw new ScimResourceNotFoundException("User " + id + " does not exist");
-		}
 		if (updated != 1) {
-			throw new IncorrectResultSizeDataAccessException(1);
+			logger.error("password update failed, updated=" + updated);
+			throw new OptimisticLockingFailureException("error updating password for user: " + id);
 		}
 		return true;
 	}
@@ -276,11 +279,16 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 					new int[] { Types.VARCHAR }, String.class);
 		}
 		catch (IncorrectResultSizeDataAccessException e) {
-			throw new ScimResourceNotFoundException("User " + id + " does not exist");
+			logger.error("attempt to change password for a non-existent user", e);
+			// This means no user exists with the given id.
+			// However we should still do the password match somehow, so that there is no difference in the server's
+			// response time between 'username not found' and 'password does not match' error scenarios.
+			passwordEncoder.matches(oldPassword, oldPassword);
+			throw new BadCredentialsException("Invalid credentials");
 		}
 
 		if (!passwordEncoder.matches(oldPassword, currentPassword)) {
-			throw new BadCredentialsException("Old password is incorrect");
+			throw new BadCredentialsException("Invalid credentials");
 		}
 	}
 
