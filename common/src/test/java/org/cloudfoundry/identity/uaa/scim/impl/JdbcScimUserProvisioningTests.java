@@ -95,6 +95,7 @@ public class JdbcScimUserProvisioningTests {
 		filterConverter.setAttributeNameMapper(new SimpleAttributeNameMapper(replaceWith));
 		db.setQueryConverter(filterConverter);
 		BCryptPasswordEncoder pe = new BCryptPasswordEncoder(4);
+		db.setPasswordEncoder(pe);
 		
 		existingUserCount = template.queryForInt("select count(id) from users");
 
