@@ -268,14 +268,7 @@ public class ScimUserEndpoints implements InitializingBean {
 		ScimException e = new ScimException("Unexpected error", t, HttpStatus.INTERNAL_SERVER_ERROR);
 		if (t instanceof ScimException) {
 			e = (ScimException) t;
-		}
-		else if (t instanceof DataIntegrityViolationException) {
-			e = new ScimException(t.getMessage(), t, HttpStatus.BAD_REQUEST);
-		}
-		else if (t instanceof HttpMessageConversionException) {
-			e = new ScimException(t.getMessage(), t, HttpStatus.BAD_REQUEST);
-		}
-		else {
+		} else {
 			Class<?> clazz = t.getClass();
 			for (Class<?> key : statuses.keySet()) {
 				if (key.isAssignableFrom(clazz)) {

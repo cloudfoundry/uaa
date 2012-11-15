@@ -18,6 +18,7 @@ import org.springframework.expression.spel.SpelEvaluationException;
 import org.springframework.expression.spel.SpelParseException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageConversionException;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.StringUtils;
@@ -196,8 +197,6 @@ public class ScimGroupEndpoints {
 		ScimException e = new ScimException("Unexpected error", t, HttpStatus.INTERNAL_SERVER_ERROR);
 		if (t instanceof ScimException) {
 			e = (ScimException) t;
-		} else if (t instanceof DataIntegrityViolationException) {
-			e = new ScimException(t.getMessage(), t, HttpStatus.BAD_REQUEST);
 		} else {
 			Class<?> clazz = t.getClass();
 			for (Class<?> key : statuses.keySet()) {
