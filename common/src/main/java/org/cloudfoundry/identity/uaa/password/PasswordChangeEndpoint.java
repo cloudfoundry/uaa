@@ -18,7 +18,6 @@ import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReport;
 import org.cloudfoundry.identity.uaa.rest.SimpleMessage;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
@@ -38,6 +37,10 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
 
+import javax.servlet.http.HttpServletRequest;
+import java.util.HashMap;
+import java.util.Map;
+
 @Controller
 public class PasswordChangeEndpoint {
 
@@ -50,6 +53,12 @@ public class PasswordChangeEndpoint {
 	private HttpMessageConverter<?>[] messageConverters = new RestTemplate().getMessageConverters().toArray(
 			new HttpMessageConverter<?>[0]);
 	
+	private Map<Class<? extends Exception>, HttpStatus> statuses = new HashMap<Class<? extends Exception>, HttpStatus>();
+
+	public void setStatuses(Map<Class<? extends Exception>, HttpStatus> statuses) {
+		this.statuses = statuses;
+	}
+
 	public void setScimUserProvisioning(ScimUserProvisioning provisioning) {
 		this.dao = provisioning;
 	}
@@ -72,9 +81,16 @@ public class PasswordChangeEndpoint {
 	public SimpleMessage changePassword(@PathVariable String userId, @RequestBody PasswordChangeRequest change) {
 		checkPasswordChangeIsAllowed(userId, change.getOldPassword());
 		if (!dao.changePassword(userId, change.getOldPassword(), change.getPassword())) {
-			throw new InvalidPasswordException("Password not changed for user: " + userId);
+			throw new BadCredentialsException("invalid password change request");
 		}
 		return new SimpleMessage("ok", "password updated");
+	}
+
+	@ExceptionHandler
+	public View handleException(BadCredentialsException e) {
+		// we handle this separately so as to avoid converting this to a generic scim error
+		return new ConvertingExceptionView(new ResponseEntity<ExceptionReport>(new ExceptionReport(e, false),
+				HttpStatus.UNAUTHORIZED), messageConverters);
 	}
 
 	@ExceptionHandler
@@ -94,6 +110,20 @@ public class PasswordChangeEndpoint {
 				messageConverters);
 	}
 
+	@ExceptionHandler
+	public View handleException(Exception t) throws ScimException {
+		ScimException e = new ScimException("Unexpected error", t, HttpStatus.INTERNAL_SERVER_ERROR);
+		Class<?> clazz = t.getClass();
+		for (Class<?> key : statuses.keySet()) {
+			if (key.isAssignableFrom(clazz)) {
+				e = new ScimException(t.getMessage(), t, statuses.get(key));
+				break;
+			}
+		}
+		return new ConvertingExceptionView(new ResponseEntity<ExceptionReport>(new ExceptionReport(e, false),
+																					  e.getStatus()), messageConverters);
+	}
+
 	private void checkPasswordChangeIsAllowed(String userId, String oldPassword) {
 		if (securityContextAccessor.isClient()) {
 			// Trusted client (not acting on behalf of user)
@@ -107,7 +137,7 @@ public class PasswordChangeEndpoint {
 
 			// even an admin needs to provide the old value to change his password
 			if (userId.equals(currentUser) && !StringUtils.hasText(oldPassword)) {
-				throw new InvalidPasswordException("Previous password is required even for admin");
+				throw new BadCredentialsException("Previous password is required even for admin");
 			}
 
 		}
@@ -116,12 +146,12 @@ public class PasswordChangeEndpoint {
 			if (!userId.equals(currentUser)) {
 				logger.warn("User with id " + currentUser + " attempting to change password for user " + userId);
 				// TODO: This should be audited when we have non-authentication events in the log
-				throw new InvalidPasswordException("Not permitted to change another user's password");
+				throw new BadCredentialsException("Bad request. Not permitted to change another user's password");
 			}
 
 			// User is changing their own password, old password is required
 			if (!StringUtils.hasText(oldPassword)) {
-				throw new InvalidPasswordException("Previous password is required");
+				throw new BadCredentialsException("Previous password is required");
 			}
 
 		}
