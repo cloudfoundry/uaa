@@ -24,13 +24,11 @@ import org.cloudfoundry.identity.uaa.scim.util.AttributeNameMapper;
 import org.cloudfoundry.identity.uaa.scim.util.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.expression.spel.SpelEvaluationException;
 import org.springframework.expression.spel.SpelParseException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.HttpMessageConversionException;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.jmx.export.annotation.ManagedMetric;
 import org.springframework.jmx.export.annotation.ManagedResource;
@@ -268,14 +266,7 @@ public class ScimUserEndpoints implements InitializingBean {
 		ScimException e = new ScimException("Unexpected error", t, HttpStatus.INTERNAL_SERVER_ERROR);
 		if (t instanceof ScimException) {
 			e = (ScimException) t;
-		}
-		else if (t instanceof DataIntegrityViolationException) {
-			e = new ScimException(t.getMessage(), t, HttpStatus.BAD_REQUEST);
-		}
-		else if (t instanceof HttpMessageConversionException) {
-			e = new ScimException(t.getMessage(), t, HttpStatus.BAD_REQUEST);
-		}
-		else {
+		} else {
 			Class<?> clazz = t.getClass();
 			for (Class<?> key : statuses.keySet()) {
 				if (key.isAssignableFrom(clazz)) {
