@@ -31,7 +31,6 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.annotation.IfProfileValue;
@@ -97,6 +96,7 @@ public class JdbcScimUserProvisioningTests {
 		filterConverter.setAttributeNameMapper(new SimpleAttributeNameMapper(replaceWith));
 		db.setQueryConverter(filterConverter);
 		BCryptPasswordEncoder pe = new BCryptPasswordEncoder(4);
+		db.setPasswordEncoder(pe);
 		
 		existingUserCount = template.queryForInt("select count(id) from users");
 
@@ -209,9 +209,9 @@ public class JdbcScimUserProvisioningTests {
 		assertTrue(BCrypt.checkpw("koala123$marissa", storedPassword));
 	}
 
-	@Test(expected = BadCredentialsException.class)
+	@Test
 	public void cannotChangePasswordNonexistentUser() {
-		db.changePassword(JOE_ID, "notjoespassword", "newpassword");
+		assertFalse(db.changePassword(JOE_ID, "notjoespassword", "newpassword"));
 	}
 
 	@Test(expected = ScimResourceNotFoundException.class)
