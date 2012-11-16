@@ -431,6 +431,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 		details.setRegisteredRedirectUri(client.getRegisteredRedirectUri());
 		details.setAuthorities(client.getAuthorities());
 		details.setAccessTokenValiditySeconds(client.getAccessTokenValiditySeconds());
+		details.setAdditionalInformation(client.getAdditionalInformation());
 		return details;
 	}
 

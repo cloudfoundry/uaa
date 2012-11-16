@@ -162,6 +162,16 @@ public class ClientAdminEndpointsTests {
 	}
 
 	@Test
+	public void testGetClientDetails() throws Exception {
+		Mockito.when(clientDetailsService.loadClientByClientId(input.getClientId())).thenReturn(input);
+		input.setScope(Arrays.asList(input.getClientId() + ".read"));
+		input.setAdditionalInformation(Collections.singletonMap("foo", "bar"));
+		ClientDetails result = endpoints.getClientDetails(input.getClientId());
+		assertNull(result.getClientSecret());
+		assertEquals(input.getAdditionalInformation(), result.getAdditionalInformation());
+	}
+
+	@Test
 	public void testUpdateClientDetails() throws Exception {
 		Mockito.when(clientDetailsService.loadClientByClientId(input.getClientId())).thenReturn(
 				new BaseClientDetails(input));
