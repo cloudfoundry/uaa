@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Assume;
@@ -237,25 +236,6 @@ public class ScimUserEndpointsIntegrationTests {
 
 		assertEquals(joe.getId(), joe1.getId());
 		assertEquals(8, joe1.getGroups().size()); // there are 8 default user groups configured in uaa
-	}
-
-	// curl -v -H "Content-Type: application/json" -X PUT -H "Accept: application/json" --data
-	// "{\"password\":\"newpassword\",\"schemas\":[\"urn:scim:schemas:core:1.0\"]}"
-	// http://localhost:8080/uaa/User/{id}/password
-	@Test
-	public void changePasswordSucceeds() throws Exception {
-		ResponseEntity<ScimUser> response = createUser(JOE, "Joe", "User", "joe@blah.com");
-		ScimUser joe = response.getBody();
-		assertEquals(JOE, joe.getUserName());
-
-		PasswordChangeRequest change = new PasswordChangeRequest();
-		change.setPassword("newpassword");
-
-		HttpHeaders headers = new HttpHeaders();
-		ResponseEntity<Void> result = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password",
-				HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers), null, joe.getId());
-		assertEquals(HttpStatus.OK, result.getStatusCode());
-
 	}
 
 	// curl -v -H "Content-Type: application/json" -H "Accept: application/json" -H 'If-Match: "0"' --data
