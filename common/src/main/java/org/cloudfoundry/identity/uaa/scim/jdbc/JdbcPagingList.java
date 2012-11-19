@@ -8,7 +8,7 @@
  * subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
  */
 
-package org.cloudfoundry.identity.uaa.scim.impl;
+package org.cloudfoundry.identity.uaa.scim.jdbc;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;

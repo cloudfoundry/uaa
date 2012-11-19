@@ -10,10 +10,11 @@
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  */
-package org.cloudfoundry.identity.uaa.scim.impl;
+package org.cloudfoundry.identity.uaa.scim.validate;
 
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
+import org.cloudfoundry.identity.uaa.scim.validate.DefaultPasswordValidator;
 import org.junit.Test;
 
 /**

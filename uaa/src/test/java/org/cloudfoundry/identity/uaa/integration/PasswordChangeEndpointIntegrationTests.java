@@ -15,8 +15,8 @@ package org.cloudfoundry.identity.uaa.integration;
 
 import static org.junit.Assert.assertEquals;
 
+import org.cloudfoundry.identity.uaa.password.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordChangeRequest;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;

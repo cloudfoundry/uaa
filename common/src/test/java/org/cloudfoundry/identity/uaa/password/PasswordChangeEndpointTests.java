@@ -1,9 +1,8 @@
 package org.cloudfoundry.identity.uaa.password;
 
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
-import org.cloudfoundry.identity.uaa.scim.impl.JdbcScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.scim.impl.NullPasswordValidator;
-import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordChangeRequest;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.test.TestUtils;

@@ -1,4 +1,4 @@
-package org.cloudfoundry.identity.uaa.scim.impl;
+package org.cloudfoundry.identity.uaa.scim.jdbc;
 
 import org.cloudfoundry.identity.uaa.scim.util.AttributeNameMapper;
 import org.cloudfoundry.identity.uaa.scim.util.SimpleAttributeNameMapper;

@@ -1,4 +1,4 @@
-package org.cloudfoundry.identity.uaa.scim.impl;
+package org.cloudfoundry.identity.uaa.scim.jdbc;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

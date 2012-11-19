@@ -14,10 +14,10 @@ package org.cloudfoundry.identity.uaa.scim.bootstrap;
 
 import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.impl.JdbcScimGroupMembershipManager;
-import org.cloudfoundry.identity.uaa.scim.impl.JdbcScimGroupProvisioning;
-import org.cloudfoundry.identity.uaa.scim.impl.JdbcScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.scim.impl.NullPasswordValidator;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.junit.After;
 import org.junit.Before;

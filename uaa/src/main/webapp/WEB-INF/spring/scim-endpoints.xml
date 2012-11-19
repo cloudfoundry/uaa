@@ -23,7 +23,7 @@
 		</constructor-arg>
 	</bean>
 
-	<bean id="scimUserProvisioning" class="org.cloudfoundry.identity.uaa.scim.impl.JdbcScimUserProvisioning">
+	<bean id="scimUserProvisioning" class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning">
 		<constructor-arg ref="jdbcTemplate" />
 		<!-- Password validation turned off to match cloud controller policies -->
 		<property name="passwordValidator">
@@ -35,15 +35,15 @@
 		<property name="deactivateOnDelete" value="${scim.delete.deactivate:false}" />
 	</bean>
 
-	<bean id="scimUserQueryConverter" class="org.cloudfoundry.identity.uaa.scim.impl.ScimSearchQueryConverter">
+	<bean id="scimUserQueryConverter" class="org.cloudfoundry.identity.uaa.scim.jdbc.ScimSearchQueryConverter">
 		<property name="attributeNameMapper" ref="nameMapper" />
 	</bean>
 
-	<bean id="scimGroupProvisioning" class="org.cloudfoundry.identity.uaa.scim.impl.JdbcScimGroupProvisioning">
+	<bean id="scimGroupProvisioning" class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning">
 		<constructor-arg ref="jdbcTemplate" />
 	</bean>
 
-	<bean id="groupMembershipManager" class="org.cloudfoundry.identity.uaa.scim.impl.JdbcScimGroupMembershipManager">
+	<bean id="groupMembershipManager" class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager">
 		<constructor-arg name="jdbcTemplate" ref="jdbcTemplate" />
 		<property name="scimGroupProvisioning" ref="scimGroupProvisioning" />
 		<property name="scimUserProvisioning" ref="scimUserProvisioning" />

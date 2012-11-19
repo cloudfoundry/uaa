@@ -11,9 +11,10 @@
  * subcomponent's license, as noted in the LICENSE file.
  */
 
-package org.cloudfoundry.identity.uaa.scim.impl;
+package org.cloudfoundry.identity.uaa.scim.remote;
 
-import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordChangeRequest;
+import org.cloudfoundry.identity.uaa.password.PasswordChangeRequest;
+import org.cloudfoundry.identity.uaa.scim.remote.RemoteScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.junit.After;
 import org.junit.Before;

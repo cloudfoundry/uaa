@@ -16,7 +16,7 @@ package org.cloudfoundry.identity.uaa.password;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordScore;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordScoreCalculator;
-import org.cloudfoundry.identity.uaa.scim.impl.PasswordValidator;
+import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 
 /**

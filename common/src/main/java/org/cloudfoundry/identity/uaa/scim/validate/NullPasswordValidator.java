@@ -10,25 +10,21 @@
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  */
-package org.cloudfoundry.identity.uaa.scim.impl;
+package org.cloudfoundry.identity.uaa.scim.validate;
+
 
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 
 /**
- * Validates password values when creating users or changing passwords.
+ * A no-op password validator.
  *
- * Should implement the password policy defined for the system.
- * User interfaces should obviously also implement the same policy.
- *
- * @author Luke Taylor
+ * @author Dave Syer
  */
-public interface PasswordValidator {
-	/**
-	 * Validates the password as to whether it is valid for a specific user.
-	 *
-	 * @param password the trial password
-	 * @param user the user data to whom the password applies
-	 */
-	void validate(String password, ScimUser user) throws InvalidPasswordException;
+public class NullPasswordValidator implements PasswordValidator {
+
+	@Override
+	public void validate(String password, ScimUser user) throws InvalidPasswordException {
+	}
+
 }
