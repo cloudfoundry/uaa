@@ -10,23 +10,31 @@
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  */
-package org.cloudfoundry.identity.uaa.scim.exception;
 
-import org.springframework.http.HttpStatus;
+package org.cloudfoundry.identity.uaa.event;
+
+import java.security.Principal;
+
+import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
 
 /**
- * Unchecked exception signalling that a user account could not be found.
- * 
  * @author Dave Syer
- * 
+ *
  */
-public class ScimResourceNotFoundException extends ScimException {
+public class NoUserPasswordFailureEvent extends AbstractUaaEvent {
 
-	/**
-	 * @param message a message for the caller
-	 */
-	public ScimResourceNotFoundException(String message) {
-		super(message, HttpStatus.NOT_FOUND);
+	private Principal principal;
+	private String message;
+
+	public NoUserPasswordFailureEvent(String message, Principal principal) {
+		super(principal);
+		this.message = message;
+		this.principal = principal;
+	}
+
+	@Override
+	public void process(UaaAuditService auditor) {
+		auditor.passwordChangeFailure(message, principal);
 	}
 
 }

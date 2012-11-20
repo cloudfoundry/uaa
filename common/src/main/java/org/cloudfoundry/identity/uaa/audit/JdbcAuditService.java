@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.audit;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.Principal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -25,6 +26,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.crypto.codec.Utf8;
 import org.springframework.util.Assert;
@@ -51,6 +53,16 @@ public class JdbcAuditService implements UaaAuditService {
 	// due to some OAuth authentication scenarios which don't set it.
 	private String getOrigin(UaaAuthenticationDetails details) {
 		return details == null ? "unknown" : details.getOrigin();
+	}
+
+	private String getOrigin(Principal principal) {
+		if (principal instanceof Authentication) {
+			Authentication caller = (Authentication) principal;
+			if (caller!=null && caller.getDetails() instanceof UaaAuthenticationDetails) {
+				return getOrigin((UaaAuthenticationDetails) caller.getDetails());
+			}
+		} 
+		return principal==null ? null : principal.getName();
 	}
 
 	@Override
@@ -83,6 +95,21 @@ public class JdbcAuditService implements UaaAuditService {
 	public void principalNotFound(String name, UaaAuthenticationDetails details) {
 		createAuditRecord(name, AuditEventType.PrincipalNotFound, getOrigin(details));
 	}
+	
+	@Override
+	public void passwordChangeSuccess(String message, UaaUser user, Principal caller) {
+		createAuditRecord(user.getUsername(), AuditEventType.PasswordChangeSuccess, getOrigin(caller), message);
+	}
+	
+	@Override
+	public void passwordChangeFailure(String message, Principal caller) {		
+		createAuditRecord(caller.getName(), AuditEventType.PasswordChangeFailure, getOrigin(caller), message);
+	}
+	
+	@Override
+	public void passwordChangeFailure(String message, UaaUser user, Principal caller) {
+		createAuditRecord(user.getUsername(), AuditEventType.PasswordChangeFailure, getOrigin(caller), message);
+	}
 
 	@Override
 	public List<AuditEvent> find(String principal, long after) {
@@ -91,11 +118,17 @@ public class JdbcAuditService implements UaaAuditService {
 	}
 
 	private void createAuditRecord(String principal_id, AuditEventType type, String origin) {
+		origin = origin==null ? "" : origin;
+		origin = origin.length()>255 ? origin.substring(0, 255) : origin;
 		template.update("insert into sec_audit (principal_id, event_type, origin) values (?,?,?)",
 						principal_id, type.getCode(), origin);
 	}
 
 	private void createAuditRecord(String principal_id, AuditEventType type, String origin, String data) {
+		origin = origin==null ? "" : origin;
+		origin = origin.length()>255 ? origin.substring(0, 255) : origin;
+		data = data==null ? "" : data;
+		data = data.length()>255 ? data.substring(0, 255) : data;
 		template.update("insert into sec_audit (principal_id, event_type, origin, event_data) values (?,?,?,?)",
 						principal_id, type.getCode(), origin, data);
 	}

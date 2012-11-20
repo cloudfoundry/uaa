@@ -25,7 +25,9 @@ public enum AuditEventType {
 	PasswordChanged (3),
 	PrincipalAuthenticationSuccess (4),
 	PrincipalAuthenticationFailure (5),
-	PrincipalNotFound (6);
+	PrincipalNotFound (6),
+	PasswordChangeSuccess (7),
+	PasswordChangeFailure (8);
 
 	private final int code;
 

@@ -1,27 +1,33 @@
 package org.cloudfoundry.identity.uaa.password;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.util.Arrays;
+
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabase;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
+import org.springframework.security.oauth2.provider.OAuth2Authentication;
 
 public class PasswordChangeEndpointTests {
 
 	private static ScimUser joel;
+	
+	private static OAuth2Authentication oauth2Authentication;
 
 	private static ScimUser dale;
 
@@ -47,6 +53,9 @@ public class PasswordChangeEndpointTests {
 		dale.addEmail("olds@vmware.com");
 		joel = dao.createUser(joel, "password");
 		dale = dao.createUser(dale, "password");
+		
+		DefaultAuthorizationRequest request = new DefaultAuthorizationRequest("client", Arrays.asList("read"));
+		oauth2Authentication = new OAuth2Authentication(request, UaaAuthenticationTestFactory.getAuthentication(joel.getId(), joel.getUserName(), joel.getEmails().get(0).getValue()));
 	}
 
 	@AfterClass
@@ -70,17 +79,16 @@ public class PasswordChangeEndpointTests {
 		PasswordChangeRequest change = new PasswordChangeRequest();
 		change.setOldPassword("password");
 		change.setPassword("newpassword");
-		endpoints.changePassword(joel.getId(), change);
+		endpoints.changePassword(joel.getId(), change, oauth2Authentication, false);
 	}
 
-	@Ignore
 	@Test(expected = ScimException.class)
 	public void userCantChangeAnotherUsersPassword() {
 		endpoints.setSecurityContextAccessor(mockSecurityContext(joel));
 		PasswordChangeRequest change = new PasswordChangeRequest();
 		change.setOldPassword("password");
 		change.setPassword("newpassword");
-		endpoints.changePassword(dale.getId(), change);
+		endpoints.changePassword(dale.getId(), change, oauth2Authentication, false);
 	}
 
 	@Test
@@ -90,7 +98,7 @@ public class PasswordChangeEndpointTests {
 		endpoints.setSecurityContextAccessor(sca);
 		PasswordChangeRequest change = new PasswordChangeRequest();
 		change.setPassword("newpassword");
-		endpoints.changePassword(joel.getId(), change);
+		endpoints.changePassword(joel.getId(), change, oauth2Authentication, false);
 	}
 
 	@Test(expected = ScimException.class)
@@ -98,7 +106,7 @@ public class PasswordChangeEndpointTests {
 		endpoints.setSecurityContextAccessor(mockSecurityContext(joel));
 		PasswordChangeRequest change = new PasswordChangeRequest();
 		change.setPassword("newpassword");
-		endpoints.changePassword(joel.getId(), change);
+		endpoints.changePassword(joel.getId(), change, oauth2Authentication, false);
 	}
 
 	@Test(expected = ScimException.class)
@@ -106,7 +114,7 @@ public class PasswordChangeEndpointTests {
 		endpoints.setSecurityContextAccessor(mockSecurityContext(joel));
 		PasswordChangeRequest change = new PasswordChangeRequest();
 		change.setPassword("newpassword");
-		endpoints.changePassword(joel.getId(), change);
+		endpoints.changePassword(joel.getId(), change, oauth2Authentication, false);
 	}
 
 	@Test
@@ -116,7 +124,7 @@ public class PasswordChangeEndpointTests {
 		endpoints.setSecurityContextAccessor(sca);
 		PasswordChangeRequest change = new PasswordChangeRequest();
 		change.setPassword("newpassword");
-		endpoints.changePassword(joel.getId(), change);
+		endpoints.changePassword(joel.getId(), change, oauth2Authentication, false);
 	}
 
 	@Test(expected = BadCredentialsException.class)
@@ -125,7 +133,7 @@ public class PasswordChangeEndpointTests {
 		PasswordChangeRequest change = new PasswordChangeRequest();
 		change.setPassword("newpassword");
 		change.setOldPassword("wrongpassword");
-		endpoints.changePassword(joel.getId(), change);
+		endpoints.changePassword(joel.getId(), change, oauth2Authentication, false);
 	}
 
 }

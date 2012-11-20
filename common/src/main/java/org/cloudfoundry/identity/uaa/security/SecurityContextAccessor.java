@@ -54,7 +54,7 @@ public interface SecurityContextAccessor {
 	String getClientId();
 
 	/**
-	 * Provides a representation of the current user/client authentication infromation for use in logs
+	 * Provides a representation of the current user/client authentication information for use in logs
 	 */
 	String getAuthenticationInfo();
 

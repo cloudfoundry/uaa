@@ -12,6 +12,7 @@
  */
 package org.cloudfoundry.identity.uaa.audit;
 
+import java.security.Principal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -69,11 +70,24 @@ public class JdbcFailedLoginCountingAuditService implements UaaAuditService {
 		template.update("delete from sec_audit where created < ?", new Timestamp(System.currentTimeMillis()
 				- saveDataPeriodMillis));
 		template.update("insert into sec_audit (principal_id, event_type, origin, event_data) values (?,?,?,?)",
-				user.getId(), AuditEventType.UserAuthenticationFailure.getCode(), getOrigin(details), user.getUsername());
+				user.getId(), AuditEventType.UserAuthenticationFailure.getCode(), getOrigin(details),
+				user.getUsername());
 	}
 
 	@Override
 	public void userNotFound(String name, UaaAuthenticationDetails details) {
+	}
+
+	@Override
+	public void passwordChangeSuccess(String message, UaaUser user, Principal caller) {
+	}
+
+	@Override
+	public void passwordChangeFailure(String message, UaaUser user, Principal caller) {
+	}
+	
+	@Override
+	public void passwordChangeFailure(String message, Principal caller) {	
 	}
 
 	@Override
