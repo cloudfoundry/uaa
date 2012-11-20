@@ -295,6 +295,10 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 			throw new InvalidScimResourceException("group-id, member-id and member-type must be non-empty");
 		}
 
+		if(groupId.equals(member.getMemberId())) { // oops! cycle detected
+			throw new InvalidScimResourceException("trying to nest group within itself, aborting");
+		}
+
 		// check if the group exists and the member-id is a valid group or user id
 		groupProvisioning.retrieveGroup(groupId); // this will throw a ScimException if the group does not exist
 		// this will throw a ScimException if the group or user does not exist

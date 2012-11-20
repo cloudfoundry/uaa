@@ -4,6 +4,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
+import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
@@ -173,6 +174,12 @@ public class JdbcScimGroupMembershipManagerTests {
 		assertEquals(ScimGroup.GROUP_ADMIN, g2.getAuthorities());
 		assertEquals("g2", g2.getMemberId());
 		validateUserGroups("m1", "test1.i", "test2");
+	}
+
+	@Test (expected = InvalidScimResourceException.class)
+	public void cannotNestGroupWithinItself() {
+		ScimGroupMember g2 = new ScimGroupMember("g2", ScimGroupMember.Type.GROUP, ScimGroup.GROUP_ADMIN);
+		dao.addMember("g2", g2);
 	}
 
 	@Test
