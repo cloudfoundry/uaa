@@ -15,7 +15,11 @@ package org.cloudfoundry.identity.uaa.event.publisher;
 
 import java.security.Principal;
 
+import org.aspectj.lang.ProceedingJoinPoint;
 import org.cloudfoundry.identity.uaa.event.AbstractUaaEvent;
+import org.cloudfoundry.identity.uaa.event.ClientCreateEvent;
+import org.cloudfoundry.identity.uaa.event.ClientDeleteEvent;
+import org.cloudfoundry.identity.uaa.event.ClientUpdateEvent;
 import org.cloudfoundry.identity.uaa.event.SecretChangeEvent;
 import org.cloudfoundry.identity.uaa.event.SecretFailureEvent;
 import org.springframework.context.ApplicationEventPublisher;
@@ -49,6 +53,20 @@ public class ClientAdminEventPublisher implements ApplicationEventPublisherAware
 	public void setApplicationEventPublisher(ApplicationEventPublisher publisher) {
 		this.publisher = publisher;
 	}
+	
+	public void create(ClientDetails client) {
+		publish(new ClientCreateEvent(client, getPrincipal()));		
+	}
+	
+	public void update(ClientDetails client) {
+		publish(new ClientUpdateEvent(client, getPrincipal()));
+	}
+
+	public ClientDetails delete(ProceedingJoinPoint jp, String clientId) throws Throwable {
+		ClientDetails client = (ClientDetails) jp.proceed();
+		publish(new ClientDeleteEvent(client, getPrincipal()));
+		return client;
+	}
 
 	public void secretFailure(String clientId, Exception e) {
 		ClientDetails client = getClient(clientId);
@@ -61,7 +79,7 @@ public class ClientAdminEventPublisher implements ApplicationEventPublisherAware
 	}
 
 	public void secretChange(String clientId) {
-		publish(new SecretChangeEvent("Secret changed", getClient(clientId), getPrincipal()));
+		publish(new SecretChangeEvent(getClient(clientId), getPrincipal()));
 	}
 
 	private ClientDetails getClient(String clientId) {

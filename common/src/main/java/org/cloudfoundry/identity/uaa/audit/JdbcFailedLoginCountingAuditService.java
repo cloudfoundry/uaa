@@ -92,6 +92,18 @@ public class JdbcFailedLoginCountingAuditService implements UaaAuditService {
 	}
 	
 	@Override
+	public void clientCreateSuccess(ClientDetails client, Principal caller) {
+	}
+
+	@Override
+	public void clientUpdateSuccess(ClientDetails client, Principal caller) {
+	}
+
+	@Override
+	public void clientDeleteSuccess(ClientDetails client, Principal caller) {
+	}
+
+	@Override
 	public void secretChangeSuccess(String message, ClientDetails client, Principal caller) {
 	}
 	

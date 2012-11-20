@@ -56,6 +56,21 @@ public interface UaaAuditService {
 	 * Password change failed and no target user was found
 	 */
 	void passwordChangeFailure(String message, Principal caller);
+	
+	/**
+	 * Client registration created
+	 */
+	void clientCreateSuccess(ClientDetails client, Principal caller);
+
+	/**
+	 * Client registration updated
+	 */
+	void clientUpdateSuccess(ClientDetails client, Principal caller);
+
+	/**
+	 * Client registration deleted
+	 */
+	void clientDeleteSuccess(ClientDetails client, Principal caller);
 
 	/**
 	 * Secret change succeeded

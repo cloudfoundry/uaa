@@ -15,9 +15,13 @@ package org.cloudfoundry.identity.uaa.event.publisher;
 
 import java.util.Arrays;
 
+import org.aspectj.lang.ProceedingJoinPoint;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
-import org.cloudfoundry.identity.uaa.event.PasswordFailureEvent;
+import org.cloudfoundry.identity.uaa.event.ClientCreateEvent;
+import org.cloudfoundry.identity.uaa.event.ClientDeleteEvent;
+import org.cloudfoundry.identity.uaa.event.ClientUpdateEvent;
 import org.cloudfoundry.identity.uaa.event.SecretChangeEvent;
+import org.cloudfoundry.identity.uaa.event.SecretFailureEvent;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -57,11 +61,34 @@ public class ClientAdminEventPublisherTests {
 	}
 
 	@Test
+	public void testCreate() {
+		BaseClientDetails client = new BaseClientDetails("foo", null, null, "client_credentials", "none");
+		subject.create(client);
+		Mockito.verify(publisher).publishEvent(Mockito.isA(ClientCreateEvent.class));
+	}
+
+	@Test
+	public void testUpdate() {
+		BaseClientDetails client = new BaseClientDetails("foo", null, null, "client_credentials", "none");
+		subject.update(client);
+		Mockito.verify(publisher).publishEvent(Mockito.isA(ClientUpdateEvent.class));
+	}
+
+	@Test
+	public void testDelete() throws Throwable {
+		BaseClientDetails client = new BaseClientDetails("foo", null, null, "client_credentials", "none");
+		ProceedingJoinPoint jp = Mockito.mock(ProceedingJoinPoint.class);
+		Mockito.when(jp.proceed()).thenReturn(client);
+		subject.delete(jp, "foo");
+		Mockito.verify(publisher).publishEvent(Mockito.isA(ClientDeleteEvent.class));
+	}
+
+	@Test
 	public void testSecretChange() {
 		Mockito.when(clientDetailsService.loadClientByClientId("foo")).thenReturn(
 				new BaseClientDetails("foo", null, null, "client_credentials", "none"));
 		subject.secretChange("foo");
-		Mockito.verify(publisher).publishEvent(Mockito.any(SecretChangeEvent.class));
+		Mockito.verify(publisher).publishEvent(Mockito.isA(SecretChangeEvent.class));
 	}
 
 	@Test
@@ -69,13 +96,13 @@ public class ClientAdminEventPublisherTests {
 		Mockito.when(clientDetailsService.loadClientByClientId("foo")).thenReturn(
 				new BaseClientDetails("foo", null, null, "client_credentials", "none"));
 		subject.secretFailure("foo", new RuntimeException("planned"));
-		Mockito.verify(publisher).publishEvent(Mockito.any(PasswordFailureEvent.class));
+		Mockito.verify(publisher).publishEvent(Mockito.isA(SecretFailureEvent.class));
 	}
 
 	@Test
 	public void testSecretFailureMissingClient() {
 		Mockito.when(clientDetailsService.loadClientByClientId("foo")).thenThrow(new InvalidClientException("Not found"));
 		subject.secretFailure("foo", new RuntimeException("planned"));
-		Mockito.verify(publisher).publishEvent(Mockito.any(PasswordFailureEvent.class));
+		Mockito.verify(publisher).publishEvent(Mockito.isA(SecretFailureEvent.class));
 	}
 }

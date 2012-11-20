@@ -197,11 +197,11 @@
 			<scope>provided</scope>
 		</dependency>
 		
-		<!-- dependency>
-			<artifactId>aspectjrt</artifactId>
+		<dependency>
 			<groupId>org.aspectj</groupId>
-			<version>1.6.9</version>
-		</dependency-->
+			<artifactId>aspectjrt</artifactId>
+			<version>1.6.12</version>
+		</dependency>
 
 		<dependency>
 			<groupId>org.codehaus.jackson</groupId>

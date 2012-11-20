@@ -113,6 +113,21 @@ public class JdbcAuditService implements UaaAuditService {
 	}
 
 	@Override
+	public void clientCreateSuccess(ClientDetails client, Principal caller) {
+		createAuditRecord(client.getClientId(), AuditEventType.ClientCreateSuccess, getOrigin(caller));
+	}
+
+	@Override
+	public void clientUpdateSuccess(ClientDetails client, Principal caller) {
+		createAuditRecord(client.getClientId(), AuditEventType.ClientUpdateSuccess, getOrigin(caller));
+	}
+
+	@Override
+	public void clientDeleteSuccess(ClientDetails client, Principal caller) {
+		createAuditRecord(client.getClientId(), AuditEventType.ClientDeleteSuccess, getOrigin(caller));
+	}
+
+	@Override
 	public void secretChangeSuccess(String message, ClientDetails client, Principal caller) {
 		createAuditRecord(client.getClientId(), AuditEventType.SecretChangeSuccess, getOrigin(caller), message);
 	}

@@ -22,26 +22,20 @@ import org.springframework.security.oauth2.provider.ClientDetails;
  * @author Dave Syer
  *
  */
-public class SecretChangeEvent extends AbstractUaaEvent {
+public class ClientCreateEvent extends AbstractUaaEvent {
 
 	private Principal principal;
-	private String message;
 	private ClientDetails client;
 
-	public SecretChangeEvent(ClientDetails client, Principal principal) {
-		this("Secret changed", client, principal);
-	}
-	
-	public SecretChangeEvent(String message, ClientDetails client, Principal principal) {
+	public ClientCreateEvent(ClientDetails client, Principal principal) {
 		super(principal);
-		this.message = message;
 		this.client = client;
 		this.principal = principal;
 	}
 
 	@Override
 	public void process(UaaAuditService auditor) {
-		auditor.secretChangeSuccess(message, client, principal);
+		auditor.clientCreateSuccess(client, principal);
 	}
 
 }
