@@ -153,6 +153,18 @@ public class JdbcScimGroupMembershipManagerTests {
 	}
 
 	@Test
+	public void canGetGroupsForMemberEvenWhenCycleExistsInGroupHierarchy() {
+		addMember("g1", "m3", "USER", "READ");
+		addMember("g1", "g2", "GROUP", "READ");
+		addMember("g2", "g3", "GROUP", "READ");
+		addMember("g3", "g1", "GROUP", "READ");
+
+		Set<ScimGroup> groups = dao.getGroupsWithMember("m3", true);
+		assertNotNull(groups);
+		assertEquals(4, groups.size());
+	}
+
+	@Test
 	public void canAddMember() throws Exception {
 		validateCount(0);
 		ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER, null);

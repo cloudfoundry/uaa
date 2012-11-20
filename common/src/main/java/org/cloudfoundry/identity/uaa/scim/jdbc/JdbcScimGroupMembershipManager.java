@@ -121,6 +121,18 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 
 	@Override
 	public Set<ScimGroup> getGroupsWithMember(final String memberId, boolean transitive) throws ScimResourceNotFoundException {
+		List<ScimGroup> results = new ArrayList<ScimGroup>();
+		getGroupsWithMember(results, memberId, transitive);
+		if (isUser(memberId)) {
+			results.addAll(defaultUserGroups);
+		}
+		return new HashSet<ScimGroup>(results);
+	}
+
+	private void getGroupsWithMember(List<ScimGroup> results, final String memberId, boolean transitive) {
+		if (results == null) {
+			return;
+		}
 		List<String> groupIds;
 		try {
 			groupIds = jdbcTemplate.query(GET_GROUPS_BY_MEMBER_SQL, new PreparedStatementSetter() {
@@ -133,7 +145,6 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 			groupIds = Collections.<String>emptyList();
 		}
 
-		List<ScimGroup> results = new ArrayList<ScimGroup>();
 		for (String groupId : groupIds) {
 			ScimGroup group;
 			try {
@@ -141,16 +152,14 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 			} catch (ScimResourceNotFoundException ex) {
 				continue;
 			}
-			results.add(group);
-			if (transitive) {
-				results.addAll(getGroupsWithMember(groupId, transitive));
+			if (!results.contains(group)) { // to ensure we don't go into infinite recursion caused by nested group cycles
+				results.add(group);
+				if (transitive) {
+					getGroupsWithMember(results, groupId, transitive);
+				}
 			}
 		}
 
-		if (isUser(memberId)) {
-			results.addAll(defaultUserGroups);
-		}
-		return new HashSet<ScimGroup>(results);
 	}
 
 	@Override
