@@ -16,6 +16,7 @@ package org.cloudfoundry.identity.uaa.audit;
  * Allows audit events to be classified by type.
  *
  * @author Luke Taylor
+ * @author Dave Syer
  */
 public enum AuditEventType {
 	// Do not change the code values, as these are used in the database.
@@ -25,7 +26,11 @@ public enum AuditEventType {
 	PasswordChanged (3),
 	PrincipalAuthenticationSuccess (4),
 	PrincipalAuthenticationFailure (5),
-	PrincipalNotFound (6);
+	PrincipalNotFound (6),
+	PasswordChangeSuccess (7),
+	PasswordChangeFailure (8),
+	SecretChangeSuccess (9),
+	SecretChangeFailure (10);
 
 	private final int code;
 

@@ -369,7 +369,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 		if (create) {
 			// Only check for missing secret if client is being created.
 			if (!isImplicit(requestedGrantTypes) && !StringUtils.hasText(client.getClientSecret())) {
-				throw new InvalidClientDetailsException("client_secret is required for non-implicit grant types");
+				throw new InvalidClientDetailsException("Client secret is required for non-implicit grant types");
 			}
 		}
 

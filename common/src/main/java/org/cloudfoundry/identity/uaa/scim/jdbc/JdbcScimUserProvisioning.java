@@ -12,6 +12,16 @@
  */
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.util.Date;
+import java.util.List;
+import java.util.UUID;
+import java.util.regex.Pattern;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
@@ -21,6 +31,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
+import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailedException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.SearchQueryConverter.ProcessedFilter;
 import org.cloudfoundry.identity.uaa.scim.validate.DefaultPasswordValidator;
@@ -37,16 +48,6 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.Assert;
-
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.sql.Types;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
-import java.util.regex.Pattern;
 
 /**
  * @author Luke Taylor
@@ -265,7 +266,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 			throw new ScimResourceNotFoundException("User " + id + " does not exist");
 		}
 		if (updated != 1) {
-			throw new IncorrectResultSizeDataAccessException(1);
+			throw new ScimResourceConstraintFailedException("User " + id + " duplicated");
 		}
 		return true;
 	}
