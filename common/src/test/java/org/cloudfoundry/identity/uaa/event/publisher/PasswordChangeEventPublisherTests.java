@@ -60,7 +60,7 @@ public class PasswordChangeEventPublisherTests {
 		Mockito.when(scimUserProvisioning.retrieveUser("foo")).thenReturn(
 				UaaAuthenticationTestFactory.getScimUser("joe", "joe@test.org", "Joe", "Schmo"));
 		subject.passwordChange("foo");
-		Mockito.verify(publisher).publishEvent(Mockito.any(PasswordChangeEvent.class));
+		Mockito.verify(publisher).publishEvent(Mockito.isA(PasswordChangeEvent.class));
 	}
 
 	@Test
@@ -68,7 +68,7 @@ public class PasswordChangeEventPublisherTests {
 		Mockito.when(scimUserProvisioning.retrieveUser("foo")).thenReturn(
 				UaaAuthenticationTestFactory.getScimUser("joe", null, "Joe", "Schmo"));
 		subject.passwordChange("foo");
-		Mockito.verify(publisher).publishEvent(Mockito.any(PasswordChangeEvent.class));
+		Mockito.verify(publisher).publishEvent(Mockito.isA(PasswordChangeEvent.class));
 	}
 
 	@Test
@@ -76,7 +76,7 @@ public class PasswordChangeEventPublisherTests {
 		Mockito.when(scimUserProvisioning.retrieveUser("foo")).thenReturn(
 				UaaAuthenticationTestFactory.getScimUser("joe", "joe@test.org", "Joe", "Schmo"));
 		subject.passwordFailure("foo", new RuntimeException("planned"));
-		Mockito.verify(publisher).publishEvent(Mockito.any(PasswordFailureEvent.class));
+		Mockito.verify(publisher).publishEvent(Mockito.isA(PasswordFailureEvent.class));
 	}
 
 	@Test

@@ -123,17 +123,32 @@ public class LoggingAuditService implements UaaAuditService {
 		passwordFailures.incrementAndGet();
 		log("Password change failed with no user ('" + message + "'): " + extractCaller(caller));
 	}
+	
+	@Override
+	public void clientCreateSuccess(ClientDetails client, Principal caller) {
+		log("Client created: target=" + client.getClientId()+ "; " + extractCaller(caller));
+	}
+
+	@Override
+	public void clientUpdateSuccess(ClientDetails client, Principal caller) {
+		log("Client updated: target=" + client.getClientId()+ "; " + extractCaller(caller));
+	}
+
+	@Override
+	public void clientDeleteSuccess(ClientDetails client, Principal caller) {
+		log("Client deleted: target=" + client.getClientId()+ "; " + extractCaller(caller));
+	}
 
 	@Override
 	public void secretChangeSuccess(String message, ClientDetails client, Principal caller) {
 		passwordChanges.incrementAndGet();
-		log("Secret change ('" + message + "'): client=" + client.getClientId()+ "; " + extractCaller(caller));
+		log("Secret change ('" + message + "'): target=" + client.getClientId()+ "; " + extractCaller(caller));
 	}
 
 	@Override
 	public void secretChangeFailure(String message, ClientDetails client, Principal caller) {
 		passwordFailures.incrementAndGet();
-		log("Secret change failed ('" + message + "'): client=" + client.getClientId() + "; " + extractCaller(caller));
+		log("Secret change failed ('" + message + "'): target=" + client.getClientId() + "; " + extractCaller(caller));
 	}
 
 	@Override

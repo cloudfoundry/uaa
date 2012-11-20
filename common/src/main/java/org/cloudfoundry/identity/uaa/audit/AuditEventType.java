@@ -30,7 +30,10 @@ public enum AuditEventType {
 	PasswordChangeSuccess (7),
 	PasswordChangeFailure (8),
 	SecretChangeSuccess (9),
-	SecretChangeFailure (10);
+	SecretChangeFailure (10),
+	ClientCreateSuccess (11),
+	ClientUpdateSuccess (12),
+	ClientDeleteSuccess (13);
 
 	private final int code;
 

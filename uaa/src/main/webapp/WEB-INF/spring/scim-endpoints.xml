@@ -149,9 +149,9 @@
 
 	<aop:config proxy-target-class="true">
 		<aop:aspect ref="passwordEventPublisher">
-			<aop:after-returning method="passwordChange" pointcut="execution(* *..PasswordChangeEndpoint+.changePassword(String, ..)) and args(userId,..)" />
+			<aop:after-returning method="passwordChange" pointcut="execution(* *..PasswordChangeEndpoint+.changePassword(String, ..)) and args(userId,..) and bean(passwordChangeEndpoint)" />
 			<aop:after-throwing method="passwordFailure"
-				pointcut="execution(* *..PasswordChangeEndpoint+.changePassword(String, ..)) and args(userId,..)" throwing="e" />
+				pointcut="execution(* *..PasswordChangeEndpoint+.changePassword(String, ..)) and args(userId,..) and bean(passwordChangeEndpoint)" throwing="e" />
 		</aop:aspect>
 	</aop:config>
 

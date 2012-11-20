@@ -45,9 +45,12 @@
 
 	<aop:config proxy-target-class="true">
 		<aop:aspect ref="clientAdminEventPublisher">
-			<aop:after-returning method="secretChange" pointcut="execution(* *..ClientAdminEndpoints+.changeSecret(String, ..)) and args(clientId,..)" />
+			<aop:after-returning method="create" pointcut="execution(* *..ClientAdminEndpoints+.create*(..)) and bean(clientAdminEndpoints)" returning="client"/>
+			<aop:after-returning method="update" pointcut="execution(* *..ClientAdminEndpoints+.update*(..)) and bean(clientAdminEndpoints)" returning="client"/>
+			<aop:around method="delete" pointcut="execution(* *..ClientAdminEndpoints+.remove*(String, ..)) and args(clientId,..) and bean(clientAdminEndpoints)" />
+			<aop:after-returning method="secretChange" pointcut="execution(* *..ClientAdminEndpoints+.changeSecret(String, ..)) and args(clientId,..) and bean(clientAdminEndpoints)" />
 			<aop:after-throwing method="secretFailure"
-				pointcut="execution(* *..ClientAdminEndpoints+.changeSecret(String, ..)) and args(clientId,..)" throwing="e" />
+				pointcut="execution(* *..ClientAdminEndpoints+.changeSecret(String, ..)) and args(clientId,..) and bean(clientAdminEndpoints)" throwing="e" />
 		</aop:aspect>
 	</aop:config>
 
