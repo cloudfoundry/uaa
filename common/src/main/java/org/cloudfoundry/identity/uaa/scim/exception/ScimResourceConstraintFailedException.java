@@ -15,18 +15,18 @@ package org.cloudfoundry.identity.uaa.scim.exception;
 import org.springframework.http.HttpStatus;
 
 /**
- * Unchecked exception signalling that a user account could not be found.
+ * Unchecked exception signalling that a user account was not in the state expected (e.g. non-unique username).
  * 
  * @author Dave Syer
- * 
+ *
  */
-public class ScimResourceNotFoundException extends ScimException {
+public class ScimResourceConstraintFailedException extends ScimException {
 
 	/**
 	 * @param message a message for the caller
 	 */
-	public ScimResourceNotFoundException(String message) {
-		super(message, HttpStatus.NOT_FOUND);
+	public ScimResourceConstraintFailedException(String message) {
+		super(message, HttpStatus.PRECONDITION_FAILED);
 	}
 
 }

@@ -12,6 +12,7 @@
  */
 package org.cloudfoundry.identity.uaa.audit;
 
+import java.security.Principal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -23,6 +24,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.util.Assert;
 
 /**
@@ -69,11 +71,36 @@ public class JdbcFailedLoginCountingAuditService implements UaaAuditService {
 		template.update("delete from sec_audit where created < ?", new Timestamp(System.currentTimeMillis()
 				- saveDataPeriodMillis));
 		template.update("insert into sec_audit (principal_id, event_type, origin, event_data) values (?,?,?,?)",
-				user.getId(), AuditEventType.UserAuthenticationFailure.getCode(), getOrigin(details), user.getUsername());
+				user.getId(), AuditEventType.UserAuthenticationFailure.getCode(), getOrigin(details),
+				user.getUsername());
 	}
 
 	@Override
 	public void userNotFound(String name, UaaAuthenticationDetails details) {
+	}
+
+	@Override
+	public void passwordChangeSuccess(String message, UaaUser user, Principal caller) {
+	}
+
+	@Override
+	public void passwordChangeFailure(String message, UaaUser user, Principal caller) {
+	}
+	
+	@Override
+	public void passwordChangeFailure(String message, Principal caller) {	
+	}
+	
+	@Override
+	public void secretChangeSuccess(String message, ClientDetails client, Principal caller) {
+	}
+	
+	@Override
+	public void secretChangeFailure(String message, ClientDetails client, Principal caller) {
+	}
+	
+	@Override
+	public void secretChangeFailure(String message, Principal caller) {
 	}
 
 	@Override

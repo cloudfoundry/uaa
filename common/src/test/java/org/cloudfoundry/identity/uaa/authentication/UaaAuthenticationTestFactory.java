@@ -36,7 +36,9 @@ public class UaaAuthenticationTestFactory {
 
 	public static ScimUser getScimUser(String name, String email, String givenName, String familyName) {
 		ScimUser user = new ScimUser(null, name, givenName, familyName);
-		user.addEmail(email);
+		if (email!=null) {
+			user.addEmail(email);
+		}
 		return user;
 	}
 

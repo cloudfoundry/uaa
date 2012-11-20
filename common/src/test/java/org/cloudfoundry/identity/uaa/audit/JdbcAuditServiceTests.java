@@ -13,8 +13,6 @@
 package org.cloudfoundry.identity.uaa.audit;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -24,6 +22,7 @@ import javax.sql.DataSource;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserTestFactory;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -66,9 +65,7 @@ public class JdbcAuditServiceTests {
 
 	@Test
 	public void userAuthenticationFailureAuditSucceeds() throws Exception {
-		UaaUser joe = mock(UaaUser.class);
-		when(joe.getId()).thenReturn("1");
-		when(joe.getUsername()).thenReturn("joe");
+		UaaUser joe =UaaUserTestFactory.getUser("1", "joe", "joe@test.org", "Joe", "Schmo");
 		auditService.userAuthenticationFailure(joe, authDetails);
 		Thread.sleep(100);
 		auditService.userAuthenticationFailure(joe, authDetails);

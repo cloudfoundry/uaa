@@ -12,6 +12,7 @@
  */
 package org.cloudfoundry.identity.uaa.audit;
 
+import java.security.Principal;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -22,6 +23,8 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.springframework.jmx.export.annotation.ManagedMetric;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.jmx.support.MetricType;
+import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.OAuth2Authentication;
 
 /**
  * Audit service implementation which just outputs the relevant information through the logger.
@@ -33,6 +36,7 @@ import org.springframework.jmx.support.MetricType;
  */
 @ManagedResource
 public class LoggingAuditService implements UaaAuditService {
+
 	private final Log logger = LogFactory.getLog("UAA.Audit");
 
 	private AtomicInteger userAuthenticationCount = new AtomicInteger();
@@ -44,6 +48,10 @@ public class LoggingAuditService implements UaaAuditService {
 	private AtomicInteger userNotFoundCount = new AtomicInteger();
 
 	private AtomicInteger principalNotFoundCount = new AtomicInteger();
+
+	private AtomicInteger passwordChanges = new AtomicInteger();
+
+	private AtomicInteger passwordFailures = new AtomicInteger();
 
 	@ManagedMetric(metricType = MetricType.COUNTER, displayName = "User Not Found Count")
 	public int getUserNotFoundCount() {
@@ -70,6 +78,16 @@ public class LoggingAuditService implements UaaAuditService {
 		return principalNotFoundCount.get();
 	}
 
+	@ManagedMetric(metricType = MetricType.COUNTER, displayName = "User Password Change Count (Since Startup)")
+	public int getUserPasswordChanges() {
+		return passwordChanges.get();
+	}
+
+	@ManagedMetric(metricType = MetricType.COUNTER, displayName = "User Password Change Failure Count (Since Startup)")
+	public int getUserPasswordFailures() {
+		return passwordFailures.get();
+	}
+
 	@Override
 	public void userAuthenticationSuccess(UaaUser user, UaaAuthenticationDetails details) {
 		userAuthenticationCount.incrementAndGet();
@@ -89,6 +107,42 @@ public class LoggingAuditService implements UaaAuditService {
 	}
 
 	@Override
+	public void passwordChangeSuccess(String message, UaaUser user, Principal caller) {
+		passwordChanges.incrementAndGet();
+		log("Password change ('" + message + "'): user=" + user.getUsername() + "; " + extractCaller(caller));
+	}
+
+	@Override
+	public void passwordChangeFailure(String message, UaaUser user, Principal caller) {
+		passwordFailures.incrementAndGet();
+		log("Password change failed ('" + message + "'): user=" + user.getUsername() + "; " + extractCaller(caller));
+	}
+
+	@Override
+	public void passwordChangeFailure(String message, Principal caller) {
+		passwordFailures.incrementAndGet();
+		log("Password change failed with no user ('" + message + "'): " + extractCaller(caller));
+	}
+
+	@Override
+	public void secretChangeSuccess(String message, ClientDetails client, Principal caller) {
+		passwordChanges.incrementAndGet();
+		log("Secret change ('" + message + "'): client=" + client.getClientId()+ "; " + extractCaller(caller));
+	}
+
+	@Override
+	public void secretChangeFailure(String message, ClientDetails client, Principal caller) {
+		passwordFailures.incrementAndGet();
+		log("Secret change failed ('" + message + "'): client=" + client.getClientId() + "; " + extractCaller(caller));
+	}
+
+	@Override
+	public void secretChangeFailure(String message, Principal caller) {
+		passwordFailures.incrementAndGet();
+		log("Secret change failed with no user ('" + message + "'): " + extractCaller(caller));
+	}
+
+	@Override
 	public void principalAuthenticationFailure(String name, UaaAuthenticationDetails details) {
 		principalAuthenticationFailureCount.incrementAndGet();
 		log("Authentication failed, principal: " + name);
@@ -105,6 +159,15 @@ public class LoggingAuditService implements UaaAuditService {
 		throw new UnsupportedOperationException("This implementation does not store data");
 	}
 
+	private String extractCaller(Principal caller) {
+		if (caller instanceof OAuth2Authentication) {
+			OAuth2Authentication oAuth2Authentication = (OAuth2Authentication) caller;
+			return "client=" + oAuth2Authentication.getAuthorizationRequest().getClientId()
+					+ (oAuth2Authentication.isClientOnly() ? "" : "; user=" + caller.getName());
+		}
+		return caller == null ? null : caller.getName();
+	}
+
 	private void log(String msg) {
 		if (logger.isTraceEnabled()) {
 			StringBuilder output = new StringBuilder(256);
@@ -112,7 +175,8 @@ public class LoggingAuditService implements UaaAuditService {
 			output.append(msg);
 			output.append("\n\n************************************************************\n");
 			logger.trace(output.toString());
-		} else {
+		}
+		else {
 			logger.info(msg);
 		}
 	}

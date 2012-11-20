@@ -140,8 +140,20 @@
 	</bean>
 
 	<bean id="passwordChangeEndpoint" class="org.cloudfoundry.identity.uaa.password.PasswordChangeEndpoint">
+		<property name="scimUserProvisioning" ref="scimUserProvisioning" />
+	</bean>
+
+	<bean id="passwordEventPublisher" class="org.cloudfoundry.identity.uaa.event.publisher.PasswordChangeEventPublisher">
 		<constructor-arg ref="scimUserProvisioning" />
 	</bean>
+
+	<aop:config proxy-target-class="true">
+		<aop:aspect ref="passwordEventPublisher">
+			<aop:after-returning method="passwordChange" pointcut="execution(* *..PasswordChangeEndpoint+.changePassword(String, ..)) and args(userId,..)" />
+			<aop:after-throwing method="passwordFailure"
+				pointcut="execution(* *..PasswordChangeEndpoint+.changePassword(String, ..)) and args(userId,..)" throwing="e" />
+		</aop:aspect>
+	</aop:config>
 
 	<http pattern="/User*/*/password" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
 		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
