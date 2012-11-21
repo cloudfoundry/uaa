@@ -12,7 +12,6 @@
   <packaging>pom</packaging>
 
   <modules>
-    <module>login</module>
     <module>api</module>
     <module>app</module>
   </modules>
