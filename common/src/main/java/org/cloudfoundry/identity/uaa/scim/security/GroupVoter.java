@@ -1,7 +1,8 @@
-package org.cloudfoundry.identity.uaa.authentication;
+package org.cloudfoundry.identity.uaa.scim.security;
 
 import java.util.Collection;
 
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;

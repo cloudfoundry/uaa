@@ -88,7 +88,7 @@
 	<bean id="groupAccessDecisionManager" class="org.springframework.security.access.vote.AffirmativeBased">
 		<constructor-arg>
 			<list>
-				<bean id="groupVoter" class="org.cloudfoundry.identity.uaa.authentication.GroupVoter">
+				<bean id="groupVoter" class="org.cloudfoundry.identity.uaa.scim.security.GroupVoter">
 					<property name="membershipManager" ref="groupMembershipManager" />
 					<property name="groupPrefix" value="memberScope=" />
 				</bean>
