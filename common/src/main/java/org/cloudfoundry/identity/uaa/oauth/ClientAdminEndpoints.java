@@ -58,7 +58,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
  * Controller for listing and manipulating OAuth2 clients.
- * 
+ *
  * @author Dave Syer
  */
 @Controller
@@ -221,7 +221,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 		clientRegistrationService.updateClientSecret(client, change.getSecret());
 
 		clientSecretChanges.incrementAndGet();
-		
+
 		return new SimpleMessage("ok", "secret updated");
 	}
 
@@ -261,7 +261,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 	private ClientDetails validateClient(ClientDetails prototype, boolean create) {
 
 		BaseClientDetails client = new BaseClientDetails(prototype);
-		
+
 		client.setAdditionalInformation(prototype.getAdditionalInformation());
 
 		String clientId = client.getClientId();
@@ -280,6 +280,12 @@ public class ClientAdminEndpoints implements InitializingBean {
 				throw new InvalidClientDetailsException(grant + " is not an allowed grant type. Must be one of: "
 						+ VALID_GRANTS.toString());
 			}
+		}
+
+		if (requestedGrantTypes.contains("authorization_code") && !requestedGrantTypes.contains("refresh_token")) {
+			logger.info("authorization_code client missing refresh_token: " + clientId);
+
+			requestedGrantTypes.add("refresh_token");
 		}
 
 		if (!securityContextAccessor.isAdmin()) {
@@ -356,7 +362,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 
 		// The UAA does not allow or require resource ids to be registered because they are determined dynamically
 		client.setResourceIds(Collections.singleton("none"));
-		
+
 		if (client.getScope().isEmpty()) {
 			client.setScope(Collections.singleton("uaa.none"));
 		}
@@ -458,7 +464,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 		if (details.getScope() == null || details.getScope().isEmpty()) {
 			details.setScope(existing.getScope());
 		}
-		
+
 		Map<String, Object> additionalInformation = new HashMap<String, Object>(input.getAdditionalInformation());
 		additionalInformation.putAll(existing.getAdditionalInformation());
 		for (String key : Collections.unmodifiableSet(additionalInformation.keySet())) {
@@ -467,7 +473,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 			}
 		}
 		details.setAdditionalInformation(additionalInformation);
-		
+
 		return details;
 	}
 

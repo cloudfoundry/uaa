@@ -53,7 +53,7 @@ public class ClientAdminBootstrapTests {
 		map.put("scope", "openid");
 		map.put("authorized-grant-types", "authorization_code");
 		map.put("authorities", "uaa.none");
-		BaseClientDetails output = new BaseClientDetails("foo", "none", "openid", "authorization_code", "uaa.none");
+		BaseClientDetails output = new BaseClientDetails("foo", "none", "openid", "authorization_code,refresh_token", "uaa.none");
 		output.setClientSecret("bar");
 		doSimpleTest(map, output);
 	}
