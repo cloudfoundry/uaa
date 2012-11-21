@@ -149,6 +149,9 @@ public class ClientAdminBootstrap implements InitializingBean {
 			if (client.getAuthorities().isEmpty()) {
 				client.setAuthorities(Collections.singleton(UaaAuthority.UAA_NONE));
 			}
+			if (client.getAuthorizedGrantTypes().contains("authorization_code")) {
+				client.getAuthorizedGrantTypes().add("refresh_token");
+			}
 			for (String key : Arrays.asList("resource-ids", "scope", "authorized-grant-types", "authorities",
 					"redirect-uri", "secret", "id", "override", "access-token-validity", "refresh-token-validity")) {
 				info.remove(key);
