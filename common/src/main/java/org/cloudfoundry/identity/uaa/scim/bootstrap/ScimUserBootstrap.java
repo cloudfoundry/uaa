@@ -12,8 +12,14 @@
  */
 package org.cloudfoundry.identity.uaa.scim.bootstrap;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.authentication.manager.NewUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
@@ -24,13 +30,9 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.context.ApplicationListener;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.util.StringUtils;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * Convenience class for provisioning user accounts from {@link UaaUser} instances.
@@ -38,7 +40,7 @@ import java.util.List;
  * @author Luke Taylor
  * @author Dave Syer
  */
-public class ScimUserBootstrap implements InitializingBean {
+public class ScimUserBootstrap implements InitializingBean, ApplicationListener<NewUserAuthenticatedEvent> {
 
 	private static final Log logger = LogFactory.getLog(ScimUserBootstrap.class);
 
@@ -117,6 +119,11 @@ public class ScimUserBootstrap implements InitializingBean {
 			}
 		}
 		return scimUser;
+	}
+	
+	@Override
+	public void onApplicationEvent(NewUserAuthenticatedEvent event) {
+		addUser(event.getUser());
 	}
 
 	private void addToGroup(ScimUser user, String gName) {
