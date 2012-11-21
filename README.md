@@ -300,7 +300,9 @@ In CloudFoundry terms
   
 * `login` is where Cloud Foundry administrators set up their
   authentication sources, e.g. LDAP/AD, SAML, OpenID (Google etc.) or
-  social.
+  social. The cloudfoundry.com platform uses a different
+  implementation of the
+  [login server](https://github.com/cloudfoundry/login-server).
 
 ## UAA Server
 
