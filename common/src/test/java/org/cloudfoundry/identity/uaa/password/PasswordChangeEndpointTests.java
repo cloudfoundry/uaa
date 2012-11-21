@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.password;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;

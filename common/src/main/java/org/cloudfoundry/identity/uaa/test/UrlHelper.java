@@ -11,7 +11,7 @@
  * subcomponent's license, as noted in the LICENSE file.
  */
 
-package org.cloudfoundry.identity.uaa.integration;
+package org.cloudfoundry.identity.uaa.test;
 
 /**
  * Convenience interface for classes that externalize URLs.

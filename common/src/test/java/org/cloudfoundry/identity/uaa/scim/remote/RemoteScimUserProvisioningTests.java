@@ -13,7 +13,7 @@
 
 package org.cloudfoundry.identity.uaa.scim.remote;
 
-import org.cloudfoundry.identity.uaa.password.PasswordChangeRequest;
+import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.remote.RemoteScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.junit.After;

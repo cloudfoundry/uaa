@@ -19,7 +19,7 @@ import static org.junit.Assert.assertNotNull;
 import java.util.Collection;
 import java.util.Collections;
 
-import org.cloudfoundry.identity.uaa.rest.SimpleMessage;
+import org.cloudfoundry.identity.uaa.message.SimpleMessage;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.junit.Test;

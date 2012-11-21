@@ -10,13 +10,9 @@
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  */
-package org.cloudfoundry.identity.uaa.password;
+package org.cloudfoundry.identity.uaa.message;
 
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
-import org.springframework.util.Assert;
-
-import java.util.Arrays;
 
 /**
  * @author Dave Syer
@@ -42,14 +38,6 @@ public class PasswordChangeRequest {
 
 	public void setOldPassword(String oldPassword) {
 		this.oldPassword = oldPassword;
-	}
-
-	public void setSchemas(String[] schemas) {
-		Assert.isTrue(Arrays.equals(ScimUser.SCHEMAS, schemas), "Only schema '" + ScimUser.SCHEMAS[0] + "' is currently supported");
-	}
-
-	public String[] getSchemas() {
-		return ScimUser.SCHEMAS;
 	}
 
 }

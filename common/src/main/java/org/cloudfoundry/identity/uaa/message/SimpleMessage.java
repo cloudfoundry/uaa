@@ -11,7 +11,7 @@
  * subcomponent's license, as noted in the LICENSE file.
  */
 
-package org.cloudfoundry.identity.uaa.rest;
+package org.cloudfoundry.identity.uaa.message;
 
 import java.io.Serializable;
 
