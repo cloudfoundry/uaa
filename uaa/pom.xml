@@ -286,14 +286,12 @@
 		<dependency>
 			<groupId>org.aspectj</groupId>
 			<artifactId>aspectjweaver</artifactId>
-			<version>1.6.9</version>
 			<scope>runtime</scope>
 		</dependency>
 		
 		<dependency>
 			<groupId>org.aspectj</groupId>
 			<artifactId>aspectjrt</artifactId>
-			<version>1.6.9</version>
 			<scope>runtime</scope>
 		</dependency>
 		
