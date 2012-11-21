@@ -42,7 +42,7 @@ import org.springframework.security.oauth2.provider.NoSuchClientException;
 
 /**
  * @author Dave Syer
- * 
+ *
  */
 public class ClientAdminEndpointsTests {
 
@@ -71,6 +71,8 @@ public class ClientAdminEndpointsTests {
 		input.setAuthorizedGrantTypes(Arrays.asList("authorization_code"));
 		details = new BaseClientDetails(input);
 		details.setResourceIds(Arrays.asList("none"));
+		// refresh token is added automatically by endpoint validation
+		details.setAuthorizedGrantTypes(Arrays.asList("authorization_code","refresh_token"));
 		details.setScope(Arrays.asList("uaa.none"));
 		details.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none"));
 		endpoints.afterPropertiesSet();
