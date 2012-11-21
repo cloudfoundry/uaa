@@ -15,8 +15,10 @@ package org.cloudfoundry.identity.uaa.integration;
 
 import static org.junit.Assert.assertEquals;
 
-import org.cloudfoundry.identity.uaa.password.PasswordChangeRequest;
+import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
+import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;

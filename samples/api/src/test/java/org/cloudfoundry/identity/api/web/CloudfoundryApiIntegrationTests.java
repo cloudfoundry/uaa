@@ -16,8 +16,8 @@ import static org.junit.Assert.assertNotNull;
 
 import org.cloudfoundry.client.lib.CloudFoundryClient;
 import org.cloudfoundry.client.lib.CloudInfo;
-import org.cloudfoundry.identity.uaa.integration.TestAccountSetup;
-import org.cloudfoundry.identity.uaa.integration.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
+import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
