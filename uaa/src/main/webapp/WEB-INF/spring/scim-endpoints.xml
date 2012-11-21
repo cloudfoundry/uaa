@@ -143,7 +143,7 @@
 		<property name="scimUserProvisioning" ref="scimUserProvisioning" />
 	</bean>
 
-	<bean id="passwordEventPublisher" class="org.cloudfoundry.identity.uaa.event.publisher.PasswordChangeEventPublisher">
+	<bean id="passwordEventPublisher" class="org.cloudfoundry.identity.uaa.password.event.PasswordChangeEventPublisher">
 		<constructor-arg ref="scimUserProvisioning" />
 	</bean>
 

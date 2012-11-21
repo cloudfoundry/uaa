@@ -11,13 +11,14 @@
  * subcomponent's license, as noted in the LICENSE file.
  */
 
-package org.cloudfoundry.identity.uaa.event.publisher;
+package org.cloudfoundry.identity.uaa.password.event;
 
 import java.util.Arrays;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
-import org.cloudfoundry.identity.uaa.event.PasswordChangeEvent;
-import org.cloudfoundry.identity.uaa.event.PasswordFailureEvent;
+import org.cloudfoundry.identity.uaa.password.event.PasswordChangeEvent;
+import org.cloudfoundry.identity.uaa.password.event.PasswordChangeEventPublisher;
+import org.cloudfoundry.identity.uaa.password.event.PasswordFailureEvent;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.junit.After;

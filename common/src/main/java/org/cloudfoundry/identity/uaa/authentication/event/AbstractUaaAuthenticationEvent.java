@@ -10,8 +10,10 @@
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  */
-package org.cloudfoundry.identity.uaa.event;
+package org.cloudfoundry.identity.uaa.authentication.event;
 
+import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.springframework.security.core.Authentication;
 
 /**
@@ -25,6 +27,14 @@ abstract class AbstractUaaAuthenticationEvent extends AbstractUaaEvent {
 
 	Authentication getAuthentication() {
 		return (Authentication)source;
+	}
+	
+	protected String getOrigin(UaaAuthenticationDetails details) {
+		return details == null ? "unknown" : details.getOrigin();
+	}
+
+	UaaAuthenticationDetails getAuthenticationDetails() {
+		return (UaaAuthenticationDetails) getAuthentication().getDetails();
 	}
 
 }

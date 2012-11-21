@@ -11,11 +11,13 @@
 		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.1.xsd
 		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
 
-	<bean class="org.cloudfoundry.identity.uaa.event.listener.AuditListener">
+	<bean class="org.cloudfoundry.identity.uaa.audit.event.AuditListener">
 		<constructor-arg ref="loggingAuditService" />
 	</bean>
 
-	<bean class="org.cloudfoundry.identity.uaa.event.listener.AuditListener">
+	<bean class="org.cloudfoundry.identity.uaa.authentication.event.BadCredentialsListener" />
+
+	<bean class="org.cloudfoundry.identity.uaa.audit.event.AuditListener">
 		<constructor-arg ref="jdbcAuditService" />
 	</bean>
 

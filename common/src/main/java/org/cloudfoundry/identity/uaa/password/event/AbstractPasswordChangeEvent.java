@@ -10,38 +10,41 @@
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  */
-
-package org.cloudfoundry.identity.uaa.event;
+package org.cloudfoundry.identity.uaa.password.event;
 
 import java.security.Principal;
 
-import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
-import org.springframework.security.oauth2.provider.ClientDetails;
+import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
 
 /**
  * @author Dave Syer
- *
  */
-public class SecretChangeEvent extends AbstractUaaEvent {
+abstract class AbstractPasswordChangeEvent extends AbstractUaaEvent {
+
+	private UaaUser user;
 
 	private Principal principal;
-	private String message;
-	private ClientDetails client;
 
-	public SecretChangeEvent(ClientDetails client, Principal principal) {
-		this("Secret changed", client, principal);
-	}
-	
-	public SecretChangeEvent(String message, ClientDetails client, Principal principal) {
+	private String message;
+
+	public AbstractPasswordChangeEvent(String message, UaaUser user, Principal principal) {
 		super(principal);
 		this.message = message;
-		this.client = client;
+		this.user = user;
 		this.principal = principal;
 	}
 
-	@Override
-	public void process(UaaAuditService auditor) {
-		auditor.secretChangeSuccess(message, client, principal);
+	UaaUser getUser() {
+		return user;
+	}
+
+	Principal getPrincipal() {
+		return principal;
+	}
+
+	String getMessage() {
+		return message;
 	}
 
 }

@@ -10,32 +10,30 @@
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  */
-package org.cloudfoundry.identity.uaa.event;
+package org.cloudfoundry.identity.uaa.authentication.event;
 
-import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
+import org.cloudfoundry.identity.uaa.audit.AuditEvent;
+import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.springframework.security.core.Authentication;
 import org.springframework.util.Assert;
 
 /**
- * Event which indicates that a user authentication failed.
- * 
- * This implies that the wrong credentials were supplied for a valid username.
- * 
  * @author Luke Taylor
+ * @author Dave Syer
  */
-public class UserAuthenticationFailureEvent extends AbstractUaaAuthenticationEvent {
+public class UserAuthenticationSuccessEvent extends AbstractUaaAuthenticationEvent {
 	private final UaaUser user;
 
-	public UserAuthenticationFailureEvent(UaaUser user, Authentication authentication) {
+	public UserAuthenticationSuccessEvent(UaaUser user, Authentication authentication) {
 		super(authentication);
-		Assert.notNull(user, "UaaUser object cannot be null");
 		this.user = user;
 	}
 
 	@Override
-	public void process(UaaAuditService auditor) {
-		auditor.userAuthenticationFailure(user, (UaaAuthenticationDetails) getAuthentication().getDetails());
+	public AuditEvent getAuditEvent() {
+		Assert.notNull(user, "UaaUser cannot be null");
+		return createAuditRecord(user.getId(), AuditEventType.UserAuthenticationSuccess,
+				getOrigin(getAuthenticationDetails()), user.getUsername());
 	}
 }

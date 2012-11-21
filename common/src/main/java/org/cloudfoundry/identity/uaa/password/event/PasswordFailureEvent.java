@@ -11,43 +11,38 @@
  * subcomponent's license, as noted in the LICENSE file.
  */
 
-package org.cloudfoundry.identity.uaa.event;
+package org.cloudfoundry.identity.uaa.password.event;
 
 import java.security.Principal;
 
-import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
+import org.cloudfoundry.identity.uaa.audit.AuditEvent;
+import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 
 /**
  * @author Dave Syer
  * 
  */
-public class PasswordFailureEvent extends AbstractUaaEvent {
-
-	private UaaUser user;
-
-	private Principal principal;
-
-	private String message;
+public class PasswordFailureEvent extends AbstractPasswordChangeEvent {
 
 	public PasswordFailureEvent(String message, Principal principal) {
 		this(message, null, principal);
 	}
 
 	public PasswordFailureEvent(String message, UaaUser user, Principal principal) {
-		super(principal);
-		this.message = message;
-		this.user = user;
-		this.principal = principal;
+		super(message, user, principal);
 	}
 
 	@Override
-	public void process(UaaAuditService auditor) {
-		if (user != null) {
-			auditor.passwordChangeFailure(message, user, principal);
+	public AuditEvent getAuditEvent() {
+		UaaUser user = getUser();
+		if (user == null) {
+			return createAuditRecord(getPrincipal().getName(), AuditEventType.PasswordChangeFailure,
+					getOrigin(getPrincipal()), getMessage());
 		}
 		else {
-			auditor.passwordChangeFailure(message, principal);
+			return createAuditRecord(user.getUsername(), AuditEventType.PasswordChangeFailure,
+					getOrigin(getPrincipal()), getMessage());
 		}
 	}
 

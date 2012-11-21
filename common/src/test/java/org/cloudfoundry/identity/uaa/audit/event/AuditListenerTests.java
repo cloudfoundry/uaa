@@ -10,19 +10,21 @@
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  */
-package org.cloudfoundry.identity.uaa.event.listener;
+package org.cloudfoundry.identity.uaa.audit.event;
 
+import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
-import org.cloudfoundry.identity.uaa.event.UserAuthenticationFailureEvent;
-import org.cloudfoundry.identity.uaa.event.UserAuthenticationSuccessEvent;
-import org.cloudfoundry.identity.uaa.event.UserNotFoundEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFailureEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.UserNotFoundEvent;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.junit.Before;
 import org.junit.Test;
@@ -32,6 +34,7 @@ import org.springframework.security.core.Authentication;
  * @author Luke Taylor
  */
 public class AuditListenerTests {
+
 	private AuditListener listener;
 	private UaaAuditService auditor;
 	private UaaUser user = new UaaUser("auser", "password", "auser@blah.com", "A", "User");
@@ -47,20 +50,20 @@ public class AuditListenerTests {
 	public void userNotFoundIsAudited() throws Exception {
 		AuthzAuthenticationRequest req = new AuthzAuthenticationRequest("breakin", "password", details);
 		listener.onApplicationEvent(new UserNotFoundEvent(req));
-		verify(auditor).userNotFound("breakin", details);
+		verify(auditor).log(isA(AuditEvent.class));
 	}
 
 	@Test
 	public void successfulUserAuthenticationIsAudited() throws Exception {
 		listener.onApplicationEvent(new UserAuthenticationSuccessEvent(user, mock(Authentication.class)));
-		verify(auditor).userAuthenticationSuccess(user, null);
+		verify(auditor).log(isA(AuditEvent.class));
 	}
 
 	@Test
 	public void failedUserAuthenticationIsAudited() throws Exception {
 		AuthzAuthenticationRequest req = new AuthzAuthenticationRequest("auser", "password", details);
 		listener.onApplicationEvent(new UserAuthenticationFailureEvent(user, req));
-		verify(auditor).userAuthenticationFailure(user, details);
+		verify(auditor).log(isA(AuditEvent.class));
 	}
 
 }

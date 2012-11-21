@@ -39,7 +39,7 @@
 		<property name="clientDetailsService" ref="clientDetails" />
 	</bean>
 
-	<bean id="clientAdminEventPublisher" class="org.cloudfoundry.identity.uaa.event.publisher.ClientAdminEventPublisher">
+	<bean id="clientAdminEventPublisher" class="org.cloudfoundry.identity.uaa.oauth.event.ClientAdminEventPublisher">
 		<constructor-arg ref="clientDetails" />
 	</bean>
 

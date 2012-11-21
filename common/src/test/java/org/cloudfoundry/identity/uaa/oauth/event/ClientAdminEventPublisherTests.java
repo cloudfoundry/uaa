@@ -11,17 +11,18 @@
  * subcomponent's license, as noted in the LICENSE file.
  */
 
-package org.cloudfoundry.identity.uaa.event.publisher;
+package org.cloudfoundry.identity.uaa.oauth.event;
 
 import java.util.Arrays;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
-import org.cloudfoundry.identity.uaa.event.ClientCreateEvent;
-import org.cloudfoundry.identity.uaa.event.ClientDeleteEvent;
-import org.cloudfoundry.identity.uaa.event.ClientUpdateEvent;
-import org.cloudfoundry.identity.uaa.event.SecretChangeEvent;
-import org.cloudfoundry.identity.uaa.event.SecretFailureEvent;
+import org.cloudfoundry.identity.uaa.oauth.event.ClientAdminEventPublisher;
+import org.cloudfoundry.identity.uaa.oauth.event.ClientCreateEvent;
+import org.cloudfoundry.identity.uaa.oauth.event.ClientDeleteEvent;
+import org.cloudfoundry.identity.uaa.oauth.event.ClientUpdateEvent;
+import org.cloudfoundry.identity.uaa.oauth.event.SecretChangeEvent;
+import org.cloudfoundry.identity.uaa.oauth.event.SecretFailureEvent;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

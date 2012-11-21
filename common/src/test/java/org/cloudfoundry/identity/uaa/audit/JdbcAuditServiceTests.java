@@ -12,6 +12,8 @@
  */
 package org.cloudfoundry.identity.uaa.audit;
 
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.PrincipalAuthenticationFailure;
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserAuthenticationFailure;
 import static org.junit.Assert.assertEquals;
 
 import java.sql.Timestamp;
@@ -19,16 +21,12 @@ import java.util.List;
 
 import javax.sql.DataSource;
 
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
-import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.cloudfoundry.identity.uaa.user.UaaUserTestFactory;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.annotation.IfProfileValue;
 import org.springframework.test.annotation.ProfileValueSourceConfiguration;
 import org.springframework.test.context.ContextConfiguration;
@@ -50,25 +48,21 @@ public class JdbcAuditServiceTests {
 
 	private JdbcAuditService auditService;
 
-	private UaaAuthenticationDetails authDetails;
+	private String authDetails;
 
 	@Before
 	public void createService() throws Exception {
 		template = new JdbcTemplate(dataSource);
 		auditService = new JdbcAuditService(dataSource);
 		template.execute("DELETE FROM SEC_AUDIT WHERE principal_id='1' or principal_id='clientA' or principal_id='clientB'");
-
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		request.setRemoteAddr("1.1.1.1");
-		authDetails = new UaaAuthenticationDetails(request);
+		authDetails = "1.1.1.1";
 	}
 
 	@Test
 	public void userAuthenticationFailureAuditSucceeds() throws Exception {
-		UaaUser joe =UaaUserTestFactory.getUser("1", "joe", "joe@test.org", "Joe", "Schmo");
-		auditService.userAuthenticationFailure(joe, authDetails);
+		auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"));
 		Thread.sleep(100);
-		auditService.userAuthenticationFailure(joe, authDetails);
+		auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"));
 		List<AuditEvent> events = auditService.find("1", 0);
 		assertEquals(2, events.size());
 		assertEquals("1", events.get(0).getPrincipalId());
@@ -78,7 +72,7 @@ public class JdbcAuditServiceTests {
 
 	@Test
 	public void principalAuthenticationFailureAuditSucceeds() {
-		auditService.principalAuthenticationFailure("clientA", authDetails);
+		auditService.log(getAuditEvent(PrincipalAuthenticationFailure, "clientA"));
 		List<AuditEvent> events = auditService.find("clientA", 0);
 		assertEquals(1, events.size());
 		assertEquals("clientA", events.get(0).getPrincipalId());
@@ -88,14 +82,22 @@ public class JdbcAuditServiceTests {
 	@Test
 	public void findMethodOnlyReturnsEventsWithinRequestedPeriod() {
 		long now = System.currentTimeMillis();
-		auditService.principalAuthenticationFailure("clientA", authDetails);
+		auditService.log(getAuditEvent(PrincipalAuthenticationFailure, "clientA"));
 		// Set the created column to one hour past
 		template.update("update sec_audit set created=?", new Timestamp(now - 3600*1000));
-		auditService.principalAuthenticationFailure("clientA", authDetails);
-		auditService.principalAuthenticationFailure("clientB", authDetails);
+		auditService.log(getAuditEvent(PrincipalAuthenticationFailure, "clientA"));
+		auditService.log(getAuditEvent(PrincipalAuthenticationFailure, "clientB"));
 		// Find events within last 2 mins
 		List<AuditEvent> events = auditService.find("clientA", now - 120*1000);
 		assertEquals(1, events.size());
+	}
+
+	private AuditEvent getAuditEvent(AuditEventType type, String principal) {
+		return getAuditEvent(type, principal, null);
+	}
+	
+	private AuditEvent getAuditEvent(AuditEventType type, String principal, String data) {
+		return new AuditEvent(type, principal, authDetails, data, System.currentTimeMillis());
 	}
 
 }

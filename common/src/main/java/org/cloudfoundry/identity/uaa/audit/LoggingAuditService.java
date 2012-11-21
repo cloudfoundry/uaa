@@ -12,19 +12,14 @@
  */
 package org.cloudfoundry.identity.uaa.audit;
 
-import java.security.Principal;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
-import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.springframework.jmx.export.annotation.ManagedMetric;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.jmx.support.MetricType;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
 
 /**
  * Audit service implementation which just outputs the relevant information through the logger.
@@ -89,98 +84,43 @@ public class LoggingAuditService implements UaaAuditService {
 	}
 
 	@Override
-	public void userAuthenticationSuccess(UaaUser user, UaaAuthenticationDetails details) {
-		userAuthenticationCount.incrementAndGet();
-		log("User authenticated: " + user.getId() + ", " + user.getUsername());
-	}
-
-	@Override
-	public void userAuthenticationFailure(UaaUser user, UaaAuthenticationDetails details) {
-		userAuthenticationFailureCount.incrementAndGet();
-		log("Authentication failed, user: " + user.getId() + ", " + user.getUsername());
-	}
-
-	@Override
-	public void userNotFound(String name, UaaAuthenticationDetails details) {
-		userNotFoundCount.incrementAndGet();
-		log("Attempt to login as non-existent user: " + name);
-	}
-
-	@Override
-	public void passwordChangeSuccess(String message, UaaUser user, Principal caller) {
-		passwordChanges.incrementAndGet();
-		log("Password change ('" + message + "'): user=" + user.getUsername() + "; " + extractCaller(caller));
-	}
-
-	@Override
-	public void passwordChangeFailure(String message, UaaUser user, Principal caller) {
-		passwordFailures.incrementAndGet();
-		log("Password change failed ('" + message + "'): user=" + user.getUsername() + "; " + extractCaller(caller));
-	}
-
-	@Override
-	public void passwordChangeFailure(String message, Principal caller) {
-		passwordFailures.incrementAndGet();
-		log("Password change failed with no user ('" + message + "'): " + extractCaller(caller));
-	}
-	
-	@Override
-	public void clientCreateSuccess(ClientDetails client, Principal caller) {
-		log("Client created: target=" + client.getClientId()+ "; " + extractCaller(caller));
-	}
-
-	@Override
-	public void clientUpdateSuccess(ClientDetails client, Principal caller) {
-		log("Client updated: target=" + client.getClientId()+ "; " + extractCaller(caller));
-	}
-
-	@Override
-	public void clientDeleteSuccess(ClientDetails client, Principal caller) {
-		log("Client deleted: target=" + client.getClientId()+ "; " + extractCaller(caller));
-	}
-
-	@Override
-	public void secretChangeSuccess(String message, ClientDetails client, Principal caller) {
-		passwordChanges.incrementAndGet();
-		log("Secret change ('" + message + "'): target=" + client.getClientId()+ "; " + extractCaller(caller));
-	}
-
-	@Override
-	public void secretChangeFailure(String message, ClientDetails client, Principal caller) {
-		passwordFailures.incrementAndGet();
-		log("Secret change failed ('" + message + "'): target=" + client.getClientId() + "; " + extractCaller(caller));
-	}
-
-	@Override
-	public void secretChangeFailure(String message, Principal caller) {
-		passwordFailures.incrementAndGet();
-		log("Secret change failed with no user ('" + message + "'): " + extractCaller(caller));
-	}
-
-	@Override
-	public void principalAuthenticationFailure(String name, UaaAuthenticationDetails details) {
-		principalAuthenticationFailureCount.incrementAndGet();
-		log("Authentication failed, principal: " + name);
-	}
-
-	@Override
-	public void principalNotFound(String name, UaaAuthenticationDetails details) {
-		principalNotFoundCount.incrementAndGet();
-		log("Authentication failed, principal not found: " + name);
-	}
-
-	@Override
 	public List<AuditEvent> find(String principal, long after) {
 		throw new UnsupportedOperationException("This implementation does not store data");
 	}
 
-	private String extractCaller(Principal caller) {
-		if (caller instanceof OAuth2Authentication) {
-			OAuth2Authentication oAuth2Authentication = (OAuth2Authentication) caller;
-			return "client=" + oAuth2Authentication.getAuthorizationRequest().getClientId()
-					+ (oAuth2Authentication.isClientOnly() ? "" : "; user=" + caller.getName());
+	@Override
+	public void log(AuditEvent auditEvent) {
+		updateCounters(auditEvent);
+		log(String.format("%s ('%s'): principal=%s, origin=%s", auditEvent.getType().name(), auditEvent.getData(),
+				auditEvent.getPrincipalId(), auditEvent.getOrigin()));
+	}
+
+	private void updateCounters(AuditEvent auditEvent) {
+		switch (auditEvent.getType()) {
+		case PasswordChanged:
+			passwordChanges.incrementAndGet();			
+			break;
+		case PasswordChangeFailure:
+			passwordFailures.incrementAndGet();
+			break;
+		case UserAuthenticationSuccess:
+			userAuthenticationCount.incrementAndGet();
+			break;
+		case UserAuthenticationFailure:
+			userAuthenticationFailureCount.incrementAndGet();
+			break;
+		case UserNotFound:
+			userNotFoundCount.incrementAndGet();
+			break;
+		case PrincipalAuthenticationFailure:
+			principalAuthenticationFailureCount.incrementAndGet();
+			break;
+		case PrincipalNotFound:
+			principalNotFoundCount.incrementAndGet();
+			break;
+		default:
+			break;
 		}
-		return caller == null ? null : caller.getName();
 	}
 
 	private void log(String msg) {

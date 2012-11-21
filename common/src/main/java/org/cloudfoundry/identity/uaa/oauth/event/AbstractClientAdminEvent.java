@@ -10,45 +10,33 @@
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  */
-
-package org.cloudfoundry.identity.uaa.event;
+package org.cloudfoundry.identity.uaa.oauth.event;
 
 import java.security.Principal;
 
-import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
+import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.springframework.security.oauth2.provider.ClientDetails;
 
 /**
  * @author Dave Syer
- * 
  */
-public class SecretFailureEvent extends AbstractUaaEvent {
+abstract class AbstractClientAdminEvent extends AbstractUaaEvent {
 
 	private Principal principal;
-
-	private String message;
-
 	private ClientDetails client;
 
-	public SecretFailureEvent(String message, Principal principal) {
-		this(message, null, principal);
-	}
-
-	public SecretFailureEvent(String message, ClientDetails client, Principal principal) {
+	public AbstractClientAdminEvent(ClientDetails client, Principal principal) {
 		super(principal);
-		this.message = message;
 		this.client = client;
 		this.principal = principal;
 	}
-
-	@Override
-	public void process(UaaAuditService auditor) {
-		if (client != null) {
-			auditor.secretChangeFailure(message, client, principal);
-		}
-		else {
-			auditor.secretChangeFailure(message, principal);
-		}
+	
+	ClientDetails getClient() {
+		return client;
+	}
+	
+	Principal getPrincipal() {
+		return principal;
 	}
 
 }

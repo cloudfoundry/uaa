@@ -11,31 +11,28 @@
  * subcomponent's license, as noted in the LICENSE file.
  */
 
-package org.cloudfoundry.identity.uaa.event;
+package org.cloudfoundry.identity.uaa.oauth.event;
 
 import java.security.Principal;
 
-import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
+import org.cloudfoundry.identity.uaa.audit.AuditEvent;
+import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.springframework.security.oauth2.provider.ClientDetails;
 
 /**
  * @author Dave Syer
- *
+ * 
  */
-public class ClientDeleteEvent extends AbstractUaaEvent {
+public class ClientUpdateEvent extends AbstractClientAdminEvent {
 
-	private Principal principal;
-	private ClientDetails client;
-
-	public ClientDeleteEvent(ClientDetails client, Principal principal) {
-		super(principal);
-		this.client = client;
-		this.principal = principal;
+	public ClientUpdateEvent(ClientDetails client, Principal principal) {
+		super(client, principal);
 	}
 
 	@Override
-	public void process(UaaAuditService auditor) {
-		auditor.clientDeleteSuccess(client, principal);
+	public AuditEvent getAuditEvent() {
+		return createAuditRecord(getClient().getClientId(), AuditEventType.ClientUpdateSuccess,
+				getOrigin(getPrincipal()));
 	}
 
 }

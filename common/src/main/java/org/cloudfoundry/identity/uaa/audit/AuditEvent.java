@@ -16,6 +16,7 @@ package org.cloudfoundry.identity.uaa.audit;
  * Used when retrieving audit data from the audit service
  */
 public class AuditEvent {
+
 	private final AuditEventType type;
 	private final String principalId;
 	private final String origin;
