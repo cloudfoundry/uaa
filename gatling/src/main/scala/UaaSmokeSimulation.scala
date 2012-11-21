@@ -51,7 +51,7 @@ class UaaSmokeSimulation extends Simulation {
        during(Duration) {
          feed(randomUserFeeder)
           .exec(createUser)
-          .exec(findUserByName)
+          .exec(findUserByName("username"))
           .exec(getUser)
           .pause(0, 2000, TimeUnit.MILLISECONDS)
        }
