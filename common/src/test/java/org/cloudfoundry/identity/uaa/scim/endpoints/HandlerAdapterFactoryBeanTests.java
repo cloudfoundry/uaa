@@ -8,10 +8,11 @@
  * subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
  */
 
-package org.cloudfoundry.identity.uaa.config;
+package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import static org.junit.Assert.assertNotNull;
 
+import org.cloudfoundry.identity.uaa.scim.endpoints.HandlerAdapterFactoryBean;
 import org.junit.Test;
 import org.springframework.context.support.GenericApplicationContext;
 
