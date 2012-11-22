@@ -26,6 +26,7 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.rules.TestWatchman;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
@@ -60,6 +61,8 @@ public class TestAccountSetup extends TestWatchman {
 
 	private final UaaTestAccounts testAccounts;
 
+	private ScimUser user;
+
 	private static boolean initialized = false;
 
 	private TestAccountSetup(UrlHelper serverRunning, UaaTestAccounts testAccounts) {
@@ -77,12 +80,19 @@ public class TestAccountSetup extends TestWatchman {
 		return super.apply(base, method, target);
 	}
 
+	/**
+	 * @return the user (if already created null oetherwise)
+	 */
+	public ScimUser getUser() {
+		return user;
+	}
+
 	private void initializeIfNecessary(FrameworkMethod method, Object target) {
+		OAuth2ProtectedResourceDetails resource = testAccounts.getAdminClientCredentialsResource();
+		OAuth2RestTemplate client = createRestTemplate(resource, new DefaultAccessTokenRequest());
 		// Cache statically to save time on a test suite
 		if (!initialized) {
-			OAuth2ProtectedResourceDetails resource = testAccounts.getAdminClientCredentialsResource();
 			logger.info("Checking user account context for server=" + resource.getAccessTokenUri());
-			OAuth2RestTemplate client = createRestTemplate(resource, new DefaultAccessTokenRequest());
 			if (!scimClientExists(client)) {
 				createScimClient(client);
 			}
@@ -95,13 +105,11 @@ public class TestAccountSetup extends TestWatchman {
 			if (!tokenClientExists(client)) {
 				createTokenClient(client);
 			}
-			resource = testAccounts.getClientCredentialsResource("oauth.clients.scim", "scim", "scimsecret");
-			client = createRestTemplate(resource, new DefaultAccessTokenRequest());
-			if (!userAccountExists(client)) {
-				createUserAccount(client);
-			}
 			initialized = true;
 		}
+		resource = testAccounts.getClientCredentialsResource("oauth.clients.scim", "scim", "scimsecret");
+		client = createRestTemplate(resource, new DefaultAccessTokenRequest());
+		initializeUserAccount(client);
 	}
 
 	private void createTokenClient(RestOperations client) {
@@ -164,26 +172,29 @@ public class TestAccountSetup extends TestWatchman {
 				testAccounts.getClientCredentialsResource("oauth.clients.app", "app", "appclientsecret"));
 	}
 
-	private void createUserAccount(RestOperations client) {
-		ScimUser user = testAccounts.getUser();
-		ResponseEntity<ScimUser> response = client.postForEntity(serverRunning.getUserUri(), user, ScimUser.class);
-		Assert.state(response.getStatusCode() == HttpStatus.CREATED);
-	}
+	private void initializeUserAccount(RestOperations client) {
 
-	private boolean userAccountExists(RestOperations client) {
-		Map<?, ?> map = client.getForObject(
-				serverRunning.getUsersUri() + "?filter=userName eq '" + testAccounts.getUserName() + "'", Map.class);
-		Integer count = (Integer) map.get("totalResults");
-		if (count == null) {
-			throw new IllegalStateException("Null response from user exists query: " + map);
+		if (this.user == null) {
+
+			ScimUser user = testAccounts.getUser();
+			@SuppressWarnings("rawtypes")
+			ResponseEntity<Map> results = client.getForEntity(serverRunning.getUserUri() + "?filter=userName eq '"
+					+ user.getUserName() + "'", Map.class);
+			assertEquals(HttpStatus.OK, results.getStatusCode());
+			@SuppressWarnings("unchecked")
+			List<Map<String, ?>> resources = (List<Map<String, ?>>) results.getBody().get("resources");
+			if (!resources.isEmpty()) {
+				this.user = new ObjectMapper().convertValue(resources.get(0), ScimUser.class);
+			}
+			else {
+				ResponseEntity<ScimUser> response = client.postForEntity(serverRunning.getUserUri(), user,
+						ScimUser.class);
+				Assert.state(response.getStatusCode() == HttpStatus.CREATED);
+				this.user = response.getBody();
+			}
+
 		}
-		if (count > 1) {
-			throw new IllegalStateException("More than one user already exists with the test user name.");
-		}
-		if (count == 1) {
-			return true;
-		}
-		return false;
+
 	}
 
 	private OAuth2RestTemplate createRestTemplate(OAuth2ProtectedResourceDetails resource,

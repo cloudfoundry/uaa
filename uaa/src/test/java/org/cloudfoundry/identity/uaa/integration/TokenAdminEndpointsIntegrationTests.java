@@ -69,6 +69,16 @@ public class TokenAdminEndpointsIntegrationTests {
 
 	@Test
 	@OAuth2ContextConfiguration(resource = TokenResourceOwnerPassword.class)
+	public void testListTokensByUserId() throws Exception {
+
+		ResponseEntity<String> result = serverRunning.getForString("/oauth/users/" + testAccountSetup.getUser().getId()
+				+ "/tokens?lookup=true");
+		assertEquals(HttpStatus.OK, result.getStatusCode());
+		assertTrue(result.getBody().contains(context.getAccessToken().getValue()));
+	}
+
+	@Test
+	@OAuth2ContextConfiguration(resource = TokenResourceOwnerPassword.class)
 	public void testRevokeTokenByUser() throws Exception {
 
 		OAuth2AccessToken token = context.getAccessToken();

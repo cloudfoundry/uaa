@@ -51,7 +51,7 @@
 	</bean>
 
 	<!-- Add a handler adapter with special knowledge of the ScimUser endpoints -->
-	<bean class="org.cloudfoundry.identity.uaa.config.HandlerAdapterFactoryBean" />
+	<bean class="org.cloudfoundry.identity.uaa.scim.endpoints.HandlerAdapterFactoryBean" />
 
 	<util:map id="exceptionToStatusMap" key-type="java.lang.Class" value-type="org.springframework.http.HttpStatus">
 		<entry key="org.springframework.dao.DataIntegrityViolationException" value="BAD_REQUEST" />
@@ -134,7 +134,7 @@
 		<constructor-arg value="${scim.userids_enabled:false}" />
 	</bean>
 
-	<bean id="idConversionEndpoints" class="org.cloudfoundry.identity.uaa.openid.UserIdConversionEndpoints">
+	<bean id="idConversionEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.UserIdConversionEndpoints">
 		<property name="scimUserEndpoints" ref="scimUserEndpoints" />
 		<property name="enabled" ref="userIdsEnabled" />
 	</bean>

@@ -11,13 +11,14 @@
  * subcomponent's license, as noted in the LICENSE file.
  */
 
-package org.cloudfoundry.identity.uaa.openid;
+package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import static org.junit.internal.matchers.StringContains.containsString;
 
 import java.util.Collection;
 
 import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints;
+import org.cloudfoundry.identity.uaa.scim.endpoints.UserIdConversionEndpoints;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.junit.Before;
