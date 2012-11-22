@@ -91,7 +91,7 @@ public class LoggingAuditService implements UaaAuditService {
 	@Override
 	public void log(AuditEvent auditEvent) {
 		updateCounters(auditEvent);
-		log(String.format("%s ('%s'): principal=%s, origin=%s", auditEvent.getType().name(), auditEvent.getData(),
+		log(String.format("%s ('%s'): principal=%s, origin=[%s]", auditEvent.getType().name(), auditEvent.getData(),
 				auditEvent.getPrincipalId(), auditEvent.getOrigin()));
 	}
 

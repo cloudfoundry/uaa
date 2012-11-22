@@ -27,10 +27,13 @@ import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSucc
 import org.cloudfoundry.identity.uaa.authentication.event.UserNotFoundEvent;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.event.AuthenticationFailureBadCredentialsEvent;
+import org.springframework.security.authentication.event.AuthenticationFailureLockedEvent;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
@@ -72,7 +75,9 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
 		logger.debug("Processing authentication request for " + req.getName());
 
 		if (req.getCredentials() == null) {
-			throw new BadCredentialsException("No password supplied");
+			BadCredentialsException e = new BadCredentialsException("No password supplied");
+			publish(new AuthenticationFailureBadCredentialsEvent(req, e));
+			throw e;
 		}
 
 		UaaUser user;
@@ -88,28 +93,36 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
 		if (!accountLoginPolicy.isAllowed(user, req)) {
 			logger.warn("Login policy rejected authentication for " + user.getUsername() + ", " + user.getId()
 					+ ". Ignoring login request.");
-			// TODO: We should perhaps have another audit event type here
-			// since this will not be logged as an authentication failure.
-			throw new BadCredentialsException("Login policy rejected authentication");
+			BadCredentialsException e = new BadCredentialsException("Login policy rejected authentication");
+			publish(new AuthenticationFailureLockedEvent(req, e));
+			throw e;
 		}
 
 		if (passwordMatches) {
 			logger.debug("Password successfully matched");
 			Authentication success = new UaaAuthentication(new UaaPrincipal(user),
 						user.getAuthorities(), (UaaAuthenticationDetails) req.getDetails());
-			eventPublisher.publishEvent(new UserAuthenticationSuccessEvent(user, success));
+			publish(new UserAuthenticationSuccessEvent(user, success));
 
 			return success;
 		}
 
 		if (user == dummyUser) {
 			logger.debug("No user named '" + req.getName() + "' was found");
-			eventPublisher.publishEvent(new UserNotFoundEvent(req));
+			publish(new UserNotFoundEvent(req));
 		} else {
 			logger.debug("Password did not match for user " + req.getName());
-			eventPublisher.publishEvent(new UserAuthenticationFailureEvent(user, req));
+			publish(new UserAuthenticationFailureEvent(user, req));
 		}
-		throw new BadCredentialsException("Bad credentials");
+		BadCredentialsException e = new BadCredentialsException("Bad credentials");
+		publish(new AuthenticationFailureBadCredentialsEvent(req, e));
+		throw e;
+	}
+	
+	private void publish(ApplicationEvent event) {
+		if (eventPublisher!=null) {
+			eventPublisher.publishEvent(event);
+		}
 	}
 
 	@Override

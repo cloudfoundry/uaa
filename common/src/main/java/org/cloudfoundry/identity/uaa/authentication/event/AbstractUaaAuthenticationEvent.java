@@ -30,7 +30,7 @@ abstract class AbstractUaaAuthenticationEvent extends AbstractUaaEvent {
 	}
 	
 	protected String getOrigin(UaaAuthenticationDetails details) {
-		return details == null ? "unknown" : details.getOrigin();
+		return details == null ? "unknown" : details.toString();
 	}
 
 	UaaAuthenticationDetails getAuthenticationDetails() {
