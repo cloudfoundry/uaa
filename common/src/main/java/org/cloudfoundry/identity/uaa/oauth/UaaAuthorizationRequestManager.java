@@ -21,6 +21,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.cloudfoundry.identity.uaa.oauth.authz.ApprovalsManager;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.springframework.security.core.GrantedAuthority;
@@ -53,6 +54,8 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
 	private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
 
 	private Collection<String> defaultScopes = new HashSet<String>();
+	
+	private ApprovalsManager approvalsManager = null;
 
 	public UaaAuthorizationRequestManager(ClientDetailsService clientDetailsService) {
 		this.clientDetailsService = clientDetailsService;
@@ -94,6 +97,15 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
 		this.scopeSeparator = scopeSeparator;
 	}
 
+	/**
+	 * Reference to the approvals manager that provides an API to manage user approved scopes.
+	 * 
+	 * @param approvalManager
+	 */
+	public void setApprovalManager(ApprovalsManager approvalManager) {
+		this.approvalsManager = approvalManager;
+	}
+	
 	/**
 	 * Create an authorization request applying various UAA rules to the authorizationParameters and the registered
 	 * client details.
