@@ -56,8 +56,6 @@ public class UaaUser {
 		Assert.hasText(username, "Username cannot be empty");
 		Assert.hasText(id, "Id cannot be null");
 		Assert.hasText(email, "Email is required");
-		Assert.hasText(givenName, "givenName is required");
-		Assert.hasText(familyName, "familyName is required");
 		this.id = id;
 		this.username = username;
 		this.password = password;

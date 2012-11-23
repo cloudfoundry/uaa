@@ -21,8 +21,8 @@ CREATE TABLE USERS (
    password ${VARCHAR}(255) not null,
    email ${VARCHAR}(255) not null,
    authorities ${VARCHAR}(1024) default 'uaa.user' not null,
-   givenName ${VARCHAR}(255) not null,
-   familyName ${VARCHAR}(255) not null,
+   givenName ${VARCHAR}(255),
+   familyName ${VARCHAR}(255),
    active BOOLEAN default true not null,
    phoneNumber ${VARCHAR}(255),
    constraint unique_uk_1 unique(username)

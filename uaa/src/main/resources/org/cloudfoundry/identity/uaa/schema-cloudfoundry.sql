@@ -37,6 +37,8 @@ ALTER TABLE USERS ADD COLUMN phoneNumber VARCHAR(255);
 ALTER TABLE USERS ADD COLUMN authorities VARCHAR(1024) default 'uaa.user';
 UPDATE USERS set authorities='uaa.user' where authority=0 and authorities not like '%.%';
 UPDATE USERS set authorities='uaa.admin,uaa.user' where authority=1 and authorities not like '%.%';
+ALTER TABLE USERS ALTER COLUMN givenyName drop not NULL;
+ALTER TABLE USERS ALTER COLUMN familyName drop not NULL;
 
 CREATE TABLE SEC_AUDIT (
    principal_id char(36) not null,
