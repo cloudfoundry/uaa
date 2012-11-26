@@ -140,8 +140,10 @@ public class ScimGroupEndpoints {
 		ScimGroup existing = getGroup(groupId);
 		try {
 			ScimGroup updated = dao.updateGroup(groupId, group);
-			if (group.getMembers() != null) {
+			if (group.getMembers() != null && group.getMembers().size() > 0) {
 				membershipManager.updateOrAddMembers(updated.getId(), group.getMembers());
+			} else {
+				membershipManager.removeMembersByGroupId(updated.getId());
 			}
 			updated.setMembers(membershipManager.getMembers(updated.getId()));
 			return updated;
