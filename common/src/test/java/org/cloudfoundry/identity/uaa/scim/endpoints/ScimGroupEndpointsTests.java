@@ -354,6 +354,19 @@ public class ScimGroupEndpointsTests {
 		expectedEx.expect(ScimException.class);
 		endpoints.updateGroup(g1, g1.getId(), String.valueOf(g1.getVersion() + 23));
 	}
+	
+	@Test
+	public void testUpdateGroupWithNoMembers() {		
+		ScimGroup g = new ScimGroup("", "clients.read");
+		g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroup.GROUP_ADMIN)));
+		g = endpoints.createGroup(g);
+		validateUserGroups(g.getMembers().get(0).getMemberId(), "clients.read");
+
+		g.setDisplayName("superadmin");
+		g.setMembers(null);
+		ScimGroup g1 = endpoints.updateGroup(g, g.getId(), "*");
+		validateGroup(g1, "superadmin", 0);
+	}
 
 	@Test
 	public void testDeleteGroup() throws Exception {
