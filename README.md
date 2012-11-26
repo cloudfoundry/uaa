@@ -290,14 +290,12 @@ In CloudFoundry terms
 * `uaa` provides an authentication service plus authorized delegation for
    back-end services and apps (by issuing OAuth2 access tokens).
 
-* `api` is `api.cloudfoundry.com` - it's a service which provides resources
-   which other applications may wish to access on behalf of the resource
-   owner (the end user).
+* `api` is a service that provides resources that other applications may
+  wish to access on behalf of the resource owner (the end user).
 
-* `app` is `code.cloudfoundry.com` or `studio.cloudfoundry.com` - a
-  webapp that needs single sign on and access to the `api` service on
-  behalf of users.
-  
+* `app` is a webapp that needs single sign on and access to the `api`
+  service on behalf of users.
+
 * `login` is where Cloud Foundry administrators set up their
   authentication sources, e.g. LDAP/AD, SAML, OpenID (Google etc.) or
   social. The cloudfoundry.com platform uses a different
