@@ -251,10 +251,10 @@ public class ScimUserEndpoints implements InitializingBean {
 		indirectGroups.removeAll(directGroups);
 		Set<ScimUser.Group> groups = new HashSet<ScimUser.Group>();
 		for (ScimGroup group : directGroups) {
-			groups.add(new ScimUser.Group(group.getId(), group.getDisplayName(), ScimUser.Group.MembershipType.DIRECT));
+			groups.add(new ScimUser.Group(group.getId(), group.getDisplayName(), ScimUser.Group.Type.DIRECT));
 		}
 		for (ScimGroup group : indirectGroups) {
-			groups.add(new ScimUser.Group(group.getId(), group.getDisplayName(), ScimUser.Group.MembershipType.INDIRECT));
+			groups.add(new ScimUser.Group(group.getId(), group.getDisplayName(), ScimUser.Group.Type.INDIRECT));
 		}
 
 		user.setGroups(groups);
