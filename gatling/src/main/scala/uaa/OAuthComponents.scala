@@ -124,30 +124,26 @@ object OAuthComponents {
         .check(status.is(200), jsonToken.saveAs("access_token"))
 
   /**
-   * Action which performs an implicit token request as VMC client.
-   *
-   * Requires a username and password in the session.
+   * Single vmc login action with a specific username/password
    */
-  def vmcLogin(): ActionBuilder = vmcLogin("${username}", "${password}")
+  def vmcLogin(username: String = "${username}", password: String = "${password}"): ActionBuilder =
+    vmcAction("VMC login", username, password)
+      .check(status is 302, fragmentToken.saveAs("access_token"))
 
-  /**
-   * Single vmc login action with a specific username/password and scope
-   */
-  def vmcLogin(username: String, password: String, scope: String = "", expectedStatus:Int = 302): ActionBuilder = {
-    val ab = http("VMC login")
-        .post("/oauth/authorize")
-        .param("client_id", "vmc")
-        .param("scope", scope)
-        .param("credentials", """{"username":"%s","password":"%s"}""".format(username, password))
-        .param("redirect_uri", "http://uaa.cloudfoundry.com/redirect/vmc")
-        .param("response_type", "token")
-        .headers(plainHeaders)
-    if (expectedStatus == 302) {
-      ab.check(status is 302, fragmentToken.saveAs("access_token"))
-    } else {
-      ab.check(status is expectedStatus)
-    }
-  }
+  def vmcLoginFailure(username: String = "${username}", password: String = "pXssword"): ActionBuilder =
+    vmcAction("VMC failed login", username, password)
+      .check(status is 401)
+
+  private def vmcAction(name: String, username: String, password: String) =
+    http(name)
+      .post("/oauth/authorize")
+      .param("client_id", "vmc")
+      .param("source", "credentials")
+      .param("username", username)
+      .param("password", password)
+      .param("redirect_uri", "http://uaa.cloudfoundry.com/redirect/vmc")
+      .param("response_type", "token")
+      .headers(plainHeaders)
 
   def login: ActionBuilder = login("${username}", "${password}")
 

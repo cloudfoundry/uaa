@@ -36,6 +36,13 @@ class UaaSmokeSimulation extends Simulation {
 //        .exec((s: Session) => {println("User: %s, token: %s" format(s.getAttribute("username"), s.getAttribute("access_token"))); s})
     }
 
+  val vmcFailedLogins = scenario("VMC Failed Login")
+    .during(Duration) {
+      chain.feed(UsernamePasswordFeeder())
+        .exec(vmcLoginFailure())
+        .pause(0, 2000, TimeUnit.MILLISECONDS)
+  }
+
   val random = new scala.util.Random()
 
   val randomUserFeeder = new Feeder() {
@@ -81,9 +88,10 @@ class UaaSmokeSimulation extends Simulation {
     Seq(
        uiLoginLogout.configure users 2 ramp 10 protocolConfig loginHttpConfig
        , scimWorkout.configure users 10 ramp 10 protocolConfig uaaHttpConfig
-       , authzCodeLogin.configure users 5 ramp 10 protocolConfig loginHttpConfig
+       , authzCodeLogin.configure users 10 ramp 10 protocolConfig loginHttpConfig
        , passwordScores.configure users 1 ramp 10 protocolConfig uaaHttpConfig
        , vmcUserLogins.configure users 10 ramp 10 protocolConfig uaaHttpConfig
+       , vmcFailedLogins.configure users 5 protocolConfig uaaHttpConfig
     )
   }
 }

@@ -12,12 +12,11 @@ import uaa.OAuthComponents._
 class AccountLockoutSimulation extends Simulation {
 
   val lockoutScenario = scenario("Account Lockout")
-      .feed(UniqueUsernamePasswordFeeder(users, Some("wrongpass")))
-      .loop(
-        chain.exec(vmcLogin("${username}", "${password}", "read", 401))
+      .feed(UniqueUsernamePasswordFeeder(users))
+      .repeat(10)(
+        chain.exec(vmcLoginFailure())
       )
-      .times(10)
-      .pause(60*5) // 5 mins
+      .pause(61*5) // 5 mins 5 secs
       .exec((s:Session) => {
         s.setAttribute("password", "password") // use the right password
       })
