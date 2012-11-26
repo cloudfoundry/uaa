@@ -39,15 +39,15 @@ public final class ScimUser extends ScimCore {
 		
 		String display;
 
-		public static enum MembershipType { DIRECT, INDIRECT };
-		MembershipType membershipType;
+		public static enum Type { DIRECT, INDIRECT };
+		Type type;
 
-		public MembershipType getMembershipType() {
-			return membershipType;
+		public Type getType() {
+			return type;
 		}
 
-		public void setMembershipType(MembershipType membershipType) {
-			this.membershipType = membershipType;
+		public void setType(Type type) {
+			this.type = type;
 		}
 
 		public Group() {
@@ -55,13 +55,13 @@ public final class ScimUser extends ScimCore {
 		}
 		
 		public Group(String value, String display) {
-			this(value, display, MembershipType.DIRECT);
+			this(value, display, Type.DIRECT);
 		}
 
-		public Group(String value, String display, MembershipType type) {
+		public Group(String value, String display, Type type) {
 			this.value = value;
 			this.display = display;
-			this.membershipType = type;
+			this.type = type;
 		}
 
 		public String getValue() {
@@ -86,7 +86,7 @@ public final class ScimUser extends ScimCore {
 			int result = 1;
 			result = prime * result + ((display == null) ? 0 : display.hashCode());
 			result = prime * result + ((value == null) ? 0 : value.hashCode());
-			result = prime * result + ((membershipType == null) ? 0 : membershipType.hashCode());
+			result = prime * result + ((type == null) ? 0 : type.hashCode());
 			return result;
 		}
 
@@ -111,12 +111,12 @@ public final class ScimUser extends ScimCore {
 			}
 			else if (!value.equals(other.value))
 				return false;
-			return membershipType == other.membershipType;
+			return type == other.type;
 		}
 
 		@Override
 		public String toString() {
-			return String.format("(id: %s, name: %s, type: %s)", value, display, membershipType);
+			return String.format("(id: %s, name: %s, type: %s)", value, display, type);
 		}
 	}
 
