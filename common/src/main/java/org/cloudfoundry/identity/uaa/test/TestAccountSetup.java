@@ -121,8 +121,8 @@ public class TestAccountSetup extends TestWatchman {
 
 	private void createVmcClient(RestOperations client) {
 		BaseClientDetails clientDetails = new BaseClientDetails("vmc", "cloud_controller,openid,password",
-				"openid,cloud_controller.read,password.write,tokens.read,tokens.write", "implicit", "uaa.none",
-				"https://uaa.cloudfoundry.com/redirect/vmc");
+				"openid,cloud_controller.read,password.write,tokens.read,tokens.write,scim.userids", "implicit",
+				"uaa.none", "https://uaa.cloudfoundry.com/redirect/vmc");
 		createClient(client, testAccounts.getClientDetails("oauth.clients.vmc", clientDetails));
 	}
 
@@ -154,7 +154,7 @@ public class TestAccountSetup extends TestWatchman {
 	}
 
 	private boolean vmcClientExists(RestOperations client) {
-		return clientExists(client, testAccounts.getClientCredentialsResource("oauth.clients.vmc", "vmc", null));
+		return clientExists(client, testAccounts.getImplicitResource("oauth.clients.vmc", "vmc", null));
 	}
 
 	private boolean tokenClientExists(RestOperations client) {
