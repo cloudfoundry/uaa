@@ -24,10 +24,11 @@ CREATE TABLE USERS (
    email VARCHAR(255) not null,
    authority BIGINT default 0,
    givenName VARCHAR(255) not null,
-   familyName VARCHAR(255) not null,
-   constraint unique_uk_1 unique(username)
+   familyName VARCHAR(255) not null
 ) ;
 
+ALTER TABLE users DROP CONSTRAINT unique_uk_1;
+CREATE UNIQUE INDEX unique_uk_1_1 on users (LOWER(username));
 ALTER TABLE USERS ADD COLUMN active BOOLEAN default true;
 ALTER TABLE USERS ALTER COLUMN created SET NOT NULL;
 ALTER TABLE USERS ALTER COLUMN lastModified SET NOT NULL;

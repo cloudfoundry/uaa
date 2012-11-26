@@ -17,16 +17,17 @@ CREATE TABLE USERS (
    created TIMESTAMP default current_timestamp not null,
    lastModified TIMESTAMP default current_timestamp not null,
    version BIGINT default 0 not null,
-   username VARCHAR(255) not null,
+   username VARCHAR_IGNORECASE(255) not null,
    password VARCHAR(255) not null,
    email VARCHAR(255) not null,
    authorities VARCHAR(1024) default 'uaa.user' not null,
    givenName VARCHAR(255),
    familyName VARCHAR(255),
    active BOOLEAN default true not null,
-   phoneNumber VARCHAR(255),
-   constraint unique_uk_1 unique(username)
+   phoneNumber VARCHAR(255)
 ) ;
+
+CREATE UNIQUE INDEX unique_uk_1 on users (username);
 
 CREATE TABLE SEC_AUDIT (
    principal_id char(36) not null,
@@ -67,7 +68,7 @@ CREATE TABLE GROUP_MEMBERSHIP (
   primary key (group_id, member_id)
 ) ;
 
- create table oauth_client_token (
+create table oauth_client_token (
   token_id VARCHAR(256),
   token LONGVARBINARY,
   authentication_id VARCHAR(256),

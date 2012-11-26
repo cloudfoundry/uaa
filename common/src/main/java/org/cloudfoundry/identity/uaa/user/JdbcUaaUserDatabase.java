@@ -39,7 +39,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
 	public static final String USER_FIELDS = "id,username,password,email,givenName,familyName,created,lastModified ";
 
 	public static final String USER_BY_USERNAME_QUERY = "select " + USER_FIELDS + "from users "
-			+ "where username = ? and active=true";
+			+ "where lower(username) = ? and active=true";
 
 	public static final String USER_AUTHORITIES_QUERY = "select g.displayName from groups g, group_membership m where g.id = m.group_id and m.member_id = ?";
 

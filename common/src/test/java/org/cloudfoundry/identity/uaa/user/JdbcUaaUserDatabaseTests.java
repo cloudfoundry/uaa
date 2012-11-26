@@ -66,7 +66,7 @@ public class JdbcUaaUserDatabaseTests {
 
 	private void addUser(String id, String name, String password) {
 		TestUtils.assertNoSuchUser(template, "id", id);
-		template.execute(String.format(addUserSqlFormat, id, name, password, name, name, name, ""));
+		template.execute(String.format(addUserSqlFormat, id, name, password, name.toLowerCase() + "@test.org", name, name, ""));
 	}
 
 	private void addGroup(String id, String name) {
@@ -90,7 +90,7 @@ public class JdbcUaaUserDatabaseTests {
 		TestUtils.assertNoSuchUser(template, "id", MABEL_ID);
 		TestUtils.assertNoSuchUser(template, "userName", "jo@foo.com");
 
-		addUser(JOE_ID, "joe", "joespassword");
+		addUser(JOE_ID, "Joe", "joespassword");
 		addUser(MABEL_ID, "mabel", "mabelspassword");
 
 	}
@@ -105,8 +105,19 @@ public class JdbcUaaUserDatabaseTests {
 		UaaUser joe = db.retrieveUserByName("joe");
 		assertNotNull(joe);
 		assertEquals(JOE_ID, joe.getId());
-		assertEquals("joe", joe.getUsername());
-		assertEquals("joe", joe.getEmail());
+		assertEquals("Joe", joe.getUsername());
+		assertEquals("joe@test.org", joe.getEmail());
+		assertEquals("joespassword", joe.getPassword());
+		assertTrue("authorities does not contain uaa.user", joe.getAuthorities().contains(new SimpleGrantedAuthority("uaa.user")));
+	}
+
+	@Test
+	public void getValidUserCaseInsensitive() {
+		UaaUser joe = db.retrieveUserByName("JOE");
+		assertNotNull(joe);
+		assertEquals(JOE_ID, joe.getId());
+		assertEquals("Joe", joe.getUsername());
+		assertEquals("joe@test.org", joe.getEmail());
 		assertEquals("joespassword", joe.getPassword());
 		assertTrue("authorities does not contain uaa.user", joe.getAuthorities().contains(new SimpleGrantedAuthority("uaa.user")));
 	}

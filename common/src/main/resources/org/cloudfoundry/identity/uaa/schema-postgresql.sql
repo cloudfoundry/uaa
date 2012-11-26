@@ -24,9 +24,10 @@ CREATE TABLE USERS (
    givenName VARCHAR(255),
    familyName VARCHAR(255),
    active BOOLEAN default true not null,
-   phoneNumber VARCHAR(255),
-   constraint unique_uk_1 unique(username)
+   phoneNumber VARCHAR(255)
 ) ;
+
+CREATE UNIQUE INDEX unique_uk_1 on users (lower(username));
 
 CREATE TABLE SEC_AUDIT (
    principal_id char(36) not null,
@@ -67,7 +68,7 @@ CREATE TABLE GROUP_MEMBERSHIP (
   primary key (group_id, member_id)
 ) ;
 
- create table oauth_client_token (
+create table oauth_client_token (
   token_id VARCHAR(256),
   token BYTEA,
   authentication_id VARCHAR(256),
