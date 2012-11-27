@@ -66,3 +66,11 @@ CREATE TABLE GROUP_MEMBERSHIP (
   added TIMESTAMP default current_timestamp not null,
   primary key (group_id, member_id)
 ) ;
+
+CREATE TABLE AUTHZ_APPROVALS (
+  userId VARCHAR(36) not null,
+  clientId VARCHAR(36) not null,
+  scope VARCHAR(255) not null,
+  expiresAt TIMESTAMP default current_timestamp not null,
+  primary key (userId, clientId, scope)
+) ;
