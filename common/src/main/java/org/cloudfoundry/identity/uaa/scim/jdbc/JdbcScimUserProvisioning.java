@@ -203,9 +203,6 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		if (user.getEmails()==null || user.getEmails().isEmpty()) {
 			throw new InvalidScimResourceException("An email must be provided.");
 		}
-		if (user.getName()==null || user.getName().getFamilyName()==null || user.getName().getGivenName()==null) {
-			throw new InvalidScimResourceException("A given name and a family name must be provided.");
-		}
 	}
 
 	private String extractPhoneNumber(final ScimUser user) {
