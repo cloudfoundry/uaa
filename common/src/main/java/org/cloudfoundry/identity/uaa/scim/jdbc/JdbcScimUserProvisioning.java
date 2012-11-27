@@ -178,8 +178,14 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 					ps.setTimestamp(4, new Timestamp(new Date().getTime()));
 					ps.setString(5, user.getUserName());
 					ps.setString(6, user.getPrimaryEmail());
-					ps.setString(7, user.getName().getGivenName());
-					ps.setString(8, user.getName().getFamilyName());
+					if (user.getName() == null) {
+						ps.setString(7, null);
+						ps.setString(8, null);
+					}
+					else {
+						ps.setString(7, user.getName().getGivenName());
+						ps.setString(8, user.getName().getFamilyName());
+					}
 					ps.setBoolean(9, user.isActive());
 					String phoneNumber = extractPhoneNumber(user);
 					ps.setString(10, phoneNumber);
