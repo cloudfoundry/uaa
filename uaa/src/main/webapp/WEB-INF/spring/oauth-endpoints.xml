@@ -113,6 +113,24 @@
 	</bean>
 
 	<!-- End -->
+	
+	<bean id="retryInterceptor" class="org.springframework.retry.interceptor.RetryOperationsInterceptor">
+		<property name="retryOperations">
+			<bean class="org.springframework.retry.support.RetryTemplate">
+				<property name="retryPolicy">
+					<bean class="org.springframework.retry.policy.ExceptionClassifierRetryPolicy">
+						<property name="policyMap">
+							<map key-type="java.lang.Class">
+								<entry key="org.springframework.dao.TransientDataAccessException">
+									<bean class="org.springframework.retry.policy.SimpleRetryPolicy"/>
+								</entry>
+							</map>
+						</property>
+					</bean>
+				</property>
+			</bean>
+		</property>
+	</bean>
 
 	<tx:advice id="tokenAdvice">
 		<tx:attributes>
@@ -122,7 +140,9 @@
 	</tx:advice>
 
 	<aop:config>
-		<aop:advisor advice-ref="tokenAdvice" pointcut="execution(* org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices.*(..))"/>
+		<aop:pointcut id="tokenServicesExecutions" expression="execution(* org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices.*(..))" />
+		<aop:advisor advice-ref="retryInterceptor" pointcut-ref="tokenServicesExecutions"/>
+		<aop:advisor advice-ref="tokenAdvice" pointcut-ref="tokenServicesExecutions"/>
 	</aop:config>
 
 	<bean id="tokenStore" class="org.springframework.security.oauth2.provider.token.JdbcTokenStore">
