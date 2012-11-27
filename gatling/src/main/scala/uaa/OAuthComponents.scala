@@ -75,7 +75,7 @@ object OAuthCheckBuilder {
   // Only used for saving the location header (status code can be used to check for a redirect)
   private[uaa] def locationHeaderExtractorFactory: ExtractorFactory[ExtendedResponse, String, String] = response => expression => {
     if (response.getStatusCode() != 302)
-      println("Reponse is not a redirect")
+      println("Response is not a redirect")
     Option(response.getHeader("Location")) orElse(Some("No location header found"))
   }
 }
@@ -188,7 +188,9 @@ object OAuthComponents {
     val redirectUri = client.redirectUri.getOrElse(throw new RuntimeException("Client does not have a redirectUri"))
 
      bootstrap.exec(
-        http("Authorization Request")
+        http("Initial Request To Root")
+           .get("/").check(status.is(302)))
+        .exec(http("Authorization Endpoint")
           .get("/oauth/authorize")
           .queryParam("client_id", client.id)
 //          .queryParam("scope", client.scopes.mkString(" "))
