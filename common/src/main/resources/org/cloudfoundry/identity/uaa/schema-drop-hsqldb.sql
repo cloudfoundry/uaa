@@ -21,3 +21,4 @@ DROP TABLE  oauth_client_token IF EXISTS;
 DROP TABLE  oauth_access_token IF EXISTS;
 DROP TABLE  oauth_refresh_token IF EXISTS;
 DROP TABLE  oauth_code IF EXISTS;
+DROP TABLE AUTHZ_AUTHORIZATIONS IF EXISTS;
