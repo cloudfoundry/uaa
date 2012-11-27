@@ -1,30 +1,19 @@
-/*
- * Cloud Foundry 2012.02.03 Beta
- * Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved.
- *
- * This product is licensed to you under the Apache License, Version 2.0 (the "License").
- * You may not use this product except in compliance with the License.
- *
- * This product includes a number of subcomponents with
- * separate copyright notices and license terms. Your use of these
- * subcomponents is subject to the terms and conditions of the
- * subcomponent's license, as noted in the LICENSE file.
- */
 import scala.tools.nsc.io.File
-import scala.tools.nsc.io.Path
+import scala.tools.nsc.io.Path.string2path
+
 object IDEPathHelper {
 
-	val gatlingConfUrl = getClass.getClassLoader.getResource("gatling.conf").getPath
+	val gatlingConfUrl = getClass.getClassLoader.getResource("application.conf").getPath
 	val projectRootDir = File(gatlingConfUrl).parents(2)
 
-	val mavenSourcesDir = projectRootDir / "src" / "main" / "scala"
-	val mavenResourcesDir = projectRootDir / "src" / "main" / "resources"
-	val mavenTargetDir = projectRootDir / "target"
-	val mavenBinariesDir = mavenTargetDir / "classes"
+	val mavenSourcesDirectory = projectRootDir / "src" / "main" / "scala"
+	val mavenResourcesDirectory = projectRootDir / "src" / "main" / "resources"
+	val mavenTargetDirectory = projectRootDir / "target"
+	val mavenBinariesDirectory = mavenTargetDirectory / "classes"
 
-	val dataFolder = mavenResourcesDir / "data"
-	val requestBodiesFolder = mavenResourcesDir / "request-bodies"
+	val dataDirectory = mavenResourcesDirectory / "data"
+	val requestBodiesDirectory = mavenResourcesDirectory / "request-bodies"
 
-	val recorderOutputFolder = mavenSourcesDir
-	val resultsFolder = mavenTargetDir / "gatling-results"
+	val recorderOutputDirectory = mavenSourcesDirectory
+	val resultsDirectory = mavenTargetDirectory / "results"
 }

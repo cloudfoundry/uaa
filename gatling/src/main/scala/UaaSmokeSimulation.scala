@@ -94,4 +94,5 @@ class UaaSmokeSimulation extends Simulation {
        , vmcFailedLogins.configure users 5 protocolConfig uaaHttpConfig
     )
   }
+
 }

@@ -60,7 +60,7 @@ object AccessTokenCheckBuilder {
   // Only used for saving the location header (status code can be used to check for a redirect)
   private[uaa] def locationHeaderExtractorFactory: ExtractorFactory[ExtendedResponse, String, String] = response => expression => {
     if (response.getStatusCode() != 302)
-      println("Reponse is not a redirect")
+      println("Response is not a redirect")
     Option(response.getHeader("Location")) orElse(Some("No location header found"))
   }
 }
@@ -124,26 +124,30 @@ object OAuthComponents {
         .check(status.is(200), jsonToken.saveAs("access_token"))
 
   /**
-   * Single vmc login action with a specific username/password
+   * Action which performs an implicit token request as VMC client.
+   *
+   * Requires a username and password in the session.
    */
-  def vmcLogin(username: String = "${username}", password: String = "${password}"): ActionBuilder =
-    vmcAction("VMC login", username, password)
-      .check(status is 302, fragmentToken.saveAs("access_token"))
+  def vmcLogin(): ActionBuilder = vmcLogin("${username}", "${password}")
 
-  def vmcLoginFailure(username: String = "${username}", password: String = "pXssword"): ActionBuilder =
-    vmcAction("VMC failed login", username, password)
-      .check(status is 401)
-
-  private def vmcAction(name: String, username: String, password: String) =
-    http(name)
-      .post("/oauth/authorize")
-      .param("client_id", "vmc")
-      .param("source", "credentials")
-      .param("username", username)
-      .param("password", password)
-      .param("redirect_uri", "http://uaa.cloudfoundry.com/redirect/vmc")
-      .param("response_type", "token")
-      .headers(plainHeaders)
+  /**
+   * Single vmc login action with a specific username/password and scope
+   */
+  def vmcLogin(username: String, password: String, scope: String = "", expectedStatus:Int = 302): ActionBuilder = {
+    val ab = http("VMC login")
+        .post("/oauth/authorize")
+        .param("client_id", "vmc")
+        .param("scope", scope)
+        .param("credentials", """{"username":"%s","password":"%s"}""".format(username, password))
+        .param("redirect_uri", "https://uaa.cloudfoundry.com/redirect/vmc")
+        .param("response_type", "token")
+        .headers(plainHeaders)
+    if (expectedStatus == 302) {
+      ab.check(status is 302, fragmentToken.saveAs("access_token"))
+    } else {
+      ab.check(status is expectedStatus)
+    }
+  }
 
   def login: ActionBuilder = login("${username}", "${password}")
 
@@ -179,7 +183,9 @@ object OAuthComponents {
     val redirectUri = client.redirectUri.getOrElse(throw new RuntimeException("Client does not have a redirectUri"))
 
      bootstrap.exec(
-        http("Authorization Request")
+        http("Initial Request To Root")
+           .get("/").check(status.is(302)))
+        .exec(http("Authorization Endpoint")
           .get("/oauth/authorize")
           .queryParam("client_id", client.id)
 //          .queryParam("scope", client.scopes.mkString(" "))

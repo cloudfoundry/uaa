@@ -58,13 +58,13 @@ object Config {
       secret= "app_client_secret",
       scopes = Seq("cloud_controller.read","cloud_controller.write","openid","password.write","tokens.read","tokens.write"),
       redirectUri = Some("http://localhost:8080/app"),
-      resources = Seq("cloud_controller"),
+      resources = Seq("uaa.none"),
       authorities = Seq("cloud_controller.read","cloud_controller.write","openid","password.write","tokens.read","tokens.write"),
       grants = Seq("client_credentials", "authorization_code", "refresh_token"))
 
   // Scim client which is registered by the admin user in order to create users
   val scimClient = Client("scim_client", "scim_client_secret",
-    Seq("uaa.none"), Seq("cloud_controller","scim", "password"), Seq("scim.read","scim.write","password.write"))
+    Seq("uaa.none"), Seq("uaa.none"), Seq("scim.read","scim.write","password.write"))
 
   // The base user data
   val users: Seq[User] = (1 to nUsers).map(i => User("shaun" + i, "password"))
