@@ -13,6 +13,6 @@
 
 module CF
   module UAA
-    VERSION = "1.3.0.snapshot"
+    VERSION = "1.3.0"
   end
 end
