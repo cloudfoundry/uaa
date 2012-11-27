@@ -96,3 +96,11 @@ create table oauth_code (
   code VARCHAR(256), authentication BYTEA
 ) ;
  
+ 
+CREATE TABLE AUTHZ_APPROVALS (
+  userName VARCHAR(36) not null,
+  clientId VARCHAR(36) not null,
+  scope VARCHAR(255) not null,
+  expiresAt TIMESTAMP default current_timestamp not null,
+  primary key (userName, clientId, scope)
+) ;
