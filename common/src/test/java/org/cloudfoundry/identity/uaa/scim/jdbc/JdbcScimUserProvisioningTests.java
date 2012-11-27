@@ -139,6 +139,20 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals(user.getUserType(), map.get(UaaAuthority.UAA_USER.getUserType()));
 		assertNull(created.getGroups());
 	}
+	
+	@Test
+	public void canCreateUserWithoutGivenNameAndFamilyName() {
+		ScimUser user = new ScimUser(null, "JO@FOO.COM", null, null);
+		user.addEmail("jo@blah.com");
+		ScimUser created = db.createUser(user, "j7hyqpassX");
+		assertEquals("JO@FOO.COM", created.getUserName());
+		assertNotNull(created.getId());
+		assertNotSame(user.getId(), created.getId());
+		Map<String, Object> map = template.queryForMap("select * from users where id=?", created.getId());
+		assertEquals(user.getUserName(), map.get("userName"));
+		assertEquals(user.getUserType(), map.get(UaaAuthority.UAA_USER.getUserType()));
+		assertNull(created.getGroups());
+	}
 
 	@Test(expected = InvalidScimResourceException.class)
 	public void cannotCreateUserWithNonAsciiUsername() {
