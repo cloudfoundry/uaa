@@ -81,6 +81,7 @@ class UaaSmokeSimulation extends Simulation {
         .post("/password/score")
         .param("password", "sdfghhju")
         .check(status is 200, jsonPath("//score") is "1"))
+      .pause(1,5)
     }
 
 
