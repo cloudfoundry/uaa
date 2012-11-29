@@ -97,7 +97,7 @@ public class LoggingAuditService implements UaaAuditService {
 
 	private void updateCounters(AuditEvent auditEvent) {
 		switch (auditEvent.getType()) {
-		case PasswordChanged:
+		case PasswordChangeSuccess:
 			passwordChanges.incrementAndGet();			
 			break;
 		case PasswordChangeFailure:

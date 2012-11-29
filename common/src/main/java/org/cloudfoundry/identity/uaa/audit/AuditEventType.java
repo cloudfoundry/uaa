@@ -19,21 +19,21 @@ package org.cloudfoundry.identity.uaa.audit;
  * @author Dave Syer
  */
 public enum AuditEventType {
+
 	// Do not change the code values, as these are used in the database.
 	UserAuthenticationSuccess (0),
 	UserAuthenticationFailure (1),
 	UserNotFound (2),
-	PasswordChanged (3),
+	PasswordChangeSuccess (3),
 	PrincipalAuthenticationSuccess (4),
 	PrincipalAuthenticationFailure (5),
 	PrincipalNotFound (6),
-	PasswordChangeSuccess (7),
-	PasswordChangeFailure (8),
-	SecretChangeSuccess (9),
-	SecretChangeFailure (10),
-	ClientCreateSuccess (11),
-	ClientUpdateSuccess (12),
-	ClientDeleteSuccess (13);
+	PasswordChangeFailure (7),
+	SecretChangeSuccess (8),
+	SecretChangeFailure (9),
+	ClientCreateSuccess (10),
+	ClientUpdateSuccess (11),
+	ClientDeleteSuccess (12);
 
 	private final int code;
 

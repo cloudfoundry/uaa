@@ -41,6 +41,7 @@ public class JdbcFailedLoginCountingAuditService extends JdbcAuditService {
 	public void log(AuditEvent auditEvent) {
 		switch (auditEvent.getType()) {
 		case UserAuthenticationSuccess:
+		case PasswordChangeSuccess:
 			getJdbcTemplate().update("delete from sec_audit where principal_id=?", auditEvent.getPrincipalId());
 			break;
 		case UserAuthenticationFailure:

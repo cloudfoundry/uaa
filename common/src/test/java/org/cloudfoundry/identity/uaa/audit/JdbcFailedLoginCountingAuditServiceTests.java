@@ -12,6 +12,7 @@
  */
 package org.cloudfoundry.identity.uaa.audit;
 
+import static org.cloudfoundry.identity.uaa.audit.AuditEventType.PasswordChangeSuccess;
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserAuthenticationFailure;
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserAuthenticationSuccess;
 import static org.junit.Assert.assertEquals;
@@ -86,6 +87,14 @@ public class JdbcFailedLoginCountingAuditServiceTests {
 		auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"));
 		assertEquals(1, template.queryForInt("select count(*) from sec_audit where principal_id='1'"));
 		auditService.log(getAuditEvent(UserAuthenticationSuccess, "1", "joe"));
+		assertEquals(0, template.queryForInt("select count(*) from sec_audit where principal_id='1'"));
+	}
+
+	@Test
+	public void userPasswordChangeSuccessResetsData() throws Exception {
+		auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"));
+		assertEquals(1, template.queryForInt("select count(*) from sec_audit where principal_id='1'"));
+		auditService.log(getAuditEvent(PasswordChangeSuccess, "1", "joe"));
 		assertEquals(0, template.queryForInt("select count(*) from sec_audit where principal_id='1'"));
 	}
 
