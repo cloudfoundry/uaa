@@ -13,7 +13,12 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -53,9 +58,32 @@ public class ClientAdminBootstrapTests {
 		map.put("scope", "openid");
 		map.put("authorized-grant-types", "authorization_code");
 		map.put("authorities", "uaa.none");
-		BaseClientDetails output = new BaseClientDetails("foo", "none", "openid", "authorization_code,refresh_token", "uaa.none");
+		BaseClientDetails output = new BaseClientDetails("foo", "none", "openid", "authorization_code,refresh_token",
+				"uaa.none");
 		output.setClientSecret("bar");
 		doSimpleTest(map, output);
+	}
+
+	@Test
+	public void testSimpleAddClientWithAutoApprove() throws Exception {
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put("id", "foo");
+		map.put("secret", "bar");
+		map.put("scope", "openid");
+		map.put("authorized-grant-types", "authorization_code");
+		map.put("authorities", "uaa.none");
+		BaseClientDetails output = new BaseClientDetails("foo", "none", "openid", "authorization_code,refresh_token",
+				"uaa.none");
+		output.setClientSecret("bar");
+		bootstrap.setAutoApproveClients(Arrays.asList("foo"));
+		when(clientRegistrationService.listClientDetails()).thenReturn(Collections.<ClientDetails> emptyList())
+				.thenReturn(Collections.<ClientDetails> singletonList(output));
+		bootstrap.setClients(Collections.singletonMap((String) map.get("id"), map));
+		bootstrap.afterPropertiesSet();
+		verify(clientRegistrationService).addClientDetails(output);
+		BaseClientDetails updated = new BaseClientDetails(output);
+		updated.setAdditionalInformation(Collections.singletonMap("autoapprove", true));
+		verify(clientRegistrationService).updateClientDetails(updated);
 	}
 
 	@Test
@@ -64,12 +92,11 @@ public class ClientAdminBootstrapTests {
 		map.put("secret", "bar");
 		map.put("override", true);
 		bootstrap.setClients(Collections.singletonMap("foo", map));
-		doThrow(new ClientAlreadyExistsException("Planned")).when(clientRegistrationService)
-				.addClientDetails(any(ClientDetails.class));
+		doThrow(new ClientAlreadyExistsException("Planned")).when(clientRegistrationService).addClientDetails(
+				any(ClientDetails.class));
 		bootstrap.afterPropertiesSet();
 		verify(clientRegistrationService, times(1)).addClientDetails(any(ClientDetails.class));
-		verify(clientRegistrationService, times(1)).updateClientDetails(
-				any(ClientDetails.class));
+		verify(clientRegistrationService, times(1)).updateClientDetails(any(ClientDetails.class));
 		verify(clientRegistrationService, times(1)).updateClientSecret("foo", "bar");
 	}
 
@@ -79,22 +106,12 @@ public class ClientAdminBootstrapTests {
 		Map<String, Object> map = new Yaml().loadAs("id: foo\noverride: true\nsecret: bar\n"
 				+ "access-token-validity: 100", Map.class);
 		bootstrap.setClients(Collections.singletonMap("foo", map));
-		doThrow(new ClientAlreadyExistsException("Planned")).when(clientRegistrationService)
-				.addClientDetails(any(ClientDetails.class));
+		doThrow(new ClientAlreadyExistsException("Planned")).when(clientRegistrationService).addClientDetails(
+				any(ClientDetails.class));
 		bootstrap.afterPropertiesSet();
 		verify(clientRegistrationService, times(1)).addClientDetails(any(ClientDetails.class));
-		verify(clientRegistrationService, times(1)).updateClientDetails(
-				any(ClientDetails.class));
+		verify(clientRegistrationService, times(1)).updateClientDetails(any(ClientDetails.class));
 		verify(clientRegistrationService, times(1)).updateClientSecret("foo", "bar");
-	}
-
-	@Test
-	public void testLegacyClientIsRemoved() throws Exception {
-		BaseClientDetails input = new BaseClientDetails("legacy_foo", "password,scim,tokens", "read,write,password",
-				"client_credentials", "ROLE_CLIENT,ROLE_ADMIN", null);
-		when(clientRegistrationService.listClientDetails()).thenReturn(Arrays.<ClientDetails> asList(input));
-		bootstrap.afterPropertiesSet();
-		verify(clientRegistrationService, times(1)).removeClientDetails("legacy_foo");
 	}
 
 	@Test
@@ -114,7 +131,7 @@ public class ClientAdminBootstrapTests {
 				"client_credentials", "uaa.none", "http://foo.bar.com,https://foo.bar.com");
 		when(clientRegistrationService.listClientDetails()).thenReturn(Arrays.<ClientDetails> asList(input));
 		bootstrap.afterPropertiesSet();
-		verify(clientRegistrationService, never()).updateClientDetails(any(ClientDetails.class));
+		verify(clientRegistrationService, times(1)).updateClientDetails(any(ClientDetails.class));
 	}
 
 	private void doSimpleTest(Map<String, Object> map, BaseClientDetails output) throws Exception {

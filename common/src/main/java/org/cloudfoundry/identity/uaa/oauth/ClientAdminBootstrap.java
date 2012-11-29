@@ -16,6 +16,7 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,13 +35,15 @@ import org.springframework.security.oauth2.provider.ClientRegistrationService;
 
 /**
  * @author Dave Syer
- *
+ * 
  */
 public class ClientAdminBootstrap implements InitializingBean {
 
 	private static Log logger = LogFactory.getLog(ClientAdminBootstrap.class);
 
 	private Map<String, Map<String, Object>> clients = new HashMap<String, Map<String, Object>>();
+
+	private Collection<String> autoApproveClients = Collections.emptySet();
 
 	private ClientRegistrationService clientRegistrationService;
 
@@ -50,7 +53,7 @@ public class ClientAdminBootstrap implements InitializingBean {
 	 * The domain suffix (default "cloudfoundry.com") used to detect http redirects. If an http callback in this domain
 	 * is found in a client registration and there is no corresponding value with https as well, then the https value
 	 * will be added.
-	 *
+	 * 
 	 * @param domain the domain to set
 	 */
 	public void setDomain(String domain) {
@@ -66,6 +69,17 @@ public class ClientAdminBootstrap implements InitializingBean {
 	}
 
 	/**
+	 * A set of client ids that are unconditionally to be autoapproved (independent of the settings in the client
+	 * details map). These clients will have <code>autoapprove=true</code> when they are inserted into the client
+	 * details store.
+	 * 
+	 * @param autoApproveClients the auto approve clients
+	 */
+	public void setAutoApproveClients(Collection<String> autoApproveClients) {
+		this.autoApproveClients = autoApproveClients;
+	}
+
+	/**
 	 * @param clientRegistrationService the clientRegistrationService to set
 	 */
 	public void setClientRegistrationService(ClientRegistrationService clientRegistrationService) {
@@ -74,13 +88,34 @@ public class ClientAdminBootstrap implements InitializingBean {
 
 	@Override
 	public void afterPropertiesSet() throws Exception {
-		deleteLegacyClients();
 		addHttpsCallbacks();
 		addNewClients();
+		updateAutoApprovClients();
 	}
 
 	/**
-	 * Add https callback to clients in cloudfoundry.com if not present
+	 * Explicitly override autoapprove in all clients that were provided in the whitelist.
+	 */
+	private void updateAutoApprovClients() {
+
+		List<ClientDetails> clients = clientRegistrationService.listClientDetails();
+
+		for (ClientDetails client : clients) {
+			if (!autoApproveClients.contains(client.getClientId())) {
+				continue;
+			}
+			BaseClientDetails base = new BaseClientDetails(client);
+			Map<String,Object> info = new HashMap<String, Object>(client.getAdditionalInformation());
+			info.put("autoapprove", true);
+			base.setAdditionalInformation(info);
+			logger.info("Adding autoapprove flag: " + base);
+			clientRegistrationService.updateClientDetails(base);
+		}		
+
+	}
+
+	/**
+	 * Make sure all cloudfoundry.com callbacks are https
 	 */
 	private void addHttpsCallbacks() {
 		List<ClientDetails> clients = clientRegistrationService.listClientDetails();
@@ -91,36 +126,21 @@ public class ClientAdminBootstrap implements InitializingBean {
 				continue;
 			}
 			Set<String> uris = new HashSet<String>(registeredRedirectUri);
+			boolean newItems = false;
 			for (String uri : registeredRedirectUri) {
 				if (uri.matches("^http://[^/]*\\." + domain + ".*")) {
+					newItems = true;
+					uris.remove(uri);
 					uris.add("https" + uri.substring("http".length()));
 				}
 			}
-			if (uris.size() == registeredRedirectUri.size()) {
+			if (!newItems) {
 				continue;
 			}
 			BaseClientDetails newClient = new BaseClientDetails(client);
 			newClient.setRegisteredRedirectUri(uris);
 			logger.info("Adding https callback: " + newClient);
 			clientRegistrationService.updateClientDetails(newClient);
-		}
-	}
-
-	/**
-	 * Delete legacy clients if present.
-	 */
-	private void deleteLegacyClients() {
-		List<ClientDetails> clients = clientRegistrationService.listClientDetails();
-
-		for (ClientDetails client : clients) {
-			if (client.getClientId().startsWith("legacy_")) {
-				logger.info("Deleting legacy client " + client.getClientId());
-				try {
-					clientRegistrationService.removeClientDetails(client.getClientId());
-				} catch (Exception e) {
-					logger.error("Failed to remove client.", e);
-				}
-			}
 		}
 	}
 
@@ -161,7 +181,7 @@ public class ClientAdminBootstrap implements InitializingBean {
 				clientRegistrationService.addClientDetails(client);
 			}
 			catch (ClientAlreadyExistsException e) {
-				if (override!=null && override) {
+				if (override != null && override) {
 					logger.info("Overriding client details for " + clientId);
 					clientRegistrationService.updateClientDetails(client);
 					clientRegistrationService.updateClientSecret(clientId, client.getClientSecret());

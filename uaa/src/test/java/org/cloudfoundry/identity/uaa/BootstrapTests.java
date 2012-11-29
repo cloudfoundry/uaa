@@ -19,7 +19,7 @@ import static org.junit.Assert.assertTrue;
 import javax.sql.DataSource;
 
 import org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean;
-import org.cloudfoundry.identity.uaa.oauth.UaaUserApprovalHandler;
+import org.cloudfoundry.identity.uaa.oauth.ClientAdminBootstrap;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
@@ -83,7 +83,7 @@ public class BootstrapTests {
 				"classpath:/test/config/test-override.xml");
 		assertEquals("different", context.getBean("foo", String.class));
 		assertEquals("[vmc, my, support]",
-				ReflectionTestUtils.getField(context.getBean(UaaUserApprovalHandler.class), "autoApproveClients")
+				ReflectionTestUtils.getField(context.getBean(ClientAdminBootstrap.class), "autoApproveClients")
 						.toString());
 		ScimUserProvisioning users = context.getBean(ScimUserProvisioning.class);
 		assertTrue(users.retrieveUsers().size() > 0);
@@ -102,7 +102,7 @@ public class BootstrapTests {
 		if (profiles != null) {
 			context.getEnvironment().setActiveProfiles(StringUtils.commaDelimitedListToStringArray(profiles));
 		}
-		
+
 		context.load(resourcesToLoad);
 
 		// Simulate what happens in the webapp when the YamlServletProfileInitializer kicks in
