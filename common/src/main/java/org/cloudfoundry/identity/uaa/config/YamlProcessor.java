@@ -98,6 +98,7 @@ public class YamlProcessor {
 	 * decide which map entries to keep in the final output from this factory. Possible values:
 	 * <ul>
 	 * <li><code>OVERRIDE</code> for replacing values from earlier in the list</li>
+	 * <li><code>OVERRIDE_AND_IGNORE</code> the same, but ignore IO errors loading individual resources</li>
 	 * <li><code>FIRST_FOUND</code> if you want to take the first resource in the list that exists and use just that.</li>
 	 * </ul>
 	 * 
