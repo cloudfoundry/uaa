@@ -67,9 +67,7 @@ class UserAccount
 
   def all_ids(method, users)
     filter = users.each_with_object([]) { |u, o| o << "userName eq \"#{u}\" or id eq \"#{u}\"" }
-    qinfo = all_pages(method, attributes: "userName,id", filter: filter.join(" or "))
-    raise NotFound, "users not found in #{@target}#{path}" unless qinfo[0] && qinfo[0][:id]
-    qinfo
+    all_pages(method, attributes: "userName,id", filter: filter.join(" or "))
   end
 
   public

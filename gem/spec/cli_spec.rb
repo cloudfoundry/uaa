@@ -212,6 +212,11 @@ describe Cli do
     Cli.output.string.should include("email: #{@test_user}+1@example.com")
   end
 
+  it "should gets 0 ids for a non-user" do
+    Cli.run("user ids #{@test_user}-NOT").should_not be_nil
+    Cli.output.string.should match(/^\s*$/)
+  end
+
   it "should get ids for a username" do
     Cli.run("user ids #{@test_user}").should_not be_nil
     Cli.output.string.should match(/#{@test_user}/i)
