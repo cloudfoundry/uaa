@@ -131,7 +131,7 @@ public class JdbcScimUserProvisioningTests {
 		ScimUser user = new ScimUser(null, "JO@FOO.COM", "Jo", "User");
 		user.addEmail("jo@blah.com");
 		ScimUser created = db.createUser(user, "j7hyqpassX");
-		assertEquals("jo@foo.com", created.getUserName());
+		assertEquals("JO@FOO.COM", created.getUserName());
 		assertNotNull(created.getId());
 		assertNotSame(user.getId(), created.getId());
 		Map<String, Object> map = template.queryForMap("select * from users where id=?", created.getId());
