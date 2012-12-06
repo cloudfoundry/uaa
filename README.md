@@ -31,15 +31,15 @@ If this works you are in business:
 Each module has a `mvn tomcat:run` target to run individually, or you
 could import them as projects into STS (use 2.8.0 or better if you
 can).  The apps all work together the apps running on the same port
-(8080) as `/uaa`, `/app` and `/api`.  You can probably use Maven 2.2.1
-to build the code, but you need to use Maven 3 if you want to run the
-server from the command line (or run integration tests).
+(8080) as `/uaa`, `/app` and `/api`.
+
+You will need Maven 3.0.4 or newer.
 
 ### Deploy to Cloud Foundry
 
 You can also build the app and push it to Cloud Foundry, e.g.
 
-    $ mvn install
+    $ mvn package install
     $ vmc push myuaa --path uaa/target
 
 (If you do that, choose a unique application id, not 'myuaa'.)
@@ -67,8 +67,8 @@ Then you can try logging in with the UAA ruby gem.  Make sure you have
 ruby 1.9, and bundler installed, then
 
     $ cd gem/; bundle
-    $ ./bin/uaac target http://localhost:8080/uaa vmc
-    $ ./bin/uaac login implicit marissa koala
+    $ ./bin/uaac target http://localhost:8080/uaa
+    $ ./bin/uaac token get marissa koala
 
 (or leave out the username / password to be prompted).
 
