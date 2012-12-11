@@ -137,6 +137,7 @@ public class ClientAdminEndpointsIntegrationTests {
 		client.setResourceIds(Collections.singleton("foo"));
 		client.setClientSecret(null);
 		client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("some.crap"));
+		client.setAdditionalInformation(Collections.<String,Object>singletonMap("foo", Arrays.asList("rab")));
 
 		ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients/{client}"),
 				HttpMethod.PUT, new HttpEntity<BaseClientDetails>(client, headers), Void.class, client.getClientId());
@@ -144,8 +145,10 @@ public class ClientAdminEndpointsIntegrationTests {
 
 		ResponseEntity<String> response = serverRunning.getForString("/oauth/clients/" + client.getClientId(), headers);
 		assertEquals(HttpStatus.OK, response.getStatusCode());
-		assertTrue(response.getBody().contains(client.getClientId()));
-		assertTrue(response.getBody().contains("some.crap"));
+		String body = response.getBody();
+		assertTrue(body.contains(client.getClientId()));
+		assertTrue(body.contains("some.crap"));
+		assertTrue("Wrong body: " + body, body.contains("\"foo\":[\"rab\"]"));
 
 	}
 
@@ -193,6 +196,7 @@ public class ClientAdminEndpointsIntegrationTests {
 	private BaseClientDetails createClient(String grantTypes) throws Exception {
 		BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar", grantTypes, "uaa.none");
 		client.setClientSecret("secret");
+		client.setAdditionalInformation(Collections.<String,Object>singletonMap("foo", Arrays.asList("bar")));
 		ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
 				HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
 		assertEquals(HttpStatus.CREATED, result.getStatusCode());
