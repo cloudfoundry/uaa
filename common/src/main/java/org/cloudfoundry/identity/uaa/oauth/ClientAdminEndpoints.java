@@ -465,8 +465,8 @@ public class ClientAdminEndpoints implements InitializingBean {
 			details.setScope(existing.getScope());
 		}
 
-		Map<String, Object> additionalInformation = new HashMap<String, Object>(input.getAdditionalInformation());
-		additionalInformation.putAll(existing.getAdditionalInformation());
+		Map<String, Object> additionalInformation = new HashMap<String, Object>(existing.getAdditionalInformation());
+		additionalInformation.putAll(input.getAdditionalInformation());
 		for (String key : Collections.unmodifiableSet(additionalInformation.keySet())) {
 			if (additionalInformation.get(key)==null) {
 				additionalInformation.remove(key);
