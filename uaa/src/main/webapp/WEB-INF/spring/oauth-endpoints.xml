@@ -134,8 +134,7 @@
 
 	<tx:advice id="tokenAdvice">
 		<tx:attributes>
-			<tx:method name="createAccessToken" isolation="REPEATABLE_READ" />
-			<tx:method name="*" isolation="DEFAULT" />
+			<tx:method name="*" isolation="REPEATABLE_READ" />
 		</tx:attributes>
 	</tx:advice>
 
