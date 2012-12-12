@@ -13,6 +13,7 @@
 
 module CF
   module UAA
+    warn "The cf-uaa-client gem is deprecated. Please use cf-uaa-lib and cf-uaac instead"
     VERSION = "1.3.0"
   end
 end
