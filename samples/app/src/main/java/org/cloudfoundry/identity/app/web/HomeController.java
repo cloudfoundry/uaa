@@ -34,6 +34,8 @@ public class HomeController {
 
 	private String tokensUri = "http://localhost:8080/uaa/oauth/users/{username}/tokens";
 
+	private String clientId = "app";
+
 	private RestOperations restTemplate;
 
 	private String logoutUrl;
@@ -66,10 +68,18 @@ public class HomeController {
 	public void setDataUri(String dataUri) {
 		this.dataUri = dataUri;
 	}
+	
+	/**
+	 * @param clientId the clientId to set
+	 */
+	public void setClientId(String clientId) {
+		this.clientId = clientId;
+	}
 
 	@RequestMapping("/browse")
 	public String browse(Model model) {
 		model.addAttribute("userAuthorizationUri", userAuthorizationUri);
+		model.addAttribute("clientId", clientId);
 		model.addAttribute("dataUri", dataUri);
 		return "browse";
 	}
