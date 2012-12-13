@@ -150,7 +150,7 @@ object OAuthComponents {
       .param("source", "credentials")
       .param("username", username)
       .param("password", password)
-      .param("redirect_uri", "http://uaa.cloudfoundry.com/redirect/vmc")
+      .param("redirect_uri", "https://uaa.cloudfoundry.com/redirect/vmc")
       .param("response_type", "token")
       .headers(plainHeaders)
 
