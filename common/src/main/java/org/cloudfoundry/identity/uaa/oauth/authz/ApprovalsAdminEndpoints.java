@@ -12,7 +12,10 @@
  */
 package org.cloudfoundry.identity.uaa.oauth.authz;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -100,7 +103,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 	@RequestMapping(value = "/approvals", method = RequestMethod.PUT)
 	@ResponseBody
 	@PreAuthorize("@securityContextAccessor.isUser()")
-	public List<Approval> updateApprovals(@RequestBody Collection<Approval> approvals) {
+	public List<Approval> updateApprovals(@RequestBody Approval[] approvals) {
 		String username = getCurrentUsername();
 		logger.debug("Updating approvals for user: " + username);
 		approvalStore.revokeApprovals(String.format(USER_FILTER_TEMPLATE, username));
