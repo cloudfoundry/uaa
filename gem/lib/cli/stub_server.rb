@@ -15,6 +15,7 @@ require 'eventmachine'
 require 'date'
 require 'logger'
 require 'pp'
+require 'erb'
 
 module Stub
 
@@ -37,6 +38,14 @@ class Request
       @state = :complete unless body.bytesize < @content_length
     end
     @state == :complete
+  end
+
+  def cookies
+    return {} unless chdr = @headers[:cookie]
+    chdr.strip.split(/\s*;\s*/).each_with_object({}) do |pair, o|
+      k, v = pair.split(/\s*=\s*/)
+      o[k.downcase.gsub('-', '_').to_sym] = v
+    end
   end
 
   private
@@ -64,13 +73,14 @@ end
 #------------------------------------------------------------------------------
 class Reply
   attr_accessor :status, :headers, :body
-  def initialize(status = 200) @status, @headers, @body = status, {}, "" end
+  def initialize(status = 200) @status, @headers, @cookies, @body = status, {}, [], "" end
   def to_s
     reply = "HTTP/1.1 #{@status} OK\r\n"
     headers[:server] = "stub server"
     headers[:date] = DateTime.now.httpdate
     headers[:content_length] = body.bytesize
     headers.each { |k, v| reply << "#{k.to_s.gsub('_', '-')}: #{v}\r\n" }
+    @cookies.each { |c| reply << "Set-Cookie: #{c}\r\n" }
     reply << "\r\n" << body
   end
   def json(status = nil, info)
@@ -86,12 +96,18 @@ class Reply
     @body = info.pretty_inspect
     nil
   end
-  #def html(info, status = nil)
-    #@status = status if status
-    #headers[:content_type] = "text/html"
-    #@body = "<html><body>#{ERB::Util.html_escape(info.pretty_inspect)}</body></html>"
-    #nil
-  #end
+  def html(status = nil, info)
+    @status = status if status
+    headers[:content_type] = "text/html"
+    info = ERB::Util.html_escape(info.pretty_inspect) unless info.is_a?(String)
+    @body = "<html><body>#{info}</body></html>"
+    nil
+  end
+  def set_cookie(name, value, options = {})
+    @cookies << options.each_with_object("#{name}=#{value}") { |(k, v), o|
+      o << (v.nil? ? "; #{k.to_s.gsub('_', '-')}" : "; #{k.to_s.gsub('_', '-')}=#{v}")
+    }
+  end
 end
 
 #------------------------------------------------------------------------------
@@ -138,6 +154,7 @@ class Base
   end
 
   def process
+    @reply = Reply.new
     @match, handler = self.class.find_route(request)
     server.logger.debug "processing request to path #{request.path} for route #{@match ? @match.regexp : 'default'}"
     send handler
@@ -195,12 +212,12 @@ class Server
     @connections, @status, @sig, @em_thread = [], :stopped, nil, nil
   end
 
-  def start(hostname = "localhost", port = 0)
+  def start(hostname = "localhost", port = nil)
     raise ArgumentError, "attempt to start a server that's already running" unless @status == :stopped
     @host = hostname
     logger.debug "starting #{self.class} server #{@host}"
     EM.schedule do
-      @sig = EM.start_server(@host, port, Connection) { |c| initialize_connection(c) }
+      @sig = EM.start_server(@host, port || 0, Connection) { |c| initialize_connection(c) }
       @port = Socket.unpack_sockaddr_in(EM.get_sockname(@sig))[0]
       logger.debug "#{self.class} server started at #{url}, signature #{@sig}"
     end

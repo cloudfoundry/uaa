@@ -12,12 +12,21 @@
  */
 package org.cloudfoundry.identity.uaa.integration;
 
-import static org.junit.Assert.*;
-import java.util.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
-import org.cloudfoundry.identity.uaa.scim.PasswordChangeRequest;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.groups.ScimGroup;
+import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
+import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Assume;
 import org.junit.Before;
@@ -128,7 +137,7 @@ public class ScimUserEndpointsIntegrationTests {
 
 		// Check we can GET the user
 		ResponseEntity<ScimUser> result = client.getForEntity(serverRunning.getUrl(userEndpoint + "/{id}"),
-				ScimUser.class, joe.getId());
+																	 ScimUser.class, joe.getId());
 		assertEquals("\"" + joe.getVersion() + "\"", result.getHeaders().getFirst("ETag"));
 	}
 
@@ -185,7 +194,7 @@ public class ScimUserEndpointsIntegrationTests {
 				Map.class));
 		map.put("nottheusername", JOE + "0");
 		ResponseEntity<Map> response = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}", HttpMethod.PUT,
-				new HttpEntity<Map>(map, headers), Map.class, joe.getId());
+															  new HttpEntity<Map>(map, headers), Map.class, joe.getId());
 		Map<String, Object> joe1 = response.getBody();
 		assertTrue("Wrong message: " + joe1, ((String) joe1.get("message")).toLowerCase().contains("unrecognized field"));
 
@@ -216,8 +225,7 @@ public class ScimUserEndpointsIntegrationTests {
 		ResponseEntity<ScimUser> response = createUser(JOE, "Joe", "User", "joe@blah.com");
 		ScimUser joe = response.getBody();
 		assertEquals(JOE, joe.getUserName());
-		assertEquals(1, joe.getGroups().size()); // all users are part of uaa.user group
-		assertEquals("uaa.user", joe.getGroups().iterator().next().getDisplay());
+		assertEquals(8, joe.getGroups().size()); // there are 8 default user groups configured in uaa
 
 		joe.setGroups(Arrays.asList(new ScimUser.Group(UUID.randomUUID().toString(), "uaa.admin")));
 
@@ -229,27 +237,7 @@ public class ScimUserEndpointsIntegrationTests {
 		assertEquals(JOE, joe1.getUserName());
 
 		assertEquals(joe.getId(), joe1.getId());
-		assertEquals(1, joe1.getGroups().size()); // all users are part of uaa.user group
-		assertEquals("uaa.user", joe1.getGroups().iterator().next().getDisplay());
-	}
-
-	// curl -v -H "Content-Type: application/json" -X PUT -H "Accept: application/json" --data
-	// "{\"password\":\"newpassword\",\"schemas\":[\"urn:scim:schemas:core:1.0\"]}"
-	// http://localhost:8080/uaa/User/{id}/password
-	@Test
-	public void changePasswordSucceeds() throws Exception {
-		ResponseEntity<ScimUser> response = createUser(JOE, "Joe", "User", "joe@blah.com");
-		ScimUser joe = response.getBody();
-		assertEquals(JOE, joe.getUserName());
-
-		PasswordChangeRequest change = new PasswordChangeRequest();
-		change.setPassword("newpassword");
-
-		HttpHeaders headers = new HttpHeaders();
-		ResponseEntity<Void> result = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password",
-				HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers), null, joe.getId());
-		assertEquals(HttpStatus.OK, result.getStatusCode());
-
+		assertEquals(8, joe1.getGroups().size()); // there are 8 default user groups configured in uaa
 	}
 
 	// curl -v -H "Content-Type: application/json" -H "Accept: application/json" -H 'If-Match: "0"' --data
@@ -298,7 +286,7 @@ public class ScimUserEndpointsIntegrationTests {
 
 		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> response = client.exchange(serverRunning.getUrl(userEndpoint + "/{id}"), HttpMethod.DELETE,
-				new HttpEntity<Void>((Void) null), Map.class, deleteMe.getId());
+															  new HttpEntity<Void>((Void) null), Map.class, deleteMe.getId());
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 	}
 
@@ -306,7 +294,7 @@ public class ScimUserEndpointsIntegrationTests {
 	public void getReturnsNotFoundForNonExistentUser() throws Exception {
 		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> response = client.exchange(serverRunning.getUrl(userEndpoint + "/{id}"), HttpMethod.GET,
-				new HttpEntity<Void>((Void) null), Map.class, "9999");
+															  new HttpEntity<Void>((Void) null), Map.class, "9999");
 		@SuppressWarnings("unchecked")
 		Map<String, String> error = response.getBody();
 		assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
@@ -314,15 +302,17 @@ public class ScimUserEndpointsIntegrationTests {
 		assertEquals("User 9999 does not exist", error.get("message"));
 	}
 
-	@SuppressWarnings({"rawtypes", "unchecked"})
 	@Test
 	public void findUsers() throws Exception {
+		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> response = serverRunning.getForObject(usersEndpoint, Map.class);
 
+		@SuppressWarnings("rawtypes")
 		Map results = response.getBody();
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
 		assertTrue("There should be some resources", ((Collection<?>) results.get("resources")).size() > 0);
+		@SuppressWarnings("rawtypes")
 		Map firstUser = (Map) ((List) results.get("resources")).get(0);
 		// [cfid-111] All attributes should be returned if no attributes supplied in query
 		assertTrue(firstUser.containsKey("id"));

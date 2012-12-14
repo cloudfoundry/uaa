@@ -12,6 +12,8 @@
  */
 package org.cloudfoundry.identity.uaa.authentication;
 
+import java.io.Serializable;
+
 import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
@@ -22,16 +24,22 @@ import org.springframework.security.web.authentication.WebAuthenticationDetails;
  * @author Luke Taylor
  * @author Dave Syer
  */
-public class UaaAuthenticationDetails {
+public class UaaAuthenticationDetails implements Serializable {
 
 	private final String origin;
 
 	private String sessionId;
 
+	private String clientId;
+
 	public UaaAuthenticationDetails(HttpServletRequest request) {
 		WebAuthenticationDetails webAuthenticationDetails = new WebAuthenticationDetails(request);
 		this.origin = webAuthenticationDetails.getRemoteAddress();
 		this.sessionId = webAuthenticationDetails.getSessionId();
+		String clientId = request.getParameter("client_id");
+		if (clientId != null) {
+			this.clientId = clientId;
+		}
 	}
 
 	public String getOrigin() {
@@ -40,5 +48,30 @@ public class UaaAuthenticationDetails {
 
 	public String getSessionId() {
 		return sessionId;
+	}
+
+	public String getClientId() {
+		return clientId;
+	}
+
+	@Override
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		if (origin != null) {
+			sb.append("remoteAddress=").append(origin);
+		}
+		if (clientId!=null) {
+			if (sb.length()>0) {
+				sb.append(", ");
+			}
+			sb.append("clientId=").append(clientId);
+		}
+		if (sessionId!=null) {
+			if (sb.length()>0) {
+				sb.append(", ");
+			}
+			sb.append("sessionId=").append(sessionId);			
+		}
+		return sb.toString();
 	}
 }

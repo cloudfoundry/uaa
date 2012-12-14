@@ -14,30 +14,29 @@ package org.cloudfoundry.identity.uaa.audit;
 
 import java.util.List;
 
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
-import org.cloudfoundry.identity.uaa.user.UaaUser;
 
 /**
  * Service interface which handles the different types of audit event raised by the system.
+ * 
+ * @author Luke Talyor
+ * @author Dave Syer
  */
 public interface UaaAuditService {
-	/**
-	 * Authentication of a specific user, i.e. a person
-	 */
-	void userAuthenticationSuccess(UaaUser user, UaaAuthenticationDetails details);
-
-	void userAuthenticationFailure(UaaUser user, UaaAuthenticationDetails details);
-
-	void userNotFound(String name, UaaAuthenticationDetails details);
 
 	/**
-	 * Authentication of any other (non-user) principal.
+	 * Find audit events relating to the specified principal since the time provided.
+	 * 
+	 * @param principal the principal name to search for
+	 * @param after epoch in milliseconds
+	 * @return audit events relating to the principal
 	 */
-//	void principalAuthenticationSuccess(String name);
-
-	void principalAuthenticationFailure(String name, UaaAuthenticationDetails details);
-
-	void principalNotFound(String name, UaaAuthenticationDetails details);
-
 	List<AuditEvent> find(String principal, long after);
+
+	/**
+	 * Log an event.
+	 * 
+	 * @param auditEvent the audit event to log
+	 */
+	void log(AuditEvent auditEvent);
+
 }

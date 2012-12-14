@@ -13,7 +13,6 @@
 
 package org.cloudfoundry.identity.uaa.test;
 
-import org.cloudfoundry.identity.uaa.integration.TestProfileEnvironment;
 import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.context.support.GenericXmlApplicationContext;
 import org.springframework.test.context.support.GenericXmlContextLoader;

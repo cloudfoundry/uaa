@@ -5,13 +5,16 @@
 	is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file. -->
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
 	xmlns:sec="http://www.springframework.org/schema/security" xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
-	xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2.xsd
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.1.xsd
+		http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2.xsd
 		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.1.xsd
+		http://www.springframework.org/schema/security/oauth http://www.springframework.org/schema/security/spring-security-oauth.xsd
 		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd">
 
-	<http pattern="/oauth/(users|clients)/(.*?)/tokens.*" request-matcher="regex" create-session="stateless"
-		entry-point-ref="oauthAuthenticationEntryPoint" use-expressions="true" authentication-manager-ref="emptyAuthenticationManager"
-		xmlns="http://www.springframework.org/schema/security">
+	<http name="tokenAdminSecurity" pattern="/oauth/(users|clients)/(.*?)/tokens.*" request-matcher="regex"
+		create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint" use-expressions="true"
+		authentication-manager-ref="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/oauth/users/([^/].*?)/tokens/.*" access="hasRole('uaa.admin') or (#oauth2.isUser() and #oauth2.hasScope('tokens.write'))"
 			method="DELETE" />
 		<intercept-url pattern="/oauth/users/.*" access="hasRole('uaa.admin') or (#oauth2.isUser() and #oauth2.hasScope('tokens.read'))"
@@ -30,7 +33,17 @@
 
 	<bean id="tokenAdminEndpoints" class="org.cloudfoundry.identity.uaa.oauth.TokenAdminEndpoints">
 		<property name="tokenServices" ref="tokenServices" />
-		<property name="scimUserProvisioning" ref="scimUserProvisioning" />
 	</bean>
+
+	<bean id="userIdInjector" class="org.cloudfoundry.identity.uaa.scim.endpoints.UserIdInjector" scope="request">
+		<aop:scoped-proxy proxy-target-class="true" />
+		<property name="inputIndex" value="0" />
+		<property name="scimUserProvisioning" ref="scimUserProvisioning" />
+		<property name="lookup" value="#{request.getParameter('lookup')!=null and request.getParameter('lookup')}" />
+	</bean>
+
+	<aop:config proxy-target-class="true">
+		<aop:advisor advice-ref="userIdInjector" pointcut="execution(* *..TokenAdminEndpoints.*User*(..)) and bean(tokenAdminEndpoints)" />
+	</aop:config>
 
 </beans>

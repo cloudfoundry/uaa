@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -25,7 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.rest.SimpleMessage;
+import org.cloudfoundry.identity.uaa.message.SimpleMessage;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
@@ -57,7 +58,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
  * Controller for listing and manipulating OAuth2 clients.
- * 
+ *
  * @author Dave Syer
  */
 @Controller
@@ -220,7 +221,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 		clientRegistrationService.updateClientSecret(client, change.getSecret());
 
 		clientSecretChanges.incrementAndGet();
-		
+
 		return new SimpleMessage("ok", "secret updated");
 	}
 
@@ -261,6 +262,8 @@ public class ClientAdminEndpoints implements InitializingBean {
 
 		BaseClientDetails client = new BaseClientDetails(prototype);
 
+		client.setAdditionalInformation(prototype.getAdditionalInformation());
+
 		String clientId = client.getClientId();
 		if (create && reservedClientIds.contains(clientId)) {
 			throw new InvalidClientDetailsException("Not allowed: " + clientId + " is a reserved client_id");
@@ -277,6 +280,12 @@ public class ClientAdminEndpoints implements InitializingBean {
 				throw new InvalidClientDetailsException(grant + " is not an allowed grant type. Must be one of: "
 						+ VALID_GRANTS.toString());
 			}
+		}
+
+		if (requestedGrantTypes.contains("authorization_code") && !requestedGrantTypes.contains("refresh_token")) {
+			logger.info("authorization_code client missing refresh_token: " + clientId);
+
+			requestedGrantTypes.add("refresh_token");
 		}
 
 		if (!securityContextAccessor.isAdmin()) {
@@ -353,7 +362,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 
 		// The UAA does not allow or require resource ids to be registered because they are determined dynamically
 		client.setResourceIds(Collections.singleton("none"));
-		
+
 		if (client.getScope().isEmpty()) {
 			client.setScope(Collections.singleton("uaa.none"));
 		}
@@ -366,7 +375,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 		if (create) {
 			// Only check for missing secret if client is being created.
 			if (!isImplicit(requestedGrantTypes) && !StringUtils.hasText(client.getClientSecret())) {
-				throw new InvalidClientDetailsException("client_secret is required for non-implicit grant types");
+				throw new InvalidClientDetailsException("Client secret is required for non-implicit grant types");
 			}
 		}
 
@@ -428,6 +437,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 		details.setRegisteredRedirectUri(client.getRegisteredRedirectUri());
 		details.setAuthorities(client.getAuthorities());
 		details.setAccessTokenValiditySeconds(client.getAccessTokenValiditySeconds());
+		details.setAdditionalInformation(client.getAdditionalInformation());
 		return details;
 	}
 
@@ -454,6 +464,16 @@ public class ClientAdminEndpoints implements InitializingBean {
 		if (details.getScope() == null || details.getScope().isEmpty()) {
 			details.setScope(existing.getScope());
 		}
+
+		Map<String, Object> additionalInformation = new HashMap<String, Object>(existing.getAdditionalInformation());
+		additionalInformation.putAll(input.getAdditionalInformation());
+		for (String key : Collections.unmodifiableSet(additionalInformation.keySet())) {
+			if (additionalInformation.get(key)==null) {
+				additionalInformation.remove(key);
+			}
+		}
+		details.setAdditionalInformation(additionalInformation);
+
 		return details;
 	}
 

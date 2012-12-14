@@ -17,6 +17,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.StringWriter;
 
+import org.cloudfoundry.identity.uaa.message.SimpleMessage;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Test;
 

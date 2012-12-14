@@ -31,17 +31,17 @@ public class UaaUserEditorTests {
 	public void testShortFormat() {
 		UaaUserEditor editor = new UaaUserEditor();
 		editor.setAsText(String.format("%s|%s", unm, pwd));
-		validate((UaaUser) editor.getValue(), unm, pwd, unm, unm, unm, null);
+		validate((UaaUser) editor.getValue(), unm, pwd, unm, null, null, null);
 	}
 
 	@Test
 	public void testShortFormatWithAuthorities() {
 		UaaUserEditor editor = new UaaUserEditor();
 		editor.setAsText(String.format("%s|%s|%s", unm, pwd, auth1));
-		validate((UaaUser) editor.getValue(), unm, pwd, unm, unm, unm, auth1.split(","));
+		validate((UaaUser) editor.getValue(), unm, pwd, unm, null, null, auth1.split(","));
 
 		editor.setAsText(String.format("%s|%s|%s", unm, pwd, auth2));
-		validate((UaaUser) editor.getValue(), unm, pwd, unm, unm, unm, auth2.split(","));
+		validate((UaaUser) editor.getValue(), unm, pwd, unm, null, null, auth2.split(","));
 	}
 
 	@Test

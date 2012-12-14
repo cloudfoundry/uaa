@@ -17,6 +17,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import org.junit.Test;
 import org.springframework.http.MediaType;
@@ -84,6 +86,19 @@ public class UaaRequestMatcherTests {
 		matcher.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
 		matcher.setParameters(Collections.singletonMap("response_type", "token"));
 		assertTrue(matcher.matches(request("/somePath", null, "response_type", "token")));
+	}
+
+	@Test
+	public void pathMatcherMatchesExpectedPathsAndMultipleRequestParameters() throws Exception {
+		// Accept only JSON
+		UaaRequestMatcher matcher = new UaaRequestMatcher("/somePath");
+		matcher.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+		Map<String, String> params = new LinkedHashMap<String, String>();
+		params.put("source", "foo");
+		params.put("response_type", "token");
+		matcher.setParameters(params);
+		assertFalse(matcher.matches(request("/somePath", null, "response_type", "token")));
+		assertTrue(matcher.matches(request("/somePath", null, "response_type", "token", "source", "foo")));
 	}
 
 	@Test

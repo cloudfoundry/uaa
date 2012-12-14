@@ -72,10 +72,10 @@ public class AuthzAuthenticationFilter implements Filter {
 	private AuthenticationEntryPoint authenticationEntryPoint = new OAuth2AuthenticationEntryPoint();
 
 	private Set<String> methods = Collections.singleton(HttpMethod.POST.toString());
-	
+
 	/**
 	 * The filter fails on requests that don't have one of these HTTP methods.
-	 *  
+	 * 
 	 * @param methods the methods to set (defaults to POST)
 	 */
 	public void setMethods(Set<String> methods) {
@@ -222,7 +222,7 @@ public class AuthzAuthenticationFilter implements Filter {
 
 		@Override
 		public String nextElement() {
-			Object ret = underlying.nextElement();
+			underlying.nextElement();
 			return "application/json";
 		}
 		

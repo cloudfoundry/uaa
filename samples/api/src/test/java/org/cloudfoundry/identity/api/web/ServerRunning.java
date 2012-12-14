@@ -22,7 +22,7 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.integration.UrlHelper;
+import org.cloudfoundry.identity.uaa.test.UrlHelper;
 import org.junit.Assume;
 import org.junit.internal.AssumptionViolatedException;
 import org.junit.rules.TestWatchman;

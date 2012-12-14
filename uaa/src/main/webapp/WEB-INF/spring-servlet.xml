@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!-- Cloud Foundry 2012.02.03 Beta Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved. This product is licensed to 
-	you under the Apache License, Version 2.0 (the "License"). You may not use this product except in compliance with the License. 
-	This product includes a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents 
+<!-- Cloud Foundry 2012.02.03 Beta Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved. This product is licensed to
+	you under the Apache License, Version 2.0 (the "License"). You may not use this product except in compliance with the License.
+	This product includes a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents
 	is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file. -->
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mvc="http://www.springframework.org/schema/mvc"
 	xmlns="http://www.springframework.org/schema/beans" xmlns:context="http://www.springframework.org/schema/context"
@@ -20,9 +20,17 @@
 
 	<sec:http pattern="/resources/**" security="none" />
 	<sec:http pattern="/favicon.ico" security="none" />
-	<sec:http pattern="/index.html" security="none" />
-	<sec:http pattern="/login_info" security="none" />
+	<sec:http pattern="/info" security="none" />
 	<sec:http pattern="/password/**" security="none" />
+	<sec:http pattern="/healthz/**" security="none" />
+
+	<bean class="org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor">
+		<property name="requireHttps" value="${require_https:false}" />
+		<property name="dumpRequests" value="${dump_requests:false}" />
+		<property name="redirectToHttps">
+			<list><value>uiSecurity</value></list>
+		</property>
+	</bean>
 
 	<import resource="spring/oauth-clients.xml" />
 	<!-- The order of these imports is important because of Spring Security filter chain rules -->
@@ -68,7 +76,7 @@
 
 	<bean id="oauthAccessDeniedHandler" class="org.springframework.security.oauth2.provider.error.OAuth2AccessDeniedHandler" />
 
-	<http request-matcher-ref="uiRequestMatcher" access-denied-page="/" authentication-manager-ref="authzAuthenticationMgr"
+	<http name="uiSecurity" request-matcher-ref="uiRequestMatcher" access-denied-page="/" authentication-manager-ref="authzAuthenticationMgr"
 		xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/login**" access="IS_AUTHENTICATED_ANONYMOUSLY" />
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
@@ -78,7 +86,7 @@
 	</http>
 
 	<!-- Deny-all "buffer" which a request will hit if it isn't matched by any of the other filter chains -->
-	<sec:http use-expressions="true" create-session="stateless" entry-point-ref="http403EntryPoint"
+	<sec:http name="denyAll" use-expressions="true" create-session="stateless" entry-point-ref="http403EntryPoint"
 		authentication-manager-ref="emptyAuthenticationManager">
 		<sec:intercept-url pattern="/**" access="denyAll" />
 	</sec:http>
@@ -148,5 +156,6 @@
 	<bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.authentication.login.LoginInfoEndpoint" />
 
 	<bean id="homeController" class="org.cloudfoundry.identity.uaa.home.HomeController" />
+	<bean id="healthzEndpoint" class="org.cloudfoundry.identity.uaa.web.HealthzEndpoint" />
 
 </beans>

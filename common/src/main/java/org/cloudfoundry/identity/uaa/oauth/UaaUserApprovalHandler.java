@@ -12,12 +12,13 @@
  */
 package org.cloudfoundry.identity.uaa.oauth;
 
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.Map;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
+import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.approval.TokenServicesUserApprovalHandler;
 
 /**
@@ -26,9 +27,16 @@ import org.springframework.security.oauth2.provider.approval.TokenServicesUserAp
  */
 public class UaaUserApprovalHandler extends TokenServicesUserApprovalHandler {
 
-	private Collection<String> autoApproveClients = new HashSet<String>();
-
 	private boolean useTokenServices = true;
+
+	private ClientDetailsService clientDetailsService;
+
+	/**
+	 * @param clientDetailsService the clientDetailsService to set
+	 */
+	public void setClientDetailsService(ClientDetailsService clientDetailsService) {
+		this.clientDetailsService = clientDetailsService;
+	}
 
 	/**
 	 * @param useTokenServices the useTokenServices to set
@@ -37,13 +45,6 @@ public class UaaUserApprovalHandler extends TokenServicesUserApprovalHandler {
 		this.useTokenServices = useTokenServices;
 	}
 
-	/**
-	 * @param autoApproveClients the auto approve clients to set
-	 */
-	public void setAutoApproveClients(String[] autoApproveClients) {
-		this.autoApproveClients = Arrays.asList(autoApproveClients);
-	}
-	
 	/**
 	 * Allows automatic approval for a white list of clients in the implicit grant case.
 	 * 
@@ -59,7 +60,37 @@ public class UaaUserApprovalHandler extends TokenServicesUserApprovalHandler {
 		if (!userAuthentication.isAuthenticated()) {
 			return false;
 		}
-		return authorizationRequest.isApproved() || autoApproveClients.contains(authorizationRequest.getClientId());
+		if (authorizationRequest.isApproved()) {
+			return true;
+		}
+		String clientId = authorizationRequest.getClientId();
+		boolean approved = false;
+		if (clientDetailsService != null) {
+			ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
+			Collection<String> requestedScopes = authorizationRequest.getScope();
+			if (isAutoApprove(client, requestedScopes)) {
+				approved = true;
+			}
+		}
+		return approved;
+	}
+
+	private boolean isAutoApprove(ClientDetails client, Collection<String> scopes) {
+		Map<String, Object> info = client.getAdditionalInformation();
+		if (info.containsKey("autoapprove")) {
+			Object object = info.get("autoapprove");
+			if (object instanceof Boolean && (Boolean) object || "true".equals(object)) {
+				return true;
+			}
+			if (object instanceof Collection) {
+				@SuppressWarnings("unchecked")
+				Collection<String> autoScopes = (Collection<String>) object;
+				if (autoScopes.containsAll(scopes)) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 
 }

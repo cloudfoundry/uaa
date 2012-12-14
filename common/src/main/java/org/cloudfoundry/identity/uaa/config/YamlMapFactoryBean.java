@@ -30,6 +30,7 @@ import org.springframework.beans.factory.FactoryBean;
  *   bar:
  *    one: two
  * three: four
+ * 
  * <pre>
  * 
  * plus (later in the list)
@@ -39,6 +40,7 @@ import org.springframework.beans.factory.FactoryBean;
  *   bar:
  *    one: 2
  * five: six
+ * 
  * <pre>
  * 
  * results in an effecive input of
@@ -49,6 +51,7 @@ import org.springframework.beans.factory.FactoryBean;
  *    one: 2
  *    three: four
  * five: six
+ * 
  * <pre>
  * 
  * Note that the value of "foo" in the first document is not simply replaced with the value in the second, but it's nested values are merged.
@@ -58,8 +61,17 @@ import org.springframework.beans.factory.FactoryBean;
  */
 public class YamlMapFactoryBean extends YamlProcessor implements FactoryBean<Map<String, Object>> {
 
+	private Map<String, Object> instance;
+
 	@Override
 	public Map<String, Object> getObject() {
+		if (instance==null) {
+			instance  = doGetObject();
+		}
+		return instance;
+	}
+
+	private Map<String, Object> doGetObject() {
 		final Map<String, Object> result = new LinkedHashMap<String, Object>();
 		MatchCallback callback = new MatchCallback() {
 			@Override

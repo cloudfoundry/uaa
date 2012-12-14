@@ -14,6 +14,8 @@ import static org.junit.Assert.*;
 import java.util.Arrays;
 import java.util.Map;
 
+import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
+import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;

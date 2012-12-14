@@ -9,11 +9,11 @@
 	<properties>
 		<maven.compiler.source>1.6</maven.compiler.source>
 		<maven.compiler.target>1.6</maven.compiler.target>
-		<scala.version>2.9.1</scala.version>
+		<scala.version>2.9.2</scala.version>
 		<encoding>UTF-8</encoding>
 
-		<gatling.version>1.2.5</gatling.version>
-		<gatling-highcharts.version>1.2.5</gatling-highcharts.version>
+		<gatling.version>1.3.5</gatling.version>
+		<gatling-highcharts.version>1.3.5</gatling-highcharts.version>
 
 		<maven-scala-plugin.version>2.15.2</maven-scala-plugin.version>
 	</properties>

@@ -32,7 +32,7 @@ public class UaaUserEditor extends PropertyEditorSupport {
 		}
 
 		String username = values[0], password = values[1];
-		String email = username, firstName = username, lastName = username;
+		String email = username, firstName = null, lastName = null;
 		String authorities = null;
 		if (values.length > 2) {
 			switch (values.length) {

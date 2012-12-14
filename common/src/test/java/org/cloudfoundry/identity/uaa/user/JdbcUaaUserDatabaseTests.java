@@ -14,7 +14,9 @@ package org.cloudfoundry.identity.uaa.user;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
+import java.util.Collections;
 import java.util.UUID;
 
 import javax.sql.DataSource;
@@ -27,6 +29,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.test.annotation.IfProfileValue;
 import org.springframework.test.annotation.ProfileValueSourceConfiguration;
@@ -63,7 +66,7 @@ public class JdbcUaaUserDatabaseTests {
 
 	private void addUser(String id, String name, String password) {
 		TestUtils.assertNoSuchUser(template, "id", id);
-		template.execute(String.format(addUserSqlFormat, id, name, password, name, name, name, ""));
+		template.execute(String.format(addUserSqlFormat, id, name, password, name.toLowerCase() + "@test.org", name, name, ""));
 	}
 
 	private void addGroup(String id, String name) {
@@ -80,15 +83,15 @@ public class JdbcUaaUserDatabaseTests {
 
 		template = new JdbcTemplate(dataSource);
 
+		db = new JdbcUaaUserDatabase(template);
+		db.setDefaultAuthorities(Collections.singleton("uaa.user"));
+
 		TestUtils.assertNoSuchUser(template, "id", JOE_ID);
 		TestUtils.assertNoSuchUser(template, "id", MABEL_ID);
 		TestUtils.assertNoSuchUser(template, "userName", "jo@foo.com");
 
-		db = new JdbcUaaUserDatabase(template);
-
-		addUser(JOE_ID, "joe", "joespassword");
+		addUser(JOE_ID, "Joe", "joespassword");
 		addUser(MABEL_ID, "mabel", "mabelspassword");
-		addGroup("g1", "uaa.user");
 
 	}
 
@@ -102,10 +105,21 @@ public class JdbcUaaUserDatabaseTests {
 		UaaUser joe = db.retrieveUserByName("joe");
 		assertNotNull(joe);
 		assertEquals(JOE_ID, joe.getId());
-		assertEquals("joe", joe.getUsername());
-		assertEquals("joe", joe.getEmail());
+		assertEquals("Joe", joe.getUsername());
+		assertEquals("joe@test.org", joe.getEmail());
 		assertEquals("joespassword", joe.getPassword());
-		assertEquals(UaaAuthority.USER_AUTHORITIES.toString(), joe.getAuthorities().toString());
+		assertTrue("authorities does not contain uaa.user", joe.getAuthorities().contains(new SimpleGrantedAuthority("uaa.user")));
+	}
+
+	@Test
+	public void getValidUserCaseInsensitive() {
+		UaaUser joe = db.retrieveUserByName("JOE");
+		assertNotNull(joe);
+		assertEquals(JOE_ID, joe.getId());
+		assertEquals("Joe", joe.getUsername());
+		assertEquals("joe@test.org", joe.getEmail());
+		assertEquals("joespassword", joe.getPassword());
+		assertTrue("authorities does not contain uaa.user", joe.getAuthorities().contains(new SimpleGrantedAuthority("uaa.user")));
 	}
 
 	@Test(expected = UsernameNotFoundException.class)
@@ -119,6 +133,7 @@ public class JdbcUaaUserDatabaseTests {
 		addGroup("g2", "dash.admin");
 		addMember("g2", JOE_ID, "USER", "READ");
 		UaaUser joe = db.retrieveUserByName("joe");
-		assertEquals("[dash.admin, uaa.user]", joe.getAuthorities().toString());
+		assertTrue("authorities does not contain uaa.user", joe.getAuthorities().contains(new SimpleGrantedAuthority("uaa.user")));
+		assertTrue("authorities does not contain dash.admin", joe.getAuthorities().contains(new SimpleGrantedAuthority("dash.admin")));
 	}
 }

@@ -21,12 +21,13 @@ CREATE TABLE USERS (
    password VARCHAR(255) not null,
    email VARCHAR(255) not null,
    authorities VARCHAR(1024) default 'uaa.user' not null,
-   givenName VARCHAR(255) not null,
-   familyName VARCHAR(255) not null,
+   givenName VARCHAR(255),
+   familyName VARCHAR(255),
    active BOOLEAN default true not null,
-   phoneNumber VARCHAR(255),
-   constraint unique_uk_1 unique(username)
+   phoneNumber VARCHAR(255)
 ) ;
+
+CREATE UNIQUE INDEX unique_uk_1 on users (lower(username));
 
 CREATE TABLE SEC_AUDIT (
    principal_id char(36) not null,
@@ -50,11 +51,11 @@ CREATE TABLE OAUTH_CLIENT_DETAILS (
 ) ;
 
 CREATE TABLE GROUPS (
-  id VARCHAR(36) PRIMARY KEY,
+  id VARCHAR(36) not null primary key,
   displayName VARCHAR(255) not null,
   created TIMESTAMP default current_timestamp not null,
   lastModified TIMESTAMP default current_timestamp not null,
-  version BIGINT default 0 not null,
+  version INTEGER default 0 not null,
   constraint unique_uk_2 unique(displayName)
 ) ;
 
@@ -64,5 +65,34 @@ CREATE TABLE GROUP_MEMBERSHIP (
   member_type VARCHAR(8) default 'USER' not null,
   authorities VARCHAR(255) default 'READ' not null,
   added TIMESTAMP default current_timestamp not null,
-  PRIMARY KEY (group_id, member_id)
+  primary key (group_id, member_id)
 ) ;
+
+create table oauth_client_token (
+  token_id VARCHAR(256),
+  token BYTEA,
+  authentication_id VARCHAR(256),
+  user_name VARCHAR(256),
+  client_id VARCHAR(256)
+) ;
+
+create table oauth_access_token (
+  token_id VARCHAR(256),
+  token BYTEA,
+  authentication_id VARCHAR(256),
+  user_name VARCHAR(256),
+  client_id VARCHAR(256),
+  authentication BYTEA,
+  refresh_token VARCHAR(256)
+) ;
+
+create table oauth_refresh_token (
+  token_id VARCHAR(256),
+  token BYTEA,
+  authentication BYTEA
+) ;
+
+create table oauth_code (
+  code VARCHAR(256), authentication BYTEA
+) ;
+ 

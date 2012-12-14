@@ -34,22 +34,8 @@
 		</property>
 	</bean>
 
-	<bean id="loginAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationFilter">
-		<constructor-arg ref="loginAuthenticationMgr" />
-		<property name="parameterNames">
-			<list>
-				<value>username</value>
-				<value>given_name</value>
-				<value>family_name</value>
-				<value>email</value>
-				<value>login</value>
-			</list>
-		</property>
-
-	</bean>
-
-	<!-- For backwards compatibility to the old way of posting credentials to /authorize endpoint -->
-	<http request-matcher-ref="loginAuthorizeRequestMatcherOld" entry-point-ref="oauthAuthenticationEntryPoint"
+	<!-- Support for older login servers -->
+	<http request-matcher-ref="loginAuthorizeRequestMatcherOld" create-session="always" entry-point-ref="oauthAuthenticationEntryPoint"
 		authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
@@ -67,18 +53,29 @@
 			</map>
 		</property>
 	</bean>
-	<!-- End -->
+	<!-- End support for older login servers -->
+
+	<bean id="loginAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationFilter">
+		<constructor-arg ref="loginAuthenticationMgr" />
+		<property name="parameterNames">
+			<list>
+				<value>login</value>
+				<value>username</value>
+				<value>given_name</value>
+				<value>family_name</value>
+				<value>email</value>
+			</list>
+		</property>
+	</bean>
 
 	<bean id="loginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LoginAuthenticationManager">
 		<property name="addNewAccounts" value="${login.addnew:false}" />
-		<property name="scimUserBootstrap" ref="scimUserBootstrap" />
 		<property name="userDatabase" ref="userDatabase" />
 	</bean>
 
 	<beans profile="default">
 		<bean id="loginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LoginAuthenticationManager">
 			<property name="addNewAccounts" value="${login.addnew:true}" />
-			<property name="scimUserBootstrap" ref="scimUserBootstrap" />
 			<property name="userDatabase" ref="userDatabase" />
 		</bean>
 	</beans>

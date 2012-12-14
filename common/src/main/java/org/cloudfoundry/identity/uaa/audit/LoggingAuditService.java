@@ -17,8 +17,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
-import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.springframework.jmx.export.annotation.ManagedMetric;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.jmx.support.MetricType;
@@ -33,6 +31,7 @@ import org.springframework.jmx.support.MetricType;
  */
 @ManagedResource
 public class LoggingAuditService implements UaaAuditService {
+
 	private final Log logger = LogFactory.getLog("UAA.Audit");
 
 	private AtomicInteger userAuthenticationCount = new AtomicInteger();
@@ -44,6 +43,10 @@ public class LoggingAuditService implements UaaAuditService {
 	private AtomicInteger userNotFoundCount = new AtomicInteger();
 
 	private AtomicInteger principalNotFoundCount = new AtomicInteger();
+
+	private AtomicInteger passwordChanges = new AtomicInteger();
+
+	private AtomicInteger passwordFailures = new AtomicInteger();
 
 	@ManagedMetric(metricType = MetricType.COUNTER, displayName = "User Not Found Count")
 	public int getUserNotFoundCount() {
@@ -70,39 +73,54 @@ public class LoggingAuditService implements UaaAuditService {
 		return principalNotFoundCount.get();
 	}
 
-	@Override
-	public void userAuthenticationSuccess(UaaUser user, UaaAuthenticationDetails details) {
-		userAuthenticationCount.incrementAndGet();
-		log("User authenticated: " + user.getId() + ", " + user.getUsername());
+	@ManagedMetric(metricType = MetricType.COUNTER, displayName = "User Password Change Count (Since Startup)")
+	public int getUserPasswordChanges() {
+		return passwordChanges.get();
 	}
 
-	@Override
-	public void userAuthenticationFailure(UaaUser user, UaaAuthenticationDetails details) {
-		userAuthenticationFailureCount.incrementAndGet();
-		log("Authentication failed, user: " + user.getId() + ", " + user.getUsername());
-	}
-
-	@Override
-	public void userNotFound(String name, UaaAuthenticationDetails details) {
-		userNotFoundCount.incrementAndGet();
-		log("Attempt to login as non-existent user: " + name);
-	}
-
-	@Override
-	public void principalAuthenticationFailure(String name, UaaAuthenticationDetails details) {
-		principalAuthenticationFailureCount.incrementAndGet();
-		log("Authentication failed, principal: " + name);
-	}
-
-	@Override
-	public void principalNotFound(String name, UaaAuthenticationDetails details) {
-		principalNotFoundCount.incrementAndGet();
-		log("Authentication failed, principal not found: " + name);
+	@ManagedMetric(metricType = MetricType.COUNTER, displayName = "User Password Change Failure Count (Since Startup)")
+	public int getUserPasswordFailures() {
+		return passwordFailures.get();
 	}
 
 	@Override
 	public List<AuditEvent> find(String principal, long after) {
 		throw new UnsupportedOperationException("This implementation does not store data");
+	}
+
+	@Override
+	public void log(AuditEvent auditEvent) {
+		updateCounters(auditEvent);
+		log(String.format("%s ('%s'): principal=%s, origin=[%s]", auditEvent.getType().name(), auditEvent.getData(),
+				auditEvent.getPrincipalId(), auditEvent.getOrigin()));
+	}
+
+	private void updateCounters(AuditEvent auditEvent) {
+		switch (auditEvent.getType()) {
+		case PasswordChangeSuccess:
+			passwordChanges.incrementAndGet();			
+			break;
+		case PasswordChangeFailure:
+			passwordFailures.incrementAndGet();
+			break;
+		case UserAuthenticationSuccess:
+			userAuthenticationCount.incrementAndGet();
+			break;
+		case UserAuthenticationFailure:
+			userAuthenticationFailureCount.incrementAndGet();
+			break;
+		case UserNotFound:
+			userNotFoundCount.incrementAndGet();
+			break;
+		case PrincipalAuthenticationFailure:
+			principalAuthenticationFailureCount.incrementAndGet();
+			break;
+		case PrincipalNotFound:
+			principalNotFoundCount.incrementAndGet();
+			break;
+		default:
+			break;
+		}
 	}
 
 	private void log(String msg) {
@@ -112,7 +130,8 @@ public class LoggingAuditService implements UaaAuditService {
 			output.append(msg);
 			output.append("\n\n************************************************************\n");
 			logger.trace(output.toString());
-		} else {
+		}
+		else {
 			logger.info(msg);
 		}
 	}

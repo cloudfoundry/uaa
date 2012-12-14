@@ -378,18 +378,8 @@ Response body     *example* ::
 User Account Management APIs
 ================================
 
-The plan is to support
-`Simple Cloud Identity Management (SCIM) <http://simplecloud.info>`_ for
-these APIs and endpoints.  Authentication is by OAuth2 token, and
-access decision is undefined - which users are allowed to do these
-operations?  Since this is independent of individual client
-applications' access decisions, a simple (role-based) decision based
-on local data is adequate.
-
-SCIM has endpoints in /group/* as well which are probably useful (for
-the local access decisions in the UAA), but we don't need to support
-groups in UAA yet. We might need a pass through based on attributes
-from external stores like LDAP (which could be groups).
+UAA supports the `SCIM <http://simplecloud.info>`_ standard for
+these APIs and endpoints.  These endpoints are themselves secured by OAuth2, and access decision is done based on the 'scope' and 'aud' fields of the JWT OAuth2 token.
 
 Create a User: ``POST /User``
 ------------------------------
@@ -399,6 +389,11 @@ See `SCIM - Creating Resources`__
 __ http://www.simplecloud.info/specs/draft-scim-rest-api-01.html#create-resource
 
 * Request: ``POST /User``
+* Request Headers: Authorization header containing an OAuth2_ bearer token with::
+
+        scope = scim.write
+        aud = scim
+
 * Request Body::
 
         {
@@ -450,6 +445,11 @@ Update a User: ``PUT /User/{id}``
 See `SCIM - Modifying with PUT <http://www.simplecloud.info/specs/draft-scim-rest-api-01.html#edit-resource-with-put>`_
 
 * Request: ``PUT /User/{id}``
+* Request Headers: Authorization header containing an OAuth2_ bearer token with::
+
+        scope = scim.write
+        aud = scim
+
 * Request Body::
 
         Host: example.com
@@ -502,6 +502,15 @@ Change Password: ``PUT /User/{id}/password``
 See `SCIM - Changing Password <http://www.simplecloud.info/specs/draft-scim-rest-api-01.html#change-password>`_
 
 * Request: ``PUT /User/{id}/password``
+* Request Headers: Authorization header containing an OAuth2_ bearer token with::
+
+        scope = password.write
+        aud = password
+
+  OR ::
+
+        user_id = {id} i.e id of the user whose password is being updated
+
 * Request Body::
 
         Host: example.com
@@ -537,6 +546,11 @@ Get information about a user. This is needed by to convert names and email addre
 Filters: note that, per the specification, attribute values are comma separated and the filter expressions can be combined with boolean keywords ("or" and "and").
 
 * Request: ``GET /Users?attributes={requestedAttributes}&filter={filter}``
+* Request Headers: Authorization header containing an OAuth2_ bearer token with::
+
+        scope = scim.read
+        aud = scim
+
 * Response Body (for ``GET /Users?attributes=id&filter=emails.value eq bjensen@example.com``)::
 
         HTTP/1.1 200 OK
@@ -565,7 +579,15 @@ Delete a User: ``DELETE /User/{id}``
 See `SCIM - Deleting Resources <http://www.simplecloud.info/specs/draft-scim-rest-api-01.html#delete-resource>`_.
 
 * Request: ``DELETE /User/{id}``
-* Request Headers: ``If-Match`` the ``ETag`` (version id) for the value to delete
+* Request Headers: 
+
+  + Authorization header containing an OAuth2_ bearer token with::
+
+        scope = scim.write
+        aud = scim
+
+  + ``If-Match`` the ``ETag`` (version id) for the value to delete
+
 * Request Body: Empty
 * Response Body: Empty
 * Response Codes::
@@ -617,6 +639,183 @@ information known to the client which should result in a low score if it is used
     {"score": 0, "requiredScore": 5}
 
 
+Group Management APIs
+=========================
+In addition to SCIM users, UAA also supports/implements SCIM_groups_ for managing group-membership of users. These endpoints too are secured by OAuth2 bearer tokens.
+
+.. _SCIM_groups: http://tools.ietf.org/html/draft-ietf-scim-core-schema-00#section-8
+
+Create a Group: ``POST /Group``
+----------------------------------
+
+See `SCIM - Creating Resources`__
+
+__ http://www.simplecloud.info/specs/draft-scim-rest-api-01.html#create-resource
+
+* Request: ``POST /Group``
+* Request Headers: Authorization header containing an OAuth2_ bearer token with::
+
+        scope = scim.write
+        aud = scim
+
+* Request Body::
+
+        {
+          "schemas":["urn:scim:schemas:core:1.0"],
+          "displayName":"uaa.admin",
+          "members":[
+	      { "type":"USER","authorities":["READ"],"value":"3ebe4bda-74a2-40c4-8b70-f771d9bc8b9f" }
+	  ]
+        }
+
+The ``displayName`` is unique in the UAA, but is allowed to change.  Each group also has a fixed primary key which is a UUID (stored in the ``id`` field of the core schema).
+
+* Response Body::
+
+        HTTP/1.1 201 Created
+        Content-Type: application/json
+        Location: https://example.com/v1/Group/uid=123456
+        ETag: "0"
+
+        {
+          "schemas":["urn:scim:schemas:core:1.0"],
+          "id":"123456",
+          "meta":{
+            "version":0,
+            "created":"2011-08-01T21:32:44.882Z",
+            "lastModified":"2011-08-01T21:32:44.882Z"
+          },
+          "displayName":"uaa.admin",
+          "members":[
+	      { "type":"USER","authorities":["READ"],"value":"3ebe4bda-74a2-40c4-8b70-f771d9bc8b9f" }
+          ]
+        }
+
+* Response Codes::
+
+        201 - Created successfully
+        400 - Bad Request (unparseable, syntactically incorrect etc)
+        401 - Unauthorized
+
+The members.value sub-attributes MUST refer to a valid SCIM resource id in the UAA, i.e the UUID of an existing SCIM user or group.
+
+Update a Group: ``PUT /Group/{id}``
+----------------------------------------
+
+See `SCIM - Modifying with PUT <http://www.simplecloud.info/specs/draft-scim-rest-api-01.html#edit-resource-with-put>`_
+
+* Request: ``PUT /Group/{id}``
+* Request Headers: 
+
+  + Authorization header containing an OAuth2_ bearer token with::
+
+        scope = scim.write OR groups.update
+        aud = scim
+
+    OR ::
+
+        user_id = <id of a user who is an admin member of the group being updated>
+  + (optional) ``If-Match`` the ``ETag`` (version id) for the value to update 
+* Request Body::
+
+        Host: example.com
+        Accept: application/json
+        Authorization: Bearer h480djs93hd8
+        If-Match: "2"
+
+        {
+          "schemas":["urn:scim:schemas:core:1.0"],
+          "id":"123456",
+          "displayName":"uaa.admin",
+          "meta":{
+            "version":2,
+            "created":"2011-11-30T21:11:30.000Z",
+            "lastModified":"2011-12-30T21:11:30.000Z"
+          },
+          "members":[
+             {"type":"USER","authorities":["READ"],"value":"3ebe4bda-74a2-40c4-8b70-f771d9bc8b9f"},
+             {"type":"USER","authorities":["READ", "WRITE"],"value":"40c44bda-8b70-f771-74a2-3ebe4bda40c4"}
+          ]	     
+        }
+
+* Response Body:
+        As for create operation, returns the entire, updated record, with the Location header pointing to the resource.
+
+* Response Codes::
+
+        200 - Updated successfully
+        400 - Bad Request
+        401 - Unauthorized
+        404 - Not found
+
+As with the create operation, members.value sub-attributes MUST refer to a valid SCIM resource id in the UAA, i.e the UUID of a an existing SCIM user or group.
+
+Note: SCIM also optionally supports partial update using PATCH, but UAA does not currently implement it.
+
+
+Query for Information: ``GET /Groups``
+---------------------------------------
+
+See `SCIM - List/Query Resources`__
+
+__ http://www.simplecloud.info/specs/draft-scim-rest-api-01.html#query-resources
+
+Get information about a group, including its members and what roles they hold within the group itself, i.e which members are group admins vs. which members are just members, and so on.
+
+Filters: note that, per the specification, attribute values are comma separated and the filter expressions can be combined with boolean keywords ("or" and "and").
+
+* Request: ``GET /Groups?attributes={requestedAttributes}&filter={filter}``
+* Request Headers: Authorization header containing an OAuth2_ bearer token with::
+
+        scope = scim.read
+        aud = scim
+
+* Response Body (for ``GET /Groups?attributes=id&filter=displayName eq uaa.admin``)::
+
+        HTTP/1.1 200 OK
+        Content-Type: application/json
+
+        {
+          "totalResults":1,
+          "schemas":["urn:scim:schemas:core:1.0"],
+          "resources":[
+            {
+              "id":"123456"
+            }
+          ]
+        }
+
+
+* Response Codes::
+
+        200 - Success
+        400 - Bad Request
+        401 - Unauthorized
+
+Delete a Group: ``DELETE /Group/{id}``
+-----------------------------------------
+
+See `SCIM - Deleting Resources <http://www.simplecloud.info/specs/draft-scim-rest-api-01.html#delete-resource>`_.
+
+* Request: ``DELETE /Group/{id}``
+* Request Headers: 
+
+  + Authorization header containing an OAuth2_ bearer token with::
+
+        scope = scim.write
+        aud = scim
+
+  + ``If-Match`` the ``ETag`` (version id) for the value to delete
+
+* Request Body: Empty
+* Response Body: Empty
+* Response Codes::
+
+        200 - Success
+        401 - Unauthorized
+        404 - Not found
+
+Deleting a group also removes the group from the 'groups' sub-attribute on users who were members of the group. 
 
 Access Token Administration APIs
 =================================

@@ -19,9 +19,7 @@ import static org.junit.Assert.assertNotNull;
 import java.util.Collection;
 import java.util.Collections;
 
-import org.cloudfoundry.identity.uaa.rest.SimpleMessage;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.message.SimpleMessage;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.springframework.security.access.AccessDeniedException;
@@ -44,14 +42,11 @@ public class TokenAdminEndpointsTests {
 
 	private ConsumerTokenServices tokenServices = Mockito.mock(ConsumerTokenServices.class);
 
-	private ScimUserProvisioning scimProvisioning = Mockito.mock(ScimUserProvisioning.class);
-
 	private AuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(Collections.singletonMap(
 			"client_id", "foo"));
 
 	{
 		endpoints.setTokenServices(tokenServices);
-		endpoints.setScimUserProvisioning(scimProvisioning);
 	}
 
 	@Test
@@ -59,7 +54,7 @@ public class TokenAdminEndpointsTests {
 		Mockito.when(tokenServices.findTokensByUserName("marissa")).thenReturn(
 				Collections.<OAuth2AccessToken> singleton(new DefaultOAuth2AccessToken("FOO")));
 		Collection<OAuth2AccessToken> tokens = endpoints.listTokensForUser("marissa", new OAuth2Authentication(
-				authorizationRequest, new TestingAuthenticationToken("marissa", "")), false);
+				authorizationRequest, new TestingAuthenticationToken("marissa", "")));
 		assertEquals(1, tokens.size());
 		assertNotNull(tokens.iterator().next().getAdditionalInformation().get(JwtTokenEnhancer.TOKEN_ID));
 	}
@@ -70,7 +65,7 @@ public class TokenAdminEndpointsTests {
 				Collections.<OAuth2AccessToken> singleton(new DefaultOAuth2AccessToken("FOO")));
 		Mockito.when(tokenServices.getClientId("FOO")).thenReturn("foo");
 		Collection<OAuth2AccessToken> tokens = endpoints.listTokensForUser("marissa", new OAuth2Authentication(
-				authorizationRequest, new TestingAuthenticationToken("marissa", "")), false);
+				authorizationRequest, new TestingAuthenticationToken("marissa", "")));
 		assertEquals(1, tokens.size());
 		assertNotNull(tokens.iterator().next().getAdditionalInformation().get(JwtTokenEnhancer.TOKEN_ID));
 	}
@@ -78,23 +73,14 @@ public class TokenAdminEndpointsTests {
 	@Test
 	public void testListTokensForOAuth2UserByClient() throws Exception {
 		Collection<OAuth2AccessToken> tokens = endpoints.listTokensForUser("marissa", new OAuth2Authentication(
-				authorizationRequest, null), false);
+				authorizationRequest, null));
 		assertEquals(0, tokens.size());
 	}
 
 	@Test
 	public void testListTokensForUser() throws Exception {
 		Collection<OAuth2AccessToken> tokens = endpoints.listTokensForUser("marissa", new TestingAuthenticationToken(
-				"marissa", ""), false);
-		assertEquals(0, tokens.size());
-	}
-
-	@Test
-	public void testListTokensForUserId() throws Exception {
-		Mockito.when(scimProvisioning.retrieveUser("12345")).thenReturn(
-				new ScimUser("12345", "marissa", "Marissa", "Bloggs"));
-		Collection<OAuth2AccessToken> tokens = endpoints.listTokensForUser("12345", new TestingAuthenticationToken(
-				"marissa", ""), true);
+				"marissa", ""));
 		assertEquals(0, tokens.size());
 	}
 
@@ -104,7 +90,7 @@ public class TokenAdminEndpointsTests {
 				Collections.<OAuth2AccessToken> singleton(new DefaultOAuth2AccessToken("FOO")));
 		Mockito.when(tokenServices.revokeToken("FOO")).thenReturn(true);
 		SimpleMessage result = endpoints.revokeUserToken("marissa", new StandardPasswordEncoder().encode("FOO"),
-				new TestingAuthenticationToken("marissa", ""), false);
+				new TestingAuthenticationToken("marissa", ""));
 		assertEquals("ok", result.getStatus());
 	}
 
@@ -116,7 +102,7 @@ public class TokenAdminEndpointsTests {
 				Collections.<OAuth2AccessToken> singleton(token));
 		Mockito.when(tokenServices.revokeToken("FOO")).thenReturn(true);
 		SimpleMessage result = endpoints.revokeUserToken("marissa", "BAR", new TestingAuthenticationToken(
-				"marissa", ""), false);
+				"marissa", ""));
 		assertEquals("ok", result.getStatus());
 	}
 
@@ -125,28 +111,28 @@ public class TokenAdminEndpointsTests {
 		OAuth2AccessToken token = new DefaultOAuth2AccessToken("BAR");
 		Mockito.when(tokenServices.findTokensByUserName("marissa")).thenReturn(Collections.singleton(token));
 		SimpleMessage result = endpoints.revokeUserToken("marissa", "FOO", new TestingAuthenticationToken(
-				"marissa", ""), false);
+				"marissa", ""));
 		assertEquals("ok", result.getStatus());
 	}
 
 	@Test(expected=NoSuchTokenException.class)
 	public void testRevokeNullTokenForUser() throws Exception {
 		SimpleMessage result = endpoints.revokeUserToken("marissa", null, new TestingAuthenticationToken("marissa",
-				""), false);
+				""));
 		assertEquals("ok", result.getStatus());
 	}
 
 	@Test(expected = AccessDeniedException.class)
 	public void testListTokensForWrongUser() throws Exception {
 		Collection<OAuth2AccessToken> tokens = endpoints.listTokensForUser("barry", new TestingAuthenticationToken(
-				"marissa", ""), false);
+				"marissa", ""));
 		assertEquals(0, tokens.size());
 	}
 
 	@Test(expected = AccessDeniedException.class)
 	public void testListTokensForWrongOAuth2User() throws Exception {
 		Collection<OAuth2AccessToken> tokens = endpoints.listTokensForUser("barry", new OAuth2Authentication(
-				authorizationRequest, new TestingAuthenticationToken("marissa", "")), false);
+				authorizationRequest, new TestingAuthenticationToken("marissa", "")));
 		assertEquals(0, tokens.size());
 	}
 

@@ -11,7 +11,7 @@ object GatlingPlugin {
   val gatlingConfigFile = SettingKey[String]("gatling-config-file")
 
   lazy val gatlingSettings = Seq(
-    gatlingVersion := "1.2.5",
+    gatlingVersion := "1.3.5",
     fullClasspath in gatling <<= fullClasspath or (fullClasspath in Runtime),
     gatlingResultsDirectory <<= target(_.getAbsolutePath + "/gatling-results"),
     gatlingDataDirectory <<= (resourceDirectory in Compile).apply(_.getAbsolutePath),
@@ -27,7 +27,7 @@ object GatlingPlugin {
         map { (s, grd, gdd, gcf, cp, cd, runner) => {
           val args = Array("--results-folder", grd,
                         "--data-folder", gdd,
-                        "--config-file", gcf,
+//                        "--config-file", gcf,
                         "--simulations-binaries-folder", cd.absolutePath)
 
           toError(runner.run("com.excilys.ebi.gatling.app.Gatling", Build.data(cp), args, s.log))
@@ -49,8 +49,8 @@ object UaaGatlingBuild extends Build {
     val typesafeRepo = "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases"
 
     val buildSettings = Defaults.defaultSettings ++ gatlingSettings ++ Seq (
-      scalaVersion := "2.9.1",
-      gatlingVersion := "1.2.5",
+      scalaVersion := "2.9.2",
+      gatlingVersion := "1.3.5",
       version      := "0.1-SNAPSHOT",
       resolvers ++= Seq(mavenLocalRepo, excilysReleaseRepo, excilys3rdPartyRepo, jenkinsRepo, typesafeRepo, twitterRepo))
 

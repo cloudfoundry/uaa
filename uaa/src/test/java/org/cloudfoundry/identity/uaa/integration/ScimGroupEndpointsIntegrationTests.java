@@ -14,19 +14,28 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.scim.PasswordChangeRequest;
-import org.cloudfoundry.identity.uaa.scim.ScimCore;
+import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.groups.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.groups.ScimGroupMember;
-import org.junit.*;
-import org.springframework.http.*;
+import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
+import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
+import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.junit.After;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.jwt.Jwt;
 import org.springframework.security.jwt.JwtHelper;
 import org.springframework.security.oauth2.client.test.OAuth2ContextConfiguration;
 import org.springframework.security.oauth2.client.test.OAuth2ContextSetup;
-import org.springframework.security.oauth2.client.token.grant.code.AuthorizationCodeResourceDetails;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -34,13 +43,6 @@ import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestOperations;
-
-import java.net.URI;
-import java.util.*;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 @OAuth2ContextConfiguration(OAuth2ContextConfiguration.ClientCredentials.class)
 public class ScimGroupEndpointsIntegrationTests {
@@ -62,6 +64,8 @@ public class ScimGroupEndpointsIntegrationTests {
 	private List<String> groupIds = new ArrayList<String>();
 
 	private final Log logger = LogFactory.getLog(getClass());
+	
+	private static final List<String> defaultGroups = Arrays.asList("openid","cloud_controller.read","cloud_controller.write","password.write","tokens.write","tokens.read","scim.userids","uaa.user");
 
 	@Rule
 	public ServerRunning serverRunning = ServerRunning.isRunning();
@@ -140,6 +144,7 @@ public class ScimGroupEndpointsIntegrationTests {
 		ScimGroup g = new ScimGroup(name);
 		List<ScimGroupMember> m = members != null ? Arrays.asList(members) : Collections.<ScimGroupMember> emptyList();
 		g.setMembers(m);
+		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> r = client.exchange(serverRunning.getUrl(groupEndpoint + "/{id}"), HttpMethod.PUT,
 															 new HttpEntity<ScimGroup>(g, headers), Map.class, id);
 		logger.warn(r.getBody());
@@ -152,9 +157,9 @@ public class ScimGroupEndpointsIntegrationTests {
 
 	private void validateUserGroups(String id, String... groups) {
 		List<String> groupNames = groups != null ? Arrays.asList(groups) : Collections.<String> emptyList();
-		assertEquals(groupNames.size() + 1, getUser(id).getGroups().size());
+		assertEquals(groupNames.size() + defaultGroups.size(), getUser(id).getGroups().size()); // there are 8 default user groups configured
 		for (ScimUser.Group g : getUser(id).getGroups()) {
-			assertTrue("uaa.user".equals(g.getDisplay()) || groupNames.contains(g.getDisplay()));
+			assertTrue(defaultGroups.contains(g.getDisplay()) || groupNames.contains(g.getDisplay()));
 		}
 	}
 
@@ -204,7 +209,6 @@ public class ScimGroupEndpointsIntegrationTests {
 		validateUserGroups(VIDYA.getMemberId(), CFID);
 	}
 
-	@Ignore // bug to be fixed: https://www.pivotaltracker.com/story/show/36823569
 	@Test
 	public void createGroupWithInvalidMembersFailsCorrectly() {
 		ScimGroup g = new ScimGroup(CFID);
@@ -221,9 +225,10 @@ public class ScimGroupEndpointsIntegrationTests {
 		assertTrue(g1.get("message").contains("Invalid group member"));
 
 		// check that the group was not created
+		@SuppressWarnings("unchecked")
 		Map<String, String> g2 = client.getForObject(serverRunning.getUrl(groupEndpoint + "?filter=displayName eq '{name}'"), Map.class, CFID);
 		assertTrue(g2.containsKey("totalResults"));
-		assertEquals("0", g2.get("totalResults"));
+		assertEquals(0, g2.get("totalResults"));
 	}
 
 	@Test
@@ -245,6 +250,7 @@ public class ScimGroupEndpointsIntegrationTests {
 	@Test
 	public void createExistingGroupFailsCorrectly() {
 		ScimGroup g1 = createGroup(CFID);
+		@SuppressWarnings("unchecked")
 		Map<String, String> g2 = client.postForEntity(serverRunning.getUrl(groupEndpoint), g1, Map.class).getBody();
 		assertTrue(g2.containsKey("error"));
 		assertEquals("scim_resource_already_exists", g2.get("error"));
@@ -259,6 +265,7 @@ public class ScimGroupEndpointsIntegrationTests {
 		deleteResource(groupEndpoint, g1.getId());
 
 		// check that the group does not exist anymore
+		@SuppressWarnings("unchecked")
 		Map<String, Object> g2 = client.getForObject(serverRunning.getUrl(groupEndpoint + "?filter=displayName eq '{name}'"), Map.class, DELETE_ME);
 		assertTrue(g2.containsKey("totalResults"));
 		assertEquals(0, g2.get("totalResults"));
@@ -270,23 +277,26 @@ public class ScimGroupEndpointsIntegrationTests {
 
 	@Test
 	public void deleteNonExistentGroupFailsCorrectly() {
+		@SuppressWarnings("unchecked")
 		Map<String, Object> g = deleteResource(groupEndpoint, DELETE_ME).getBody();
 		assertTrue(g.containsKey("error"));
 		assertEquals("scim_resource_not_found", g.get("error"));
 	}
 
-	@Ignore // bug to be fixed: https://www.pivotaltracker.com/story/show/36822377
 	@Test
 	public void deleteMemberGroupUpdatesGroup() {
 		ScimGroup g1 = createGroup(CFID, VIDYA);
 		ScimGroupMember m2 = new ScimGroupMember(g1.getId(), ScimGroupMember.Type.GROUP, ScimGroup.GROUP_MEMBER);
 		ScimGroup g2 = createGroup(CF_DEV, DALE, m2);
-		deleteResource(groupEndpoint, CFID);
+		assertTrue(g2.getMembers().contains(m2));
+		validateUserGroups(VIDYA.getMemberId(), CFID, CF_DEV);
+
+		deleteResource(groupEndpoint, g1.getId());
 
 		// check that parent group is updated
 		ScimGroup g3 = client.getForObject(serverRunning.getUrl(groupEndpoint + "/{id}"), ScimGroup.class, g2.getId());
 		assertEquals(1, g3.getMembers().size());
-		assertTrue(g3.getMembers().contains(DALE));
+		assertFalse(g3.getMembers().contains(m2));
 	}
 
 	@Test

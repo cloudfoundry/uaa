@@ -64,8 +64,17 @@ import org.springframework.beans.factory.FactoryBean;
  */
 public class YamlPropertiesFactoryBean extends YamlProcessor implements FactoryBean<Properties> {
 
+	private Properties instance;
+
 	@Override
 	public Properties getObject() {
+		if (instance==null) {
+			instance  = doGetObject();
+		}
+		return instance;
+	}
+
+	private Properties doGetObject() {
 		final Properties result = new Properties();
 		MatchCallback callback = new MatchCallback() {
 			@Override

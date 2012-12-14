@@ -17,6 +17,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 
+import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
+import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
@@ -61,6 +63,16 @@ public class TokenAdminEndpointsIntegrationTests {
 
 		ResponseEntity<String> result = serverRunning.getForString("/oauth/users/" + testAccounts.getUserName()
 				+ "/tokens");
+		assertEquals(HttpStatus.OK, result.getStatusCode());
+		assertTrue(result.getBody().contains(context.getAccessToken().getValue()));
+	}
+
+	@Test
+	@OAuth2ContextConfiguration(resource = TokenResourceOwnerPassword.class)
+	public void testListTokensByUserId() throws Exception {
+
+		ResponseEntity<String> result = serverRunning.getForString("/oauth/users/" + testAccountSetup.getUser().getId()
+				+ "/tokens?lookup=true");
 		assertEquals(HttpStatus.OK, result.getStatusCode());
 		assertTrue(result.getBody().contains(context.getAccessToken().getValue()));
 	}

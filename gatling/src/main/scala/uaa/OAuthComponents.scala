@@ -22,16 +22,18 @@ import com.excilys.ebi.gatling.http.check.HttpCheck
 import com.excilys.ebi.gatling.http.check.HttpExtractorCheckBuilder
 import com.excilys.ebi.gatling.http.request.HttpPhase
 
-import AccessTokenCheckBuilder._
+import OAuthCheckBuilder._
 import com.excilys.ebi.gatling.core.action.builder.ActionBuilder
 import com.excilys.ebi.gatling.http.response.ExtendedResponse
 
 /**
- * Checks for the presence of an access token in the fragment of the Location header or JSON body
+ * Checks for the presence of an access token or authorization code in the fragment/parameters of the Location header
+ * or in the JSON body
  */
-object AccessTokenCheckBuilder {
-  val fragmentTokenPattern = Pattern.compile(".*#.*access_token=([^&]+).*")
-  val jsonBodyTokenPattern = Pattern.compile(""""access_token":"(.*?)"""")
+object OAuthCheckBuilder {
+  private val fragmentTokenPattern = Pattern.compile(".*#.*access_token=([^&]+).*")
+  private val jsonBodyTokenPattern = Pattern.compile(""""access_token":"(.*?)"""")
+  private val authorizationCodePattern = Pattern.compile(".*code=([^&]+).*")
 
   def fragmentToken = new FragmentTokenCheckBuilder
 
@@ -39,6 +41,9 @@ object AccessTokenCheckBuilder {
 
   // Get round Gatling bug #609
   def locationHeader = new LocationHeaderCheckBuilder
+
+  // Allows saving of the auth code. Should only fail if response is a redirect with no auth code in the location
+  def authCode = new AuthCodeCheckBuilder
 
   private[uaa] def fragmentExtractorFactory: ExtractorFactory[ExtendedResponse, String, String] = { (response: ExtendedResponse) =>
     (expression: String) =>
@@ -48,6 +53,16 @@ object AccessTokenCheckBuilder {
 
         if (matcher.find()) Some(matcher.group(1)) else None
       } else None
+  }
+
+  private[uaa] def authCodeExtractorFactory: ExtractorFactory[ExtendedResponse, String, String] = { (response: ExtendedResponse) =>
+    (expression: String) =>
+      val location = response.getHeader("Location")
+      if (location != null) {
+        val matcher = authorizationCodePattern.matcher(location)
+        if (matcher.find()) Some(matcher.group(1)) else None
+      } else Some("NoLocationNoCode")
+
   }
 
   private[uaa] def jsonExtractorFactory: ExtractorFactory[ExtendedResponse, String, String] = { (response: ExtendedResponse) =>
@@ -60,7 +75,7 @@ object AccessTokenCheckBuilder {
   // Only used for saving the location header (status code can be used to check for a redirect)
   private[uaa] def locationHeaderExtractorFactory: ExtractorFactory[ExtendedResponse, String, String] = response => expression => {
     if (response.getStatusCode() != 302)
-      println("Reponse is not a redirect")
+      println("Response is not a redirect")
     Option(response.getHeader("Location")) orElse(Some("No location header found"))
   }
 }
@@ -71,6 +86,10 @@ private[uaa] class FragmentTokenCheckBuilder extends HttpExtractorCheckBuilder[S
 
 private[uaa] class JsonTokenCheckBuilder extends HttpExtractorCheckBuilder[String, String](s => "", HttpPhase.CompletePageReceived) {
   def find = new MatcherCheckBuilder[HttpCheck[String], ExtendedResponse, String, String](httpCheckBuilderFactory, jsonExtractorFactory)
+}
+
+private[uaa] class AuthCodeCheckBuilder extends HttpExtractorCheckBuilder[String,String](s => "", HttpPhase.HeadersReceived) {
+  def find = new MatcherCheckBuilder[HttpCheck[String], ExtendedResponse, String, String](httpCheckBuilderFactory, authCodeExtractorFactory)
 }
 
 private[uaa] class LocationHeaderCheckBuilder extends HttpExtractorCheckBuilder[String, String](s => "", HttpPhase.HeadersReceived) {
@@ -88,7 +107,7 @@ object OAuthComponents {
     "Accept" -> "application/json",
     "Content-Type" -> "application/x-www-form-urlencoded")
 
-  private val AuthorizationCode = ".*code=([^&]+).*".r
+  def haveAuthCode: (Session => Boolean) = _.isAttributeDefined("code")
 
   def haveAccessToken : (Session => Boolean) = _.isAttributeDefined("access_token")
 
@@ -97,16 +116,6 @@ object OAuthComponents {
   def saveLocation(): CheckBuilder[HttpCheck[String], ExtendedResponse, String] = locationHeader.saveAs("location")
 
   def statusIs(status:Int) : (Session => Boolean) = _.getAttribute("status").toString.toInt == status
-
-  def extractAuthzCode(s: Session): Session =
-    s.getTypedAttribute[String]("location") match {
-      case AuthorizationCode(code) =>
-//        println("Auth code: " + code)
-        s.setAttribute("code", code)
-      case l =>
-        println("Location %s didn't contain an authorization code".format(l))
-        s
-    }
 
   /**
    * Performs an oauth token request as the specific client and saves the returned token
@@ -124,30 +133,26 @@ object OAuthComponents {
         .check(status.is(200), jsonToken.saveAs("access_token"))
 
   /**
-   * Action which performs an implicit token request as VMC client.
-   *
-   * Requires a username and password in the session.
+   * Single vmc login action with a specific username/password
    */
-  def vmcLogin(): ActionBuilder = vmcLogin("${username}", "${password}")
+  def vmcLogin(username: String = "${username}", password: String = "${password}"): ActionBuilder =
+    vmcAction("VMC login", username, password)
+      .check(status is 302, fragmentToken.saveAs("access_token"))
 
-  /**
-   * Single vmc login action with a specific username/password and scope
-   */
-  def vmcLogin(username: String, password: String, scope: String = "", expectedStatus:Int = 302): ActionBuilder = {
-    val ab = http("VMC login")
-        .post("/oauth/authorize")
-        .param("client_id", "vmc")
-        .param("scope", scope)
-        .param("credentials", """{"username":"%s","password":"%s"}""".format(username, password))
-        .param("redirect_uri", "http://uaa.cloudfoundry.com/redirect/vmc")
-        .param("response_type", "token")
-        .headers(plainHeaders)
-    if (expectedStatus == 302) {
-      ab.check(status is 302, fragmentToken.saveAs("access_token"))
-    } else {
-      ab.check(status is expectedStatus)
-    }
-  }
+  def vmcLoginFailure(username: String = "${username}", password: String = "pXssword"): ActionBuilder =
+    vmcAction("VMC failed login", username, password)
+      .check(status is 401)
+
+  private def vmcAction(name: String, username: String, password: String) =
+    http(name)
+      .post("/oauth/authorize")
+      .param("client_id", "vmc")
+      .param("source", "credentials")
+      .param("username", username)
+      .param("password", password)
+      .param("redirect_uri", "http://uaa.cloudfoundry.com/redirect/vmc")
+      .param("response_type", "token")
+      .headers(plainHeaders)
 
   def login: ActionBuilder = login("${username}", "${password}")
 
@@ -169,7 +174,7 @@ object OAuthComponents {
       http("Logged Out")
         .get("${location}")
         .headers(plainHeaders)
-        .check(status.is(200)))
+        .check(status.in(Seq(200,302))))
     .exec(clearCookies)
 
   /**
@@ -182,15 +187,15 @@ object OAuthComponents {
   def authorizationCodeLogin(username: String, password: String, client:Client): ChainBuilder = {
     val redirectUri = client.redirectUri.getOrElse(throw new RuntimeException("Client does not have a redirectUri"))
 
-    chain
-      .exec(
-        http("Authorization Request")
-          .post("/oauth/authorize")
-          .param("client_id", client.id)
-          .param("scope", client.scopes.mkString(" "))
-          .param("redirect_uri", redirectUri)
-          .param("response_type", "code")
-          .headers(plainHeaders)
+     bootstrap.exec(
+        http("Initial Request To Root")
+           .get("/").check(status.is(302)))
+        .exec(http("Authorization Endpoint")
+          .get("/oauth/authorize")
+          .queryParam("client_id", client.id)
+//          .queryParam("scope", client.scopes.mkString(" "))
+          .queryParam("redirect_uri", redirectUri)
+          .queryParam("response_type", "code")
           .check(status.is(302)))
       .exec(login(username, password))
 //      .exec((s: Session) => {
@@ -199,18 +204,16 @@ object OAuthComponents {
 //        s
 //      })
       .exec(
-        http("Reload")
-          .get("/oauth/authorize")
-          .check(status.saveAs("status"), saveLocation()))
-      .doIf(statusIs(200), chain.exec( // Not auto-approved, so we do the approval page
+        http("Reload after login")
+          .get("${location}")
+          .check(status.saveAs("status"), authCode.saveAs("code")))
+      .doIf(statusIs(200))(chain.exec( // Not auto-approved, so we do the approval page
         http("Authorization Approval")
           .post("/oauth/authorize")
           .param("user_oauth_approval", "true")
-          .headers(plainHeaders)
-          .check(status.is(302), saveLocation())))
-      .exec((s: Session) => { extractAuthzCode(s) })
-      .exec((s: Session) => { clearCookies(s) })
-      .exec(
+          .check(status.is(302), authCode.saveAs("code"))))
+      .exec(clearCookies(_))
+      .doIf(haveAuthCode) { chain.exec(
         http("Access Token Request")
           .post("/oauth/token")
           .basicAuth(client.id, client.secret)
@@ -220,6 +223,7 @@ object OAuthComponents {
           .param("grant_type", "authorization_code")
           .headers(jsonHeaders)
           .check(status.is(200)))
+     }
 
   }
 

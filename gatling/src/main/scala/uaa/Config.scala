@@ -22,19 +22,27 @@ object Config {
   // Number of base data users to create
   val nUsers = 1000
 
+  // Number of base data groups to create
+  val nGroups = 500
+
+  // Average number of members in a group
+  val avgGroupSize = nUsers/nGroups
+
   def yetiTarget = for {
     userHome <- sys.props.get("user.home")
     yetiFile  = new File(userHome + "/.bvt/config.yml")
     if (yetiFile.exists())
     content = Source.fromFile(yetiFile).getLines().toSeq
     if (content.length > 1)
-    target <- "target: api\\.(.*)".r.findPrefixMatchOf(content(1)).map(_.group(1).trim)
+    target <- "target: (.*)".r.findPrefixMatchOf(content(1)).map(_.group(1).trim)
   } yield {
-    "http://uaa." + target
+    target
   }
 
-  def urlBase = (sys.env.get("VCAP_BVT_TARGET") map (_.replace("api.", "http://uaa.")) orElse
-                  yetiTarget).getOrElse("http://localhost:8080/uaa")
+  def baseUrl = (sys.env.get("VCAP_BVT_TARGET") orElse yetiTarget) map (_.replace("api.", ""))
+
+  private def prependHttp(url: String) = if (url.startsWith("http")) url else "http://" + url
+
 
   // The bootstrap admin user
   val admin_client_id = sys.env.getOrElse("VCAP_BVT_ADMIN_CLIENT", "admin")
@@ -50,20 +58,30 @@ object Config {
       secret= "app_client_secret",
       scopes = Seq("cloud_controller.read","cloud_controller.write","openid","password.write","tokens.read","tokens.write"),
       redirectUri = Some("http://localhost:8080/app"),
-      resources = Seq("cloud_controller"),
+      resources = Seq("uaa.none"),
       authorities = Seq("cloud_controller.read","cloud_controller.write","openid","password.write","tokens.read","tokens.write"),
       grants = Seq("client_credentials", "authorization_code", "refresh_token"))
 
   // Scim client which is registered by the admin user in order to create users
   val scimClient = Client("scim_client", "scim_client_secret",
-    Seq("uaa.none"), Seq("cloud_controller","scim", "password"), Seq("scim.read","scim.write","password.write"))
+    Seq("uaa.none"), Seq("uaa.none"), Seq("scim.read","scim.write","password.write"))
 
   // The base user data
   val users: Seq[User] = (1 to nUsers).map(i => User("shaun" + i, "password"))
 
+  // The base group data
+  val groups: Seq[Group] = (1 to nGroups).map(i => Group("acme." + i, Seq(User("shaun" + i, "password"))))
+
   def uaaHttpConfig = {
-    println("**** Targeting UAA at: " + urlBase)
-    httpConfig.baseURL(urlBase).disableFollowRedirect.disableAutomaticReferer
+    val uaaUrl = baseUrl map (prependHttp) map (_.replace("://", "://uaa.")) getOrElse "http://localhost:8080/uaa"
+    println("**** Targeting UAA at: " + uaaUrl)
+    httpConfig.baseURL(uaaUrl).disableFollowRedirect.disableAutomaticReferer.warmUp(uaaUrl)
+  }
+
+  def loginHttpConfig = {
+    val loginUrl = baseUrl map (prependHttp) map (_.replace("://", "://login.")) getOrElse "http://localhost:8080/uaa"
+    println("**** Targeting Login server at: " + loginUrl)
+    httpConfig.baseURL(loginUrl).disableFollowRedirect.disableAutomaticReferer.warmUp(loginUrl)
   }
 
 }

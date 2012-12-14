@@ -141,7 +141,7 @@ class TokenCli < CommonCli
   def use_browser(client_id, secret = nil)
     catcher = Stub::Server.new(TokenCatcher,
         Util.default_logger(debug? ? :debug : trace? ? :trace : :info),
-        client_id: client_id, client_secret: secret).run_on_thread
+        client_id: client_id, client_secret: secret).run_on_thread("localhost", opts[:port])
     uri = issuer_request(client_id, secret) { |ti|
       secret ? ti.authcode_uri("#{catcher.url}/authcode", opts[:scope]) :
           ti.implicit_uri("#{catcher.url}/callback", opts[:scope])
@@ -170,16 +170,17 @@ class TokenCli < CommonCli
     end
   end
 
+  define_option :port, "--port <number>", "pin internal server to specific port"
   define_option :vmc, "--[no-]vmc", "save token in the ~/.vmc_tokens file"
   desc "token authcode get", "Gets a token using the authcode flow with browser",
-      :client, :secret, :scope, :vmc do use_browser(clientname, clientsecret) end
+      :client, :secret, :scope, :vmc, :port do use_browser(clientname, clientsecret) end
 
   desc "token implicit get", "Gets a token using the implicit flow with browser",
-      :client, :scope, :vmc do use_browser opts[:client] || "vmc" end
+      :client, :scope, :vmc, :port do use_browser opts[:client] || "vmc" end
 
   define_option :key, "--key <key>", "Token validation key"
   desc "token decode [token] [tokentype]", "Show token contents as parsed locally or by the UAA. " +
-      "Decodes locally unless --client and --secret are given. Validates locally if --key given",
+   "Decodes locally unless --client and --secret are given. Validates locally if --key given or server's signing key has been retrieved",
       :key, :client, :secret do |token, ttype|
     ttype = "bearer" if token && !ttype
     token ||= Config.value(:access_token)
@@ -189,9 +190,10 @@ class TokenCli < CommonCli
       if opts[:client] && opts[:secret]
         pp Misc.decode_token(Config.target, opts[:client], opts[:secret], token, ttype)
       else
-        info = TokenCoder.decode(token, opts[:key], opts[:key], !!opts[:key])
-        say info.inspect if trace?
-        say "\nNote: no key given to validate token signature\n\n" unless opts[:key]
+		seckey = opts[:key] || (Config.target_value(:signing_key) if Config.target_value(:signing_alg) !~ /rsa$/i)
+		pubkey = opts[:key] || (Config.target_value(:signing_key) if Config.target_value(:signing_alg) =~ /rsa$/i)
+        info = TokenCoder.decode(token, seckey, pubkey, seckey || pubkey)
+        say seckey || pubkey ? "\nValid token signature\n\n": "\nNote: no key given to validate token signature\n\n"
         pp info
       end
     end

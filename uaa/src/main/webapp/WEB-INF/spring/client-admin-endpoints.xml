@@ -5,19 +5,22 @@
 	is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file. -->
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
 	xmlns:sec="http://www.springframework.org/schema/security" xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
-	xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2.xsd
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.1.xsd
+		http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2.xsd
 		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.1.xsd
+		http://www.springframework.org/schema/security/oauth http://www.springframework.org/schema/security/spring-security-oauth.xsd
 		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd">
 
-	<http pattern="/oauth/clients/*/secret" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
-		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
-		xmlns="http://www.springframework.org/schema/security">
+	<http name="clientSecretSecurity" pattern="/oauth/clients/*/secret" create-session="stateless"
+		authentication-manager-ref="emptyAuthenticationManager" entry-point-ref="oauthAuthenticationEntryPoint"
+		access-decision-manager-ref="accessDecisionManager" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/oauth/clients/*/secret" access="IS_AUTHENTICATED_FULLY,scope=clients.secret" />
 		<custom-filter ref="clientResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
 
-	<http pattern="/oauth/clients/**" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"
+	<http name="clientAdminSecurity" pattern="/oauth/clients/**" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"
 		use-expressions="true" authentication-manager-ref="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
 		<intercept-url pattern="/**" access="#oauth2.hasScope('clients.write')" method="DELETE" />
 		<intercept-url pattern="/**" access="#oauth2.hasScope('clients.write')" method="POST" />
@@ -35,5 +38,20 @@
 		<property name="clientRegistrationService" ref="clientRegistrationService" />
 		<property name="clientDetailsService" ref="clientDetails" />
 	</bean>
+
+	<bean id="clientAdminEventPublisher" class="org.cloudfoundry.identity.uaa.oauth.event.ClientAdminEventPublisher">
+		<constructor-arg ref="clientDetails" />
+	</bean>
+
+	<aop:config proxy-target-class="true">
+		<aop:aspect ref="clientAdminEventPublisher">
+			<aop:after-returning method="create" pointcut="execution(* *..ClientAdminEndpoints+.create*(..)) and bean(clientAdminEndpoints)" returning="client"/>
+			<aop:after-returning method="update" pointcut="execution(* *..ClientAdminEndpoints+.update*(..)) and bean(clientAdminEndpoints)" returning="client"/>
+			<aop:around method="delete" pointcut="execution(* *..ClientAdminEndpoints+.remove*(String, ..)) and args(clientId,..) and bean(clientAdminEndpoints)" />
+			<aop:after-returning method="secretChange" pointcut="execution(* *..ClientAdminEndpoints+.changeSecret(String, ..)) and args(clientId,..) and bean(clientAdminEndpoints)" />
+			<aop:after-throwing method="secretFailure"
+				pointcut="execution(* *..ClientAdminEndpoints+.changeSecret(String, ..)) and args(clientId,..) and bean(clientAdminEndpoints)" throwing="e" />
+		</aop:aspect>
+	</aop:config>
 
 </beans>

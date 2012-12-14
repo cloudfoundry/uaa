@@ -8,11 +8,10 @@ import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.event.UserAuthenticationSuccessEvent;
-import org.cloudfoundry.identity.uaa.scim.ScimUserBootstrap;
-import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -30,8 +29,6 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
 	private final Log logger = LogFactory.getLog(getClass());
 
 	private ApplicationEventPublisher eventPublisher;
-
-	private ScimUserBootstrap scimUserBootstrap;
 
 	private UaaUserDatabase userDatabase;
 
@@ -52,15 +49,6 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
 	@Override
 	public void setApplicationEventPublisher(ApplicationEventPublisher eventPublisher) {
 		this.eventPublisher = eventPublisher;
-	}
-
-	/**
-	 * If set this bootstrap helper will be used to register new accounts.
-	 * 
-	 * @param scimUserBootstrap the scim user bootstrap to set
-	 */
-	public void setScimUserBootstrap(ScimUserBootstrap scimUserBootstrap) {
-		this.scimUserBootstrap = scimUserBootstrap;
 	}
 
 	/**
@@ -94,9 +82,9 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
 				}
 				catch (UsernameNotFoundException e) {
 					// Not necessarily fatal
-					if (scimUserBootstrap != null && addNewAccounts) {
+					if (addNewAccounts) {
 						// Register new users automatically
-						scimUserBootstrap.addUser(user);
+						publish(new NewUserAuthenticatedEvent(user));
 						try {
 							user = userDatabase.retrieveUserByName(user.getUsername());
 						}
@@ -110,7 +98,7 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
 				}
 				Authentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(),
 						(UaaAuthenticationDetails) req.getDetails());
-				eventPublisher.publishEvent(new UserAuthenticationSuccessEvent(user, success));
+				publish(new UserAuthenticationSuccessEvent(user, success));
 				return success;
 			}
 		}
@@ -118,6 +106,12 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
 		logger.debug("Did not locate login credentials");
 		return null;
 
+	}
+
+	protected void publish(ApplicationEvent event) {
+		if (eventPublisher != null) {
+			eventPublisher.publishEvent(event);
+		}
 	}
 
 	protected UaaUser getUser(AuthzAuthenticationRequest req, Map<String, String> info) {

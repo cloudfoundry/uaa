@@ -15,8 +15,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 
-import org.cloudfoundry.identity.uaa.integration.TestAccountSetup;
-import org.cloudfoundry.identity.uaa.integration.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
+import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.http.HttpHeaders;
@@ -62,12 +62,6 @@ public class AuthenticationIntegrationTests {
 		cookie = result.getHeaders().getFirst("Set-Cookie");
 		assertNotNull("Expected cookie in " + result.getHeaders(), cookie);
 		appHeaders.set("Cookie", cookie);
-
-		assertTrue("Wrong location: " + location, location.contains("/login"));
-		// *** GET /app/login
-		result = serverRunning.getForResponse(location, appHeaders);
-		assertEquals(HttpStatus.FOUND, result.getStatusCode());
-		location = result.getHeaders().getLocation().toString();
 
 		assertTrue("Wrong location: " + location, location.contains("/oauth/authorize"));
 		// *** GET /uaa/oauth/authorize
@@ -115,15 +109,8 @@ public class AuthenticationIntegrationTests {
 
 		location = result.getHeaders().getLocation().toString();
 
-		assertTrue("Wrong location: " + location, location.contains(serverRunning.getUrl("/login")));
-		// *** GET /app/login
-		result = serverRunning.getForResponse(location, appHeaders);
-
-		assertEquals(HttpStatus.FOUND, result.getStatusCode());
-		location = result.getHeaders().getLocation().toString();
-
 		// SUCCESS
-		assertTrue("Wrong location: " + location, location.endsWith("/id"));
+		assertTrue("Wrong location: " + location, location.contains("/id"));
 
 		// *** GET /app/id
 		result = serverRunning.getForResponse(location, appHeaders);

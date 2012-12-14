@@ -20,7 +20,6 @@ import java.util.Arrays;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.scim.ScimUserBootstrap;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserTestFactory;
@@ -108,7 +107,6 @@ public class LoginAuthenticationManagerTests {
 
 	@Test
 	public void testHappyDayAutoAddButWithExistingUser() {
-		manager.setScimUserBootstrap(Mockito.mock(ScimUserBootstrap.class));
 		manager.setAddNewAccounts(true);
 		UaaUser user = UaaUserTestFactory.getUser("FOO", "foo", "fo@test.org", "Foo", "Bar");
 		Mockito.when(userDatabase.retrieveUserByName("foo")).thenReturn(user);
@@ -120,7 +118,6 @@ public class LoginAuthenticationManagerTests {
 
 	@Test
 	public void testHappyDayAutoAddButWithNewUser() {
-		manager.setScimUserBootstrap(Mockito.mock(ScimUserBootstrap.class));
 		manager.setAddNewAccounts(true);
 		UaaUser user = UaaUserTestFactory.getUser("FOO", "foo", "fo@test.org", "Foo", "Bar");
 		Mockito.when(userDatabase.retrieveUserByName("foo")).thenThrow(new UsernameNotFoundException("planned"))
@@ -133,7 +130,6 @@ public class LoginAuthenticationManagerTests {
 
 	@Test(expected = BadCredentialsException.class)
 	public void testFailedAutoAddButWithNewUser() {
-		manager.setScimUserBootstrap(Mockito.mock(ScimUserBootstrap.class));
 		manager.setAddNewAccounts(true);
 		UaaUser user = UaaUserTestFactory.getUser("FOO", "foo", "fo@test.org", "Foo", "Bar");
 		Mockito.when(userDatabase.retrieveUserByName("foo")).thenThrow(new UsernameNotFoundException("planned"));

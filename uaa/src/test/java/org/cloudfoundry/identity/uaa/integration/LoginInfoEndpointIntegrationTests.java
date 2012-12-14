@@ -35,13 +35,13 @@ public class LoginInfoEndpointIntegrationTests {
 	public ServerRunning serverRunning = ServerRunning.isRunning();
 
 	/**
-	 * tests a happy-day flow of the <code>/login_info</code> endpoint
+	 * tests a happy-day flow of the <code>/info</code> endpoint
 	 */
 	@Test
 	public void testHappyDay() throws Exception {
 
 		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = serverRunning.getForObject("/login", Map.class);
+		ResponseEntity<Map> response = serverRunning.getForObject("/info", Map.class);
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		@SuppressWarnings("unchecked")
 		Map<String, String[]> prompts = (Map<String, String[]>) response.getBody().get("prompts");
@@ -50,7 +50,7 @@ public class LoginInfoEndpointIntegrationTests {
 	}
 
 	/**
-	 * tests a happy-day flow of the <code>/login_info</code> endpoint
+	 * tests a happy-day flow of the <code>/login</code> endpoint
 	 */
 	@Test
 	public void testHappyDayHtml() throws Exception {

@@ -5,7 +5,13 @@ import com.excilys.ebi.gatling.core.Predef._
 import uaa.Config._
 import uaa.OAuthComponents._
 
-case class User(username: String, password: String)
+case class User(username: String, password: String) {
+  override def toString = {
+    username
+  }
+}
+
+case class Group(displayName: String, members: Seq[User])
 
 case class Client(id: String, secret: String, scopes: Seq[String], resources: Seq[String], authorities: Seq[String], grants: Seq[String] = Seq("client_credentials"), redirectUri: Option[String] = None) {
   val toJson = {
@@ -15,14 +21,13 @@ case class Client(id: String, secret: String, scopes: Seq[String], resources: Se
     }
     """{
           "client_id" : "%s",
-          "client_secret" : "%s",
-          "client_sceret" : "%s",%s
+          "client_secret" : "%s", %s
           "scope" : [%s],
           "resource_ids" : [%s],
           "authorities" : [%s],
           "authorized_grant_types" : [%s]
     }
-    """.format(id, secret, secret, redirectJson, fmt(scopes), fmt(resources), fmt(authorities), fmt(grants))
+    """.format(id, secret, redirectJson, fmt(scopes), fmt(resources), fmt(authorities), fmt(grants))
   }
 
   private def fmt(seq: Seq[String]) = seq.mkString("\"", "\",\"", "\"")

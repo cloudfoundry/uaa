@@ -23,8 +23,8 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.integration.TestProfileEnvironment;
-import org.cloudfoundry.identity.uaa.integration.UrlHelper;
+import org.cloudfoundry.identity.uaa.test.TestProfileEnvironment;
+import org.cloudfoundry.identity.uaa.test.UrlHelper;
 import org.junit.Assume;
 import org.junit.internal.AssumptionViolatedException;
 import org.junit.rules.TestWatchman;
@@ -178,7 +178,7 @@ public class ServerRunning extends TestWatchman implements RestTemplateHolder, U
 	}
 
 	public String getUserUri() {
-		return getAuthServerUrl("/User");
+		return getAuthServerUrl("/Users");
 	}
 
 	public String getAuthServerUrl(String path) {

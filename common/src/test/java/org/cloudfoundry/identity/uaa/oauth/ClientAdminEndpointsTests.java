@@ -71,6 +71,8 @@ public class ClientAdminEndpointsTests {
 		input.setAuthorizedGrantTypes(Arrays.asList("authorization_code"));
 		details = new BaseClientDetails(input);
 		details.setResourceIds(Arrays.asList("none"));
+		// refresh token is added automatically by endpoint validation
+		details.setAuthorizedGrantTypes(Arrays.asList("authorization_code","refresh_token"));
 		details.setScope(Arrays.asList("uaa.none"));
 		details.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none"));
 		endpoints.afterPropertiesSet();
@@ -102,7 +104,7 @@ public class ClientAdminEndpointsTests {
 
 	@Test(expected = InvalidClientDetailsException.class)
 	public void testCreateClientDetailsWithNoGrantType() throws Exception {
-		input.setAuthorizedGrantTypes(Collections.<String>emptySet());
+		input.setAuthorizedGrantTypes(Collections.<String> emptySet());
 		ClientDetails result = endpoints.createClientDetails(input);
 		assertNull(result.getClientSecret());
 		Mockito.verify(clientRegistrationService).addClientDetails(details);
@@ -112,6 +114,15 @@ public class ClientAdminEndpointsTests {
 	public void testCreateClientDetailsWithClientCredentials() throws Exception {
 		input.setAuthorizedGrantTypes(Arrays.asList("client_credentials"));
 		details.setAuthorizedGrantTypes(input.getAuthorizedGrantTypes());
+		ClientDetails result = endpoints.createClientDetails(input);
+		assertNull(result.getClientSecret());
+		Mockito.verify(clientRegistrationService).addClientDetails(details);
+	}
+
+	@Test
+	public void testCreateClientDetailsWithAdditionalInformation() throws Exception {
+		input.setAdditionalInformation(Collections.singletonMap("foo", "bar"));
+		details.setAdditionalInformation(input.getAdditionalInformation());
 		ClientDetails result = endpoints.createClientDetails(input);
 		assertNull(result.getClientSecret());
 		Mockito.verify(clientRegistrationService).addClientDetails(details);
@@ -143,7 +154,8 @@ public class ClientAdminEndpointsTests {
 
 	@Test(expected = InvalidClientDetailsException.class)
 	public void testUpdateClientDetailsWithNullCallerAndInvalidScope() throws Exception {
-		endpoints.createClientDetails(input);
+		Mockito.when(clientDetailsService.loadClientByClientId(input.getClientId())).thenReturn(
+				new BaseClientDetails(input));
 		input.setScope(Arrays.asList("read"));
 		ClientDetails result = endpoints.updateClientDetails(input, input.getClientId());
 		assertNull(result.getClientSecret());
@@ -152,12 +164,47 @@ public class ClientAdminEndpointsTests {
 	}
 
 	@Test
+	public void testGetClientDetails() throws Exception {
+		Mockito.when(clientDetailsService.loadClientByClientId(input.getClientId())).thenReturn(input);
+		input.setScope(Arrays.asList(input.getClientId() + ".read"));
+		input.setAdditionalInformation(Collections.singletonMap("foo", "bar"));
+		ClientDetails result = endpoints.getClientDetails(input.getClientId());
+		assertNull(result.getClientSecret());
+		assertEquals(input.getAdditionalInformation(), result.getAdditionalInformation());
+	}
+
+	@Test
 	public void testUpdateClientDetails() throws Exception {
-		endpoints.createClientDetails(input);
+		Mockito.when(clientDetailsService.loadClientByClientId(input.getClientId())).thenReturn(
+				new BaseClientDetails(input));
 		input.setScope(Arrays.asList(input.getClientId() + ".read"));
 		ClientDetails result = endpoints.updateClientDetails(input, input.getClientId());
 		assertNull(result.getClientSecret());
 		details.setScope(Arrays.asList(input.getClientId() + ".read"));
+		Mockito.verify(clientRegistrationService).updateClientDetails(details);
+	}
+
+	@Test
+	public void testUpdateClientDetailsWithAdditionalInformation() throws Exception {
+		Mockito.when(clientDetailsService.loadClientByClientId(input.getClientId())).thenReturn(
+				new BaseClientDetails(input));
+		input.setScope(Arrays.asList(input.getClientId() + ".read"));
+		input.setAdditionalInformation(Collections.singletonMap("foo", "bar"));
+		ClientDetails result = endpoints.updateClientDetails(input, input.getClientId());
+		assertNull(result.getClientSecret());
+		details.setScope(input.getScope());
+		details.setAdditionalInformation(input.getAdditionalInformation());
+		Mockito.verify(clientRegistrationService).updateClientDetails(details);
+	}
+
+	@Test
+	public void testUpdateClientDetailsRemoveAdditionalInformation() throws Exception {
+		input.setAdditionalInformation(Collections.singletonMap("foo", "bar"));
+		Mockito.when(clientDetailsService.loadClientByClientId(input.getClientId())).thenReturn(
+				new BaseClientDetails(input));
+		input.setAdditionalInformation(Collections.<String, Object> emptyMap());
+		ClientDetails result = endpoints.updateClientDetails(input, input.getClientId());
+		assertNull(result.getClientSecret());
 		Mockito.verify(clientRegistrationService).updateClientDetails(details);
 	}
 
@@ -292,7 +339,6 @@ public class ClientAdminEndpointsTests {
 	public void testRemoveClientDetailsAdminCaller() throws Exception {
 		Mockito.when(securityContextAccessor.isAdmin()).thenReturn(true);
 		Mockito.when(clientDetailsService.loadClientByClientId("foo")).thenReturn(details);
-		endpoints.createClientDetails(details);
 		ClientDetails result = endpoints.removeClientDetails("foo");
 		assertNull(result.getClientSecret());
 		Mockito.verify(clientRegistrationService).removeClientDetails("foo");
@@ -454,8 +500,8 @@ public class ClientAdminEndpointsTests {
 
 	@Test
 	public void testHandleClientAlreadyExists() throws Exception {
-		ResponseEntity<InvalidClientDetailsException> result = endpoints.handleClientAlreadyExists(new ClientAlreadyExistsException(
-				"No such client: foo"));
+		ResponseEntity<InvalidClientDetailsException> result = endpoints
+				.handleClientAlreadyExists(new ClientAlreadyExistsException("No such client: foo"));
 		assertEquals(HttpStatus.CONFLICT, result.getStatusCode());
 	}
 

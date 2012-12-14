@@ -18,10 +18,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.cloudfoundry.identity.uaa.rest.SimpleMessage;
-import org.cloudfoundry.identity.uaa.scim.ScimResourceNotFoundException;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.message.SimpleMessage;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -40,7 +37,6 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 /**
@@ -53,24 +49,18 @@ public class TokenAdminEndpoints {
 
 	private ConsumerTokenServices tokenServices;
 
-	private ScimUserProvisioning scimProvisioning;
-
 	private PasswordEncoder encoder = new StandardPasswordEncoder();
 
-	@RequestMapping("/oauth/users/{user}/tokens")
+	@RequestMapping("/oauth/users/{username}/tokens")
 	@ResponseBody
-	public Collection<OAuth2AccessToken> listTokensForUser(@PathVariable String user, Principal principal,
-			@RequestParam(required = false, defaultValue = "true") boolean lookup) throws Exception {
-		String username = lookup ? getUserName(user) : user;
+	public Collection<OAuth2AccessToken> listTokensForUser(@PathVariable String username, Principal principal) throws Exception {
 		checkResourceOwner(username, principal);
 		return enhance(tokenServices.findTokensByUserName(username));
 	}
 
-	@RequestMapping(value = "/oauth/users/{user}/tokens/{token}", method = RequestMethod.DELETE)
+	@RequestMapping(value = "/oauth/users/{username}/tokens/{token}", method = RequestMethod.DELETE)
 	@ResponseBody
-	public SimpleMessage revokeUserToken(@PathVariable String user, @PathVariable String token, Principal principal,
-			@RequestParam(required = false, defaultValue = "true") boolean lookup) throws Exception {
-		String username = lookup ? getUserName(user) : user;
+	public SimpleMessage revokeUserToken(@PathVariable String username, @PathVariable String token, Principal principal) throws Exception {
 		checkResourceOwner(username, principal);
 		String tokenValue = getTokenValue(tokenServices.findTokensByUserName(username), token);
 		if (tokenValue != null && tokenServices.revokeToken(tokenValue)) {
@@ -102,26 +92,6 @@ public class TokenAdminEndpoints {
 	@ExceptionHandler(NoSuchTokenException.class)
 	public ResponseEntity<Void> handleNoSuchToken(NoSuchTokenException e) {
 		return new ResponseEntity<Void>(HttpStatus.NOT_FOUND);
-	}
-
-	private String getUserName(String user) {
-		if (scimProvisioning == null) {
-			return user;
-		}
-		String username = user;
-		try {
-			if (scimProvisioning != null) {
-				// If the request came in for a user by id we should be able to retrieve the username
-				ScimUser scimUser = scimProvisioning.retrieveUser(username);
-				if (scimUser != null) {
-					username = scimUser.getUserName();
-				}
-			}
-		}
-		catch (ScimResourceNotFoundException e) {
-			// ignore
-		}
-		return username;
 	}
 
 	private String getTokenValue(Collection<OAuth2AccessToken> tokens, String hash) {
@@ -199,13 +169,6 @@ public class TokenAdminEndpoints {
 	 */
 	public void setTokenServices(ConsumerTokenServices tokenServices) {
 		this.tokenServices = tokenServices;
-	}
-
-	/**
-	 * @param scimProvisioning the scimProvisioning to set
-	 */
-	public void setScimUserProvisioning(ScimUserProvisioning scimProvisioning) {
-		this.scimProvisioning = scimProvisioning;
 	}
 
 }

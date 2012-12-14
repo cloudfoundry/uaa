@@ -24,6 +24,8 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.params.ClientPNames;
 import org.apache.http.client.params.CookiePolicy;
+import org.cloudfoundry.identity.uaa.test.TestProfileEnvironment;
+import org.cloudfoundry.identity.uaa.test.UrlHelper;
 import org.junit.Assume;
 import org.junit.internal.AssumptionViolatedException;
 import org.junit.rules.MethodRule;
@@ -38,6 +40,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.http.client.support.HttpAccessor;
 import org.springframework.security.oauth2.client.test.RestTemplateHolder;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -209,7 +212,7 @@ public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper 
 	}
 
 	public String getUserUri() {
-		return getUrl("/User");
+		return getUrl("/Users");
 	}
 
 	public String getUrl(String path) {
@@ -305,19 +308,14 @@ public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper 
 
 	public void setRestTemplate(RestOperations restTemplate) {
 		this.client = restTemplate;
+		if (restTemplate instanceof HttpAccessor) {
+			((HttpAccessor) restTemplate).setRequestFactory(new StatelessRequestFactory());
+		}
 	}
 
 	public RestTemplate createRestTemplate() {
 		RestTemplate client = new RestTemplate();
-		client.setRequestFactory(new HttpComponentsClientHttpRequestFactory() {
-			@Override
-			public HttpClient getHttpClient() {
-				HttpClient client = super.getHttpClient();
-				client.getParams().setBooleanParameter(ClientPNames.HANDLE_REDIRECTS, false);
-				client.getParams().setParameter(ClientPNames.COOKIE_POLICY, CookiePolicy.IGNORE_COOKIES);
-				return client;
-			}
-		});
+		client.setRequestFactory(new StatelessRequestFactory());
 		client.setErrorHandler(new ResponseErrorHandler() {
 			// Pass errors through in response entity for status code analysis
 			public boolean hasError(ClientHttpResponse response) throws IOException {
@@ -332,6 +330,16 @@ public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper 
 
 	public UriBuilder buildUri(String url) {
 		return UriBuilder.fromUri(url.startsWith("http:") ? url : getUrl(url));
+	}
+
+	private static class StatelessRequestFactory extends HttpComponentsClientHttpRequestFactory {
+		@Override
+		public HttpClient getHttpClient() {
+			HttpClient client = super.getHttpClient();
+			client.getParams().setBooleanParameter(ClientPNames.HANDLE_REDIRECTS, false);
+			client.getParams().setParameter(ClientPNames.COOKIE_POLICY, CookiePolicy.IGNORE_COOKIES);
+			return client;
+		}
 	}
 
 	public static class UriBuilder {

@@ -19,11 +19,10 @@ import static org.junit.Assert.assertTrue;
 import javax.sql.DataSource;
 
 import org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean;
-import org.cloudfoundry.identity.uaa.oauth.UaaUserApprovalHandler;
+import org.cloudfoundry.identity.uaa.oauth.ClientAdminBootstrap;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
-import org.cloudfoundry.identity.uaa.varz.VarzEndpoint;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -65,12 +64,6 @@ public class BootstrapTests {
 	}
 
 	@Test
-	public void testVarzContextDefaults() throws Exception {
-		context = getServletContext("file:./src/main/webapp/WEB-INF/varz-servlet.xml");
-		assertNotNull(context.getBean("varzEndpoint", VarzEndpoint.class));
-	}
-
-	@Test
 	public void testRootContextDefaults() throws Exception {
 		context = getServletContext("hsqldb", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
 		assertNotNull(context.getBean("userDatabase", JdbcUaaUserDatabase.class));
@@ -90,7 +83,7 @@ public class BootstrapTests {
 				"classpath:/test/config/test-override.xml");
 		assertEquals("different", context.getBean("foo", String.class));
 		assertEquals("[vmc, my, support]",
-				ReflectionTestUtils.getField(context.getBean(UaaUserApprovalHandler.class), "autoApproveClients")
+				ReflectionTestUtils.getField(context.getBean(ClientAdminBootstrap.class), "autoApproveClients")
 						.toString());
 		ScimUserProvisioning users = context.getBean(ScimUserProvisioning.class);
 		assertTrue(users.retrieveUsers().size() > 0);
@@ -109,7 +102,7 @@ public class BootstrapTests {
 		if (profiles != null) {
 			context.getEnvironment().setActiveProfiles(StringUtils.commaDelimitedListToStringArray(profiles));
 		}
-		
+
 		context.load(resourcesToLoad);
 
 		// Simulate what happens in the webapp when the YamlServletProfileInitializer kicks in

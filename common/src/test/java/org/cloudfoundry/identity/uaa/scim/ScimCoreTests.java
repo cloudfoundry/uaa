@@ -1,9 +1,14 @@
 package org.cloudfoundry.identity.uaa.scim;
 
-import org.cloudfoundry.identity.uaa.scim.groups.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimCore;
+import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertTrue;
 
 public class ScimCoreTests {
 
