@@ -72,6 +72,8 @@ public class Approval {
 		this.expiresAt = expiresAt;
 	}
 
+	public Approval() { }
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -88,11 +90,11 @@ public class Approval {
 			return false;
 		}
 		Approval other = (Approval) o;
-		return userName == other.userName && clientId == other.clientId && scope == other.scope;
+		return userName.equals(other.userName) && clientId.equals(other.clientId) && scope.equals(other.scope);
 	}
 
 	@Override
 	public String toString() {
-		return String.format("user %s delegated scope %s to client %s until %s", userName, scope, clientId, expiresAt);
+		return String.format("[%s, %s, %s, %s]", userName, scope, clientId, expiresAt);
 	}
 }

@@ -110,8 +110,9 @@ public class ApprovalsAdminEndpointsTests {
 
 	@Test
 	public void canUpdateApprovals() {
-		List<Approval> app = Arrays.asList(new Approval("marissa", "c1", "uaa.user", 2000),
-														  new Approval("marissa", "c1", "dash.user", 2000));
+		Approval[] app = {	new Approval("marissa", "c1", "uaa.user", 2000),
+							new Approval("marissa", "c1", "dash.user", 2000)
+		};
 		List<Approval> response = endpoints.updateApprovals(app);
 		assertEquals(2, response.size());
 		assertFalse(response.contains(new Approval("marissa", "c1", "openid", 0)));
@@ -125,7 +126,8 @@ public class ApprovalsAdminEndpointsTests {
 		vidya = userDao.createUser(vidya, "password");
 
 		endpoints.setSecurityContextAccessor(mockSecurityContextAccessor(vidya.getId()));
-		endpoints.updateApprovals(Arrays.asList(new Approval("marissa", "c1", "uaa.user", 2000)));
+		Approval[] approvals = {new Approval("marissa", "c1", "uaa.user", 2000)};
+		endpoints.updateApprovals(approvals);
 	}
 
 	@Test
