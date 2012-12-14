@@ -12,7 +12,9 @@
  */
 package org.cloudfoundry.identity.uaa.oauth.authz;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -100,11 +102,18 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 	@RequestMapping(value = "/approvals", method = RequestMethod.PUT)
 	@ResponseBody
 	@PreAuthorize("@securityContextAccessor.isUser()")
-	public List<Approval> updateApprovals(@RequestBody Collection<Approval> approvals) {
+	public List<Approval> updateApprovals(@RequestBody List approvals) {
+		List<Approval> input;
+		if (approvals.get(0) instanceof Approval) {
+			input = approvals;
+		} else {
+			input = parseApprovalsJson(approvals);
+		}
+
 		String username = getCurrentUsername();
 		logger.debug("Updating approvals for user: " + username);
 		approvalStore.revokeApprovals(String.format(USER_FILTER_TEMPLATE, username));
-		for (Approval approval : approvals) {
+		for (Approval approval : input) {
 			if (!isValidUser(approval.getUserName())) {
 				logger.warn(String.format("%s attemting to update approvals for %s", username, approval.getUserName()));
 				throw new UaaException("unauthorized_operation", "Cannot update approvals for another user", HttpStatus.UNAUTHORIZED.value());
@@ -112,6 +121,24 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 			approvalStore.addApproval(approval);
 		}
 		return approvalStore.getApprovals(String.format(USER_FILTER_TEMPLATE, username));
+	}
+
+	private List<Approval> parseApprovalsJson (List approvals) {
+		logger.info("approvals in JSON: " + approvals);
+
+		List<Approval> response = new ArrayList<Approval>();
+		for (Object approval : approvals) {
+			Map<String, Object> app = (Map<String, Object>) approval;
+			String userId = (String) app.get("userName");
+			String clientId = (String) app.get("clientId");
+			String scope = (String) app.get("scope");
+			Date expiresAt = new Date(Long.parseLong(app.get("expiresAt").toString()));
+
+			if (expiresAt.after(new Date())) {
+				response.add(new Approval(userId, clientId, scope, expiresAt));
+			}
+		}
+		return response;
 	}
 
 	private boolean isValidUser(String username) {
