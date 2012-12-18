@@ -1,11 +1,15 @@
 package org.cloudfoundry.identity.uaa.scim;
 
+import org.cloudfoundry.identity.uaa.scim.util.json.ScimGroupJsonDeserializer;
+import org.cloudfoundry.identity.uaa.scim.util.json.ScimGroupJsonSerializer;
+import org.codehaus.jackson.map.annotate.JsonDeserialize;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 
 import java.util.Arrays;
 import java.util.List;
 
-@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
+@JsonSerialize(using = ScimGroupJsonSerializer.class, include = JsonSerialize.Inclusion.NON_NULL)
+@JsonDeserialize(using = ScimGroupJsonDeserializer.class)
 public class ScimGroup extends ScimCore {
 
 	private String displayName;
@@ -13,7 +17,14 @@ public class ScimGroup extends ScimCore {
 
 	@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 	public static enum Authority {
-		READ, WRITE
+		READ, WRITE;
+
+		public String getRoleName() {
+			switch (this) {
+				case WRITE: return "writer";
+				default: return "reader";
+			}
+		}
 	}
 
 	;
