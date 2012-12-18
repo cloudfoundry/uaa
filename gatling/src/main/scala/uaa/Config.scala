@@ -20,7 +20,7 @@ import io.Source
  */
 object Config {
   // Number of base data users to create
-  val nUsers = 1000
+  val nUsers = 10000
 
   // Number of base data groups to create
   val nGroups = 500
