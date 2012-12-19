@@ -140,11 +140,11 @@ object OAuthComponents {
       .check(status is 302, fragmentToken.saveAs("access_token"))
 
   def vmcLoginBadPassword(username: String = "${username}"): ActionBuilder =
-    vmcAction("VMC failed login (bad password)", username, "pXssword")
+    vmcAction("VMC failed login - bad password", username, "pXssword")
       .check(status is 401)
 
   def vmcLoginBadUsername(): ActionBuilder =
-    vmcAction("VMC failed login (no user)", "idontexist", "password")
+    vmcAction("VMC failed login - no user", "idontexist", "password")
       .check(status is 401)
 
   private def vmcAction(name: String, username: String, password: String) =
