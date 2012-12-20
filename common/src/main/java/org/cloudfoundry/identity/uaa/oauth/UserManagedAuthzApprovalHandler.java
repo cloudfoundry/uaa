@@ -12,6 +12,10 @@
  */
 package org.cloudfoundry.identity.uaa.oauth;
 
+import static org.cloudfoundry.identity.uaa.oauth.authz.Approval.ApprovalStatus.APPROVED;
+import static org.cloudfoundry.identity.uaa.oauth.authz.Approval.ApprovalStatus.DENIED;
+
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
@@ -27,6 +31,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.UpdatableAuthorizationRequest;
 import org.springframework.security.oauth2.provider.approval.UserApprovalHandler;
 
 public class UserManagedAuthzApprovalHandler implements
@@ -40,11 +45,21 @@ public class UserManagedAuthzApprovalHandler implements
 
 	private ClientDetailsService clientDetailsService;
 
+	//Default approval expiry is one month
+	private long approvalExpirySeconds = oneMonth();
+
 	/**
 	 * @param clientDetailsService the clientDetailsService to set
 	 */
 	public void setClientDetailsService(ClientDetailsService clientDetailsService) {
 		this.clientDetailsService = clientDetailsService;
+	}
+
+	private long oneMonth() {
+		Calendar cal = Calendar.getInstance();
+		cal.setTime(new Date());
+		cal.set(Calendar.MONTH, (cal.get(Calendar.MONTH) + 6));
+		return cal.getTimeInMillis();
 	}
 
 	public void setApprovalStore(ApprovalStore approvalStore) {
@@ -60,7 +75,7 @@ public class UserManagedAuthzApprovalHandler implements
 	public boolean isApproved(AuthorizationRequest authorizationRequest, Authentication userAuthentication) {
 
 		String flag = authorizationRequest.getApprovalParameters().get(approvalParameter);
-		boolean approved = flag != null && flag.toLowerCase().equals("true");
+		boolean userApproval = flag != null && flag.toLowerCase().equals("true");
 
 		if (logger.isDebugEnabled()) {
 			StringBuilder builder = new StringBuilder("Looking up user approved authorizations for ");
@@ -71,17 +86,43 @@ public class UserManagedAuthzApprovalHandler implements
 
 		Collection<String> requestedScopes = authorizationRequest.getScope();
 
-		if(approved) {
-			//Store the scopes that have been approved
-			Date nextWeek = new Date(System.currentTimeMillis() + (86400 * 7 * 1000));
-			for(String approvedScope : authorizationRequest.getScope()) {
-				approvalStore.addApproval(new Approval(userAuthentication.getName(),
-															authorizationRequest.getClientId(),
-															approvedScope,
-															nextWeek));
+		if(userApproval) {
+			//Store the scopes that have been approved / denied
+			Date expiry = new Date(System.currentTimeMillis() + (approvalExpirySeconds * 1000));
+
+			//Get the approved scopes, calculate the denied scope
+			Map<String, String> approvalParameters = authorizationRequest.getApprovalParameters();
+			Set<String> approvedScopes = new HashSet<String>();
+			for(String approvalParameter : approvalParameters.keySet()) {
+				if(approvalParameter.startsWith("scope.")) {
+					approvedScopes.add(approvalParameters.get(approvalParameter).substring("scope.".length()));
+				}
 			}
+
+			((UpdatableAuthorizationRequest) authorizationRequest).setScope(approvedScopes);
+
+			for(String requestedScope : requestedScopes) {
+				if(approvedScopes.contains(requestedScope)) {
+					approvalStore.addApproval(new Approval(userAuthentication.getName(),
+												authorizationRequest.getClientId(),
+												requestedScope,
+												expiry,
+												APPROVED));
+				} else {
+					approvalStore.addApproval(new Approval(userAuthentication.getName(),
+												authorizationRequest.getClientId(),
+												requestedScope,
+												expiry,
+												DENIED));
+				}
+			}
+
+			if(userAuthentication.isAuthenticated()) {
+				return true;
+			}
+
 		} else {
-			//Find the user in the authorizations table.
+			//Find the stored approvals for that user and client
 			List<Approval> userApprovals =
 					approvalStore.getApprovals(userAuthentication.getName(),
 													authorizationRequest.getClientId());
@@ -96,28 +137,26 @@ public class UserManagedAuthzApprovalHandler implements
 			}
 
 			if (logger.isDebugEnabled()) {
-				logger.debug("Valid user approved scopes are " + validUserApprovedScopes);
+				logger.debug("Valid user approved/denied scopes are " + validUserApprovedScopes);
 			}
 
-			//If the requested scopes have already been approved by the user, this request is approved
+			//If the requested scopes have already been approved/denied by the user, this request is approved
 			if(validUserApprovedScopes.containsAll(requestedScopes) && userAuthentication.isAuthenticated()) {
 				return true;
 			}
 		}
 
-		if (approved && userAuthentication.isAuthenticated()) {
-			return true;
-		}
-
+		//If this client is auto approved, approve the request. We check this later because
+		//we still want to store the approvals that the user recorded.
 		String clientId = authorizationRequest.getClientId();
 		if (clientDetailsService != null) {
 			ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
 			if (isAutoApprove(client, requestedScopes)) {
-				approved = true;
+				userApproval = true;
 			}
 		}
 
-		return approved;
+		return userApproval;
 	}
 
 	private boolean isAutoApprove(ClientDetails client, Collection<String> scopes) {
@@ -136,6 +175,10 @@ public class UserManagedAuthzApprovalHandler implements
 			}
 		}
 		return false;
+	}
+
+	public void setApprovalExpirySeconds(long approvalExpirySeconds) {
+		this.approvalExpirySeconds = approvalExpirySeconds;
 	}
 
 }

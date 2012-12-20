@@ -26,6 +26,23 @@ public class Approval {
 	private String clientId;
 
 	private String scope;
+	
+	public enum ApprovalStatus {
+		APPROVED("APPROVED"),
+		DENIED("DENIED");
+		
+		private String approvalStatus;
+		
+		public String toString() {
+			return approvalStatus;
+		}
+		
+		private ApprovalStatus(String approvalStatus) {
+			this.approvalStatus = approvalStatus;
+		}
+	}
+	
+	private ApprovalStatus status;
 
 	private Date expiresAt;
 
@@ -61,15 +78,16 @@ public class Approval {
 		this.expiresAt = expiresAt == null ? new Date(new Date().getTime() + THIRTY_MINUTES_IN_MILLIS) : expiresAt;
 	}
 
-	public Approval(String userId, String clientId, String scope, long expiresIn) {
-		this(userId, clientId, scope, new Date(new Date().getTime() + expiresIn));
+	public Approval(String userId, String clientId, String scope, long expiresIn, ApprovalStatus status) {
+		this(userId, clientId, scope, new Date(new Date().getTime() + expiresIn), status);
 	}
 
-	public Approval(String userId, String clientId, String scope, Date expiresAt) {
+	public Approval(String userId, String clientId, String scope, Date expiresAt, ApprovalStatus status) {
 		this.userName = userId;
 		this.clientId = clientId;
 		this.scope = scope;
 		this.expiresAt = expiresAt;
+		this.status = status;
 	}
 
 	@Override
@@ -88,11 +106,20 @@ public class Approval {
 			return false;
 		}
 		Approval other = (Approval) o;
-		return userName == other.userName && clientId == other.clientId && scope == other.scope;
+		return userName == other.userName && clientId == other.clientId && scope == other.scope && status == other.status;
 	}
 
 	@Override
 	public String toString() {
-		return String.format("user %s delegated scope %s to client %s until %s", userName, scope, clientId, expiresAt);
+		return String.format("user %s %s scope %s to client %s until %s", userName, status.toString().toLowerCase(), scope, clientId, expiresAt);
 	}
+
+	public ApprovalStatus getStatus() {
+		return status;
+	}
+
+	public void setStatus(ApprovalStatus status) {
+		this.status = status;
+	}
+
 }
