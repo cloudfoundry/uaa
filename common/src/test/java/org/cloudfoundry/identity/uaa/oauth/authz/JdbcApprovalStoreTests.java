@@ -12,6 +12,8 @@
  */
 package org.cloudfoundry.identity.uaa.oauth.authz;
 
+import static org.cloudfoundry.identity.uaa.oauth.authz.Approval.ApprovalStatus.APPROVED;
+import static org.cloudfoundry.identity.uaa.oauth.authz.Approval.ApprovalStatus.DENIED;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -21,6 +23,7 @@ import java.util.List;
 
 import javax.sql.DataSource;
 
+import org.cloudfoundry.identity.uaa.oauth.authz.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.junit.After;
@@ -46,7 +49,7 @@ public class JdbcApprovalStoreTests {
 
 	private JdbcApprovalStore dao;
 
-	private static final String addApprovalSqlFormat = "insert into authz_approvals (userName, clientId, scope, expiresAt) values ('%s','%s','%s','%s')";
+	private static final String addApprovalSqlFormat = "insert into authz_approvals (userName, clientId, scope, expiresAt, status) values ('%s','%s','%s','%s','%s')";
 
 	@Before
 	public void createDatasource() {
@@ -55,13 +58,13 @@ public class JdbcApprovalStoreTests {
 
 		dao = new JdbcApprovalStore(template);
 
-		addApproval("u1", "c1", "uaa.user", 6000);
-		addApproval("u1", "c2", "uaa.admin", 12000);
-		addApproval("u2", "c1", "openid", 6000);
+		addApproval("u1", "c1", "uaa.user", 6000, APPROVED);
+		addApproval("u1", "c2", "uaa.admin", 12000, DENIED);
+		addApproval("u2", "c1", "openid", 6000, APPROVED);
 	}
 
-	private void addApproval(String userName, String clientId, String scope, long expiresIn) {
-		template.execute(String.format(addApprovalSqlFormat, userName, clientId, scope, new Timestamp(new Date().getTime() + expiresIn)));
+	private void addApproval(String userName, String clientId, String scope, long expiresIn, ApprovalStatus status) {
+		template.execute(String.format(addApprovalSqlFormat, userName, clientId, scope, new Timestamp(new Date().getTime() + expiresIn), status));
 	}
 
 	@After
@@ -80,12 +83,13 @@ public class JdbcApprovalStoreTests {
 
 	@Test
 	public void canAddApproval() {
-		assertTrue(dao.addApproval(new Approval("u2", "c2", "dash.user", 12000)));
+		assertTrue(dao.addApproval(new Approval("u2", "c2", "dash.user", 12000, APPROVED)));
 		List<Approval> apps = dao.getApprovals("u2", "c2");
 		assertEquals(1, apps.size());
 		Approval app = apps.iterator().next();
 		assertEquals("dash.user", app.getScope());
 		assertTrue(app.getExpiresAt().after(new Date()));
+		assertEquals(APPROVED, app.getStatus());
 	}
 
 	@Test
@@ -97,11 +101,22 @@ public class JdbcApprovalStoreTests {
 
 	@Test
 	public void addSameApprovalRepeatedlyUpdatesExpiry() {
-		assertTrue(dao.addApproval(new Approval("u2", "c2", "dash.user", 6000)));
+		assertTrue(dao.addApproval(new Approval("u2", "c2", "dash.user", 6000, APPROVED)));
 		Approval app = dao.getApprovals("u2", "c2").iterator().next();
 		assertTrue(app.getExpiresAt().before(new Date(new Date().getTime() + 6000)));
 
-		assertTrue(dao.addApproval(new Approval("u2", "c2", "dash.user", 8000)));
+		assertTrue(dao.addApproval(new Approval("u2", "c2", "dash.user", 8000, APPROVED)));
+		app = dao.getApprovals("u2", "c2").iterator().next();
+		assertTrue(app.getExpiresAt().after(new Date(new Date().getTime() + 6000)));
+	}
+	
+	@Test
+	public void addSameApprovalDifferentStatusRepeatedlyOnlyUpdatesStatus() {
+		assertTrue(dao.addApproval(new Approval("u2", "c2", "dash.user", 6000, APPROVED)));
+		Approval app = dao.getApprovals("u2", "c2").iterator().next();
+		assertTrue(app.getExpiresAt().before(new Date(new Date().getTime() + 6000)));
+
+		assertTrue(dao.addApproval(new Approval("u2", "c2", "dash.user", 8000, APPROVED)));
 		app = dao.getApprovals("u2", "c2").iterator().next();
 		assertTrue(app.getExpiresAt().after(new Date(new Date().getTime() + 6000)));
 	}
@@ -111,7 +126,7 @@ public class JdbcApprovalStoreTests {
 		Approval app = dao.getApprovals("u1", "c1").iterator().next();
 		assertTrue(app.getExpiresAt().before(new Date(new Date().getTime() + 6000)));
 
-		assertTrue(dao.refreshApproval(new Approval(app.getUserName(), app.getClientId(), app.getScope(), app.getExpiresAt().getTime() + 2000)));
+		assertTrue(dao.refreshApproval(new Approval(app.getUserName(), app.getClientId(), app.getScope(), app.getExpiresAt().getTime() + 2000, APPROVED)));
 		app = dao.getApprovals("u1", "c1").iterator().next();
 		assertTrue(app.getExpiresAt().after(new Date(new Date().getTime() + 6000)));
 	}
@@ -119,9 +134,9 @@ public class JdbcApprovalStoreTests {
 	@Test
 	public void canPurgeExpiredApprovals() {
 		assertEquals(3, dao.getApprovals("userName pr").size());
-		addApproval("u3", "c3", "test1", 0);
-		addApproval("u3", "c3", "test2", 0);
-		addApproval("u3", "c3", "test3", 0);
+		addApproval("u3", "c3", "test1", 0, APPROVED);
+		addApproval("u3", "c3", "test2", 0, DENIED);
+		addApproval("u3", "c3", "test3", 0, APPROVED);
 		assertEquals(6, dao.getApprovals("userName pr").size());
 
 		dao.purgeExpiredApprovals();
