@@ -27,9 +27,9 @@ import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 /**
  * Tests some real internet-based OAuth2 user info providers. To run these tests you need to get access tokens for the
  * relevant providers and set them up as system properties.
- * 
+ *
  * @author Dave Syer
- * 
+ *
  */
 public class OAuth2ClientAuthenticationFilterTests {
 
