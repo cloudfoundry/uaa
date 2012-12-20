@@ -74,4 +74,44 @@ public class UaaAuthenticationDetails implements Serializable {
 		}
 		return sb.toString();
 	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((clientId == null) ? 0 : clientId.hashCode());
+		result = prime * result + ((origin == null) ? 0 : origin.hashCode());
+		result = prime * result + ((sessionId == null) ? 0 : sessionId.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		UaaAuthenticationDetails other = (UaaAuthenticationDetails) obj;
+		if (clientId == null) {
+			if (other.clientId != null)
+				return false;
+		}
+		else if (!clientId.equals(other.clientId))
+			return false;
+		if (origin == null) {
+			if (other.origin != null)
+				return false;
+		}
+		else if (!origin.equals(other.origin))
+			return false;
+		if (sessionId == null) {
+			if (other.sessionId != null)
+				return false;
+		}
+		else if (!sessionId.equals(other.sessionId))
+			return false;
+		return true;
+	}
 }
