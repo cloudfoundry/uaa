@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.scim;
 
+import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 
@@ -18,6 +19,7 @@ public class ScimGroupMember {
 
 	private Type type;
 
+	@JsonIgnore
 	private List<ScimGroup.Authority> authorities;
 
 	public List<ScimGroup.Authority> getAuthorities() {
