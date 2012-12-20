@@ -17,9 +17,9 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Assume;
 import org.junit.Test;
+import org.springframework.security.oauth2.client.DefaultOAuth2ClientContext;
+import org.springframework.security.oauth2.client.OAuth2ClientContext;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
-import org.springframework.security.oauth2.client.context.DefaultOAuth2ClientContext;
-import org.springframework.security.oauth2.client.context.OAuth2ClientContext;
 import org.springframework.security.oauth2.client.token.grant.code.AuthorizationCodeResourceDetails;
 import org.springframework.security.oauth2.common.AuthenticationScheme;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
@@ -27,9 +27,9 @@ import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 /**
  * Tests some real internet-based OAuth2 user info providers. To run these tests you need to get access tokens for the
  * relevant providers and set them up as system properties.
- * 
+ *
  * @author Dave Syer
- * 
+ *
  */
 public class OAuth2ClientAuthenticationFilterTests {
 

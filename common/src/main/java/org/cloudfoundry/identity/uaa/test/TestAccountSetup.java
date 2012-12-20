@@ -37,9 +37,9 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJacksonHttpMessageConverter;
+import org.springframework.security.oauth2.client.DefaultOAuth2ClientContext;
+import org.springframework.security.oauth2.client.OAuth2ClientContext;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
-import org.springframework.security.oauth2.client.context.DefaultOAuth2ClientContext;
-import org.springframework.security.oauth2.client.context.OAuth2ClientContext;
 import org.springframework.security.oauth2.client.resource.OAuth2ProtectedResourceDetails;
 import org.springframework.security.oauth2.client.token.AccessTokenRequest;
 import org.springframework.security.oauth2.client.token.DefaultAccessTokenRequest;
@@ -51,7 +51,7 @@ import org.springframework.web.client.RestOperations;
 
 /**
  * @author Dave Syer
- * 
+ *
  */
 public class TestAccountSetup extends TestWatchman {
 
@@ -210,10 +210,12 @@ public class TestAccountSetup extends TestWatchman {
 		});
 		client.setErrorHandler(new ResponseErrorHandler() {
 			// Pass errors through in response entity for status code analysis
+			@Override
 			public boolean hasError(ClientHttpResponse response) throws IOException {
 				return false;
 			}
 
+			@Override
 			public void handleError(ClientHttpResponse response) throws IOException {
 			}
 		});

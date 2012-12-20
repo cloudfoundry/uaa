@@ -38,9 +38,9 @@ import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
 /**
  * An {@link AuthorizationRequestManager} that applies various UAA-specific rules to an authorization request,
  * validating it and setting the default values for scopes and resource ids.
- * 
+ *
  * @author Dave Syer
- * 
+ *
  */
 public class UaaAuthorizationRequestManager implements AuthorizationRequestManager {
 
@@ -60,7 +60,7 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
 
 	/**
 	 * Default scopes that are always added to a user token (and then removed if the client doesn't have permission).
-	 * 
+	 *
 	 * @param defaultScopes the defaultScopes to set
 	 */
 	public void setDefaultScopes(Collection<String> defaultScopes) {
@@ -69,7 +69,7 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
 
 	/**
 	 * A helper to pull stuff out of the current security context.
-	 * 
+	 *
 	 * @param securityContextAccessor the securityContextAccessor to set
 	 */
 	public void setSecurityContextAccessor(SecurityContextAccessor securityContextAccessor) {
@@ -78,7 +78,7 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
 
 	/**
 	 * A map from scope name to resource id, for cases (like openid) that cannot be extracted from the scope name.
-	 * 
+	 *
 	 * @param scopeToResource the map to use
 	 */
 	public void setScopesToResources(Map<String, String> scopeToResource) {
@@ -87,11 +87,16 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
 
 	/**
 	 * The string used to separate resource ids from feature names in scopes (e.g. "cloud_controller.read").
-	 * 
+	 *
 	 * @param scopeSeparator the scope separator to set. Default is period "."
 	 */
 	public void setScopeSeparator(String scopeSeparator) {
 		this.scopeSeparator = scopeSeparator;
+	}
+
+	@Override
+	public AuthorizationRequest createAuthorizationRequest(AuthorizationRequest incomingRequest) {
+		return new DefaultAuthorizationRequest(incomingRequest);
 	}
 
 	/**
@@ -106,7 +111,7 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
 	 * <li>Some scopes can be hard-wired to resource ids (like the open id connect values), in which case the separator
 	 * is ignored</li>
 	 * </ul>
-	 * 
+	 *
 	 * @see org.springframework.security.oauth2.provider.AuthorizationRequestFactory#createAuthorizationRequest(java.util.Map,
 	 * java.lang.String, java.lang.String, java.util.Set)
 	 */
@@ -148,7 +153,7 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
 	/**
 	 * Apply UAA rules to validate the requested scope. For client credentials grants the valid scopes are actually in
 	 * the authorities of the client.
-	 * 
+	 *
 	 * @see org.springframework.security.oauth2.provider.endpoint.ParametersValidator#validateParameters(java.util.Map,
 	 * org.springframework.security.oauth2.provider.ClientDetails)
 	 */
@@ -174,10 +179,10 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
 			}
 		}
 	}
-	
+
 	/**
 	 * Add or remove scopes derived from the current authenticated user's authorities (if any)
-	 * 
+	 *
 	 * @param scopes the initial set of scopes from the client registration
 	 * @param clientDetails
 	 * @param collection the users authorities
@@ -207,7 +212,7 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
 			}
 		}
 
-		// Check that a token with empty scope is not going to be granted 
+		// Check that a token with empty scope is not going to be granted
 		if (result.isEmpty() && !clientDetails.getScope().isEmpty()) {
 			throw new InvalidScopeException(
 					"Invalid scope (empty) - this user is not allowed any of the requested scopes: " + scopes

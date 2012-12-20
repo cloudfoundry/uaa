@@ -15,6 +15,8 @@ package org.cloudfoundry.identity.uaa.oauth;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.cloudfoundry.identity.uaa.oauth.authz.Approval.ApprovalStatus.APPROVED;
+import static org.cloudfoundry.identity.uaa.oauth.authz.Approval.ApprovalStatus.DENIED;
 
 import java.util.Arrays;
 import java.util.Date;
@@ -97,8 +99,8 @@ public class UserManagedAuthzApprovalHandlerTests {
 		long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
 		Date nextWeek = new Date(theFuture);
 
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.read", nextWeek));
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.write", nextWeek));
+		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.read", nextWeek, APPROVED));
+		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.write", nextWeek, DENIED));
 
 		//The request is not approved and needs user approval for scopes. The user has also not approved any scopes prior to this request. Not approved.
 		assertTrue(handler.isApproved(request, new TestAuthentication("marissa", true)));
@@ -113,8 +115,8 @@ public class UserManagedAuthzApprovalHandlerTests {
 		long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
 		Date nextWeek = new Date(theFuture);
 
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.read", nextWeek));
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.write", nextWeek));
+		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.read", nextWeek, APPROVED));
+		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.write", nextWeek, DENIED));
 
 		//The request is approved but needs user approval for scopes. The user has also not approved any scopes prior to this request. Not approved.
 		assertFalse(handler.isApproved(request, new TestAuthentication("marissa", true)));
@@ -129,8 +131,8 @@ public class UserManagedAuthzApprovalHandlerTests {
 		long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
 		Date nextWeek = new Date(theFuture);
 
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.read", nextWeek));
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.write", nextWeek));
+		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.read", nextWeek, APPROVED));
+		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.write", nextWeek, DENIED));
 
 		//The request is approved but needs user approval for scopes. The user has also not approved any scopes prior to this request. Not approved.
 		assertFalse(handler.isApproved(request, new TestAuthentication("marissa", true)));
@@ -146,8 +148,8 @@ public class UserManagedAuthzApprovalHandlerTests {
 		long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
 		Date nextWeek = new Date(theFuture);
 
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.read", nextWeek));
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.write", nextWeek));
+		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.read", nextWeek, APPROVED));
+		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.write", nextWeek, DENIED));
 
 		//The request is approved but needs user approval for scopes. The user has also not approved any scopes prior to this request. Not approved.
 		assertFalse(handler.isApproved(request, new TestAuthentication("marissa", true)));
@@ -162,9 +164,9 @@ public class UserManagedAuthzApprovalHandlerTests {
 		long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
 		Date nextWeek = new Date(theFuture);
 
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "openid", nextWeek));
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.read", nextWeek));
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.write", nextWeek));
+		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "openid", nextWeek, APPROVED));
+		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.read", nextWeek, APPROVED));
+		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.write", nextWeek, APPROVED));
 
 		//The request is approved but needs user approval for scopes. The user has also not approved any scopes prior to this request. Not approved.
 		assertTrue(handler.isApproved(request, new TestAuthentication("marissa", true)));
@@ -179,9 +181,9 @@ public class UserManagedAuthzApprovalHandlerTests {
 		long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
 		Date nextWeek = new Date(theFuture);
 
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "openid", nextWeek));
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.read", nextWeek));
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.write", nextWeek));
+		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "openid", nextWeek, APPROVED));
+		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.read", nextWeek, APPROVED));
+		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.write", nextWeek, APPROVED));
 
 		//The request is approved but needs user approval for scopes. The user has also not approved any scopes prior to this request. Not approved.
 		assertTrue(handler.isApproved(request, new TestAuthentication("marissa", true)));
