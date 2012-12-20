@@ -102,5 +102,6 @@ CREATE TABLE AUTHZ_APPROVALS (
   clientId VARCHAR(36) not null,
   scope VARCHAR(255) not null,
   expiresAt TIMESTAMP default current_timestamp not null,
+  status VARCHAR(50) default 'APPROVED' not null,  
   primary key (userName, clientId, scope)
 ) ;
