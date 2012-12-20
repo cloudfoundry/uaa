@@ -18,8 +18,10 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.cloudfoundry.identity.uaa.scim.util.json.ScimUserJsonDeserializer;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
+import org.codehaus.jackson.map.annotate.JsonDeserialize;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 import org.springframework.util.Assert;
 
@@ -31,6 +33,7 @@ import org.springframework.util.Assert;
  * @author Luke Taylor
  */
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
+@JsonDeserialize(using = ScimUserJsonDeserializer.class)
 public final class ScimUser extends ScimCore {
 
 	@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)

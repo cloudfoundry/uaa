@@ -200,6 +200,25 @@ public class ScimUserEndpointsIntegrationTests {
 
 	}
 
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	@Test
+	public void testJsonCaseInsensitivity() throws Exception {
+
+		ResponseEntity<ScimUser> created = createUser(JOE, "Joe", "User", "joe@blah.com");
+		ScimUser joe = created.getBody();
+		HttpHeaders headers = new HttpHeaders();
+		headers.add("If-Match", "\"" + joe.getVersion() + "\"");
+		ObjectMapper mapper = new ObjectMapper();
+		Map<String, Object> map = new HashMap<String, Object>(mapper.readValue(mapper.writeValueAsString(joe),
+																					  Map.class));
+		map.put("username", JOE + "0");
+		map.remove("userName");
+		ResponseEntity<ScimUser> response = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}", HttpMethod.PUT,
+															  new HttpEntity<Map>(map, headers), ScimUser.class, joe.getId());
+		ScimUser joe1 = response.getBody();
+		assertEquals(JOE + "0", joe1.getUserName());
+	}
+
 	@Test
 	public void updateUserWithNewAuthoritiesSucceeds() throws Exception {
 		ResponseEntity<ScimUser> response = createUser(JOE, "Joe", "User", "joe@blah.com");
