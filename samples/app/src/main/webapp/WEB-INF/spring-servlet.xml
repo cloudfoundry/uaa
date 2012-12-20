@@ -113,6 +113,7 @@
 		<property name="dataUri" value="${dataUri}" />
 		<property name="tokensUri" value="${tokensUrlPattern}" />
 		<property name="logoutUrl" value="${cloudFoundryLogoutUrl}" />
+		<property name="clientId" value="${CLIENT_ID:app}" />
 	</bean>
 
 	<oauth:rest-template id="restTemplate" resource="uaa" />

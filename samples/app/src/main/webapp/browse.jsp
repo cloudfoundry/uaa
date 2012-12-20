@@ -28,7 +28,7 @@
 		// Add configuration for one or more providers.
 		jso_configure({
 			"uaa": {
-				client_id: "my",
+				client_id: "${clientId}",
 				redirect_uri: window.location,
 				authorization: "${userAuthorizationUri}",
 			}
