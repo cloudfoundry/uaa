@@ -33,7 +33,7 @@ import org.springframework.util.ClassUtils;
  * aware of the redirect protocols employed by those frameworks. If used in the PRE_AUTH_FILTER position of a regular
  * Spring Security filter chain the user will be redirected to the remote provider to approve the access and return with
  * a valid access token. There are 2 main strategies to provide:
- * 
+ *
  * <ul>
  * <li> {@link #setPreAuthenticatedPrincipalSource(PreAuthenticatedPrincipalSource) PreAuthenticatedPrincipalSource}
  * (mandatory) provides a {@link Principal} that can be authenticated by the authentication manager. An example would be
@@ -43,15 +43,15 @@ import org.springframework.util.ClassUtils;
  * value that tries very hard to authenticate everything it sees, on the assumption that it was obtained from a trusted
  * ID provider.</li>
  * </ul>
- * 
+ *
  * To ensure that the default authentication manager successfully authenticates the user, the principal source should
  * create a principal that itself is an {@link Authentication} and is already authenticated. If you are not using the
  * default authentication manager then you are free to authenticate any way you like (hence there is collaboration
  * between the principal source and authentication manager, and the principal source can create an object of any type
  * that is understood by the authentication manager).
- * 
+ *
  * @author Dave Syer
- * 
+ *
  */
 public class ClientAuthenticationFilter extends AbstractPreAuthenticatedProcessingFilter {
 
@@ -144,7 +144,7 @@ public class ClientAuthenticationFilter extends AbstractPreAuthenticatedProcessi
 					authenticated = principal.isAuthenticated();
 				}
 				preAuth.setAuthenticated(authenticated);
-				
+
 				authentication = preAuth;
 
 			}

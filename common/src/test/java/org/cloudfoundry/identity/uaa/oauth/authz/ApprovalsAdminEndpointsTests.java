@@ -12,17 +12,19 @@
  */
 package org.cloudfoundry.identity.uaa.oauth.authz;
 
+import static org.cloudfoundry.identity.uaa.oauth.authz.Approval.ApprovalStatus.APPROVED;
+import static org.cloudfoundry.identity.uaa.oauth.authz.Approval.ApprovalStatus.DENIED;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.Arrays;
 import java.util.List;
 
 import javax.sql.DataSource;
 
 import org.cloudfoundry.identity.uaa.error.UaaException;
+import org.cloudfoundry.identity.uaa.oauth.authz.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
@@ -77,15 +79,15 @@ public class ApprovalsAdminEndpointsTests {
 		endpoints.setApprovalStore(dao);
 		endpoints.setUsersManager(userDao);
 
-		addApproval("marissa", "c1", "uaa.user", 6000);
-		addApproval("marissa", "c1", "uaa.admin", 12000);
-		addApproval("marissa", "c1", "openid", 6000);
+		addApproval("marissa", "c1", "uaa.user", 6000, APPROVED);
+		addApproval("marissa", "c1", "uaa.admin", 12000, DENIED);
+		addApproval("marissa", "c1", "openid", 6000, APPROVED);
 
 		endpoints.setSecurityContextAccessor(mockSecurityContextAccessor(marissa.getId()));
 	}
 
-	private void addApproval(String userName, String clientId, String scope, long expiresIn) {
-		dao.addApproval(new Approval(userName, clientId, scope, expiresIn));
+	private void addApproval(String userName, String clientId, String scope, long expiresIn, ApprovalStatus status) {
+		dao.addApproval(new Approval(userName, clientId, scope, expiresIn, status));
 	}
 
 	private SecurityContextAccessor mockSecurityContextAccessor(String userName) {
@@ -110,14 +112,45 @@ public class ApprovalsAdminEndpointsTests {
 
 	@Test
 	public void canUpdateApprovals() {
-		Approval[] app = {	new Approval("marissa", "c1", "uaa.user", 2000),
-							new Approval("marissa", "c1", "dash.user", 2000)
-		};
+		Approval[] app = new Approval[] {new Approval("marissa", "c1", "uaa.user", 2000, APPROVED),
+														  new Approval("marissa", "c1", "dash.user", 2000, APPROVED),
+														  new Approval("marissa", "c1", "openid", 2000, DENIED),
+														  new Approval("marissa", "c1", "cloud_controller.read", 2000, APPROVED)};
 		List<Approval> response = endpoints.updateApprovals(app);
-		assertEquals(2, response.size());
-		assertFalse(response.contains(new Approval("marissa", "c1", "openid", 0)));
-		assertFalse(response.contains(new Approval("marissa", "c1", "uaa.admin", 0)));
+		assertEquals(4, response.size());
+		assertTrue(response.contains(new Approval("marissa", "c1", "uaa.user", 2000, APPROVED)));
+		assertTrue(response.contains(new Approval("marissa", "c1", "dash.user", 2000, APPROVED)));
+		assertTrue(response.contains(new Approval("marissa", "c1", "openid", 2000, DENIED)));
+		assertTrue(response.contains(new Approval("marissa", "c1", "cloud_controller.read", 2000, APPROVED)));
+
+		List<Approval> updatedApprovals = endpoints.getApprovals("userName eq 'marissa'", 1, 100);
+		assertEquals(4, updatedApprovals.size());
+		assertTrue(updatedApprovals.contains(new Approval("marissa", "c1", "dash.user", 2000, APPROVED)));
+		assertTrue(updatedApprovals.contains(new Approval("marissa", "c1", "openid", 2000, DENIED)));
+		assertTrue(updatedApprovals.contains(new Approval("marissa", "c1", "cloud_controller.read", 2000, APPROVED)));
+		assertTrue(updatedApprovals.contains(new Approval("marissa", "c1", "uaa.user", 2000, APPROVED)));
 	}
+
+	public void attemptingToCreateDuplicateApprovalsExtendsValidity() {
+		addApproval("marissa", "c1", "openid", 10000, APPROVED);
+
+		List<Approval> updatedApprovals = endpoints.getApprovals("userName eq 'marissa'", 1, 100);
+		assertEquals(3, updatedApprovals.size());
+		assertTrue(updatedApprovals.contains(new Approval("marissa", "c1", "uaa.user", 6000, APPROVED)));
+		assertTrue(updatedApprovals.contains(new Approval("marissa", "c1", "uaa.admin", 12000, DENIED)));
+		assertTrue(updatedApprovals.contains(new Approval("marissa", "c1", "openid", 10000, APPROVED)));
+	}
+
+	public void attemptingToCreateAnApprovalWithADifferentStatusUpdatesApproval() {
+		addApproval("marissa", "c1", "openid", 18000, DENIED);
+
+		List<Approval> updatedApprovals = endpoints.getApprovals("userName eq 'marissa'", 1, 100);
+		assertEquals(4, updatedApprovals.size());
+		assertTrue(updatedApprovals.contains(new Approval("marissa", "c1", "uaa.user", 6000, APPROVED)));
+		assertTrue(updatedApprovals.contains(new Approval("marissa", "c1", "uaa.admin", 12000, DENIED)));
+		assertTrue(updatedApprovals.contains(new Approval("marissa", "c1", "openid", 18000, DENIED)));
+	}
+
 
 	@Test (expected = UaaException.class)
 	public void userCannotUpdateApprovalsForAnotherUser() {
@@ -126,8 +159,7 @@ public class ApprovalsAdminEndpointsTests {
 		vidya = userDao.createUser(vidya, "password");
 
 		endpoints.setSecurityContextAccessor(mockSecurityContextAccessor(vidya.getId()));
-		Approval[] approvals = {new Approval("marissa", "c1", "uaa.user", 2000)};
-		endpoints.updateApprovals(approvals);
+		endpoints.updateApprovals(new Approval[] {new Approval("marissa", "c1", "uaa.user", 2000, APPROVED)});
 	}
 
 	@Test

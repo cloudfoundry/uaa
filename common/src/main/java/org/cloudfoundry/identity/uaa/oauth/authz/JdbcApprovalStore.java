@@ -12,6 +12,8 @@
  */
 package org.cloudfoundry.identity.uaa.oauth.authz;
 
+import static org.cloudfoundry.identity.uaa.oauth.authz.Approval.ApprovalStatus.APPROVED;
+
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -22,13 +24,13 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.oauth.authz.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcPagingList;
 import org.cloudfoundry.identity.uaa.scim.jdbc.ScimSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.jdbc.SearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.jdbc.SearchQueryConverter.ProcessedFilter;
 import org.springframework.dao.DataAccessException;
-import org.springframework.dao.DuplicateKeyException;
-import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
@@ -47,11 +49,11 @@ public class JdbcApprovalStore implements ApprovalStore {
 
 	private static final String TABLE_NAME = "authz_approvals";
 
-	private static final String FIELDS = "userName,clientId,scope,expiresAt";
+	private static final String FIELDS = "userName,clientId,scope,expiresAt,status";
 
-	private static final String ADD_AUTHZ_SQL = String.format("insert into %s ( %s ) values (?,?,?,?)", TABLE_NAME, FIELDS);
+	private static final String ADD_AUTHZ_SQL = String.format("insert into %s ( %s ) values (?,?,?,?,?)", TABLE_NAME, FIELDS);
 
-	private static final String REFRESH_AUTHZ_SQL = String.format("update %s set expiresAt=? where userName=? and clientId=? and scope=?", TABLE_NAME);
+	private static final String REFRESH_AUTHZ_SQL = String.format("update %s set expiresAt=?, status=? where userName=? and clientId=? and scope=?", TABLE_NAME);
 
 	private static final String GET_AUTHZ_SQL = String.format("select %s from %s", FIELDS, TABLE_NAME);
 
@@ -80,13 +82,14 @@ public class JdbcApprovalStore implements ApprovalStore {
 			@Override
 			public void setValues(PreparedStatement ps) throws SQLException {
 				ps.setTimestamp(1, new Timestamp(approval.getExpiresAt().getTime()));
-				ps.setString(2, approval.getUserName());
-				ps.setString(3, approval.getClientId());
-				ps.setString(4, approval.getScope());
+				ps.setString(2, (approval.getStatus() == null ? APPROVED : approval.getStatus()).toString());
+				ps.setString(3, approval.getUserName());
+				ps.setString(4, approval.getClientId());
+				ps.setString(5, approval.getScope());
 			}
 		});
 		if (refreshed != 1) {
-			throw new OptimisticLockingFailureException("Attempt to refresh non-existent authorization");
+			throw new DataIntegrityViolationException("Attempt to refresh non-existent authorization");
 		}
 		return true;
 	}
@@ -95,6 +98,8 @@ public class JdbcApprovalStore implements ApprovalStore {
 	public boolean addApproval(final Approval approval) {
 		logger.debug(String.format("adding approval: [%s]", approval));
 		try {
+			refreshApproval(approval);	//try to refresh the approval
+		} catch (DataIntegrityViolationException ex) { // could not find the approval. add it.
 			jdbcTemplate.update(ADD_AUTHZ_SQL, new PreparedStatementSetter() {
 				@Override
 				public void setValues(PreparedStatement ps) throws SQLException {
@@ -102,10 +107,9 @@ public class JdbcApprovalStore implements ApprovalStore {
 					ps.setString(2, approval.getClientId());
 					ps.setString(3, approval.getScope());
 					ps.setTimestamp(4, new Timestamp(approval.getExpiresAt().getTime()));
+					ps.setString(5, (approval.getStatus() == null ? APPROVED : approval.getStatus()).toString());
 				}
 			});
-		} catch (DuplicateKeyException ex) { // user has already authorized this client for this scope, so just refresh the expiry
-			return refreshApproval(approval);
 		}
 		return true;
 	}
@@ -152,6 +156,7 @@ public class JdbcApprovalStore implements ApprovalStore {
 					ps.setTimestamp(1, new Timestamp(new Date().getTime()));
 				}
 			});
+			logger.debug(deleted + " expired approvals deleted");
 		} catch (DataAccessException ex) {
 			logger.error("Error purging expired approvals", ex);
 			return false;
@@ -186,8 +191,9 @@ public class JdbcApprovalStore implements ApprovalStore {
 			String clientId = rs.getString(2);
 			String scope = rs.getString(3);
 			Date expiresAt = rs.getTimestamp(4);
+			String status = rs.getString(5);
 
-			return new Approval(userName, clientId, scope, expiresAt);
+			return new Approval(userName, clientId, scope, expiresAt, ApprovalStatus.valueOf(status));
 		}
 	}
 }

@@ -108,29 +108,52 @@ img.gsc-branding-img,img.gsc-branding-img-noclear,img.gcsc-branding-img,img.gcsc
 			<c:if test="${error==null}">
 
 				<h2>Please Confirm</h2>
+                <form id="confirmationForm" name="confirmationForm"
+                    action="${options.confirm.path}" method="POST">
 
-				<div class="confirm">
-					<p>
-						Do you authorize the application '${client_id}' at <a
-							href="${redirect_uri}">${redirect_uri}</a> to access your Cloud
-						Foundry resources?
-					</p>
-					<ul>
-						<c:forEach items="${scopes}" var="scope">
-							<li><spring:message code="${scope['code']}"
-									text="${scope['text']}" /></li>
-						</c:forEach>
-					</ul>
-					<p>If you do not recognize the application or the URL in the
-						link above you should deny access.</p>
-				</div>
+					<div class="confirm">
+						<p>
+							Do you authorize the application '${client_id}' at <a
+								href="${redirect_uri}">${redirect_uri}</a> to access your Cloud
+							Foundry resources?
+						</p>
+						<c:set var="count" value="0" />
+						<c:if test="${(approved_scopes != null) && (! empty approved_scopes)}">
+							<p> You have already approved '${client_id}' with access to the following: </p>
+							<c:forEach items="${approved_scopes}" var="scope">
+								<input type="checkbox" checked="checked" name="scope.${count}" value="${scope['code']}"><spring:message code="${scope['code']}"
+							       		text="${scope['text']}" /><br/>
+							    <c:set var="count" value="${count + 1}" />
+							</c:forEach>
+						</c:if>
+						<c:if test="${(denied_scopes != null) && (! empty denied_scopes)}">
+							<p> You have already denied '${client_id}' access to the following: </p>
+							<c:forEach items="${denied_scopes}" var="scope">
+	                           <input type="checkbox" name="scope.${count}" value="${scope['code']}"><spring:message code="${scope['code']}"
+	                                   text="${scope['text']}" /><br/>
+	                           <c:set var="count" value="${count + 1}" />
+	                       </c:forEach>
+	                    </c:if>
+	                    <c:if test="${(undecided_scopes != null) && (! empty undecided_scopes)}">
+	                       <p> Do you want to allow '${client_id}' to: </p>
+	                       <c:forEach items="${undecided_scopes}" var="scope">
+	                           <input type="checkbox" name="scope.${count}" value="${scope['code']}"><spring:message code="${scope['code']}"
+	                                   text="${scope['text']}" /><br/>
+                               <c:set var="count" value="${count + 1}" />
+	                       </c:forEach>
+	                    </c:if>
+	                    
+	                    <c:if test="${(approved_scopes != null) && (! empty approved_scopes) || (denied_scopes != null) && (! empty denied_scopes)}">
+	                       <p>Do you wish to change these selections?</p>
+	                    </c:if>
+						<p>If you do not recognize the application or the URL in the
+							link above you should deny access by unchecking all these boxes.</p>
+					</div>
 
-				<form id="confirmationForm" name="confirmationForm"
-					action="${options.confirm.path}" method="POST">
 					<input name="${options.confirm.key}"
 						value="${options.confirm.value}" type="hidden" />
 					<div class="buttons">
-						<button class="orange-button" type="submit">Authorize</button>
+						<button class="orange-button" type="submit">Ok</button>
 					</div>
 				</form>
 				<form id="denialForm" name="denialForm"
@@ -138,7 +161,7 @@ img.gsc-branding-img,img.gsc-branding-img-noclear,img.gcsc-branding-img,img.gcsc
 					<input name="${options.deny.key}" value="${options.deny.value}"
 						type="hidden" />
 					<div class="buttons">
-						<button class="gray-button" type="submit">Deny</button>
+						<button class="gray-button" type="submit">Cancel</button>
 					</div>
 				</form>
 

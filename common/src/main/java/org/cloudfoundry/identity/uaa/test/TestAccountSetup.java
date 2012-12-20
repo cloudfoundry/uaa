@@ -51,7 +51,7 @@ import org.springframework.web.client.RestOperations;
 
 /**
  * @author Dave Syer
- * 
+ *
  */
 public class TestAccountSetup extends TestWatchman {
 
@@ -210,10 +210,12 @@ public class TestAccountSetup extends TestWatchman {
 		});
 		client.setErrorHandler(new ResponseErrorHandler() {
 			// Pass errors through in response entity for status code analysis
+			@Override
 			public boolean hasError(ClientHttpResponse response) throws IOException {
 				return false;
 			}
 
+			@Override
 			public void handleError(ClientHttpResponse response) throws IOException {
 			}
 		});

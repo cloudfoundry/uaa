@@ -27,6 +27,27 @@ public class Approval {
 
 	private String scope;
 
+	public enum ApprovalStatus {
+		APPROVED("APPROVED"),
+		DENIED("DENIED");
+		
+		private String approvalStatus;
+		
+		public String toString() {
+			return approvalStatus;
+		}
+		
+		private ApprovalStatus(String approvalStatus) {
+			this.approvalStatus = approvalStatus;
+		}
+	}
+	
+	private ApprovalStatus status;
+
+	public ApprovalStatus getStatus() {
+		return status;
+	}
+
 	private Date expiresAt;
 
 	public String getUserName() {
@@ -61,15 +82,16 @@ public class Approval {
 		this.expiresAt = expiresAt == null ? new Date(new Date().getTime() + THIRTY_MINUTES_IN_MILLIS) : expiresAt;
 	}
 
-	public Approval(String userId, String clientId, String scope, long expiresIn) {
-		this(userId, clientId, scope, new Date(new Date().getTime() + expiresIn));
+	public Approval(String userId, String clientId, String scope, long expiresIn, ApprovalStatus status) {
+		this(userId, clientId, scope, new Date(new Date().getTime() + expiresIn), status);
 	}
 
-	public Approval(String userId, String clientId, String scope, Date expiresAt) {
+	public Approval(String userId, String clientId, String scope, Date expiresAt, ApprovalStatus status) {
 		this.userName = userId;
 		this.clientId = clientId;
 		this.scope = scope;
 		this.expiresAt = expiresAt;
+		this.status = status;
 	}
 
 	public Approval() { }
@@ -90,11 +112,16 @@ public class Approval {
 			return false;
 		}
 		Approval other = (Approval) o;
-		return userName.equals(other.userName) && clientId.equals(other.clientId) && scope.equals(other.scope);
+		return userName.equals(other.userName) && clientId.equals(other.clientId) && scope.equals(other.scope) && status == other.status;
 	}
 
 	@Override
 	public String toString() {
 		return String.format("[%s, %s, %s, %s]", userName, scope, clientId, expiresAt);
 	}
+
+	public void setStatus(ApprovalStatus status) {
+		this.status = status;
+	}
+
 }
