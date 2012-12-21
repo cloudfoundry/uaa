@@ -12,6 +12,7 @@ import org.codehaus.jackson.map.JsonDeserializer;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,7 +23,7 @@ public class ScimGroupJsonDeserializer extends JsonDeserializer<ScimGroup> {
 	public ScimGroup deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException, JsonProcessingException {
 		ScimGroup group = new ScimGroup();
 
-		List<ScimGroupMember> members = null;
+		List<ScimGroupMember> members = Collections.emptyList();
 
 		Map<ScimGroup.Authority, List<ScimGroupMember>> roles = new HashMap<ScimGroup.Authority, List<ScimGroupMember>>();
 		for (ScimGroup.Authority authority : ScimGroup.Authority.values()) {
