@@ -93,27 +93,43 @@ public class UserManagedAuthzApprovalHandler implements
 			//Get the approved scopes, calculate the denied scope
 			Map<String, String> approvalParameters = authorizationRequest.getApprovalParameters();
 			Set<String> approvedScopes = new HashSet<String>();
+			boolean foundUserApprovalParameter = false;
 			for(String approvalParameter : approvalParameters.keySet()) {
 				if(approvalParameter.startsWith("scope.")) {
 					approvedScopes.add(approvalParameters.get(approvalParameter).substring("scope.".length()));
+					foundUserApprovalParameter = true;
 				}
 			}
 
-			((DefaultAuthorizationRequest) authorizationRequest).setScope(approvedScopes);
+			if(foundUserApprovalParameter) {
+				((DefaultAuthorizationRequest) authorizationRequest).setScope(approvedScopes);
 
-			for(String requestedScope : requestedScopes) {
-				if(approvedScopes.contains(requestedScope)) {
+				for(String requestedScope : requestedScopes) {
+					if(approvedScopes.contains(requestedScope)) {
+						approvalStore.addApproval(new Approval(userAuthentication.getName(),
+													authorizationRequest.getClientId(),
+													requestedScope,
+													expiry,
+													APPROVED));
+					} else {
+						approvalStore.addApproval(new Approval(userAuthentication.getName(),
+													authorizationRequest.getClientId(),
+													requestedScope,
+													expiry,
+													DENIED));
+					}
+				}
+
+			} else { //This is a request from a legacy page of login server.
+					 //userApproval was true but no scopes were explicitly mentioned. Approve all requested scopes.
+				((DefaultAuthorizationRequest) authorizationRequest).setScope(new HashSet<String>(requestedScopes));
+
+				for(String requestedScope : requestedScopes) {
 					approvalStore.addApproval(new Approval(userAuthentication.getName(),
 												authorizationRequest.getClientId(),
 												requestedScope,
 												expiry,
 												APPROVED));
-				} else {
-					approvalStore.addApproval(new Approval(userAuthentication.getName(),
-												authorizationRequest.getClientId(),
-												requestedScope,
-												expiry,
-												DENIED));
 				}
 			}
 

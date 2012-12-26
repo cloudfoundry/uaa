@@ -127,6 +127,21 @@ public class AccessController {
 			model.put("approved_scopes", getScopes(client, approvedScopes));
 			model.put("denied_scopes", getScopes(client, deniedScopes));
 			model.put("undecided_scopes", getScopes(client, undecidedScopes));
+
+			//For backward compatibility with older login servers
+			List<Map<String, String>> combinedScopes = new ArrayList<Map<String, String>>();
+			if (model.get("approved_scopes") != null) {
+				combinedScopes.addAll((List<Map<String, String>>) model.get("approved_scopes"));
+			}
+			if (model.get("denied_scopes") != null) {
+				combinedScopes.addAll((List<Map<String, String>>) model.get("denied_scopes"));
+			}
+			if (model.get("undecided_scopes") != null) {
+				combinedScopes.addAll((List<Map<String, String>>) model.get("undecided_scopes"));
+			}
+
+			model.put("scopes", getScopes(client, undecidedScopes));
+
 			model.put("message",
 					"To confirm or deny access POST to the following locations with the parameters requested.");
 			Map<String, Object> options = new HashMap<String, Object>() {
@@ -135,7 +150,7 @@ public class AccessController {
 						{
 							put("location", getLocation(request, "oauth/authorize"));
 							put("path", getPath(request, "oauth/authorize"));
-							put("key", "user_oauth_approval");
+							put("key", AuthorizationRequest.USER_OAUTH_APPROVAL);
 							put("value", "true");
 						}
 
@@ -144,7 +159,7 @@ public class AccessController {
 						{
 							put("location", getLocation(request, "oauth/authorize"));
 							put("path", getPath(request, "oauth/authorize"));
-							put("key", "user_oauth_approval");
+							put("key", AuthorizationRequest.USER_OAUTH_APPROVAL);
 							put("value", "false");
 						}
 

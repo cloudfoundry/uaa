@@ -12,9 +12,9 @@
  */
 package org.cloudfoundry.identity.uaa.oauth.authz;
 
-import org.codehaus.jackson.map.annotate.JsonSerialize;
-
 import java.util.Date;
+
+import org.codehaus.jackson.map.annotate.JsonSerialize;
 
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class Approval {
@@ -30,18 +30,19 @@ public class Approval {
 	public enum ApprovalStatus {
 		APPROVED("APPROVED"),
 		DENIED("DENIED");
-		
+
 		private String approvalStatus;
-		
+
+		@Override
 		public String toString() {
 			return approvalStatus;
 		}
-		
+
 		private ApprovalStatus(String approvalStatus) {
 			this.approvalStatus = approvalStatus;
 		}
 	}
-	
+
 	private ApprovalStatus status;
 
 	public ApprovalStatus getStatus() {
@@ -117,7 +118,7 @@ public class Approval {
 
 	@Override
 	public String toString() {
-		return String.format("[%s, %s, %s, %s]", userName, scope, clientId, expiresAt);
+		return String.format("[%s, %s, %s, %s, %s]", userName, scope, clientId, expiresAt, status.toString());
 	}
 
 	public void setStatus(ApprovalStatus status) {
