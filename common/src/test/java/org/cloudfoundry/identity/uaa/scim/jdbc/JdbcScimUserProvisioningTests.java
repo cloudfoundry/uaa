@@ -167,7 +167,7 @@ public class JdbcScimUserProvisioningTests {
 		jo.addEmail("jo@blah.com");
 		jo.setUserType(UaaAuthority.UAA_ADMIN.getUserType());
 
-		ScimUser joe = db.updateUser(JOE_ID, jo);
+		ScimUser joe = db.update(JOE_ID, jo);
 
 		// Can change username
 		assertEquals("josephine", joe.getUserName());
@@ -185,7 +185,7 @@ public class JdbcScimUserProvisioningTests {
 		jo.addEmail("jo@blah.com");
 		jo.setGroups(Collections.singleton(new Group(null, "dash/user")));
 
-		ScimUser joe = db.updateUser(JOE_ID, jo);
+		ScimUser joe = db.update(JOE_ID, jo);
 
 		assertEquals(JOE_ID, joe.getId());
 		assertNull(joe.getGroups());
@@ -196,7 +196,7 @@ public class JdbcScimUserProvisioningTests {
 		ScimUser jo = new ScimUser(null, "josephine", "Jo", "NewUser");
 		jo.addEmail("jo@blah.com");
 		jo.setVersion(1);
-		ScimUser joe = db.updateUser(JOE_ID, jo);
+		ScimUser joe = db.update(JOE_ID, jo);
 		assertEquals("joe", joe.getUserName());
 	}
 
@@ -205,7 +205,7 @@ public class JdbcScimUserProvisioningTests {
 		ScimUser jo = new ScimUser(null, "jo$ephine", "Jo", "NewUser");
 		jo.addEmail("jo@blah.com");
 		jo.setVersion(1);
-		ScimUser joe = db.updateUser(JOE_ID, jo);
+		ScimUser joe = db.update(JOE_ID, jo);
 		assertEquals("joe", joe.getUserName());
 	}
 
@@ -240,30 +240,30 @@ public class JdbcScimUserProvisioningTests {
 
 	@Test
 	public void canRetrieveExistingUser() {
-		ScimUser joe = db.retrieveUser(JOE_ID);
+		ScimUser joe = db.retrieve(JOE_ID);
 		assertJoe(joe);
 	}
 
 	@Test(expected = ScimResourceNotFoundException.class)
 	public void cannotRetrieveNonexistentUser() {
-		ScimUser joe = db.retrieveUser("9999");
+		ScimUser joe = db.retrieve("9999");
 		assertJoe(joe);
 	}
 
 	@Test
 	public void canDeactivateExistingUser() {
         String tmpUserId = createUserForDelete();
-        ScimUser deletedUser = db.removeUser(tmpUserId, 0);
+        ScimUser deletedUser = db.delete(tmpUserId, 0);
 		assertEquals(1, template.queryForList("select * from users where id=? and active=false", tmpUserId).size());
 		assertFalse(deletedUser.isActive());
-		assertEquals(1, db.retrieveUsers("username eq '" + tmpUserId + "' and active eq false").size());
+		assertEquals(1, db.query("username eq '" + tmpUserId + "' and active eq false").size());
         removeUser(tmpUserId);
 	}
 
 	@Test(expected = ScimResourceAlreadyExistsException.class)
 	public void cannotDeactivateExistingUserAndThenCreateHimAgain() {
         String tmpUserId = createUserForDelete();
-        ScimUser deletedUser = db.removeUser(tmpUserId, 0);
+        ScimUser deletedUser = db.delete(tmpUserId, 0);
         deletedUser.setActive(true);
 		try {
         db.createUser(deletedUser, "foobarspam1234");
@@ -275,13 +275,13 @@ public class JdbcScimUserProvisioningTests {
 
 	@Test(expected = ScimResourceNotFoundException.class)
 	public void cannotDeactivateNonexistentUser() {
-		ScimUser joe = db.removeUser("9999", 0);
+		ScimUser joe = db.delete("9999", 0);
 		assertJoe(joe);
 	}
 
 	@Test(expected = OptimisticLockingFailureException.class)
 	public void deactivateWithWrongVersionIsError() {
-		ScimUser joe = db.removeUser(JOE_ID, 1);
+		ScimUser joe = db.delete(JOE_ID, 1);
 		assertJoe(joe);
 	}
 
@@ -289,16 +289,16 @@ public class JdbcScimUserProvisioningTests {
     public void canDeleteExistingUser() {
         String tmpUserId = createUserForDelete();
         db.setDeactivateOnDelete(false);
-        db.removeUser(tmpUserId, 0);
+        db.delete(tmpUserId, 0);
         assertEquals(0, template.queryForList("select * from users where id=?", tmpUserId).size());
-        assertEquals(0, db.retrieveUsers("username eq '" + tmpUserId + "'").size());
+        assertEquals(0, db.query("username eq '" + tmpUserId + "'").size());
     }
 
     @Test //(expected = ScimResourceAlreadyExistsException.class)
     public void canDeleteExistingUserAndThenCreateHimAgain() {
         String tmpUserId = createUserForDelete();
         db.setDeactivateOnDelete(false);
-        ScimUser deletedUser = db.removeUser(tmpUserId, 0);
+        ScimUser deletedUser = db.delete(tmpUserId, 0);
         assertEquals(0, template.queryForList("select * from users where id=?", tmpUserId).size());
 
         deletedUser.setActive(true);
@@ -306,152 +306,152 @@ public class JdbcScimUserProvisioningTests {
         assertNotNull(user);
         assertNotNull(user.getId());
         assertNotSame(tmpUserId, user.getId());
-        assertEquals(1, db.retrieveUsers("username eq '" + tmpUserId + "'").size());
+        assertEquals(1, db.query("username eq '" + tmpUserId + "'").size());
         removeUser(user.getId());
     }
 
     @Test(expected = ScimResourceNotFoundException.class)
     public void cannotDeleteNonexistentUser() {
         db.setDeactivateOnDelete(false);
-        ScimUser joe = db.removeUser("9999", 0);
+        ScimUser joe = db.delete("9999", 0);
         assertJoe(joe);
     }
 
     @Test(expected = OptimisticLockingFailureException.class)
     public void deleteWithWrongVersionIsError() {
         db.setDeactivateOnDelete(false);
-        ScimUser joe = db.removeUser(JOE_ID, 1);
+        ScimUser joe = db.delete(JOE_ID, 1);
         assertJoe(joe);
     }
 
     @Test
 	public void canRetrieveUsers() {
-		assertTrue(2 <= db.retrieveUsers().size());
+		assertTrue(2 <= db.retrieveAll().size());
 	}
 
 	@Test
 	public void canRetrieveUsersWithFilterExists() {
-		assertTrue(2 <= db.retrieveUsers("username pr").size());
+		assertTrue(2 <= db.query("username pr").size());
 	}
 
 	@Test
 	public void canRetrieveUsersWithFilterEquals() {
-		assertEquals(1, db.retrieveUsers("username eq 'joe'").size());
+		assertEquals(1, db.query("username eq 'joe'").size());
 	}
 
 	@Test
 	public void canRetrieveUsersWithFilterEqualsDoubleQuote() {
-		assertEquals(1, db.retrieveUsers("username eq \"joe\"").size());
+		assertEquals(1, db.query("username eq \"joe\"").size());
 	}
 
 	@Test
 	public void canRetrieveUsersWithFilterKeyCaseSensitivity() {
 		// This actually depends on the RDBMS.
-		assertEquals(1, db.retrieveUsers("USERNAME eq 'joe'").size());
+		assertEquals(1, db.query("USERNAME eq 'joe'").size());
 	}
 
 	@Test
 	public void canRetrieveUsersWithFilterOperatorCaseSensitivity() {
 		// This actually depends on the RDBMS.
-		assertEquals(1, db.retrieveUsers("username EQ 'joe'").size());
+		assertEquals(1, db.query("username EQ 'joe'").size());
 	}
 
 	@Test
 	public void canRetrieveUsersWithFilterValueCaseSensitivity() {
 		// This actually depends on the RDBMS.
-		assertEquals(1, db.retrieveUsers("username eq 'Joe'").size());
+		assertEquals(1, db.query("username eq 'Joe'").size());
 	}
 
 	@Test
 	public void canRetrieveUsersWithFilterContains() {
-		assertEquals(2 + existingUserCount, db.retrieveUsers("username co 'e'").size());
+		assertEquals(2 + existingUserCount, db.query("username co 'e'").size());
 	}
 
 	@Test
 	public void canRetrieveUsersWithFilterStartsWith() {
-		assertEquals(1 + existingUserCount, db.retrieveUsers("username sw 'joe'").size());
+		assertEquals(1 + existingUserCount, db.query("username sw 'joe'").size());
 	}
 
 	@Test
 	public void canRetrieveUsersWithFilterGreater() {
-		assertEquals(1 + existingUserCount, db.retrieveUsers("username gt 'joe'").size());
+		assertEquals(1 + existingUserCount, db.query("username gt 'joe'").size());
 	}
 
 	@Test
 	public void canRetrieveUsersWithEmailFilter() {
-		assertEquals(1, db.retrieveUsers("emails.value sw 'joe'").size());
+		assertEquals(1, db.query("emails.value sw 'joe'").size());
 	}
 
 	@Test
 	public void canRetrieveUsersWithGroupsFilter() {
-		assertEquals(2, db.retrieveUsers("groups.display co 'uaa.user'").size());
+		assertEquals(2, db.query("groups.display co 'uaa.user'").size());
 	}
 
 	@Test
 	public void canRetrieveUsersWithPhoneNumberFilter() {
-		assertEquals(1, db.retrieveUsers("phoneNumbers.value sw '+1-222'").size());
+		assertEquals(1, db.query("phoneNumbers.value sw '+1-222'").size());
 	}
 
 	@Test
 	public void canRetrieveUsersWithMetaVersionFilter() {
-		assertEquals(1, db.retrieveUsers("userName eq 'joe' and meta.version eq 0").size());
+		assertEquals(1, db.query("userName eq 'joe' and meta.version eq 0").size());
 	}
 
 	@Test
 	public void canRetrieveUsersWithMetaDateFilter() {
-		assertEquals(2 + existingUserCount, db.retrieveUsers("meta.created gt '1970-01-01T00:00:00.000Z'").size());
+		assertEquals(2 + existingUserCount, db.query("meta.created gt '1970-01-01T00:00:00.000Z'").size());
 	}
 
 	@Test
 	public void canRetrieveUsersWithBooleanFilter() {
-		assertEquals(2 + existingUserCount, db.retrieveUsers("username pr and active eq true").size());
+		assertEquals(2 + existingUserCount, db.query("username pr and active eq true").size());
 	}
 
 	@Test
 	public void canRetrieveUsersWithSortBy() {
-		assertEquals(2 + existingUserCount, db.retrieveUsers("username pr", "username", true).size());
+		assertEquals(2 + existingUserCount, db.query("username pr", "username", true).size());
 	}
 
 	@Test
 	public void canRetrieveUsersWithSortByEmail() {
-		assertEquals(2 + existingUserCount, db.retrieveUsers("username pr", "emails.value", true).size());
+		assertEquals(2 + existingUserCount, db.query("username pr", "emails.value", true).size());
 	}
 
 	@Test
 	public void canRetrieveUsersWithFilterBooleanAnd() {
-		assertEquals(2 + existingUserCount, db.retrieveUsers("username pr and emails.value co '.com'").size());
+		assertEquals(2 + existingUserCount, db.query("username pr and emails.value co '.com'").size());
 	}
 
 	@Test
 	public void canRetrieveUsersWithFilterBooleanOr() {
-		assertEquals(2 + existingUserCount, db.retrieveUsers("username eq 'joe' or emails.value co '.com'").size());
+		assertEquals(2 + existingUserCount, db.query("username eq 'joe' or emails.value co '.com'").size());
 	}
 
 	@Test
 	public void canRetrieveUsersWithFilterBooleanOrMatchesSecond() {
-		assertEquals(1, db.retrieveUsers("username eq 'foo' or username eq 'joe'").size());
+		assertEquals(1, db.query("username eq 'foo' or username eq 'joe'").size());
 	}
 
-	@Test(expected = UnsupportedOperationException.class)
+	@Test(expected = IllegalArgumentException.class)
 	public void cannotRetrieveUsersWithIllegalFilterField() {
-		assertEquals(2, db.retrieveUsers("emails.type eq 'bar'").size());
+		assertEquals(2, db.query("emails.type eq 'bar'").size());
 	}
 
-	@Test(expected = UnsupportedOperationException.class)
+	@Test(expected = IllegalArgumentException.class)
 	public void cannotRetrieveUsersWithIllegalPhoneNumberFilterField() {
-		assertEquals(2, db.retrieveUsers("phoneNumbers.type eq 'bar'").size());
+		assertEquals(2, db.query("phoneNumbers.type eq 'bar'").size());
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void cannotRetrieveUsersWithIllegalFilterQuotes() {
-		assertEquals(2, db.retrieveUsers("username eq 'bar").size());
+		assertEquals(2, db.query("username eq 'bar").size());
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void cannotRetrieveUsersWithNativeSqlInjectionAttack() {
 		String password = template.queryForObject("select password from users where username='joe'", String.class);
 		assertNotNull(password);
-		Collection<ScimUser> users = db.retrieveUsers("username='joe'; select " + SQL_INJECTION_FIELDS
+		Collection<ScimUser> users = db.query("username='joe'; select " + SQL_INJECTION_FIELDS
 				+ " from users where username='joe'");
 		assertEquals(password, users.iterator().next().getId());
 	}
@@ -460,7 +460,7 @@ public class JdbcScimUserProvisioningTests {
 	public void cannotRetrieveUsersWithSqlInjectionAttackOnGt() {
 		String password = template.queryForObject("select password from users where username='joe'", String.class);
 		assertNotNull(password);
-		Collection<ScimUser> users = db.retrieveUsers("username gt 'h'; select " + SQL_INJECTION_FIELDS
+		Collection<ScimUser> users = db.query("username gt 'h'; select " + SQL_INJECTION_FIELDS
 				+ " from users where username='joe'");
 		assertEquals(password, users.iterator().next().getId());
 	}
@@ -469,7 +469,7 @@ public class JdbcScimUserProvisioningTests {
 	public void cannotRetrieveUsersWithSqlInjectionAttack() {
 		String password = template.queryForObject("select password from users where username='joe'", String.class);
 		assertNotNull(password);
-		Collection<ScimUser> users = db.retrieveUsers("username eq 'joe'; select " + SQL_INJECTION_FIELDS
+		Collection<ScimUser> users = db.query("username eq 'joe'; select " + SQL_INJECTION_FIELDS
 				+ " from users where username='joe'");
 		assertEquals(password, users.iterator().next().getId());
 	}
@@ -478,7 +478,7 @@ public class JdbcScimUserProvisioningTests {
 	public void cannotRetrieveUsersWithAnotherSqlInjectionAttack() {
 		String password = template.queryForObject("select password from users where username='joe'", String.class);
 		assertNotNull(password);
-		Collection<ScimUser> users = db.retrieveUsers("username eq 'joe''; select id from users where id='''; select "
+		Collection<ScimUser> users = db.query("username eq 'joe''; select id from users where id='''; select "
 				+ SQL_INJECTION_FIELDS + " from users where username='joe'");
 		assertEquals(password, users.iterator().next().getId());
 	}
@@ -487,7 +487,7 @@ public class JdbcScimUserProvisioningTests {
 	public void cannotRetrieveUsersWithYetAnotherSqlInjectionAttack() {
 		String password = template.queryForObject("select password from users where username='joe'", String.class);
 		assertNotNull(password);
-		Collection<ScimUser> users = db.retrieveUsers("username eq 'joe''; select " + SQL_INJECTION_FIELDS
+		Collection<ScimUser> users = db.query("username eq 'joe''; select " + SQL_INJECTION_FIELDS
 				+ " from users where username='joe''");
 		assertEquals(password, users.iterator().next().getId());
 	}
@@ -495,7 +495,7 @@ public class JdbcScimUserProvisioningTests {
 	@Test
 	public void filterEqWithoutQuotesIsRejected() {
 		try {
-			db.retrieveUsers("username eq joe");
+			db.query("username eq joe");
 			fail();
 		}
 		catch (Exception e) {

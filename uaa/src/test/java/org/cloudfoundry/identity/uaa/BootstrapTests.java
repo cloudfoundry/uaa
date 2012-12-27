@@ -86,7 +86,7 @@ public class BootstrapTests {
 				ReflectionTestUtils.getField(context.getBean(ClientAdminBootstrap.class), "autoApproveClients")
 						.toString());
 		ScimUserProvisioning users = context.getBean(ScimUserProvisioning.class);
-		assertTrue(users.retrieveUsers().size() > 0);
+		assertTrue(users.retrieveAll().size() > 0);
 	}
 
 	private GenericXmlApplicationContext getServletContext(String... resources) {

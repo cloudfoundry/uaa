@@ -81,7 +81,7 @@ public class ClientAdminEndpointsIntegrationTests {
 		ResponseEntity<String> result = serverRunning.getForString("/oauth/clients", headers);
 		assertEquals(HttpStatus.OK, result.getStatusCode());
 		// System.err.println(result.getBody());
-		assertTrue(result.getBody().contains("vmc\":{"));
+		assertTrue(result.getBody().contains("\"client_id\":\"vmc\""));
 		assertFalse(result.getBody().contains("secret\":"));
 	}
 

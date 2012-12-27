@@ -46,7 +46,7 @@
 	</bean>
 
 	<bean id="clientInfoEndpoint" class="org.cloudfoundry.identity.uaa.oauth.ClientInfoEndpoint">
-		<property name="clientDetailsService" ref="clientDetails" />
+		<property name="clientDetailsService" ref="jdbcClientDetailsService" />
 	</bean>
 
 </beans>

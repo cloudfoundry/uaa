@@ -57,7 +57,11 @@ public class JdbcPagingList<E> extends AbstractList<E> {
 	}
 
 	public JdbcPagingList(JdbcTemplate jdbcTemplate, String sql, Map<String, ?> args, RowMapper<E> mapper, int pageSize) {
-		this.parameterJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+		this(new NamedParameterJdbcTemplate(jdbcTemplate), sql, args, mapper, pageSize);
+	}
+
+	public JdbcPagingList(NamedParameterJdbcTemplate jdbcTemplate, String sql, Map<String, ?> args, RowMapper<E> mapper, int pageSize) {
+		this.parameterJdbcTemplate = jdbcTemplate;
 		this.sql = sql;
 		this.args = args;
 		this.mapper = mapper;
