@@ -46,6 +46,10 @@
 
 	<context:property-placeholder properties-ref="applicationProperties" />
 
+    <bean id="messageSource" class="org.springframework.context.support.ResourceBundleMessageSource">
+      <property name="basename" value="messages" />
+    </bean>
+  
 	<authentication-manager id="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security" />
 
 	<bean id="authenticationDetailsSource" class="org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetailsSource" />

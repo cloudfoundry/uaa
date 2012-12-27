@@ -142,7 +142,7 @@ img.gsc-branding-img,img.gsc-branding-img-noclear,img.gcsc-branding-img,img.gcsc
                                <c:set var="count" value="${count + 1}" />
 	                       </c:forEach>
 	                    </c:if>
-	                    
+
 	                    <c:if test="${(approved_scopes != null) && (! empty approved_scopes) || (denied_scopes != null) && (! empty denied_scopes)}">
 	                       <p>Do you wish to change these selections?</p>
 	                    </c:if>
