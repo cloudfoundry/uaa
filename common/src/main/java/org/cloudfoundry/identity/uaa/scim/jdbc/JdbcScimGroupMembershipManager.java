@@ -46,7 +46,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 
 	public static final String UPDATE_MEMBER_SQL = String.format("update %s set authorities=? where group_id=? and member_id=?", MEMBERSHIP_TABLE);
 
-	public static final String GET_MEMBERS_SQL = String.format("select %s from %s where group_id=:id", MEMBERSHIP_FIELDS, MEMBERSHIP_TABLE);
+	public static final String GET_MEMBERS_SQL = String.format("select %s from %s where group_id=?", MEMBERSHIP_FIELDS, MEMBERSHIP_TABLE);
 
 	public static final String GET_GROUPS_BY_MEMBER_SQL = String.format("select distinct(group_id) from %s where member_id=?", MEMBERSHIP_TABLE);
 
@@ -70,11 +70,11 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 
 	public void setDefaultUserGroups(Set<String> groupNames) {
 		for (String name : groupNames) {
-			List<ScimGroup> g = groupProvisioning.retrieveGroups(String.format("displayName co '%s'", name));
+			List<ScimGroup> g = groupProvisioning.query(String.format("displayName co '%s'", name));
 			if (!g.isEmpty()) {
 				defaultUserGroups.add(g.get(0));
 			} else { // default group must exist, hence if not already present, create it
-				defaultUserGroups.add(groupProvisioning.createGroup(new ScimGroup(name)));
+				defaultUserGroups.add(groupProvisioning.create(new ScimGroup(name)));
 			}
 		}
 	}
@@ -115,8 +115,13 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 	}
 
 	@Override
-	public List<ScimGroupMember> getMembers(String groupId) throws ScimResourceNotFoundException {
-		return new JdbcPagingList<ScimGroupMember>(jdbcTemplate, GET_MEMBERS_SQL, Collections.<String, String>singletonMap("id", groupId), rowMapper, 100);
+	public List<ScimGroupMember> getMembers(final String groupId) throws ScimResourceNotFoundException {
+		return jdbcTemplate.query(GET_MEMBERS_SQL, new PreparedStatementSetter() {
+			@Override
+			public void setValues(PreparedStatement ps) throws SQLException {
+				ps.setString(1, groupId);
+			}
+		}, rowMapper);
 	}
 
 	@Override
@@ -148,7 +153,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 		for (String groupId : groupIds) {
 			ScimGroup group;
 			try {
-				group = groupProvisioning.retrieveGroup(groupId);
+				group = groupProvisioning.retrieve(groupId);
 			} catch (ScimResourceNotFoundException ex) {
 				continue;
 			}
@@ -292,7 +297,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 
 	private boolean isUser(String uuid) {
 		try {
-			userProvisioning.retrieveUser(uuid);
+			userProvisioning.retrieve(uuid);
 			return true;
 		} catch (ScimResourceNotFoundException ex) {
 			return false;
@@ -309,12 +314,12 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 		}
 
 		// check if the group exists and the member-id is a valid group or user id
-		groupProvisioning.retrieveGroup(groupId); // this will throw a ScimException if the group does not exist
+		groupProvisioning.retrieve(groupId); // this will throw a ScimException if the group does not exist
 		// this will throw a ScimException if the group or user does not exist
 		if (member.getType() == ScimGroupMember.Type.GROUP) {
-			groupProvisioning.retrieveGroup(member.getMemberId());
+			groupProvisioning.retrieve(member.getMemberId());
 		} else {
-			userProvisioning.retrieveUser(member.getMemberId());
+			userProvisioning.retrieve(member.getMemberId());
 		}
 	}
 

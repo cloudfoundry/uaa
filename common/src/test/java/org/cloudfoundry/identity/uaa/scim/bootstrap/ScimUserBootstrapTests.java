@@ -77,7 +77,7 @@ public class ScimUserBootstrapTests {
 		UaaUser mabel = new UaaUser("mabel", "password", "mabel@blah.com", "Mabel", "User");
 		ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe, mabel));
 		bootstrap.afterPropertiesSet();
-		Collection<ScimUser> users = db.retrieveUsers();
+		Collection<ScimUser> users = db.retrieveAll();
 		assertEquals(2, users.size());
 	}
 
@@ -106,7 +106,7 @@ public class ScimUserBootstrapTests {
 		bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
 		bootstrap.setOverride(true);
 		bootstrap.afterPropertiesSet();
-		Collection<ScimUser> users = db.retrieveUsers();
+		Collection<ScimUser> users = db.retrieveAll();
 		assertEquals(1, users.size());
 		assertEquals("Bloggs", users.iterator().next().getFamilyName());
 	}
@@ -120,7 +120,7 @@ public class ScimUserBootstrapTests {
 		bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
 		bootstrap.setOverride(false);
 		bootstrap.afterPropertiesSet();
-		Collection<ScimUser> users = db.retrieveUsers();
+		Collection<ScimUser> users = db.retrieveAll();
 		assertEquals(1, users.size());
 		assertEquals("User", users.iterator().next().getFamilyName());
 	}

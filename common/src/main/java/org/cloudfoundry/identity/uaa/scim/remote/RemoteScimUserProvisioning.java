@@ -54,37 +54,42 @@ public class RemoteScimUserProvisioning implements ScimUserProvisioning {
 	}
 
 	@Override
-	public ScimUser retrieveUser(String id) throws ScimResourceNotFoundException {
+	public ScimUser retrieve(String id) throws ScimResourceNotFoundException {
 		return restTemplate.getForObject(baseUrl + "/User/{id}", ScimUser.class, id);
 	}
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public List<ScimUser> retrieveUsers() {
+	public List<ScimUser> retrieveAll() {
 		return restTemplate.getForObject(baseUrl + "/Users", List.class);
 	}
 	
 	@Override
 	@SuppressWarnings("unchecked")
-	public List<ScimUser> retrieveUsers(String filter) {
+	public List<ScimUser> query(String filter) {
 		return restTemplate.getForObject(baseUrl + "/Users?filter={filter}", List.class, filter);
 	}
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public List<ScimUser> retrieveUsers(String filter, String sortBy, boolean ascending) {
+	public List<ScimUser> query(String filter, String sortBy, boolean ascending) {
 		String order = ascending ? "" : "&sortOrder=descending";
 		return restTemplate.getForObject(baseUrl + "/Users?filter={filter}&sortBy={sortBy}" + order, List.class, filter, sortBy);
 	}
 
 	@Override
-	public ScimUser createUser(ScimUser user, String password) throws InvalidPasswordException, InvalidScimResourceException {
-		user.setPassword(password);
+	public ScimUser create(ScimUser user) {
 		return restTemplate.postForObject(baseUrl + "/User", user, ScimUser.class);
 	}
 
 	@Override
-	public ScimUser updateUser(String id, ScimUser user) throws InvalidScimResourceException, ScimResourceNotFoundException {
+	public ScimUser createUser(ScimUser user, String password) throws InvalidPasswordException, InvalidScimResourceException {
+		user.setPassword(password);
+		return create(user);
+	}
+
+	@Override
+	public ScimUser update(String id, ScimUser user) throws InvalidScimResourceException, ScimResourceNotFoundException {
 		restTemplate.put(baseUrl + "/User/{id}", user, id);
 		return user;
 	}
@@ -99,7 +104,7 @@ public class RemoteScimUserProvisioning implements ScimUserProvisioning {
 	}
 
 	@Override
-	public ScimUser removeUser(String id, int version) throws ScimResourceNotFoundException {
+	public ScimUser delete(String id, int version) throws ScimResourceNotFoundException {
 		HttpHeaders headers = new HttpHeaders();
 		headers.set("If-Match", String.format("%d", version));
 		return restTemplate.exchange(baseUrl + "/User/{id}", HttpMethod.DELETE, new HttpEntity<Void>(headers), ScimUser.class, id).getBody();

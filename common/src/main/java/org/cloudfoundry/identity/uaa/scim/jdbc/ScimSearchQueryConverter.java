@@ -15,15 +15,15 @@ import java.util.regex.Pattern;
 
 public class ScimSearchQueryConverter implements SearchQueryConverter {
 
-	static final Pattern coPattern = Pattern.compile("(.*?)([a-z0-9]*) co '(.*?)'([\\s]*.*)", Pattern.CASE_INSENSITIVE);
+	static final Pattern coPattern = Pattern.compile("(.*?)([a-z0-9_]*) co '(.*?)'([\\s]*.*)", Pattern.CASE_INSENSITIVE);
 
-	static final Pattern swPattern = Pattern.compile("(.*?)([a-z0-9]*) sw '(.*?)'([\\s]*.*)", Pattern.CASE_INSENSITIVE);
+	static final Pattern swPattern = Pattern.compile("(.*?)([a-z0-9_]*) sw '(.*?)'([\\s]*.*)", Pattern.CASE_INSENSITIVE);
 
-	static final Pattern eqPattern = Pattern.compile("(.*?)([a-z0-9]*) eq '(.*?)'([\\s]*.*)", Pattern.CASE_INSENSITIVE);
+	static final Pattern eqPattern = Pattern.compile("(.*?)([a-z0-9_]*) eq '(.*?)'([\\s]*.*)", Pattern.CASE_INSENSITIVE);
 
-	static final Pattern boPattern = Pattern.compile("(.*?)([a-z0-9]*) eq (true|false)([\\s]*.*)", Pattern.CASE_INSENSITIVE);
+	static final Pattern boPattern = Pattern.compile("(.*?)([a-z0-9_]*) eq (true|false)([\\s]*.*)", Pattern.CASE_INSENSITIVE);
 
-	static final Pattern metaPattern = Pattern.compile("(.*?)meta\\.([a-z0-9]*) (\\S) '(.*?)'([\\s]*.*)", Pattern.CASE_INSENSITIVE);
+	static final Pattern metaPattern = Pattern.compile("(.*?)meta\\.([a-z0-9_]*) (\\S) '(.*?)'([\\s]*.*)", Pattern.CASE_INSENSITIVE);
 
 	static final Pattern prPattern = Pattern.compile(" pr([\\s]*)", Pattern.CASE_INSENSITIVE);
 

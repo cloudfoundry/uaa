@@ -12,6 +12,7 @@
  */
 package org.cloudfoundry.identity.uaa.oauth;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -26,11 +27,18 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.message.SimpleMessage;
+import org.cloudfoundry.identity.uaa.scim.endpoints.SearchResults;
+import org.cloudfoundry.identity.uaa.scim.endpoints.SearchResultsFactory;
+import org.cloudfoundry.identity.uaa.scim.util.AttributeNameMapper;
+import org.cloudfoundry.identity.uaa.scim.util.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.expression.spel.SpelEvaluationException;
+import org.springframework.expression.spel.SpelParseException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jmx.export.annotation.ManagedMetric;
@@ -53,6 +61,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
@@ -65,6 +74,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ManagedResource
 public class ClientAdminEndpoints implements InitializingBean {
 
+	private static final String SCIM_CLIENTS_SCHEMA_URI = "http://cloudfoundry.org/schema/scim/oauth-clients-1.0";
+
 	private final Log logger = LogFactory.getLog(getClass());
 
 	private static final Set<String> VALID_GRANTS = new HashSet<String>(Arrays.asList("implicit", "password",
@@ -76,7 +87,9 @@ public class ClientAdminEndpoints implements InitializingBean {
 
 	private ClientRegistrationService clientRegistrationService;
 
-	private ClientDetailsService clientDetailsService;
+	private ScimClientDetailsService clientDetailsService;
+
+	private AttributeNameMapper attributeNameMapper = new SimpleAttributeNameMapper(Collections.<String, String>emptyMap());
 
 	private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
 
@@ -90,6 +103,10 @@ public class ClientAdminEndpoints implements InitializingBean {
 
 	private Set<String> reservedClientIds = StringUtils.commaDelimitedListToSet("uaa");
 
+	public void setAttributeNameMapper(AttributeNameMapper attributeNameMapper) {
+		this.attributeNameMapper = attributeNameMapper;
+	}
+
 	/**
 	 * @param clientRegistrationService the clientRegistrationService to set
 	 */
@@ -100,7 +117,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 	/**
 	 * @param clientDetailsService the clientDetailsService to set
 	 */
-	public void setClientDetailsService(ClientDetailsService clientDetailsService) {
+	public void setClientDetailsService(ScimClientDetailsService clientDetailsService) {
 		this.clientDetailsService = clientDetailsService;
 	}
 
@@ -143,7 +160,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 	@ResponseBody
 	public ClientDetails getClientDetails(@PathVariable String client) throws Exception {
 		try {
-			return removeSecret(clientDetailsService.loadClientByClientId(client));
+			return removeSecret(clientDetailsService.retrieve(client));
 		}
 		catch (InvalidClientException e) {
 			throw new NoSuchClientException("No such client: " + client);
@@ -188,7 +205,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 	@ResponseStatus(HttpStatus.OK)
 	@ResponseBody
 	public ClientDetails removeClientDetails(@PathVariable String client) throws Exception {
-		ClientDetails details = clientDetailsService.loadClientByClientId(client);
+		ClientDetails details = clientDetailsService.retrieve(client);
 		clientRegistrationService.removeClientDetails(client);
 		clientDeletes.incrementAndGet();
 		return removeSecret(details);
@@ -196,21 +213,47 @@ public class ClientAdminEndpoints implements InitializingBean {
 
 	@RequestMapping(value = "/oauth/clients", method = RequestMethod.GET)
 	@ResponseBody
-	public Map<String, ClientDetails> listClientDetails() throws Exception {
-		List<ClientDetails> details = clientRegistrationService.listClientDetails();
-		Map<String, ClientDetails> map = new LinkedHashMap<String, ClientDetails>();
-		for (ClientDetails client : details) {
-			map.put(client.getClientId(), removeSecret(client));
+	public SearchResults<?> listClientDetails(@RequestParam(value = "attributes", required = false) String attributesCommaSeparated,
+														@RequestParam(required = false, defaultValue = "client_id pr") String filter,
+														@RequestParam(required = false, defaultValue = "client_id") String sortBy,
+														@RequestParam(required = false, defaultValue = "ascending") String sortOrder,
+														@RequestParam(required = false, defaultValue = "1") int startIndex,
+														@RequestParam(required = false, defaultValue = "100") int count) throws Exception {
+		List<ClientDetails> clients, result = new ArrayList<ClientDetails>();
+		try {
+			clients = clientDetailsService.query(filter, sortBy, "ascending".equalsIgnoreCase(sortOrder));
+			if (count > clients.size()) {
+				count = clients.size();
+			}
+		} catch (IllegalArgumentException e) {
+			throw new UaaException("Invalid filter expression: [" + filter + "]", HttpStatus.BAD_REQUEST.value());
 		}
-		return map;
+		for (ClientDetails client : clients.subList(startIndex - 1, startIndex + count - 1)) {
+			result.add(removeSecret(client));
+		}
+
+		if (!StringUtils.hasLength(attributesCommaSeparated)) {
+			return new SearchResults<ClientDetails>(Arrays.asList(SCIM_CLIENTS_SCHEMA_URI), result, startIndex, count, clients.size());
+		}
+
+		String[] attributes = attributesCommaSeparated.split(",");
+		try {
+			return SearchResultsFactory.buildSearchResultFrom(result, startIndex, count, attributes, attributeNameMapper, Arrays.asList(SCIM_CLIENTS_SCHEMA_URI));
+		} catch (SpelParseException e) {
+			throw new UaaException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST.value());
+		} catch (SpelEvaluationException e) {
+			throw new UaaException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST.value());
+		}
 	}
+
+
 
 	@RequestMapping(value = "/oauth/clients/{client}/secret", method = RequestMethod.PUT)
 	public SimpleMessage changeSecret(@PathVariable String client, @RequestBody SecretChangeRequest change) {
 
 		ClientDetails clientDetails;
 		try {
-			clientDetails = clientDetailsService.loadClientByClientId(client);
+			clientDetails = clientDetailsService.retrieve(client);
 		}
 		catch (InvalidClientException e) {
 			throw new NoSuchClientException("No such client: " + client);
@@ -312,7 +355,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 				String callerPrefix = callerId + ".";
 				String clientPrefix = clientId + ".";
 
-				ClientDetails caller = clientDetailsService.loadClientByClientId(callerId);
+				ClientDetails caller = clientDetailsService.retrieve(callerId);
 				Set<String> validScope = caller.getScope();
 				for (String scope : client.getScope()) {
 					if (scope.startsWith(callerPrefix) || scope.startsWith(clientPrefix)) {
