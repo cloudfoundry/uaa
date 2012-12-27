@@ -74,6 +74,17 @@ img.gsc-branding-img,img.gsc-branding-img-noclear,img.gcsc-branding-img,img.gcsc
 }
 </style>
 <script type="text/javascript" src="${baseUrl}/javascripts/jquery.js"></script>
+<script type="text/javascript"
+    src="${baseUrl}/javascripts/placeholder.js"></script>
+<script type="text/javascript">
+    $(document).ready(function() {
+        $('form:first *:input[type!=hidden]:first').focus();
+    Placeholders.init({
+      live: true, //Apply to future and modified elements too
+      hideOnFocus: true //Hide the placeholder when the element receives focus
+    });
+    });
+</script>
 <script type="text/javascript">
 	(function() {
 		// force ssl if cf.com
@@ -94,7 +105,7 @@ img.gsc-branding-img,img.gsc-branding-img-noclear,img.gcsc-branding-img,img.gcsc
 			width='373' height='70'></img> </a>
 		<div class="splash-box">
 			<article class="container">
-				<p>Sign in with your CloudFoundry.com credentials.</p>
+				<p class="intro-text">Sign in with your CloudFoundry.com credentials.</p>
 				<form id="loginForm" name="loginForm"
 					action="<c:url value="/login.do"/>" method="POST" novalidate>
 					<div>
@@ -116,7 +127,7 @@ img.gsc-branding-img,img.gsc-branding-img-noclear,img.gcsc-branding-img,img.gcsc
 			</article>
 		</div>
 		<div class="footer"
-			title="Commit: ${commit_id}, Timestamp: ${timestamp}">
+			title="Version: ${app.version}, Commit: ${commit_id}, Timestamp: ${timestamp}">
 			Copyright &copy;
 			<fmt:formatDate value="<%=new java.util.Date()%>" pattern="yyyy" />
 			VMware, Inc. All rights reserved.
