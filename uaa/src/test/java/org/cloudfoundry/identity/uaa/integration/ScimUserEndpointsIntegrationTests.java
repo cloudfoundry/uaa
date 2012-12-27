@@ -225,7 +225,7 @@ public class ScimUserEndpointsIntegrationTests {
 		ResponseEntity<ScimUser> response = createUser(JOE, "Joe", "User", "joe@blah.com");
 		ScimUser joe = response.getBody();
 		assertEquals(JOE, joe.getUserName());
-		assertEquals(8, joe.getGroups().size()); // there are 8 default user groups configured in uaa
+		assertEquals(9, joe.getGroups().size()); // there are 9 default user groups configured in uaa
 
 		joe.setGroups(Arrays.asList(new ScimUser.Group(UUID.randomUUID().toString(), "uaa.admin")));
 
@@ -237,7 +237,7 @@ public class ScimUserEndpointsIntegrationTests {
 		assertEquals(JOE, joe1.getUserName());
 
 		assertEquals(joe.getId(), joe1.getId());
-		assertEquals(8, joe1.getGroups().size()); // there are 8 default user groups configured in uaa
+		assertEquals(9, joe1.getGroups().size()); // there are 8 default user groups configured in uaa
 	}
 
 	// curl -v -H "Content-Type: application/json" -H "Accept: application/json" -H 'If-Match: "0"' --data
@@ -356,7 +356,7 @@ public class ScimUserEndpointsIntegrationTests {
 		System.err.println(results);
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
-		assertEquals(new Integer(2), (Integer) results.get("startIndex"));
+		assertEquals(new Integer(2), results.get("startIndex"));
 	}
 
 	@Test
@@ -368,7 +368,7 @@ public class ScimUserEndpointsIntegrationTests {
 		System.err.println(results);
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
-		assertEquals(new Integer(1), (Integer) results.get("startIndex"));
+		assertEquals(new Integer(1), results.get("startIndex"));
 	}
 
 }
