@@ -6,15 +6,24 @@
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd">
 
-	<bean id="baseClientDetails" class="org.springframework.security.oauth2.provider.JdbcClientDetailsService"
-		abstract="true">
+	<bean id="jdbcClientDetailsService" class="org.springframework.security.oauth2.provider.JdbcClientDetailsService">
 		<constructor-arg ref="dataSource" />
 		<property name="passwordEncoder" ref="bcryptPasswordEncoder" />
 	</bean>
 
-	<bean id="clientDetails" parent="baseClientDetails" />
+	<bean id="clientDetailsService" class="org.cloudfoundry.identity.uaa.oauth.JdbcScimClientDetailsService">
+		<constructor-arg name="delegate" ref="jdbcClientDetailsService" />
+		<constructor-arg name="jdbcTemplate" ref="jdbcTemplate" />
+	</bean>
 
-	<bean id="clientRegistrationService" parent="baseClientDetails" />
+	<bean id="clientRegistrationService" class="org.springframework.security.oauth2.provider.JdbcClientDetailsService">
+		<constructor-arg ref="dataSource" />
+		<property name="passwordEncoder" ref="bcryptPasswordEncoder" />
+	</bean>
+
+	<!--<bean id="clientDetails" parent="baseClientDetails" />-->
+
+	<!--<bean id="clientRegistrationService" parent="baseClientDetails" />-->
 
 	<bean id="clientAdminBootstrap" class="org.cloudfoundry.identity.uaa.oauth.ClientAdminBootstrap">
 		<property name="clientRegistrationService" ref="clientRegistrationService" />
@@ -23,9 +32,14 @@
 	</bean>
 
 	<beans profile="cloud">
-		<bean id="clientDetails" class="org.cloudfoundry.identity.uaa.oauth.JitClientDetailsService">
-			<property name="delegate" ref="clientRegistrationService" />
+		<!--<bean id="clientDetails" class="org.cloudfoundry.identity.uaa.oauth.JitClientDetailsService">-->
+			<!--<property name="delegate" ref="clientRegistrationService" />-->
+		<!--</bean>-->
+		<bean id="clientDetailsService" class="org.cloudfoundry.identity.uaa.oauth.JitClientDetailsService">
+			<constructor-arg name="delegate" ref="jdbcClientDetailsService" />
+			<constructor-arg name="jdbcTemplate" ref="jdbcTemplate" />
 		</bean>
+
 	</beans>
 
 	<beans profile="default">

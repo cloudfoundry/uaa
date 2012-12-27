@@ -122,7 +122,7 @@ public class ScimGroupEndpointsTests {
 
 	private String addGroup(String name, List<ScimGroupMember> m) {
 		ScimGroup g = new ScimGroup("", name);
-		g = dao.createGroup(g);
+		g = dao.create(g);
 		for (ScimGroupMember member : m) {
 			mm.addMember(g.getId(), member);
 		}
@@ -134,7 +134,7 @@ public class ScimGroupEndpointsTests {
 		if (t == ScimGroupMember.Type.USER) {
 			id = userEndpoints.createUser(TestUtils.scimUserInstance(id)).getId();
 		} else {
-			id = dao.createGroup(new ScimGroup("", id)).getId();
+			id = dao.create(new ScimGroup("", id)).getId();
 		}
 		return new ScimGroupMember(id, t, a);
 	}

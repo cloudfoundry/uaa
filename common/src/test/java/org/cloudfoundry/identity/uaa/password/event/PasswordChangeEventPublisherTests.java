@@ -58,7 +58,7 @@ public class PasswordChangeEventPublisherTests {
 
 	@Test
 	public void testPasswordChange() {
-		Mockito.when(scimUserProvisioning.retrieveUser("foo")).thenReturn(
+		Mockito.when(scimUserProvisioning.retrieve("foo")).thenReturn(
 				UaaAuthenticationTestFactory.getScimUser("joe", "joe@test.org", "Joe", "Schmo"));
 		subject.passwordChange("foo");
 		Mockito.verify(publisher).publishEvent(Mockito.isA(PasswordChangeEvent.class));
@@ -66,7 +66,7 @@ public class PasswordChangeEventPublisherTests {
 
 	@Test
 	public void testPasswordChangeNoEmail() {
-		Mockito.when(scimUserProvisioning.retrieveUser("foo")).thenReturn(
+		Mockito.when(scimUserProvisioning.retrieve("foo")).thenReturn(
 				UaaAuthenticationTestFactory.getScimUser("joe", null, "Joe", "Schmo"));
 		subject.passwordChange("foo");
 		Mockito.verify(publisher).publishEvent(Mockito.isA(PasswordChangeEvent.class));
@@ -74,7 +74,7 @@ public class PasswordChangeEventPublisherTests {
 
 	@Test
 	public void testPasswordFailure() {
-		Mockito.when(scimUserProvisioning.retrieveUser("foo")).thenReturn(
+		Mockito.when(scimUserProvisioning.retrieve("foo")).thenReturn(
 				UaaAuthenticationTestFactory.getScimUser("joe", "joe@test.org", "Joe", "Schmo"));
 		subject.passwordFailure("foo", new RuntimeException("planned"));
 		Mockito.verify(publisher).publishEvent(Mockito.isA(PasswordFailureEvent.class));
@@ -82,7 +82,7 @@ public class PasswordChangeEventPublisherTests {
 
 	@Test
 	public void testPasswordFailureNoUser() {
-		Mockito.when(scimUserProvisioning.retrieveUser("foo")).thenThrow(new ScimResourceNotFoundException("Not found"));
+		Mockito.when(scimUserProvisioning.retrieve("foo")).thenThrow(new ScimResourceNotFoundException("Not found"));
 		subject.passwordFailure("foo", new RuntimeException("planned"));
 		Mockito.verify(publisher).publishEvent(Mockito.any(PasswordFailureEvent.class));
 	}

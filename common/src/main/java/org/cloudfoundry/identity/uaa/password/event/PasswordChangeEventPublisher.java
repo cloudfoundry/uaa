@@ -65,7 +65,7 @@ public class PasswordChangeEventPublisher implements ApplicationEventPublisherAw
 	private UaaUser getUser(String userId) {
 		try {
 			// If the request came in for a user by id we should be able to retrieve the username
-			ScimUser scimUser = dao.retrieveUser(userId);
+			ScimUser scimUser = dao.retrieve(userId);
 			if (scimUser != null) {
 				return new UaaUser(scimUser.getUserName(), "N/A", getEmail(scimUser), scimUser.getGivenName(),
 						scimUser.getFamilyName());

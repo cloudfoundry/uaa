@@ -118,7 +118,7 @@ public class ScimUserEndpoints implements InitializingBean {
 
 	@ManagedMetric(metricType = MetricType.COUNTER, displayName = "Total Users")
 	public int getTotalUsers() {
-		return dao.retrieveUsers().size();
+		return dao.retrieveAll().size();
 	}
 
 	@ManagedMetric(metricType = MetricType.COUNTER, displayName = "User Account Update Count (Since Startup)")
@@ -139,7 +139,7 @@ public class ScimUserEndpoints implements InitializingBean {
 	@RequestMapping(value = "/Users/{userId}", method = RequestMethod.GET)
 	@ResponseBody
 	public ScimUser getUser(@PathVariable String userId) {
-		return syncGroups(dao.retrieveUser(userId));
+		return syncGroups(dao.retrieve(userId));
 	}
 
 	@RequestMapping(value = "/Users", method = RequestMethod.POST)
@@ -159,7 +159,7 @@ public class ScimUserEndpoints implements InitializingBean {
 		int version = getVersion(userId, etag);
 		user.setVersion(version);
 		try {
-			ScimUser updated = dao.updateUser(userId, user);
+			ScimUser updated = dao.update(userId, user);
 			scimUpdates.incrementAndGet();
 			return syncGroups(updated);
 		}
@@ -174,7 +174,7 @@ public class ScimUserEndpoints implements InitializingBean {
 			@RequestHeader(value = "If-Match", required = false) String etag) {
 		int version = etag == null ? -1 : getVersion(userId, etag);
 		ScimUser user = getUser(userId);
-		dao.removeUser(userId, version);
+		dao.delete(userId, version);
 		membershipManager.removeMembersByMemberId(userId);
 		scimDeletes.incrementAndGet();
 		return user;
@@ -189,7 +189,7 @@ public class ScimUserEndpoints implements InitializingBean {
 			value = value.substring(0, value.length() - 1);
 		}
 		if (value.equals("*")) {
-			return dao.retrieveUser(userId).getVersion();
+			return dao.retrieve(userId).getVersion();
 		}
 		try {
 			return Integer.valueOf(value);
@@ -216,7 +216,7 @@ public class ScimUserEndpoints implements InitializingBean {
 
 		List<ScimUser> input;
 		try {
-			input = dao.retrieveUsers(filter, sortBy, sortOrder.equals("ascending"));
+			input = dao.query(filter, sortBy, sortOrder.equals("ascending"));
 			for (ScimUser user : input.subList(startIndex - 1, startIndex + count - 1)) {
 				syncGroups(user);
 			}

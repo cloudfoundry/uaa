@@ -74,7 +74,7 @@ public class ScimGroupEndpoints {
 									  @RequestParam(required = false, defaultValue = "100") int count) {
 		List<ScimGroup> input;
 		try {
-			input = dao.retrieveGroups(filter, sortBy, "ascending".equalsIgnoreCase(sortOrder));
+			input = dao.query(filter, sortBy, "ascending".equalsIgnoreCase(sortOrder));
 			for (ScimGroup group : input.subList(startIndex - 1, startIndex + count - 1)) {
 				group.setMembers(membershipManager.getMembers(group.getId()));
 			}
@@ -101,7 +101,7 @@ public class ScimGroupEndpoints {
 	@ResponseBody
 	public ScimGroup getGroup(@PathVariable String groupId) {
 		logger.debug("retrieving group with id: " + groupId);
-		ScimGroup group = dao.retrieveGroup(groupId);
+		ScimGroup group = dao.retrieve(groupId);
 		group.setMembers(membershipManager.getMembers(groupId));
 		return group;
 	}
@@ -110,14 +110,14 @@ public class ScimGroupEndpoints {
 	@ResponseStatus(HttpStatus.CREATED)
 	@ResponseBody
 	public ScimGroup createGroup(@RequestBody ScimGroup group) {
-		ScimGroup created = dao.createGroup(group);
+		ScimGroup created = dao.create(group);
 		if (group.getMembers() != null) {
 			for (ScimGroupMember member : group.getMembers()) {
 				try {
 					membershipManager.addMember(created.getId(), member);
 				} catch (ScimException ex) {
 					logger.warn("Attempt to add invalid member: " + member.getMemberId() + " to group: " + group.getId());
-					dao.removeGroup(created.getId(), created.getVersion());
+					dao.delete(created.getId(), created.getVersion());
 					throw new InvalidScimResourceException("Invalid group member: " + member.getMemberId());
 				}
 			}
@@ -139,7 +139,7 @@ public class ScimGroupEndpoints {
 
 		ScimGroup existing = getGroup(groupId);
 		try {
-			ScimGroup updated = dao.updateGroup(groupId, group);
+			ScimGroup updated = dao.update(groupId, group);
 			if (group.getMembers() != null && group.getMembers().size() > 0) {
 				membershipManager.updateOrAddMembers(updated.getId(), group.getMembers());
 			} else {
@@ -151,13 +151,13 @@ public class ScimGroupEndpoints {
 			logger.error("Error updating group, restoring to previous state");
 			// restore to correct state before reporting error
 			existing.setVersion(getVersion(groupId, "*"));
-			dao.updateGroup(groupId, existing);
+			dao.update(groupId, existing);
 			throw new ScimException(ex.getMessage(), ex, HttpStatus.CONFLICT);
 		} catch (ScimResourceNotFoundException ex) {
 			logger.error("Error updating group, restoring to previous state: " + existing);
 			// restore to correct state before reporting error
 			existing.setVersion(getVersion(groupId, "*"));
-			dao.updateGroup(groupId, existing);
+			dao.update(groupId, existing);
 			throw new ScimException(ex.getMessage(), ex, HttpStatus.BAD_REQUEST);
 		}
 	}
@@ -184,7 +184,7 @@ public class ScimGroupEndpoints {
 		try {
 			membershipManager.removeMembersByGroupId(groupId);
 			membershipManager.removeMembersByMemberId(groupId);
-			dao.removeGroup(groupId, getVersion(groupId, etag));
+			dao.delete(groupId, getVersion(groupId, etag));
 		} catch (IncorrectResultSizeDataAccessException ex) {
 			logger.error("error deleting group, restoring system to previous state");
 			throw new ScimException("error deleting group: " + groupId, ex, HttpStatus.CONFLICT);
@@ -221,7 +221,7 @@ public class ScimGroupEndpoints {
 			value = value.substring(0, value.length() - 1);
 		}
 		if (value.equals("*")) {
-			return dao.retrieveGroup(groupId).getVersion();
+			return dao.retrieve(groupId).getVersion();
 		}
 		try {
 			return Integer.valueOf(value);
