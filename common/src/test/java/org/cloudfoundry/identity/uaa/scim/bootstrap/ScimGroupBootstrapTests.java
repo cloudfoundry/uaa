@@ -65,8 +65,8 @@ public class ScimGroupBootstrapTests {
 		uDB.createUser(TestUtils.scimUserInstance("mgr1"), "test");
 		uDB.createUser(TestUtils.scimUserInstance("hr1"), "test");
 
-		assertEquals(7, uDB.retrieveUsers().size());
-		assertEquals(0, gDB.retrieveGroups().size());
+		assertEquals(7, uDB.retrieveAll().size());
+		assertEquals(0, gDB.retrieveAll().size());
 
 		bootstrap = new ScimGroupBootstrap(gDB, uDB, mDB);
 	}
@@ -80,7 +80,7 @@ public class ScimGroupBootstrapTests {
 	public void canAddGroups() throws Exception {
 		bootstrap.setGroups("org1.dev,org1.qa,org1.engg,org1.mgr,org1.hr");
 		bootstrap.afterPropertiesSet();
-		assertEquals(5, gDB.retrieveGroups().size());
+		assertEquals(5, gDB.retrieveAll().size());
 		assertNotNull(bootstrap.getGroup("org1.dev"));
 		assertNotNull(bootstrap.getGroup("org1.qa"));
 		assertNotNull(bootstrap.getGroup("org1.engg"));
@@ -92,7 +92,7 @@ public class ScimGroupBootstrapTests {
 	public void testNullGroups() throws Exception {
 		bootstrap.setGroups(null);
 		bootstrap.afterPropertiesSet();
-		assertEquals(0, gDB.retrieveGroups().size());
+		assertEquals(0, gDB.retrieveAll().size());
 	}
 
 	@Test
@@ -107,8 +107,8 @@ public class ScimGroupBootstrapTests {
 		));
 		bootstrap.afterPropertiesSet();
 
-		assertEquals(5, gDB.retrieveGroups().size());
-		assertEquals(7, uDB.retrieveUsers().size());
+		assertEquals(5, gDB.retrieveAll().size());
+		assertEquals(7, uDB.retrieveAll().size());
 		assertEquals(2, bootstrap.getGroup("org1.qa").getMembers().size());
 		assertEquals(1, bootstrap.getGroup("org1.hr").getMembers().size());
 		assertEquals(3, bootstrap.getGroup("org1.engg").getMembers().size());

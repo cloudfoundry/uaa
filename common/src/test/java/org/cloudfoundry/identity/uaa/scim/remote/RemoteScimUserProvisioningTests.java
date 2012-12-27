@@ -58,19 +58,19 @@ public class RemoteScimUserProvisioningTests {
 
 	@Test
 	public void testRetrieveUser() {
-		service.retrieveUser("1234");
+		service.retrieve("1234");
 		Mockito.verify(restTemplate).getForObject("http://base/User/{id}", ScimUser.class, "1234");
 	}
 
 	@Test
 	public void testRetrieveUsers() {
-		service.retrieveUsers();
+		service.retrieveAll();
 		Mockito.verify(restTemplate).getForObject("http://base/Users", List.class);
 	}
 
 	@Test
 	public void testFilterUsers() {
-		service.retrieveUsers("name eq 'foo'");
+		service.query("name eq 'foo'");
 		Mockito.verify(restTemplate).getForObject("http://base/Users?filter={filter}", List.class, "name eq 'foo'");
 	}
 
@@ -90,7 +90,7 @@ public class RemoteScimUserProvisioningTests {
 
 	@Test
 	public void testUpdateUser() {
-		service.updateUser("1234", user);
+		service.update("1234", user);
 		Mockito.verify(restTemplate).put("http://base/User/{id}", user, "1234");
 	}
 
@@ -102,7 +102,7 @@ public class RemoteScimUserProvisioningTests {
 				restTemplate.exchange(Mockito.eq("http://base/User/{id}"), Mockito.eq(HttpMethod.DELETE),
 						Mockito.argThat(new HttpHeadersMatcher()), Mockito.eq(ScimUser.class), Mockito.eq("1234")))
 				.thenReturn(new ResponseEntity<ScimUser>(user, HttpStatus.OK));
-		service.removeUser("1234", 123456789);
+		service.delete("1234", 123456789);
 	}
 
 	private static class HttpHeadersMatcher extends ArgumentMatcher<HttpEntity<Void>> {

@@ -17,7 +17,7 @@
 		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.1.xsd
 		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
 
-	<oauth:authorization-server client-details-service-ref="clientDetails" token-services-ref="tokenServices"
+	<oauth:authorization-server client-details-service-ref="jdbcClientDetailsService" token-services-ref="tokenServices"
 		user-approval-handler-ref="userApprovalHandler" authorization-request-manager-ref="authorizationRequestManager">
 		<oauth:authorization-code authorization-code-services-ref="authorizationCodeServices" />
 		<oauth:implicit />
@@ -56,7 +56,7 @@
 	</authentication-manager>
 
 	<bean id="clientDetailsUserService" class="org.springframework.security.oauth2.provider.client.ClientDetailsUserDetailsService">
-		<constructor-arg ref="clientDetails" />
+		<constructor-arg ref="jdbcClientDetailsService" />
 		<property name="passwordEncoder" ref="bcryptPasswordEncoder" />
 	</bean>
 
@@ -148,7 +148,7 @@
 		<constructor-arg ref="dataSource"/>
 		<property name="authenticationKeyGenerator">
 			<bean class="org.cloudfoundry.identity.uaa.oauth.UaaAuthenticationKeyGenerator">
-				<property name="clientDetailsService" ref="clientDetails" />
+				<property name="clientDetailsService" ref="jdbcClientDetailsService" />
 			</bean>
 		</property>
 	</bean>
@@ -159,11 +159,11 @@
 
 	<bean id="userApprovalHandler" class="org.cloudfoundry.identity.uaa.oauth.UaaUserApprovalHandler">
 		<property name="tokenServices" ref="tokenServices" />
-		<property name="clientDetailsService" ref="clientDetails" />
+		<property name="clientDetailsService" ref="jdbcClientDetailsService" />
 	</bean>
 
 	<bean id="authorizationRequestManager" class="org.cloudfoundry.identity.uaa.oauth.UaaAuthorizationRequestManager">
-		<constructor-arg ref="clientDetails" />
+		<constructor-arg ref="jdbcClientDetailsService" />
 		<property name="defaultScopes" ref="defaultUserAuthorities" />
 	</bean>
 
@@ -171,7 +171,7 @@
 		<property name="supportRefreshToken" value="true" />
 		<property name="tokenStore" ref="tokenStore" />
 		<property name="tokenEnhancer" ref="jwtTokenEnhancer" />
-		<property name="clientDetailsService" ref="clientDetails" />
+		<property name="clientDetailsService" ref="jdbcClientDetailsService" />
 	</bean>
 
 	<context:mbean-server id="mbeanServer" />
@@ -203,7 +203,7 @@
 	</bean>
 
 	<bean id="accessController" class="org.cloudfoundry.identity.uaa.oauth.AccessController">
-		<property name="clientDetailsService" ref="clientDetails" />
+		<property name="clientDetailsService" ref="jdbcClientDetailsService" />
 		<!-- Always use HTTPS if deployed on cloudfoundry -->
 		<property name="useSsl"
 			value="#{applicationProperties['oauth.authorize.ssl']?:(T(java.lang.System).getenv('VCAP_APPLICATION')!=null ? true : null)}" />

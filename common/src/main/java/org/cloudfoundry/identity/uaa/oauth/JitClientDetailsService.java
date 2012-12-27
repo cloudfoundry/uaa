@@ -13,31 +13,30 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.cloudfoundry.identity.uaa.scim.AbstractQueriable;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.JdbcClientDetailsService;
 
 /**
  * @author Dave Syer
  *
  */
-public class JitClientDetailsService implements ClientDetailsService {
-	
-	private ClientDetailsService delegate;
-	
-	/**
-	 * @param delegate the delegate to set
-	 */
-	public void setDelegate(ClientDetailsService delegate) {
-		this.delegate = delegate;
+public class JitClientDetailsService extends JdbcScimClientDetailsService {
+
+	public JitClientDetailsService(JdbcClientDetailsService delegate, JdbcTemplate jdbcTemplate) {
+		super(delegate, jdbcTemplate);
 	}
 
-	public ClientDetails loadClientByClientId(String clientId) throws OAuth2Exception {
+	@Override
+	public ClientDetails retrieve(String clientId) throws OAuth2Exception {
 		ClientDetails result;
 		try {
-			result = delegate.loadClientByClientId(clientId);
+			result = super.retrieve(clientId);
 		} catch (OAuth2Exception e) {
 			BaseClientDetails details = new BaseClientDetails(clientId, "openid", "openid", "authorization_code", UaaAuthority.UAA_NONE.toString());
 			result = details;

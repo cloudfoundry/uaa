@@ -93,7 +93,7 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
 		for (ScimUser.Group g : getGroups(user.getAuthorities())) {
 			groupsToAddUser.add(g.getDisplay());
 		}
-		List<ScimUser> users = scimUserProvisioning.retrieveUsers("userName eq '" + user.getUsername() + "'");
+		List<ScimUser> users = scimUserProvisioning.query("userName eq '" + user.getUsername() + "'");
 		if (users.isEmpty()) {
 			logger.info("Registering new user account: " + user);
 			// TODO: send a message or raise an event that can be used to inform the user of his new password
@@ -109,7 +109,7 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
 				String id = existingUser.getId();
 				int version = existingUser.getVersion();
 				scimUser.setVersion(version);
-				scimUser = scimUserProvisioning.updateUser(id, scimUser);
+				scimUser = scimUserProvisioning.update(id, scimUser);
 				scimUserProvisioning.changePassword(id, null, user.getPassword());
 			}
 		}
@@ -130,11 +130,11 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
 		if (!StringUtils.hasText(gName)) {
 			return;
 		}
-		List<ScimGroup> g = scimGroupProvisioning.retrieveGroups(String.format("displayName eq '%s'", gName));
+		List<ScimGroup> g = scimGroupProvisioning.query(String.format("displayName eq '%s'", gName));
 		ScimGroup group;
 		if (g == null || g.isEmpty()) {
 			group = new ScimGroup(gName);
-			group = scimGroupProvisioning.createGroup(group);
+			group = scimGroupProvisioning.create(group);
 		} else {
 			group = g.get(0);
 		}

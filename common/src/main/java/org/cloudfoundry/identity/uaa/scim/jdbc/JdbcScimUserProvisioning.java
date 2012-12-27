@@ -24,6 +24,8 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.scim.AbstractQueriable;
+import org.cloudfoundry.identity.uaa.scim.Queriable;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Name;
@@ -53,7 +55,7 @@ import org.springframework.util.Assert;
  * @author Luke Taylor
  * @author Dave Syer
  */
-public class JdbcScimUserProvisioning implements ScimUserProvisioning {
+public class JdbcScimUserProvisioning extends AbstractQueriable<ScimUser> implements ScimUserProvisioning {
 
 	private final Log logger = LogFactory.getLog(getClass());
 
@@ -78,9 +80,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 
 	public static final String ALL_USERS = "select " + USER_FIELDS + " from users";
 
-	private SearchQueryConverter queryConverter = new ScimSearchQueryConverter();
-
-	static final Pattern unquotedEq = Pattern.compile("(id|username|email|givenName|familyName) = [^'].*",
+	static final Pattern unquotedEq = Pattern.compile("(id|username|email|givenName|familyName) eq [^'^\"].*",
 															 Pattern.CASE_INSENSITIVE);
 
 	protected final JdbcTemplate jdbcTemplate;
@@ -94,16 +94,13 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	private final RowMapper<ScimUser> mapper = new ScimUserRowMapper();
 
 	public JdbcScimUserProvisioning(JdbcTemplate jdbcTemplate) {
+		super(jdbcTemplate, new ScimUserRowMapper());
 		Assert.notNull(jdbcTemplate);
 		this.jdbcTemplate = jdbcTemplate;
 	}
 
-	public void setQueryConverter(SearchQueryConverter queryConverter) {
-		this.queryConverter = queryConverter;
-	}
-
 	@Override
-	public ScimUser retrieveUser(String id) {
+	public ScimUser retrieve(String id) {
 		try {
 			ScimUser u = jdbcTemplate.queryForObject(USER_BY_ID_QUERY, mapper, id);
 			return u;
@@ -114,61 +111,30 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	}
 
 	@Override
-	public List<ScimUser> retrieveUsers() {
-		List<ScimUser> input = new JdbcPagingList<ScimUser>(jdbcTemplate, ALL_USERS + " ORDER by created ASC", mapper,
-				200);
-		return input;
+	protected String getBaseSqlQuery() {
+		return ALL_USERS;
 	}
 
 	@Override
-	public List<ScimUser> retrieveUsers(String filter) {
-		return retrieveUsers(filter, null, true);
+	public List<ScimUser> retrieveAll() {
+		return query("id pr", "created", true);
 	}
+
 
 	@Override
-	public List<ScimUser> retrieveUsers(String filter, String sortBy, boolean ascending) {
-
-		ProcessedFilter where = queryConverter.convert(filter, sortBy,  ascending);
-		logger.debug("Filtering users with SQL: " + where);
-		validateSqlWhereClause(where.getSql());
-
-		try {
-			String completeSql = ALL_USERS + " where " + where.getSql();
-			logger.debug("complete sql: " + completeSql + ", params: " + where.getParams());
-			return new JdbcPagingList<ScimUser>(jdbcTemplate, ALL_USERS + " where " + where.getSql(), where.getParams(), mapper,
-					200);
-		}
-		catch (DataAccessException e) {
-			logger.debug("Filter '" + filter + "' generated invalid SQL", e);
-			throw new IllegalArgumentException("Invalid filter: " + filter);
-		}
-	}
-
-	private void validateSqlWhereClause(String where) {
-		if (unquotedEq.matcher(where).matches()) {
+	public List<ScimUser> query(String filter, String sortBy, boolean ascending) {
+		if (unquotedEq.matcher(filter).matches()) {
 			throw new IllegalArgumentException("Eq argument in filter must be quoted");
 		}
-
-		if (where.contains("emails.")) {
-			throw new UnsupportedOperationException("Filters on email address fields other than 'value' not supported");
-		}
-
-		if (where.contains("phoneNumbers.")) {
-			throw new UnsupportedOperationException("Filters on phone number fields other than 'value' not supported");
-		}
+		return super.query(filter, sortBy, ascending);
 	}
 
 	@Override
-	public ScimUser createUser(final ScimUser user, final String password) throws InvalidPasswordException,
-																							  InvalidScimResourceException {
-
-		passwordValidator.validate(password, user);
+	public ScimUser create(final ScimUser user) {
 		validate(user);
-
 		logger.info("Creating new user: " + user.getUserName());
 
 		final String id = UUID.randomUUID().toString();
-		final String encPassword = passwordEncoder.encode(password);
 		try {
 			jdbcTemplate.update(CREATE_USER_SQL, new PreparedStatementSetter() {
 				public void setValues(PreparedStatement ps) throws SQLException {
@@ -189,17 +155,24 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 					ps.setBoolean(9, user.isActive());
 					String phoneNumber = extractPhoneNumber(user);
 					ps.setString(10, phoneNumber);
-					ps.setString(11, encPassword);
+					ps.setString(11, user.getPassword());
 				}
 
 			});
 		}
 		catch (DuplicateKeyException e) {
 			throw new ScimResourceAlreadyExistsException("Username already in use (could be inactive account): "
-					+ user.getUserName());
+																 + user.getUserName());
 		}
-		return retrieveUser(id);
+		return retrieve(id);
+	}
 
+	@Override
+	public ScimUser createUser(ScimUser user, final String password) throws InvalidPasswordException,
+			InvalidScimResourceException {
+		passwordValidator.validate(password, user);
+		user.setPassword(passwordEncoder.encode(password));
+		return create(user);
 	}
 
 	private void validate(final ScimUser user) throws InvalidScimResourceException {
@@ -220,7 +193,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	}
 
 	@Override
-	public ScimUser updateUser(final String id, final ScimUser user) throws InvalidScimResourceException {
+	public ScimUser update(final String id, final ScimUser user) throws InvalidScimResourceException {
 		validate(user);
 		logger.info("Updating user " + user.getUserName());
 
@@ -238,7 +211,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 				ps.setInt(10, user.getVersion());
 			}
 		});
-		ScimUser result = retrieveUser(id);
+		ScimUser result = retrieve(id);
 		if (updated == 0) {
 			throw new OptimisticLockingFailureException(String.format(
 					"Attempt to update a user (%s) with wrong version: expected=%d but found=%d", id,
@@ -256,7 +229,7 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 		if (oldPassword != null) {
 			checkPasswordMatches(id, oldPassword);
 		}
-		passwordValidator.validate(newPassword, retrieveUser(id));
+		passwordValidator.validate(newPassword, retrieve(id));
 		final String encNewPassword = passwordEncoder.encode(newPassword);
 		int updated = jdbcTemplate.update(CHANGE_PASSWORD_SQL, new PreparedStatementSetter() {
 			public void setValues(PreparedStatement ps) throws SQLException {
@@ -291,8 +264,8 @@ public class JdbcScimUserProvisioning implements ScimUserProvisioning {
 	}
 
 	@Override
-	public ScimUser removeUser(String id, int version) {
-		ScimUser user = retrieveUser(id);
+	public ScimUser delete(String id, int version) {
+		ScimUser user = retrieve(id);
         return deactivateOnDelete ? deactivateUser(user, version) : deleteUser(user, version);
 	}
 
