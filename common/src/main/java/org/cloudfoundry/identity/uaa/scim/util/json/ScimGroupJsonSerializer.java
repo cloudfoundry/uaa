@@ -33,7 +33,6 @@ public class ScimGroupJsonSerializer extends JsonSerializer<ScimGroup> {
 		groupJson.put("schemas", group.getSchemas());
 		groupJson.put("id", group.getId());
 		groupJson.put("displayName", group.getDisplayName());
-		groupJson.put("members", group.getMembers());
 		groupJson.putAll(roles);
 
 		jgen.writeObject(groupJson);

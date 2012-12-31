@@ -17,19 +17,20 @@ public class ScimGroup extends ScimCore {
 
 	@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 	public static enum Authority {
-		READ, WRITE;
+		MEMBER, READ, WRITE;
 
 		public String getRoleName() {
 			switch (this) {
+				case READ: return "reader";
 				case WRITE: return "writer";
-				default: return "reader";
+				default: return "member";
 			}
 		}
 	}
 
 	;
 
-	public static final List<Authority> GROUP_MEMBER = Arrays.asList(Authority.READ);
+	public static final List<Authority> GROUP_MEMBER = Arrays.asList(Authority.MEMBER);
 	public static final List<Authority> GROUP_ADMIN = Arrays.asList(Authority.READ, Authority.WRITE);
 
 	public String getDisplayName() {

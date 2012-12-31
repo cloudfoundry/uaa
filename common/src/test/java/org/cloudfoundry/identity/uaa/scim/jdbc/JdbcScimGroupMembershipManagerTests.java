@@ -229,6 +229,20 @@ public class JdbcScimGroupMembershipManagerTests {
 	}
 
 	@Test
+	public void canGetMembersByAuthority() {
+		addMember("g1", "m3", "USER", "READ,WRITE");
+		addMember("g1", "g2", "GROUP", "READ,MEMBER");
+		addMember("g2", "g3", "GROUP", "MEMBER");
+
+		assertEquals(1, dao.getMembers("g1", ScimGroup.Authority.MEMBER).size());
+		assertEquals(2, dao.getMembers("g1", ScimGroup.Authority.READ).size());
+		assertEquals(1, dao.getMembers("g1", ScimGroup.Authority.WRITE).size());
+
+		assertEquals(1, dao.getMembers("g2", ScimGroup.Authority.MEMBER).size());
+		assertEquals(0, dao.getMembers("g2", ScimGroup.Authority.WRITE).size());
+	}
+
+	@Test
 	public void canGetMemberById() throws Exception {
 		addMember("g3", "m2", "USER", "READ,WRITE");
 
