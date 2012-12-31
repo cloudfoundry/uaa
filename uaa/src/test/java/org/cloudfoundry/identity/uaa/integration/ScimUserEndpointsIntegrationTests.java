@@ -59,6 +59,8 @@ public class ScimUserEndpointsIntegrationTests {
 
 	private final String usersEndpoint = "/Users";
 
+	private static final int NUM_DEFAULT_GROUPS_ON_STARTUP = 9;
+
 	@Rule
 	public ServerRunning serverRunning = ServerRunning.isRunning();
 
@@ -244,7 +246,7 @@ public class ScimUserEndpointsIntegrationTests {
 		ResponseEntity<ScimUser> response = createUser(JOE, "Joe", "User", "joe@blah.com");
 		ScimUser joe = response.getBody();
 		assertEquals(JOE, joe.getUserName());
-		assertEquals(8, joe.getGroups().size()); // there are 8 default user groups configured in uaa
+		assertEquals(NUM_DEFAULT_GROUPS_ON_STARTUP, joe.getGroups().size());
 
 		joe.setGroups(Arrays.asList(new ScimUser.Group(UUID.randomUUID().toString(), "uaa.admin")));
 
@@ -256,7 +258,7 @@ public class ScimUserEndpointsIntegrationTests {
 		assertEquals(JOE, joe1.getUserName());
 
 		assertEquals(joe.getId(), joe1.getId());
-		assertEquals(8, joe1.getGroups().size()); // there are 8 default user groups configured in uaa
+		assertEquals(NUM_DEFAULT_GROUPS_ON_STARTUP, joe1.getGroups().size());
 	}
 
 	// curl -v -H "Content-Type: application/json" -H "Accept: application/json" -H 'If-Match: "0"' --data

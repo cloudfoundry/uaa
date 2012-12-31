@@ -109,6 +109,14 @@
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
 
+	<http request-matcher-ref="groupsReadRequestMatcher" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
+				entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="groupAccessDecisionManager"
+				xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/**" access="scope=scim.read,memberScope=read" method="GET" />
+		<custom-filter ref="scimResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
+		<access-denied-handler ref="oauthAccessDeniedHandler" />
+	</http>
+
 	<bean id="groupsUpdateRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
 		<constructor-arg value="/Groups" />
 		<property name="method" value="PUT" />
@@ -119,10 +127,15 @@
 		</property>
 	</bean>
 
+	<bean id="groupsReadRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
+		<constructor-arg value="/Groups" />
+		<property name="method" value="GET" />
+	</bean>
+
 	<http pattern="/Groups/**" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
 		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
 		xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/Groups/**" access="scope=scim.read" method="GET" />
+		<!--<intercept-url pattern="/Groups/**" access="scope=scim.read" method="GET" />-->
 		<intercept-url pattern="/Groups/**" access="scope=scim.write" method="DELETE" />
 		<intercept-url pattern="/Groups" access="scope=scim.write" method="POST" />
 		<intercept-url pattern="/**" access="ROLE_NONEXISTENT" />
