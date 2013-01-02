@@ -181,7 +181,8 @@ public class ScimGroupEndpointsIntegrationTests {
 		Map firstGroup = (Map) ((List) results.get("resources")).get(0);
 		assertTrue(firstGroup.containsKey("id"));
 		assertTrue(firstGroup.containsKey("displayName"));
-		assertTrue(firstGroup.containsKey("members"));
+		assertTrue(firstGroup.containsKey("schemas"));
+		assertTrue(firstGroup.containsKey("meta"));
 	}
 
 	@Test
