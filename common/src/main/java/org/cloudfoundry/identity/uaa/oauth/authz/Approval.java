@@ -104,6 +104,7 @@ public class Approval {
 		result = prime * result + userName.hashCode();
 		result = prime * result + clientId.hashCode();
 		result = prime * result + scope.hashCode();
+		result = prime * result + status.hashCode();
 		return result;
 	}
 
