@@ -15,9 +15,9 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.After;
@@ -64,8 +64,8 @@ public class ScimGroupEndpointsIntegrationTests {
 	private List<String> groupIds = new ArrayList<String>();
 
 	private final Log logger = LogFactory.getLog(getClass());
-	
-	private static final List<String> defaultGroups = Arrays.asList("openid","scim.me","cloud_controller.read","cloud_controller.write","password.write","tokens.write","tokens.read","scim.userids","uaa.user");
+
+	private static final List<String> defaultGroups = Arrays.asList("openid","scim.me","cloud_controller.read","cloud_controller.write","password.write","tokens.write","tokens.read","scim.userids","uaa.user","approvals.me");
 
 	@Rule
 	public ServerRunning serverRunning = ServerRunning.isRunning();

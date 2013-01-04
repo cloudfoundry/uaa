@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>org.cloudfoundry.identity</groupId>
 		<artifactId>cloudfoundry-identity-parent</artifactId>
-		<version>1.3.1</version>
+		<version>1.4.0-SNAPSHOT</version>
 		<relativePath>..</relativePath>
 	</parent>
 

@@ -59,7 +59,7 @@ public class ScimUserEndpointsIntegrationTests {
 
 	private final String usersEndpoint = "/Users";
 
-	private static final int NUM_DEFAULT_GROUPS_ON_STARTUP = 9;
+	private static final int NUM_DEFAULT_GROUPS_ON_STARTUP = 10;
 
 	@Rule
 	public ServerRunning serverRunning = ServerRunning.isRunning();
@@ -377,7 +377,7 @@ public class ScimUserEndpointsIntegrationTests {
 		System.err.println(results);
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
-		assertEquals(new Integer(2), (Integer) results.get("startIndex"));
+		assertEquals(new Integer(2), results.get("startIndex"));
 	}
 
 	@Test
@@ -389,7 +389,7 @@ public class ScimUserEndpointsIntegrationTests {
 		System.err.println(results);
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
-		assertEquals(new Integer(1), (Integer) results.get("startIndex"));
+		assertEquals(new Integer(1), results.get("startIndex"));
 	}
 
 }
