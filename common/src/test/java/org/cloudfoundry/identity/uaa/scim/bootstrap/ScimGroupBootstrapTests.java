@@ -2,7 +2,7 @@ package org.cloudfoundry.identity.uaa.scim.bootstrap;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
@@ -112,6 +112,6 @@ public class ScimGroupBootstrapTests {
 		assertEquals(2, bootstrap.getGroup("org1.qa").getMembers().size());
 		assertEquals(1, bootstrap.getGroup("org1.hr").getMembers().size());
 		assertEquals(3, bootstrap.getGroup("org1.engg").getMembers().size());
-		assertEquals(2, mDB.getMembers(bootstrap.getGroup("org1.dev").getId(), ScimGroup.Authority.WRITE).size());
+		assertEquals(2, mDB.getMembers(bootstrap.getGroup("org1.dev").getId(), ScimGroupMember.Role.WRITER).size());
 	}
 }

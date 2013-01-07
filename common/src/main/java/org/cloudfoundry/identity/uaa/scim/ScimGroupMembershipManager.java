@@ -35,7 +35,7 @@ public interface ScimGroupMembershipManager {
 	 * @return
 	 * @throws ScimResourceNotFoundException
 	 */
-	List<ScimGroupMember> getMembers(String groupId, ScimGroup.Authority permission) throws ScimResourceNotFoundException;
+	List<ScimGroupMember> getMembers(String groupId, ScimGroupMember.Role permission) throws ScimResourceNotFoundException;
 
 	/**
 	 * Retrieve all groups that the given member belongs to

@@ -18,11 +18,11 @@ public class ScimGroupJsonSerializer extends JsonSerializer<ScimGroup> {
 	@Override
 	public void serialize(ScimGroup group, JsonGenerator jgen, SerializerProvider provider) throws IOException, JsonProcessingException {
 		Map<String, List<ScimGroupMember>> roles = new HashMap<String, List<ScimGroupMember>>();
-		for (ScimGroup.Authority authority : ScimGroup.Authority.values()) {
-			String role = authority.getRoleName()+"s";
+		for (ScimGroupMember.Role authority : ScimGroupMember.Role.values()) {
+			String role = authority.toString().toLowerCase()+"s";
 			roles.put(role, new ArrayList<ScimGroupMember>());
 			for (ScimGroupMember member : group.getMembers()) {
-				if (member.getAuthorities().contains(authority)) {
+				if (member.getRoles().contains(authority)) {
 					roles.get(role).add(member);
 				}
 			}

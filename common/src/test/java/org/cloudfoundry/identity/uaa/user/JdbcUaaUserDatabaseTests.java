@@ -131,7 +131,7 @@ public class JdbcUaaUserDatabaseTests {
 	public void getUserWithExtraAuthorities() {
 		// only way to add to a user's authorities is by enrolling in corresponding groups
 		addGroup("g2", "dash.admin");
-		addMember("g2", JOE_ID, "USER", "READ");
+		addMember("g2", JOE_ID, "USER", "READER");
 		UaaUser joe = db.retrieveUserByName("joe");
 		assertTrue("authorities does not contain uaa.user", joe.getAuthorities().contains(new SimpleGrantedAuthority("uaa.user")));
 		assertTrue("authorities does not contain dash.admin", joe.getAuthorities().contains(new SimpleGrantedAuthority("dash.admin")));

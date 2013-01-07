@@ -4,10 +4,19 @@ import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 
+import java.util.Arrays;
 import java.util.List;
 
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class ScimGroupMember {
+
+	@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
+	public static enum Role {
+		MEMBER, READER, WRITER;
+	}
+
+	public static final List<Role> GROUP_MEMBER = Arrays.asList(Role.MEMBER);
+	public static final List<Role> GROUP_ADMIN = Arrays.asList(Role.READER, Role.WRITER);
 
 	@JsonProperty("value")
 	private String memberId;
@@ -20,14 +29,14 @@ public class ScimGroupMember {
 	private Type type;
 
 	@JsonIgnore
-	private List<ScimGroup.Authority> authorities;
+	private List<Role> roles;
 
-	public List<ScimGroup.Authority> getAuthorities() {
-		return authorities;
+	public List<Role> getRoles() {
+		return roles;
 	}
 
-	public void setAuthorities(List<ScimGroup.Authority> permissions) {
-		this.authorities = permissions;
+	public void setRoles(List<Role> permissions) {
+		this.roles = permissions;
 	}
 
 	public String getMemberId() {
@@ -48,7 +57,7 @@ public class ScimGroupMember {
 
 	@Override
 	public String toString() {
-		return String.format("(memberId: %s, type: %s, permissions: %s)", memberId, type, authorities);
+		return String.format("(memberId: %s, type: %s, roles: %s)", memberId, type, roles);
 	}
 
 	@Override
@@ -74,12 +83,12 @@ public class ScimGroupMember {
 	}
 
 	public ScimGroupMember(String memberId) {
-		this(memberId, Type.USER, ScimGroup.GROUP_MEMBER);
+		this(memberId, Type.USER, GROUP_MEMBER);
 	}
 
-	public ScimGroupMember(String memberId, Type type, List<ScimGroup.Authority> authorities) {
+	public ScimGroupMember(String memberId, Type type, List<Role> roles) {
 		this.memberId = memberId;
 		this.type = type;
-		this.authorities = authorities;
+		this.roles = roles;
 	}
 }

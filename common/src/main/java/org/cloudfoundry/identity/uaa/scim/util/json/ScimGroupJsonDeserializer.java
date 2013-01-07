@@ -1,7 +1,5 @@
 package org.cloudfoundry.identity.uaa.scim.util.json;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
@@ -14,7 +12,6 @@ import org.codehaus.jackson.map.JsonDeserializer;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -27,9 +24,9 @@ public class ScimGroupJsonDeserializer extends JsonDeserializer<ScimGroup> {
 	public ScimGroup deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException, JsonProcessingException {
 		ScimGroup group = new ScimGroup();
 
-		Map<ScimGroup.Authority, List<ScimGroupMember>> roles = new HashMap<ScimGroup.Authority, List<ScimGroupMember>>();
-		for (ScimGroup.Authority authority : ScimGroup.Authority.values()) {
-			roles.put(authority, new ArrayList<ScimGroupMember>());
+		Map<ScimGroupMember.Role, List<ScimGroupMember>> roles = new HashMap<ScimGroupMember.Role, List<ScimGroupMember>>();
+		for (ScimGroupMember.Role role : ScimGroupMember.Role.values()) {
+			roles.put(role, new ArrayList<ScimGroupMember>());
 		}
 		Set<ScimGroupMember> allMembers = new HashSet<ScimGroupMember>();
 
@@ -47,20 +44,19 @@ public class ScimGroupJsonDeserializer extends JsonDeserializer<ScimGroup> {
 				} else if ("schemas".equalsIgnoreCase(fieldName)) {
 					group.setSchemas(jp.readValueAs(String[].class));
 				} else {
-					ScimGroup.Authority authority = null;
 					String value = fieldName.substring(0, fieldName.length()-1);
-					for (ScimGroup.Authority auth : ScimGroup.Authority.values()) {
-						if (value.equalsIgnoreCase(auth.getRoleName())) {
-							authority = auth;
-							break;
-						}
+					ScimGroupMember.Role role;
+					try {
+						role = ScimGroupMember.Role.valueOf(value.toUpperCase());
+					} catch (IllegalArgumentException ex) {
+						role = null;
 					}
-					if (authority != null) {
+					if (role != null) {
 						ScimGroupMember[] members = jp.readValueAs(ScimGroupMember[].class);
 						for (ScimGroupMember member : members) {
-							member.setAuthorities(new ArrayList<ScimGroup.Authority>());
+							member.setRoles(new ArrayList<ScimGroupMember.Role>());
 						}
-						roles.get(authority).addAll(Arrays.asList(members));
+						roles.get(role).addAll(Arrays.asList(members));
 						allMembers.addAll(Arrays.asList(members));
 					}
 				}
@@ -68,9 +64,9 @@ public class ScimGroupJsonDeserializer extends JsonDeserializer<ScimGroup> {
 		}
 
 		for (ScimGroupMember member : allMembers) {
-			for (ScimGroup.Authority authority : roles.keySet()) {
-				if (roles.get(authority).contains(member)) {
-					member.getAuthorities().add(authority);
+			for (ScimGroupMember.Role role : roles.keySet()) {
+				if (roles.get(role).contains(member)) {
+					member.getRoles().add(role);
 				}
 			}
 		}

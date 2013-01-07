@@ -103,8 +103,8 @@ public class ScimGroupBootstrap implements InitializingBean {
 		if (group == null) {
 			addGroup(g);
 		}
-        List<ScimGroupMember> members = getMembers(groupMembers.get(g), ScimGroup.GROUP_MEMBER);
-		members.addAll(getMembers(groupAdmins.get(g), ScimGroup.GROUP_ADMIN));
+        List<ScimGroupMember> members = getMembers(groupMembers.get(g), ScimGroupMember.GROUP_MEMBER);
+		members.addAll(getMembers(groupAdmins.get(g), ScimGroupMember.GROUP_ADMIN));
 		logger.debug("adding members: " + members + " into group: " + g);
 
 		for (ScimGroupMember member : members) {
@@ -116,7 +116,7 @@ public class ScimGroupBootstrap implements InitializingBean {
 		}
 	}
 
-	private List<ScimGroupMember> getMembers(Set<String> names, List<ScimGroup.Authority> auth) {
+	private List<ScimGroupMember> getMembers(Set<String> names, List<ScimGroupMember.Role> auth) {
 		if (names == null || names.isEmpty()) {
 			return Collections.<ScimGroupMember>emptyList();
 		}

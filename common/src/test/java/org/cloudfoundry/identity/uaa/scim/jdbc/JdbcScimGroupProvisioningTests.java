@@ -153,8 +153,8 @@ public class JdbcScimGroupProvisioningTests {
 	@Test
 	public void canCreateGroup() throws Exception {
 		ScimGroup g = new ScimGroup("", "test.1");
-		ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroup.GROUP_MEMBER);
-		ScimGroupMember m2 = new ScimGroupMember("m2", ScimGroupMember.Type.USER, ScimGroup.GROUP_ADMIN);
+		ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER);
+		ScimGroupMember m2 = new ScimGroupMember("m2", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN);
 		g.setMembers(Arrays.asList(m1, m2));
 		g = dao.create(g);
 		logger.debug(g);
@@ -168,8 +168,8 @@ public class JdbcScimGroupProvisioningTests {
 		logger.debug(g);
 		assertEquals("uaa.user", g.getDisplayName());
 
-		ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroup.GROUP_MEMBER);
-		ScimGroupMember m2 = new ScimGroupMember("g2", ScimGroupMember.Type.USER, ScimGroup.GROUP_ADMIN);
+		ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER);
+		ScimGroupMember m2 = new ScimGroupMember("g2", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN);
 		g.setMembers(Arrays.asList(m1, m2));
 		g.setDisplayName("uaa.none");
 

@@ -168,7 +168,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 	}
 
 	@Override
-	public List<ScimGroupMember> getMembers(final String groupId, final ScimGroup.Authority permission) throws ScimResourceNotFoundException {
+	public List<ScimGroupMember> getMembers(final String groupId, final ScimGroupMember.Role permission) throws ScimResourceNotFoundException {
 		logger.debug("getting members of type: " + permission + " from group: " + groupId);
 		List<ScimGroupMember> members = new ArrayList<ScimGroupMember>();
 		members.addAll(jdbcTemplate.query(GET_MEMBERS_WITH_AUTHORITY_SQL, new PreparedStatementSetter() {
@@ -324,10 +324,10 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 	}
 
 	private String getGroupAuthorities(ScimGroupMember member) {
-		if (member.getAuthorities() != null && !member.getAuthorities().isEmpty()) {
-			return StringUtils.collectionToCommaDelimitedString(member.getAuthorities());
+		if (member.getRoles() != null && !member.getRoles().isEmpty()) {
+			return StringUtils.collectionToCommaDelimitedString(member.getRoles());
 		} else {
-			return StringUtils.collectionToCommaDelimitedString(ScimGroup.GROUP_MEMBER);
+			return StringUtils.collectionToCommaDelimitedString(ScimGroupMember.GROUP_MEMBER);
 		}
 	}
 
@@ -341,10 +341,17 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 			return new ScimGroupMember(memberId, ScimGroupMember.Type.valueOf(memberType), getAuthorities(authorities));
 		}
 
-		private List<ScimGroup.Authority> getAuthorities(String authorities) {
-			List<ScimGroup.Authority> result = new ArrayList<ScimGroup.Authority>();
+		private List<ScimGroupMember.Role> getAuthorities(String authorities) {
+			List<ScimGroupMember.Role> result = new ArrayList<ScimGroupMember.Role>();
 			for (String a : authorities.split(",")) {
-				result.add(ScimGroup.Authority.valueOf(a));
+				// for temporary backwards compatibility
+				if ("read".equalsIgnoreCase(a)) {
+					a = "reader";
+				} else if ("write".equalsIgnoreCase(a)) {
+					a = "writer";
+				}
+
+				result.add(ScimGroupMember.Role.valueOf(a.toUpperCase()));
 			}
 			return result;
 		}

@@ -102,13 +102,13 @@ public class ScimGroupEndpointsTests {
 		userEndpoints.setScimGroupMembershipManager(mm);
 
 		groupIds = new ArrayList<String>();
-		groupIds.add(addGroup("uaa.resource", Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroup.GROUP_MEMBER),
-															   createMember(ScimGroupMember.Type.GROUP, ScimGroup.GROUP_MEMBER),
-															   createMember(ScimGroupMember.Type.USER, ScimGroup.GROUP_ADMIN)))
+		groupIds.add(addGroup("uaa.resource", Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER),
+															   createMember(ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER),
+															   createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)))
 		);
 		groupIds.add(addGroup("uaa.admin", Collections.<ScimGroupMember>emptyList()));
-		groupIds.add(addGroup("uaa.none", Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroup.GROUP_MEMBER),
-															   createMember(ScimGroupMember.Type.GROUP, ScimGroup.GROUP_ADMIN)))
+		groupIds.add(addGroup("uaa.none", Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER),
+															   createMember(ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_ADMIN)))
 		);
 
 	}
@@ -129,7 +129,7 @@ public class ScimGroupEndpointsTests {
 		return g.getId();
 	}
 
-	private ScimGroupMember createMember(ScimGroupMember.Type t, List<ScimGroup.Authority> a) {
+	private ScimGroupMember createMember(ScimGroupMember.Type t, List<ScimGroupMember.Role> a) {
 		String id = UUID.randomUUID().toString();
 		if (t == ScimGroupMember.Type.USER) {
 			id = userEndpoints.createUser(TestUtils.scimUserInstance(id)).getId();
@@ -224,7 +224,7 @@ public class ScimGroupEndpointsTests {
 	@Test
 	public void testCreateGroup() throws Exception {
 		ScimGroup g = new ScimGroup("", "clients.read");
-		g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroup.GROUP_ADMIN)));
+		g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
 		ScimGroup g1 = endpoints.createGroup(g);
 		validateGroup(g1, "clients.read", 1);
 		validateUserGroups(g.getMembers().get(0).getMemberId(), "clients.read");
@@ -233,7 +233,7 @@ public class ScimGroupEndpointsTests {
 	@Test
 	public void testCreateExistingGroupFails() {
 		ScimGroup g = new ScimGroup("", "clients.read");
-		g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroup.GROUP_ADMIN)));
+		g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
 		endpoints.createGroup(g);
 		expectedEx.expect(ScimResourceAlreadyExistsException.class);
 		endpoints.createGroup(g);
@@ -242,7 +242,7 @@ public class ScimGroupEndpointsTests {
 	@Test
 	public void testCreateGroupWithInvalidMemberFails() {
 		ScimGroup g = new ScimGroup("", "clients.read");
-		g.setMembers(Arrays.asList(new ScimGroupMember("non-existent id", ScimGroupMember.Type.USER, ScimGroup.GROUP_ADMIN)));
+		g.setMembers(Arrays.asList(new ScimGroupMember("non-existent id", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
 
 		try {
 			endpoints.createGroup(g);
@@ -256,27 +256,27 @@ public class ScimGroupEndpointsTests {
 	@Test
 	public void testUpdateGroup() throws Exception {
 		ScimGroup g = new ScimGroup("", "clients.read");
-		g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroup.GROUP_ADMIN)));
+		g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
 		g = endpoints.createGroup(g);
 		validateUserGroups(g.getMembers().get(0).getMemberId(), "clients.read");
 
 		g.setDisplayName("superadmin");
-		g.getMembers().get(0).setAuthorities(ScimGroup.GROUP_MEMBER);
+		g.getMembers().get(0).setRoles(ScimGroupMember.GROUP_MEMBER);
 		ScimGroup g1 = endpoints.updateGroup(g, g.getId(), "*");
 
 		validateGroup(g1, "superadmin", 1);
-		assertEquals(ScimGroup.GROUP_MEMBER, g1.getMembers().get(0).getAuthorities());
+		assertEquals(ScimGroupMember.GROUP_MEMBER, g1.getMembers().get(0).getRoles());
 		validateUserGroups(g.getMembers().get(0).getMemberId(), "superadmin");
 	}
 
 	@Test
 	public void testUpdateNonUniqueDisplayNameFails() {
 		ScimGroup g1 = new ScimGroup("", "clients.read");
-		g1.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroup.GROUP_ADMIN)));
+		g1.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
 		g1 = endpoints.createGroup(g1);
 
 		ScimGroup g2 = new ScimGroup("", "clients.write");
-		g2.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroup.GROUP_ADMIN)));
+		g2.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
 		g2 = endpoints.createGroup(g2);
 
 		g1.setDisplayName("clients.write");
@@ -287,10 +287,10 @@ public class ScimGroupEndpointsTests {
 	@Test
 	public void testUpdateWithInvalidMemberFails() {
 		ScimGroup g1 = new ScimGroup("", "clients.read");
-		g1.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroup.GROUP_ADMIN)));
+		g1.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
 		g1 = endpoints.createGroup(g1);
 
-		g1.setMembers(Arrays.asList(new ScimGroupMember("non-existent id", ScimGroupMember.Type.USER, ScimGroup.GROUP_ADMIN)));
+		g1.setMembers(Arrays.asList(new ScimGroupMember("non-existent id", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
 		g1.setDisplayName("clients.write");
 
 		try {
@@ -307,7 +307,7 @@ public class ScimGroupEndpointsTests {
 	@Test
 	public void testUpdateInvalidVersionFails() {
 		ScimGroup g1 = new ScimGroup("", "clients.read");
-		g1.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroup.GROUP_ADMIN)));
+		g1.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
 		g1 = endpoints.createGroup(g1);
 
 		g1.setDisplayName("clients.write");
@@ -320,7 +320,7 @@ public class ScimGroupEndpointsTests {
 	@Test
 	public void testUpdateGroupWithNullEtagFails() {
 		ScimGroup g1 = new ScimGroup("", "clients.read");
-		g1.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroup.GROUP_ADMIN)));
+		g1.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
 		g1 = endpoints.createGroup(g1);
 
 		g1.setDisplayName("clients.write");
@@ -333,7 +333,7 @@ public class ScimGroupEndpointsTests {
 	@Test
 	public void testUpdateWithQuotedVersionSucceeds() {
 		ScimGroup g1 = new ScimGroup("", "clients.read");
-		g1.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroup.GROUP_ADMIN)));
+		g1.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
 		g1 = endpoints.createGroup(g1);
 
 		g1.setDisplayName("clients.write");
@@ -346,7 +346,7 @@ public class ScimGroupEndpointsTests {
 	@Test
 	public void testUpdateWrongVersionFails() {
 		ScimGroup g1 = new ScimGroup("", "clients.read");
-		g1.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroup.GROUP_ADMIN)));
+		g1.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
 		g1 = endpoints.createGroup(g1);
 
 		g1.setDisplayName("clients.write");
@@ -358,7 +358,7 @@ public class ScimGroupEndpointsTests {
 	@Test
 	public void testUpdateGroupWithNoMembers() {		
 		ScimGroup g = new ScimGroup("", "clients.read");
-		g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroup.GROUP_ADMIN)));
+		g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
 		g = endpoints.createGroup(g);
 		validateUserGroups(g.getMembers().get(0).getMemberId(), "clients.read");
 
@@ -371,7 +371,7 @@ public class ScimGroupEndpointsTests {
 	@Test
 	public void testDeleteGroup() throws Exception {
 		ScimGroup g = new ScimGroup("", "clients.read");
-		g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroup.GROUP_ADMIN)));
+		g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
 		g = endpoints.createGroup(g);
 		validateUserGroups(g.getMembers().get(0).getMemberId(), "clients.read");
 
@@ -387,7 +387,7 @@ public class ScimGroupEndpointsTests {
 	@Test
 	public void testDeleteWrongVersionFails() {
 		ScimGroup g = new ScimGroup("", "clients.read");
-		g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroup.GROUP_ADMIN)));
+		g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
 		g = endpoints.createGroup(g);
 
 		expectedEx.expect(ScimException.class);
