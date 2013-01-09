@@ -1,8 +1,12 @@
 package org.cloudfoundry.identity.uaa.oauth.authz;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 import static org.junit.Assert.assertFalse;
@@ -35,5 +39,12 @@ public class ApprovalTest {
 												);
 		assertTrue(approvals.contains(new Approval("u1", "c1", "s1", 100, Approval.ApprovalStatus.APPROVED)));
 		assertFalse(approvals.contains(new Approval("u1", "c1", "s1", 100, Approval.ApprovalStatus.DENIED)));
+	}
+
+	@Test
+	public void testExpiry() {
+		int THIRTY_MINTUES = 30 * 60 * 1000;
+		assertTrue(new Approval("u1", "c1", "s1", THIRTY_MINTUES, Approval.ApprovalStatus.APPROVED).isCurrentlyActive());
+		assertFalse(new Approval("u1", "c1", "s1", -1, Approval.ApprovalStatus.APPROVED).isCurrentlyActive());
 	}
 }

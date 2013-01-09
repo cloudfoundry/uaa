@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.scim.util.json;
 
+import org.cloudfoundry.identity.uaa.oauth.authz.Approval;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.codehaus.jackson.JsonParser;
@@ -11,6 +12,7 @@ import org.codehaus.jackson.map.exc.UnrecognizedPropertyException;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashSet;
 
 public class ScimUserJsonDeserializer extends JsonDeserializer<ScimUser> {
 	@Override
@@ -59,6 +61,8 @@ public class ScimUserJsonDeserializer extends JsonDeserializer<ScimUser> {
 					user.setDisplayName(jp.readValueAs(String.class));
 				} else if ("active".equalsIgnoreCase(fieldName)) {
 					user.setActive(jp.readValueAs(Boolean.class));
+				} else if ("approvals".equalsIgnoreCase(fieldName)) {
+					user.setApprovals(new HashSet<Approval>(Arrays.asList(jp.readValueAs(Approval[].class))));
 				} else {
 					throw new UnrecognizedPropertyException("unrecognized field", jp.getCurrentLocation(), ScimUser.class, fieldName);
 				}

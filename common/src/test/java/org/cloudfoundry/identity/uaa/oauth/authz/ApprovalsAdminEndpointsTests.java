@@ -86,7 +86,7 @@ public class ApprovalsAdminEndpointsTests {
 		endpoints.setSecurityContextAccessor(mockSecurityContextAccessor(marissa.getId()));
 	}
 
-	private void addApproval(String userName, String clientId, String scope, long expiresIn, ApprovalStatus status) {
+	private void addApproval(String userName, String clientId, String scope, int expiresIn, ApprovalStatus status) {
 		dao.addApproval(new Approval(userName, clientId, scope, expiresIn, status));
 	}
 
