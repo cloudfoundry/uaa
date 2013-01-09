@@ -45,8 +45,7 @@ public class UserManagedAuthzApprovalHandler implements
 
 	private ScimClientDetailsService clientDetailsService;
 
-	//Default approval expiry is one month
-	private long approvalExpirySeconds = oneMonth();
+	private int approvalExpiryInMillis = -1;
 
 	/**
 	 * @param clientDetailsService the clientDetailsService to set
@@ -88,7 +87,7 @@ public class UserManagedAuthzApprovalHandler implements
 
 		if(userApproval) {
 			//Store the scopes that have been approved / denied
-			Date expiry = new Date(System.currentTimeMillis() + (approvalExpirySeconds * 1000));
+			Date expiry = computeExpiry();
 
 			//Get the approved scopes, calculate the denied scope
 			Map<String, String> approvalParameters = authorizationRequest.getApprovalParameters();
@@ -181,6 +180,16 @@ public class UserManagedAuthzApprovalHandler implements
 		return userApproval;
 	}
 
+	private Date computeExpiry() {
+		Calendar expiresAt = Calendar.getInstance();
+		if (approvalExpiryInMillis == -1) { // use default of 1 month
+			expiresAt.add(Calendar.MONTH, 1);
+		} else {
+			expiresAt.add(Calendar.MILLISECOND, approvalExpiryInMillis);
+		}
+		return expiresAt.getTime();
+	}
+
 	private boolean isAutoApprove(ClientDetails client, Collection<String> scopes) {
 		Map<String, Object> info = client.getAdditionalInformation();
 		if (info.containsKey("autoapprove")) {
@@ -199,8 +208,8 @@ public class UserManagedAuthzApprovalHandler implements
 		return false;
 	}
 
-	public void setApprovalExpirySeconds(long approvalExpirySeconds) {
-		this.approvalExpirySeconds = approvalExpirySeconds;
+	public void setApprovalExpiryInSeconds(int approvalExpirySeconds) {
+		this.approvalExpiryInMillis = approvalExpirySeconds * 1000;
 	}
 
 }

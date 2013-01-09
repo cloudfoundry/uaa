@@ -19,9 +19,11 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 
 import javax.sql.DataSource;
 
@@ -34,9 +36,12 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
 import org.springframework.test.annotation.IfProfileValue;
 import org.springframework.test.annotation.ProfileValueSourceConfiguration;
@@ -64,6 +69,15 @@ public class UserManagedAuthzApprovalHandlerTests {
 		template = new JdbcTemplate(dataSource);
 		approvalStore = new JdbcApprovalStore(template);
 		handler.setApprovalStore(approvalStore);
+		handler.setClientDetailsService(mockClientDetailsService("foo", Collections.<String, Object>emptyMap()));
+	}
+
+	private ScimClientDetailsService mockClientDetailsService(String id, Map<String, Object> addlInfo) {
+		ScimClientDetailsService service = Mockito.mock(ScimClientDetailsService.class);
+		ClientDetails details = Mockito.mock(ClientDetails.class);
+		Mockito.when(service.retrieve(id)).thenReturn(details);
+		Mockito.when(details.getAdditionalInformation()).thenReturn(addlInfo);
+		return service;
 	}
 
 	@Test

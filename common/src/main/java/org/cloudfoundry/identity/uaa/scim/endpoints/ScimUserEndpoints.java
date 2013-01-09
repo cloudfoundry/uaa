@@ -12,8 +12,12 @@
  */
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReport;
+import org.cloudfoundry.identity.uaa.oauth.authz.Approval;
+import org.cloudfoundry.identity.uaa.oauth.authz.ApprovalStore;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -53,6 +57,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -74,10 +79,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Controller
 @ManagedResource
 public class ScimUserEndpoints implements InitializingBean {
+	private final Log logger = LogFactory.getLog(getClass());
+
+	private static final String USER_APPROVALS_FILTER_TEMPLATE = "userName eq '%s'";
 
 	private ScimUserProvisioning dao;
 
 	private ScimGroupMembershipManager membershipManager;
+
+	private ApprovalStore approvalsManager;
 
 	private static final Random passwordGenerator = new SecureRandom();
 
@@ -139,14 +149,14 @@ public class ScimUserEndpoints implements InitializingBean {
 	@RequestMapping(value = "/Users/{userId}", method = RequestMethod.GET)
 	@ResponseBody
 	public ScimUser getUser(@PathVariable String userId) {
-		return syncGroups(dao.retrieve(userId));
+		return syncApprovals(syncGroups(dao.retrieve(userId)));
 	}
 
 	@RequestMapping(value = "/Users", method = RequestMethod.POST)
 	@ResponseStatus(HttpStatus.CREATED)
 	@ResponseBody
 	public ScimUser createUser(@RequestBody ScimUser user) {
-		return syncGroups(dao.createUser(user, user.getPassword() == null ? generatePassword() : user.getPassword()));
+		return syncApprovals(syncGroups(dao.createUser(user, user.getPassword() == null ? generatePassword() : user.getPassword())));
 	}
 
 	@RequestMapping(value = "/Users/{userId}", method = RequestMethod.PUT)
@@ -161,7 +171,7 @@ public class ScimUserEndpoints implements InitializingBean {
 		try {
 			ScimUser updated = dao.update(userId, user);
 			scimUpdates.incrementAndGet();
-			return syncGroups(updated);
+			return syncApprovals(syncGroups(updated));
 		}
 		catch (OptimisticLockingFailureException e) {
 			throw new ScimResourceConflictException(e.getMessage());
@@ -218,7 +228,7 @@ public class ScimUserEndpoints implements InitializingBean {
 		try {
 			input = dao.query(filter, sortBy, sortOrder.equals("ascending"));
 			for (ScimUser user : input.subList(startIndex - 1, startIndex + count - 1)) {
-				syncGroups(user);
+				syncApprovals(syncGroups(user));
 			}
 		}
 		catch (IllegalArgumentException e) {
@@ -258,6 +268,24 @@ public class ScimUserEndpoints implements InitializingBean {
 		}
 
 		user.setGroups(groups);
+		return user;
+	}
+
+	private ScimUser syncApprovals(ScimUser user) {
+		if (user == null || approvalsManager == null) {
+			return user;
+		}
+		logger.debug("Syncing approvals for user: " + user.getUserName());
+		Set<Approval> approvals = new HashSet<Approval>(approvalsManager.getApprovals(String.format(USER_APPROVALS_FILTER_TEMPLATE, user.getUserName())));
+		Set<Approval> active = new HashSet<Approval>(approvals);
+		logger.debug("All approvals: " + approvals);
+		for (Approval approval : approvals) {
+			if (!approval.isCurrentlyActive()) {
+				active.remove(approval);
+			}
+		}
+		logger.debug("Active: " + active);
+		user.setApprovals(active);
 		return user;
 	}
 
@@ -305,9 +333,14 @@ public class ScimUserEndpoints implements InitializingBean {
 		this.membershipManager = membershipManager;
 	}
 
+	public void setApprovalsManager(ApprovalStore approvalsManager) {
+		this.approvalsManager = approvalsManager;
+	}
+
 	@Override
 	public void afterPropertiesSet() throws Exception {
 		Assert.notNull(dao, "ScimUserProvisioning must be set");
 		Assert.notNull(membershipManager, "ScimGroupMembershipManager must be set");
+		Assert.notNull(approvalsManager, "ApprovalStore must be set");
 	}
 }

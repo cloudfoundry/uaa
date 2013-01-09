@@ -12,14 +12,17 @@
  */
 package org.cloudfoundry.identity.uaa.oauth.authz;
 
+import java.util.Calendar;
 import java.util.Date;
 
+import org.cloudfoundry.identity.uaa.scim.util.json.JsonDateDeserializer;
+import org.cloudfoundry.identity.uaa.scim.util.json.JsonDateSerializer;
+import org.codehaus.jackson.annotate.JsonIgnore;
+import org.codehaus.jackson.map.annotate.JsonDeserialize;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class Approval {
-
-	private static final long THIRTY_MINUTES_IN_MILLIS = 1800000;
 
 	private String userName;
 
@@ -75,16 +78,31 @@ public class Approval {
 		this.scope = scope == null ? "" : scope;
 	}
 
+	@JsonSerialize(using = JsonDateSerializer.class, include = JsonSerialize.Inclusion.NON_NULL)
 	public Date getExpiresAt() {
 		return expiresAt;
 	}
 
+	@JsonDeserialize(using = JsonDateDeserializer.class)
 	public void setExpiresAt(Date expiresAt) {
-		this.expiresAt = expiresAt == null ? new Date(new Date().getTime() + THIRTY_MINUTES_IN_MILLIS) : expiresAt;
+		if (expiresAt == null) {
+			Calendar thirtyMinFromNow = Calendar.getInstance();
+			thirtyMinFromNow.add(Calendar.MINUTE, 30);
+			expiresAt = thirtyMinFromNow.getTime();
+		}
+		this.expiresAt = expiresAt;
 	}
 
-	public Approval(String userId, String clientId, String scope, long expiresIn, ApprovalStatus status) {
-		this(userId, clientId, scope, new Date(new Date().getTime() + expiresIn), status);
+	@JsonIgnore
+	public boolean isCurrentlyActive() {
+		return expiresAt != null && expiresAt.after(new Date());
+	}
+
+	public Approval(String userId, String clientId, String scope, int expiresIn, ApprovalStatus status) {
+		this(userId, clientId, scope, new Date(), status);
+		Calendar expiresAt = Calendar.getInstance();
+		expiresAt.add(Calendar.MILLISECOND, expiresIn);
+		setExpiresAt(expiresAt.getTime());
 	}
 
 	public Approval(String userId, String clientId, String scope, Date expiresAt, ApprovalStatus status) {

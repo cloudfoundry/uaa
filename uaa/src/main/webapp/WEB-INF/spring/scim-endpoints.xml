@@ -70,6 +70,7 @@
 	<bean id="scimUserEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints">
 		<property name="scimUserProvisioning" ref="scimUserProvisioning" />
 		<property name="scimGroupMembershipManager" ref="groupMembershipManager" />
+		<property name="approvalsManager" ref="approvalStore" />
 		<property name="statuses" ref="exceptionToStatusMap" />
 		<property name="messageConverters">
 			<bean class="org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter" />
@@ -135,7 +136,6 @@
 	<http pattern="/Groups/**" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
 		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
 		xmlns="http://www.springframework.org/schema/security">
-		<!--<intercept-url pattern="/Groups/**" access="scope=scim.read" method="GET" />-->
 		<intercept-url pattern="/Groups/**" access="scope=scim.write" method="DELETE" />
 		<intercept-url pattern="/Groups" access="scope=scim.write" method="POST" />
 		<intercept-url pattern="/**" access="ROLE_NONEXISTENT" />
@@ -176,12 +176,26 @@
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
 
+	<bean id="userAccessDecisionManager" class="org.springframework.security.access.vote.AffirmativeBased">
+		<constructor-arg>
+			<list>
+				<bean id="userVoter" class="org.cloudfoundry.identity.uaa.scim.security.UserVoter" />
+				<bean class="org.springframework.security.oauth2.provider.vote.ScopeVoter">
+					<property name="scopePrefix" value="scope=" />
+					<property name="throwException" value="false" />
+				</bean>
+				<bean class="org.springframework.security.access.vote.AuthenticatedVoter" />
+				<bean class="org.springframework.security.access.vote.RoleVoter" />
+			</list>
+		</constructor-arg>
+	</bean>
+
 	<http pattern="/Users/**" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
-		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
+		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="userAccessDecisionManager"
 		xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/Users/**" access="scope=scim.read" method="GET" />
+		<intercept-url pattern="/Users/**" access="scope=scim.read,user=self" method="GET" />
 		<intercept-url pattern="/Users/*" access="scope=scim.write" method="DELETE" />
-		<intercept-url pattern="/Users/*" access="scope=scim.write" method="PUT" />
+		<intercept-url pattern="/Users/*" access="scope=scim.write,user=self" method="PUT" />
 		<intercept-url pattern="/Users" access="scope=scim.write" method="POST" />
 		<intercept-url pattern="/**" access="ROLE_NONEXISTENT" />
 		<custom-filter ref="scimResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />

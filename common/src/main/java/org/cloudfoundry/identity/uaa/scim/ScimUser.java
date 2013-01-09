@@ -18,6 +18,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.cloudfoundry.identity.uaa.oauth.authz.Approval;
 import org.cloudfoundry.identity.uaa.scim.util.json.ScimUserJsonDeserializer;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
@@ -263,6 +264,8 @@ public final class ScimUser extends ScimCore {
 
 	private Set<Group> groups;
 
+	private Set<Approval> approvals;
+
 	private List<PhoneNumber> phoneNumbers;
 
 	private String displayName;
@@ -324,6 +327,14 @@ public final class ScimUser extends ScimCore {
 
 	public void setEmails(List<Email> emails) {
 		this.emails = emails;
+	}
+
+	public Set<Approval> getApprovals() {
+		return approvals;
+	}
+
+	public void setApprovals(Set<Approval> approvals) {
+		this.approvals = approvals;
 	}
 
 	public Set<Group> getGroups() {

@@ -126,7 +126,7 @@ public class JdbcApprovalStoreTests {
 		Approval app = dao.getApprovals("u1", "c1").iterator().next();
 		assertTrue(app.getExpiresAt().before(new Date(new Date().getTime() + 6000)));
 
-		assertTrue(dao.refreshApproval(new Approval(app.getUserName(), app.getClientId(), app.getScope(), app.getExpiresAt().getTime() + 2000, APPROVED)));
+		assertTrue(dao.refreshApproval(new Approval(app.getUserName(), app.getClientId(), app.getScope(), (int)app.getExpiresAt().getTime() + 2000, APPROVED)));
 		app = dao.getApprovals("u1", "c1").iterator().next();
 		assertTrue(app.getExpiresAt().after(new Date(new Date().getTime() + 6000)));
 	}
