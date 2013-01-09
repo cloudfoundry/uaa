@@ -139,7 +139,7 @@ public class VmcScimUserEndpointIntegrationTests {
 		@SuppressWarnings("unchecked")
 		Map<String, String> error = response.getBody();
 		// System.err.println(error);
-		assertEquals("insufficient_scope", error.get("error"));
+		assertEquals("access_denied", error.get("error"));
 	}
 
 	@Test

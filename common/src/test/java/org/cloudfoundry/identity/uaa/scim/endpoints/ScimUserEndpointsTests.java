@@ -16,12 +16,11 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter;
+import org.cloudfoundry.identity.uaa.oauth.authz.Approval;
+import org.cloudfoundry.identity.uaa.oauth.authz.JdbcApprovalStore;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.endpoints.SearchResults;
-import org.cloudfoundry.identity.uaa.scim.endpoints.ScimGroupEndpoints;
-import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
@@ -93,6 +92,8 @@ public class ScimUserEndpointsTests {
 
 	private static JdbcScimGroupMembershipManager mm;
 
+	private static JdbcApprovalStore am;
+
 	private static EmbeddedDatabase database;
 
 	private List<ScimUser> createdUsers = new ArrayList<ScimUser>();
@@ -139,6 +140,9 @@ public class ScimUserEndpointsTests {
 		map.put(HttpMessageConversionException.class, HttpStatus.BAD_REQUEST);
 		map.put(HttpMediaTypeException.class, HttpStatus.BAD_REQUEST);
 		endpoints.setStatuses(map);
+
+		am = new JdbcApprovalStore(jdbcTemplate);
+		endpoints.setApprovalStore(am);
 	}
 
 	@AfterClass
@@ -214,6 +218,46 @@ public class ScimUserEndpointsTests {
 		validateUserGroups(endpoints.getUser(created.getId()), "test1");
 	}
 
+	@Test
+	public void approvalsIsSyncedCorrectlyOnCreate() {
+		am.addApproval(new Approval("vidya", "c1", "s1", 6000, Approval.ApprovalStatus.APPROVED));
+		ScimUser user = new ScimUser(null, "vidya", "Vidya", "V");
+		user.addEmail("vidya@vmware.com");
+		user.setApprovals(Collections.singleton(new Approval("vidya", "c1", "s1", 6000, Approval.ApprovalStatus.APPROVED)));
+		ScimUser created = endpoints.createUser(user);
+		createdUsers.add(created);
+
+		assertNotNull(created.getApprovals());
+		assertEquals(1, created.getApprovals().size());
+	}
+
+	@Test
+	public void approvalsIsSyncedCorrectlyOnUpdate() {
+		am.addApproval(new Approval("vidya", "c1", "s1", 6000, Approval.ApprovalStatus.APPROVED));
+		am.addApproval(new Approval("vidya", "c1", "s2", 6000, Approval.ApprovalStatus.DENIED));
+
+		ScimUser user = new ScimUser(null, "vidya", "Vidya", "V");
+		user.addEmail("vidya@vmware.com");
+		user.setApprovals(Collections.singleton(new Approval("vidya", "c1", "s1", 6000, Approval.ApprovalStatus.APPROVED)));
+		ScimUser created = endpoints.createUser(user);
+		createdUsers.add(created);
+		assertNotNull(created.getApprovals());
+		assertEquals(2, created.getApprovals().size());
+
+		created.setApprovals(Collections.singleton(new Approval("vidya", "c1", "s1", 6000, Approval.ApprovalStatus.APPROVED)));
+		ScimUser updated = endpoints.updateUser(created, created.getId(), "*");
+		assertEquals(2, updated.getApprovals().size());
+	}
+
+	@Test
+	public void approvalsIsSyncedCorrectlyOnGet() {
+		assertEquals(0, endpoints.getUser(joel.getId()).getApprovals().size());
+
+		am.addApproval(new Approval(joel.getUserName(), "c1", "s1", 6000, Approval.ApprovalStatus.APPROVED));
+		am.addApproval(new Approval(joel.getUserName(), "c1", "s2", 6000, Approval.ApprovalStatus.DENIED));
+
+		assertEquals(2, endpoints.getUser(joel.getId()).getApprovals().size());
+	}
 
 	@Test
 	public void userGetsADefaultPassword() {
