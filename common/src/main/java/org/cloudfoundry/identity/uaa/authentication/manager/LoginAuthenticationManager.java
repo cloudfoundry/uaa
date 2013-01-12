@@ -128,7 +128,7 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
 				email = name;
 			}
 			else {
-				email = name + "@unknown.org";
+				email = name + "@unknown.invalid";
 			}
 		}
 		String givenName = info.get("given_name");
