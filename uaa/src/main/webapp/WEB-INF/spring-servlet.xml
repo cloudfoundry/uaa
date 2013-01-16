@@ -100,7 +100,7 @@
 
 	<bean id="logoutHandler" class="org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler">
 		<property name="targetUrlParameter" value="redirect" />
-		<property name="defaultTargetUrl" value="/login" />
+		<property name="defaultTargetUrl" value="/" />
 	</bean>
 
 	<bean id="uiRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.DelegatingRequestMatcher">
@@ -111,6 +111,9 @@
 				</bean>
 				<bean class="org.springframework.security.web.util.AntPathRequestMatcher">
 					<constructor-arg value="/home" />
+				</bean>
+				<bean class="org.springframework.security.web.util.AntPathRequestMatcher">
+					<constructor-arg value="/spring_security_login" />
 				</bean>
 				<bean class="org.springframework.security.web.util.AntPathRequestMatcher">
 					<constructor-arg value="/oauth/**" />

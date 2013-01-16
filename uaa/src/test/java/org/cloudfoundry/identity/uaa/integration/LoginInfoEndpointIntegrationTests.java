@@ -62,7 +62,7 @@ public class LoginInfoEndpointIntegrationTests {
 		String body = response.getBody();
 		// System.err.println(body);
 		assertNotNull(body);
-		assertTrue("Wrong body: "+body, body.contains("<form id=\"loginForm\""));
+		assertTrue("Wrong body: "+body, body.contains("<form id="));
 
 	}
 
