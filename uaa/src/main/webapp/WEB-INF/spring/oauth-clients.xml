@@ -98,6 +98,16 @@
 							<entry key="authorities" value="uaa.resource" />
 						</map>
 					</entry>
+					<entry key="approvalsUi">
+                        <map>
+                            <entry key="id" value="approvalsUi" />
+                            <entry key="secret" value="secret" />
+                            <entry key="scope" value="openid,uaa.user" />
+                            <entry key="authorized-grant-types" value="authorization_code" />
+                            <entry key="authorities" value="uaa.resource" />
+                            <entry key="autoapprove" value="true" />
+                        </map>
+                    </entry>
 				</map>
 			</property>
 		</bean>
