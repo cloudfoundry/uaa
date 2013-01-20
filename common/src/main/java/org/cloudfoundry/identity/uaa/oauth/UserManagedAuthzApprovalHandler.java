@@ -30,7 +30,6 @@ import org.cloudfoundry.identity.uaa.oauth.authz.ApprovalStore;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
 import org.springframework.security.oauth2.provider.approval.UserApprovalHandler;
 
@@ -52,13 +51,6 @@ public class UserManagedAuthzApprovalHandler implements
 	 */
 	public void setClientDetailsService(ScimClientDetailsService clientDetailsService) {
 		this.clientDetailsService = clientDetailsService;
-	}
-
-	private long oneMonth() {
-		Calendar cal = Calendar.getInstance();
-		cal.setTime(new Date());
-		cal.set(Calendar.MONTH, (cal.get(Calendar.MONTH) + 6));
-		return cal.getTimeInMillis() / 1000;
 	}
 
 	public void setApprovalStore(ApprovalStore approvalStore) {

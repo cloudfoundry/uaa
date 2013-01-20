@@ -43,7 +43,7 @@ public class ScimGroupJsonSerializer extends JsonSerializer<ScimGroup> {
 	}
 
 	private void addNonNull (Map<Object, Object> map, Object key, Object value) {
-		if (value == null || (value instanceof Collection && ((Collection)value).isEmpty())) {
+		if (value == null || (value instanceof Collection && ((Collection<?>)value).isEmpty())) {
 			return;
 		}
 		map.put(key, value);

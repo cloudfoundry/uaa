@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.scim;
 
+import java.util.List;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcPagingList;
@@ -9,8 +11,6 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-
-import java.util.List;
 
 public abstract class AbstractQueryable<T> implements Queryable<T> {
 
@@ -23,8 +23,6 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
 	private SearchQueryConverter queryConverter = new ScimSearchQueryConverter();
 
 	private boolean pagination = true;
-
-	private static final String QUERY_TEMPLATE = "select * from %s where %s";
 
 	public void setQueryConverter(SearchQueryConverter queryConverter) {
 		this.queryConverter = queryConverter;

@@ -16,8 +16,6 @@
 		<constructor-arg ref="jdbcTemplate" />
 	</bean>
 
-	<bean id="securityContextAccessor" class="org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor" />
-
 	<bean id="approvalsEndpoints" class="org.cloudfoundry.identity.uaa.oauth.authz.ApprovalsAdminEndpoints">
 		<property name="usersManager" ref="scimUserProvisioning" />
 		<property name="approvalStore" ref="approvalStore" />
@@ -34,7 +32,6 @@
 		<property name="messageConverters">
 			<bean class="org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter" />
 		</property>
-		<property name="securityContextAccessor" ref="securityContextAccessor" />
 	</bean>
 
 	<http name="approvalsSecurity" pattern="/approvals" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
