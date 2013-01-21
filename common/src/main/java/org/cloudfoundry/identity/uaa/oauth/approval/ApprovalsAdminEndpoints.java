@@ -10,7 +10,7 @@
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  */
-package org.cloudfoundry.identity.uaa.oauth.authz;
+package org.cloudfoundry.identity.uaa.oauth.approval;
 
 import java.util.HashMap;
 import java.util.List;
@@ -48,7 +48,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 
 	private ApprovalStore approvalStore;
 
-	private ScimUserProvisioning usersManager;
+	private ScimUserProvisioning scimUserProvisioning;
 
 	private Map<Class<? extends Exception>, HttpStatus> statuses = new HashMap<Class<? extends Exception>, HttpStatus>();
 
@@ -76,8 +76,8 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 		this.approvalStore = approvalStore;
 	}
 
-	public void setUsersManager(ScimUserProvisioning usersManager) {
-		this.usersManager = usersManager;
+	public void setScimUserProvisioning(ScimUserProvisioning scimUserProvisioning) {
+		this.scimUserProvisioning = scimUserProvisioning;
 	}
 
 	@RequestMapping(value = "/approvals", method = RequestMethod.GET)
@@ -93,7 +93,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 	}
 
 	private String getCurrentUsername() {
-		return usersManager.retrieve(securityContextAccessor.getUserId()).getUserName();
+		return scimUserProvisioning.retrieve(securityContextAccessor.getUserId()).getUserName();
 	}
 
 	@RequestMapping(value = "/approvals", method = RequestMethod.PUT)
@@ -114,7 +114,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 	}
 
 	private boolean isValidUser(String username) {
-		List<ScimUser> users = usersManager.query(String.format(USER_FILTER_TEMPLATE, username));
+		List<ScimUser> users = scimUserProvisioning.query(String.format(USER_FILTER_TEMPLATE, username));
 		return users.size() == 1 && users.get(0).getId().equals(securityContextAccessor.getUserId());
 	}
 
@@ -145,6 +145,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 	@Override
 	public void afterPropertiesSet() throws Exception {
 		Assert.notNull(approvalStore, "Please supply an approvals manager");
-		Assert.notNull(usersManager, "Please supply a users manager");
+		Assert.notNull(scimUserProvisioning, "Please supply a users provisioner");
 	}
+
 }

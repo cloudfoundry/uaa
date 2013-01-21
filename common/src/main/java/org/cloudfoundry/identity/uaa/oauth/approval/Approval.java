@@ -10,7 +10,7 @@
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  */
-package org.cloudfoundry.identity.uaa.oauth.authz;
+package org.cloudfoundry.identity.uaa.oauth.approval;
 
 import java.util.Calendar;
 import java.util.Date;
@@ -31,19 +31,8 @@ public class Approval {
 	private String scope;
 
 	public enum ApprovalStatus {
-		APPROVED("APPROVED"),
-		DENIED("DENIED");
-
-		private String approvalStatus;
-
-		@Override
-		public String toString() {
-			return approvalStatus;
-		}
-
-		private ApprovalStatus(String approvalStatus) {
-			this.approvalStatus = approvalStatus;
-		}
+		APPROVED,
+		DENIED;
 	}
 
 	private ApprovalStatus status;

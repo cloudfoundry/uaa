@@ -167,7 +167,7 @@
 		<property name="approvalStore" ref="approvalStore" />
 	</bean>
 	
-	<bean id="approvalStore" class="org.cloudfoundry.identity.uaa.oauth.authz.JdbcApprovalStore">
+	<bean id="approvalStore" class="org.cloudfoundry.identity.uaa.oauth.approval.JdbcApprovalStore">
 		<constructor-arg name="jdbcTemplate" ref="jdbcTemplate" />
 	</bean>
 

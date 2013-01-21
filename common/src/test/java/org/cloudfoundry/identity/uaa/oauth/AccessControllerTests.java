@@ -18,8 +18,9 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
-import org.cloudfoundry.identity.uaa.oauth.authz.InMemoryApprovalStore;
+import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
@@ -41,7 +42,7 @@ public class AccessControllerTests {
 		InMemoryClientDetailsService clientDetailsService = new InMemoryClientDetailsService();
 		clientDetailsService.setClientDetailsStore(Collections.singletonMap("client", new BaseClientDetails()));
 		controller.setClientDetailsService(clientDetailsService);
-		controller.setApprovalStore(new InMemoryApprovalStore());
+		controller.setApprovalStore(Mockito.mock(ApprovalStore.class));
 		Authentication auth = UaaAuthenticationTestFactory.getAuthentication("foo@bar.com", "Foo Bar", "foo@bar.com");
 		String result = controller.confirm(new ModelMap(), new MockHttpServletRequest(), auth, new SimpleSessionStatus());
 		assertEquals("access_confirmation", result);
@@ -53,7 +54,7 @@ public class AccessControllerTests {
 		InMemoryClientDetailsService clientDetailsService = new InMemoryClientDetailsService();
 		clientDetailsService.setClientDetailsStore(Collections.singletonMap("client", new BaseClientDetails()));
 		controller.setClientDetailsService(clientDetailsService);
-		controller.setApprovalStore(new InMemoryApprovalStore());
+		controller.setApprovalStore(Mockito.mock(ApprovalStore.class));
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setScheme("https");
 		request.addHeader("Host", "foo");

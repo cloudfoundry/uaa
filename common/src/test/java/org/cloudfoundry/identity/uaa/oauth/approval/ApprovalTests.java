@@ -1,4 +1,4 @@
-package org.cloudfoundry.identity.uaa.oauth.authz;
+package org.cloudfoundry.identity.uaa.oauth.approval;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -6,9 +6,10 @@ import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 import java.util.List;
 
+import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.junit.Test;
 
-public class ApprovalTest {
+public class ApprovalTests {
 
 	@Test
 	public void testHashCode() throws Exception {

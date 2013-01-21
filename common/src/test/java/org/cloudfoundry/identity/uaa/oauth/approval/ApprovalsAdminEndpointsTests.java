@@ -10,10 +10,10 @@
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  */
-package org.cloudfoundry.identity.uaa.oauth.authz;
+package org.cloudfoundry.identity.uaa.oauth.approval;
 
-import static org.cloudfoundry.identity.uaa.oauth.authz.Approval.ApprovalStatus.APPROVED;
-import static org.cloudfoundry.identity.uaa.oauth.authz.Approval.ApprovalStatus.DENIED;
+import static org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus.APPROVED;
+import static org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus.DENIED;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -24,7 +24,10 @@ import java.util.List;
 import javax.sql.DataSource;
 
 import org.cloudfoundry.identity.uaa.error.UaaException;
-import org.cloudfoundry.identity.uaa.oauth.authz.Approval.ApprovalStatus;
+import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
+import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalsAdminEndpoints;
+import org.cloudfoundry.identity.uaa.oauth.approval.JdbcApprovalStore;
+import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
@@ -77,7 +80,7 @@ public class ApprovalsAdminEndpointsTests {
 		dao = new JdbcApprovalStore(template);
 		endpoints = new ApprovalsAdminEndpoints();
 		endpoints.setApprovalStore(dao);
-		endpoints.setUsersManager(userDao);
+		endpoints.setScimUserProvisioning(userDao);
 
 		addApproval("marissa", "c1", "uaa.user", 6000, APPROVED);
 		addApproval("marissa", "c1", "uaa.admin", 12000, DENIED);
