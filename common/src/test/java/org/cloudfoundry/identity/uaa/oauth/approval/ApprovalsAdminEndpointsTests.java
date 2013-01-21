@@ -32,6 +32,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.security.StubSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.junit.After;
@@ -96,6 +97,7 @@ public class ApprovalsAdminEndpointsTests {
 	private SecurityContextAccessor mockSecurityContextAccessor(String userName) {
 		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
 		when(sca.getUserId()).thenReturn(userName);
+		when(sca.isUser()).thenReturn(true);
 		return sca;
 	}
 

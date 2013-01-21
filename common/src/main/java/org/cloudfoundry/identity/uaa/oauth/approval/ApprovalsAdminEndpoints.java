@@ -31,7 +31,7 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConverter;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -82,7 +82,6 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 
 	@RequestMapping(value = "/approvals", method = RequestMethod.GET)
 	@ResponseBody
-	@PreAuthorize("@securityContextAccessor.isUser()")
 	public List<Approval> getApprovals(@RequestParam(required = false, defaultValue = "userName pr") String filter,
 													 @RequestParam(required = false, defaultValue = "1") int startIndex,
 													 @RequestParam(required = false, defaultValue = "100") int count) {
@@ -93,12 +92,14 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 	}
 
 	private String getCurrentUsername() {
+		if (!securityContextAccessor.isUser()) {
+			throw new AccessDeniedException("Approvals can only be managed by a user");
+		}
 		return scimUserProvisioning.retrieve(securityContextAccessor.getUserId()).getUserName();
 	}
 
 	@RequestMapping(value = "/approvals", method = RequestMethod.PUT)
 	@ResponseBody
-	@PreAuthorize("@securityContextAccessor.isUser()")
 	public List<Approval> updateApprovals(@RequestBody Approval[] approvals) {
 		String username = getCurrentUsername();
 		logger.debug("Updating approvals for user: " + username);
@@ -120,7 +121,6 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 
 	@RequestMapping(value = "/approvals", method = RequestMethod.DELETE)
 	@ResponseBody
-	@PreAuthorize("@securityContextAccessor.isUser()")
 	public SimpleMessage revokeApprovals() {
 		String username = getCurrentUsername();
 		logger.debug("Revoking all existing approvals for user: " + username);
