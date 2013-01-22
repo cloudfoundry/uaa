@@ -140,7 +140,7 @@ public class AccessController {
 				combinedScopes.addAll((List<Map<String, String>>) model.get("undecided_scopes"));
 			}
 
-			model.put("scopes", getScopes(client, undecidedScopes));
+			model.put("scopes", combinedScopes);
 
 			model.put("message",
 					"To confirm or deny access POST to the following locations with the parameters requested.");
