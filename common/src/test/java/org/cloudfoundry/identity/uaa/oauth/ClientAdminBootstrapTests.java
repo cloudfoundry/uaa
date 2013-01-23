@@ -101,6 +101,19 @@ public class ClientAdminBootstrapTests {
 	}
 
 	@Test
+	public void testOverrideClientByDefault() throws Exception {
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put("secret", "bar");
+		bootstrap.setClients(Collections.singletonMap("foo", map));
+		doThrow(new ClientAlreadyExistsException("Planned")).when(clientRegistrationService).addClientDetails(
+				any(ClientDetails.class));
+		bootstrap.afterPropertiesSet();
+		verify(clientRegistrationService, times(1)).addClientDetails(any(ClientDetails.class));
+		verify(clientRegistrationService, times(1)).updateClientDetails(any(ClientDetails.class));
+		verify(clientRegistrationService, times(1)).updateClientSecret("foo", "bar");
+	}
+
+	@Test
 	public void testOverrideClientWithYaml() throws Exception {
 		@SuppressWarnings("unchecked")
 		Map<String, Object> map = new Yaml().loadAs("id: foo\noverride: true\nsecret: bar\n"

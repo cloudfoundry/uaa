@@ -49,6 +49,19 @@ public class ClientAdminBootstrap implements InitializingBean {
 
 	private String domain = "cloudfoundry\\.com";
 
+	private boolean defaultOverride = true;
+
+	/**
+	 * Flag to indicate that client details should override existing values by default. If true and the override flag is
+	 * not set in the client details input then the details will override any existing details with the same id.
+	 * 
+	 * @param defaultOverride the default override flag to set (default true, so flag does not have to be provided
+	 * explicitly)
+	 */
+	public void setDefaultOverride(boolean defaultOverride) {
+		this.defaultOverride = defaultOverride;
+	}
+
 	/**
 	 * The domain suffix (default "cloudfoundry.com") used to detect http redirects. If an http callback in this domain
 	 * is found in a client registration and there is no corresponding value with https as well, then the https value
@@ -105,12 +118,12 @@ public class ClientAdminBootstrap implements InitializingBean {
 				continue;
 			}
 			BaseClientDetails base = new BaseClientDetails(client);
-			Map<String,Object> info = new HashMap<String, Object>(client.getAdditionalInformation());
+			Map<String, Object> info = new HashMap<String, Object>(client.getAdditionalInformation());
 			info.put("autoapprove", true);
 			base.setAdditionalInformation(info);
 			logger.info("Adding autoapprove flag: " + base);
 			clientRegistrationService.updateClientDetails(base);
-		}		
+		}
 
 	}
 
@@ -153,6 +166,9 @@ public class ClientAdminBootstrap implements InitializingBean {
 			client.setClientSecret((String) map.get("secret"));
 			Integer validity = (Integer) map.get("access-token-validity");
 			Boolean override = (Boolean) map.get("override");
+			if (override == null) {
+				override = defaultOverride;
+			}
 			Map<String, Object> info = new HashMap<String, Object>(map);
 			if (validity != null) {
 				client.setAccessTokenValiditySeconds(validity);
@@ -181,7 +197,7 @@ public class ClientAdminBootstrap implements InitializingBean {
 				clientRegistrationService.addClientDetails(client);
 			}
 			catch (ClientAlreadyExistsException e) {
-				if (override != null && override) {
+				if (override == null || override) {
 					logger.info("Overriding client details for " + clientId);
 					clientRegistrationService.updateClientDetails(client);
 					clientRegistrationService.updateClientSecret(clientId, client.getClientSecret());
