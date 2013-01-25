@@ -81,20 +81,106 @@ public class ScimUserBootstrapTests {
 		assertEquals(2, users.size());
 	}
 
-	@SuppressWarnings("unchecked")
 	@Test
 	public void canAddUserWithAuthorities() throws Exception {
 		UaaUser joe = new UaaUser("joe", "password", "joe@test.org", "Joe", "User");
 		joe = joe.authorities(AuthorityUtils.commaSeparatedStringToAuthorityList("openid,read"));
 		ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
 		bootstrap.afterPropertiesSet();
-		Collection<?> users = userEndpoints.findUsers("id", "id pr", "id", "ascending", 1, 100).getResources();
+		@SuppressWarnings("unchecked")
+		Collection<Map<String, Object>> users = (Collection<Map<String, Object>>) userEndpoints.findUsers("id",
+				"id pr", "id", "ascending", 1, 100).getResources();
 		assertEquals(1, users.size());
 
-		String id = (String) ((Map<String,Object>)users.iterator().next()).get("id");
+		String id = (String) users.iterator().next().get("id");
 		ScimUser user = userEndpoints.getUser(id);
 		// uaa.user is always added
 		assertEquals(3, user.getGroups().size());
+	}
+
+	@Test
+	public void noOverrideByDefault() throws Exception {
+		UaaUser joe = new UaaUser("joe", "password", "joe@test.org", "Joe", "User");
+		joe = joe.authorities(AuthorityUtils.commaSeparatedStringToAuthorityList("openid,read"));
+		ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
+		bootstrap.afterPropertiesSet();
+		joe = new UaaUser("joe", "password", "joe@test.org", "Joel", "User");
+		bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
+		bootstrap.afterPropertiesSet();
+		@SuppressWarnings("unchecked")
+		Collection<Map<String, Object>> users = (Collection<Map<String, Object>>) userEndpoints.findUsers("id",
+				"id pr", "id", "ascending", 1, 100).getResources();
+		assertEquals(1, users.size());
+
+		String id = (String) users.iterator().next().get("id");
+		ScimUser user = userEndpoints.getUser(id);
+		// uaa.user is always added
+		assertEquals("Joe", user.getGivenName());
+	}
+
+	@Test
+	public void canOverride() throws Exception {
+		UaaUser joe = new UaaUser("joe", "password", "joe@test.org", "Joe", "User");
+		joe = joe.authorities(AuthorityUtils.commaSeparatedStringToAuthorityList("openid,read"));
+		ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
+		bootstrap.afterPropertiesSet();
+		joe = new UaaUser("joe", "password", "joe@test.org", "Joel", "User");
+		bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
+		bootstrap.setOverride(true);
+		bootstrap.afterPropertiesSet();
+		@SuppressWarnings("unchecked")
+		Collection<Map<String, Object>> users = (Collection<Map<String, Object>>) userEndpoints.findUsers("id",
+				"id pr", "id", "ascending", 1, 100).getResources();
+		assertEquals(1, users.size());
+
+		String id = (String) users.iterator().next().get("id");
+		ScimUser user = userEndpoints.getUser(id);
+		// uaa.user is always added
+		assertEquals("Joel", user.getGivenName());
+	}
+
+	@Test
+	public void canOverrideAuthorities() throws Exception {
+		UaaUser joe = new UaaUser("joe", "password", "joe@test.org", "Joe", "User");
+		joe = joe.authorities(AuthorityUtils.commaSeparatedStringToAuthorityList("openid,read"));
+		ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
+		bootstrap.afterPropertiesSet();
+		joe = joe.authorities(AuthorityUtils.commaSeparatedStringToAuthorityList("openid,read,write"));
+		bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
+		bootstrap.setOverride(true);
+		bootstrap.afterPropertiesSet();
+		@SuppressWarnings("unchecked")
+		Collection<Map<String, Object>> users = (Collection<Map<String, Object>>) userEndpoints.findUsers("id",
+				"id pr", "id", "ascending", 1, 100).getResources();
+		assertEquals(1, users.size());
+
+		String id = (String) users.iterator().next().get("id");
+		ScimUser user = userEndpoints.getUser(id);
+		// uaa.user is always added
+		assertEquals(4, user.getGroups().size());
+	}
+
+	@Test
+	public void canRemoveAuthorities() throws Exception {
+		UaaUser joe = new UaaUser("joe", "password", "joe@test.org", "Joe", "User");
+		joe = joe.authorities(AuthorityUtils.commaSeparatedStringToAuthorityList("openid,read"));
+		ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
+		bootstrap.afterPropertiesSet();
+		joe = joe.authorities(AuthorityUtils.commaSeparatedStringToAuthorityList("openid"));
+		JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
+		System.err.println(jdbcTemplate.queryForList("SELECT * FROM group_membership"));
+		bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
+		bootstrap.setOverride(true);
+		bootstrap.afterPropertiesSet();
+		@SuppressWarnings("unchecked")
+		Collection<Map<String, Object>> users = (Collection<Map<String, Object>>) userEndpoints.findUsers("id",
+				"id pr", "id", "ascending", 1, 100).getResources();
+		assertEquals(1, users.size());
+
+		String id = (String) users.iterator().next().get("id");
+		ScimUser user = userEndpoints.getUser(id);
+		// uaa.user is always added
+		assertEquals(2, user.getGroups().size());
 	}
 
 	@Test
