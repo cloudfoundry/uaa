@@ -114,17 +114,23 @@ public class ClientAdminBootstrapTests {
 	}
 
 	@Test
+	@SuppressWarnings("unchecked")
 	public void testOverrideClientWithYaml() throws Exception {
-		@SuppressWarnings("unchecked")
-		Map<String, Object> map = new Yaml().loadAs("id: foo\noverride: true\nsecret: bar\n"
+		Map fooClient = new Yaml().loadAs("id: foo\noverride: true\nsecret: bar\n"
 				+ "access-token-validity: 100", Map.class);
-		bootstrap.setClients(Collections.singletonMap("foo", map));
+		Map barClient = new Yaml().loadAs("id: bar\noverride: true\nsecret: bar\n"
+				+ "access-token-validity: 100", Map.class);
+		Map clients = new HashMap();
+		clients.put("foo", fooClient);
+		clients.put("bar", barClient);
+		bootstrap.setClients(clients);
 		doThrow(new ClientAlreadyExistsException("Planned")).when(clientRegistrationService).addClientDetails(
 				any(ClientDetails.class));
 		bootstrap.afterPropertiesSet();
-		verify(clientRegistrationService, times(1)).addClientDetails(any(ClientDetails.class));
-		verify(clientRegistrationService, times(1)).updateClientDetails(any(ClientDetails.class));
+		verify(clientRegistrationService, times(2)).addClientDetails(any(ClientDetails.class));
+		verify(clientRegistrationService, times(2)).updateClientDetails(any(ClientDetails.class));
 		verify(clientRegistrationService, times(1)).updateClientSecret("foo", "bar");
+		verify(clientRegistrationService, times(1)).updateClientSecret("bar", "bar");
 	}
 
 	@Test

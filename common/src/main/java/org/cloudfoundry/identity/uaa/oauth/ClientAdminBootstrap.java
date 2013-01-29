@@ -35,7 +35,7 @@ import org.springframework.security.oauth2.provider.ClientRegistrationService;
 
 /**
  * @author Dave Syer
- * 
+ *
  */
 public class ClientAdminBootstrap implements InitializingBean {
 
@@ -54,7 +54,7 @@ public class ClientAdminBootstrap implements InitializingBean {
 	/**
 	 * Flag to indicate that client details should override existing values by default. If true and the override flag is
 	 * not set in the client details input then the details will override any existing details with the same id.
-	 * 
+	 *
 	 * @param defaultOverride the default override flag to set (default true, so flag does not have to be provided
 	 * explicitly)
 	 */
@@ -66,7 +66,7 @@ public class ClientAdminBootstrap implements InitializingBean {
 	 * The domain suffix (default "cloudfoundry.com") used to detect http redirects. If an http callback in this domain
 	 * is found in a client registration and there is no corresponding value with https as well, then the https value
 	 * will be added.
-	 * 
+	 *
 	 * @param domain the domain to set
 	 */
 	public void setDomain(String domain) {
@@ -85,7 +85,7 @@ public class ClientAdminBootstrap implements InitializingBean {
 	 * A set of client ids that are unconditionally to be autoapproved (independent of the settings in the client
 	 * details map). These clients will have <code>autoapprove=true</code> when they are inserted into the client
 	 * details store.
-	 * 
+	 *
 	 * @param autoApproveClients the auto approve clients
 	 */
 	public void setAutoApproveClients(Collection<String> autoApproveClients) {
@@ -201,10 +201,10 @@ public class ClientAdminBootstrap implements InitializingBean {
 					logger.info("Overriding client details for " + clientId);
 					clientRegistrationService.updateClientDetails(client);
 					clientRegistrationService.updateClientSecret(clientId, client.getClientSecret());
-					return;
+				} else {
+					// ignore it
+					logger.debug(e.getMessage());
 				}
-				// ignore it
-				logger.debug(e.getMessage());
 			}
 		}
 	}
