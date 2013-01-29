@@ -38,7 +38,6 @@
 	<import resource="spring/login-server-security.xml" />
 	<import resource="spring/scim-endpoints.xml" />
 	<import resource="spring/approvals-endpoints.xml" />
-	<import resource="spring/token-admin-endpoints.xml" />
 	<import resource="spring/client-admin-endpoints.xml" />
 	<import resource="spring/resource-endpoints.xml" />
 	<import resource="spring/openid-endpoints.xml" />

@@ -13,12 +13,14 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
+import static org.cloudfoundry.identity.uaa.oauth.Claims.EMAIL;
+import static org.cloudfoundry.identity.uaa.oauth.Claims.USER_ID;
+import static org.cloudfoundry.identity.uaa.oauth.Claims.USER_NAME;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
-import org.cloudfoundry.identity.uaa.openid.UserInfo;
 import org.junit.Test;
 
 /**
@@ -26,15 +28,15 @@ import org.junit.Test;
  *
  */
 public class UaaUserTokenConverterTests {
-	
+
 	private UaaUserTokenConverter converter = new UaaUserTokenConverter();
 
 	@Test
 	public void test() {
 		Map<String, ?> map = converter.convertUserAuthentication(UaaAuthenticationTestFactory.getAuthentication("FOO", "foo", "foo@test.org"));
-		assertEquals("FOO", map.get(UserInfo.USER_ID));
-		assertEquals("foo@test.org", map.get(UserInfo.EMAIL));
-		assertEquals("foo", map.get(UserInfo.USER_NAME));
+		assertEquals("FOO", map.get(USER_ID.value()));
+		assertEquals("foo@test.org", map.get(EMAIL.value()));
+		assertEquals("foo", map.get(USER_NAME.value()));
 	}
 
 }

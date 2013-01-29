@@ -264,7 +264,7 @@
 
 	<beans profile="default">
 		<util:list id="defaultUsers">
-			<value>marissa|koala|marissa@test.org|Marissa|Bloggs|uaa.user,tokens.read,tokens.write</value>
+			<value>marissa|koala|marissa@test.org|Marissa|Bloggs|uaa.user</value>
 		</util:list>
 		<util:list id="defaultMembers">
 			<value>acme|acme.dev,acme.qa</value>

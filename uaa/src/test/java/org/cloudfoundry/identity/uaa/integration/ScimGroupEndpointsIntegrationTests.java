@@ -63,9 +63,7 @@ public class ScimGroupEndpointsIntegrationTests {
 
 	private final Log logger = LogFactory.getLog(getClass());
 
-	private static final List<String> defaultGroups = Arrays.asList("openid", "scim.me", "cloud_controller.read",
-			"cloud_controller.write", "password.write", "tokens.write", "tokens.read", "scim.userids", "uaa.user",
-			"approvals.me");
+	private static final List<String> defaultGroups = Arrays.asList("openid","scim.me","cloud_controller.read","cloud_controller.write","password.write","scim.userids","uaa.user","approvals.me");
 
 	@Rule
 	public ServerRunning serverRunning = ServerRunning.isRunning();
@@ -377,8 +375,7 @@ public class ScimGroupEndpointsIntegrationTests {
 	private void createTestClient(String name, String secret, String scope) throws Exception {
 		OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write");
 		HttpHeaders headers = getAuthenticatedHeaders(token);
-		BaseClientDetails client = new BaseClientDetails(name, "", scope, "authorization_code,password",
-				"tokens.read,tokens.write");
+		BaseClientDetails client = new BaseClientDetails(name, "", scope, "authorization_code", "scim.read,scim.write");
 		client.setClientSecret(secret);
 		ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
 				HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
@@ -441,7 +438,7 @@ public class ScimGroupEndpointsIntegrationTests {
 		OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(tokenResponse.getBody());
 		return accessToken;
 	}
-	
+
 	private OAuth2AccessToken getAccessToken(String clientId, String clientSecret, String username, String password) {
 		HttpHeaders headers = new HttpHeaders();
 		headers.setAccept(Arrays.asList(MediaType.TEXT_HTML, MediaType.ALL));

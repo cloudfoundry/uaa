@@ -12,24 +12,18 @@
  */
 package org.cloudfoundry.identity.uaa.oauth;
 
-import java.util.Map;
-
-import org.springframework.security.oauth2.common.OAuth2AccessToken;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
-
 /**
- * @author Dave Syer
+ * <p>
+ * Constants that can be used to work with claims from OAuth2 Bearer and OpenID Connect tokens
+ * </p>
+ *
+ * @author Joel D'sa
  *
  */
-public interface AccessTokenConverter {
+public enum Claims {
+	USER_ID, USER_NAME, NAME, GIVEN_NAME, FAMILY_NAME, EMAIL, CLIENT_ID, EXP, AUTHORITIES, SCOPE, JTI, AUD, SUB, ISS, IAT, CID;
 
-	/**
-	 * @param token an access token
-	 * @param authentication the current OAuth authentication
-	 * 
-	 * @return a map representation of the token suitable for a JSON response
-	 * 
-	 */
-	public abstract Map<String, ?> convertAccessToken(OAuth2AccessToken token,	OAuth2Authentication authentication);
-
+	public String value() {
+		return this.name().toLowerCase();
+	}
 }

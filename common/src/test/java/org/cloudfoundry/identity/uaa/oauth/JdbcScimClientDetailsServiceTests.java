@@ -43,11 +43,11 @@ public class JdbcScimClientDetailsServiceTests {
 		addClient("vmc", "secret", "cc", "cc.read,cc.write",
 						 "implicit", "myRedirectUri", "cc.read,cc.write", 100, 200);
 		addClient("scimadmin", "secret", "uaa,scim", "uaa.admin,scim.read,scim.write",
-						 "client_credentials", "myRedirectUri", "tokens.read,tokens.write", 100, 200);
-		addClient("admin", "secret", "tokens,clients", "clients.read,clients.write,tokens.read,tokens.write",
-						 "client_credentials", "myRedirectUri", "clients.read,clients.write,tokens.read,tokens.write", 100, 200);
-		addClient("app", "secret", "cc", "cc.read,tokens.read,openid",
-						 "authorization_code", "myRedirectUri", "cc.read,tokens.read,openid", 100, 500);
+						 "client_credentials", "myRedirectUri", "scim.read,scim.write", 100, 200);
+		addClient("admin", "secret", "tokens,clients", "clients.read,clients.write,scim.read,scim.write",
+						 "client_credentials", "myRedirectUri", "clients.read,clients.write,scim.read,scim.write", 100, 200);
+		addClient("app", "secret", "cc", "cc.read,scim.read,openid",
+						 "authorization_code", "myRedirectUri", "cc.read,scim.read,openid", 100, 500);
 
 	}
 

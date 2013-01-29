@@ -36,9 +36,10 @@ import org.springframework.util.StringUtils;
 
 /**
  * UAA specific test account data externalized with {@link TestProfileEnvironment}.
- * 
+ *
  * @author Dave Syer
- * 
+ * @author Joel D'sa
+ *
  */
 public class UaaTestAccounts implements TestAccounts {
 
@@ -73,10 +74,12 @@ public class UaaTestAccounts implements TestAccounts {
 		return new UaaTestAccounts(server);
 	}
 
+	@Override
 	public String getUserName() {
 		return environment.getProperty("uaa.test.username", DEFAULT_USERNAME);
 	}
 
+	@Override
 	public String getPassword() {
 		String defaultPassword = DEFAULT_WEAK_PASSWORD;
 		if (environment.getActiveProfiles().length > 0) {
@@ -86,6 +89,7 @@ public class UaaTestAccounts implements TestAccounts {
 		return environment.getProperty("uaa.test.password", defaultPassword);
 	}
 
+	@Override
 	public String getEmail() {
 		String value = getUserName();
 		if (!value.contains("@")) {
@@ -106,11 +110,13 @@ public class UaaTestAccounts implements TestAccounts {
 		return user;
 	}
 
+	@Override
 	public String getAdminClientId() {
 		return environment.getProperty("UAA_ADMIN_CLIENT_ID",
 				environment.getProperty("oauth.clients.admin.id", "admin"));
 	}
 
+	@Override
 	public String getAdminClientSecret() {
 		return environment.getProperty("UAA_ADMIN_CLIENT_SECRET",
 				environment.getProperty("oauth.clients.admin.secret", "adminsecret"));
@@ -157,8 +163,7 @@ public class UaaTestAccounts implements TestAccounts {
 
 	public ClientCredentialsResourceDetails getClientCredentialsResource(String prefix, String defaultClientId,
 			String defaultClientSecret) {
-		return getClientCredentialsResource(prefix, new String[] { "scim.read", "scim.write", "password.write",
-				"tokens.read", "tokens.write" }, defaultClientId, defaultClientSecret);
+		return getClientCredentialsResource(prefix, new String[] { "scim.read", "scim.write", "password.write"}, defaultClientId, defaultClientSecret);
 	}
 
 	public ClientCredentialsResourceDetails getClientCredentialsResource(String prefix, String[] scope,
@@ -173,6 +178,7 @@ public class UaaTestAccounts implements TestAccounts {
 		return resource;
 	}
 
+	@Override
 	public ClientCredentialsResourceDetails getClientCredentialsResource(String clientId, String clientSecret) {
 		return getClientCredentialsResource(new String[] { "cloud_controller.read" }, clientId, clientSecret);
 	}
@@ -252,15 +258,18 @@ public class UaaTestAccounts implements TestAccounts {
 		return result;
 	}
 
+	@Override
 	public ClientCredentialsResourceDetails getDefaultClientCredentialsResource() {
 		return getClientCredentialsResource("oauth.clients.scim", "scim", "scimsecret");
 	}
 
+	@Override
 	public ResourceOwnerPasswordResourceDetails getDefaultResourceOwnerPasswordResource() {
 		return getResourceOwnerPasswordResource("oauth.clients.app", "app", "appclientsecret", getUserName(),
 				getPassword());
 	}
 
+	@Override
 	public ImplicitResourceDetails getDefaultImplicitResource() {
 		return getImplicitResource("oauth.clients.vmc", "vmc", "https://uaa.cloudfoundry.com/redirect/vmc");
 	}
