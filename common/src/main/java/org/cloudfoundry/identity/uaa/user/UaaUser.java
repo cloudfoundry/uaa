@@ -22,7 +22,7 @@ import org.springframework.util.Assert;
 
 /**
  * User data for authentication against UAA's internal authentication provider.
- * 
+ *
  * @author Luke Taylor
  * @author Dave Syer
  */
@@ -51,7 +51,7 @@ public class UaaUser {
 				new Date());
 	}
 
-	UaaUser(String id, String username, String password, String email, List<? extends GrantedAuthority> authorities,
+	public UaaUser(String id, String username, String password, String email, List<? extends GrantedAuthority> authorities,
 			String givenName, String familyName, Date created, Date modified) {
 		Assert.hasText(username, "Username cannot be empty");
 		Assert.hasText(id, "Id cannot be null");
@@ -120,6 +120,10 @@ public class UaaUser {
 	public String toString() {
 		return "[UaaUser {id=" + id + ", username=" + username + ", email=" + email + ", givenName=" + givenName
 				+ ", familyName=" + familyName + "}]";
+	}
+
+	public Date getModified() {
+		return modified;
 	}
 
 }

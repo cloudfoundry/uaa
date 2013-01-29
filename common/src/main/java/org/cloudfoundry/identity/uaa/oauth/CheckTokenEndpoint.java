@@ -14,10 +14,13 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import java.util.Map;
 
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.type.TypeReference;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.security.jwt.Jwt;
+import org.springframework.security.jwt.JwtHelper;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
@@ -27,23 +30,20 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 /**
  * Controller which decodes access tokens for clients who are not able to do so (or where opaque token values are used).
- * 
+ *
  * @author Luke Taylor
  */
 @Controller
 public class CheckTokenEndpoint implements InitializingBean {
-	
-	private AccessTokenConverter tokenConverter = new DefaultTokenConverter();
-	private ResourceServerTokenServices resourceServerTokenServices;
 
-	public void setTokenConverter(AccessTokenConverter tokenConverter) {
-		this.tokenConverter = tokenConverter;
-	}
-	
+	private ResourceServerTokenServices resourceServerTokenServices;
+	private ObjectMapper mapper = new ObjectMapper();
+
 	public void setTokenServices(ResourceServerTokenServices resourceServerTokenServices) {
 		this.resourceServerTokenServices = resourceServerTokenServices;
 	}
 
+	@Override
 	public void afterPropertiesSet() throws Exception {
 		Assert.notNull(resourceServerTokenServices, "tokenServices must be set");
 	}
@@ -61,10 +61,27 @@ public class CheckTokenEndpoint implements InitializingBean {
 			throw new InvalidTokenException("Token has expired");
 		}
 
-		OAuth2Authentication authentication = resourceServerTokenServices.loadAuthentication(value);
-		Map<String, ?> response = tokenConverter.convertAccessToken(token, authentication);
+		Map<String, ?> response = getClaimsForToken(value);
 
 		return response;
 	}
 
+	private Map<String, Object> getClaimsForToken(String token) {
+		Jwt tokenJwt = null;
+		try {
+			tokenJwt = JwtHelper.decode(token);
+		} catch (Throwable t) {
+			throw new InvalidTokenException("Invalid token (could not decode): " + token);
+		}
+
+		Map<String, Object> claims = null;
+		try {
+			claims = mapper.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {});
+		}
+		catch (Exception e) {
+			throw new IllegalStateException("Cannot read token claims", e);
+		}
+
+		return claims;
+	}
 }

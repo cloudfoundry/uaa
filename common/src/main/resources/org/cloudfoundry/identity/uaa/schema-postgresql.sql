@@ -105,3 +105,8 @@ CREATE TABLE AUTHZ_APPROVALS (
   status VARCHAR(50) default 'APPROVED' not null,  
   primary key (userName, clientId, scope)
 ) ;
+
+
+DROP TABLE oauth_client_token;
+DROP TABLE oauth_access_token;
+DROP TABLE oauth_refresh_token;

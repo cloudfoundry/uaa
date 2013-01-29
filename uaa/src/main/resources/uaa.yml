@@ -12,6 +12,7 @@ oauth:
 password-policy:
   required-score: 0
 
+issuer.uri: http://localhost:8080/uaa
 ---
 
 platform: hsqldb

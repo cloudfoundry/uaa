@@ -41,4 +41,12 @@ public class InMemoryUaaUserDatabase implements UaaUserDatabase {
 
 	}
 
+	public void updateUser(String username, UaaUser user) throws UsernameNotFoundException {
+
+		if (!users.containsKey(username)) {
+			throw new UsernameNotFoundException("User " + username + " not found");
+		}
+		users.put(username, user);
+	}
+
 }
