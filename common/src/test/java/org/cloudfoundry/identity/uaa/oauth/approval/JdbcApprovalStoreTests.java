@@ -111,7 +111,7 @@ public class JdbcApprovalStoreTests {
 		app = dao.getApprovals("u2", "c2").iterator().next();
 		assertTrue(app.getExpiresAt().after(new Date(new Date().getTime() + 6000)));
 	}
-	
+
 	@Test
 	public void addSameApprovalDifferentStatusRepeatedlyOnlyUpdatesStatus() {
 		assertTrue(dao.addApproval(new Approval("u2", "c2", "dash.user", 6000, APPROVED)));
@@ -126,11 +126,11 @@ public class JdbcApprovalStoreTests {
 	@Test
 	public void canRefreshApproval() {
 		Approval app = dao.getApprovals("u1", "c1").iterator().next();
-		assertTrue(app.getExpiresAt().before(new Date(new Date().getTime() + 6000)));
+		Date now = new Date();
 
-		assertTrue(dao.refreshApproval(new Approval(app.getUserName(), app.getClientId(), app.getScope(), (int)app.getExpiresAt().getTime() + 2000, APPROVED)));
+		dao.refreshApproval(new Approval(app.getUserName(), app.getClientId(), app.getScope(), now, APPROVED));
 		app = dao.getApprovals("u1", "c1").iterator().next();
-		assertTrue(app.getExpiresAt().after(new Date(new Date().getTime() + 6000)));
+		assertEquals(now, app.getExpiresAt());
 	}
 
 	@Test
