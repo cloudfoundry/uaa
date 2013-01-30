@@ -105,7 +105,7 @@
 	<http request-matcher-ref="groupsUpdateRequestMatcher" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
 				entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="groupAccessDecisionManager"
 				xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/**" access="scope=scim.write,scope=groups.update,memberScope=write" method="PUT" />
+		<intercept-url pattern="/**" access="scope=scim.write,scope=groups.update,memberScope=writer" method="PUT" />
 		<custom-filter ref="scimResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
@@ -113,7 +113,7 @@
 	<http request-matcher-ref="groupsReadRequestMatcher" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
 				entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="groupAccessDecisionManager"
 				xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/**" access="scope=scim.read,memberScope=read" method="GET" />
+		<intercept-url pattern="/**" access="scope=scim.read,memberScope=reader" method="GET" />
 		<custom-filter ref="scimResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
