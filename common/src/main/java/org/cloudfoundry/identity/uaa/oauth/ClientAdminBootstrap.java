@@ -32,6 +32,7 @@ import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
+import org.springframework.util.StringUtils;
 
 /**
  * @author Dave Syer
@@ -200,7 +201,9 @@ public class ClientAdminBootstrap implements InitializingBean {
 				if (override == null || override) {
 					logger.info("Overriding client details for " + clientId);
 					clientRegistrationService.updateClientDetails(client);
-					clientRegistrationService.updateClientSecret(clientId, client.getClientSecret());
+					if (StringUtils.hasText(client.getClientSecret())) {
+						clientRegistrationService.updateClientSecret(clientId, client.getClientSecret());
+					}
 				} else {
 					// ignore it
 					logger.debug(e.getMessage());
