@@ -9,7 +9,3 @@ before_script:
 install: mvn -U install --quiet -DskipTests=true
 script: mvn clean test
 
-env:
-  - 
-  - CLOUD_FOUNDRY_CONFIG_PATH=src/test/resources/test/profiles/postgresql SPRING_PROFILES_ACTIVE=test,postgresql
-
