@@ -24,7 +24,7 @@ clients, as well as various other management functions.
 
 If this works you are in business:
 
-    $ git clone git@github.com:cloudfoundry/uaa.git
+    $ git clone git://github.com/cloudfoundry/uaa.git
     $ cd uaa
     $ mvn install
 
