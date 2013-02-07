@@ -22,7 +22,9 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
+import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -33,11 +35,11 @@ import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 
 public class PasswordChangeEndpointTests {
 
-	private static ScimUser joel;
+	private ScimUser joel;
 	
-	private static ScimUser dale;
+	private ScimUser dale;
 
-	private static PasswordChangeEndpoint endpoints;
+	private PasswordChangeEndpoint endpoints;
 
 	private static EmbeddedDatabase database;
 
@@ -46,6 +48,11 @@ public class PasswordChangeEndpointTests {
 		EmbeddedDatabaseBuilder builder = new EmbeddedDatabaseBuilder();
 		builder.addScript("classpath:/org/cloudfoundry/identity/uaa/schema-hsqldb.sql");
 		database = builder.build();
+	}
+	
+	@Before
+	public void setup() {
+
 		JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
 		JdbcScimUserProvisioning dao = new JdbcScimUserProvisioning(jdbcTemplate);
 		dao.setPasswordEncoder(NoOpPasswordEncoder.getInstance());
@@ -63,6 +70,17 @@ public class PasswordChangeEndpointTests {
 		
 	}
 
+	@After
+	public void clean() {
+		JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
+		if (joel!=null) {
+			jdbcTemplate.update("delete from users where id=?", joel.getId());
+		}
+		if (dale!=null) {
+			jdbcTemplate.update("delete from users where id=?", dale.getId());
+		}
+	}
+	
 	@AfterClass
 	public static void tearDown() throws Exception {
 		TestUtils.deleteFrom(database, "users", "groups", "group_membership");
