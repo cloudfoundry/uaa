@@ -323,8 +323,9 @@ public class ClientAdminEndpoints implements InitializingBean {
 			}
 		}
 
-		if (requestedGrantTypes.contains("authorization_code") && !requestedGrantTypes.contains("refresh_token")) {
-			logger.info("authorization_code client missing refresh_token: " + clientId);
+		if ((requestedGrantTypes.contains("authorization_code") || requestedGrantTypes.contains("password"))
+                && !requestedGrantTypes.contains("refresh_token")) {
+			logger.info("requested grant type missing refresh_token: " + clientId);
 
 			requestedGrantTypes.add("refresh_token");
 		}
@@ -339,11 +340,9 @@ public class ClientAdminEndpoints implements InitializingBean {
 				}
 			}
 
-			if (requestedGrantTypes.contains("implicit")
-					&& (requestedGrantTypes.contains("authorization_code") || requestedGrantTypes
-							.contains("refresh_token"))) {
+			if (requestedGrantTypes.contains("implicit") &&  requestedGrantTypes.contains("authorization_code")) {
 				throw new InvalidClientDetailsException(
-						"Not allowed: implicit grant type is not allowed together with authorization_code or refresh_token");
+						"Not allowed: implicit grant type is not allowed together with authorization_code");
 			}
 
 			String callerId = securityContextAccessor.getClientId();
@@ -415,17 +414,14 @@ public class ClientAdminEndpoints implements InitializingBean {
 		}
 		if (create) {
 			// Only check for missing secret if client is being created.
-			if (!isImplicit(requestedGrantTypes) && !StringUtils.hasText(client.getClientSecret())) {
-				throw new InvalidClientDetailsException("Client secret is required for non-implicit grant types");
+            if ((requestedGrantTypes.contains("client_credentials") || requestedGrantTypes.contains("authorization_code"))
+                    && !StringUtils.hasText(client.getClientSecret())) {
+				throw new InvalidClientDetailsException("Client secret is required for client_credentials and authorization_code grant types");
 			}
 		}
 
 		return client;
 
-	}
-
-	private boolean isImplicit(Set<String> requestedGrantTypes) {
-		return Collections.singleton("implicit").equals(requestedGrantTypes);
 	}
 
 	private void checkPasswordChangeIsAllowed(ClientDetails clientDetails, String oldSecret) {
