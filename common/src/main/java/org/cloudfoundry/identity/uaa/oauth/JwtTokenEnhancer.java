@@ -124,14 +124,18 @@ public class JwtTokenEnhancer implements TokenEnhancer, InitializingBean {
 	 * @param key the signature verification key (typically an RSA public key)
 	 */
 	public void setVerifierKey(String key) {
-		this.verifierKey = key;
+		boolean valid = false;
 		try {
-			new RsaSigner(verifierKey);
-			throw new IllegalArgumentException("Private key cannot be set as verifierKey property");
+			new RsaSigner(key);
 		}
 		catch (Exception expected) {
 			// Expected
+			valid = true;
 		}
+		if (!valid) {
+			throw new IllegalArgumentException("Private key cannot be set as verifierKey property");
+		}
+		this.verifierKey = key;
 	}
 
 	public OAuth2AccessToken enhance(OAuth2AccessToken accessToken, OAuth2Authentication authentication) {
@@ -178,7 +182,7 @@ public class JwtTokenEnhancer implements TokenEnhancer, InitializingBean {
 			}
 		}
 		else {
-			// Avoid a race condition where
+			// Avoid a race condition where verifier is set after signer to a different (possibly incompatible value)
 			Assert.state(this.signingKey == this.verifierKey,
 					"For MAC signing you do not need to specify the verifier key separately, and if you do it must match the signing key");
 		}

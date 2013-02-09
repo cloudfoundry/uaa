@@ -59,6 +59,22 @@ public class JwtTokenEnhancerTests {
 		assertTrue("Wrong claims: " + claims, claims.contains("\"" + JwtTokenEnhancer.TOKEN_ID + "\""));
 	}
 
+	@Test(expected=IllegalArgumentException.class)
+	public void accidentallySetPrivateKeyAsVerifier() throws Exception {
+		String rsaKey = "-----BEGIN RSA PRIVATE KEY-----\n"
+				+ "MIIBywIBAAJhAOTeb4AZ+NwOtPh+ynIgGqa6UWNVe6JyJi+loPmPZdpHtzoqubnC \n"
+				+ "wEs6JSiSZ3rButEAw8ymgLV6iBY02hdjsl3h5Z0NWaxx8dzMZfXe4EpfB04ISoqq\n"
+				+ "hZCxchvuSDP4eQIDAQABAmEAqUuYsuuDWFRQrZgsbGsvC7G6zn3HLIy/jnM4NiJK\n"
+				+ "t0JhWNeN9skGsR7bqb1Sak2uWqW8ZqnqgAC32gxFRYHTavJEk6LTaHWovwDEhPqc\n"
+				+ "Zs+vXd6tZojJQ35chR/slUEBAjEA/sAd1oFLWb6PHkaz7r2NllwUBTvXL4VcMWTS\n"
+				+ "pN+5cU41i9fsZcHw6yZEl+ZCicDxAjEA5f3R+Bj42htNI7eylebew1+sUnFv1xT8\n"
+				+ "jlzxSzwVkoZo+vef7OD6OcFLeInAHzAJAjEAs6izolK+3ETa1CRSwz0lPHQlnmdM\n"
+				+ "Y/QuR5tuPt6U/saEVuJpkn4LNRtg5qt6I4JRAjAgFRYTG7irBB/wmZFp47izXEc3\n"
+				+ "gOdvA1hvq3tlWU5REDrYt24xpviA0fvrJpwMPbECMAKDKdiDi6Q4/iBkkzNMefA8\n"
+				+ "7HX27b9LR33don/1u/yvzMUo+lrRdKAFJ+9GPE9XFA== \n" + "-----END RSA PRIVATE KEY-----";
+		tokenEnhancer.setVerifierKey(rsaKey);
+	}
+
 	@Test
 	public void rsaKeyCreatesValidRsaSignedTokens() throws Exception {
 		String rsaKey = "-----BEGIN RSA PRIVATE KEY-----  \n"
@@ -71,7 +87,7 @@ public class JwtTokenEnhancerTests {
 				+ "jlzxSzwVkoZo+vef7OD6OcFLeInAHzAJAjEAs6izolK+3ETa1CRSwz0lPHQlnmdM\n"
 				+ "Y/QuR5tuPt6U/saEVuJpkn4LNRtg5qt6I4JRAjAgFRYTG7irBB/wmZFp47izXEc3\n"
 				+ "gOdvA1hvq3tlWU5REDrYt24xpviA0fvrJpwMPbECMAKDKdiDi6Q4/iBkkzNMefA8\n"
-				+ "7HX27b9LR33don/1u/yvzMUo+lrRdKAFJ+9GPE9XFA== \n" + "-----END RSA PRIVATE KEY----- ";
+				+ "7HX27b9LR33don/1u/yvzMUo+lrRdKAFJ+9GPE9XFA== \n" + "-----END RSA PRIVATE KEY-----";
 		tokenEnhancer.setSigningKey(rsaKey);
 		OAuth2Authentication authentication = new OAuth2Authentication(new DefaultAuthorizationRequest("foo", null),
 				userAuthentication);
@@ -120,6 +136,13 @@ public class JwtTokenEnhancerTests {
 	public void keysNotMatchingWithMacSigner() throws Exception {
 		tokenEnhancer.setSigningKey("aKey");
 		tokenEnhancer.setVerifierKey("someKey");
+		tokenEnhancer.afterPropertiesSet();
+	}
+
+	@Test(expected = IllegalStateException.class)
+	public void keysNotSameWithMacSigner() throws Exception {
+		tokenEnhancer.setSigningKey("aKey");
+		tokenEnhancer.setVerifierKey(new String("aKey"));
 		tokenEnhancer.afterPropertiesSet();
 	}
 
