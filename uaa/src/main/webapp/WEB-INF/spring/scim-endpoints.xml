@@ -240,12 +240,18 @@
 		<property name="groupMembers" ref="members" />
 	</bean>
 
-	<bean id="groups" class="java.lang.String">
+	<bean id="nonDefaultUserGroups" class="java.lang.String">
+        <!-- Scopes known to the UAA. Here so the groups will exist and users MAY be added to them, but not automatically like defaultUserAuthorities -->
 		<constructor-arg
-			value="#{(@config['scim']==null or @config['scim']['groups']==null)?@defaultGroups:@config['scim']['groups']}" />
+			value="scim.read,scim.write,uaa.resource,uaa.admin,clients.read,clients.write,clients.secret,cloud_controller.admin" />
 	</bean>
 
-	<bean id="members" class="org.springframework.beans.factory.config.ListFactoryBean">
+    <bean id="groups" class="java.lang.String">
+        <constructor-arg
+                value="#{@nonDefaultUserGroups},#{(@config['scim']==null or @config['scim']['groups']==null)?@defaultGroups:@config['scim']['groups']}" />
+    </bean>
+
+    <bean id="members" class="org.springframework.beans.factory.config.ListFactoryBean">
 		<property name="sourceList"
 			value="#{(@config['scim']==null or @config['scim']['group_membership']==null)?@defaultMembers:@config['scim']['group_membership']}" />
 	</bean>

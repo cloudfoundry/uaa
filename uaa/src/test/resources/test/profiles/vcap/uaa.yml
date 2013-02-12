@@ -41,7 +41,7 @@ oauth:
       resource-ids: none
     admin:    
       authorized-grant-types: client_credentials
-      scope: clients.read,clients.write,clients.secret,tokens.read,tokens.write
+      scope: clients.read,clients.write,clients.secret,scim.read,scim.write
       authorities: uaa.admin,clients.read,clients.write,clients.secret,tokens.read,tokens.write
       id: admin
       secret: adminsecret
