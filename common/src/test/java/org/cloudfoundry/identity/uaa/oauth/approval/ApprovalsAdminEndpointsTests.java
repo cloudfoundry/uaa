@@ -24,15 +24,11 @@ import java.util.List;
 import javax.sql.DataSource;
 
 import org.cloudfoundry.identity.uaa.error.UaaException;
-import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
-import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalsAdminEndpoints;
-import org.cloudfoundry.identity.uaa.oauth.approval.JdbcApprovalStore;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
-import org.cloudfoundry.identity.uaa.security.StubSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.junit.After;
@@ -170,7 +166,7 @@ public class ApprovalsAdminEndpointsTests {
 	@Test
 	public void canRevokeApprovals() {
 		assertEquals(3, endpoints.getApprovals("userName pr", 1, 100).size());
-		assertEquals("ok", endpoints.revokeApprovals().getStatus());
+		assertEquals("ok", endpoints.revokeApprovals("c1").getStatus());
 		assertEquals(0, endpoints.getApprovals("userName pr", 1, 100).size());
 	}
 }
