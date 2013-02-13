@@ -78,7 +78,6 @@ public class UaaAuthorizationRequestManagerTests {
 			public boolean isUser() {
 				return true;
 			}
-
 			@Override
 			public Collection<? extends GrantedAuthority> getAuthorities() {
 				return AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz");

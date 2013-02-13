@@ -33,8 +33,9 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
 import org.springframework.security.oauth2.provider.approval.UserApprovalHandler;
 
-public class UserManagedAuthzApprovalHandler implements
-		UserApprovalHandler {
+public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
+
+	private static final String SCOPE_PREFIX = "scope.";
 
 	private static Log logger = LogFactory.getLog(UserManagedAuthzApprovalHandler.class);
 
@@ -58,7 +59,8 @@ public class UserManagedAuthzApprovalHandler implements
 	}
 
 	@Override
-	public AuthorizationRequest updateBeforeApproval(AuthorizationRequest authorizationRequest,	Authentication userAuthentication) {
+	public AuthorizationRequest updateBeforeApproval(AuthorizationRequest authorizationRequest,
+			Authentication userAuthentication) {
 		return authorizationRequest;
 	}
 
@@ -77,71 +79,64 @@ public class UserManagedAuthzApprovalHandler implements
 
 		Collection<String> requestedScopes = authorizationRequest.getScope();
 
-		if(userApproval) {
-			//Store the scopes that have been approved / denied
+		if (userApproval) {
+			// Store the scopes that have been approved / denied
 			Date expiry = computeExpiry();
 
-			//Get the approved scopes, calculate the denied scope
+			// Get the approved scopes, calculate the denied scope
 			Map<String, String> approvalParameters = authorizationRequest.getApprovalParameters();
 			Set<String> approvedScopes = new HashSet<String>();
 			boolean foundUserApprovalParameter = false;
-			for(String approvalParameter : approvalParameters.keySet()) {
-				if(approvalParameter.startsWith("scope.")) {
-					approvedScopes.add(approvalParameters.get(approvalParameter).substring("scope.".length()));
+			for (String approvalParameter : approvalParameters.keySet()) {
+				if (approvalParameter.startsWith(SCOPE_PREFIX)) {
+					approvedScopes.add(approvalParameters.get(approvalParameter).substring(SCOPE_PREFIX.length()));
 					foundUserApprovalParameter = true;
 				}
 			}
 
-			if(foundUserApprovalParameter) {
+			if (foundUserApprovalParameter) {
 				((DefaultAuthorizationRequest) authorizationRequest).setScope(approvedScopes);
 
-				for(String requestedScope : requestedScopes) {
-					if(approvedScopes.contains(requestedScope)) {
-						approvalStore.addApproval(new Approval(userAuthentication.getName(),
-													authorizationRequest.getClientId(),
-													requestedScope,
-													expiry,
-													APPROVED));
-					} else {
-						approvalStore.addApproval(new Approval(userAuthentication.getName(),
-													authorizationRequest.getClientId(),
-													requestedScope,
-													expiry,
-													DENIED));
+				for (String requestedScope : requestedScopes) {
+					if (approvedScopes.contains(requestedScope)) {
+						approvalStore.addApproval(new Approval(userAuthentication.getName(), authorizationRequest
+								.getClientId(), requestedScope, expiry, APPROVED));
+					}
+					else {
+						approvalStore.addApproval(new Approval(userAuthentication.getName(), authorizationRequest
+								.getClientId(), requestedScope, expiry, DENIED));
 					}
 				}
 
-			} else { //This is a request from a legacy page of login server.
-					 //userApproval was true but no scopes were explicitly mentioned. Approve all requested scopes.
+			}
+			else { // This is a request from a legacy page of login server.
+					// userApproval was true but no scopes were explicitly mentioned. Approve all requested scopes.
 				((DefaultAuthorizationRequest) authorizationRequest).setScope(new HashSet<String>(requestedScopes));
 
-				for(String requestedScope : requestedScopes) {
-					approvalStore.addApproval(new Approval(userAuthentication.getName(),
-												authorizationRequest.getClientId(),
-												requestedScope,
-												expiry,
-												APPROVED));
+				for (String requestedScope : requestedScopes) {
+					approvalStore.addApproval(new Approval(userAuthentication.getName(), authorizationRequest
+							.getClientId(), requestedScope, expiry, APPROVED));
 				}
 			}
 
-			if(userAuthentication.isAuthenticated()) {
+			if (userAuthentication.isAuthenticated()) {
 				return true;
 			}
 
-		} else {
-			//Find the stored approvals for that user and client
-			List<Approval> userApprovals =
-					approvalStore.getApprovals(userAuthentication.getName(),
-													authorizationRequest.getClientId());
+		}
+		else {
+			// Find the stored approvals for that user and client
+			List<Approval> userApprovals = approvalStore.getApprovals(userAuthentication.getName(),
+					authorizationRequest.getClientId());
 
-			//Look at the scopes and see if they have expired
+			// Look at the scopes and see if they have expired
 			Set<String> validUserApprovedScopes = new HashSet<String>();
 			Set<String> approvedScopes = new HashSet<String>();
 			Date today = new Date();
-			for(Approval approval : userApprovals) {
-				if(approval.getExpiresAt().after(today)) {
+			for (Approval approval : userApprovals) {
+				if (approval.getExpiresAt().after(today)) {
 					validUserApprovedScopes.add(approval.getScope());
-					if(approval.getStatus() == APPROVED) {
+					if (approval.getStatus() == APPROVED) {
 						approvedScopes.add(approval.getScope());
 					}
 				}
@@ -151,16 +146,16 @@ public class UserManagedAuthzApprovalHandler implements
 				logger.debug("Valid user approved/denied scopes are " + validUserApprovedScopes);
 			}
 
-			//If the requested scopes have already been approved/denied by the user, this request is approved
-			if(validUserApprovedScopes.containsAll(requestedScopes) && userAuthentication.isAuthenticated()) {
-				//Set only the scopes that have been approved by the user
+			// If the requested scopes have already been approved/denied by the user, this request is approved
+			if (validUserApprovedScopes.containsAll(requestedScopes) && userAuthentication.isAuthenticated()) {
+				// Set only the scopes that have been approved by the user
 				((DefaultAuthorizationRequest) authorizationRequest).setScope(approvedScopes);
 				return true;
 			}
 		}
 
-		//If this client is auto approved, approve the request. We check this later because
-		//we still want to store the approvals that the user recorded.
+		// If this client is auto approved, approve the request. We check this later because
+		// we still want to store the approvals that the user recorded.
 		String clientId = authorizationRequest.getClientId();
 		if (clientDetailsService != null) {
 			ClientDetails client = clientDetailsService.retrieve(clientId);
@@ -176,7 +171,8 @@ public class UserManagedAuthzApprovalHandler implements
 		Calendar expiresAt = Calendar.getInstance();
 		if (approvalExpiryInMillis == -1) { // use default of 1 month
 			expiresAt.add(Calendar.MONTH, 1);
-		} else {
+		}
+		else {
 			expiresAt.add(Calendar.MILLISECOND, approvalExpiryInMillis);
 		}
 		return expiresAt.getTime();

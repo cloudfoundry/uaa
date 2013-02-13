@@ -131,13 +131,19 @@ public class AccessController {
 			//For backward compatibility with older login servers
 			List<Map<String, String>> combinedScopes = new ArrayList<Map<String, String>>();
 			if (model.get("approved_scopes") != null) {
-				combinedScopes.addAll((List<Map<String, String>>) model.get("approved_scopes"));
+				@SuppressWarnings("unchecked")
+				List<Map<String, String>> scopes = (List<Map<String, String>>) model.get("approved_scopes");
+				combinedScopes.addAll(scopes);
 			}
 			if (model.get("denied_scopes") != null) {
-				combinedScopes.addAll((List<Map<String, String>>) model.get("denied_scopes"));
+				@SuppressWarnings("unchecked")
+				List<Map<String, String>> scopes = (List<Map<String, String>>) model.get("denied_scopes");
+				combinedScopes.addAll(scopes);
 			}
 			if (model.get("undecided_scopes") != null) {
-				combinedScopes.addAll((List<Map<String, String>>) model.get("undecided_scopes"));
+				@SuppressWarnings("unchecked")
+				List<Map<String, String>> scopes = (List<Map<String, String>>) model.get("undecided_scopes");
+				combinedScopes.addAll(scopes);
 			}
 
 			model.put("scopes", combinedScopes);

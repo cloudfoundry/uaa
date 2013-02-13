@@ -31,6 +31,7 @@
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<anonymous enabled="false" />
 		<custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
+		<custom-filter ref="tokenEndpointAuthenticationFilter" after="BASIC_AUTH_FILTER" />
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
 
@@ -46,6 +47,11 @@
 	<bean id="clientAuthenticationFilter" class="org.springframework.security.web.authentication.www.BasicAuthenticationFilter">
 		<constructor-arg ref="clientAuthenticationManager" />
 		<constructor-arg ref="basicAuthenticationEntryPoint" />
+		<property name="authenticationDetailsSource" ref="authenticationDetailsSource" />
+	</bean>
+
+	<bean id="tokenEndpointAuthenticationFilter" class="org.springframework.security.oauth2.provider.endpoint.TokenEndpointAuthenticationFilter">
+		<constructor-arg ref="authzAuthenticationMgr" />
 		<property name="authenticationDetailsSource" ref="authenticationDetailsSource" />
 	</bean>
 
