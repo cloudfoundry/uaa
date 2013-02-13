@@ -162,6 +162,9 @@ public class ScimGroupBootstrap implements InitializingBean {
 	}
 
 	private void addGroup(String name) {
+        if (name.isEmpty()) {
+            return;
+        }
 		logger.debug("adding group: " + name);
 		ScimGroup g = new ScimGroup(name);
 		try {
