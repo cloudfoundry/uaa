@@ -60,6 +60,8 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 
 	private static final String USER_FILTER_TEMPLATE = "userName eq '%s'";
 
+	private static final String USER_AND_CLIENT_FILTER_TEMPLATE = "userName eq '%s' and clientId eq '%s'";
+
 	public void setStatuses(Map<Class<? extends Exception>, HttpStatus> statuses) {
 		this.statuses = statuses;
 	}
@@ -121,11 +123,11 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 
 	@RequestMapping(value = "/approvals", method = RequestMethod.DELETE)
 	@ResponseBody
-	public SimpleMessage revokeApprovals() {
+	public SimpleMessage revokeApprovals(@RequestParam(required = true) String clientId) {
 		String username = getCurrentUsername();
-		logger.debug("Revoking all existing approvals for user: " + username);
-		approvalStore.revokeApprovals(String.format(USER_FILTER_TEMPLATE, username));
-		return new SimpleMessage("ok", "All approvals of current user revoked");
+		logger.debug("Revoking all existing approvals for user: " + username + " and client " + clientId);
+		approvalStore.revokeApprovals(String.format(USER_AND_CLIENT_FILTER_TEMPLATE, username, clientId));
+		return new SimpleMessage("ok", "Approvals of user " + username + " and client " + clientId + " revoked");
 	}
 
 	@ExceptionHandler
