@@ -16,102 +16,118 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
-import java.util.Date;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
+import org.cloudfoundry.identity.uaa.oauth.token.SignerProvider;
+import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenServices;
+import org.cloudfoundry.identity.uaa.user.MockUaaUserDatabase;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.junit.Test;
-import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
+import org.springframework.security.oauth2.provider.BaseClientDetails;
+import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
+import org.springframework.security.oauth2.provider.InMemoryClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
-import org.springframework.security.oauth2.provider.token.DefaultTokenServices;
-import org.springframework.security.oauth2.provider.token.InMemoryTokenStore;
 
 /**
  * @author Dave Syer
- * 
+ *
  */
 public class CheckTokenEndpointTests {
 
 	private CheckTokenEndpoint endpoint = new CheckTokenEndpoint();
 
-	private InMemoryTokenStore tokenStore = new InMemoryTokenStore();
-
 	private OAuth2Authentication authentication;
 
-	private int expiresIn;
+	private int expiresIn =  60 * 60 * 12;
+
+	private OAuth2AccessToken accessToken = null;
+
+	private UaaTokenServices tokenServices = new UaaTokenServices();
+
+	private InMemoryClientDetailsService clientDetailsService = new InMemoryClientDetailsService();
 
 	public CheckTokenEndpointTests() {
 		authentication = new OAuth2Authentication(new DefaultAuthorizationRequest("client", Collections.singleton("read")),
 				UaaAuthenticationTestFactory.getAuthentication("12345", "olds", "olds@vmware.com"));
-		DefaultTokenServices tokenServices = new DefaultTokenServices();
-		tokenServices.setTokenStore(tokenStore);
+
+		SignerProvider signerProvider = new SignerProvider();
+		signerProvider.setSigningKey("abc");
+		signerProvider.setVerifierKey("abc");
+		tokenServices.setSignerProvider(signerProvider);
 		endpoint.setTokenServices(tokenServices);
-		DefaultOAuth2AccessToken token = new DefaultOAuth2AccessToken("FOO");
-		token.setExpiration(new Date(System.currentTimeMillis() + 100000));
-		expiresIn = token.getExpiresIn();
-		tokenStore.storeAccessToken(token, authentication);
+		UaaUserDatabase userDatabase = new MockUaaUserDatabase("12345", "olds", "olds@vmware.com", null, null);
+		tokenServices.setUserDatabase(userDatabase);
+
+		Map<String, ? extends ClientDetails> clientDetailsStore = Collections.singletonMap("client", new BaseClientDetails("client", "scim, cc","read, write", "authorization_code, password", "scim.read, scim.write", "http://localhost:8080/uaa"));
+		clientDetailsService.setClientDetailsStore(clientDetailsStore);
+		tokenServices.setClientDetailsService(clientDetailsService);
+
+		accessToken = tokenServices.createAccessToken(authentication);
 	}
 
 	@Test
 	public void testUserIdInResult() {
-		Map<String, ?> result = endpoint.checkToken("FOO");
+		Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
 		assertEquals("olds", result.get("user_name"));
 		assertEquals("12345", result.get("user_id"));
 	}
 
 	@Test
 	public void testEmailInResult() {
-		Map<String, ?> result = endpoint.checkToken("FOO");
+		Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
 		assertEquals("olds@vmware.com", result.get("email"));
 	}
 
 	@Test
 	public void testClientIdInResult() {
-		Map<String, ?> result = endpoint.checkToken("FOO");
+		Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
 		assertEquals("client", result.get("client_id"));
 	}
 
 	@Test
 	public void testExpiryResult() {
-		Map<String, ?> result = endpoint.checkToken("FOO");
+		Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
 		assertTrue(expiresIn + System.currentTimeMillis()/1000 >= Integer.parseInt(String.valueOf(result.get("exp"))));
 	}
 
 	@Test
 	public void testUserAuthoritiesNotInResult() {
-		Map<String, ?> result = endpoint.checkToken("FOO");
+		Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
 		assertEquals(null, result.get("user_authorities"));
 	}
 
 	@Test
 	public void testClientAuthoritiesNotInResult() {
-		Map<String, ?> result = endpoint.checkToken("FOO");
+		Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
 		assertEquals(null, result.get("client_authorities"));
 	}
 
 	@Test(expected = InvalidTokenException.class)
 	public void testExpiredToken() throws Exception {
-		DefaultOAuth2AccessToken token = new DefaultOAuth2AccessToken("FOO");
-		token.setExpiration(new Date(System.currentTimeMillis() - 100000));
-		expiresIn = token.getExpiresIn();
-		tokenStore.storeAccessToken(token, authentication);
-		Map<String, ?> result = endpoint.checkToken("FOO");
+		BaseClientDetails clientDetails = new BaseClientDetails("client", "scim, cc","read, write", "authorization_code, password", "scim.read, scim.write", "http://localhost:8080/uaa");
+		clientDetails.setAccessTokenValiditySeconds(1);
+		Map<String, ? extends ClientDetails> clientDetailsStore = Collections.singletonMap("client", clientDetails);
+		clientDetailsService.setClientDetailsStore(clientDetailsStore);
+		tokenServices.setClientDetailsService(clientDetailsService);
+		accessToken = tokenServices.createAccessToken(authentication);
+
+		Thread.sleep(1000);
+
+		Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
 		assertEquals("expired_token", result.get("error"));
 	}
 
 	@Test
 	public void testClientOnly() {
 		authentication = new OAuth2Authentication(new DefaultAuthorizationRequest("client", Collections.singleton("read")), null);
-		DefaultTokenServices tokenServices = new DefaultTokenServices();
-		tokenServices.setTokenStore(tokenStore);
-		endpoint.setTokenServices(tokenServices);
-		OAuth2AccessToken token = new DefaultOAuth2AccessToken("FOO");
-		tokenStore.storeAccessToken(token, authentication);
-		Map<String, ?> result = endpoint.checkToken("FOO");
+		accessToken = tokenServices.createAccessToken(authentication);
+		Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
 		assertEquals("client", result.get("client_id"));
+		assertEquals("client", result.get("user_id"));
 	}
 
 }

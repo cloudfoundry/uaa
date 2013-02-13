@@ -12,14 +12,11 @@
  */
 package org.cloudfoundry.identity.app.web;
 
+import java.net.URI;
 import java.security.Principal;
-import java.util.List;
-import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.client.OAuth2RestOperations;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -32,8 +29,6 @@ public class HomeController {
 
 	private String dataUri = "http://localhost:8080/api/apps";
 
-	private String tokensUri = "http://localhost:8080/uaa/oauth/users/{username}/tokens";
-
 	private String clientId = "app";
 
 	private RestOperations restTemplate;
@@ -42,10 +37,6 @@ public class HomeController {
 
 	public void setRestTemplate(RestOperations restTemplate) {
 		this.restTemplate = restTemplate;
-	}
-
-	public void setTokensUri(String tokensUri) {
-		this.tokensUri = tokensUri;
 	}
 
 	/**
@@ -68,7 +59,7 @@ public class HomeController {
 	public void setDataUri(String dataUri) {
 		this.dataUri = dataUri;
 	}
-	
+
 	/**
 	 * @param clientId the clientId to set
 	 */
@@ -87,23 +78,6 @@ public class HomeController {
 	@RequestMapping("/home")
 	public String home(Model model, Principal principal) {
 		model.addAttribute("principal", principal);
-		try {
-			model.addAttribute("tokens", restTemplate.getForEntity(tokensUri, List.class, principal.getName())
-					.getBody());
-		}
-		catch (RuntimeException e) {
-			// Defensive workaround for token issues
-			try {
-				if (restTemplate instanceof OAuth2RestOperations) {
-					((OAuth2RestOperations) restTemplate).getOAuth2ClientContext().setAccessToken(null);
-					model.addAttribute("tokens", restTemplate.getForEntity(tokensUri, List.class, principal.getName())
-							.getBody());
-				}
-			}
-			catch (RuntimeException ex) {
-				model.addAttribute("error", ex);
-			}
-		}
 		return "home";
 	}
 
@@ -116,17 +90,11 @@ public class HomeController {
 
 	@RequestMapping("/revoke")
 	public String revoke(Model model, Principal principal) {
-		model.addAttribute("principal", principal);
-		@SuppressWarnings("rawtypes")
-		ResponseEntity<List> tokens = restTemplate.getForEntity(tokensUri, List.class, principal.getName());
-		@SuppressWarnings("unchecked")
-		List<Map<String, String>> body = tokens.getBody();
-		model.addAttribute("tokens", tokens.getBody());
-		if (!body.isEmpty()) {
-			Map<String, String> token = body.iterator().next();
-			restTemplate.delete(tokensUri + "/" + token.get("jti"), principal.getName());
-		}
-		return "redirect:/j_spring_security_logout";
+		URI azUri = URI.create(userAuthorizationUri);
+		String port = azUri.getPort() == 80 ? "" : ":" + azUri.getPort();
+		String approvalURL = azUri.getScheme() + "://" + azUri.getHost() + port + "/login/approvals";
+
+		return "redirect:" + approvalURL;
 	}
 
 	@RequestMapping("/logout")
