@@ -27,7 +27,7 @@
 	<ul>
 		<li><a href="apps">Apps</a></li>
 		<li><a href="browse">Implicit Flow Demo</a></li>
-		<li><a href="revoke">Revoke</a> token</li>
+		<li><a href="revoke">Revoke approvals</a></li>
 		<li><a href="j_spring_security_logout">Logout</a></li>
 		<li><a href="<c:url value="/"/>">Home</a></li>
 	</ul>

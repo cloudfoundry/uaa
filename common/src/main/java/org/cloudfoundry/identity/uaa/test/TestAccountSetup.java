@@ -102,9 +102,6 @@ public class TestAccountSetup extends TestWatchman {
 			if (!vmcClientExists(client)) {
 				createVmcClient(client);
 			}
-			if (!tokenClientExists(client)) {
-				createTokenClient(client);
-			}
 			initialized = true;
 		}
 		resource = testAccounts.getClientCredentialsResource("oauth.clients.scim", "scim", "scimsecret");
@@ -112,23 +109,16 @@ public class TestAccountSetup extends TestWatchman {
 		initializeUserAccount(client);
 	}
 
-	private void createTokenClient(RestOperations client) {
-		BaseClientDetails clientDetails = new BaseClientDetails("token", "tokens", "tokens.read,tokens.write",
-				"authorization_code,password", "tokens.read,tokens.write");
-		clientDetails.setClientSecret("tokenclientsecret");
-		createClient(client, testAccounts.getClientDetails("oauth.clients.token", clientDetails));
-	}
-
 	private void createVmcClient(RestOperations client) {
 		BaseClientDetails clientDetails = new BaseClientDetails("vmc", "cloud_controller,openid,password",
-				"openid,cloud_controller.read,password.write,tokens.read,tokens.write,scim.userids", "implicit",
+				"openid,cloud_controller.read,password.write,scim.userids", "implicit",
 				"uaa.none", "https://uaa.cloudfoundry.com/redirect/vmc");
 		createClient(client, testAccounts.getClientDetails("oauth.clients.vmc", clientDetails));
 	}
 
 	private void createScimClient(RestOperations client) {
 		BaseClientDetails clientDetails = new BaseClientDetails("scim", "none", "uaa.none", "client_credentials",
-				"scim.read,scim.write,password.write,tokens.read,tokens.write");
+				"scim.read,scim.write,password.write");
 		clientDetails.setClientSecret("scimsecret");
 		createClient(client, testAccounts.getClientDetails("oauth.clients.scim", clientDetails));
 	}

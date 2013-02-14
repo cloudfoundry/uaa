@@ -18,9 +18,8 @@
 	<sec:http pattern="/resources/**" security="none" />
 	<sec:http pattern="/favicon.ico" security="none" />
 
-	<http pattern="/apps.*|/revoke.*" request-matcher="regex" xmlns="http://www.springframework.org/schema/security"
+	<http pattern="/apps.*" request-matcher="regex" xmlns="http://www.springframework.org/schema/security"
 		entry-point-ref="loginEntryPoint" disable-url-rewriting="true" use-expressions="true" authentication-manager-ref="authenticationManager">
-		<intercept-url pattern="/revoke.*" access="hasRole('tokens.write')" />
 		<intercept-url pattern="/apps.*" access="hasRole('cloud_controller.read')" />
 		<anonymous enabled="false" />
 		<custom-filter ref="oauth2ClientFilter" before="PRE_AUTH_FILTER" />
@@ -111,7 +110,6 @@
 		<property name="restTemplate" ref="restTemplate" />
 		<property name="userAuthorizationUri" value="${userAuthorizationUri}" />
 		<property name="dataUri" value="${dataUri}" />
-		<property name="tokensUri" value="${tokensUrlPattern}" />
 		<property name="logoutUrl" value="${cloudFoundryLogoutUrl}" />
 		<property name="clientId" value="${CLIENT_ID:app}" />
 	</bean>
