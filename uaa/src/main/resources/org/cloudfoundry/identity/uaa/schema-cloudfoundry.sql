@@ -118,6 +118,7 @@ CREATE TABLE AUTHZ_APPROVALS (
   scope VARCHAR(255) not null,
   expiresAt TIMESTAMP default current_timestamp not null,
   status VARCHAR(50) default 'APPROVED' not null,
+  lastModifiedAt TIMESTAMP default current_timestamp not null,
   primary key (userName, clientId, scope)
 ) ;
 

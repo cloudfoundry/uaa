@@ -33,6 +33,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -41,6 +42,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
+import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
+import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
@@ -73,8 +77,7 @@ import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 /**
- * This class provides token services for the UAA. It handles the production and consumption of UAA
- * tokens.
+ * This class provides token services for the UAA. It handles the production and consumption of UAA tokens.
  *
  * @author Joel D'sa
  *
@@ -100,6 +103,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
 	private Set<String> defaultUserAuthorities = new HashSet<String>();
 
+	private ApprovalStore approvalStore = null;
+
 	@Override
 	public OAuth2AccessToken refreshAccessToken(String refreshTokenValue, AuthorizationRequest request)
 			throws AuthenticationException {
@@ -122,7 +127,13 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 		// throw new InvalidGrantException("Invalid refresh token: " + refreshTokenValue);
 		// }
 
+		String clientId = (String) claims.get(CID.value());
+		if (clientId == null || !clientId.equals(request.getClientId())) {
+			throw new InvalidGrantException("Wrong client for this refresh token: " + refreshTokenValue);
+		}
+
 		String username = (String) claims.get(USER_NAME.value());
+
 		// TODO: Need to add a lookup by id so that the refresh token does not need to contain a name
 		UaaUser user = userDatabase.retrieveUserByName(username);
 
@@ -132,7 +143,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 		// If the user changed their password, expire the refresh token
 		if (user.getModified().after(new Date(refreshTokenIssueDate))) {
 			logger.debug("User was last modified at " + user.getModified() + " refresh token was issued at "
-					+ new Date(refreshTokenIssuedAt));
+					+ new Date(refreshTokenIssueDate));
 			throw new InvalidTokenException("Invalid refresh token (password changed): " + refreshTokenValue);
 		}
 
@@ -144,11 +155,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 					+ new Date(refreshTokenExpireDate));
 		}
 
-		String clientId = (String) claims.get(CID.value());
-		if (clientId == null || !clientId.equals(request.getClientId())) {
-			throw new InvalidGrantException("Wrong client for this refresh token: " + refreshTokenValue);
-		}
-
 		@SuppressWarnings("unchecked")
 		ArrayList<String> originalScopes = (ArrayList<String>) claims.get(SCOPE.value());
 		// The user may not request scopes that were not part of the refresh token
@@ -156,6 +162,35 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 		if (originalScopes.isEmpty() || !originalScopes.containsAll(requestedScopes)) {
 			throw new InvalidScopeException("Unable to narrow the scope of the client authentication to "
 					+ requestedScopes + ".", new HashSet<String>(originalScopes));
+		}
+
+		// Check if the user's approval has changed after this token was granted. If it has, reject the token
+		List<Approval> approvals = approvalStore.getApprovals(username, clientId);
+		Set<String> approvedScopes = new HashSet<String>();
+		for (Approval approval : approvals) {
+			if (approval.getStatus() == ApprovalStatus.APPROVED && requestedScopes.contains(approval.getScope())) {
+				if (!approval.isCurrentlyActive()) {
+					logger.debug("Approval " + approval + " has expired. Need to re-approve.");
+					throw new InvalidTokenException("Invalid refresh token (approvals expired): " + refreshTokenValue);
+				}
+				if ((new Date(refreshTokenIssueDate)).before(approval.getLastUpdatedAt())) {
+					logger.debug("At least one approval " + approval + " was updated more recently at "
+							+ approval.getLastUpdatedAt() + " refresh token was issued at "
+							+ new Date(refreshTokenIssueDate));
+					throw new InvalidTokenException("Invalid refresh token (approvals updated): " + refreshTokenValue);
+				}
+				approvedScopes.add(approval.getScope());
+			}
+			else {
+				// Ignore that approval
+			}
+		}
+
+		// Only issue the token if all the requested scopes have unexpired approvals made before the refresh token was
+		// issued
+		if (approvedScopes.size() != requestedScopes.size()) {
+			logger.debug("All requested scopes " + requestedScopes + " were not approved " + approvedScopes);
+			throw new InvalidTokenException("Invalid refresh token (not all scopes are approved): " + refreshTokenValue);
 		}
 
 		int validitySeconds = getAccessTokenValiditySeconds(clientId);
@@ -318,8 +353,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
 		response.put(IAT.value(), System.currentTimeMillis() / 1000);
 		if (((ExpiringOAuth2RefreshToken) token).getExpiration() != null) {
-			response.put(EXP.value(),
-					((ExpiringOAuth2RefreshToken) token).getExpiration().getTime() / 1000);
+			response.put(EXP.value(), ((ExpiringOAuth2RefreshToken) token).getExpiration().getTime() / 1000);
 		}
 
 		response.put(CID.value(), clientId);
@@ -334,8 +368,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 	}
 
 	/**
-	 * Check the current authorization request to indicate whether a refresh token should be
-	 * issued or not.
+	 * Check the current authorization request to indicate whether a refresh token should be issued or not.
 	 * @param authorizationRequest the current authorization request
 	 * @return boolean to indicate if refresh token is supported
 	 */
@@ -364,6 +397,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 	public void afterPropertiesSet() throws Exception {
 		Assert.notNull(clientDetailsService, "clientDetailsService must be set");
 		Assert.notNull(issuer, "issuer must be set");
+		Assert.notNull(approvalStore, "approvalStore must be set");
 	}
 
 	public void setUserDatabase(UaaUserDatabase userDatabase) {
@@ -377,8 +411,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 		@SuppressWarnings("unchecked")
 		ArrayList<String> scopes = (ArrayList<String>) claims.get(SCOPE.value());
 
-		AuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(
-				(String) claims.get(CLIENT_ID.value()), scopes);
+		AuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest((String) claims.get(CLIENT_ID
+				.value()), scopes);
 		((DefaultAuthorizationRequest) authorizationRequest).setResourceIds(null);
 		((DefaultAuthorizationRequest) authorizationRequest).setApproved(true);
 
@@ -399,10 +433,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 		Authentication userAuthentication = null;
 		// Is this a user token?
 		if (claims.containsKey(EMAIL.value())) {
-			UaaUser user = new UaaUser((String) claims.get(USER_ID.value()),
-					(String) claims.get(USER_NAME.value()), null,
-					(String) claims.get(EMAIL.value()), UaaAuthority.USER_AUTHORITIES, null, null,
-					null, null);
+			UaaUser user = new UaaUser((String) claims.get(USER_ID.value()), (String) claims.get(USER_NAME.value()),
+					null, (String) claims.get(EMAIL.value()), UaaAuthority.USER_AUTHORITIES, null, null, null, null);
 
 			UaaPrincipal principal = new UaaPrincipal(user);
 			userAuthentication = new UaaAuthentication(principal, UaaAuthority.USER_AUTHORITIES, null);
@@ -484,6 +516,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
 	public void setDefaultUserAuthorities(Set<String> defaultUserAuthorities) {
 		this.defaultUserAuthorities = defaultUserAuthorities;
+	}
+
+	public void setApprovalStore(ApprovalStore approvalStore) {
+		this.approvalStore = approvalStore;
 	}
 
 }
