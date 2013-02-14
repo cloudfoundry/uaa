@@ -18,7 +18,7 @@ scim:
     - acme|acme.dev,acme.qa
     - acme.dev|marissa
   users:
-    - marissa|koala|marissa@test.org|Marissa|Bloggs|uaa.user,tokens.read,tokens.write
+    - marissa|koala|marissa@test.org|Marissa|Bloggs|uaa.user
   userids_enabled: true
   
 spring_profiles: test,postgresql

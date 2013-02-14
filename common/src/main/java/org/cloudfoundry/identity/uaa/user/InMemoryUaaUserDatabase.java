@@ -21,6 +21,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
  *
  * @author Luke Taylor
  * @author Dave Syer
+ * @author Joel D'sa
  */
 public class InMemoryUaaUserDatabase implements UaaUserDatabase {
 
@@ -39,6 +40,14 @@ public class InMemoryUaaUserDatabase implements UaaUserDatabase {
 		}
 		return u;
 
+	}
+
+	public void updateUser(String username, UaaUser user) throws UsernameNotFoundException {
+
+		if (!users.containsKey(username)) {
+			throw new UsernameNotFoundException("User " + username + " not found");
+		}
+		users.put(username, user);
 	}
 
 }

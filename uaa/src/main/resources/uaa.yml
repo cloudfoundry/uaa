@@ -5,13 +5,14 @@ oauth:
     admin:
       authorized-grant-types: client_credentials
       scope: uaa.none
-      authorities: uaa.admin,clients.read,clients.write,clients.secret,scim.read,scim.write
+      authorities: uaa.admin,clients.read,clients.write,clients.secret
       id: admin
       secret: adminsecret
 
 password-policy:
   required-score: 0
 
+issuer.uri: http://localhost:8080/uaa
 ---
 
 platform: hsqldb
