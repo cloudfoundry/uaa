@@ -497,9 +497,3 @@ at all in `vcap`).  In the UAA you can find the registration in the
         POST /oauth/token
         
     Standard OAuth2 Authorization Endpoint passed through to the UAA.
-
-## File a Bug
-
-To file a bug against Cloud Foundry Open Source and its components, sign up and use our
-bug tracking system: [http://cloudfoundry.atlassian.net](http://cloudfoundry.atlassian.net)
-        
