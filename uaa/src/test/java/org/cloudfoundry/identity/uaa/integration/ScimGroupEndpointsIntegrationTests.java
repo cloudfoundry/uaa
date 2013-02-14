@@ -375,7 +375,7 @@ public class ScimGroupEndpointsIntegrationTests {
 	private void createTestClient(String name, String secret, String scope) throws Exception {
 		OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write");
 		HttpHeaders headers = getAuthenticatedHeaders(token);
-		BaseClientDetails client = new BaseClientDetails(name, "", scope, "authorization_code", "scim.read,scim.write");
+		BaseClientDetails client = new BaseClientDetails(name, "", scope, "authorization_code,password", "scim.read,scim.write");
 		client.setClientSecret(secret);
 		ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
 				HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
