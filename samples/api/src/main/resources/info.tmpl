@@ -5,7 +5,8 @@
   "version": "0.999",
   "description": "VMware's Cloud Application Platform",
   "allow_debug": true,
-  "authorization_endpoint": "http://localhost:8080/uaa",
+  "authorization_endpoint": "${loginUrl}",
+  "token_endpoint": "${uaaUrl}",
   "user": "foo@bar.com",
   "limits": {
     "memory": 2048,
