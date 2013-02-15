@@ -164,6 +164,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 					+ requestedScopes + ".", new HashSet<String>(originalScopes));
 		}
 
+		if (requestedScopes.isEmpty()) {
+			requestedScopes = new HashSet<String>(originalScopes);
+		}
+
 		// Check if the user's approval has changed after this token was granted. If it has, reject the token
 		List<Approval> approvals = approvalStore.getApprovals(username, clientId);
 		Set<String> approvedScopes = new HashSet<String>();

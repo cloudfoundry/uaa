@@ -81,7 +81,7 @@ public class JdbcApprovalStore implements ApprovalStore {
 		int refreshed = jdbcTemplate.update(REFRESH_AUTHZ_SQL, new PreparedStatementSetter() {
 			@Override
 			public void setValues(PreparedStatement ps) throws SQLException {
-				ps.setTimestamp(1, new Timestamp(new Date().getTime()));
+				ps.setTimestamp(1, new Timestamp(approval.getLastUpdatedAt().getTime()));
 				ps.setTimestamp(2, new Timestamp(approval.getExpiresAt().getTime()));
 				ps.setString(3, (approval.getStatus() == null ? APPROVED : approval.getStatus()).toString());
 				ps.setString(4, approval.getUserName());

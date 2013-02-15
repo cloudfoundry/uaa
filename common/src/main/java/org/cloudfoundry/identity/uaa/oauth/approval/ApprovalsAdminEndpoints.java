@@ -12,6 +12,7 @@
  */
 package org.cloudfoundry.identity.uaa.oauth.approval;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -111,6 +112,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 				logger.warn(String.format("%s attemting to update approvals for %s", username, approval.getUserName()));
 				throw new UaaException("unauthorized_operation", "Cannot update approvals for another user", HttpStatus.UNAUTHORIZED.value());
 			}
+			approval.setLastUpdatedAt(new Date());
 			approvalStore.addApproval(approval);
 		}
 		return approvalStore.getApprovals(String.format(USER_FILTER_TEMPLATE, username));
