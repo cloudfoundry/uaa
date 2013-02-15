@@ -127,17 +127,17 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 		// throw new InvalidGrantException("Invalid refresh token: " + refreshTokenValue);
 		// }
 
-		String clientId = (String) claims.get(CID.value());
+		String clientId = (String) claims.get(CID);
 		if (clientId == null || !clientId.equals(request.getClientId())) {
 			throw new InvalidGrantException("Wrong client for this refresh token: " + refreshTokenValue);
 		}
 
-		String username = (String) claims.get(USER_NAME.value());
+		String username = (String) claims.get(USER_NAME);
 
 		// TODO: Need to add a lookup by id so that the refresh token does not need to contain a name
 		UaaUser user = userDatabase.retrieveUserByName(username);
 
-		Integer refreshTokenIssuedAt = (Integer) claims.get(IAT.value());
+		Integer refreshTokenIssuedAt = (Integer) claims.get(IAT);
 		long refreshTokenIssueDate = refreshTokenIssuedAt.longValue() * 1000l;
 
 		// If the user changed their password, expire the refresh token
@@ -147,7 +147,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 			throw new InvalidTokenException("Invalid refresh token (password changed): " + refreshTokenValue);
 		}
 
-		Integer refreshTokenExpiry = (Integer) claims.get(EXP.value());
+		Integer refreshTokenExpiry = (Integer) claims.get(EXP);
 		long refreshTokenExpireDate = refreshTokenExpiry.longValue() * 1000l;
 
 		if (new Date(refreshTokenExpireDate).before(new Date())) {
@@ -156,7 +156,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 		}
 
 		@SuppressWarnings("unchecked")
-		ArrayList<String> originalScopes = (ArrayList<String>) claims.get(SCOPE.value());
+		ArrayList<String> originalScopes = (ArrayList<String>) claims.get(SCOPE);
 		// The user may not request scopes that were not part of the refresh token
 		Set<String> requestedScopes = request.getScope();
 		if (originalScopes.isEmpty() || !originalScopes.containsAll(requestedScopes)) {
@@ -217,7 +217,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 		accessToken.setScope(requestedScopes);
 
 		Map<String, Object> info = new HashMap<String, Object>();
-		info.put(JTI.value(), accessToken.getValue());
+		info.put(JTI, accessToken.getValue());
 		accessToken.setAdditionalInformation(info);
 
 		String content;
@@ -242,36 +242,36 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
 		Map<String, Object> response = new LinkedHashMap<String, Object>();
 
-		response.put(JTI.value(), token.getAdditionalInformation().get(JTI.value()));
+		response.put(JTI, token.getAdditionalInformation().get(JTI));
 		response.putAll(token.getAdditionalInformation());
 
-		response.put(USER_ID.value(), userId);
-		response.put(SUB.value(), userId);
-		response.put(USER_NAME.value(), username == null ? userId : username);
+		response.put(USER_ID, userId);
+		response.put(SUB, userId);
+		response.put(USER_NAME, username == null ? userId : username);
 		if (null != userEmail) {
-			response.put(EMAIL.value(), userEmail);
+			response.put(EMAIL, userEmail);
 		}
 
 		if (null != clientScopes) {
-			response.put(AUTHORITIES.value(), AuthorityUtils.authorityListToSet(clientScopes));
+			response.put(AUTHORITIES, AuthorityUtils.authorityListToSet(clientScopes));
 		}
 
 		response.put(OAuth2AccessToken.SCOPE, requestedScopes);
-		response.put(CLIENT_ID.value(), clientId);
-		response.put(CID.value(), clientId);
+		response.put(CLIENT_ID, clientId);
+		response.put(CID, clientId);
 
-		response.put(IAT.value(), System.currentTimeMillis() / 1000);
+		response.put(IAT, System.currentTimeMillis() / 1000);
 		if (token.getExpiration() != null) {
-			response.put(EXP.value(), token.getExpiration().getTime() / 1000);
+			response.put(EXP, token.getExpiration().getTime() / 1000);
 		}
 
 		if (issuer != null) {
 			String tokenEndpoint = issuer + "/oauth/token";
-			response.put(ISS.value(), tokenEndpoint);
+			response.put(ISS, tokenEndpoint);
 		}
 
 		// TODO: different values for audience in the AT and RT. Need to sync them up
-		response.put(AUD.value(), resourceIds);
+		response.put(AUD, resourceIds);
 
 		return response;
 	}
@@ -350,23 +350,23 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
 		Map<String, Object> response = new LinkedHashMap<String, Object>();
 
-		response.put(JTI.value(), UUID.randomUUID().toString());
-		response.put(SUB.value(), user.getId());
-		response.put(USER_NAME.value(), user.getUsername());
-		response.put(SCOPE.value(), scopes);
+		response.put(JTI, UUID.randomUUID().toString());
+		response.put(SUB, user.getId());
+		response.put(USER_NAME, user.getUsername());
+		response.put(SCOPE, scopes);
 
-		response.put(IAT.value(), System.currentTimeMillis() / 1000);
+		response.put(IAT, System.currentTimeMillis() / 1000);
 		if (((ExpiringOAuth2RefreshToken) token).getExpiration() != null) {
-			response.put(EXP.value(), ((ExpiringOAuth2RefreshToken) token).getExpiration().getTime() / 1000);
+			response.put(EXP, ((ExpiringOAuth2RefreshToken) token).getExpiration().getTime() / 1000);
 		}
 
-		response.put(CID.value(), clientId);
+		response.put(CID, clientId);
 		if (issuer != null) {
 			String tokenEndpoint = issuer + "/oauth/token";
-			response.put(ISS.value(), tokenEndpoint);
+			response.put(ISS, tokenEndpoint);
 		}
 
-		response.put(AUD.value(), scopes);
+		response.put(AUD, scopes);
 
 		return response;
 	}
@@ -413,10 +413,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 		Map<String, Object> claims = getClaimsForToken(accessToken);
 
 		@SuppressWarnings("unchecked")
-		ArrayList<String> scopes = (ArrayList<String>) claims.get(SCOPE.value());
+		ArrayList<String> scopes = (ArrayList<String>) claims.get(SCOPE);
 
 		AuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest((String) claims.get(CLIENT_ID
-				.value()), scopes);
+				), scopes);
 		((DefaultAuthorizationRequest) authorizationRequest).setResourceIds(null);
 		((DefaultAuthorizationRequest) authorizationRequest).setApproved(true);
 
@@ -436,9 +436,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
 		Authentication userAuthentication = null;
 		// Is this a user token?
-		if (claims.containsKey(EMAIL.value())) {
-			UaaUser user = new UaaUser((String) claims.get(USER_ID.value()), (String) claims.get(USER_NAME.value()),
-					null, (String) claims.get(EMAIL.value()), UaaAuthority.USER_AUTHORITIES, null, null, null, null);
+		if (claims.containsKey(EMAIL)) {
+			UaaUser user = new UaaUser((String) claims.get(USER_ID), (String) claims.get(USER_NAME),
+					null, (String) claims.get(EMAIL), UaaAuthority.USER_AUTHORITIES, null, null, null, null);
 
 			UaaPrincipal principal = new UaaPrincipal(user);
 			userAuthentication = new UaaAuthentication(principal, UaaAuthority.USER_AUTHORITIES, null);
@@ -462,13 +462,13 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 		// Expiry is verified by check_token
 		DefaultOAuth2AccessToken token = new DefaultOAuth2AccessToken(accessToken);
 		token.setTokenType(OAuth2AccessToken.BEARER_TYPE);
-		Integer exp = (Integer) claims.get(EXP.value());
+		Integer exp = (Integer) claims.get(EXP);
 		if (null != exp) {
 			token.setExpiration(new Date(exp.longValue() * 1000l));
 		}
 
 		@SuppressWarnings("unchecked")
-		ArrayList<String> scopes = (ArrayList<String>) claims.get(SCOPE.value());
+		ArrayList<String> scopes = (ArrayList<String>) claims.get(SCOPE);
 		if (null != scopes && scopes.size() > 0) {
 			token.setScope(new HashSet<String>(scopes));
 		}

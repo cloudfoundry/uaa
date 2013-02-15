@@ -46,8 +46,10 @@ public class RemoteTokenServicesTests {
 	public RemoteTokenServicesTests() {
 		services.setClientId("client");
 		services.setClientSecret("secret");
-		body.put("client_id", "remote");
-		body.put("user_name", "olds");
+		body.put(Claims.CLIENT_ID, "remote");
+		body.put(Claims.USER_NAME, "olds");
+		body.put(Claims.EMAIL, "olds@vmware.com");
+		body.put(Claims.USER_ID, "HDGFJSHGDF");
 		services.setRestTemplate(new RestTemplate() {
 			@SuppressWarnings("unchecked")
 			@Override
@@ -64,6 +66,7 @@ public class RemoteTokenServicesTests {
 		assertNotNull(result);
 		assertEquals("remote", result.getAuthorizationRequest().getClientId());
 		assertEquals("olds", result.getUserAuthentication().getName());
+		assertEquals("HDGFJSHGDF", ((RemoteUserAuthentication)result.getUserAuthentication()).getId());
 	}
 
 	@Test

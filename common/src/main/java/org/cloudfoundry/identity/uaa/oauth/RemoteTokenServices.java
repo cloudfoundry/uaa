@@ -24,7 +24,6 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
@@ -118,6 +117,17 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
 			clientAuthentication.addClientDetails(clientDetails);
 		}
 
+		Authentication userAuthentication = getUserAuthentication(map, scope);
+
+		clientAuthentication.setApproved(true);
+		return new OAuth2Authentication(clientAuthentication, userAuthentication);
+	}
+
+	private Authentication getUserAuthentication(Map<String, Object> map, Set<String> scope) {
+		String username = (String) map.get("user_name");
+		if (username==null) {
+			return null;
+		}
 		Set<GrantedAuthority> userAuthorities = new HashSet<GrantedAuthority>();
 		if (map.containsKey("user_authorities")) {
 			@SuppressWarnings("unchecked")
@@ -128,11 +138,9 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
 			// User authorities had better not be empty or we might mistake user for unauthenticated
 			userAuthorities.addAll(getAuthorities(scope));
 		}
-		String username = (String) map.get("user_name");
-		Authentication userAuthentication = new UsernamePasswordAuthenticationToken(username, null, userAuthorities);
-
-		clientAuthentication.setApproved(true);
-		return new OAuth2Authentication(clientAuthentication, userAuthentication);
+		String email = (String) map.get("email");
+		String id = (String) map.get("user_id");
+		return new RemoteUserAuthentication(id, username, email, userAuthorities);
 	}
 
 	@Override

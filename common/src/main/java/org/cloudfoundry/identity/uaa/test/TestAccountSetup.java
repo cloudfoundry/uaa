@@ -147,11 +147,6 @@ public class TestAccountSetup extends TestWatchman {
 		return clientExists(client, testAccounts.getImplicitResource("oauth.clients.vmc", "vmc", null));
 	}
 
-	private boolean tokenClientExists(RestOperations client) {
-		return clientExists(client,
-				testAccounts.getClientCredentialsResource("oauth.clients.token", "token", "tokenclientsecret"));
-	}
-
 	private boolean scimClientExists(RestOperations client) {
 		return clientExists(client,
 				testAccounts.getClientCredentialsResource("oauth.clients.scim", "scim", "scimsecret"));

@@ -116,10 +116,13 @@ public class ClientAdminBootstrapTests {
 	@Test
 	@SuppressWarnings("unchecked")
 	public void testOverrideClientWithYaml() throws Exception {
+		@SuppressWarnings("rawtypes")
 		Map fooClient = new Yaml().loadAs("id: foo\noverride: true\nsecret: bar\n"
 				+ "access-token-validity: 100", Map.class);
+		@SuppressWarnings("rawtypes")
 		Map barClient = new Yaml().loadAs("id: bar\noverride: true\nsecret: bar\n"
 				+ "access-token-validity: 100", Map.class);
+		@SuppressWarnings("rawtypes")
 		Map clients = new HashMap();
 		clients.put("foo", fooClient);
 		clients.put("bar", barClient);

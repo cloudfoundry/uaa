@@ -34,9 +34,9 @@ public class UaaUserTokenConverter implements UserTokenConverter {
 		Map<String, Object> response = new LinkedHashMap<String, Object>();
 		if (authentication.getPrincipal() instanceof UaaPrincipal) {
 			UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
-			response.put(USER_ID.value(), principal.getId());
-			response.put(USER_NAME.value(), principal.getName());
-			response.put(EMAIL.value(), principal.getEmail());
+			response.put(USER_ID, principal.getId());
+			response.put(USER_NAME, principal.getName());
+			response.put(EMAIL, principal.getEmail());
 		}
 		return response;
 	}

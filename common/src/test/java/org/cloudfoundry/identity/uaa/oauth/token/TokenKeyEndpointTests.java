@@ -14,8 +14,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Map;
 
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.access.AccessDeniedException;
@@ -32,12 +30,9 @@ public class TokenKeyEndpointTests {
 
 	private TokenKeyEndpoint tokenEnhancer;
 
-	private UaaAuthentication userAuthentication;
-
 	@Before
 	public void setUp() throws Exception {
 		tokenEnhancer = new TokenKeyEndpoint();
-		userAuthentication = UaaAuthenticationTestFactory.getAuthentication("foo@bar.com", "Foo Bar", "foo@bar.com");
 	}
 
 	@Test(expected=IllegalArgumentException.class)
