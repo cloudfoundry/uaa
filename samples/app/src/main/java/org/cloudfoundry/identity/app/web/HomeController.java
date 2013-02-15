@@ -31,13 +31,9 @@ public class HomeController {
 
 	private String clientId = "app";
 
-	private RestOperations restTemplate;
-
 	private String logoutUrl;
 
-	public void setRestTemplate(RestOperations restTemplate) {
-		this.restTemplate = restTemplate;
-	}
+	private String approvalsUri;
 
 	/**
 	 * @param logoutUrl the logoutUrl to set
@@ -51,6 +47,13 @@ public class HomeController {
 	 */
 	public void setUserAuthorizationUri(String userAuthorizationUri) {
 		this.userAuthorizationUri = userAuthorizationUri;
+	}
+
+	/**
+	 * @param approvalsUri the approvalsUri to set
+	 */
+	public void setApprovalsUri(String approvalsUri) {
+		this.approvalsUri = approvalsUri;
 	}
 
 	/**
@@ -78,6 +81,7 @@ public class HomeController {
 	@RequestMapping("/home")
 	public String home(Model model, Principal principal) {
 		model.addAttribute("principal", principal);
+		model.addAttribute("approvalsUri", approvalsUri);
 		return "home";
 	}
 
@@ -86,15 +90,6 @@ public class HomeController {
 	public String id(Model model, Principal principal) {
 		model.addAttribute("principal", principal);
 		return "home";
-	}
-
-	@RequestMapping("/revoke")
-	public String revoke(Model model, Principal principal) {
-		URI azUri = URI.create(userAuthorizationUri);
-		String port = azUri.getPort() == 80 ? "" : ":" + azUri.getPort();
-		String approvalURL = azUri.getScheme() + "://" + azUri.getHost() + port + "/login/approvals";
-
-		return "redirect:" + approvalURL;
 	}
 
 	@RequestMapping("/logout")

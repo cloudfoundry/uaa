@@ -107,7 +107,7 @@
 	</bean>
 
 	<bean id="homeController" class="org.cloudfoundry.identity.app.web.HomeController">
-		<property name="restTemplate" ref="restTemplate" />
+		<property name="approvalsUri" value="${approvalsUri}" />
 		<property name="userAuthorizationUri" value="${userAuthorizationUri}" />
 		<property name="dataUri" value="${dataUri}" />
 		<property name="logoutUrl" value="${cloudFoundryLogoutUrl}" />
