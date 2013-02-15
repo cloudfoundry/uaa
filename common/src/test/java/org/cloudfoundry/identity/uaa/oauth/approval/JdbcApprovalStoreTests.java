@@ -23,8 +23,6 @@ import java.util.List;
 
 import javax.sql.DataSource;
 
-import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
-import org.cloudfoundry.identity.uaa.oauth.approval.JdbcApprovalStore;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
@@ -51,8 +49,6 @@ public class JdbcApprovalStoreTests {
 
 	private JdbcApprovalStore dao;
 
-	private static final String addApprovalSqlFormat = "insert into authz_approvals (userName, clientId, scope, expiresAt, status) values ('%s','%s','%s','%s','%s')";
-
 	@Before
 	public void createDatasource() {
 
@@ -66,13 +62,39 @@ public class JdbcApprovalStoreTests {
 	}
 
 	private void addApproval(String userName, String clientId, String scope, long expiresIn, ApprovalStatus status) {
-		template.execute(String.format(addApprovalSqlFormat, userName, clientId, scope, new Timestamp(new Date().getTime() + expiresIn), status));
+		Date expiresAt = new Timestamp(new Date().getTime() + expiresIn);
+		Date lastUpdatedAt = new Date();
+		Approval newApproval = new Approval(userName, clientId, scope, expiresAt, status, lastUpdatedAt);
+		dao.addApproval(newApproval);
 	}
 
 	@After
 	public void cleanupDataSource() throws Exception {
 		TestUtils.deleteFrom(dataSource, "authz_approvals");
 		assertEquals(0, template.queryForInt("select count(*) from authz_approvals"));
+	}
+
+	@Test
+	public void testAddAndGetApproval() {
+		String userName = "user";
+		String clientId = "client";
+		String scope = "uaa.user";
+		long expiresIn = 1000l;
+		Date lastUpdatedAt = new Date();
+		ApprovalStatus status = APPROVED;
+
+		Date expiresAt = new Timestamp(new Date().getTime() + expiresIn);
+		Approval newApproval = new Approval(userName, clientId, scope, expiresAt, status, lastUpdatedAt);
+		dao.addApproval(newApproval);
+		List<Approval> approvals = dao.getApprovals(userName, clientId);
+
+		Approval approval = approvals.get(0);
+		assertEquals(clientId, approval.getClientId());
+		assertEquals(userName, approval.getUserName());
+		assertEquals(expiresAt.getTime(), approval.getExpiresAt().getTime());
+		assertEquals(lastUpdatedAt.getTime(), approval.getLastUpdatedAt().getTime());
+		assertEquals(scope, approval.getScope());
+		assertEquals(status, approval.getStatus());
 	}
 
 	@Test

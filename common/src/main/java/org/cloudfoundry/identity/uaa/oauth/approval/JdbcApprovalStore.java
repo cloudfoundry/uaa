@@ -49,11 +49,11 @@ public class JdbcApprovalStore implements ApprovalStore {
 
 	private static final String TABLE_NAME = "authz_approvals";
 
-	private static final String FIELDS = "userName,clientId,scope,expiresAt,status";
+	private static final String FIELDS = "userName,clientId,scope,expiresAt,status,lastModifiedAt";
 
-	private static final String ADD_AUTHZ_SQL = String.format("insert into %s ( %s ) values (?,?,?,?,?)", TABLE_NAME, FIELDS);
+	private static final String ADD_AUTHZ_SQL = String.format("insert into %s ( %s ) values (?,?,?,?,?,?)", TABLE_NAME, FIELDS);
 
-	private static final String REFRESH_AUTHZ_SQL = String.format("update %s set expiresAt=?, status=? where userName=? and clientId=? and scope=?", TABLE_NAME);
+	private static final String REFRESH_AUTHZ_SQL = String.format("update %s set lastModifiedAt=?, expiresAt=?, status=? where userName=? and clientId=? and scope=?", TABLE_NAME);
 
 	private static final String GET_AUTHZ_SQL = String.format("select %s from %s", FIELDS, TABLE_NAME);
 
@@ -81,11 +81,12 @@ public class JdbcApprovalStore implements ApprovalStore {
 		int refreshed = jdbcTemplate.update(REFRESH_AUTHZ_SQL, new PreparedStatementSetter() {
 			@Override
 			public void setValues(PreparedStatement ps) throws SQLException {
-				ps.setTimestamp(1, new Timestamp(approval.getExpiresAt().getTime()));
-				ps.setString(2, (approval.getStatus() == null ? APPROVED : approval.getStatus()).toString());
-				ps.setString(3, approval.getUserName());
-				ps.setString(4, approval.getClientId());
-				ps.setString(5, approval.getScope());
+				ps.setTimestamp(1, new Timestamp(new Date().getTime()));
+				ps.setTimestamp(2, new Timestamp(approval.getExpiresAt().getTime()));
+				ps.setString(3, (approval.getStatus() == null ? APPROVED : approval.getStatus()).toString());
+				ps.setString(4, approval.getUserName());
+				ps.setString(5, approval.getClientId());
+				ps.setString(6, approval.getScope());
 			}
 		});
 		if (refreshed != 1) {
@@ -108,6 +109,7 @@ public class JdbcApprovalStore implements ApprovalStore {
 					ps.setString(3, approval.getScope());
 					ps.setTimestamp(4, new Timestamp(approval.getExpiresAt().getTime()));
 					ps.setString(5, (approval.getStatus() == null ? APPROVED : approval.getStatus()).toString());
+					ps.setTimestamp(6, new Timestamp(approval.getLastUpdatedAt().getTime()));
 				}
 			});
 		}
@@ -192,8 +194,9 @@ public class JdbcApprovalStore implements ApprovalStore {
 			String scope = rs.getString(3);
 			Date expiresAt = rs.getTimestamp(4);
 			String status = rs.getString(5);
+			Date lastUpdatedAt = rs.getTimestamp(6);
 
-			return new Approval(userName, clientId, scope, expiresAt, ApprovalStatus.valueOf(status));
+			return new Approval(userName, clientId, scope, expiresAt, ApprovalStatus.valueOf(status), lastUpdatedAt);
 		}
 	}
 }
