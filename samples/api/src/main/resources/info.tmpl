@@ -6,9 +6,10 @@
   "description": "VMware's Cloud Application Platform",
   "allow_debug": true,
   "authorization_endpoint": "${loginUrl}",
-  "token_endpoint": "${uaaUrl}",
-  "user": "foo@bar.com",
-  "limits": {
+  "token_endpoint": "${uaaUrl}",${user!=null?'
+  "user": "'+user+'",
+  ':'
+  '}"limits": {
     "memory": 2048,
     "app_uris": 4,
     "services": 16,

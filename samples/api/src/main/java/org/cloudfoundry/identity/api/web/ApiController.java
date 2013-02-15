@@ -77,6 +77,8 @@ public class ApiController {
 		model.put("uaaUrl", uaaUrl);
 		if (principal!=null) {
 			model.put("user", principal.getName());
+		} else {
+			model.put("user", null);
 		}
 		return new SpelView(infoResource);
 	}

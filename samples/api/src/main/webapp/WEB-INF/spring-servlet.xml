@@ -13,7 +13,6 @@
 		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
 
 	<http pattern="/index.html" security="none" xmlns="http://www.springframework.org/schema/security" />
-	<http pattern="/info" security="none" xmlns="http://www.springframework.org/schema/security" />
 	<http pattern="/browse" security="none" xmlns="http://www.springframework.org/schema/security" />
 	<http pattern="/denied" security="none" xmlns="http://www.springframework.org/schema/security" />
 	<http pattern="/js/**" security="none" xmlns="http://www.springframework.org/schema/security" />
@@ -21,6 +20,7 @@
 	<!-- TODO: make an access denied view that tells me something useful -->
 	<http access-denied-page="/denied" entry-point-ref="authenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
 		xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/info" access="IS_AUTHENTICATED_ANONYMOUSLY" />
 		<intercept-url pattern="/apps" access="scope=cloud_controller.read" />
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<custom-filter ref="oauth2ServiceFilter" position="PRE_AUTH_FILTER" />
