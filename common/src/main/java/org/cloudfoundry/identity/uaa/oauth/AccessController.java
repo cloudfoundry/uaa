@@ -14,11 +14,14 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import java.security.Principal;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -91,17 +94,41 @@ public class AccessController {
 			// response.sendError(HttpServletResponse.SC_BAD_REQUEST);
 		}
 		else {
-			BaseClientDetails client = new BaseClientDetails(clientDetailsService.loadClientByClientId(clientAuth.getClientId()));
-			client.setClientSecret(null);
+			ClientDetails client = clientDetailsService.loadClientByClientId(clientAuth.getClientId());
+			// TODO: Need to fix the copy constructor to copy additionalInfo
+			BaseClientDetails modifiableClient = new BaseClientDetails(client);
+			modifiableClient.setClientSecret(null);
 			model.put("auth_request", clientAuth);
-			model.put("client", client); // TODO: remove this once it has gone from jsp pages
+			model.put("client", modifiableClient); // TODO: remove this once it has gone from jsp pages
 			model.put("client_id", clientAuth.getClientId());
-			model.put("redirect_uri", getRedirectUri(client, clientAuth));
+			model.put("redirect_uri", getRedirectUri(modifiableClient, clientAuth));
+
+			// Find the auto approved scopes for this clients
+			Map<String, Object> additionalInfo = client.getAdditionalInformation();
+			Object autoApproved = additionalInfo.get("autoapprove");
+			Set<String> autoApprovedScopes = new HashSet<String>();
+			if (autoApproved instanceof Collection<?>) {
+				@SuppressWarnings("unchecked")
+				Collection<? extends String> scopes = (Collection<? extends String>) autoApproved;
+				autoApprovedScopes.addAll(scopes);
+			}
+			else if ("true".equals(autoApproved)) {
+				autoApprovedScopes.addAll(modifiableClient.getScope());
+			}
+
+			List<Approval> filteredApprovals = new ArrayList<Approval>();
+			// Remove auto approved scopes
+			List<Approval> approvals = approvalStore.getApprovals(principal.getName(), clientAuth.getClientId());
+			for (Approval approval : approvals) {
+				if (!(autoApprovedScopes.contains(approval.getScope()))) {
+					filteredApprovals.add(approval);
+				}
+			}
 
 			ArrayList<String> approvedScopes = new ArrayList<String>();
 			ArrayList<String> deniedScopes = new ArrayList<String>();
 
-			for(Approval approval : approvalStore.getApprovals(principal.getName(), clientAuth.getClientId())) {
+			for(Approval approval : filteredApprovals) {
 				switch (approval.getStatus()) {
 				case APPROVED:
 					approvedScopes.add(approval.getScope());
@@ -119,14 +146,14 @@ public class AccessController {
 
 			//Filter the scopes approved/denied from the ones requested
 			for(String scope : clientAuth.getScope()) {
-				if (!approvedScopes.contains(scope) && !deniedScopes.contains(scope)) {
+				if (!approvedScopes.contains(scope) && !deniedScopes.contains(scope) && !autoApprovedScopes.contains(scope)) {
 					undecidedScopes.add(scope);
 				}
 			}
 
-			model.put("approved_scopes", getScopes(client, approvedScopes));
-			model.put("denied_scopes", getScopes(client, deniedScopes));
-			model.put("undecided_scopes", getScopes(client, undecidedScopes));
+			model.put("approved_scopes", getScopes(modifiableClient, approvedScopes));
+			model.put("denied_scopes", getScopes(modifiableClient, deniedScopes));
+			model.put("undecided_scopes", getScopes(modifiableClient, undecidedScopes));
 
 			//For backward compatibility with older login servers
 			List<Map<String, String>> combinedScopes = new ArrayList<Map<String, String>>();

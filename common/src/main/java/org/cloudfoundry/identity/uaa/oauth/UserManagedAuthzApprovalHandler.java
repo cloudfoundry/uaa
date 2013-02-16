@@ -79,6 +79,27 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 
 		Collection<String> requestedScopes = authorizationRequest.getScope();
 
+		// Factor in auto approved scopes
+		Set<String> autoApprovedScopes = new HashSet<String>();
+		ClientDetails client = clientDetailsService.retrieve(authorizationRequest.getClientId());
+		if (null != client) {
+			Map<String, Object> additionalInfo = client.getAdditionalInformation();
+			if (null != additionalInfo) {
+				Object autoApproved = additionalInfo.get("autoapprove");
+				if (autoApproved instanceof Collection<?>) {
+					@SuppressWarnings("unchecked")
+					Collection<? extends String> scopes = (Collection<? extends String>) autoApproved;
+					autoApprovedScopes.addAll(scopes);
+				}
+				else if ("true".equals(autoApproved)) {
+					autoApprovedScopes.addAll(client.getScope());
+				}
+			}
+		}
+
+		// Don't want to approve more than what's requested
+		autoApprovedScopes.retainAll(requestedScopes);
+
 		if (userApproval) {
 			// Store the scopes that have been approved / denied
 			Date expiry = computeExpiry();
@@ -86,6 +107,7 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 			// Get the approved scopes, calculate the denied scope
 			Map<String, String> approvalParameters = authorizationRequest.getApprovalParameters();
 			Set<String> approvedScopes = new HashSet<String>();
+			approvedScopes.addAll(autoApprovedScopes);
 			boolean foundUserApprovalParameter = false;
 			for (String approvalParameter : approvalParameters.keySet()) {
 				if (approvalParameter.startsWith(SCOPE_PREFIX)) {
@@ -132,6 +154,8 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 			// Look at the scopes and see if they have expired
 			Set<String> validUserApprovedScopes = new HashSet<String>();
 			Set<String> approvedScopes = new HashSet<String>();
+			approvedScopes.addAll(autoApprovedScopes);
+			validUserApprovedScopes.addAll(autoApprovedScopes);
 			Date today = new Date();
 			for (Approval approval : userApprovals) {
 				if (approval.getExpiresAt().after(today)) {
@@ -146,25 +170,16 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 				logger.debug("Valid user approved/denied scopes are " + validUserApprovedScopes);
 			}
 
-			// If the requested scopes have already been approved/denied by the user, this request is approved
+			// If the requested scopes have already been acted upon by the user, this request is approved
 			if (validUserApprovedScopes.containsAll(requestedScopes) && userAuthentication.isAuthenticated()) {
+				approvedScopes.retainAll(requestedScopes);
 				// Set only the scopes that have been approved by the user
 				((DefaultAuthorizationRequest) authorizationRequest).setScope(approvedScopes);
 				return true;
 			}
 		}
 
-		// If this client is auto approved, approve the request. We check this later because
-		// we still want to store the approvals that the user recorded.
-		String clientId = authorizationRequest.getClientId();
-		if (clientDetailsService != null) {
-			ClientDetails client = clientDetailsService.retrieve(clientId);
-			if (isAutoApprove(client, requestedScopes)) {
-				userApproval = true;
-			}
-		}
-
-		return userApproval;
+		return false;
 	}
 
 	private Date computeExpiry() {
@@ -176,24 +191,6 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 			expiresAt.add(Calendar.MILLISECOND, approvalExpiryInMillis);
 		}
 		return expiresAt.getTime();
-	}
-
-	private boolean isAutoApprove(ClientDetails client, Collection<String> scopes) {
-		Map<String, Object> info = client.getAdditionalInformation();
-		if (info.containsKey("autoapprove")) {
-			Object object = info.get("autoapprove");
-			if (object instanceof Boolean && (Boolean) object || "true".equals(object)) {
-				return true;
-			}
-			if (object instanceof Collection) {
-				@SuppressWarnings("unchecked")
-				Collection<String> autoScopes = (Collection<String>) object;
-				if (autoScopes.containsAll(scopes)) {
-					return true;
-				}
-			}
-		}
-		return false;
 	}
 
 	public void setApprovalExpiryInSeconds(int approvalExpirySeconds) {

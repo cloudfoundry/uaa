@@ -76,7 +76,7 @@ public class UaaTokenServicesTests {
 
 	public UaaTokenServicesTests() {
 		clientDetailsService.setClientDetailsStore(Collections
-				.singletonMap("client", new BaseClientDetails("client", "scim. clients", "read, write",
+				.singletonMap("client", new BaseClientDetails("client", "scim, clients", "read, write",
 						"authorization_code, password, implicit, client_credentials", "update")));
 		tokenServices.setClientDetailsService(clientDetailsService);
 		tokenServices.setDefaultUserAuthorities(AuthorityUtils.authorityListToSet(UaaAuthority.USER_AUTHORITIES));

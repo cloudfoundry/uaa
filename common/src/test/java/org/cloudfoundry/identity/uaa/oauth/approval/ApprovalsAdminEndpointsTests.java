@@ -19,6 +19,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
 import java.util.List;
 
 import javax.sql.DataSource;
@@ -38,6 +39,8 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
+import org.springframework.security.oauth2.provider.BaseClientDetails;
+import org.springframework.security.oauth2.provider.InMemoryClientDetailsService;
 import org.springframework.test.annotation.IfProfileValue;
 import org.springframework.test.annotation.ProfileValueSourceConfiguration;
 import org.springframework.test.context.ContextConfiguration;
@@ -78,10 +81,13 @@ public class ApprovalsAdminEndpointsTests {
 		endpoints = new ApprovalsAdminEndpoints();
 		endpoints.setApprovalStore(dao);
 		endpoints.setScimUserProvisioning(userDao);
-
-		addApproval("marissa", "c1", "uaa.user", 6000, APPROVED);
-		addApproval("marissa", "c1", "uaa.admin", 12000, DENIED);
-		addApproval("marissa", "c1", "openid", 6000, APPROVED);
+		InMemoryClientDetailsService clientDetailsService = new InMemoryClientDetailsService();
+		BaseClientDetails details = new BaseClientDetails("c1", "scim,clients", "read,write",
+				"authorization_code, password, implicit, client_credentials", "update");
+		details.addAdditionalInformation("autoapprove", "true");
+		clientDetailsService.setClientDetailsStore(Collections
+				.singletonMap("c1", details));
+		endpoints.setClientDetailsService(clientDetailsService);
 
 		endpoints.setSecurityContextAccessor(mockSecurityContextAccessor(marissa.getId()));
 	}
@@ -107,12 +113,35 @@ public class ApprovalsAdminEndpointsTests {
 
 	@Test
 	public void canGetApprovals() {
+		addApproval("marissa", "c1", "uaa.user", 6000, APPROVED);
+		addApproval("marissa", "c1", "uaa.admin", 12000, DENIED);
+		addApproval("marissa", "c1", "openid", 6000, APPROVED);
+
 		assertEquals(3, endpoints.getApprovals("userName pr", 1, 100).size());
 		assertEquals(2, endpoints.getApprovals("userName pr", 1, 2).size());
 	}
 
 	@Test
+	public void canGetApprovalsWithAutoApproveTrue() {
+		//Only get scopes that need approval
+		addApproval("marissa", "c1", "uaa.user", 6000, APPROVED);
+		addApproval("marissa", "c1", "uaa.admin", 12000, DENIED);
+		addApproval("marissa", "c1", "openid", 6000, APPROVED);
+
+		assertEquals(3, endpoints.getApprovals("userName eq 'marissa'", 1, 100).size());
+
+		addApproval("marissa", "c1", "read", 12000, DENIED);
+		addApproval("marissa", "c1", "write", 6000, APPROVED);
+
+		assertEquals(3, endpoints.getApprovals("userName eq 'marissa'", 1, 100).size());
+	}
+
+	@Test
 	public void canUpdateApprovals() {
+		addApproval("marissa", "c1", "uaa.user", 6000, APPROVED);
+		addApproval("marissa", "c1", "uaa.admin", 12000, DENIED);
+		addApproval("marissa", "c1", "openid", 6000, APPROVED);
+
 		Approval[] app = new Approval[] {new Approval("marissa", "c1", "uaa.user", 2000, APPROVED),
 														  new Approval("marissa", "c1", "dash.user", 2000, APPROVED),
 														  new Approval("marissa", "c1", "openid", 2000, DENIED),
@@ -133,6 +162,10 @@ public class ApprovalsAdminEndpointsTests {
 	}
 
 	public void attemptingToCreateDuplicateApprovalsExtendsValidity() {
+		addApproval("marissa", "c1", "uaa.user", 6000, APPROVED);
+		addApproval("marissa", "c1", "uaa.admin", 12000, DENIED);
+		addApproval("marissa", "c1", "openid", 6000, APPROVED);
+
 		addApproval("marissa", "c1", "openid", 10000, APPROVED);
 
 		List<Approval> updatedApprovals = endpoints.getApprovals("userName eq 'marissa'", 1, 100);
@@ -143,6 +176,10 @@ public class ApprovalsAdminEndpointsTests {
 	}
 
 	public void attemptingToCreateAnApprovalWithADifferentStatusUpdatesApproval() {
+		addApproval("marissa", "c1", "uaa.user", 6000, APPROVED);
+		addApproval("marissa", "c1", "uaa.admin", 12000, DENIED);
+		addApproval("marissa", "c1", "openid", 6000, APPROVED);
+
 		addApproval("marissa", "c1", "openid", 18000, DENIED);
 
 		List<Approval> updatedApprovals = endpoints.getApprovals("userName eq 'marissa'", 1, 100);
@@ -155,6 +192,10 @@ public class ApprovalsAdminEndpointsTests {
 
 	@Test (expected = UaaException.class)
 	public void userCannotUpdateApprovalsForAnotherUser() {
+		addApproval("marissa", "c1", "uaa.user", 6000, APPROVED);
+		addApproval("marissa", "c1", "uaa.admin", 12000, DENIED);
+		addApproval("marissa", "c1", "openid", 6000, APPROVED);
+
 		ScimUser vidya = new ScimUser(null, "vidya", "vidya", "v");
 		vidya.addEmail("vidya@test.com");
 		vidya = userDao.createUser(vidya, "password");
@@ -165,6 +206,10 @@ public class ApprovalsAdminEndpointsTests {
 
 	@Test
 	public void canRevokeApprovals() {
+		addApproval("marissa", "c1", "uaa.user", 6000, APPROVED);
+		addApproval("marissa", "c1", "uaa.admin", 12000, DENIED);
+		addApproval("marissa", "c1", "openid", 6000, APPROVED);
+
 		assertEquals(3, endpoints.getApprovals("userName pr", 1, 100).size());
 		assertEquals("ok", endpoints.revokeApprovals("c1").getStatus());
 		assertEquals(0, endpoints.getApprovals("userName pr", 1, 100).size());

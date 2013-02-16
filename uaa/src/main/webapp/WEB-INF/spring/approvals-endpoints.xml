@@ -35,6 +35,7 @@
 		<property name="messageConverters">
 			<bean class="org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter" />
 		</property>
+		<property name="clientDetailsService" ref="jdbcClientDetailsService" />
 	</bean>
 
 	<http name="approvalsSecurity" pattern="/approvals" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"

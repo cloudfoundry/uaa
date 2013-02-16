@@ -164,6 +164,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 					+ requestedScopes + ".", new HashSet<String>(originalScopes));
 		}
 
+		// Factor in auto approved scopes. Even thought these may be stored, there may
+		// be cases (in the password grant case) where all scopes may be auto approved
+		// and the user may not see the approval page. So we need an additional check here.
 		ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
 		Map<String, Object> additionalInfo = client.getAdditionalInformation();
 

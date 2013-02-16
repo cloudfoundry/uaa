@@ -12,10 +12,14 @@
  */
 package org.cloudfoundry.identity.uaa.oauth.approval;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -33,6 +37,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -47,13 +53,16 @@ import org.springframework.web.servlet.View;
 @Controller
 public class ApprovalsAdminEndpoints implements InitializingBean {
 
-	private ApprovalStore approvalStore;
+	private ApprovalStore approvalStore = null;
+
+	private ClientDetailsService clientDetailsService = null;
 
 	private ScimUserProvisioning scimUserProvisioning;
 
 	private Map<Class<? extends Exception>, HttpStatus> statuses = new HashMap<Class<? extends Exception>, HttpStatus>();
 
-	private HttpMessageConverter<?>[] messageConverters = new RestTemplate().getMessageConverters().toArray(new HttpMessageConverter<?>[0]);
+	private HttpMessageConverter<?>[] messageConverters = new RestTemplate().getMessageConverters().toArray(
+			new HttpMessageConverter<?>[0]);
 
 	private final Log logger = LogFactory.getLog(getClass());
 
@@ -85,13 +94,52 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 
 	@RequestMapping(value = "/approvals", method = RequestMethod.GET)
 	@ResponseBody
-	public List<Approval> getApprovals(@RequestParam(required = false, defaultValue = "userName pr") String filter,
-													 @RequestParam(required = false, defaultValue = "1") int startIndex,
-													 @RequestParam(required = false, defaultValue = "100") int count) {
+	public List<Approval> getApprovals(@RequestParam(required = false, defaultValue = "userName pr")
+	String filter, @RequestParam(required = false, defaultValue = "1")
+	int startIndex, @RequestParam(required = false, defaultValue = "100")
+	int count) {
 		String username = getCurrentUsername();
 		logger.debug("Fetching all approvals for user: " + username);
-		return approvalStore.getApprovals(String.format("%s and " + USER_FILTER_TEMPLATE, filter, username))
-				 .subList(startIndex - 1, startIndex + count - 1);
+		List<Approval> approvals = approvalStore.getApprovals(
+				String.format("%s and " + USER_FILTER_TEMPLATE, filter, username)).subList(startIndex - 1,
+				startIndex + count - 1);
+
+		// Find the clients for these approvals
+		Set<String> clientIds = new HashSet<String>();
+		for (Approval approval : approvals) {
+			clientIds.add(approval.getClientId());
+		}
+
+		// Find the auto approved scopes for these clients
+		Map<String, Set<String>> clientAutoApprovedScopes = new HashMap<String, Set<String>>();
+		for (String clientId : clientIds) {
+			ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
+
+			Map<String, Object> additionalInfo = client.getAdditionalInformation();
+			Object autoApproved = additionalInfo.get("autoapprove");
+			Set<String> autoApprovedScopes = new HashSet<String>();
+			if (autoApproved instanceof Collection<?>) {
+				@SuppressWarnings("unchecked")
+				Collection<? extends String> scopes = (Collection<? extends String>) autoApproved;
+				autoApprovedScopes.addAll(scopes);
+			}
+			else if ("true".equals(autoApproved)) {
+				autoApprovedScopes.addAll(client.getScope());
+			}
+
+			clientAutoApprovedScopes.put(clientId, autoApprovedScopes);
+		}
+
+		List<Approval> filteredApprovals = new ArrayList<Approval>();
+		// Remove auto approved scopes
+		for (Approval approval : approvals) {
+			if (!(clientAutoApprovedScopes.containsKey(approval.getClientId())
+					&& clientAutoApprovedScopes.get(approval.getClientId()).contains(approval.getScope()))) {
+				filteredApprovals.add(approval);
+			}
+		}
+
+		return filteredApprovals;
 	}
 
 	private String getCurrentUsername() {
@@ -103,14 +151,16 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 
 	@RequestMapping(value = "/approvals", method = RequestMethod.PUT)
 	@ResponseBody
-	public List<Approval> updateApprovals(@RequestBody Approval[] approvals) {
+	public List<Approval> updateApprovals(@RequestBody
+	Approval[] approvals) {
 		String username = getCurrentUsername();
 		logger.debug("Updating approvals for user: " + username);
 		approvalStore.revokeApprovals(String.format(USER_FILTER_TEMPLATE, username));
 		for (Approval approval : approvals) {
 			if (!isValidUser(approval.getUserName())) {
 				logger.warn(String.format("%s attemting to update approvals for %s", username, approval.getUserName()));
-				throw new UaaException("unauthorized_operation", "Cannot update approvals for another user", HttpStatus.UNAUTHORIZED.value());
+				throw new UaaException("unauthorized_operation", "Cannot update approvals for another user",
+						HttpStatus.UNAUTHORIZED.value());
 			}
 			approval.setLastUpdatedAt(new Date());
 			approvalStore.addApproval(approval);
@@ -125,7 +175,8 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 
 	@RequestMapping(value = "/approvals", method = RequestMethod.DELETE)
 	@ResponseBody
-	public SimpleMessage revokeApprovals(@RequestParam(required = true) String clientId) {
+	public SimpleMessage revokeApprovals(@RequestParam(required = true)
+	String clientId) {
 		String username = getCurrentUsername();
 		logger.debug("Revoking all existing approvals for user: " + username + " and client " + clientId);
 		approvalStore.revokeApprovals(String.format(USER_AND_CLIENT_FILTER_TEMPLATE, username, clientId));
@@ -134,7 +185,8 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 
 	@ExceptionHandler
 	public View handleException(Exception t) throws ScimException {
-		UaaException e = t instanceof UaaException ? (UaaException) t : new UaaException("Unexpected error", "Error accessing user's approvals", HttpStatus.INTERNAL_SERVER_ERROR.value());
+		UaaException e = t instanceof UaaException ? (UaaException) t : new UaaException("Unexpected error",
+				"Error accessing user's approvals", HttpStatus.INTERNAL_SERVER_ERROR.value());
 		Class<?> clazz = t.getClass();
 		for (Class<?> key : statuses.keySet()) {
 			if (key.isAssignableFrom(clazz)) {
@@ -143,13 +195,17 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 			}
 		}
 		return new ConvertingExceptionView(new ResponseEntity<ExceptionReport>(new ExceptionReport(e, false),
-								HttpStatus.valueOf(e.getHttpStatus())), messageConverters);
+				HttpStatus.valueOf(e.getHttpStatus())), messageConverters);
 	}
 
 	@Override
 	public void afterPropertiesSet() throws Exception {
 		Assert.notNull(approvalStore, "Please supply an approvals manager");
 		Assert.notNull(scimUserProvisioning, "Please supply a users provisioner");
+	}
+
+	public void setClientDetailsService(ClientDetailsService clientDetailsService) {
+		this.clientDetailsService = clientDetailsService;
 	}
 
 }
