@@ -497,3 +497,24 @@ at all in `vcap`).  In the UAA you can find the registration in the
         POST /oauth/token
         
     Standard OAuth2 Authorization Endpoint passed through to the UAA.
+
+# Contributing to the UAA
+
+Here are some ways for you to get involved in the community:
+
+* Get involved with the Cloud Foundry community on the mailing lists.
+  Please help out on the
+  [mailing list](https://groups.google.com/a/cloudfoundry.org/forum/?fromgroups#!forum/vcap-dev)
+  by responding to questions and joining the debate.
+* Create [github](https://github.com/cloudfoundry/uaa/issues) tickets for bugs and new features and comment and
+  vote on the ones that you are interested in.
+* Github is for social coding: if you want to write code, we encourage
+  contributions through pull requests from
+  [forks of this repository](http://help.github.com/forking/).  If you
+  want to contribute code this way, please reference an existing issue
+  if there is one as well covering the specific issue you are
+  addressing.  Always submit pull requests to the "develop" branch.
+* Watch for upcoming articles on Cloud Foundry by
+  [subscribing](http://blog.cloudfoundry.org) to the cloudfoundry.org
+  blog
+
