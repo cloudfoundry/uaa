@@ -131,13 +131,14 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 				}
 
 			}
-			else { // This is a request from a legacy page of login server.
-					// userApproval was true but no scopes were explicitly mentioned. Approve all requested scopes.
-				((DefaultAuthorizationRequest) authorizationRequest).setScope(new HashSet<String>(requestedScopes));
+			else { // Deny all except auto approved scopes
+				((DefaultAuthorizationRequest) authorizationRequest).setScope(autoApprovedScopes);
 
 				for (String requestedScope : requestedScopes) {
-					approvalStore.addApproval(new Approval(userAuthentication.getName(), authorizationRequest
-							.getClientId(), requestedScope, expiry, APPROVED));
+					if (!autoApprovedScopes.contains(requestedScope)) {
+						approvalStore.addApproval(new Approval(userAuthentication.getName(), authorizationRequest
+								.getClientId(), requestedScope, expiry, DENIED));
+					}
 				}
 			}
 
