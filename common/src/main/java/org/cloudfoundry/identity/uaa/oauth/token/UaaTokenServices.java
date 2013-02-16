@@ -164,15 +164,37 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 					+ requestedScopes + ".", new HashSet<String>(originalScopes));
 		}
 
+		ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
+		Map<String, Object> additionalInfo = client.getAdditionalInformation();
+
+		Object autoApproved = additionalInfo.get("autoapprove");
+		Set<String> autoApprovedScopes = new HashSet<String>();
+		if (autoApproved instanceof Collection<?>) {
+			@SuppressWarnings("unchecked")
+			Collection<? extends String> scopes = (Collection<? extends String>) autoApproved;
+			autoApprovedScopes.addAll(scopes);
+		}
+		else if ("true".equals(autoApproved)) {
+			autoApprovedScopes.addAll(originalScopes);
+		}
+
 		if (requestedScopes.isEmpty()) {
 			requestedScopes = new HashSet<String>(originalScopes);
 		}
 
+		// Consider only auto approved scopes that are requested
+		autoApprovedScopes.retainAll(requestedScopes);
+
 		// Check if the user's approval has changed after this token was granted. If it has, reject the token
 		List<Approval> approvals = approvalStore.getApprovals(username, clientId);
 		Set<String> approvedScopes = new HashSet<String>();
+		approvedScopes.addAll(autoApprovedScopes);
+		// Search through the users approvals for scopes that are requested, not auto approved, not expired,
+		// not DENIED and not approved more recently than when this refresh token was issued.
 		for (Approval approval : approvals) {
-			if (approval.getStatus() == ApprovalStatus.APPROVED && requestedScopes.contains(approval.getScope())) {
+			if (!autoApprovedScopes.contains(approval.getScope()) && approval.getStatus() == ApprovalStatus.APPROVED
+					&& requestedScopes.contains(approval.getScope())) {
+
 				if (!approval.isCurrentlyActive()) {
 					logger.debug("Approval " + approval + " has expired. Need to re-approve.");
 					throw new InvalidTokenException("Invalid refresh token (approvals expired): " + refreshTokenValue);
@@ -191,16 +213,17 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 		}
 
 		// Only issue the token if all the requested scopes have unexpired approvals made before the refresh token was
-		// issued
+		// issued OR if those scopes are auto approved
 		if (approvedScopes.size() != requestedScopes.size()) {
 			logger.debug("All requested scopes " + requestedScopes + " were not approved " + approvedScopes);
 			throw new InvalidTokenException("Invalid refresh token (not all scopes are approved): " + refreshTokenValue);
 		}
 
-		int validitySeconds = getAccessTokenValiditySeconds(clientId);
+		Integer validity = client.getAccessTokenValiditySeconds();
 
 		OAuth2AccessToken accessToken = createAccessToken(user.getId(), user.getUsername(), user.getEmail(),
-				validitySeconds, null, requestedScopes, clientId, request.getResourceIds(), refreshTokenValue);
+				validity != null ? validity.intValue() : accessTokenValiditySeconds, null, requestedScopes, clientId,
+				request.getResourceIds(), refreshTokenValue);
 
 		return accessToken;
 	}
@@ -276,15 +299,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 		return response;
 	}
 
-	protected int getAccessTokenValiditySeconds(String clientId) {
-		ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
-		Integer validity = client.getAccessTokenValiditySeconds();
-		if (validity != null) {
-			return validity;
-		}
-		return accessTokenValiditySeconds;
-	}
-
 	@Override
 	public OAuth2AccessToken createAccessToken(OAuth2Authentication authentication) throws AuthenticationException {
 
@@ -311,10 +325,13 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 		String clientId = authentication.getAuthorizationRequest().getClientId();
 		Set<String> userScopes = authentication.getAuthorizationRequest().getScope();
 
+		ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
+		Integer validity = client.getAccessTokenValiditySeconds();
+
 		OAuth2AccessToken accessToken = createAccessToken(userId, username, userEmail,
-				getAccessTokenValiditySeconds(clientId), clientScopes, userScopes, clientId, authentication
-						.getAuthorizationRequest().getResourceIds(), refreshToken != null ? refreshToken.getValue()
-						: null);
+				validity != null ? validity.intValue() : accessTokenValiditySeconds, clientScopes, userScopes,
+				clientId, authentication.getAuthorizationRequest().getResourceIds(),
+				refreshToken != null ? refreshToken.getValue() : null);
 
 		return accessToken;
 
@@ -415,8 +432,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 		@SuppressWarnings("unchecked")
 		ArrayList<String> scopes = (ArrayList<String>) claims.get(SCOPE);
 
-		AuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest((String) claims.get(CLIENT_ID
-				), scopes);
+		AuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest((String) claims.get(CLIENT_ID),
+				scopes);
 		((DefaultAuthorizationRequest) authorizationRequest).setResourceIds(null);
 		((DefaultAuthorizationRequest) authorizationRequest).setApproved(true);
 
@@ -437,8 +454,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 		Authentication userAuthentication = null;
 		// Is this a user token?
 		if (claims.containsKey(EMAIL)) {
-			UaaUser user = new UaaUser((String) claims.get(USER_ID), (String) claims.get(USER_NAME),
-					null, (String) claims.get(EMAIL), UaaAuthority.USER_AUTHORITIES, null, null, null, null);
+			UaaUser user = new UaaUser((String) claims.get(USER_ID), (String) claims.get(USER_NAME), null,
+					(String) claims.get(EMAIL), UaaAuthority.USER_AUTHORITIES, null, null, null, null);
 
 			UaaPrincipal principal = new UaaPrincipal(user);
 			userAuthentication = new UaaAuthentication(principal, UaaAuthority.USER_AUTHORITIES, null);
