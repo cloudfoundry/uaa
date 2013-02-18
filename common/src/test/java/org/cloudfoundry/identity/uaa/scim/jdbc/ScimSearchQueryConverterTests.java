@@ -1,8 +1,8 @@
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
+import org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper;
+import org.cloudfoundry.identity.uaa.rest.jdbc.SearchQueryConverter.ProcessedFilter;
 import org.cloudfoundry.identity.uaa.scim.jdbc.ScimSearchQueryConverter;
-import org.cloudfoundry.identity.uaa.scim.jdbc.SearchQueryConverter.ProcessedFilter;
-import org.cloudfoundry.identity.uaa.scim.util.SimpleAttributeNameMapper;
 import org.junit.Test;
 
 import java.util.HashMap;

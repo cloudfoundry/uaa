@@ -1,4 +1,4 @@
-package org.cloudfoundry.identity.uaa.scim.util;
+package org.cloudfoundry.identity.uaa.rest;
 
 /**
  * Helper to map attribute names between json requests/responses and internal names that make sense on the server.

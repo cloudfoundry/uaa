@@ -25,10 +25,9 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
-import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcPagingList;
-import org.cloudfoundry.identity.uaa.scim.jdbc.ScimSearchQueryConverter;
-import org.cloudfoundry.identity.uaa.scim.jdbc.SearchQueryConverter;
-import org.cloudfoundry.identity.uaa.scim.jdbc.SearchQueryConverter.ProcessedFilter;
+import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingList;
+import org.cloudfoundry.identity.uaa.rest.jdbc.SearchQueryConverter;
+import org.cloudfoundry.identity.uaa.rest.jdbc.SearchQueryConverter.ProcessedFilter;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -43,7 +42,7 @@ public class JdbcApprovalStore implements ApprovalStore {
 
 	private final Log logger = LogFactory.getLog(getClass());
 
-	private SearchQueryConverter queryConverter = new ScimSearchQueryConverter();
+	private final SearchQueryConverter queryConverter;
 
 	private final RowMapper<Approval> rowMapper = new AuthorizationRowMapper ();
 
@@ -63,12 +62,10 @@ public class JdbcApprovalStore implements ApprovalStore {
 
 	private boolean handleRevocationsAsExpiry = false;
 
-	public JdbcApprovalStore(JdbcTemplate jdbcTemplate) {
+	public JdbcApprovalStore(JdbcTemplate jdbcTemplate, SearchQueryConverter queryConverter) {
 		Assert.notNull(jdbcTemplate);
+		Assert.notNull(queryConverter);
 		this.jdbcTemplate = jdbcTemplate;
-	}
-
-	public void setQueryConverter(SearchQueryConverter queryConverter) {
 		this.queryConverter = queryConverter;
 	}
 

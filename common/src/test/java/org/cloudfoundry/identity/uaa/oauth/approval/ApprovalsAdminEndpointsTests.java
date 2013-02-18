@@ -26,19 +26,19 @@ import javax.sql.DataSource;
 
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
+import org.cloudfoundry.identity.uaa.scim.jdbc.ScimSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
+import org.cloudfoundry.identity.uaa.user.MockUaaUserDatabase;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.security.oauth2.provider.InMemoryClientDetailsService;
 import org.springframework.test.annotation.IfProfileValue;
@@ -58,9 +58,9 @@ public class ApprovalsAdminEndpointsTests {
 
 	private JdbcApprovalStore dao;
 
-	private JdbcScimUserProvisioning userDao;
+	private UaaUserDatabase userDao = new MockUaaUserDatabase("FOO", "marissa", "marissa@test.com", "Marissa", "Bloggs");
 
-	private ScimUser marissa;
+	private UaaUser marissa;
 
 	private ApprovalsAdminEndpoints endpoints;
 
@@ -68,19 +68,12 @@ public class ApprovalsAdminEndpointsTests {
 	public void createDatasource() {
 
 		template = new JdbcTemplate(dataSource);
+		marissa = userDao.retrieveUserByName("marissa");
 
-		userDao = new JdbcScimUserProvisioning(template);
-		userDao.setPasswordEncoder(NoOpPasswordEncoder.getInstance());
-		userDao.setPasswordValidator(new NullPasswordValidator());
-
-		marissa = new ScimUser(null, "marissa", "marissa", "koala");
-		marissa.addEmail("marissa@test.com");
-		marissa = userDao.createUser(marissa, "password");
-
-		dao = new JdbcApprovalStore(template);
+		dao = new JdbcApprovalStore(template, new ScimSearchQueryConverter());
 		endpoints = new ApprovalsAdminEndpoints();
 		endpoints.setApprovalStore(dao);
-		endpoints.setScimUserProvisioning(userDao);
+		endpoints.setUaaUserDatabase(userDao);
 		InMemoryClientDetailsService clientDetailsService = new InMemoryClientDetailsService();
 		BaseClientDetails details = new BaseClientDetails("c1", "scim,clients", "read,write",
 				"authorization_code, password, implicit, client_credentials", "update");
@@ -89,7 +82,7 @@ public class ApprovalsAdminEndpointsTests {
 				.singletonMap("c1", details));
 		endpoints.setClientDetailsService(clientDetailsService);
 
-		endpoints.setSecurityContextAccessor(mockSecurityContextAccessor(marissa.getId()));
+		endpoints.setSecurityContextAccessor(mockSecurityContextAccessor(marissa.getUsername()));
 	}
 
 	private void addApproval(String userName, String clientId, String scope, int expiresIn, ApprovalStatus status) {
@@ -98,7 +91,7 @@ public class ApprovalsAdminEndpointsTests {
 
 	private SecurityContextAccessor mockSecurityContextAccessor(String userName) {
 		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
-		when(sca.getUserId()).thenReturn(userName);
+		when(sca.getUserName()).thenReturn(userName);
 		when(sca.isUser()).thenReturn(true);
 		return sca;
 	}
@@ -195,12 +188,7 @@ public class ApprovalsAdminEndpointsTests {
 		addApproval("marissa", "c1", "uaa.user", 6000, APPROVED);
 		addApproval("marissa", "c1", "uaa.admin", 12000, DENIED);
 		addApproval("marissa", "c1", "openid", 6000, APPROVED);
-
-		ScimUser vidya = new ScimUser(null, "vidya", "vidya", "v");
-		vidya.addEmail("vidya@test.com");
-		vidya = userDao.createUser(vidya, "password");
-
-		endpoints.setSecurityContextAccessor(mockSecurityContextAccessor(vidya.getId()));
+		endpoints.setSecurityContextAccessor(mockSecurityContextAccessor("vidya"));
 		endpoints.updateApprovals(new Approval[] {new Approval("marissa", "c1", "uaa.user", 2000, APPROVED)});
 	}
 

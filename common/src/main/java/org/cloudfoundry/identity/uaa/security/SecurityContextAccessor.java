@@ -49,6 +49,11 @@ public interface SecurityContextAccessor {
 	String getUserId();
 
 	/**
+	 * @return the current user name (the thing they login with)
+	 */
+	String getUserName();
+
+	/**
 	 * @return the current client identifier or null
 	 */
 	String getClientId();

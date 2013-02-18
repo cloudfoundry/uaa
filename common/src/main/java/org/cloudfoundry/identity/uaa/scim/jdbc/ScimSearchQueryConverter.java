@@ -1,7 +1,8 @@
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
-import org.cloudfoundry.identity.uaa.scim.util.AttributeNameMapper;
-import org.cloudfoundry.identity.uaa.scim.util.SimpleAttributeNameMapper;
+import org.cloudfoundry.identity.uaa.rest.AttributeNameMapper;
+import org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper;
+import org.cloudfoundry.identity.uaa.rest.jdbc.SearchQueryConverter;
 import org.springframework.util.StringUtils;
 
 import java.text.DateFormat;

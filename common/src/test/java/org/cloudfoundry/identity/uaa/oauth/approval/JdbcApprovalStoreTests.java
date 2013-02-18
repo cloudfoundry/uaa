@@ -24,6 +24,7 @@ import java.util.List;
 import javax.sql.DataSource;
 
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
+import org.cloudfoundry.identity.uaa.scim.jdbc.ScimSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.junit.After;
@@ -54,7 +55,7 @@ public class JdbcApprovalStoreTests {
 
 		template = new JdbcTemplate(dataSource);
 
-		dao = new JdbcApprovalStore(template);
+		dao = new JdbcApprovalStore(template, new ScimSearchQueryConverter());
 
 		addApproval("u1", "c1", "uaa.user", 6000, APPROVED);
 		addApproval("u1", "c2", "uaa.admin", 12000, DENIED);

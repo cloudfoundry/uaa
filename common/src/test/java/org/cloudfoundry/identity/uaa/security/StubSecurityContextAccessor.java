@@ -39,6 +39,11 @@ public class StubSecurityContextAccessor implements SecurityContextAccessor {
 	public String getUserId() {
 		return null;
 	}
+	
+	@Override
+	public String getUserName() {
+		return null;
+	}
 
 	@Override
 	public String getClientId() {

@@ -27,16 +27,16 @@ import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReport;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.message.SimpleMessage;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.stereotype.Controller;
@@ -57,7 +57,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 
 	private ClientDetailsService clientDetailsService = null;
 
-	private ScimUserProvisioning scimUserProvisioning;
+	private UaaUserDatabase userDatabase;
 
 	private Map<Class<? extends Exception>, HttpStatus> statuses = new HashMap<Class<? extends Exception>, HttpStatus>();
 
@@ -88,8 +88,8 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 		this.approvalStore = approvalStore;
 	}
 
-	public void setScimUserProvisioning(ScimUserProvisioning scimUserProvisioning) {
-		this.scimUserProvisioning = scimUserProvisioning;
+	public void setUaaUserDatabase(UaaUserDatabase userDatabase) {
+		this.userDatabase = userDatabase;
 	}
 
 	@RequestMapping(value = "/approvals", method = RequestMethod.GET)
@@ -146,7 +146,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 		if (!securityContextAccessor.isUser()) {
 			throw new AccessDeniedException("Approvals can only be managed by a user");
 		}
-		return scimUserProvisioning.retrieve(securityContextAccessor.getUserId()).getUserName();
+		return securityContextAccessor.getUserName();
 	}
 
 	@RequestMapping(value = "/approvals", method = RequestMethod.PUT)
@@ -169,8 +169,15 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 	}
 
 	private boolean isValidUser(String username) {
-		List<ScimUser> users = scimUserProvisioning.query(String.format(USER_FILTER_TEMPLATE, username));
-		return users.size() == 1 && users.get(0).getId().equals(securityContextAccessor.getUserId());
+		if (username==null || !username.equals(getCurrentUsername())) {
+			return false;
+		}
+		try {
+			userDatabase.retrieveUserByName(username);
+			return true;
+		} catch (UsernameNotFoundException e) {
+			return false;
+		}
 	}
 
 	@RequestMapping(value = "/approvals", method = RequestMethod.DELETE)
@@ -201,7 +208,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 	@Override
 	public void afterPropertiesSet() throws Exception {
 		Assert.notNull(approvalStore, "Please supply an approvals manager");
-		Assert.notNull(scimUserProvisioning, "Please supply a users provisioner");
+		Assert.notNull(userDatabase, "Please supply a user database");
 	}
 
 	public void setClientDetailsService(ClientDetailsService clientDetailsService) {

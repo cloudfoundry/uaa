@@ -1,6 +1,6 @@
-package org.cloudfoundry.identity.uaa.scim.jdbc;
+package org.cloudfoundry.identity.uaa.rest.jdbc;
 
-import org.cloudfoundry.identity.uaa.scim.util.AttributeNameMapper;
+import org.cloudfoundry.identity.uaa.rest.AttributeNameMapper;
 
 import java.util.Map;
 

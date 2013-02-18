@@ -1,12 +1,11 @@
-package org.cloudfoundry.identity.uaa.scim;
+package org.cloudfoundry.identity.uaa.rest.jdbc;
 
 import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcPagingList;
+import org.cloudfoundry.identity.uaa.rest.Queryable;
 import org.cloudfoundry.identity.uaa.scim.jdbc.ScimSearchQueryConverter;
-import org.cloudfoundry.identity.uaa.scim.jdbc.SearchQueryConverter;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
