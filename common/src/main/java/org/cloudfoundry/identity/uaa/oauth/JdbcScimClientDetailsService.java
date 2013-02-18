@@ -1,7 +1,13 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.rest.jdbc.AbstractQueryable;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -10,12 +16,7 @@ import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.JdbcClientDetailsService;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.List;
-import java.util.Map;
-
-public class JdbcScimClientDetailsService extends AbstractQueryable<ClientDetails> implements ScimClientDetailsService {
+public class JdbcScimClientDetailsService extends AbstractQueryable<ClientDetails> implements QueryableResourceManager<ClientDetails> {
 
 	private static final Log logger = LogFactory.getLog(JdbcScimClientDetailsService.class);
 
