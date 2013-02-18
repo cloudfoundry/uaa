@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.JdbcApprovalStore;
+import org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -27,7 +28,6 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.ScimSearchQueryConverter;
-import org.cloudfoundry.identity.uaa.scim.util.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.junit.After;
@@ -141,7 +141,7 @@ public class ScimUserEndpointsTests {
 		map.put(HttpMediaTypeException.class, HttpStatus.BAD_REQUEST);
 		endpoints.setStatuses(map);
 
-		am = new JdbcApprovalStore(jdbcTemplate);
+		am = new JdbcApprovalStore(jdbcTemplate, new ScimSearchQueryConverter());
 		endpoints.setApprovalStore(am);
 	}
 

@@ -15,8 +15,8 @@ package org.cloudfoundry.identity.uaa.oauth.approval;
 import java.util.Calendar;
 import java.util.Date;
 
-import org.cloudfoundry.identity.uaa.scim.util.json.JsonDateDeserializer;
-import org.cloudfoundry.identity.uaa.scim.util.json.JsonDateSerializer;
+import org.cloudfoundry.identity.uaa.util.json.JsonDateDeserializer;
+import org.cloudfoundry.identity.uaa.util.json.JsonDateSerializer;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.map.annotate.JsonDeserialize;
 import org.codehaus.jackson.map.annotate.JsonSerialize;

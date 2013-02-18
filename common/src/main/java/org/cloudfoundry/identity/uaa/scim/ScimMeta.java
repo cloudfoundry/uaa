@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.scim;
 
-import org.cloudfoundry.identity.uaa.scim.util.json.JsonDateDeserializer;
-import org.cloudfoundry.identity.uaa.scim.util.json.JsonDateSerializer;
+import org.cloudfoundry.identity.uaa.util.json.JsonDateDeserializer;
+import org.cloudfoundry.identity.uaa.util.json.JsonDateSerializer;
 import org.codehaus.jackson.map.annotate.JsonDeserialize;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 

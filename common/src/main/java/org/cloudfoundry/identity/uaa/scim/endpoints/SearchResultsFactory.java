@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import org.cloudfoundry.identity.uaa.scim.util.AttributeNameMapper;
-import org.cloudfoundry.identity.uaa.scim.util.SimpleAttributeNameMapper;
+import org.cloudfoundry.identity.uaa.rest.AttributeNameMapper;
+import org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper;
 import org.springframework.expression.Expression;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;

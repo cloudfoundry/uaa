@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.cloudfoundry.identity.uaa.scim.Queryable;
+import org.cloudfoundry.identity.uaa.rest.Queryable;
 import org.cloudfoundry.identity.uaa.scim.ResourceManager;
 import org.springframework.security.oauth2.provider.ClientDetails;
 

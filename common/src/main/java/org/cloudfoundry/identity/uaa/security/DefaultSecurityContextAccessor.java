@@ -66,6 +66,12 @@ public class DefaultSecurityContextAccessor implements SecurityContextAccessor {
 		Authentication a = SecurityContextHolder.getContext().getAuthentication();
 		return a==null ? null : ((UaaPrincipal) a.getPrincipal()).getId();
 	}
+	
+	@Override
+	public String getUserName() {
+		Authentication a = SecurityContextHolder.getContext().getAuthentication();
+		return a==null ? null : a.getName();
+	}
 
 	@Override
 	public String getAuthenticationInfo() {

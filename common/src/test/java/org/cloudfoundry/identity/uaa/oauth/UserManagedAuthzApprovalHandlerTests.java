@@ -30,6 +30,7 @@ import javax.sql.DataSource;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.oauth.approval.JdbcApprovalStore;
+import org.cloudfoundry.identity.uaa.scim.jdbc.ScimSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.junit.After;
@@ -65,7 +66,7 @@ public class UserManagedAuthzApprovalHandlerTests {
 	@Before
 	public void setup() {
 		template = new JdbcTemplate(dataSource);
-		approvalStore = new JdbcApprovalStore(template);
+		approvalStore = new JdbcApprovalStore(template, new ScimSearchQueryConverter());
 		handler.setApprovalStore(approvalStore);
 		handler.setClientDetailsService(mockClientDetailsService("foo", new String[] { "cloud_controller.read",
 				"cloud_controller.write", "openid" }, Collections.<String, Object> emptyMap()));

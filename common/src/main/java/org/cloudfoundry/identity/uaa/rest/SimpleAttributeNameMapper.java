@@ -1,4 +1,4 @@
-package org.cloudfoundry.identity.uaa.scim.util;
+package org.cloudfoundry.identity.uaa.rest;
 
 import java.util.Collections;
 import java.util.Map;

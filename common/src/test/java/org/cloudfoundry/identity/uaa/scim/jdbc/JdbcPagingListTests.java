@@ -12,7 +12,7 @@
  */
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
-import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcPagingList;
+import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingList;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
 import org.junit.After;
 import org.junit.Before;
