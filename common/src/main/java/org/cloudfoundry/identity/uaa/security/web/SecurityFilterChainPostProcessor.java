@@ -136,7 +136,7 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
 			logger.debug("Bad (non-https) request received from: " + request.getRemoteHost());
 
 			if (dumpRequests) {
-				logger.debug(dumpHeaders(request));
+				logger.debug(dumpRequest(request));
 			}
 
 			if (redirect) {
@@ -179,7 +179,7 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
 				logger.debug("Filter chain '" + name + "' processing request " + request.getMethod() + " " + request.getRequestURI());
 
 				if (dumpRequests) {
-					logger.debug(dumpHeaders(request));
+					logger.debug(dumpRequest(request));
 				}
 			}
 
@@ -187,9 +187,9 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
 		}
 
 		@SuppressWarnings("unchecked")
-		protected String dumpHeaders(HttpServletRequest r) {
+		protected final String dumpRequest(HttpServletRequest r) {
 			StringBuilder builder = new StringBuilder(256);
-			builder.append("Headers:\n");
+			builder.append("\n    ").append(r.getMethod()).append(" ").append(r.getRequestURI()).append("\n");
 			Enumeration<String> e = r.getHeaderNames();
 
 			while(e.hasMoreElements()) {
