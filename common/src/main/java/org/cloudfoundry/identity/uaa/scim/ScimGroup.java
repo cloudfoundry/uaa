@@ -2,8 +2,6 @@ package org.cloudfoundry.identity.uaa.scim;
 
 import java.util.List;
 
-import org.cloudfoundry.identity.uaa.scim.util.json.ScimGroupJsonDeserializer;
-import org.cloudfoundry.identity.uaa.scim.util.json.ScimGroupJsonSerializer;
 import org.codehaus.jackson.map.annotate.JsonDeserialize;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 

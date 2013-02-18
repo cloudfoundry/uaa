@@ -1,7 +1,5 @@
-package org.cloudfoundry.identity.uaa.scim.util.json;
+package org.cloudfoundry.identity.uaa.scim;
 
-import org.cloudfoundry.identity.uaa.scim.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.codehaus.jackson.JsonGenerator;
 import org.codehaus.jackson.JsonProcessingException;
 import org.codehaus.jackson.map.JsonSerializer;
