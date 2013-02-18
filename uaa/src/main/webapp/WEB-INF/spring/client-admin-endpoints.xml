@@ -38,7 +38,7 @@
 		<property name="clientRegistrationService" ref="clientRegistrationService" />
 		<property name="clientDetailsService" ref="clientDetailsService" />
 		<property name="attributeNameMapper">
-			<bean id="clientAttributeNameMapper" class="org.cloudfoundry.identity.uaa.scim.util.SimpleAttributeNameMapper">
+			<bean class="org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper">
 				<constructor-arg name="paramsMap">
 					<map key-type="java.lang.String" value-type="java.lang.String">
 						<entry key="client_id" value="clientId" />
