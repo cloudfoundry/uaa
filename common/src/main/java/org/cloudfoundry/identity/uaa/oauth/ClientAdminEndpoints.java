@@ -29,9 +29,10 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.message.SimpleMessage;
 import org.cloudfoundry.identity.uaa.rest.AttributeNameMapper;
+import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
+import org.cloudfoundry.identity.uaa.rest.SearchResults;
+import org.cloudfoundry.identity.uaa.rest.SearchResultsFactory;
 import org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper;
-import org.cloudfoundry.identity.uaa.scim.endpoints.SearchResults;
-import org.cloudfoundry.identity.uaa.scim.endpoints.SearchResultsFactory;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
@@ -85,7 +86,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 
 	private ClientRegistrationService clientRegistrationService;
 
-	private ScimClientDetailsService clientDetailsService;
+	private QueryableResourceManager<ClientDetails> clientDetailsService;
 
 	private AttributeNameMapper attributeNameMapper = new SimpleAttributeNameMapper(Collections.<String, String>emptyMap());
 
@@ -115,7 +116,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 	/**
 	 * @param clientDetailsService the clientDetailsService to set
 	 */
-	public void setClientDetailsService(ScimClientDetailsService clientDetailsService) {
+	public void setClientDetailsService(QueryableResourceManager<ClientDetails> clientDetailsService) {
 		this.clientDetailsService = clientDetailsService;
 	}
 

@@ -24,8 +24,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
+import org.cloudfoundry.identity.uaa.rest.SearchResults;
 import org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper;
-import org.cloudfoundry.identity.uaa.scim.endpoints.SearchResults;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.StubSecurityContextAccessor;
 import org.junit.Before;
@@ -54,7 +55,8 @@ public class ClientAdminEndpointsTests {
 
 	private BaseClientDetails details = new BaseClientDetails();
 
-	private ScimClientDetailsService clientDetailsService = Mockito.mock(ScimClientDetailsService.class);
+	@SuppressWarnings("unchecked")
+	private QueryableResourceManager<ClientDetails> clientDetailsService = Mockito.mock(QueryableResourceManager.class);
 
 	private SecurityContextAccessor securityContextAccessor = Mockito.mock(SecurityContextAccessor.class);
 

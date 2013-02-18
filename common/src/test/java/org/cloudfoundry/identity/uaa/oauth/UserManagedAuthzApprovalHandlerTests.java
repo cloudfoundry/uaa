@@ -30,6 +30,7 @@ import javax.sql.DataSource;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.oauth.approval.JdbcApprovalStore;
+import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.ScimSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
@@ -72,8 +73,9 @@ public class UserManagedAuthzApprovalHandlerTests {
 				"cloud_controller.write", "openid" }, Collections.<String, Object> emptyMap()));
 	}
 
-	private ScimClientDetailsService mockClientDetailsService(String id, String[] scope, Map<String, Object> addlInfo) {
-		ScimClientDetailsService service = Mockito.mock(ScimClientDetailsService.class);
+	private QueryableResourceManager<ClientDetails> mockClientDetailsService(String id, String[] scope, Map<String, Object> addlInfo) {
+		@SuppressWarnings("unchecked")
+		QueryableResourceManager<ClientDetails> service = Mockito.mock(QueryableResourceManager.class);
 		ClientDetails details = Mockito.mock(ClientDetails.class);
 		Mockito.when(service.retrieve(id)).thenReturn(details);
 		Mockito.when(details.getScope()).thenReturn(new HashSet<String>(Arrays.asList(scope)));

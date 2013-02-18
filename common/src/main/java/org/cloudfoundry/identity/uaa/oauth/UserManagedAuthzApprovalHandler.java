@@ -27,6 +27,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
+import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -43,14 +44,14 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 
 	private ApprovalStore approvalStore = null;
 
-	private ScimClientDetailsService clientDetailsService;
+	private QueryableResourceManager<ClientDetails> clientDetailsService;
 
 	private int approvalExpiryInMillis = -1;
 
 	/**
 	 * @param clientDetailsService the clientDetailsService to set
 	 */
-	public void setClientDetailsService(ScimClientDetailsService clientDetailsService) {
+	public void setClientDetailsService(QueryableResourceManager<ClientDetails> clientDetailsService) {
 		this.clientDetailsService = clientDetailsService;
 	}
 
