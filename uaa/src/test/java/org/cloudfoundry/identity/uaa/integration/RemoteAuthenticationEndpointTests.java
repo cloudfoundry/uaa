@@ -36,6 +36,7 @@ public class RemoteAuthenticationEndpointTests {
 
 	@Test
 	public void remoteAuthenticationSucceedsWithCorrectCredentials() throws Exception {
+		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> response = authenticate("marissa", "koala");
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		assertEquals("marissa", response.getBody().get("username"));
@@ -43,11 +44,13 @@ public class RemoteAuthenticationEndpointTests {
 
 	@Test
 	public void remoteAuthenticationFailsWithIncorrectCredentials() throws Exception {
+		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> response = authenticate("marissa", "wrong");
 		assertFalse(HttpStatus.OK == response.getStatusCode());
 		assertFalse("marissa".equals(response.getBody().get("username")));
 	}
 
+	@SuppressWarnings("rawtypes")
 	ResponseEntity<Map> authenticate(String username, String password) {
 		RestTemplate restTemplate = new RestTemplate();
 		// The default java.net client doesn't allow you to handle 4xx responses
@@ -65,7 +68,8 @@ public class RemoteAuthenticationEndpointTests {
 		parameters.set("username", username);
 		parameters.set("password", password);
 
-		return restTemplate.exchange(serverRunning.getUrl("/authenticate"), HttpMethod.POST,
-				new HttpEntity<MultiValueMap<String, Object>>(parameters, headers), Map.class);
+		ResponseEntity<Map> result = restTemplate.exchange(serverRunning.getUrl("/authenticate"),
+				HttpMethod.POST, new HttpEntity<MultiValueMap<String, Object>>(parameters, headers), Map.class);
+		return result;
 	}
 }
