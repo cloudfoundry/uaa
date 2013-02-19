@@ -11,8 +11,8 @@
 
 	<artifactId>cloudfoundry-identity-scim</artifactId>
 	<packaging>jar</packaging>
-	<name>scim</name>
-	<description>User Account and Authentication Service shared Java library code</description>
+	<name>CloudFoundry Identity SCIM</name>
+	<description>Simple Cloud Identity Management (SCIM) Java library code for the UAA</description>
 
 	<build>
 		<plugins>

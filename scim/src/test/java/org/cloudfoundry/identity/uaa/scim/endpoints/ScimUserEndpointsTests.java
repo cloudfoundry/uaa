@@ -12,6 +12,22 @@
  */
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.junit.internal.matchers.StringContains.containsString;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
@@ -33,6 +49,7 @@ import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -54,23 +71,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.HttpMediaTypeException;
 import org.springframework.web.servlet.View;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.junit.internal.matchers.StringContains.containsString;
-
 /**
  * @author Dave Syer
  * @author Luke Taylor
@@ -81,31 +81,31 @@ public class ScimUserEndpointsTests {
 	@Rule
 	public ExpectedException expected = ExpectedException.none();
 
-	private static ScimUser joel;
+	private ScimUser joel;
 
-	private static ScimUser dale;
+	private ScimUser dale;
 
-	private static ScimUserEndpoints endpoints;
+	private ScimUserEndpoints endpoints;
 
-	private static ScimGroupEndpoints groupEndpoints;
+	private ScimGroupEndpoints groupEndpoints;
 
-	private static JdbcScimUserProvisioning dao;
+	private JdbcScimUserProvisioning dao;
 
-	private static JdbcScimGroupMembershipManager mm;
+	private JdbcScimGroupMembershipManager mm;
 
-	private static JdbcApprovalStore am;
+	private JdbcApprovalStore am;
 
 	private static EmbeddedDatabase database;
 
-	private List<ScimUser> createdUsers = new ArrayList<ScimUser>();
-
-	private List<ScimGroup> createdGroups = new ArrayList<ScimGroup>();
-
 	@BeforeClass
-	public static void setUp() {
+	public static void setUpDatabase() {
 		EmbeddedDatabaseBuilder builder = new EmbeddedDatabaseBuilder();
 		builder.addScript("classpath:/org/cloudfoundry/identity/uaa/schema-hsqldb.sql");
-		database = builder.build();
+		database = builder.build();		
+	}
+
+	@Before
+	public void setUp() {
 		JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
 		dao = new JdbcScimUserProvisioning(jdbcTemplate);
 		dao.setPasswordEncoder(NoOpPasswordEncoder.getInstance());
@@ -148,22 +148,14 @@ public class ScimUserEndpointsTests {
 
 	@AfterClass
 	public static void tearDown() throws Exception {
-		TestUtils.deleteFrom(database, "users", "groups", "group_membership");
 		if (database != null) {
 			database.shutdown();
 		}
 	}
 
 	@After
-	public void cleanUp() {
-		JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
-		for (ScimUser user : createdUsers) {
-			jdbcTemplate.update("delete from users where id=?", user.getId());
-		}
-		for (ScimGroup g : createdGroups) {
-			jdbcTemplate.update("delete from groups where id=?", g.getId());
-			jdbcTemplate.update("delete from group_membership where group_id=?", g.getId());
-		}
+	public void cleanUp() throws Exception {
+		TestUtils.deleteFrom(database, "group_membership", "users", "groups");
 	}
 
 	private void validateUserGroups (ScimUser user, String... gnm) {
@@ -185,8 +177,6 @@ public class ScimUserEndpointsTests {
 		user.addEmail("dsyer@vmware.com");
 		user.setGroups(Arrays.asList(new ScimUser.Group(null, "test1")));
 		ScimUser created = endpoints.createUser(user);
-		createdUsers.add(created);
-
 		validateUserGroups(created, "uaa.user");
 	}
 
@@ -195,7 +185,6 @@ public class ScimUserEndpointsTests {
 		ScimUser user = new ScimUser(null, "dave", "David", "Syer");
 		user.addEmail("dsyer@vmware.com");
 		ScimUser created = endpoints.createUser(user);
-		createdUsers.add(created);
 		validateUserGroups(created, "uaa.user");
 
 		created.setGroups(Arrays.asList(new ScimUser.Group(null, "test1")));
@@ -208,13 +197,12 @@ public class ScimUserEndpointsTests {
 		ScimUser user = new ScimUser(null, "dave", "David", "Syer");
 		user.addEmail("dsyer@vmware.com");
 		ScimUser created = endpoints.createUser(user);
-		createdUsers.add(created);
 
 		validateUserGroups(created, "uaa.user");
 
 		ScimGroup g = new ScimGroup("test1");
 		g.setMembers(Arrays.asList(new ScimGroupMember(created.getId())));
-		createdGroups.add(groupEndpoints.createGroup(g));
+		g = groupEndpoints.createGroup(g);
 
 		validateUserGroups(endpoints.getUser(created.getId()), "test1");
 	}
@@ -226,7 +214,6 @@ public class ScimUserEndpointsTests {
 		user.addEmail("vidya@vmware.com");
 		user.setApprovals(Collections.singleton(new Approval("vidya", "c1", "s1", 6000, Approval.ApprovalStatus.APPROVED)));
 		ScimUser created = endpoints.createUser(user);
-		createdUsers.add(created);
 
 		assertNotNull(created.getApprovals());
 		assertEquals(1, created.getApprovals().size());
@@ -241,7 +228,6 @@ public class ScimUserEndpointsTests {
 		user.addEmail("vidya@vmware.com");
 		user.setApprovals(Collections.singleton(new Approval("vidya", "c1", "s1", 6000, Approval.ApprovalStatus.APPROVED)));
 		ScimUser created = endpoints.createUser(user);
-		createdUsers.add(created);
 		assertNotNull(created.getApprovals());
 		assertEquals(2, created.getApprovals().size());
 
@@ -265,7 +251,6 @@ public class ScimUserEndpointsTests {
 		ScimUser user = new ScimUser(null, "dave", "David", "Syer");
 		user.addEmail("dsyer@vmware.com");
 		ScimUser created = endpoints.createUser(user);
-		createdUsers.add(created);
 		assertNull("A newly created user revealed its password", created.getPassword());
 		JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
 		String password = jdbcTemplate.queryForObject("select password from users where id=?", String.class,
@@ -325,7 +310,6 @@ public class ScimUserEndpointsTests {
 		user.addEmail("dsyer@vmware.com");
 		ReflectionTestUtils.setField(user, "password", "foo");
 		ScimUser created = endpoints.createUser(user);
-		createdUsers.add(created);
 		assertNull("A newly created user revealed its password", created.getPassword());
 		JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
 		String password = jdbcTemplate.queryForObject("select password from users where id=?", String.class,
@@ -337,7 +321,6 @@ public class ScimUserEndpointsTests {
 		ScimUser exGuy = new ScimUser(null, "deleteme", "Expendable", "Guy");
 		exGuy.addEmail("exguy@imonlyheretobedeleted.com");
 		exGuy = dao.createUser(exGuy, "exguyspassword");
-		createdUsers.add(exGuy);
 		endpoints.deleteUser(exGuy.getId(), Integer.toString(exGuy.getMeta().getVersion()));
 	}
 
@@ -346,7 +329,6 @@ public class ScimUserEndpointsTests {
 		ScimUser exGuy = new ScimUser(null, "deleteme", "Expendable", "Guy");
 		exGuy.addEmail("exguy@imonlyheretobedeleted.com");
 		exGuy = dao.createUser(exGuy, "exguyspassword");
-		createdUsers.add(exGuy);
 		endpoints.deleteUser(exGuy.getId(), "\"*");
 	}
 
@@ -355,7 +337,6 @@ public class ScimUserEndpointsTests {
 		ScimUser exGuy = new ScimUser(null, "deleteme2", "Expendable", "Guy");
 		exGuy.addEmail("exguy2@imonlyheretobedeleted.com");
 		exGuy = dao.createUser(exGuy, "exguyspassword");
-		createdUsers.add(exGuy);
 		endpoints.deleteUser(exGuy.getId(), Integer.toString(exGuy.getMeta().getVersion() + 1));
 	}
 
@@ -364,7 +345,6 @@ public class ScimUserEndpointsTests {
 		ScimUser exGuy = new ScimUser(null, "deleteme3", "Expendable", "Guy");
 		exGuy.addEmail("exguy3@imonlyheretobedeleted.com");
 		exGuy = dao.createUser(exGuy, "exguyspassword");
-		createdUsers.add(exGuy);
 		endpoints.deleteUser(exGuy.getId(), null);
 	}
 
@@ -373,12 +353,10 @@ public class ScimUserEndpointsTests {
 		ScimUser exGuy = new ScimUser(null, "deleteme3", "Expendable", "Guy");
 		exGuy.addEmail("exguy3@imonlyheretobedeleted.com");
 		exGuy = dao.createUser(exGuy, "exguyspassword");
-		createdUsers.add(exGuy);
 
 		ScimGroup g = new ScimGroup("test1");
 		g.setMembers(Arrays.asList(new ScimGroupMember(exGuy.getId())));
 		g = groupEndpoints.createGroup(g);
-		createdGroups.add(g);
 		validateGroupMembers(g, exGuy.getId(), true);
 
 		endpoints.deleteUser(exGuy.getId(), "*");
