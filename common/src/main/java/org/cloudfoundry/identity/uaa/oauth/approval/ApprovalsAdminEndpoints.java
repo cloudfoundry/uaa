@@ -27,7 +27,6 @@ import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReport;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.message.SimpleMessage;
-import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
@@ -191,7 +190,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 	}
 
 	@ExceptionHandler
-	public View handleException(Exception t) throws ScimException {
+	public View handleException(Exception t) {
 		UaaException e = t instanceof UaaException ? (UaaException) t : new UaaException("Unexpected error",
 				"Error accessing user's approvals", HttpStatus.INTERNAL_SERVER_ERROR.value());
 		Class<?> clazz = t.getClass();

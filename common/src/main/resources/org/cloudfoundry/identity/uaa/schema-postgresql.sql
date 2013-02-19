@@ -68,34 +68,9 @@ CREATE TABLE GROUP_MEMBERSHIP (
   primary key (group_id, member_id)
 ) ;
 
-create table oauth_client_token (
-  token_id VARCHAR(256),
-  token BYTEA,
-  authentication_id VARCHAR(256),
-  user_name VARCHAR(256),
-  client_id VARCHAR(256)
-) ;
-
-create table oauth_access_token (
-  token_id VARCHAR(256),
-  token BYTEA,
-  authentication_id VARCHAR(256),
-  user_name VARCHAR(256),
-  client_id VARCHAR(256),
-  authentication BYTEA,
-  refresh_token VARCHAR(256)
-) ;
-
-create table oauth_refresh_token (
-  token_id VARCHAR(256),
-  token BYTEA,
-  authentication BYTEA
-) ;
-
 create table oauth_code (
   code VARCHAR(256), authentication BYTEA
 ) ;
- 
  
 CREATE TABLE AUTHZ_APPROVALS (
   userName VARCHAR(36) not null,
@@ -106,8 +81,3 @@ CREATE TABLE AUTHZ_APPROVALS (
   lastModifiedAt TIMESTAMP default current_timestamp not null,
   primary key (userName, clientId, scope)
 ) ;
-
-
-DROP TABLE oauth_client_token;
-DROP TABLE oauth_access_token;
-DROP TABLE oauth_refresh_token;

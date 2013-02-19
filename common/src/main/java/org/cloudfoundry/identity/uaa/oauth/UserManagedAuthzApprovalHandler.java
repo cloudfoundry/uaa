@@ -42,7 +42,7 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 
 	private final String approvalParameter = AuthorizationRequest.USER_OAUTH_APPROVAL;
 
-	private ApprovalStore approvalStore = null;
+	private ApprovalStore approvalStore;
 
 	private QueryableResourceManager<ClientDetails> clientDetailsService;
 

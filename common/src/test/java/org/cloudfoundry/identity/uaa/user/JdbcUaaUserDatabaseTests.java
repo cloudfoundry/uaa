@@ -54,11 +54,11 @@ public class JdbcUaaUserDatabaseTests {
 
 	private static final String JOE_ID = "550e8400-e29b-41d4-a716-446655440000";
 
-	private static final String addUserSqlFormat = "insert into users (id, username, password, email, givenName, familyName, phoneNumber) values ('%s','%s','%s','%s','%s','%s','%s')";
+	private static final String addUserSql = "insert into users (id, username, password, email, givenName, familyName, phoneNumber) values (?,?,?,?,?,?,?)";
 
-	private static final String addGroupSqlFormat = "insert into groups (id, displayName) values ('%s','%s')";
+	private static final String getAuthoritiesSql = "select authorities from users where id=?";
 
-	private static final String addMemberSqlFormat = "insert into group_membership (group_id, member_id, member_type, authorities) values ('%s', '%s', '%s', '%s')";
+	private static final String addAuthoritySql = "update users set authorities=? where id=?";
 
 	private static final String MABEL_ID = UUID.randomUUID().toString();
 
@@ -66,16 +66,13 @@ public class JdbcUaaUserDatabaseTests {
 
 	private void addUser(String id, String name, String password) {
 		TestUtils.assertNoSuchUser(template, "id", id);
-		template.execute(String.format(addUserSqlFormat, id, name, password, name.toLowerCase() + "@test.org", name, name, ""));
+		template.update(addUserSql, id, name, password, name.toLowerCase() + "@test.org", name, name, "");
 	}
 
-	private void addGroup(String id, String name) {
-		TestUtils.assertNoSuchUser(template, "id", id);
-		template.execute(String.format(addGroupSqlFormat, id, name));
-	}
-
-	private void addMember(String gId, String mId, String mType, String authorities) {
-		template.execute(String.format(addMemberSqlFormat, gId, mId, mType, authorities));
+	private void addAuthority(String authority, String userId) {
+		String authorities = template.queryForObject(getAuthoritiesSql, String.class, userId);
+		authorities = authorities==null ? authority : authorities + "," + authority;
+		template.update(addAuthoritySql, authorities, userId);
 	}
 
 	@Before
@@ -129,9 +126,7 @@ public class JdbcUaaUserDatabaseTests {
 
 	@Test
 	public void getUserWithExtraAuthorities() {
-		// only way to add to a user's authorities is by enrolling in corresponding groups
-		addGroup("g2", "dash.admin");
-		addMember("g2", JOE_ID, "USER", "READER");
+		addAuthority("dash.admin", JOE_ID);
 		UaaUser joe = db.retrieveUserByName("joe");
 		assertTrue("authorities does not contain uaa.user", joe.getAuthorities().contains(new SimpleGrantedAuthority("uaa.user")));
 		assertTrue("authorities does not contain dash.admin", joe.getAuthorities().contains(new SimpleGrantedAuthority("dash.admin")));

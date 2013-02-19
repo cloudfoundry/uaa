@@ -12,8 +12,6 @@
  */
 package org.cloudfoundry.identity.uaa;
 
-import org.cloudfoundry.identity.uaa.password.PasswordChangeEndpointTests;
-import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioningTests;
 import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -25,7 +23,7 @@ import org.junit.runners.Suite.SuiteClasses;
  * 
  */
 @RunWith(Suite.class)
-@SuiteClasses({ JdbcScimUserProvisioningTests.class, PasswordChangeEndpointTests.class })
+@SuiteClasses({ })
 @Ignore
 public class AdhocTestSuite {
 
