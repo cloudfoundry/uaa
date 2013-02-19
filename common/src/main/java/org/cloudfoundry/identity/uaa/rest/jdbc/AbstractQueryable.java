@@ -5,7 +5,6 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.rest.Queryable;
-import org.cloudfoundry.identity.uaa.scim.jdbc.ScimSearchQueryConverter;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -19,10 +18,15 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
 
 	private final Log logger = LogFactory.getLog(getClass());
 
-	private SearchQueryConverter queryConverter = new ScimSearchQueryConverter();
+	private SearchQueryConverter queryConverter = new SimpleSearchQueryConverter();
 
 	private boolean pagination = true;
 
+	protected AbstractQueryable(JdbcTemplate jdbcTemplate, RowMapper<T> rowMapper) {
+		this.jdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+		this.rowMapper = rowMapper;
+	}
+	
 	public void setQueryConverter(SearchQueryConverter queryConverter) {
 		this.queryConverter = queryConverter;
 	}
@@ -59,8 +63,4 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
 
 	protected abstract String getBaseSqlQuery();
 
-	protected AbstractQueryable(JdbcTemplate jdbcTemplate, RowMapper<T> rowMapper) {
-		this.jdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
-		this.rowMapper = rowMapper;
-	}
 }

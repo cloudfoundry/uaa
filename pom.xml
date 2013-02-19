@@ -9,6 +9,7 @@
     <url>http://github.com/cloudfoundry/uaa</url>
 	<modules>
 		<module>common</module>
+		<module>scim</module>
 		<module>uaa</module>
 		<module>samples</module>
 	</modules>

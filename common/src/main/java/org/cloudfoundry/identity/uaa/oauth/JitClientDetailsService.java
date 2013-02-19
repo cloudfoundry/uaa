@@ -24,7 +24,7 @@ import org.springframework.security.oauth2.provider.JdbcClientDetailsService;
  * @author Dave Syer
  *
  */
-public class JitClientDetailsService extends JdbcScimClientDetailsService {
+public class JitClientDetailsService extends JdbcQueryableClientDetailsService {
 
 	public JitClientDetailsService(JdbcClientDetailsService delegate, JdbcTemplate jdbcTemplate) {
 		super(delegate, jdbcTemplate);

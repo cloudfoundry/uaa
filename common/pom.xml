@@ -1,4 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
 	<modelVersion>4.0.0</modelVersion>
 
@@ -196,7 +197,7 @@
 			<version>2.5</version>
 			<scope>provided</scope>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.aspectj</groupId>
 			<artifactId>aspectjrt</artifactId>
@@ -206,12 +207,6 @@
 			<groupId>org.codehaus.jackson</groupId>
 			<artifactId>jackson-mapper-asl</artifactId>
 			<version>1.9.2</version>
-		</dependency>
-
-		<dependency>
-			<groupId>edu.vt.middleware</groupId>
-			<artifactId>vt-password</artifactId>
-			<optional>true</optional>
 		</dependency>
 
 		<dependency>
@@ -246,14 +241,6 @@
 			<artifactId>postgresql</artifactId>
 			<version>9.1-901.jdbc3</version>
 			<scope>test</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>eu.tekul</groupId>
-			<artifactId>szxcvbn_2.8.2</artifactId>
-			<version>0.2</version>
-			<scope>compile</scope>
-			<optional>true</optional>
 		</dependency>
 
 		<dependency>

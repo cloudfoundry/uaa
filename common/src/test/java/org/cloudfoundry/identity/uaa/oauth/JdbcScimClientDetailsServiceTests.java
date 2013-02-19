@@ -24,7 +24,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class JdbcScimClientDetailsServiceTests {
 
-	private JdbcScimClientDetailsService service;
+	private JdbcQueryableClientDetailsService service;
 
 	private JdbcTemplate jdbcTemplate;
 
@@ -38,7 +38,7 @@ public class JdbcScimClientDetailsServiceTests {
 		// creates a HSQL in-memory db populated from default scripts classpath:schema.sql and classpath:data.sql
 		jdbcTemplate = new JdbcTemplate(dataSource);
 		JdbcClientDetailsService delegate = new JdbcClientDetailsService(dataSource);
-		service = new JdbcScimClientDetailsService(delegate, jdbcTemplate);
+		service = new JdbcQueryableClientDetailsService(delegate, jdbcTemplate);
 
 		addClient("vmc", "secret", "cc", "cc.read,cc.write",
 						 "implicit", "myRedirectUri", "cc.read,cc.write", 100, 200);
@@ -62,15 +62,15 @@ public class JdbcScimClientDetailsServiceTests {
 	}
 
 	@Test
-	public void testQuery() throws Exception {
+	public void testQueryEquals() throws Exception {
 		assertEquals(4, service.retrieveAll().size());
-		assertEquals(3, service.query("client_id co 'a'").size());
-		assertEquals(2, service.query("resource_ids sw 'cc'").size());
 		assertEquals(2, service.query("authorized_grant_types eq 'client_credentials'").size());
-		assertEquals(0, service.query("access_token_validity gt 100").size());
-		assertEquals(4, service.query("access_token_validity ge 100").size());
-		assertEquals(0, service.query("refresh_token_validity lt 200").size());
-		assertEquals(3, service.query("refresh_token_validity le 200").size());
+	}
+
+	@Test
+	public void testQueryExists() throws Exception {
+		assertEquals(4, service.retrieveAll().size());
 		assertEquals(4, service.query("scope pr").size());
 	}
+
 }

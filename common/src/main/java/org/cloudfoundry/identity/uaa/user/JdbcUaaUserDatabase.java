@@ -14,11 +14,11 @@ package org.cloudfoundry.identity.uaa.user;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-import java.util.Collections;
 
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -38,16 +38,28 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
 
 	public static final String USER_FIELDS = "id,username,password,email,givenName,familyName,created,lastModified ";
 
-	public static final String USER_BY_USERNAME_QUERY = "select " + USER_FIELDS + "from users "
+	public static final String DEFAULT_USER_BY_USERNAME_QUERY = "select " + USER_FIELDS + "from users "
 			+ "where lower(username) = ? and active=true";
 
-	public static final String USER_AUTHORITIES_QUERY = "select g.displayName from groups g, group_membership m where g.id = m.group_id and m.member_id = ?";
+	public static final String DEFAULT_USER_AUTHORITIES_QUERY = "select authorities from users where id = ?";
+	
+	private String userAuthoritiesQuery = DEFAULT_USER_AUTHORITIES_QUERY;
+
+	private String userByUserNameQuery = DEFAULT_USER_BY_USERNAME_QUERY;
 
 	private JdbcTemplate jdbcTemplate;
 
 	private final RowMapper<UaaUser> mapper = new UaaUserRowMapper();
 
 	private Set<String> defaultAuthorities = new HashSet<String>();
+	
+	public void setUserByUserNameQuery(String userByUserNameQuery) {
+		this.userByUserNameQuery = userByUserNameQuery;
+	}
+	
+	public void setUserAuthoritiesQuery(String userAuthoritiesQuery) {
+		this.userAuthoritiesQuery = userAuthoritiesQuery;
+	}
 
 	public void setDefaultAuthorities(Set<String> defaultAuthorities) {
 		this.defaultAuthorities = defaultAuthorities;
@@ -61,7 +73,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
 	@Override
 	public UaaUser retrieveUserByName(String username) throws UsernameNotFoundException {
 		try {
-			return jdbcTemplate.queryForObject(USER_BY_USERNAME_QUERY, mapper, username.toLowerCase(Locale.US));
+			return jdbcTemplate.queryForObject(userByUserNameQuery, mapper, username.toLowerCase(Locale.US));
 		}
 		catch (EmptyResultDataAccessException e) {
 			throw new UsernameNotFoundException(username);
@@ -81,7 +93,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
 		private String getAuthorities(final String userId) {
 			List<String> authorities;
 			try {
-				authorities = jdbcTemplate.queryForList(USER_AUTHORITIES_QUERY, String.class, userId);
+				authorities = jdbcTemplate.queryForList(userAuthoritiesQuery, String.class, userId);
 			} catch (EmptyResultDataAccessException ex) {
 				authorities = Collections.<String>emptyList();
 			}
