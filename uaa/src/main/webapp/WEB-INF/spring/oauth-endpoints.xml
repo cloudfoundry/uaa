@@ -158,7 +158,7 @@
 		<property name="userDatabase" ref="userDatabase" />
 		<property name="signerProvider" ref="signerProvider" />
 		<property name="defaultUserAuthorities" ref="defaultUserAuthorities" />
-		<property name="issuer" value="${issuer.uri}" />
+		<property name="issuer" value="${issuer.uri:http://localhost:8080/uaa}" />
 		<property name="approvalStore" ref="approvalStore" />
 	</bean>
 

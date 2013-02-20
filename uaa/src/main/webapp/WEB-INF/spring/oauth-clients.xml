@@ -23,9 +23,10 @@
 
 	<bean id="clientAdminBootstrap" class="org.cloudfoundry.identity.uaa.oauth.ClientAdminBootstrap">
 		<property name="clientRegistrationService" ref="clientRegistrationService" />
-		<property name="defaultOverride" value="${oauth.client.override:true}"/>
-		<property name="clients" value="#{@config['oauth']?.clients}" />
-		<property name="autoApproveClients" value="#{(@config['oauth']==null or @config['oauth']['client']==null or @config['oauth']['client']['autoapprove']==null)?'vmc':(@config['oauth']['client']?.autoapprove?:'vmc')}" />
+		<property name="defaultOverride" value="${oauth.client.override:true}" />
+		<property name="clients" value="#{@config['oauth']==null or @config['oauth']['clients']==null ? null : @config['oauth']?.clients}" />
+		<property name="autoApproveClients"
+			value="#{(@config['oauth']==null or @config['oauth']['client']==null or @config['oauth']['client']['autoapprove']==null)?'vmc':(@config['oauth']['client']?.autoapprove?:'vmc')}" />
 	</bean>
 
 	<beans profile="cloud">
@@ -41,12 +42,20 @@
 			<property name="clientRegistrationService" ref="clientRegistrationService" />
 			<property name="clients">
 				<map>
+					<entry key="admin">
+						<map>
+							<entry key="id" value="admin" />
+							<entry key="authorized-grant-types" value="client_credentials" />
+							<entry key="scope" value="uaa.none" />
+							<entry key="authorities" value="uaa.admin,clients.read,clients.write,clients.secret" />
+							<entry key="secret" value="adminsecret" />
+						</map>
+					</entry>
 					<entry key="vmc">
 						<map>
 							<entry key="id" value="vmc" />
 							<entry key="authorized-grant-types" value="implicit,password,refresh_token" />
-							<entry key="scope"
-								value="cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids" />
+							<entry key="scope" value="cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids" />
 							<entry key="authorities" value="uaa.none" />
 							<entry key="autoapprove" value="true" />
 						</map>
@@ -56,8 +65,7 @@
 							<entry key="id" value="app" />
 							<entry key="secret" value="appclientsecret" />
 							<entry key="authorized-grant-types" value="password,authorization_code,refresh_token,client_credentials" />
-							<entry key="scope"
-								value="cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids" />
+							<entry key="scope" value="cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids" />
 							<entry key="authorities" value="uaa.resource" />
 							<entry key="autoapprove">
 								<list>
@@ -82,7 +90,7 @@
 							<entry key="scope" value="openid,uaa.user" />
 							<entry key="authorized-grant-types" value="client_credentials,authorization_code" />
 							<entry key="authorities" value="oauth.login" />
-							<entry key="autoapprove" value="true"/>
+							<entry key="autoapprove" value="true" />
 						</map>
 					</entry>
 					<entry key="dashboard">
