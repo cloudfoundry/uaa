@@ -60,7 +60,7 @@ public class EnvironmentPropertiesFactoryBean implements FactoryBean<Map<String,
 		Map<String, Object> result = new LinkedHashMap<String, Object>();
 		// The result is the default application properties overridden with Spring environment values - reversing the
 		// order of the placeholder configurers in the application context.
-		for (Object key : defaultProperties .keySet()) {
+		for (Object key : defaultProperties.keySet()) {
 			String name = (String) key;
 			if (environment!=null && environment.containsProperty(name)) {
 				logger.debug("From Environment: " + name + "=" + environment.getProperty(name));
