@@ -94,7 +94,7 @@ public class JdbcUaaUserDatabaseTests {
 
 	@After
 	public void clearDb() throws Exception {
-		TestUtils.deleteFrom(dataSource, "users", "groups", "group_membership");
+		TestUtils.deleteFrom(dataSource, "users");
 	}
 
 	@Test
