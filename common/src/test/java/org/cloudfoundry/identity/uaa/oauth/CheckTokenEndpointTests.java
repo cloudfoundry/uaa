@@ -16,9 +16,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
+import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
+import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
+import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
+import org.cloudfoundry.identity.uaa.oauth.approval.InMemoryApprovalStore;
 import org.cloudfoundry.identity.uaa.oauth.token.SignerProvider;
 import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.user.MockUaaUserDatabase;
@@ -51,6 +56,8 @@ public class CheckTokenEndpointTests {
 
 	private InMemoryClientDetailsService clientDetailsService = new InMemoryClientDetailsService();
 
+	private ApprovalStore approvalStore = new InMemoryApprovalStore();
+
 	public CheckTokenEndpointTests() {
 		authentication = new OAuth2Authentication(new DefaultAuthorizationRequest("client", Collections.singleton("read")),
 				UaaAuthenticationTestFactory.getAuthentication("12345", "olds", "olds@vmware.com"));
@@ -60,8 +67,16 @@ public class CheckTokenEndpointTests {
 		signerProvider.setVerifierKey("abc");
 		tokenServices.setSignerProvider(signerProvider);
 		endpoint.setTokenServices(tokenServices);
-		UaaUserDatabase userDatabase = new MockUaaUserDatabase("12345", "olds", "olds@vmware.com", null, null);
+		Date oneSecondAgo = new Date(System.currentTimeMillis() - 1000);
+		Date thirtySecondsAhead = new Date(System.currentTimeMillis() + 30000);
+		UaaUserDatabase userDatabase = new MockUaaUserDatabase("12345", "olds", "olds@vmware.com", null, null, oneSecondAgo, oneSecondAgo);
 		tokenServices.setUserDatabase(userDatabase);
+
+		approvalStore.addApproval(new Approval("olds", "client", "read", thirtySecondsAhead, ApprovalStatus.APPROVED,
+				oneSecondAgo));
+		approvalStore.addApproval(new Approval("olds", "client", "write", thirtySecondsAhead, ApprovalStatus.APPROVED,
+				oneSecondAgo));
+		tokenServices.setApprovalStore(approvalStore);
 
 		Map<String, ? extends ClientDetails> clientDetailsStore = Collections.singletonMap("client", new BaseClientDetails("client", "scim, cc","read, write", "authorization_code, password", "scim.read, scim.write", "http://localhost:8080/uaa"));
 		clientDetailsService.setClientDetailsStore(clientDetailsStore);
@@ -120,6 +135,37 @@ public class CheckTokenEndpointTests {
 
 		Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
 		assertEquals("expired_token", result.get("error"));
+	}
+
+	@Test(expected = InvalidTokenException.class)
+	public void testUpdatedApprovals() {
+		Date thirtySecondsAhead = new Date(System.currentTimeMillis() + 30000);
+		approvalStore.addApproval(new Approval("olds", "client", "read", thirtySecondsAhead, ApprovalStatus.APPROVED,
+				new Date()));
+		Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
+		assertEquals(null, result.get("client_authorities"));
+	}
+
+	@Test(expected = InvalidTokenException.class)
+	public void testDeniedApprovals() {
+		Date oneSecondAgo = new Date(System.currentTimeMillis() - 1000);
+		Date thirtySecondsAhead = new Date(System.currentTimeMillis() + 30000);
+		approvalStore.revokeApproval(new Approval("olds", "client", "read", thirtySecondsAhead, ApprovalStatus.APPROVED,
+				oneSecondAgo));
+		approvalStore.addApproval(new Approval("olds", "client", "read", thirtySecondsAhead, ApprovalStatus.DENIED,
+				oneSecondAgo));
+		Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
+		assertEquals(null, result.get("client_authorities"));
+	}
+
+	@Test(expected = InvalidTokenException.class)
+	public void testExpiredApprovals() {
+		approvalStore.revokeApproval(new Approval("olds", "client", "read", new Date(), ApprovalStatus.APPROVED,
+				new Date()));
+		approvalStore.addApproval(new Approval("olds", "client", "read", new Date(), ApprovalStatus.APPROVED,
+				new Date()));
+		Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
+		assertEquals(null, result.get("client_authorities"));
 	}
 
 	@Test

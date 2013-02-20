@@ -19,11 +19,15 @@ import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 import java.util.Map;
 
+import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
+import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Rule;
 import org.junit.Test;
+import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -49,6 +53,37 @@ public class CheckTokenEndpointIntegrationTests {
 	@Test
 	public void testDecodeToken() throws Exception {
 
+		{
+			MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+			formData.add("grant_type", "password");
+			formData.add("username", testAccounts.getUserName());
+			formData.add("password", testAccounts.getPassword());
+			formData.add("scope", "cloud_controller.read");
+
+			HttpHeaders headers = new HttpHeaders();
+			ResourceOwnerPasswordResourceDetails app = testAccounts.getDefaultResourceOwnerPasswordResource();
+			headers.set("Authorization", testAccounts.getAuthorizationHeader(app.getClientId(), app.getClientSecret()));
+			headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+
+			//Get an access token to add an approval
+			@SuppressWarnings("rawtypes")
+			ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, headers);
+			assertEquals(HttpStatus.OK, response.getStatusCode());
+			String token = (String) response.getBody().get("access_token");
+
+			// add an approval for the scope requested
+			HttpHeaders approvalHeaders = new HttpHeaders();
+			approvalHeaders.set("Authorization", "bearer " + token);
+			ResponseEntity<Approval[]> approvals = serverRunning.getRestTemplate().exchange(
+					serverRunning.getUrl("/approvals"),
+					HttpMethod.PUT,
+					new HttpEntity<Approval[]>((new Approval[]{new Approval(testAccounts.getUserName(), "app",
+							"cloud_controller.read", 50000, ApprovalStatus.APPROVED)}), approvalHeaders), Approval[].class);
+
+			assertEquals(HttpStatus.OK, approvals.getStatusCode());
+		}
+
+		// Get a fresh access token
 		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
 		formData.add("grant_type", "password");
 		formData.add("username", testAccounts.getUserName());
@@ -60,6 +95,7 @@ public class CheckTokenEndpointIntegrationTests {
 		headers.set("Authorization", testAccounts.getAuthorizationHeader(app.getClientId(), app.getClientSecret()));
 		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
 
+		//Get an access token to add an approval
 		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, headers);
 		assertEquals(HttpStatus.OK, response.getStatusCode());

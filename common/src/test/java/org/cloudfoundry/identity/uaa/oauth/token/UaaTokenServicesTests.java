@@ -1042,6 +1042,16 @@ public class UaaTokenServicesTests {
 		Authentication userAuthentication = new UsernamePasswordAuthenticationToken(new UaaPrincipal(new UaaUser(
 				"jdsa", "password", "jdsa@vmware.com", null, null)), "n/a", null);
 
+		Calendar expiresAt = Calendar.getInstance();
+		expiresAt.add(Calendar.MILLISECOND, 3000);
+		Calendar updatedAt = Calendar.getInstance();
+		updatedAt.add(Calendar.MILLISECOND, -1000);
+
+		approvalStore.addApproval(new Approval("jdsa", "client", "read", expiresAt.getTime(), ApprovalStatus.APPROVED,
+				updatedAt.getTime()));
+		approvalStore.addApproval(new Approval("jdsa", "client", "write", expiresAt.getTime(), ApprovalStatus.APPROVED,
+				updatedAt.getTime()));
+
 		OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
 		OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
 		assertEquals(accessToken, tokenServices.readAccessToken(accessToken.getValue()));

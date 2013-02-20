@@ -200,13 +200,13 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
 				if (!approval.isCurrentlyActive()) {
 					logger.debug("Approval " + approval + " has expired. Need to re-approve.");
-					throw new InvalidTokenException("Invalid refresh token (approvals expired): " + refreshTokenValue);
+					throw new InvalidTokenException("Invalid refresh token (approvals expired)");
 				}
 				if ((new Date(refreshTokenIssueDate)).before(approval.getLastUpdatedAt())) {
 					logger.debug("At least one approval " + approval + " was updated more recently at "
 							+ approval.getLastUpdatedAt() + " refresh token was issued at "
 							+ new Date(refreshTokenIssueDate));
-					throw new InvalidTokenException("Invalid refresh token (approvals updated): " + refreshTokenValue);
+					throw new InvalidTokenException("Invalid refresh token (approvals updated): " + approval.getLastUpdatedAt());
 				}
 				approvedScopes.add(approval.getScope());
 			}
@@ -491,6 +491,82 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 		ArrayList<String> scopes = (ArrayList<String>) claims.get(SCOPE);
 		if (null != scopes && scopes.size() > 0) {
 			token.setScope(new HashSet<String>(scopes));
+		}
+
+		String email = (String) claims.get(EMAIL);
+
+		// Only check user access tokens
+		if (null != email) {
+			String username = (String) claims.get(USER_NAME);
+
+			UaaUser user = userDatabase.retrieveUserByName(username);
+
+			Integer accessTokenIssuedAt = (Integer) claims.get(IAT);
+			long accessTokenIssueDate = accessTokenIssuedAt.longValue() * 1000l;
+
+			// If the user changed their password, expire the access token
+			if (user.getModified().after(new Date(accessTokenIssueDate))) {
+				logger.debug("User was last modified at " + user.getModified() + " access token was issued at "
+						+ new Date(accessTokenIssueDate));
+				throw new InvalidTokenException("Invalid access token (password changed): " + accessToken);
+			}
+
+			// Check approvals to make sure they're all valid, approved and not more recent
+			// than the token itself
+			String clientId = (String) claims.get(CLIENT_ID);
+
+			ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
+			Map<String, Object> additionalInfo = client.getAdditionalInformation();
+
+			Object autoApproved = additionalInfo.get("autoapprove");
+			Set<String> autoApprovedScopes = new HashSet<String>();
+			if (autoApproved instanceof Collection<?>) {
+				@SuppressWarnings("unchecked")
+				Collection<? extends String> approvedScopes = (Collection<? extends String>) autoApproved;
+				autoApprovedScopes.addAll(approvedScopes);
+			}
+			else if ("true".equals(autoApproved)) {
+				autoApprovedScopes.addAll(client.getScope());
+			}
+
+			@SuppressWarnings("unchecked")
+			ArrayList<String> tokenScopes = (ArrayList<String>) claims.get(SCOPE);
+
+
+			// Consider only auto approved scopes that are part of the token
+			autoApprovedScopes.retainAll(tokenScopes);
+
+			// Check if the user's approval has changed after this token was granted. If it has, reject the token
+			List<Approval> approvals = approvalStore.getApprovals(username, clientId);
+			Set<String> approvedScopes = new HashSet<String>();
+			approvedScopes.addAll(autoApprovedScopes);
+			// Search through the users approvals for scopes that are requested, not auto approved, not expired,
+			// not DENIED and not approved more recently than when this access token was issued.
+			for (Approval approval : approvals) {
+				if (!autoApprovedScopes.contains(approval.getScope()) && approval.getStatus() == ApprovalStatus.APPROVED
+						&& tokenScopes.contains(approval.getScope())) {
+
+					if (!approval.isCurrentlyActive()) {
+						logger.debug("Approval " + approval + " has expired. Need to re-approve.");
+						throw new InvalidTokenException("Invalid access token (approvals expired)");
+					}
+					if ((new Date(accessTokenIssueDate)).before(approval.getLastUpdatedAt())) {
+						logger.debug("At least one approval " + approval + " was updated more recently at "
+								+ approval.getLastUpdatedAt() + " access token was issued at "
+								+ new Date(accessTokenIssueDate));
+						throw new InvalidTokenException("Invalid access token (approvals updated): " + approval.getLastUpdatedAt());
+					}
+					approvedScopes.add(approval.getScope());
+				}
+				else {
+					// Ignore that approval
+				}
+			}
+
+			if (approvedScopes.size() != tokenScopes.size()) {
+				logger.debug("All token scopes " + tokenScopes + " were not approved " + approvedScopes);
+				throw new InvalidTokenException("Invalid access token (not all scopes are approved): " + accessToken);
+			}
 		}
 
 		return token;
