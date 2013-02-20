@@ -47,7 +47,7 @@
 							<entry key="id" value="admin" />
 							<entry key="authorized-grant-types" value="client_credentials" />
 							<entry key="scope" value="uaa.none" />
-							<entry key="authorities" value="uaa.admin,clients.read,clients.write,clients.secret" />
+							<entry key="authorities" value="uaa.admin,clients.read,clients.write,clients.secret,scim.read,scim.write" />
 							<entry key="secret" value="adminsecret" />
 						</map>
 					</entry>
@@ -55,7 +55,7 @@
 						<map>
 							<entry key="id" value="vmc" />
 							<entry key="authorized-grant-types" value="implicit,password,refresh_token" />
-							<entry key="scope" value="cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids" />
+							<entry key="scope" value="cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,cloud_controller.admin,scim.read,scim.write" />
 							<entry key="authorities" value="uaa.none" />
 							<entry key="autoapprove" value="true" />
 						</map>
@@ -64,7 +64,7 @@
 						<map>
 							<entry key="id" value="app" />
 							<entry key="secret" value="appclientsecret" />
-							<entry key="authorized-grant-types" value="password,authorization_code,refresh_token,client_credentials" />
+							<entry key="authorized-grant-types" value="password,authorization_code,client_credentials" />
 							<entry key="scope" value="cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids" />
 							<entry key="authorities" value="uaa.resource" />
 							<entry key="autoapprove">
