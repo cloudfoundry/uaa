@@ -53,6 +53,7 @@ public class ScimUserBootstrapTests {
 	public void setUp() {
 		EmbeddedDatabaseBuilder builder = new EmbeddedDatabaseBuilder();
 		builder.addScript("classpath:/org/cloudfoundry/identity/uaa/schema-hsqldb.sql");
+		builder.addScript("classpath:/org/cloudfoundry/identity/uaa/scim/schema-hsqldb.sql");
 		database = builder.build();
 		JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
 		db = new JdbcScimUserProvisioning(jdbcTemplate);
