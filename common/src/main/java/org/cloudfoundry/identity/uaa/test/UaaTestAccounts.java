@@ -13,13 +13,15 @@
 package org.cloudfoundry.identity.uaa.test;
 
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUser.Name;
+import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.springframework.core.env.Environment;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.client.resource.OAuth2ProtectedResourceDetails;
@@ -36,10 +38,10 @@ import org.springframework.util.StringUtils;
 
 /**
  * UAA specific test account data externalized with {@link TestProfileEnvironment}.
- *
+ * 
  * @author Dave Syer
  * @author Joel D'sa
- *
+ * 
  */
 public class UaaTestAccounts implements TestAccounts {
 
@@ -98,15 +100,10 @@ public class UaaTestAccounts implements TestAccounts {
 		return environment.getProperty("uaa.test.email", value);
 	}
 
-	public ScimUser getUser() {
-		ScimUser user = new ScimUser();
-		user.setUserName(getUserName());
-		user.addEmail(getEmail());
+	public UaaUser getUser() {
+		UaaUser user = new UaaUser(UUID.randomUUID().toString(), getUserName(), "<N/A>", getEmail(),
+				UaaAuthority.USER_AUTHORITIES, "Test", "User", new Date(), new Date());
 		ReflectionTestUtils.setField(user, "password", getPassword());
-		Name name = new Name();
-		name.setGivenName("Test");
-		name.setFamilyName("User");
-		user.setName(name);
 		return user;
 	}
 
@@ -163,7 +160,8 @@ public class UaaTestAccounts implements TestAccounts {
 
 	public ClientCredentialsResourceDetails getClientCredentialsResource(String prefix, String defaultClientId,
 			String defaultClientSecret) {
-		return getClientCredentialsResource(prefix, new String[] { "scim.read", "scim.write", "password.write"}, defaultClientId, defaultClientSecret);
+		return getClientCredentialsResource(prefix, new String[] { "scim.read", "scim.write", "password.write" },
+				defaultClientId, defaultClientSecret);
 	}
 
 	public ClientCredentialsResourceDetails getClientCredentialsResource(String prefix, String[] scope,

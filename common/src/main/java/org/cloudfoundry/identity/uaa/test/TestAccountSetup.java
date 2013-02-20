@@ -20,13 +20,17 @@ import static org.junit.Assert.assertEquals;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.codehaus.jackson.map.ObjectMapper;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.junit.rules.TestWatchman;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
@@ -37,6 +41,8 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJacksonHttpMessageConverter;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.client.DefaultOAuth2ClientContext;
 import org.springframework.security.oauth2.client.OAuth2ClientContext;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
@@ -51,7 +57,7 @@ import org.springframework.web.client.RestOperations;
 
 /**
  * @author Dave Syer
- *
+ * 
  */
 public class TestAccountSetup extends TestWatchman {
 
@@ -61,7 +67,7 @@ public class TestAccountSetup extends TestWatchman {
 
 	private final UaaTestAccounts testAccounts;
 
-	private ScimUser user;
+	private UaaUser user;
 
 	private static boolean initialized = false;
 
@@ -81,9 +87,9 @@ public class TestAccountSetup extends TestWatchman {
 	}
 
 	/**
-	 * @return the user (if already created null oetherwise)
+	 * @return the user (if already created null otherwise)
 	 */
-	public ScimUser getUser() {
+	public UaaUser getUser() {
 		return user;
 	}
 
@@ -111,8 +117,8 @@ public class TestAccountSetup extends TestWatchman {
 
 	private void createVmcClient(RestOperations client) {
 		BaseClientDetails clientDetails = new BaseClientDetails("vmc", "cloud_controller,openid,password",
-				"openid,cloud_controller.read,password.write,scim.userids", "implicit",
-				"uaa.none", "https://uaa.cloudfoundry.com/redirect/vmc");
+				"openid,cloud_controller.read,password.write,scim.userids", "implicit", "uaa.none",
+				"https://uaa.cloudfoundry.com/redirect/vmc");
 		createClient(client, testAccounts.getClientDetails("oauth.clients.vmc", clientDetails));
 	}
 
@@ -161,25 +167,91 @@ public class TestAccountSetup extends TestWatchman {
 
 		if (this.user == null) {
 
-			ScimUser user = testAccounts.getUser();
+			UaaUser user = testAccounts.getUser();
 			@SuppressWarnings("rawtypes")
 			ResponseEntity<Map> results = client.getForEntity(serverRunning.getUserUri() + "?filter=userName eq '"
-					+ user.getUserName() + "'", Map.class);
+					+ user.getUsername() + "'", Map.class);
 			assertEquals(HttpStatus.OK, results.getStatusCode());
 			@SuppressWarnings("unchecked")
 			List<Map<String, ?>> resources = (List<Map<String, ?>>) results.getBody().get("resources");
+			Map<String, ?> map;
 			if (!resources.isEmpty()) {
-				this.user = new ObjectMapper().convertValue(resources.get(0), ScimUser.class);
+				map = resources.get(0);
 			}
 			else {
-				ResponseEntity<ScimUser> response = client.postForEntity(serverRunning.getUserUri(), user,
-						ScimUser.class);
-				Assert.state(response.getStatusCode() == HttpStatus.CREATED);
-				this.user = response.getBody();
+				map = getUserAsMap(user);
+				@SuppressWarnings("rawtypes")
+				ResponseEntity<Map> response = client.postForEntity(serverRunning.getUserUri(), map, Map.class);
+				Assert.state(response.getStatusCode() == HttpStatus.CREATED, "User account not created: status was "
+						+ response.getStatusCode());
+				@SuppressWarnings("unchecked")
+				Map<String, ?> value = response.getBody();
+				map = value;
 			}
+			this.user = getUserFromMap(map);
 
 		}
 
+	}
+
+	private UaaUser getUserFromMap(Map<String, ?> map) {
+		String id = (String) map.get("id");
+		String userName = (String) map.get("userName");
+		String email = null;
+		if (map.containsKey("emails")) {
+			@SuppressWarnings("unchecked")
+			Collection<Map<String,String>> emails = (Collection<Map<String,String>>)map.get("emails");
+			if (!emails.isEmpty()) {
+				email = emails.iterator().next().get("value");
+			}
+		}
+		String givenName = null;
+		String familyName = null;
+		if (map.containsKey("name")) {
+			@SuppressWarnings("unchecked")
+			Map<String,String> name = (Map<String,String>)map.get("name");
+			givenName = name.get("givenName");
+			familyName = name.get("familyName");
+		}
+		@SuppressWarnings("unchecked")
+		Collection<Map<String,String>> groups = (Collection<Map<String,String>>)map.get("groups");
+		return new UaaUser(id, userName, "<N/A>", email, extractAuthorities(groups), givenName, familyName, new Date(), new Date());
+	}
+
+	private List<? extends GrantedAuthority> extractAuthorities(Collection<Map<String, String>> groups) {
+		List<SimpleGrantedAuthority> authorities = new ArrayList<SimpleGrantedAuthority>();
+		for (Map<String,String> group : groups) {
+			String role = group.get("display");
+			Assert.state(role!=null, "Role is null in this group: " + group);
+			authorities.add(new SimpleGrantedAuthority(role));
+		}
+		return authorities ;
+	}
+
+	private Map<String, ?> getUserAsMap(UaaUser user) {
+		HashMap<String, Object> result = new HashMap<String, Object>();
+		if (user.getId() != null) {
+			result.put("id", user.getId());
+		}
+		if (user.getUsername() != null) {
+			result.put("userName", user.getUsername());
+		}
+		String email = user.getEmail();
+		if (email != null) {
+			@SuppressWarnings("unchecked")
+			List<Map<String, String>> emails = Arrays.asList(Collections.singletonMap("value", email));
+			result.put("emails", emails);
+		}
+		String givenName = user.getGivenName();
+		if (givenName != null) {
+			Map<String, String> name = new HashMap<String, String>();
+			name.put("givenName", givenName);
+			if (user.getFamilyName() != null) {
+				name.put("familyName", user.getFamilyName());
+			}
+			result.put("name", name);
+		}
+		return result;
 	}
 
 	private OAuth2RestTemplate createRestTemplate(OAuth2ProtectedResourceDetails resource,
