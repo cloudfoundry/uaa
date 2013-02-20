@@ -222,6 +222,11 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 			throw new InvalidTokenException("Invalid refresh token (not all scopes are approved): " + refreshTokenValue);
 		}
 
+		if (requestedScopes.size() == 0) {
+			logger.debug("No scopes were granted");
+			throw new InvalidTokenException("No scopes were granted");
+		}
+
 		Integer validity = client.getAccessTokenValiditySeconds();
 
 		OAuth2AccessToken accessToken = createAccessToken(user.getId(), user.getUsername(), user.getEmail(),
@@ -240,6 +245,12 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 			accessToken.setExpiration(new Date(System.currentTimeMillis() + (validitySeconds * 1000L)));
 		}
 		accessToken.setRefreshToken(refreshToken == null ? null : new DefaultOAuth2RefreshToken(refreshToken));
+
+		if (null == requestedScopes || requestedScopes.size() == 0) {
+			logger.debug("No scopes were granted");
+			throw new InvalidTokenException("No scopes were granted");
+		}
+
 		accessToken.setScope(requestedScopes);
 
 		Map<String, Object> info = new HashMap<String, Object>();
