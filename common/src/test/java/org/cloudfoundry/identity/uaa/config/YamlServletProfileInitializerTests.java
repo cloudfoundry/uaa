@@ -81,7 +81,7 @@ public class YamlServletProfileInitializerTests {
 	@Test
 	public void testLoadDefaultResource() throws Exception {
 
-		Mockito.when(context.getResource(Matchers.endsWith("/uaa.yml"))).thenReturn(
+		Mockito.when(context.getResource(Matchers.contains("${APPLICATION_CONFIG_URL}"))).thenReturn(
 				new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
 
 		initializer.initialize(context);
@@ -143,8 +143,7 @@ public class YamlServletProfileInitializerTests {
 	@Test
 	public void testLoadServletConfiguredFilename() throws Exception {
 
-		Mockito.when(servletConfig.getInitParameter("CONFIG_FILE_NAME")).thenReturn("foo.yml");
-		Mockito.when(servletConfig.getInitParameter("CLOUD_FOUNDRY_CONFIG_PATH")).thenReturn("/config/path");
+		Mockito.when(servletConfig.getInitParameter("APPLICATION_CONFIG_FILE")).thenReturn("/config/path/foo.yml");
 		Mockito.when(context.getResource(Matchers.eq("file:/config/path/foo.yml"))).thenReturn(
 				new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
 
@@ -158,7 +157,7 @@ public class YamlServletProfileInitializerTests {
 	@Test
 	public void testLoadServletConfiguredResource() throws Exception {
 
-		Mockito.when(servletConfig.getInitParameter("environmentConfigFile")).thenReturn("foo.yml");
+		Mockito.when(servletConfig.getInitParameter("environmentConfigLocations")).thenReturn("foo.yml");
 		Mockito.when(context.getResource(Matchers.eq("foo.yml"))).thenReturn(
 				new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
 
@@ -172,7 +171,7 @@ public class YamlServletProfileInitializerTests {
 	@Test
 	public void testLoadContextConfiguredResource() throws Exception {
 
-		Mockito.when(servletContext.getInitParameter("environmentConfigFile")).thenReturn("foo.yml");
+		Mockito.when(servletContext.getInitParameter("environmentConfigLocations")).thenReturn("foo.yml");
 		Mockito.when(context.getResource(Matchers.eq("foo.yml"))).thenReturn(
 				new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
 
@@ -186,7 +185,7 @@ public class YamlServletProfileInitializerTests {
 	@Test
 	public void testLoadReplacedResource() throws Exception {
 
-		System.setProperty("CLOUD_FOUNDRY_CONFIG_PATH", "foo");
+		System.setProperty("APPLICATION_CONFIG_URL", "file:foo/uaa.yml");
 
 		Mockito.when(context.getResource(Matchers.eq("file:foo/uaa.yml"))).thenReturn(
 				new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
@@ -201,7 +200,7 @@ public class YamlServletProfileInitializerTests {
 	@Test
 	public void testLoadReplacedResourceFromFileLocation() throws Exception {
 
-		System.setProperty("UAA_CONFIG_FILE", "foo/uaa.yml");
+		System.setProperty("APPLICATION_CONFIG_FILE", "foo/uaa.yml");
 
 		Mockito.when(context.getResource(Matchers.eq("file:foo/uaa.yml"))).thenReturn(
 				new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
