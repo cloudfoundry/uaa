@@ -167,8 +167,8 @@ Make sure the entire key is indented.
             -----BEGIN RSA PRIVATE KEY-----
             MIIEowIBAAKCAQEAyV3Ws3gLOvi169ZPx8v3t9UZpxcG0fqtQzC4X+Ff7dlx4w6P
             ...
-           pYPYK4M+4Gwi7O49a63G+lzX7BqUWYBXR84iZG+vWz2F3ICjiOIz
-           -----END RSA PRIVATE KEY-----
+            pYPYK4M+4Gwi7O49a63G+lzX7BqUWYBXR84iZG+vWz2F3ICjiOIz
+            -----END RSA PRIVATE KEY-----
          verification-key: |
             -----BEGIN PUBLIC KEY-----
             MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyV3Ws3gLOvi169ZPx8v3
