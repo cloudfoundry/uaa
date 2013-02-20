@@ -13,6 +13,8 @@
 package org.cloudfoundry.identity.uaa.config;
 
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import javax.servlet.ServletConfig;
@@ -22,6 +24,7 @@ import org.apache.log4j.MDC;
 import org.cloudfoundry.identity.uaa.config.YamlProcessor.ResolutionMethod;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.util.Log4jConfigurer;
 import org.springframework.util.StringUtils;
@@ -44,6 +47,8 @@ import org.springframework.web.context.support.WebApplicationContextUtils;
 public class YamlServletProfileInitializer implements ApplicationContextInitializer<ConfigurableWebApplicationContext> {
 
 	private static final String PROFILE_CONFIG_FILE_LOCATIONS = "environmentConfigLocations";
+
+	private static final String PROFILE_CONFIG_FILE_DEFAULT = "environmentConfigDefaults";
 
 	public static final String[] DEFAULT_PROFILE_CONFIG_FILE_LOCATIONS = new String[] { "${APPLICATION_CONFIG_URL}",
 			"file:${APPLICATION_CONFIG_FILE}" };
@@ -70,12 +75,26 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 			servletContext.log("Loading YAML environment properties from location: " + resource);
 			YamlMapFactoryBean factory = new YamlMapFactoryBean();
 			factory.setResolutionMethod(ResolutionMethod.OVERRIDE_AND_IGNORE);
-			factory.setResources(new Resource[] { resource });
+
+			List<Resource> resources = new ArrayList<Resource>();
+
+			String defaultLocation = servletConfig == null ? null : servletConfig.getInitParameter(PROFILE_CONFIG_FILE_DEFAULT);
+			if (defaultLocation!=null) {
+				Resource defaultResource = new ClassPathResource(defaultLocation);
+				if (defaultResource.exists()) {
+					resources.add(defaultResource);
+				}
+			}
+			
+			resources.add(resource);
+			factory.setResources(resources.toArray(new Resource[resources.size()]));
+			
 			Map<String, Object> map = factory.getObject();
 			NestedMapPropertySource properties = new NestedMapPropertySource("servletConfigYaml", map);
 			applicationContext.getEnvironment().getPropertySources().addLast(properties);
 			applySpringProfiles(applicationContext.getEnvironment(), servletContext);
 			applyLog4jConfiguration(applicationContext.getEnvironment(), servletContext);
+
 		}
 		catch (Exception e) {
 			servletContext.log("Error loading YAML environment properties from location: " + resource, e);

@@ -13,7 +13,9 @@
 package org.cloudfoundry.identity.uaa.config;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 
@@ -34,6 +36,25 @@ public class NestedMapPropertySourceTests {
 		NestedMapPropertySource properties = new NestedMapPropertySource("map", map);
 		assertEquals("bar", properties.getProperty("foo"));
 		assertEquals("baz", properties.getProperty("spam.foo"));
+	}
+
+	@Test
+	public void testPropertyMap() throws Exception {
+		Yaml yaml = new Yaml();
+		@SuppressWarnings("unchecked")
+		Map<String, Object> map = (Map<String, Object>) yaml.loadAs("foo: bar\nspam:\n  foo: baz", Map.class);
+		NestedMapPropertySource properties = new NestedMapPropertySource("map", map);
+		assertEquals("{foo=baz}", properties.getProperty("spam").toString());
+		assertEquals("baz", properties.getProperty("spam.foo"));
+	}
+
+	@Test
+	public void testPropertyNestedMap() throws Exception {
+		Yaml yaml = new Yaml();
+		@SuppressWarnings("unchecked")
+		Map<String, Object> map = (Map<String, Object>) yaml.loadAs("foo: bar\nspam:\n  foo:\n    baz: bucket", Map.class);
+		NestedMapPropertySource properties = new NestedMapPropertySource("map", map);
+		assertEquals("{baz=bucket}", properties.getProperty("spam.foo").toString());
 	}
 
 	@Test
@@ -85,6 +106,18 @@ public class NestedMapPropertySourceTests {
 		assertEquals("bar", properties.getProperty("foo[0]"));
 		assertEquals("baz", properties.getProperty("foo[1]"));
 		assertEquals("[bar, baz]", properties.getProperty("foo").toString());
+	}
+
+	@Test
+	public void testNestedPropertyArrayOfString() throws Exception {
+		Yaml yaml = new Yaml();
+		@SuppressWarnings("unchecked")
+		Map<String, Object> map = (Map<String, Object>) yaml.loadAs("foo:\n  baz:\n  - bar\n  - baz", Map.class);
+		NestedMapPropertySource properties = new NestedMapPropertySource("map", map);
+		assertEquals("bar", properties.getProperty("foo.baz[0]"));
+		assertEquals("baz", properties.getProperty("foo.baz[1]"));
+		assertTrue(properties.getProperty("foo.baz") instanceof Collection);
+		assertEquals("[bar, baz]", properties.getProperty("foo.baz").toString());
 	}
 
 	@Test

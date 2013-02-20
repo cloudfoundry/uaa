@@ -65,8 +65,7 @@ public class YamlServletProfileInitializerTests {
 
 	@After
 	public void cleanup() throws Exception {
-		System.clearProperty("CLOUD_FOUNDRY_CONFIG_PATH");
-		System.clearProperty("UAA_CONFIG_FILE");
+		System.clearProperty("APPLICATION_CONFIG_URL");
 		System.clearProperty("LOG_FILE");
 		System.clearProperty("LOG_PATH");
 		Log4jConfigurer.initLogging("classpath:log4j.properties");

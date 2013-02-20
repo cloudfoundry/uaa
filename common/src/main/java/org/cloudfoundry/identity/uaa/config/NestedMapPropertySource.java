@@ -42,8 +42,9 @@ public class NestedMapPropertySource extends MapPropertySource {
 	 * @param name the name of this property source
 	 * @param source the source map
 	 */
-	public NestedMapPropertySource(String name, Map<String, Object> source) {
-		super(name, source);
+	@SuppressWarnings("unchecked")
+	public NestedMapPropertySource(String name, Map<String, ?> source) {
+		super(name, (Map<String, Object>) source);
 	}
 
 	@Override
@@ -71,8 +72,7 @@ public class NestedMapPropertySource extends MapPropertySource {
 		initialized = true;
 	}
 
-	private void appendCache(Map<String, Object> output, Set<String> seen, Map<String, Object> input,
-			String path) {
+	private void appendCache(Map<String, Object> output, Set<String> seen, Map<String, Object> input, String path) {
 
 		synchronized (this.cache) {
 
@@ -96,11 +96,9 @@ public class NestedMapPropertySource extends MapPropertySource {
 					// Need a compound key
 					@SuppressWarnings("unchecked")
 					Map<String, Object> map = (Map<String, Object>) value;
+					output.put(key, map);
 					if (!seen.contains(ObjectUtils.getIdentityHexString(map))) {
 						appendCache(output, seen, map, key);
-					}
-					else {
-						output.put(key, map);
 					}
 				}
 				else if (value instanceof Collection) {
