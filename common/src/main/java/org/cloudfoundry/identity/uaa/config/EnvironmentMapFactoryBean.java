@@ -14,9 +14,9 @@ package org.cloudfoundry.identity.uaa.config;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -29,14 +29,14 @@ import org.springframework.core.env.PropertySource;
 import org.springframework.core.env.StandardEnvironment;
 
 /**
- * Factory for Java Properties that reads from the Spring context {@link Environment} where it can.
+ * Factory for Maps that reads from the Spring context {@link Environment} where it can.
  * 
  * @author Dave Syer
  * 
  */
-public class EnvironmentPropertiesFactoryBean implements FactoryBean<Map<String,?>>, EnvironmentAware {
-	
-	private static Log logger = LogFactory.getLog(EnvironmentPropertiesFactoryBean.class);
+public class EnvironmentMapFactoryBean implements FactoryBean<Map<String, ?>>, EnvironmentAware {
+
+	private static Log logger = LogFactory.getLog(EnvironmentMapFactoryBean.class);
 
 	private static final Collection<String> STATIC_PROPERTY_SOURCES = Arrays.asList(
 			StandardEnvironment.SYSTEM_PROPERTIES_PROPERTY_SOURCE_NAME,
@@ -44,29 +44,31 @@ public class EnvironmentPropertiesFactoryBean implements FactoryBean<Map<String,
 
 	private Environment environment;
 
-	private Properties defaultProperties = new Properties();
-	
-	public void setDefaultProperties(Properties defaultProperties) {
+	private Map<String, ?> defaultProperties = new HashMap<String, Object>();
+
+	public void setDefaultProperties(Map<String, ?> defaultProperties) {
 		this.defaultProperties = defaultProperties;
 	}
-	
+
 	@Override
 	public void setEnvironment(Environment environment) {
 		this.environment = environment;
 	}
 
 	@Override
-	public Map<String,?> getObject() {
+	public Map<String, ?> getObject() {
 		Map<String, Object> result = new LinkedHashMap<String, Object>();
 		// The result is the default application properties overridden with Spring environment values - reversing the
 		// order of the placeholder configurers in the application context.
-		for (Object key : defaultProperties .keySet()) {
+		for (Object key : defaultProperties.keySet()) {
 			String name = (String) key;
-			if (environment!=null && environment.containsProperty(name)) {
-				logger.debug("From Environment: " + name + "=" + environment.getProperty(name));
-				result.put(name, environment.getProperty(name));
-			} else {
-				logger.debug("From Defaults: " + name + "=" + defaultProperties.getProperty(name));
+			if (environment != null && environment.containsProperty(name)) {
+				Object value = environment.getProperty(name, Object.class);
+				logger.debug("From Environment: " + name);
+				result.put(name, value);
+			}
+			else {
+				logger.debug("From Defaults: " + name);
 				result.put(name, defaultProperties.get(key));
 			}
 		}
@@ -77,7 +79,12 @@ public class EnvironmentPropertiesFactoryBean implements FactoryBean<Map<String,
 					@SuppressWarnings("rawtypes")
 					EnumerablePropertySource enumerable = (EnumerablePropertySource) source;
 					for (String name : enumerable.getPropertyNames()) {
-						result.put(name, environment.getProperty(name));
+						Object value = source.getProperty(name);
+						if (value instanceof String) {
+							// Unresolved placeholders are legal.
+							value = environment.resolvePlaceholders((String)value);
+						}
+						result.put(name, value);
 					}
 				}
 			}
@@ -94,6 +101,5 @@ public class EnvironmentPropertiesFactoryBean implements FactoryBean<Map<String,
 	public boolean isSingleton() {
 		return true;
 	}
-
 
 }

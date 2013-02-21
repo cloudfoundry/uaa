@@ -13,19 +13,16 @@
 package org.cloudfoundry.identity.uaa.test;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.config.EnvironmentPropertiesFactoryBean;
+import org.cloudfoundry.identity.uaa.config.EnvironmentMapFactoryBean;
+import org.cloudfoundry.identity.uaa.config.NestedMapPropertySource;
+import org.cloudfoundry.identity.uaa.config.YamlMapFactoryBean;
 import org.cloudfoundry.identity.uaa.config.YamlProcessor.ResolutionMethod;
-import org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean;
 import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.core.env.PropertiesPropertySource;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
@@ -60,31 +57,27 @@ public class TestProfileEnvironment {
 			}
 		}
 
-		YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
+		YamlMapFactoryBean factory = new YamlMapFactoryBean();
 		factory.setResources(resources.toArray(new Resource[resources.size()]));
-		factory.setDocumentMatchers(Collections.singletonMap("platform",
-				environment.acceptsProfiles("postgresql") ? "postgresql" : "hsqldb"));
 		factory.setResolutionMethod(ResolutionMethod.OVERRIDE_AND_IGNORE);
-		Properties properties = factory.getObject();
+		Map<String, Object> properties = factory.getObject();
 
 		logger.debug("Decoding environment properties: " + properties.size());
 		if (!properties.isEmpty()) {
-			for (Enumeration<?> names = properties.propertyNames(); names.hasMoreElements();) {
-				String name = (String) names.nextElement();
-				String value = properties.getProperty(name);
-				if (value != null) {
-					properties.setProperty(name, environment.resolvePlaceholders(value));
+			for (String name : properties.keySet()) {
+				Object value = properties.get(name);
+				if (value instanceof String) {
+					properties.put(name, environment.resolvePlaceholders((String) value));
 				}
 			}
 			if (properties.containsKey("spring_profiles")) {
-				properties.setProperty(StandardEnvironment.ACTIVE_PROFILES_PROPERTY_NAME,
-						properties.getProperty("spring_profiles"));
+				properties.put(StandardEnvironment.ACTIVE_PROFILES_PROPERTY_NAME, properties.get("spring_profiles"));
 			}
 			// System properties should override the ones in the config file, so add it last
-			environment.getPropertySources().addLast(new PropertiesPropertySource("uaa.yml", properties));
+			environment.getPropertySources().addLast(new NestedMapPropertySource("uaa.yml", properties));
 		}
 
-		EnvironmentPropertiesFactoryBean environmentProperties = new EnvironmentPropertiesFactoryBean();
+		EnvironmentMapFactoryBean environmentProperties = new EnvironmentMapFactoryBean();
 		environmentProperties.setEnvironment(environment);
 		environmentProperties.setDefaultProperties(properties);
 		Map<String, ?> debugProperties = environmentProperties.getObject();
