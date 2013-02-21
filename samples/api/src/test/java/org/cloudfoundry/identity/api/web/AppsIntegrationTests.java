@@ -16,14 +16,22 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Date;
+
+import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
+import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Rule;
 import org.junit.Test;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.client.test.OAuth2ContextConfiguration;
 import org.springframework.security.oauth2.client.test.OAuth2ContextSetup;
+import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.web.client.RestOperations;
 
 /**
@@ -34,15 +42,15 @@ public class AppsIntegrationTests {
 
 	@Rule
 	public ServerRunning serverRunning = ServerRunning.isRunning();
-	
+
 	private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
-	
+
 	@Rule
 	public OAuth2ContextSetup context = OAuth2ContextSetup.withTestAccounts(serverRunning, testAccounts);
 
 	@Rule
 	public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
-	
+
 	/**
 	 * tests a happy-day flow of the native application profile.
 	 */
@@ -53,6 +61,19 @@ public class AppsIntegrationTests {
 		ResponseEntity<String> response = restTemplate.getForEntity(serverRunning.getUrl("/api/apps"), String.class);
 		// first make sure the resource is actually protected.
 		assertNotSame(HttpStatus.OK, response.getStatusCode());
+		HttpHeaders approvalHeaders = new HttpHeaders();
+		OAuth2AccessToken accessToken = context.getAccessToken();
+		approvalHeaders.set("Authorization", "bearer " + accessToken.getValue());
+		Date oneMinuteAgo = new Date(System.currentTimeMillis() - 60000);
+		Date expiresAt = new Date(System.currentTimeMillis() + 60000);
+		ResponseEntity<Approval[]> approvals = serverRunning.getRestTemplate().exchange(
+				serverRunning.getUrl("/uaa/approvals"),
+				HttpMethod.PUT,
+				new HttpEntity<Approval[]>((new Approval[]{new Approval(testAccounts.getUserName(), "app",
+						"cloud_controller.read", expiresAt, ApprovalStatus.APPROVED,oneMinuteAgo), new Approval(testAccounts.getUserName(), "app",
+								"openid", expiresAt, ApprovalStatus.APPROVED,oneMinuteAgo),new Approval(testAccounts.getUserName(), "app",
+										"password.write", expiresAt, ApprovalStatus.APPROVED,oneMinuteAgo)}), approvalHeaders), Approval[].class);
+		assertEquals(HttpStatus.OK, approvals.getStatusCode());
 
 		ResponseEntity<String> result = serverRunning.getForString("/api/apps");
 		assertEquals(HttpStatus.OK, result.getStatusCode());
