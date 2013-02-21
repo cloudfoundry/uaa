@@ -122,7 +122,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 				Collection<? extends String> scopes = (Collection<? extends String>) autoApproved;
 				autoApprovedScopes.addAll(scopes);
 			}
-			else if ("true".equals(autoApproved)) {
+			else if (autoApproved instanceof Boolean && (Boolean) autoApproved || "true".equals(autoApproved)) {
 				autoApprovedScopes.addAll(client.getScope());
 			}
 
