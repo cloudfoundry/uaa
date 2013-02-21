@@ -63,7 +63,7 @@
 						<map>
 							<entry key="id" value="app" />
 							<entry key="secret" value="appclientsecret" />
-							<entry key="authorized-grant-types" value="password,authorization_code,client_credentials" />
+							<entry key="authorized-grant-types" value="password,implicit,authorization_code,client_credentials" />
 							<entry key="scope" value="cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids" />
 							<entry key="authorities" value="uaa.resource" />
 							<entry key="autoapprove">
@@ -71,15 +71,6 @@
 									<value>openid</value>
 								</list>
 							</entry>
-						</map>
-					</entry>
-					<entry key="my">
-						<map>
-							<entry key="id" value="my" />
-							<entry key="secret" value="myclientsecret" />
-							<entry key="authorized-grant-types" value="implicit" />
-							<entry key="scope" value="cloud_controller.read,openid" />
-							<entry key="authorities" value="uaa.none" />
 						</map>
 					</entry>
 					<entry key="login">
