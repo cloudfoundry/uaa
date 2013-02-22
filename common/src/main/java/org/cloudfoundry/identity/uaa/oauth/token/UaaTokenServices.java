@@ -177,7 +177,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 			Collection<? extends String> scopes = (Collection<? extends String>) autoApproved;
 			autoApprovedScopes.addAll(scopes);
 		}
-		else if ("true".equals(autoApproved)) {
+		else if (autoApproved instanceof Boolean && (Boolean) autoApproved || "true".equals(autoApproved)) {
 			autoApprovedScopes.addAll(originalScopes);
 		}
 
@@ -536,7 +536,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 				Collection<? extends String> approvedScopes = (Collection<? extends String>) autoApproved;
 				autoApprovedScopes.addAll(approvedScopes);
 			}
-			else if ("true".equals(autoApproved)) {
+			else if (autoApproved instanceof Boolean && (Boolean) autoApproved || "true".equals(autoApproved)) {
 				autoApprovedScopes.addAll(client.getScope());
 			}
 
