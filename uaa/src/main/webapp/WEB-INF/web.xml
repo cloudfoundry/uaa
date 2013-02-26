@@ -29,7 +29,7 @@
 		</init-param>
 		<init-param>
 			<param-name>environmentConfigLocations</param-name>
-			<param-value>${UAA_CONFIG_URL},file:${UAA_CONFIG_PATH}/uaa.yml,file:${CLOUDFOUNDRY_CONFIG_PATH}/uaa.yml</param-value>
+			<param-value>${UAA_CONFIG_URL},file:${UAA_CONFIG_PATH}/uaa.yml,file:${CLOUD_FOUNDRY_CONFIG_PATH}/uaa.yml</param-value>
 		</init-param>
 		<load-on-startup>1</load-on-startup>
 	</servlet>
