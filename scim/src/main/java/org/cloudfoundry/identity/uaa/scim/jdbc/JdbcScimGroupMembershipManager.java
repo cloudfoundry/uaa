@@ -188,7 +188,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 			ScimGroupMember u = jdbcTemplate.queryForObject(GET_MEMBER_SQl, rowMapper, groupId, memberId);
 			return u;
 		} catch (EmptyResultDataAccessException e) {
-			throw new MemberNotFoundException("Member " + memberId + " does not exist");
+			throw new MemberNotFoundException("Member " + memberId + " does not exist in group " + groupId);
 		}
 	}
 
