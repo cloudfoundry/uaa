@@ -17,7 +17,7 @@
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
 	<bean id="foo" class="java.lang.String">
-		<constructor-arg value="${databases.postgresql.password}" />
+		<constructor-arg value="${logging.path}" />
 	</bean>
 
 </beans>

@@ -12,6 +12,13 @@
  */
 package org.cloudfoundry.identity.uaa.openid;
 
+import static org.cloudfoundry.identity.uaa.oauth.Claims.EMAIL;
+import static org.cloudfoundry.identity.uaa.oauth.Claims.FAMILY_NAME;
+import static org.cloudfoundry.identity.uaa.oauth.Claims.GIVEN_NAME;
+import static org.cloudfoundry.identity.uaa.oauth.Claims.NAME;
+import static org.cloudfoundry.identity.uaa.oauth.Claims.USER_ID;
+import static org.cloudfoundry.identity.uaa.oauth.Claims.USER_NAME;
+
 import java.security.Principal;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -29,7 +36,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 /**
  * Controller that sends user info to clients wishing to authenticate.
- * 
+ *
  * @author Dave Syer
  */
 @Controller
@@ -65,6 +72,7 @@ public class UserInfoEndpoint implements InitializingBean {
 	protected Map<String, String> getResponse(UaaPrincipal principal) {
 		UaaUser user = userDatabase.retrieveUserByName(principal.getName());
 		Map<String, String> response = new LinkedHashMap<String, String>() {
+			@Override
 			public String put(String key, String value) {
 				if (StringUtils.hasText(value)) {
 					return super.put(key, value);
@@ -72,13 +80,13 @@ public class UserInfoEndpoint implements InitializingBean {
 				return null;
 			}
 		};
-		response.put(UserInfo.USER_ID, user.getId());
-		response.put(UserInfo.USER_NAME, user.getUsername());
-		response.put(UserInfo.GIVEN_NAME, user.getGivenName());
-		response.put(UserInfo.FAMILY_NAME, user.getFamilyName());
-		response.put(UserInfo.NAME, (user.getGivenName() != null ? user.getGivenName() : "")
+		response.put(USER_ID, user.getId());
+		response.put(USER_NAME, user.getUsername());
+		response.put(GIVEN_NAME, user.getGivenName());
+		response.put(FAMILY_NAME, user.getFamilyName());
+		response.put(NAME, (user.getGivenName() != null ? user.getGivenName() : "")
 				+ (user.getFamilyName() != null ? " " + user.getFamilyName() : ""));
-		response.put(UserInfo.EMAIL, user.getEmail());
+		response.put(EMAIL, user.getEmail());
 		// TODO: other attributes
 		return response;
 	}

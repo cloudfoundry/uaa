@@ -15,9 +15,9 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.After;
@@ -32,8 +32,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.codec.Base64;
-import org.springframework.security.jwt.Jwt;
-import org.springframework.security.jwt.JwtHelper;
 import org.springframework.security.oauth2.client.test.OAuth2ContextConfiguration;
 import org.springframework.security.oauth2.client.test.OAuth2ContextSetup;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
@@ -64,8 +62,8 @@ public class ScimGroupEndpointsIntegrationTests {
 	private List<String> groupIds = new ArrayList<String>();
 
 	private final Log logger = LogFactory.getLog(getClass());
-	
-	private static final List<String> defaultGroups = Arrays.asList("openid","cloud_controller.read","cloud_controller.write","password.write","tokens.write","tokens.read","scim.userids","uaa.user");
+
+	private static final List<String> defaultGroups = Arrays.asList("openid","scim.me","cloud_controller.read","cloud_controller.write","password.write","scim.userids","uaa.user","approvals.me");
 
 	@Rule
 	public ServerRunning serverRunning = ServerRunning.isRunning();
@@ -87,9 +85,12 @@ public class ScimGroupEndpointsIntegrationTests {
 
 		client = serverRunning.getRestTemplate();
 
-		JOEL = new ScimGroupMember(createUser("joel_" + new RandomValueStringGenerator().generate().toLowerCase(), "pwd").getId());
-		DALE = new ScimGroupMember(createUser("dale_" + new RandomValueStringGenerator().generate().toLowerCase(), "pwd").getId());
-		VIDYA = new ScimGroupMember(createUser("vidya_" + new RandomValueStringGenerator().generate().toLowerCase(), "pwd").getId());
+		JOEL = new ScimGroupMember(createUser("joel_" + new RandomValueStringGenerator().generate().toLowerCase(),
+				"pwd").getId());
+		DALE = new ScimGroupMember(createUser("dale_" + new RandomValueStringGenerator().generate().toLowerCase(),
+				"pwd").getId());
+		VIDYA = new ScimGroupMember(createUser("vidya_" + new RandomValueStringGenerator().generate().toLowerCase(),
+				"pwd").getId());
 	}
 
 	@After
@@ -106,8 +107,8 @@ public class ScimGroupEndpointsIntegrationTests {
 	private ResponseEntity<Map> deleteResource(String url, String id) {
 		HttpHeaders headers = new HttpHeaders();
 		headers.add("If-Match", "*");
-		return client.exchange(serverRunning.getUrl(url + "/{id}"), HttpMethod.DELETE,
-									  new HttpEntity<Void>(headers), Map.class, id);
+		return client.exchange(serverRunning.getUrl(url + "/{id}"), HttpMethod.DELETE, new HttpEntity<Void>(headers),
+				Map.class, id);
 	}
 
 	private ScimUser createUser(String username, String password) {
@@ -122,7 +123,7 @@ public class ScimGroupEndpointsIntegrationTests {
 
 		HttpHeaders headers = new HttpHeaders();
 		ResponseEntity<Void> result = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password",
-															 HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers), null, u.getId());
+				HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers), null, u.getId());
 		assertEquals(HttpStatus.OK, result.getStatusCode());
 		return u;
 	}
@@ -146,10 +147,10 @@ public class ScimGroupEndpointsIntegrationTests {
 		g.setMembers(m);
 		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> r = client.exchange(serverRunning.getUrl(groupEndpoint + "/{id}"), HttpMethod.PUT,
-															 new HttpEntity<ScimGroup>(g, headers), Map.class, id);
+				new HttpEntity<ScimGroup>(g, headers), Map.class, id);
 		logger.warn(r.getBody());
 		ScimGroup g1 = client.exchange(serverRunning.getUrl(groupEndpoint + "/{id}"), HttpMethod.PUT,
-											  new HttpEntity<ScimGroup>(g, headers), ScimGroup.class, id).getBody();
+				new HttpEntity<ScimGroup>(g, headers), ScimGroup.class, id).getBody();
 		assertEquals(name, g1.getDisplayName());
 		assertEquals(m.size(), g1.getMembers().size());
 		return g1;
@@ -157,7 +158,9 @@ public class ScimGroupEndpointsIntegrationTests {
 
 	private void validateUserGroups(String id, String... groups) {
 		List<String> groupNames = groups != null ? Arrays.asList(groups) : Collections.<String> emptyList();
-		assertEquals(groupNames.size() + defaultGroups.size(), getUser(id).getGroups().size()); // there are 8 default user groups configured
+		assertEquals(groupNames.size() + defaultGroups.size(), getUser(id).getGroups().size()); // there are 8 default
+																								// user groups
+																								// configured
 		for (ScimUser.Group g : getUser(id).getGroups()) {
 			assertTrue(defaultGroups.contains(g.getDisplay()) || groupNames.contains(g.getDisplay()));
 		}
@@ -181,7 +184,8 @@ public class ScimGroupEndpointsIntegrationTests {
 		Map firstGroup = (Map) ((List) results.get("resources")).get(0);
 		assertTrue(firstGroup.containsKey("id"));
 		assertTrue(firstGroup.containsKey("displayName"));
-		assertTrue(firstGroup.containsKey("members"));
+		assertTrue(firstGroup.containsKey("schemas"));
+		assertTrue(firstGroup.containsKey("meta"));
 	}
 
 	@Test
@@ -203,7 +207,7 @@ public class ScimGroupEndpointsIntegrationTests {
 		assertTrue(g2.getMembers().contains(DALE));
 		assertTrue(g2.getMembers().contains(VIDYA));
 
-		//check that User.groups is updated
+		// check that User.groups is updated
 		validateUserGroups(JOEL.getMemberId(), CFID);
 		validateUserGroups(DALE.getMemberId(), CFID);
 		validateUserGroups(VIDYA.getMemberId(), CFID);
@@ -226,7 +230,8 @@ public class ScimGroupEndpointsIntegrationTests {
 
 		// check that the group was not created
 		@SuppressWarnings("unchecked")
-		Map<String, String> g2 = client.getForObject(serverRunning.getUrl(groupEndpoint + "?filter=displayName eq '{name}'"), Map.class, CFID);
+		Map<String, String> g2 = client.getForObject(
+				serverRunning.getUrl(groupEndpoint + "?filter=displayName eq '{name}'"), Map.class, CFID);
 		assertTrue(g2.containsKey("totalResults"));
 		assertEquals(0, g2.get("totalResults"));
 	}
@@ -234,7 +239,7 @@ public class ScimGroupEndpointsIntegrationTests {
 	@Test
 	public void createGroupWithMemberGroupSucceeds() {
 		ScimGroup g1 = createGroup(CFID, VIDYA);
-		ScimGroupMember m2 = new ScimGroupMember(g1.getId(), ScimGroupMember.Type.GROUP, ScimGroup.GROUP_MEMBER);
+		ScimGroupMember m2 = new ScimGroupMember(g1.getId(), ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER);
 		ScimGroup g2 = createGroup(CF_DEV, m2);
 
 		// Check we can GET the group
@@ -243,7 +248,7 @@ public class ScimGroupEndpointsIntegrationTests {
 		assertEquals(1, g3.getMembers().size());
 		assertTrue(g3.getMembers().contains(m2));
 
-		//check that User.groups is updated
+		// check that User.groups is updated
 		validateUserGroups(VIDYA.getMemberId(), CFID, CF_DEV);
 	}
 
@@ -266,7 +271,8 @@ public class ScimGroupEndpointsIntegrationTests {
 
 		// check that the group does not exist anymore
 		@SuppressWarnings("unchecked")
-		Map<String, Object> g2 = client.getForObject(serverRunning.getUrl(groupEndpoint + "?filter=displayName eq '{name}'"), Map.class, DELETE_ME);
+		Map<String, Object> g2 = client.getForObject(
+				serverRunning.getUrl(groupEndpoint + "?filter=displayName eq '{name}'"), Map.class, DELETE_ME);
 		assertTrue(g2.containsKey("totalResults"));
 		assertEquals(0, g2.get("totalResults"));
 
@@ -286,7 +292,7 @@ public class ScimGroupEndpointsIntegrationTests {
 	@Test
 	public void deleteMemberGroupUpdatesGroup() {
 		ScimGroup g1 = createGroup(CFID, VIDYA);
-		ScimGroupMember m2 = new ScimGroupMember(g1.getId(), ScimGroupMember.Type.GROUP, ScimGroup.GROUP_MEMBER);
+		ScimGroupMember m2 = new ScimGroupMember(g1.getId(), ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER);
 		ScimGroup g2 = createGroup(CF_DEV, DALE, m2);
 		assertTrue(g2.getMembers().contains(m2));
 		validateUserGroups(VIDYA.getMemberId(), CFID, CF_DEV);
@@ -320,8 +326,8 @@ public class ScimGroupEndpointsIntegrationTests {
 	public void testUpdateGroupUpdatesMemberUsers() {
 		ScimGroup g1 = createGroup(CFID, JOEL, VIDYA);
 		ScimGroup g2 = createGroup(CF_MGR, DALE);
-		ScimGroupMember m1 = new ScimGroupMember(g1.getId(), ScimGroupMember.Type.GROUP, ScimGroup.GROUP_MEMBER);
-		ScimGroupMember m2 = new ScimGroupMember(g2.getId(), ScimGroupMember.Type.GROUP, ScimGroup.GROUP_MEMBER);
+		ScimGroupMember m1 = new ScimGroupMember(g1.getId(), ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER);
+		ScimGroupMember m2 = new ScimGroupMember(g2.getId(), ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER);
 		ScimGroup g3 = createGroup(CF_DEV, m1, m2);
 
 		validateUserGroups(JOEL.getMemberId(), CFID, CF_DEV);
@@ -340,14 +346,26 @@ public class ScimGroupEndpointsIntegrationTests {
 
 	@Test
 	public void testAccessTokenReflectsGroupMembership() throws Exception {
-		String token = getAccessToken("app", "appclientsecret", testAccounts.getUserName(), testAccounts.getPassword()).getClaims();
-		assertFalse(token.contains(String.format("\"scope\":[\"%s\"]", CFID)));
 
 		createTestClient(DELETE_ME, "secret", CFID);
 		ScimUser user = createUser(DELETE_ME, "pwd1");
 		createGroup(CFID, new ScimGroupMember(user.getId()));
-		token = getAccessToken(DELETE_ME, "secret", DELETE_ME, "pwd1").getClaims();
-		assertTrue(token.contains(String.format("\"scope\":[\"%s\"]", CFID)));
+		OAuth2AccessToken token = getAccessToken(DELETE_ME, "secret", DELETE_ME, "pwd1");
+		assertTrue("Wrong token: " + token, token.getScope().contains(CFID));
+
+		deleteTestClient(DELETE_ME);
+		deleteResource(userEndpoint, user.getId());
+
+	}
+
+	@Test
+	public void testAccessTokenReflectsGroupMembershipForPasswordGrant() throws Exception {
+
+		createTestClient(DELETE_ME, "secret", CFID);
+		ScimUser user = createUser(DELETE_ME, "pwd1");
+		createGroup(CFID, new ScimGroupMember(user.getId()));
+		OAuth2AccessToken token = getAccessTokenWithPassword(DELETE_ME, "secret", DELETE_ME, "pwd1");
+		assertTrue("Wrong token: " + token, token.getScope().contains(CFID));
 
 		deleteTestClient(DELETE_ME);
 		deleteResource(userEndpoint, user.getId());
@@ -357,19 +375,19 @@ public class ScimGroupEndpointsIntegrationTests {
 	private void createTestClient(String name, String secret, String scope) throws Exception {
 		OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write");
 		HttpHeaders headers = getAuthenticatedHeaders(token);
-		BaseClientDetails client = new BaseClientDetails(name, "", scope, "authorization_code", "tokens.read,tokens.write");
+		BaseClientDetails client = new BaseClientDetails(name, "", scope, "authorization_code,password", "scim.read,scim.write");
 		client.setClientSecret(secret);
 		ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
-																					  HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
+				HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
 		assertEquals(HttpStatus.CREATED, result.getStatusCode());
 	}
 
 	private void deleteTestClient(String clientId) throws Exception {
 		OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write");
 		HttpHeaders headers = getAuthenticatedHeaders(token);
-		ResponseEntity<Void> result = serverRunning.getRestTemplate()
-						 .exchange(serverRunning.getUrl("/oauth/clients/{client}"), HttpMethod.DELETE,
-										  new HttpEntity<Void>(headers), Void.class, clientId);
+		ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(
+				serverRunning.getUrl("/oauth/clients/{client}"), HttpMethod.DELETE, new HttpEntity<Void>(headers),
+				Void.class, clientId);
 		assertEquals(HttpStatus.OK, result.getStatusCode());
 	}
 
@@ -385,7 +403,7 @@ public class ScimGroupEndpointsIntegrationTests {
 		HttpHeaders headers = new HttpHeaders();
 		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
 		headers.set("Authorization",
-						   "Basic " + new String(Base64.encode(String.format("%s:%s", clientId, clientSecret).getBytes())));
+				"Basic " + new String(Base64.encode(String.format("%s:%s", clientId, clientSecret).getBytes())));
 
 		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, headers);
@@ -405,13 +423,29 @@ public class ScimGroupEndpointsIntegrationTests {
 		return headers;
 	}
 
-	private Jwt getAccessToken(String clientId, String clientSecret, String username, String password) {
+	private OAuth2AccessToken getAccessTokenWithPassword(String clientId, String clientSecret, String username, String password) {
+		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+		formData.add("client_id", clientId);
+		formData.add("grant_type", "password");
+		formData.add("username", username);
+		formData.add("password", password);
+		HttpHeaders tokenHeaders = new HttpHeaders();
+		tokenHeaders.set("Authorization", testAccounts.getAuthorizationHeader(clientId, clientSecret));
+		@SuppressWarnings("rawtypes")
+		ResponseEntity<Map> tokenResponse = serverRunning.postForMap("/oauth/token", formData, tokenHeaders);
+		assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
+		@SuppressWarnings("unchecked")
+		OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(tokenResponse.getBody());
+		return accessToken;
+	}
+
+	private OAuth2AccessToken getAccessToken(String clientId, String clientSecret, String username, String password) {
 		HttpHeaders headers = new HttpHeaders();
 		headers.setAccept(Arrays.asList(MediaType.TEXT_HTML, MediaType.ALL));
 
 		URI uri = serverRunning.buildUri("/oauth/authorize").queryParam("response_type", "code")
-						  .queryParam("state", "mystateid").queryParam("client_id", clientId)
-						  .queryParam("redirect_uri", "http://anywhere.com").build();
+				.queryParam("state", "mystateid").queryParam("client_id", clientId)
+				.queryParam("redirect_uri", "http://anywhere.com").build();
 		ResponseEntity<Void> result = serverRunning.getForResponse(uri.toString(), headers);
 		assertEquals(HttpStatus.FOUND, result.getStatusCode());
 		String location = result.getHeaders().getLocation().toString();
@@ -447,6 +481,7 @@ public class ScimGroupEndpointsIntegrationTests {
 
 			formData.clear();
 			formData.add("user_oauth_approval", "true");
+			formData.add("scope.0", "scope." + CFID);
 			result = serverRunning.postForResponse("/oauth/authorize", headers, formData);
 			assertEquals(HttpStatus.FOUND, result.getStatusCode());
 			location = result.getHeaders().getLocation().toString();
@@ -456,8 +491,7 @@ public class ScimGroupEndpointsIntegrationTests {
 			assertEquals(HttpStatus.FOUND, response.getStatusCode());
 			location = response.getHeaders().getLocation().toString();
 		}
-		assertTrue("Wrong location: " + location,
-						  location.matches("http://anywhere.com" + ".*code=.+"));
+		assertTrue("Wrong location: " + location, location.matches("http://anywhere.com" + ".*code=.+"));
 
 		formData.clear();
 		formData.add("client_id", clientId);
@@ -465,14 +499,13 @@ public class ScimGroupEndpointsIntegrationTests {
 		formData.add("grant_type", "authorization_code");
 		formData.add("code", location.split("code=")[1].split("&")[0]);
 		HttpHeaders tokenHeaders = new HttpHeaders();
-		tokenHeaders.set("Authorization",
-								testAccounts.getAuthorizationHeader(clientId, clientSecret));
+		tokenHeaders.set("Authorization", testAccounts.getAuthorizationHeader(clientId, clientSecret));
 		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> tokenResponse = serverRunning.postForMap("/oauth/token", formData, tokenHeaders);
 		assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
 		@SuppressWarnings("unchecked")
-		Map<String, String> body = tokenResponse.getBody();
-		return JwtHelper.decode(body.get("access_token"));
+		OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(tokenResponse.getBody());
+		return accessToken;
 	}
 
 }

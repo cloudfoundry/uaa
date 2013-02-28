@@ -27,19 +27,15 @@ class UaaSmokeSimulation extends Simulation {
       .insertChain(logout)
   }
 
-  val vmcUserLogins = scenario("VMC Login")
+  val vmcLogins = scenario("VMC Logins")
     .during(Duration) {
       chain.feed(UsernamePasswordFeeder())
-    // Uses the session values for username/password provided by the feeder
         .exec(vmcLogin())
-        .pause(0, 2000, TimeUnit.MILLISECONDS)
-//        .exec((s: Session) => {println("User: %s, token: %s" format(s.getAttribute("username"), s.getAttribute("access_token"))); s})
-    }
-
-  val vmcFailedLogins = scenario("VMC Failed Login")
-    .during(Duration) {
-      chain.feed(UsernamePasswordFeeder())
-        .exec(vmcLoginFailure())
+        .exec(vmcLogin())
+        .exec(vmcLoginBadPassword())
+        .exec(vmcLoginBadUsername())
+        .exec(vmcLogin())
+        .exec(vmcLogin(username="shaun1", password="password"))
         .pause(0, 2000, TimeUnit.MILLISECONDS)
   }
 
@@ -91,8 +87,7 @@ class UaaSmokeSimulation extends Simulation {
        , scimWorkout.configure users 10 ramp 10 protocolConfig uaaHttpConfig
        , authzCodeLogin.configure users 10 ramp 10 protocolConfig loginHttpConfig
        , passwordScores.configure users 1 ramp 10 protocolConfig uaaHttpConfig
-       , vmcUserLogins.configure users 10 ramp 10 protocolConfig uaaHttpConfig
-       , vmcFailedLogins.configure users 5 protocolConfig uaaHttpConfig
+       , vmcLogins.configure users 15 ramp 10 protocolConfig uaaHttpConfig
     )
   }
 

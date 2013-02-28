@@ -101,10 +101,9 @@ public class ClientAdminBootstrapTests {
 	}
 
 	@Test
-	public void testOverrideClientWithYaml() throws Exception {
-		@SuppressWarnings("unchecked")
-		Map<String, Object> map = new Yaml().loadAs("id: foo\noverride: true\nsecret: bar\n"
-				+ "access-token-validity: 100", Map.class);
+	public void testOverrideClientByDefault() throws Exception {
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put("secret", "bar");
 		bootstrap.setClients(Collections.singletonMap("foo", map));
 		doThrow(new ClientAlreadyExistsException("Planned")).when(clientRegistrationService).addClientDetails(
 				any(ClientDetails.class));
@@ -112,6 +111,29 @@ public class ClientAdminBootstrapTests {
 		verify(clientRegistrationService, times(1)).addClientDetails(any(ClientDetails.class));
 		verify(clientRegistrationService, times(1)).updateClientDetails(any(ClientDetails.class));
 		verify(clientRegistrationService, times(1)).updateClientSecret("foo", "bar");
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	public void testOverrideClientWithYaml() throws Exception {
+		@SuppressWarnings("rawtypes")
+		Map fooClient = new Yaml().loadAs("id: foo\noverride: true\nsecret: bar\n"
+				+ "access-token-validity: 100", Map.class);
+		@SuppressWarnings("rawtypes")
+		Map barClient = new Yaml().loadAs("id: bar\noverride: true\nsecret: bar\n"
+				+ "access-token-validity: 100", Map.class);
+		@SuppressWarnings("rawtypes")
+		Map clients = new HashMap();
+		clients.put("foo", fooClient);
+		clients.put("bar", barClient);
+		bootstrap.setClients(clients);
+		doThrow(new ClientAlreadyExistsException("Planned")).when(clientRegistrationService).addClientDetails(
+				any(ClientDetails.class));
+		bootstrap.afterPropertiesSet();
+		verify(clientRegistrationService, times(2)).addClientDetails(any(ClientDetails.class));
+		verify(clientRegistrationService, times(2)).updateClientDetails(any(ClientDetails.class));
+		verify(clientRegistrationService, times(1)).updateClientSecret("foo", "bar");
+		verify(clientRegistrationService, times(1)).updateClientSecret("bar", "bar");
 	}
 
 	@Test

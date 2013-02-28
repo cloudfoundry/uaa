@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Cloud Foundry 2012.02.03 Beta Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved. This product is licensed to
-	you under the Apache License, Version 2.0 (the "License"). You may not use this product except in compliance with the License.
-	This product includes a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents
+<!-- Cloud Foundry 2012.02.03 Beta Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved. This product is licensed to 
+	you under the Apache License, Version 2.0 (the "License"). You may not use this product except in compliance with the License. 
+	This product includes a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents 
 	is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file. -->
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
 	xmlns:sec="http://www.springframework.org/schema/security" xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
@@ -12,16 +12,6 @@
 		http://www.springframework.org/schema/security/oauth http://www.springframework.org/schema/security/spring-security-oauth.xsd
 		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
 		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.1.xsd">
-
-	<bean id="nameMapper" class="org.cloudfoundry.identity.uaa.scim.util.SimpleAttributeNameMapper">
-		<constructor-arg name="paramsMap">
-			<map key-type="java.lang.String" value-type="java.lang.String">
-				<entry key="emails\.value" value="email" />
-				<entry key="groups\.display" value="authorities" />
-				<entry key="phoneNumbers\.value" value="phoneNumber" />
-			</map>
-		</constructor-arg>
-	</bean>
 
 	<bean id="scimUserProvisioning" class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning">
 		<constructor-arg ref="jdbcTemplate" />
@@ -36,7 +26,17 @@
 	</bean>
 
 	<bean id="scimUserQueryConverter" class="org.cloudfoundry.identity.uaa.scim.jdbc.ScimSearchQueryConverter">
-		<property name="attributeNameMapper" ref="nameMapper" />
+		<property name="attributeNameMapper">
+			<bean class="org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper">
+				<constructor-arg name="paramsMap">
+					<map key-type="java.lang.String" value-type="java.lang.String">
+						<entry key="emails\.value" value="email" />
+						<entry key="groups\.display" value="authorities" />
+						<entry key="phoneNumbers\.value" value="phoneNumber" />
+					</map>
+				</constructor-arg>
+			</bean>
+		</property>
 	</bean>
 
 	<bean id="scimGroupProvisioning" class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning">
@@ -70,6 +70,7 @@
 	<bean id="scimUserEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints">
 		<property name="scimUserProvisioning" ref="scimUserProvisioning" />
 		<property name="scimGroupMembershipManager" ref="groupMembershipManager" />
+		<property name="approvalStore" ref="approvalStore" />
 		<property name="statuses" ref="exceptionToStatusMap" />
 		<property name="messageConverters">
 			<bean class="org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter" />
@@ -102,9 +103,17 @@
 	</bean>
 
 	<http request-matcher-ref="groupsUpdateRequestMatcher" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
-				entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="groupAccessDecisionManager"
-				xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/**" access="scope=scim.write,scope=groups.update,memberScope=write" method="PUT" />
+		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="groupAccessDecisionManager"
+		xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/**" access="scope=scim.write,scope=groups.update,memberScope=writer" method="PUT" />
+		<custom-filter ref="scimResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
+		<access-denied-handler ref="oauthAccessDeniedHandler" />
+	</http>
+
+	<http request-matcher-ref="groupsReadRequestMatcher" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
+		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="groupAccessDecisionManager"
+		xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/**" access="scope=scim.read,memberScope=reader" method="GET" />
 		<custom-filter ref="scimResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
@@ -119,10 +128,14 @@
 		</property>
 	</bean>
 
+	<bean id="groupsReadRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
+		<constructor-arg value="/Groups" />
+		<property name="method" value="GET" />
+	</bean>
+
 	<http pattern="/Groups/**" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
 		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
 		xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/Groups/**" access="scope=scim.read" method="GET" />
 		<intercept-url pattern="/Groups/**" access="scope=scim.write" method="DELETE" />
 		<intercept-url pattern="/Groups" access="scope=scim.write" method="POST" />
 		<intercept-url pattern="/**" access="ROLE_NONEXISTENT" />
@@ -149,9 +162,11 @@
 
 	<aop:config proxy-target-class="true">
 		<aop:aspect ref="passwordEventPublisher">
-			<aop:after-returning method="passwordChange" pointcut="execution(* *..PasswordChangeEndpoint+.changePassword(String, ..)) and args(userId,..) and bean(passwordChangeEndpoint)" />
+			<aop:after-returning method="passwordChange"
+				pointcut="execution(* *..PasswordChangeEndpoint+.changePassword(String, ..)) and args(userId,..) and bean(passwordChangeEndpoint)" />
 			<aop:after-throwing method="passwordFailure"
-				pointcut="execution(* *..PasswordChangeEndpoint+.changePassword(String, ..)) and args(userId,..) and bean(passwordChangeEndpoint)" throwing="e" />
+				pointcut="execution(* *..PasswordChangeEndpoint+.changePassword(String, ..)) and args(userId,..) and bean(passwordChangeEndpoint)"
+				throwing="e" />
 		</aop:aspect>
 	</aop:config>
 
@@ -163,12 +178,26 @@
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
 
+	<bean id="userAccessDecisionManager" class="org.springframework.security.access.vote.AffirmativeBased">
+		<constructor-arg>
+			<list>
+				<bean id="userVoter" class="org.cloudfoundry.identity.uaa.scim.security.UserVoter" />
+				<bean class="org.springframework.security.oauth2.provider.vote.ScopeVoter">
+					<property name="scopePrefix" value="scope=" />
+					<property name="throwException" value="false" />
+				</bean>
+				<bean class="org.springframework.security.access.vote.AuthenticatedVoter" />
+				<bean class="org.springframework.security.access.vote.RoleVoter" />
+			</list>
+		</constructor-arg>
+	</bean>
+
 	<http pattern="/Users/**" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
-		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
+		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="userAccessDecisionManager"
 		xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/Users/**" access="scope=scim.read" method="GET" />
+		<intercept-url pattern="/Users/**" access="scope=scim.read,user=self" method="GET" />
 		<intercept-url pattern="/Users/*" access="scope=scim.write" method="DELETE" />
-		<intercept-url pattern="/Users/*" access="scope=scim.write" method="PUT" />
+		<intercept-url pattern="/Users/*" access="scope=scim.write,user=self" method="PUT" />
 		<intercept-url pattern="/Users" access="scope=scim.write" method="POST" />
 		<intercept-url pattern="/**" access="ROLE_NONEXISTENT" />
 		<custom-filter ref="scimResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
@@ -213,9 +242,16 @@
 		<property name="groupMembers" ref="members" />
 	</bean>
 
+	<bean id="nonDefaultUserGroups" class="java.lang.String">
+		<!-- Scopes known to the UAA. Here so the groups will exist and users MAY be added to them, but not automatically like 
+			defaultUserAuthorities -->
+		<constructor-arg
+			value="scim.read,scim.write,uaa.resource,uaa.admin,clients.read,clients.write,clients.secret,cloud_controller.admin" />
+	</bean>
+
 	<bean id="groups" class="java.lang.String">
 		<constructor-arg
-			value="#{(@config['scim']==null or @config['scim']['groups']==null)?@defaultGroups:@config['scim']['groups']}" />
+			value="#{@nonDefaultUserGroups},#{(@config['scim']==null or @config['scim']['groups']==null)?@defaultGroups:@config['scim']['groups']}" />
 	</bean>
 
 	<bean id="members" class="org.springframework.beans.factory.config.ListFactoryBean">
@@ -231,7 +267,7 @@
 
 	<beans profile="default">
 		<util:list id="defaultUsers">
-			<value>marissa|koala|marissa@test.org|Marissa|Bloggs|uaa.user,tokens.read,tokens.write</value>
+			<value>marissa|koala|marissa@test.org|Marissa|Bloggs|uaa.user</value>
 		</util:list>
 		<util:list id="defaultMembers">
 			<value>acme|acme.dev,acme.qa</value>

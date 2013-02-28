@@ -28,7 +28,7 @@
 		// Add configuration for one or more providers.
 		jso_configure({
 			"uaa": {
-				client_id: "my",
+				client_id: "${clientId}",
 				redirect_uri: window.location,
 				authorization: "${userAuthorizationUri}",
 			}
@@ -60,7 +60,7 @@
 	<h1>Client Authentication Sample</h1>
 
 	<div id="content">
-		<p>Some JavaScript in this page will log you in as client app "my" acting on
+		<p>Some JavaScript in this page will log you in as client "${clientId}" acting on
 			behalf of a user. Once you have authenticated as a user and approved the
 			access, it will render JSON representation of your apps from the API Resource Server below:</p>
 		<p id="message" />

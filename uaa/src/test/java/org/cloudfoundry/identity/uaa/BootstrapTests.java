@@ -16,9 +16,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
+
+import javax.servlet.RequestDispatcher;
 import javax.sql.DataSource;
 
-import org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean;
+import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.oauth.ClientAdminBootstrap;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
@@ -26,16 +29,21 @@ import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.context.support.GenericXmlApplicationContext;
-import org.springframework.core.env.PropertiesPropertySource;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.Resource;
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
+import org.springframework.beans.factory.xml.ResourceEntityResolver;
+import org.springframework.beans.factory.xml.XmlBeanDefinitionReader;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.mock.web.MockRequestDispatcher;
+import org.springframework.mock.web.MockServletConfig;
+import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.StringUtils;
+import org.springframework.web.context.support.AbstractRefreshableWebApplicationContext;
 
 /**
  * @author Dave Syer
@@ -43,7 +51,7 @@ import org.springframework.util.StringUtils;
  */
 public class BootstrapTests {
 
-	private GenericXmlApplicationContext context;
+	private ConfigurableApplicationContext context;
 
 	@Before
 	public void setup() throws Exception {
@@ -79,17 +87,17 @@ public class BootstrapTests {
 	@Test
 	public void testOverrideYmlConfigPath() throws Exception {
 		System.setProperty("UAA_CONFIG_PATH", "./src/test/resources/test/config");
-		context = getServletContext("hsqldb", "file:./src/main/webapp/WEB-INF/spring-servlet.xml",
+		context = getServletContext("file:./src/main/webapp/WEB-INF/spring-servlet.xml",
 				"classpath:/test/config/test-override.xml");
-		assertEquals("different", context.getBean("foo", String.class));
+		assertEquals("/tmp/uaa/logs", context.getBean("foo", String.class));
 		assertEquals("[vmc, my, support]",
 				ReflectionTestUtils.getField(context.getBean(ClientAdminBootstrap.class), "autoApproveClients")
 						.toString());
 		ScimUserProvisioning users = context.getBean(ScimUserProvisioning.class);
-		assertTrue(users.retrieveUsers().size() > 0);
+		assertTrue(users.retrieveAll().size() > 0);
 	}
 
-	private GenericXmlApplicationContext getServletContext(String... resources) {
+	private ConfigurableApplicationContext getServletContext(String... resources) {
 		String profiles = null;
 		String[] resourcesToLoad = resources;
 		if (!resources[0].endsWith(".xml")) {
@@ -98,20 +106,45 @@ public class BootstrapTests {
 			System.arraycopy(resources, 1, resourcesToLoad, 0, resourcesToLoad.length);
 		}
 
-		GenericXmlApplicationContext context = new GenericXmlApplicationContext();
+		final String[] configLocations = resourcesToLoad;
+
+		AbstractRefreshableWebApplicationContext context = new AbstractRefreshableWebApplicationContext() {
+
+			@Override
+			protected void loadBeanDefinitions(DefaultListableBeanFactory beanFactory) throws BeansException,
+					IOException {
+				XmlBeanDefinitionReader beanDefinitionReader = new XmlBeanDefinitionReader(beanFactory);
+
+				// Configure the bean definition reader with this context's
+				// resource loading environment.
+				beanDefinitionReader.setEnvironment(this.getEnvironment());
+				beanDefinitionReader.setResourceLoader(this);
+				beanDefinitionReader.setEntityResolver(new ResourceEntityResolver(this));
+
+				if (configLocations != null) {
+					for (String configLocation : configLocations) {
+						beanDefinitionReader.loadBeanDefinitions(configLocation);
+					}
+				}
+			}
+
+		};
+		MockServletContext servletContext = new MockServletContext() {
+			@Override
+			public RequestDispatcher getNamedDispatcher(String path) {
+				return new MockRequestDispatcher("/");
+			}
+		};
+		context.setServletContext(servletContext);
+		MockServletConfig servletConfig = new MockServletConfig(servletContext);
+		servletConfig.addInitParameter("environmentConfigLocations", "file:${UAA_CONFIG_PATH}/uaa.yml");
+		context.setServletConfig(servletConfig);
+
+		YamlServletProfileInitializer initializer = new YamlServletProfileInitializer();
+		initializer.initialize(context);
+
 		if (profiles != null) {
 			context.getEnvironment().setActiveProfiles(StringUtils.commaDelimitedListToStringArray(profiles));
-		}
-
-		context.load(resourcesToLoad);
-
-		// Simulate what happens in the webapp when the YamlServletProfileInitializer kicks in
-		String yaml = System.getProperty("UAA_CONFIG_PATH");
-		if (yaml != null) {
-			YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
-			factory.setResources(new Resource[] { new FileSystemResource(yaml + "/uaa.yml") });
-			context.getEnvironment().getPropertySources()
-					.addLast(new PropertiesPropertySource("servletProperties", factory.getObject()));
 		}
 
 		context.refresh();

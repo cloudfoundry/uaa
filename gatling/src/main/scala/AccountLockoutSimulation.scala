@@ -14,7 +14,7 @@ class AccountLockoutSimulation extends Simulation {
   val lockoutScenario = scenario("Account Lockout")
       .feed(UniqueUsernamePasswordFeeder(users))
       .repeat(10)(
-        chain.exec(vmcLoginFailure())
+        chain.exec(vmcLoginBadPassword())
       )
       .pause(61*5) // 5 mins 5 secs
       .exec((s:Session) => {

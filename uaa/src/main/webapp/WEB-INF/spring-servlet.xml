@@ -37,7 +37,7 @@
 	<import resource="spring/oauth-endpoints.xml" />
 	<import resource="spring/login-server-security.xml" />
 	<import resource="spring/scim-endpoints.xml" />
-	<import resource="spring/token-admin-endpoints.xml" />
+	<import resource="spring/approvals-endpoints.xml" />
 	<import resource="spring/client-admin-endpoints.xml" />
 	<import resource="spring/resource-endpoints.xml" />
 	<import resource="spring/openid-endpoints.xml" />
@@ -45,6 +45,10 @@
 
 	<context:property-placeholder properties-ref="applicationProperties" />
 
+    <bean id="messageSource" class="org.springframework.context.support.ResourceBundleMessageSource">
+      <property name="basename" value="messages" />
+    </bean>
+  
 	<authentication-manager id="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security" />
 
 	<bean id="authenticationDetailsSource" class="org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetailsSource" />
@@ -95,7 +99,7 @@
 
 	<bean id="logoutHandler" class="org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler">
 		<property name="targetUrlParameter" value="redirect" />
-		<property name="defaultTargetUrl" value="/login" />
+		<property name="defaultTargetUrl" value="/" />
 	</bean>
 
 	<bean id="uiRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.DelegatingRequestMatcher">
@@ -106,6 +110,9 @@
 				</bean>
 				<bean class="org.springframework.security.web.util.AntPathRequestMatcher">
 					<constructor-arg value="/home" />
+				</bean>
+				<bean class="org.springframework.security.web.util.AntPathRequestMatcher">
+					<constructor-arg value="/spring_security_login" />
 				</bean>
 				<bean class="org.springframework.security.web.util.AntPathRequestMatcher">
 					<constructor-arg value="/oauth/**" />

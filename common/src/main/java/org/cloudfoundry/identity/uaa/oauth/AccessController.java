@@ -12,15 +12,25 @@
  */
 package org.cloudfoundry.identity.uaa.oauth;
 
+import java.security.Principal;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
+import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -28,16 +38,19 @@ import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.SessionAttributes;
+import org.springframework.web.bind.support.SessionStatus;
 import org.springframework.web.context.request.WebRequest;
 
 /**
  * Controller for retrieving the model for and displaying the confirmation page for access to a protected resource.
- * 
+ *
  * @author Dave Syer
  */
 @Controller
 @SessionAttributes("authorizationRequest")
 public class AccessController {
+
+	protected final Log logger = LogFactory.getLog(getClass());
 
 	private static final String SCOPE_PREFIX = "scope.";
 
@@ -45,10 +58,12 @@ public class AccessController {
 
 	private Boolean useSsl;
 
+	private ApprovalStore approvalStore = null;
+
 	/**
 	 * Explicitly requests caller to point back to an authorization endpoint on "https", even if the incoming request is
 	 * "http" (e.g. when downstream of the SSL termination behind a load balancer).
-	 * 
+	 *
 	 * @param useSsl the flag to set (null to use the incoming request to determine the URL scheme)
 	 */
 	public void setUseSsl(Boolean useSsl) {
@@ -59,8 +74,18 @@ public class AccessController {
 		this.clientDetailsService = clientDetailsService;
 	}
 
+	public void setApprovalStore(ApprovalStore approvalStore) {
+		this.approvalStore = approvalStore;
+	}
+
 	@RequestMapping("/oauth/confirm_access")
-	public String confirm(Map<String, Object> model, final HttpServletRequest request) throws Exception {
+	public String confirm(Map<String, Object> model, final HttpServletRequest request, Principal principal, SessionStatus sessionStatus) throws Exception {
+
+		if (!(principal instanceof Authentication)) {
+			sessionStatus.setComplete();
+			throw new InsufficientAuthenticationException(
+					"User must be authenticated with before authorizing access.");
+		}
 
 		AuthorizationRequest clientAuth = (AuthorizationRequest) model.remove("authorizationRequest");
 		if (clientAuth == null) {
@@ -69,13 +94,87 @@ public class AccessController {
 			// response.sendError(HttpServletResponse.SC_BAD_REQUEST);
 		}
 		else {
-			BaseClientDetails client = new BaseClientDetails(clientDetailsService.loadClientByClientId(clientAuth.getClientId()));
-			client.setClientSecret(null);
+			ClientDetails client = clientDetailsService.loadClientByClientId(clientAuth.getClientId());
+			// TODO: Need to fix the copy constructor to copy additionalInfo
+			BaseClientDetails modifiableClient = new BaseClientDetails(client);
+			modifiableClient.setClientSecret(null);
 			model.put("auth_request", clientAuth);
-			model.put("client", client); // TODO: remove this once it has gone from jsp pages
+			model.put("client", modifiableClient); // TODO: remove this once it has gone from jsp pages
 			model.put("client_id", clientAuth.getClientId());
-			model.put("redirect_uri", getRedirectUri(client, clientAuth));
-			model.put("scopes", getScopes(client, clientAuth));
+			model.put("redirect_uri", getRedirectUri(modifiableClient, clientAuth));
+
+			// Find the auto approved scopes for this clients
+			Map<String, Object> additionalInfo = client.getAdditionalInformation();
+			Object autoApproved = additionalInfo.get("autoapprove");
+			Set<String> autoApprovedScopes = new HashSet<String>();
+			if (autoApproved instanceof Collection<?>) {
+				@SuppressWarnings("unchecked")
+				Collection<? extends String> scopes = (Collection<? extends String>) autoApproved;
+				autoApprovedScopes.addAll(scopes);
+			}
+			else if (autoApproved instanceof Boolean && (Boolean) autoApproved || "true".equals(autoApproved)) {
+				autoApprovedScopes.addAll(modifiableClient.getScope());
+			}
+
+			List<Approval> filteredApprovals = new ArrayList<Approval>();
+			// Remove auto approved scopes
+			List<Approval> approvals = approvalStore.getApprovals(principal.getName(), clientAuth.getClientId());
+			for (Approval approval : approvals) {
+				if (!(autoApprovedScopes.contains(approval.getScope()))) {
+					filteredApprovals.add(approval);
+				}
+			}
+
+			ArrayList<String> approvedScopes = new ArrayList<String>();
+			ArrayList<String> deniedScopes = new ArrayList<String>();
+
+			for(Approval approval : filteredApprovals) {
+				switch (approval.getStatus()) {
+				case APPROVED:
+					approvedScopes.add(approval.getScope());
+					break;
+				case DENIED:
+					deniedScopes.add(approval.getScope());
+					break;
+				default:
+					logger.error("Encountered an unknown scope. This is not supposed to happen");
+					break;
+				}
+			}
+
+			ArrayList<String> undecidedScopes = new ArrayList<String>();
+
+			//Filter the scopes approved/denied from the ones requested
+			for(String scope : clientAuth.getScope()) {
+				if (!approvedScopes.contains(scope) && !deniedScopes.contains(scope) && !autoApprovedScopes.contains(scope)) {
+					undecidedScopes.add(scope);
+				}
+			}
+
+			model.put("approved_scopes", getScopes(modifiableClient, approvedScopes));
+			model.put("denied_scopes", getScopes(modifiableClient, deniedScopes));
+			model.put("undecided_scopes", getScopes(modifiableClient, undecidedScopes));
+
+			//For backward compatibility with older login servers
+			List<Map<String, String>> combinedScopes = new ArrayList<Map<String, String>>();
+			if (model.get("approved_scopes") != null) {
+				@SuppressWarnings("unchecked")
+				List<Map<String, String>> scopes = (List<Map<String, String>>) model.get("approved_scopes");
+				combinedScopes.addAll(scopes);
+			}
+			if (model.get("denied_scopes") != null) {
+				@SuppressWarnings("unchecked")
+				List<Map<String, String>> scopes = (List<Map<String, String>>) model.get("denied_scopes");
+				combinedScopes.addAll(scopes);
+			}
+			if (model.get("undecided_scopes") != null) {
+				@SuppressWarnings("unchecked")
+				List<Map<String, String>> scopes = (List<Map<String, String>>) model.get("undecided_scopes");
+				combinedScopes.addAll(scopes);
+			}
+
+			model.put("scopes", combinedScopes);
+
 			model.put("message",
 					"To confirm or deny access POST to the following locations with the parameters requested.");
 			Map<String, Object> options = new HashMap<String, Object>() {
@@ -84,7 +183,7 @@ public class AccessController {
 						{
 							put("location", getLocation(request, "oauth/authorize"));
 							put("path", getPath(request, "oauth/authorize"));
-							put("key", "user_oauth_approval");
+							put("key", AuthorizationRequest.USER_OAUTH_APPROVAL);
 							put("value", "true");
 						}
 
@@ -93,7 +192,7 @@ public class AccessController {
 						{
 							put("location", getLocation(request, "oauth/authorize"));
 							put("path", getPath(request, "oauth/authorize"));
-							put("key", "user_oauth_approval");
+							put("key", AuthorizationRequest.USER_OAUTH_APPROVAL);
 							put("value", "false");
 						}
 
@@ -102,13 +201,15 @@ public class AccessController {
 			};
 			model.put("options", options);
 		}
+
 		return "access_confirmation";
 
 	}
 
-	private List<Map<String, String>> getScopes(ClientDetails client, AuthorizationRequest clientAuth) {
+	private List<Map<String, String>> getScopes(ClientDetails client, ArrayList<String> scopes) {
+
 		List<Map<String, String>> result = new ArrayList<Map<String, String>>();
-		for (String scope : clientAuth.getScope()) {
+		for (String scope : scopes) {
 			if (!scope.contains(".")) {
 				HashMap<String, String> map = new HashMap<String, String>();
 				map.put("code", SCOPE_PREFIX + scope);

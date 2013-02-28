@@ -1,29 +1,3 @@
-oauth:
-  authorize:
-   ssl: # set this to "true" to force https to be used by the user approval page
-  clients:
-    admin:
-      authorized-grant-types: client_credentials
-      scope: uaa.none
-      authorities: uaa.admin,clients.read,clients.write,clients.secret,tokens.read,tokens.write
-      id: admin
-      secret: adminsecret
-
-password-policy:
-  required-score: 0
-
----
-
-platform: hsqldb
-database.driverClassName: org.hsqldb.jdbcDriver
-database.url: jdbc:hsqldb:mem:jdbcUaaTests
-database.username: sa
-database.password:
-
----
-
-platform: postgresql
-database.driverClassName: org.postgresql.Driver
-database.url: jdbc:postgresql:uaa
-database.username: root
-database.password: changeme
+# Configuration in this file is overridden by an external file
+# if any of these exist: 
+# [$UAA_CONFIG_URL, $UAA_CONFIG_PATH/uaa.yml, $CLOUDFOUNDRY_CONFIG_PATH/uaa.yml]

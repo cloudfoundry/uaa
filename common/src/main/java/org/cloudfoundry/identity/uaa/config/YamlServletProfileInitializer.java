@@ -13,7 +13,9 @@
 package org.cloudfoundry.identity.uaa.config;
 
 import java.io.FileNotFoundException;
-import java.util.Properties;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
@@ -22,7 +24,7 @@ import org.apache.log4j.MDC;
 import org.cloudfoundry.identity.uaa.config.YamlProcessor.ResolutionMethod;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.core.env.PropertiesPropertySource;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.util.Log4jConfigurer;
 import org.springframework.util.StringUtils;
@@ -32,7 +34,7 @@ import org.springframework.web.context.support.WebApplicationContextUtils;
 /**
  * An {@link ApplicationContextInitializer} for a web application to enable it to externalize the environment and
  * logging configuration. A YAML config file is loaded if present and inserted into the environment. In addition if the
- * YAML contains a property
+ * YAML contains some special properties, some initialization is carried out:
  * 
  * <ul>
  * <li><code>spring_profiles</code> - then the active profiles are set</li>
@@ -44,56 +46,55 @@ import org.springframework.web.context.support.WebApplicationContextUtils;
  */
 public class YamlServletProfileInitializer implements ApplicationContextInitializer<ConfigurableWebApplicationContext> {
 
-	private static final String PROFILE_CONFIG_FILE_LOCATION = "environmentConfigFile";
+	private static final String PROFILE_CONFIG_FILE_LOCATIONS = "environmentConfigLocations";
 
-	public static final String[] DEFAULT_PROFILE_CONFIG_FILE_LOCATIONS = new String[] { "${UAA_CONFIG_URL}",
-			"file:${UAA_CONFIG_FILE}", "file:${CLOUD_FOUNDRY_CONFIG_PATH}/${CONFIG_FILE_NAME:uaa.yml}" };
+	private static final String PROFILE_CONFIG_FILE_DEFAULT = "environmentConfigDefaults";
+
+	public static final String[] DEFAULT_PROFILE_CONFIG_FILE_LOCATIONS = new String[] { "${APPLICATION_CONFIG_URL}",
+			"file:${APPLICATION_CONFIG_FILE}" };
 
 	@Override
 	public void initialize(ConfigurableWebApplicationContext applicationContext) {
-		
 
 		Resource resource = null;
 		ServletContext servletContext = applicationContext.getServletContext();
-		WebApplicationContextUtils.initServletPropertySources(applicationContext.getEnvironment().getPropertySources(), servletContext, applicationContext.getServletConfig());
+		WebApplicationContextUtils.initServletPropertySources(applicationContext.getEnvironment().getPropertySources(),
+				servletContext, applicationContext.getServletConfig());
 
-		for (String location : DEFAULT_PROFILE_CONFIG_FILE_LOCATIONS) {
-			location = applicationContext.getEnvironment().resolvePlaceholders(location);
-			servletContext.log("Testing for YAML resources at: " + location);
-			resource = applicationContext.getResource(location);
-			if (resource != null && resource.exists()) {
-				break;
-			}
-		}
-
-		if (resource == null) {
-			servletContext.log("No YAML environment properties from environment.  Defaulting to servlet config.");
-			ServletConfig servletConfig = applicationContext.getServletConfig();
-			if (servletConfig != null) {
-				String location = servletConfig.getInitParameter(PROFILE_CONFIG_FILE_LOCATION);
-				resource = applicationContext.getResource(location);
-			}
-		}
+		ServletConfig servletConfig = applicationContext.getServletConfig();
+		String locations = servletConfig == null ? null : servletConfig.getInitParameter(PROFILE_CONFIG_FILE_LOCATIONS);
+		resource = getResource(servletContext, applicationContext, locations);
 
 		if (resource == null) {
 			servletContext.log("No YAML environment properties from servlet.  Defaulting to servlet context.");
-			ServletContext servletConfig = applicationContext.getServletContext();
-			if (servletConfig != null) {
-				String location = servletConfig.getInitParameter(PROFILE_CONFIG_FILE_LOCATION);
-				resource = applicationContext.getResource(location);
-			}
+			locations = servletContext.getInitParameter(PROFILE_CONFIG_FILE_LOCATIONS);
+			resource = getResource(servletContext, applicationContext, locations);
 		}
 
 		try {
 			servletContext.log("Loading YAML environment properties from location: " + resource);
-			YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
+			YamlMapFactoryBean factory = new YamlMapFactoryBean();
 			factory.setResolutionMethod(ResolutionMethod.OVERRIDE_AND_IGNORE);
-			factory.setResources(new Resource[] { resource });
-			Properties properties = factory.getObject();
-			applySpringProfiles(properties, applicationContext.getEnvironment(), servletContext);
-			applicationContext.getEnvironment().getPropertySources()
-					.addLast(new PropertiesPropertySource("servletConfigYaml", properties));
-			applyLog4jConfiguration(properties, applicationContext.getEnvironment(), servletContext);
+
+			List<Resource> resources = new ArrayList<Resource>();
+
+			String defaultLocation = servletConfig == null ? null : servletConfig.getInitParameter(PROFILE_CONFIG_FILE_DEFAULT);
+			if (defaultLocation!=null) {
+				Resource defaultResource = new ClassPathResource(defaultLocation);
+				if (defaultResource.exists()) {
+					resources.add(defaultResource);
+				}
+			}
+			
+			resources.add(resource);
+			factory.setResources(resources.toArray(new Resource[resources.size()]));
+			
+			Map<String, Object> map = factory.getObject();
+			NestedMapPropertySource properties = new NestedMapPropertySource("servletConfigYaml", map);
+			applicationContext.getEnvironment().getPropertySources().addLast(properties);
+			applySpringProfiles(applicationContext.getEnvironment(), servletContext);
+			applyLog4jConfiguration(applicationContext.getEnvironment(), servletContext);
+
 		}
 		catch (Exception e) {
 			servletContext.log("Error loading YAML environment properties from location: " + resource, e);
@@ -101,25 +102,40 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 
 	}
 
-	private void applyLog4jConfiguration(Properties properties, ConfigurableEnvironment environment,
-			ServletContext servletContext) {
+	private Resource getResource(ServletContext servletContext, ConfigurableWebApplicationContext applicationContext,
+			String locations) {
+		Resource resource = null;
+		String[] configFileLocations = locations == null ? DEFAULT_PROFILE_CONFIG_FILE_LOCATIONS : StringUtils
+				.commaDelimitedListToStringArray(locations);
+		for (String location : configFileLocations) {
+			location = applicationContext.getEnvironment().resolvePlaceholders(location);
+			servletContext.log("Testing for YAML resources at: " + location);
+			resource = applicationContext.getResource(location);
+			if (resource != null && resource.exists()) {
+				break;
+			}
+		}
+		return resource;
+	}
+
+	private void applyLog4jConfiguration(ConfigurableEnvironment environment, ServletContext servletContext) {
 
 		String log4jConfigLocation = "classpath:log4j.properties";
 
-		if (properties.containsKey("logging.file")) {
-			String location = properties.getProperty("logging.file");
+		if (environment.containsProperty("logging.file")) {
+			String location = environment.getProperty("logging.file");
 			servletContext.log("Setting LOG_FILE: " + location);
 			System.setProperty("LOG_FILE", location);
 		}
 
-		else if (properties.containsKey("logging.path")) {
-			String location = properties.getProperty("logging.path");
+		else if (environment.containsProperty("logging.path")) {
+			String location = environment.getProperty("logging.path");
 			servletContext.log("Setting LOG_PATH: " + location);
 			System.setProperty("LOG_PATH", location);
 		}
 
-		else if (properties.containsKey("logging.config")) {
-			log4jConfigLocation = properties.getProperty("logging.config");
+		else if (environment.containsProperty("logging.config")) {
+			log4jConfigLocation = environment.getProperty("logging.config");
 		}
 
 		try {
@@ -129,15 +145,14 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 		catch (FileNotFoundException e) {
 			servletContext.log("Error loading log4j config from location: " + log4jConfigLocation, e);
 		}
-		
+
 		MDC.put("context", servletContext.getContextPath());
 
 	}
 
-	private void applySpringProfiles(Properties properties, ConfigurableEnvironment environment,
-			ServletContext servletContext) {
-		if (properties.containsKey("spring_profiles")) {
-			String profiles = properties.getProperty("spring_profiles");
+	private void applySpringProfiles(ConfigurableEnvironment environment, ServletContext servletContext) {
+		if (environment.containsProperty("spring_profiles")) {
+			String profiles = (String) environment.getProperty("spring_profiles");
 			servletContext.log("Setting active profiles: " + profiles);
 			environment.setActiveProfiles(StringUtils.commaDelimitedListToStringArray(profiles));
 		}

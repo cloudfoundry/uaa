@@ -81,7 +81,7 @@ public class ClientAdminEndpointsIntegrationTests {
 		ResponseEntity<String> result = serverRunning.getForString("/oauth/clients", headers);
 		assertEquals(HttpStatus.OK, result.getStatusCode());
 		// System.err.println(result.getBody());
-		assertTrue(result.getBody().contains("vmc\":{"));
+		assertTrue(result.getBody().contains("\"client_id\":\"vmc\""));
 		assertFalse(result.getBody().contains("secret\":"));
 	}
 
@@ -121,6 +121,15 @@ public class ClientAdminEndpointsIntegrationTests {
 		assertEquals(HttpStatus.CREATED, result.getStatusCode());
 	}
 
+    @Test
+    public void passwordGrantClientWithoutSecretIsOk() throws Exception {
+        BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar", "password", "uaa.none");
+        ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
+                HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
+
+        assertEquals(HttpStatus.CREATED, result.getStatusCode());
+    }
+
 	@Test
 	public void authzCodeGrantAutomaticallyAddsRefreshToken() throws Exception {
 		BaseClientDetails client = createClient("authorization_code");
@@ -130,7 +139,16 @@ public class ClientAdminEndpointsIntegrationTests {
 		assertTrue(result.getBody().contains("\"authorized_grant_types\":[\"authorization_code\",\"refresh_token\"]"));
 	}
 
-	@Test
+    @Test
+    public void passwordGrantAutomaticallyAddsRefreshToken() throws Exception {
+        BaseClientDetails client = createClient("password");
+
+        ResponseEntity<String> result = serverRunning.getForString("/oauth/clients/" + client.getClientId(), headers);
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertTrue(result.getBody().contains("\"authorized_grant_types\":[\"password\",\"refresh_token\"]"));
+    }
+
+    @Test
 	public void testUpdateClient() throws Exception {
 		BaseClientDetails client = createClient("client_credentials");
 

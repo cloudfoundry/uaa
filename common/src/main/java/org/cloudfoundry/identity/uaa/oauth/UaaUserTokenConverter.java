@@ -13,16 +13,19 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
+import static org.cloudfoundry.identity.uaa.oauth.Claims.EMAIL;
+import static org.cloudfoundry.identity.uaa.oauth.Claims.USER_ID;
+import static org.cloudfoundry.identity.uaa.oauth.Claims.USER_NAME;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.openid.UserInfo;
 import org.springframework.security.core.Authentication;
 
 /**
  * @author Dave Syer
- * 
+ *
  */
 public class UaaUserTokenConverter implements UserTokenConverter {
 
@@ -31,9 +34,9 @@ public class UaaUserTokenConverter implements UserTokenConverter {
 		Map<String, Object> response = new LinkedHashMap<String, Object>();
 		if (authentication.getPrincipal() instanceof UaaPrincipal) {
 			UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
-			response.put(UserInfo.USER_ID, principal.getId());
-			response.put(UserInfo.USER_NAME, principal.getName());
-			response.put(UserInfo.EMAIL, principal.getEmail());
+			response.put(USER_ID, principal.getId());
+			response.put(USER_NAME, principal.getName());
+			response.put(EMAIL, principal.getEmail());
 		}
 		return response;
 	}

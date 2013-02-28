@@ -73,7 +73,7 @@ public class AuthenticationIntegrationTests {
 		assertNotNull("Expected cookie in " + result.getHeaders(), cookie);
 		uaaHeaders.set("Cookie", cookie);
 
-		assertTrue("Wrong location: " + location, location.contains(serverRunning.getAuthServerUrl("/login")));
+		assertTrue("Wrong location: " + location, location.contains("/login"));
 		location = serverRunning.getAuthServerUrl("/login.do");
 
 		MultiValueMap<String, String> formData;

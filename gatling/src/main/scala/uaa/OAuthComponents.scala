@@ -139,8 +139,12 @@ object OAuthComponents {
     vmcAction("VMC login", username, password)
       .check(status is 302, fragmentToken.saveAs("access_token"))
 
-  def vmcLoginFailure(username: String = "${username}", password: String = "pXssword"): ActionBuilder =
-    vmcAction("VMC failed login", username, password)
+  def vmcLoginBadPassword(username: String = "${username}"): ActionBuilder =
+    vmcAction("VMC failed login - bad password", username, "pXssword")
+      .check(status is 401)
+
+  def vmcLoginBadUsername(): ActionBuilder =
+    vmcAction("VMC failed login - no user", "idontexist", "password")
       .check(status is 401)
 
   private def vmcAction(name: String, username: String, password: String) =
@@ -150,7 +154,7 @@ object OAuthComponents {
       .param("source", "credentials")
       .param("username", username)
       .param("password", password)
-      .param("redirect_uri", "http://uaa.cloudfoundry.com/redirect/vmc")
+      .param("redirect_uri", "https://uaa.cloudfoundry.com/redirect/vmc")
       .param("response_type", "token")
       .headers(plainHeaders)
 

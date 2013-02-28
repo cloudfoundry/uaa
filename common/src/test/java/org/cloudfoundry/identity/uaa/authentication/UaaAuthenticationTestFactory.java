@@ -12,7 +12,6 @@
  */
 package org.cloudfoundry.identity.uaa.authentication;
 
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.user.MockUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 
@@ -32,14 +31,6 @@ public class UaaAuthenticationTestFactory {
 
 	public static AuthzAuthenticationRequest getAuthenticationRequest(String name) {
 		return new AuthzAuthenticationRequest(name, "password", null);
-	}
-
-	public static ScimUser getScimUser(String name, String email, String givenName, String familyName) {
-		ScimUser user = new ScimUser(null, name, givenName, familyName);
-		if (email!=null) {
-			user.addEmail(email);
-		}
-		return user;
 	}
 
 }

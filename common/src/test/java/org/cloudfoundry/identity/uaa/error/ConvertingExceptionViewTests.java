@@ -18,7 +18,6 @@ import static org.junit.Assert.assertNotNull;
 
 import java.util.HashMap;
 
-import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -43,18 +42,17 @@ public class ConvertingExceptionViewTests {
 
 	@Test
 	public void testGetContentType() throws Exception {
-		ScimException e = new ScimException("Unexpected error", new RuntimeException("foo"),
-				HttpStatus.INTERNAL_SERVER_ERROR);
-		view = new ConvertingExceptionView(new ResponseEntity<ExceptionReport>(new ExceptionReport(e), e.getStatus()),
-				messageConverters);
+		RuntimeException e = new RuntimeException("Unexpected error");
+		view = new ConvertingExceptionView(new ResponseEntity<ExceptionReport>(new ExceptionReport(e),
+				HttpStatus.INTERNAL_SERVER_ERROR), messageConverters);
 		assertEquals("*/*", view.getContentType());
 	}
 
 	@Test
 	public void testRender() throws Exception {
-		ScimException e = new ScimException("Unexpected error", new RuntimeException("foo"),
-				HttpStatus.INTERNAL_SERVER_ERROR);
-		view = new ConvertingExceptionView(new ResponseEntity<ExceptionReport>(new ExceptionReport(e), e.getStatus()), messageConverters);
+		RuntimeException e = new RuntimeException("Unexpected error");
+		view = new ConvertingExceptionView(new ResponseEntity<ExceptionReport>(new ExceptionReport(e),
+				HttpStatus.INTERNAL_SERVER_ERROR), messageConverters);
 		view.render(new HashMap<String, Object>(), request, response);
 		assertNotNull(response.getContentAsString());
 	}
