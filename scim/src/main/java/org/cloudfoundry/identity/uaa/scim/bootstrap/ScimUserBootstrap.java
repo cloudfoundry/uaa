@@ -28,15 +28,17 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
+import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationListener;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 /**
  * Convenience class for provisioning user accounts from {@link UaaUser} instances.
- * 
+ *
  * @author Luke Taylor
  * @author Dave Syer
  */
@@ -54,14 +56,9 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
 
 	private final Collection<UaaUser> users;
 
-	public ScimUserBootstrap(ScimUserProvisioning scimUserProvisioning, ScimGroupProvisioning scimGroupProvisioning,
-			ScimGroupMembershipManager membershipManager) {
-		this(scimUserProvisioning, scimGroupProvisioning, membershipManager, Collections.<UaaUser> emptySet());
-	}
-
 	/**
 	 * Flag to indicate that user accounts can be updated as well as created.
-	 * 
+	 *
 	 * @param override the override flag to set (default false)
 	 */
 	public void setOverride(boolean override) {
@@ -70,6 +67,10 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
 
 	public ScimUserBootstrap(ScimUserProvisioning scimUserProvisioning, ScimGroupProvisioning scimGroupProvisioning,
 			ScimGroupMembershipManager membershipManager, Collection<UaaUser> users) {
+		Assert.notNull(scimUserProvisioning, "scimUserProvisioning cannot be null");
+		Assert.notNull(scimGroupProvisioning, "scimGroupProvisioning cannont be null");
+		Assert.notNull(membershipManager, "memberShipManager cannot be null");
+		Assert.notNull(users, "users list cannot be null");
 		this.scimUserProvisioning = scimUserProvisioning;
 		this.scimGroupProvisioning = scimGroupProvisioning;
 		this.membershipManager = membershipManager;
@@ -85,55 +86,53 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
 
 	/**
 	 * Add a user account from the properties provided.
-	 * 
+	 *
 	 * @param user a UaaUser
-	 * @return the ScimUser added
 	 */
-	public ScimUser addUser(UaaUser user) {
-		ScimUser scimUser = getScimUser(user);
-		List<String> existingGroups = new ArrayList<String>();
+	private void addUser(UaaUser user) {
 		List<ScimUser> users = scimUserProvisioning.query("userName eq '" + user.getUsername() + "'");
+
 		if (users.isEmpty()) {
-			logger.info("Registering new user account: " + user);
-			// TODO: send a message or raise an event that can be used to inform the user of his new password
-			scimUser = scimUserProvisioning.createUser(scimUser, user.getPassword());
+			createNewUser(user);
 		}
 		else {
-			if (!override) {
-				logger.debug("Not registering existing user: " + user);
-				// We don't update existing accounts - use the ScimUserProvisioning for that
-				return scimUser;
-			}
-			else {
-				logger.info("Updating user account: " + user);
-				ScimUser existingUser = users.iterator().next();
-				String id = existingUser.getId();
-				int version = existingUser.getVersion();
-				scimUser.setVersion(version);
-				if (membershipManager != null) {
-					Set<ScimGroup> groups = membershipManager.getGroupsWithMember(id, true);
-					for (ScimGroup group : groups) {
-						existingGroups.add(group.getDisplayName());
-					}
-				}
-				scimUser = scimUserProvisioning.update(id, scimUser);
-				scimUserProvisioning.changePassword(id, null, user.getPassword());
+			if (override) {
+				updateUser(users.get(0), user);
+			} else {
+				logger.debug("Override flag not set. Not registering existing user: " + user);
 			}
 		}
-		if (scimGroupProvisioning != null && membershipManager != null) {
-			Collection<String> groupsToAdd = getGroups(user.getAuthorities());
-			for (String group : groupsToAdd) {
-				if (!existingGroups.contains(group)) {
-					addToGroup(scimUser, group);
-				}
-			}
-			for (String group : existingGroups) {
-				if (!groupsToAdd.contains(group)) {
-					removeFromGroup(scimUser, group);
-				}
-			}
+	}
+
+	private void updateUser(ScimUser existingUser, UaaUser updatedUser) {
+		String id = existingUser.getId();
+		logger.info("Updating user account: " + updatedUser + " with SCIM Id: " + id);
+		logger.info("Removing existing group memberships ...");
+		Set<ScimGroup> existingGroups = membershipManager.getGroupsWithMember(id, true);
+
+		for (ScimGroup g: existingGroups) {
+			removeFromGroup(id, g.getDisplayName());
 		}
-		return scimUser;
+
+		final ScimUser newScimUser = convertToScimUser(updatedUser);
+		newScimUser.setVersion(existingUser.getVersion());
+		scimUserProvisioning.update(id, newScimUser);
+		Collection<String> newGroups = convertToGroups(updatedUser.getAuthorities());
+		logger.info("Adding new groups " + newGroups);
+		addGroups(id, newGroups);
+		scimUserProvisioning.changePassword(id, null, updatedUser.getPassword());
+	}
+
+	private void createNewUser(UaaUser user) {
+		logger.info("Registering new user account: " + user);
+		ScimUser newScimUser = scimUserProvisioning.createUser(convertToScimUser(user), user.getPassword());
+		addGroups(newScimUser.getId(), convertToGroups(user.getAuthorities()));
+	}
+
+	private void addGroups(String scimUserid, Collection<String> groups) {
+		for (String group: groups) {
+			addToGroup(scimUserid, group);
+		}
 	}
 
 	@Override
@@ -141,10 +140,11 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
 		addUser(event.getUser());
 	}
 
-	private void addToGroup(ScimUser user, String gName) {
+	private void addToGroup(String scimUserId, String gName) {
 		if (!StringUtils.hasText(gName)) {
 			return;
 		}
+		logger.debug("Adding to group: " + gName);
 		List<ScimGroup> g = scimGroupProvisioning.query(String.format("displayName eq '%s'", gName));
 		ScimGroup group;
 		if (g == null || g.isEmpty()) {
@@ -155,17 +155,18 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
 			group = g.get(0);
 		}
 		try {
-			membershipManager.addMember(group.getId(), new ScimGroupMember(user.getId()));
+			membershipManager.addMember(group.getId(), new ScimGroupMember(scimUserId));
 		}
 		catch (MemberAlreadyExistsException ex) {
 			// do nothing
 		}
 	}
 
-	private void removeFromGroup(ScimUser user, String gName) {
+	private void removeFromGroup(String scimUserId, String gName) {
 		if (!StringUtils.hasText(gName)) {
 			return;
 		}
+		logger.debug("Removing membership of group: " + gName);
 		List<ScimGroup> g = scimGroupProvisioning.query(String.format("displayName eq '%s'", gName));
 		ScimGroup group;
 		if (g == null || g.isEmpty()) {
@@ -175,9 +176,9 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
 			group = g.get(0);
 		}
 		try {
-			membershipManager.removeMemberById(group.getId(), user.getId());
+			membershipManager.removeMemberById(group.getId(), scimUserId);
 		}
-		catch (MemberAlreadyExistsException ex) {
+		catch (MemberNotFoundException ex) {
 			// do nothing
 		}
 	}
@@ -185,7 +186,7 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
 	/**
 	 * Convert UaaUser to SCIM data.
 	 */
-	private ScimUser getScimUser(UaaUser user) {
+	private ScimUser convertToScimUser(UaaUser user) {
 		ScimUser scim = new ScimUser(user.getId(), user.getUsername(), user.getGivenName(), user.getFamilyName());
 		scim.addEmail(user.getEmail());
 		return scim;
@@ -194,7 +195,7 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
 	/**
 	 * Convert authorities to group names.
 	 */
-	private Collection<String> getGroups(List<? extends GrantedAuthority> authorities) {
+	private Collection<String> convertToGroups(List<? extends GrantedAuthority> authorities) {
 		List<String> groups = new ArrayList<String>();
 		for (GrantedAuthority authority : authorities) {
 			groups.add(authority.toString());
