@@ -53,7 +53,11 @@ public class EnvironmentPropertiesFactoryBean implements FactoryBean<Properties>
 		factory.setDefaultProperties(defaultProperties);
 		Map<String, ?> map = factory.getObject();
 		for (Object key : map.keySet()) {
-			result.put(key, map.get(key));
+			Object value = map.get(key);
+			if (value==null) {
+				value = "";
+			}
+			result.put(key, value);
 		}
 
 		return result;
