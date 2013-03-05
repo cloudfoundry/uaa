@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.rest;
 
+import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.springframework.expression.Expression;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
@@ -20,7 +21,7 @@ public class SearchResultsFactory {
 		Map<String, Expression> expressions = buildExpressions(attributes, mapper);
 		StandardEvaluationContext context = new StandardEvaluationContext();
 		Collection<Map<String, Object>> results = new ArrayList<Map<String, Object>>();
-		for (T object : input.subList(startIndex - 1, startIndex + count - 1)) {
+		for (T object : UaaPagingUtils.subList(input, startIndex, count)) {
 			Map<String, Object> map = new LinkedHashMap<String, Object>();
 			for (String attribute : expressions.keySet()) {
 				map.put(attribute, expressions.get(attribute).getValue(context, object));

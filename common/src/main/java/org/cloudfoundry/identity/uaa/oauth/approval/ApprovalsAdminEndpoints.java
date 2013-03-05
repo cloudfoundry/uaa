@@ -30,6 +30,7 @@ import org.cloudfoundry.identity.uaa.message.SimpleMessage;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -99,9 +100,9 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 	int count) {
 		String username = getCurrentUsername();
 		logger.debug("Fetching all approvals for user: " + username);
-		List<Approval> approvals = approvalStore.getApprovals(
-				String.format("%s and " + USER_FILTER_TEMPLATE, filter, username)).subList(startIndex - 1,
-				startIndex + count - 1);
+		List<Approval> input = approvalStore.getApprovals(
+				String.format("%s and " + USER_FILTER_TEMPLATE, filter, username));
+		List<Approval> approvals = UaaPagingUtils.subList(input, startIndex, count);
 
 		// Find the clients for these approvals
 		Set<String> clientIds = new HashSet<String>();
