@@ -28,6 +28,7 @@ import org.springframework.util.Assert;
  * A class that knows how to provide the signing and verification keys
  *
  * @author Joel D'sa
+ * @author Luke Taylor
  *
  */
 public class SignerProvider implements InitializingBean {
@@ -45,8 +46,7 @@ public class SignerProvider implements InitializingBean {
 				verifier = new RsaVerifier(verifierKey);
 			}
 			catch (Exception e) {
-				logger.warn("Unable to create an RSA verifier from verifierKey");
-				return;
+				throw new RuntimeException("Unable to create an RSA verifier from verifierKey", e);
 			}
 
 			byte[] test = "test".getBytes();
@@ -55,15 +55,13 @@ public class SignerProvider implements InitializingBean {
 				logger.info("Signing and verification RSA keys match");
 			}
 			catch (InvalidSignatureException e) {
-				logger.error("Signing and verification RSA keys do not match");
+				throw new RuntimeException("Signing and verification RSA keys do not match", e);
 			}
 		}
 		else {
-			// Avoid a race condition where
 			Assert.state(this.signingKey == this.verifierKey,
 					"For MAC signing you do not need to specify the verifier key separately, and if you do it must match the signing key");
 		}
-
 	}
 
 	public Signer getSigner() {
@@ -71,7 +69,7 @@ public class SignerProvider implements InitializingBean {
 	}
 
 	public SignatureVerifier getVerifier() {
-		if (isPublic(signingKey)) {
+		if (isAssymetricKey(signingKey)) {
 			return new RsaVerifier(verifierKey);
 		}
 		else {
@@ -91,7 +89,7 @@ public class SignerProvider implements InitializingBean {
 
 		this.signingKey = key;
 
-		if (isPublic(key)) {
+		if (isAssymetricKey(key)) {
 			signer = new RsaSigner(key);
 			logger.info("Configured with RSA signing key");
 		}
@@ -105,7 +103,7 @@ public class SignerProvider implements InitializingBean {
 	/**
 	 * @return true if the key has a public verifier
 	 */
-	private boolean isPublic(String key) {
+	private boolean isAssymetricKey(String key) {
 		return key.startsWith("-----BEGIN");
 	}
 
@@ -116,7 +114,7 @@ public class SignerProvider implements InitializingBean {
 	 * For an HMAC key it will be the same value as the signing key and does not need to be set. For and RSA key, it
 	 * should be set to the String representation of the public key, in a standard format (e.g. OpenSSH keys)
 	 *
-	 * @param key the signature verification key (typically an RSA public key)
+	 * @param verifierKey the signature verification key (typically an RSA public key)
 	 */
 	public void setVerifierKey(String verifierKey) {
 		this.verifierKey = verifierKey;
