@@ -10,7 +10,7 @@
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  */
-package org.cloudfoundry.identity.uaa.scim.jdbc;
+package org.cloudfoundry.identity.uaa.rest.jdbc;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -155,24 +155,17 @@ public class JdbcPagingListTests {
 		assertEquals(5, count);
 	}
 
-	@Test
+	@Test(expected=IndexOutOfBoundsException.class)
 	public void testSubListExtendsBeyondSize() throws Exception {
 		list = new JdbcPagingList<Map<String, Object>>(template, "SELECT * from foo", new ColumnMapRowMapper(), 3);
-		list = list.subList(1, 40);
-		assertEquals(4, list.size());
-		int count = 0;
-		for (Map<String, Object> map : list) {
-			count++;
-			assertNotNull(map.get("name"));
-		}
-		assertEquals(4, count);
+		list.subList(1, 40);
 	}
 
 	@Test
 	public void testSubListFromDeletedElements() throws Exception {
 		list = new JdbcPagingList<Map<String, Object>>(template, "SELECT * from foo", new ColumnMapRowMapper(), 3);
 		template.update("DELETE from foo where id>3");
-		list = list.subList(1, 40);
+		list = list.subList(1, list.size());
 		assertEquals(4, list.size());
 		int count = 0;
 		for (Map<String, Object> map : list) {
