@@ -35,6 +35,7 @@ import org.cloudfoundry.identity.uaa.rest.SearchResultsFactory;
 import org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.expression.spel.SpelEvaluationException;
@@ -227,7 +228,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 		} catch (IllegalArgumentException e) {
 			throw new UaaException("Invalid filter expression: [" + filter + "]", HttpStatus.BAD_REQUEST.value());
 		}
-		for (ClientDetails client : clients.subList(startIndex - 1, startIndex + count - 1)) {
+		for (ClientDetails client : UaaPagingUtils.subList(clients, startIndex, count)) {
 			result.add(removeSecret(client));
 		}
 

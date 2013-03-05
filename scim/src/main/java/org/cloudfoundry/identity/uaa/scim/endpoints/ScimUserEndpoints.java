@@ -40,6 +40,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException;
+import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -225,7 +226,7 @@ public class ScimUserEndpoints implements InitializingBean {
 		List<ScimUser> input;
 		try {
 			input = dao.query(filter, sortBy, sortOrder.equals("ascending"));
-			for (ScimUser user : input.subList(startIndex - 1, startIndex + count - 1)) {
+			for (ScimUser user : UaaPagingUtils.subList(input, startIndex, count)) {
 				syncApprovals(syncGroups(user));
 			}
 		}

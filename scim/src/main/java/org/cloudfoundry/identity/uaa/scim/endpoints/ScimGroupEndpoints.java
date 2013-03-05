@@ -14,6 +14,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
+import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.expression.spel.SpelEvaluationException;
 import org.springframework.expression.spel.SpelParseException;
@@ -77,7 +78,7 @@ public class ScimGroupEndpoints {
 		List<ScimGroup> input;
 		try {
 			input = dao.query(filter, sortBy, "ascending".equalsIgnoreCase(sortOrder));
-			for (ScimGroup group : input.subList(startIndex - 1, startIndex + count - 1)) {
+			for (ScimGroup group : UaaPagingUtils.subList(input, startIndex, count)) {
 				group.setMembers(membershipManager.getMembers(group.getId()));
 			}
 		}

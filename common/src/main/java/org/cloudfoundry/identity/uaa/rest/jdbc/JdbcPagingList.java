@@ -88,8 +88,10 @@ public class JdbcPagingList<E> extends AbstractList<E> {
 
 	@Override
 	public List<E> subList(int fromIndex, int toIndex) {
-		int end = toIndex > size ? size : toIndex;
-		return new SafeIteratorList<E>(super.subList(fromIndex, end));
+		if(fromIndex < 0 || toIndex > size || fromIndex > toIndex) {
+			throw new IndexOutOfBoundsException("The indexes provided are outside the bounds of this list.");
+		}
+		return new SafeIteratorList<E>(super.subList(fromIndex, toIndex));
 	}
 
 	private String getLimitSql(String sql, int index, int size) {
