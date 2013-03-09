@@ -170,7 +170,7 @@
 		<property name="clientDetailsService" ref="jdbcClientDetailsService" />
 		<!-- Always use HTTPS if deployed on cloudfoundry -->
 		<property name="useSsl"
-			value="#{applicationProperties['oauth.authorize.ssl']?:(T(java.lang.System).getenv('VCAP_APPLICATION')!=null ? true : null)}" />
+			value="#{@applicationProperties['oauth.authorize.ssl']?:(T(java.lang.System).getenv('VCAP_APPLICATION')!=null ? true : null)}" />
 		<property name="approvalStore" ref="approvalStore" />
 	</bean>
 
