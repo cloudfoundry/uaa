@@ -48,6 +48,7 @@
 								</macrodef>
 								<sql-script platform="hsqldb" />
 								<sql-script platform="postgresql" />
+								<sql-script platform="mysql" />
 							</target>
 						</configuration>
 						<goals>
@@ -242,7 +243,14 @@
 			<version>9.1-901.jdbc3</version>
 			<scope>test</scope>
 		</dependency>
-
+		
+		<dependency>
+		    <groupId>mysql</groupId>
+		    <artifactId>mysql-connector-java</artifactId>
+		    <version>5.1.23</version>
+		    <scope>test</scope>
+		</dependency>
+		            
 		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-all</artifactId>
