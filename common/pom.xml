@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>org.cloudfoundry.identity</groupId>
 		<artifactId>cloudfoundry-identity-parent</artifactId>
-		<version>1.4.0</version>
+		<version>1.4.1-SNAPSHOT</version>
 		<relativePath>..</relativePath>
 	</parent>
 
@@ -48,6 +48,7 @@
 								</macrodef>
 								<sql-script platform="hsqldb" />
 								<sql-script platform="postgresql" />
+								<sql-script platform="mysql" />
 							</target>
 						</configuration>
 						<goals>
@@ -199,6 +200,34 @@
 		</dependency>
 
 		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>jcl-over-slf4j</artifactId>
+			<scope>test</scope>
+			<version>1.5.8</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<scope>test</scope>
+			<version>1.5.8</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-log4j12</artifactId>
+			<scope>test</scope>
+			<version>1.5.8</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.hibernate</groupId>
+			<artifactId>hibernate-validator</artifactId>
+			<version>4.1.0.Final</version>
+			<optional>true</optional>
+		</dependency>
+
+		<dependency>
 			<groupId>org.aspectj</groupId>
 			<artifactId>aspectjrt</artifactId>
 		</dependency>
@@ -240,6 +269,13 @@
 			<groupId>postgresql</groupId>
 			<artifactId>postgresql</artifactId>
 			<version>9.1-901.jdbc3</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
+			<version>5.1.23</version>
 			<scope>test</scope>
 		</dependency>
 
