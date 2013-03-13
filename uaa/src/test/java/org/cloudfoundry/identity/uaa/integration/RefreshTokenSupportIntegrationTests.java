@@ -63,6 +63,36 @@ public class RefreshTokenSupportIntegrationTests {
 	@Test
 	public void testTokenRefreshed() throws Exception {
 
+		// add an approval for the scope requested
+		{
+			MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+			formData.add("grant_type", "password");
+			formData.add("username", resource.getUsername());
+			formData.add("password", resource.getPassword());
+			formData.add("scope", "cloud_controller.read");
+			HttpHeaders headers = new HttpHeaders();
+			headers.set("Authorization",
+					testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
+			headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+			@SuppressWarnings("rawtypes")
+			ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, headers);
+			assertEquals(HttpStatus.OK, response.getStatusCode());
+			assertEquals("no-store", response.getHeaders().getFirst("Cache-Control"));
+
+			@SuppressWarnings("unchecked")
+			OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(response.getBody());
+
+			HttpHeaders approvalHeaders = new HttpHeaders();
+			approvalHeaders.set("Authorization", "bearer " + accessToken.getValue());
+			ResponseEntity<Approval[]> approvals = serverRunning.getRestTemplate().exchange(
+					serverRunning.getUrl("/approvals"),
+					HttpMethod.PUT,
+					new HttpEntity<Approval[]>((new Approval[]{new Approval(resource.getUsername(), resource.getClientId(),
+							"cloud_controller.read", 50000, ApprovalStatus.APPROVED)}), approvalHeaders), Approval[].class);
+
+			assertEquals(HttpStatus.OK, approvals.getStatusCode());
+		}
+
 		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
 		formData.add("grant_type", "password");
 		formData.add("username", resource.getUsername());
@@ -82,17 +112,6 @@ public class RefreshTokenSupportIntegrationTests {
 
 		// now use the refresh token to get a new access token.
 		assertNotNull(accessToken.getRefreshToken());
-
-		// add an approval for the scope requested
-		HttpHeaders approvalHeaders = new HttpHeaders();
-		approvalHeaders.set("Authorization", "bearer " + accessToken.getValue());
-		ResponseEntity<Approval[]> approvals = serverRunning.getRestTemplate().exchange(
-				serverRunning.getUrl("/approvals"),
-				HttpMethod.PUT,
-				new HttpEntity<Approval[]>((new Approval[]{new Approval(resource.getUsername(), resource.getClientId(),
-						"cloud_controller.read", 50000, ApprovalStatus.APPROVED)}), approvalHeaders), Approval[].class);
-
-		assertEquals(HttpStatus.OK, approvals.getStatusCode());
 
 		formData = new LinkedMultiValueMap<String, String>();
 		formData.add("grant_type", "refresh_token");

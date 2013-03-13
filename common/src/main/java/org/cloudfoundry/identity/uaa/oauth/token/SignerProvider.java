@@ -67,6 +67,20 @@ public class SignerProvider implements InitializingBean {
 	public Signer getSigner() {
 		return signer;
 	}
+	
+	/**
+	 * @return the verifierKey
+	 */
+	public String getVerifierKey() {
+		return verifierKey;
+	}
+
+	/**
+	 * @return true if the signer represents a public (asymmetric) key pair
+	 */
+	public boolean isPublic() {
+		return verifierKey.startsWith("-----BEGIN");
+	}
 
 	public SignatureVerifier getVerifier() {
 		if (isAssymetricKey(signingKey)) {
@@ -117,14 +131,18 @@ public class SignerProvider implements InitializingBean {
 	 * @param verifierKey the signature verification key (typically an RSA public key)
 	 */
 	public void setVerifierKey(String verifierKey) {
-		this.verifierKey = verifierKey;
+		boolean valid = false;
 		try {
 			new RsaSigner(verifierKey);
-			throw new IllegalArgumentException("Private key cannot be set as verifierKey property");
 		}
 		catch (Exception expected) {
 			// Expected
+			valid = true;
 		}
+		if (!valid) {
+			throw new IllegalArgumentException("Private key cannot be set as verifierKey property");
+		}
+		this.verifierKey = verifierKey;
 	}
 
 }

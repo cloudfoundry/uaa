@@ -163,15 +163,14 @@
 	</bean>
 
 	<bean id="tokenKeyEndpoint" class="org.cloudfoundry.identity.uaa.oauth.token.TokenKeyEndpoint">
-		<property name="signingKey" value="${jwt.token.signing-key:tokenkey}" />
-		<property name="verifierKey" value="${jwt.token.verification-key:tokenkey}" />
+		<property name="signerProvider" ref="signerProvider" />
 	</bean>
 
 	<bean id="accessController" class="org.cloudfoundry.identity.uaa.oauth.AccessController">
 		<property name="clientDetailsService" ref="jdbcClientDetailsService" />
 		<!-- Always use HTTPS if deployed on cloudfoundry -->
 		<property name="useSsl"
-			value="#{applicationProperties['oauth.authorize.ssl']?:(T(java.lang.System).getenv('VCAP_APPLICATION')!=null ? true : null)}" />
+			value="#{@applicationProperties['oauth.authorize.ssl']?:(T(java.lang.System).getenv('VCAP_APPLICATION')!=null ? true : null)}" />
 		<property name="approvalStore" ref="approvalStore" />
 	</bean>
 
