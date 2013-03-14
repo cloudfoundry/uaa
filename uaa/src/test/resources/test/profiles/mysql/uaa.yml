@@ -1,0 +1,24 @@
+uaa:
+  test:
+    username: marissa
+    password: dr0WssaPH@ck
+
+oauth:
+  clients:
+    login:
+      id: login
+      secret: loginsecret
+      scope: uaa.none
+      authorized-grant-types: client_credentials
+      authorities: oauth.login
+
+scim:
+  groups: acme,acme.dev,acme.qa
+  group_membership: 
+    - acme|acme.dev,acme.qa
+    - acme.dev|marissa
+  users:
+    - marissa|koala|marissa@test.org|Marissa|Bloggs|uaa.user
+  userids_enabled: true
+  
+spring_profiles: test,mysql

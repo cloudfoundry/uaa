@@ -58,7 +58,7 @@ import org.springframework.web.servlet.View;
 
 @ContextConfiguration("classpath:/test-data-source.xml")
 @RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = {"", "test,postgresql", "hsqldb"})
+@IfProfileValue(name = "spring.profiles.active", values = {"", "test,postgresql", "hsqldb", "test,mysql"})
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class ScimGroupEndpointsTests {
 
@@ -355,9 +355,9 @@ public class ScimGroupEndpointsTests {
 		expectedEx.expect(ScimException.class);
 		endpoints.updateGroup(g1, g1.getId(), String.valueOf(g1.getVersion() + 23));
 	}
-	
+
 	@Test
-	public void testUpdateGroupWithNoMembers() {		
+	public void testUpdateGroupWithNoMembers() {
 		ScimGroup g = new ScimGroup("", "clients.read");
 		g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
 		g = endpoints.createGroup(g);
