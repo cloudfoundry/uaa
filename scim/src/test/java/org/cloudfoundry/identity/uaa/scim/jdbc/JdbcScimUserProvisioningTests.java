@@ -12,6 +12,22 @@
  */
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+import javax.sql.DataSource;
+
 import org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
@@ -19,8 +35,6 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
-import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.scim.jdbc.ScimSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
@@ -39,28 +53,13 @@ import org.springframework.test.annotation.ProfileValueSourceConfiguration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import javax.sql.DataSource;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 /**
  * @author Luke Taylor
  * @author Dave Syer
  */
 @ContextConfiguration("classpath:/test-data-source.xml")
 @RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "", "test,postgresql", "hsqldb" })
+@IfProfileValue(name = "spring.profiles.active", values = { "", "test,postgresql", "hsqldb", "test,mysql" })
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class JdbcScimUserProvisioningTests {
 
@@ -80,7 +79,7 @@ public class JdbcScimUserProvisioningTests {
     private static final String addUserSqlFormat = "insert into users (id, username, password, email, givenName, familyName, phoneNumber) values ('%s','%s','%s','%s','%s','%s', '%s')";
 
     private static final String deleteUserSqlFormat = "delete from users where id='%s'";
-    
+
     private int existingUserCount = 0;
 
 	@Before
@@ -97,7 +96,7 @@ public class JdbcScimUserProvisioningTests {
 		filterConverter.setAttributeNameMapper(new SimpleAttributeNameMapper(replaceWith));
 		db.setQueryConverter(filterConverter);
 		BCryptPasswordEncoder pe = new BCryptPasswordEncoder(4);
-		
+
 		existingUserCount = template.queryForInt("select count(id) from users");
 
         addUser(JOE_ID, "joe", pe.encode("joespassword"), "joe@joe.com", "Joe", "User", "+1-222-1234567");
@@ -139,7 +138,7 @@ public class JdbcScimUserProvisioningTests {
 		assertEquals(user.getUserType(), map.get(UaaAuthority.UAA_USER.getUserType()));
 		assertNull(created.getGroups());
 	}
-	
+
 	@Test
 	public void canCreateUserWithoutGivenNameAndFamilyName() {
 		ScimUser user = new ScimUser(null, "JO@FOO.COM", null, null);

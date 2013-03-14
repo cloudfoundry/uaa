@@ -268,6 +268,22 @@ will look for an environment variable (or system property)
 used to expose `UAA_ADMIN_CLIENT_SECRET` etc. in the standard
 configuration.
 
+### Using Maven with to test with postgresql or mysql
+
+The default uaa unit tests (mvn test) use hsqldb.
+
+To run the unit tests using postgresql:
+
+    $ SPRING_PROFILES_ACTIVE=test,postgresql CLOUD_FOUNDRY_CONFIG_PATH=src/test/resources/test/profiles/postgresql mvn test
+
+To run the unit tests using mysql:
+
+    $ SPRING_PROFILES_ACTIVE=test,mysql CLOUD_FOUNDRY_CONFIG_PATH=src/test/resources/test/profiles/mysql mvn test
+
+The database configuration for the common and scim modules is located at:
+common/src/test/resources/(mysql|postgresql).properties
+scim/src/test/resources/(mysql|postgresql).properties
+
 ## Inventory
 
 There are actually several projects here, the main `uaa` server application and some samples:
