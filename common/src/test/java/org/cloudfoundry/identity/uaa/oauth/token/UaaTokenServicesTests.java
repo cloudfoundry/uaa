@@ -226,7 +226,7 @@ public class UaaTokenServicesTests {
 
 	@Test
 	public void testCreateAccessTokenRefreshGrantAllScopesAutoApproved() throws InterruptedException {
-		BaseClientDetails clientDetails = new BaseClientDetails("client", "scim. clients", "read, write",
+		BaseClientDetails clientDetails = new BaseClientDetails("client", "scim. clients", "read,write",
 				"authorization_code, password, implicit, client_credentials", "update");
 		clientDetails.addAdditionalInformation("autoapprove", "true");
 		clientDetailsService.setClientDetailsStore(Collections.singletonMap("client", clientDetails));
@@ -458,7 +458,7 @@ public class UaaTokenServicesTests {
 
 	@Test
 	public void testCreateAccessTokenRefreshGrantAllScopesAutoApprovedButApprovalDenied() throws InterruptedException {
-		BaseClientDetails clientDetails = new BaseClientDetails("client", "scim. clients", "read, write",
+		BaseClientDetails clientDetails = new BaseClientDetails("client", "scim. clients", "read,write",
 				"authorization_code, password, implicit, client_credentials", "update");
 		clientDetails.addAdditionalInformation("autoapprove", Arrays.asList(new String[]{"read", "write"}));
 		clientDetailsService.setClientDetailsStore(Collections.singletonMap("client", clientDetails));

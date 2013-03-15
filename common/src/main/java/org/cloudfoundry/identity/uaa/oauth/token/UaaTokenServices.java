@@ -18,6 +18,7 @@ import static org.cloudfoundry.identity.uaa.oauth.Claims.CID;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.CLIENT_ID;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.EMAIL;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.EXP;
+import static org.cloudfoundry.identity.uaa.oauth.Claims.GRANT_TYPE;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.IAT;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.ISS;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.JTI;
@@ -156,89 +157,74 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 		}
 
 		@SuppressWarnings("unchecked")
-		ArrayList<String> originalScopes = (ArrayList<String>) claims.get(SCOPE);
-		// The user may not request scopes that were not part of the refresh token
+		ArrayList<String> tokenScopes = (ArrayList<String>) claims.get(SCOPE);
+
+		// default request scopes to what is in the refresh token
 		Set<String> requestedScopes = request.getScope();
-		if (originalScopes.isEmpty() || !originalScopes.containsAll(requestedScopes)) {
-			throw new InvalidScopeException("Unable to narrow the scope of the client authentication to "
-					+ requestedScopes + ".", new HashSet<String>(originalScopes));
-		}
-
-		// Factor in auto approved scopes. Even thought these may be stored, there may
-		// be cases (in the password grant case) where all scopes may be auto approved
-		// and the user may not see the approval page. So we need an additional check here.
-		ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
-		Map<String, Object> additionalInfo = client.getAdditionalInformation();
-
-		Object autoApproved = additionalInfo.get("autoapprove");
-		Set<String> autoApprovedScopes = new HashSet<String>();
-		if (autoApproved instanceof Collection<?>) {
-			@SuppressWarnings("unchecked")
-			Collection<? extends String> scopes = (Collection<? extends String>) autoApproved;
-			autoApprovedScopes.addAll(scopes);
-		}
-		else if (autoApproved instanceof Boolean && (Boolean) autoApproved || "true".equals(autoApproved)) {
-			autoApprovedScopes.addAll(originalScopes);
-		}
-
 		if (requestedScopes.isEmpty()) {
-			requestedScopes = new HashSet<String>(originalScopes);
+			requestedScopes = new HashSet<String>(tokenScopes);
 		}
 
-		// Consider only auto approved scopes that are requested
-		autoApprovedScopes.retainAll(requestedScopes);
+		// The user may not request scopes that were not part of the refresh token
+		if (tokenScopes.isEmpty() || !tokenScopes.containsAll(requestedScopes)) {
+			throw new InvalidScopeException("Unable to narrow the scope of the client authentication to "
+					+ requestedScopes + ".", new HashSet<String>(tokenScopes));
+		}
 
-		// Check if the user's approval has changed after this token was granted. If it has, reject the token
-		List<Approval> approvals = approvalStore.getApprovals(username, clientId);
+		// from this point on, we only care about the scopes requested, not what is in the refresh token
+		// ensure all requested scopes are approved: either automatically or explicitly by the user
+		ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
+		String grantType = claims.get(GRANT_TYPE).toString();
+		checkForApproval(username, clientId, requestedScopes,
+								getAutoApprovedScopes(grantType, tokenScopes, client),
+								new Date(refreshTokenIssueDate));
+
+		// if we have reached so far, issue an access token
+		Integer validity = client.getAccessTokenValiditySeconds();
+
+		OAuth2AccessToken accessToken = createAccessToken(user.getId(), user.getUsername(), user.getEmail(),
+				validity != null ? validity.intValue() : accessTokenValiditySeconds, null, requestedScopes, clientId,
+				request.getResourceIds(), grantType, refreshTokenValue);
+
+		return accessToken;
+	}
+
+	private void checkForApproval (String username, String clientId, Collection<String> requestedScopes, Collection<String> autoApprovedScopes, Date updateCutOff) {
 		Set<String> approvedScopes = new HashSet<String>();
 		approvedScopes.addAll(autoApprovedScopes);
-		// Search through the users approvals for scopes that are requested, not auto approved, not expired,
-		// not DENIED and not approved more recently than when this refresh token was issued.
-		for (Approval approval : approvals) {
-			if (!autoApprovedScopes.contains(approval.getScope()) && approval.getStatus() == ApprovalStatus.APPROVED
-					&& requestedScopes.contains(approval.getScope())) {
 
+		// Search through the users approvals for scopes that are requested, not auto approved, not expired,
+		// not DENIED and not approved more recently than when this access token was issued.
+		List<Approval> approvals = approvalStore.getApprovals(username, clientId);
+		for (Approval approval : approvals) {
+			if (requestedScopes.contains(approval.getScope()) && approval.getStatus() == ApprovalStatus.APPROVED) {
 				if (!approval.isCurrentlyActive()) {
 					logger.debug("Approval " + approval + " has expired. Need to re-approve.");
-					throw new InvalidTokenException("Invalid refresh token (approvals expired)");
+					throw new InvalidTokenException("Invalid token (approvals expired)");
 				}
-				if ((new Date(refreshTokenIssueDate)).before(approval.getLastUpdatedAt())) {
+				if (updateCutOff.before(approval.getLastUpdatedAt())) {
 					logger.debug("At least one approval " + approval + " was updated more recently at "
-							+ approval.getLastUpdatedAt() + " refresh token was issued at "
-							+ new Date(refreshTokenIssueDate));
-					throw new InvalidTokenException("Invalid refresh token (approvals updated): " + approval.getLastUpdatedAt());
+										 + approval.getLastUpdatedAt() + " access token was issued at "
+										 + updateCutOff);
+					throw new InvalidTokenException("Invalid token (approvals updated): " + approval.getLastUpdatedAt());
 				}
 				approvedScopes.add(approval.getScope());
-			}
-			else {
-				// Ignore that approval
 			}
 		}
 
 		// Only issue the token if all the requested scopes have unexpired approvals made before the refresh token was
 		// issued OR if those scopes are auto approved
-		if (approvedScopes.size() != requestedScopes.size()) {
+		if (!approvedScopes.containsAll(requestedScopes)) {
 			logger.debug("All requested scopes " + requestedScopes + " were not approved " + approvedScopes);
-			throw new InvalidTokenException("Invalid refresh token (not all scopes are approved): " + refreshTokenValue);
+			Set<String> unapprovedScopes = new HashSet<String>(requestedScopes);
+			unapprovedScopes.removeAll(approvedScopes);
+			throw new InvalidTokenException("Invalid token (some requested scopes are not approved): " + unapprovedScopes);
 		}
-
-		if (requestedScopes.size() == 0) {
-			logger.debug("No scopes were granted");
-			throw new InvalidTokenException("No scopes were granted");
-		}
-
-		Integer validity = client.getAccessTokenValiditySeconds();
-
-		OAuth2AccessToken accessToken = createAccessToken(user.getId(), user.getUsername(), user.getEmail(),
-				validity != null ? validity.intValue() : accessTokenValiditySeconds, null, requestedScopes, clientId,
-				request.getResourceIds(), refreshTokenValue);
-
-		return accessToken;
 	}
 
 	private OAuth2AccessToken createAccessToken(String userId, String username, String userEmail, int validitySeconds,
 			Collection<GrantedAuthority> clientScopes, Set<String> requestedScopes, String clientId,
-			Set<String> resourceIds, String refreshToken) throws AuthenticationException {
+			Set<String> resourceIds, String grantType, String refreshToken) throws AuthenticationException {
 		String tokenId = UUID.randomUUID().toString();
 		DefaultOAuth2AccessToken accessToken = new DefaultOAuth2AccessToken(tokenId);
 		if (validitySeconds > 0) {
@@ -260,7 +246,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 		String content;
 		try {
 			content = mapper.writeValueAsString(createJWTAccessToken(accessToken, userId, username, userEmail,
-					clientScopes, requestedScopes, clientId, resourceIds, refreshToken));
+					clientScopes, requestedScopes, clientId, resourceIds, grantType, refreshToken));
 		}
 		catch (Exception e) {
 			throw new IllegalStateException("Cannot convert access token to JSON", e);
@@ -275,7 +261,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
 	private Map<String, ?> createJWTAccessToken(OAuth2AccessToken token, String userId, String username,
 			String userEmail, Collection<GrantedAuthority> clientScopes, Set<String> requestedScopes, String clientId,
-			Set<String> resourceIds, String refreshToken) {
+			Set<String> resourceIds, String grantType, String refreshToken) {
 
 		Map<String, Object> response = new LinkedHashMap<String, Object>();
 
@@ -296,6 +282,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 		response.put(OAuth2AccessToken.SCOPE, requestedScopes);
 		response.put(CLIENT_ID, clientId);
 		response.put(CID, clientId);
+		if (null != grantType) {
+			response.put(GRANT_TYPE, grantType);
+		}
 
 		response.put(IAT, System.currentTimeMillis() / 1000);
 		if (token.getExpiration() != null) {
@@ -338,13 +327,14 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
 		String clientId = authentication.getAuthorizationRequest().getClientId();
 		Set<String> userScopes = authentication.getAuthorizationRequest().getScope();
+		String grantType = authentication.getAuthorizationRequest().getAuthorizationParameters().get("grant_type");
 
 		ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
 		Integer validity = client.getAccessTokenValiditySeconds();
 
 		OAuth2AccessToken accessToken = createAccessToken(userId, username, userEmail,
 				validity != null ? validity.intValue() : accessTokenValiditySeconds, clientScopes, userScopes,
-				clientId, authentication.getAuthorizationRequest().getResourceIds(),
+				clientId, authentication.getAuthorizationRequest().getResourceIds(), grantType,
 				refreshToken != null ? refreshToken.getValue() : null);
 
 		return accessToken;
@@ -352,9 +342,12 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 	}
 
 	private ExpiringOAuth2RefreshToken createRefreshToken(OAuth2Authentication authentication) {
-		if (!isRefreshTokenSupported(authentication.getAuthorizationRequest())) {
+
+		String grantType = authentication.getAuthorizationRequest().getAuthorizationParameters().get("grant_type");
+		if (!isRefreshTokenSupported(grantType)) {
 			return null;
 		}
+
 		int validitySeconds = getRefreshTokenValiditySeconds(authentication.getAuthorizationRequest());
 		ExpiringOAuth2RefreshToken token = new DefaultExpiringOAuth2RefreshToken(UUID.randomUUID().toString(),
 				new Date(System.currentTimeMillis() + (validitySeconds * 1000L)));
@@ -364,7 +357,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 		String content;
 		try {
 			content = mapper.writeValueAsString(createJWTRefreshToken(token, user, authentication
-					.getAuthorizationRequest().getScope(), authentication.getAuthorizationRequest().getClientId()));
+					.getAuthorizationRequest().getScope(), authentication.getAuthorizationRequest().getClientId(), grantType));
 		}
 		catch (Exception e) {
 			throw new IllegalStateException("Cannot convert access token to JSON", e);
@@ -377,7 +370,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 	}
 
 	private Map<String, ?> createJWTRefreshToken(OAuth2RefreshToken token, UaaUser user, Set<String> scopes,
-			String clientId) {
+			String clientId, String grantType) {
 
 		Map<String, Object> response = new LinkedHashMap<String, Object>();
 
@@ -397,6 +390,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 			response.put(ISS, tokenEndpoint);
 		}
 
+		if (null != grantType) {
+			response.put(GRANT_TYPE, grantType);
+		}
+
 		response.put(AUD, scopes);
 
 		return response;
@@ -404,12 +401,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
 	/**
 	 * Check the current authorization request to indicate whether a refresh token should be issued or not.
-	 * @param authorizationRequest the current authorization request
+	 * @param grantType the current grant type
 	 * @return boolean to indicate if refresh token is supported
 	 */
-	protected boolean isRefreshTokenSupported(AuthorizationRequest authorizationRequest) {
-		String grantType = authorizationRequest.getAuthorizationParameters().get("grant_type");
-
+	protected boolean isRefreshTokenSupported(String grantType) {
 		return "authorization_code".equals(grantType) || "password".equals(grantType)
 				|| "refresh_token".equals(grantType);
 	}
@@ -484,7 +479,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 	}
 
 	/**
-	 * This method is implemented only to support older API calls that assume the presence of a token store
+	 * This method is implemented to support older API calls that assume the presence of a token store
 	 */
 	@Override
 	public OAuth2AccessToken readAccessToken(String accessToken) {
@@ -525,62 +520,40 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 			// Check approvals to make sure they're all valid, approved and not more recent
 			// than the token itself
 			String clientId = (String) claims.get(CLIENT_ID);
-
 			ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
-			Map<String, Object> additionalInfo = client.getAdditionalInformation();
-
-			Object autoApproved = additionalInfo.get("autoapprove");
-			Set<String> autoApprovedScopes = new HashSet<String>();
-			if (autoApproved instanceof Collection<?>) {
-				@SuppressWarnings("unchecked")
-				Collection<? extends String> approvedScopes = (Collection<? extends String>) autoApproved;
-				autoApprovedScopes.addAll(approvedScopes);
-			}
-			else if (autoApproved instanceof Boolean && (Boolean) autoApproved || "true".equals(autoApproved)) {
-				autoApprovedScopes.addAll(client.getScope());
-			}
 
 			@SuppressWarnings("unchecked")
 			ArrayList<String> tokenScopes = (ArrayList<String>) claims.get(SCOPE);
-
-
-			// Consider only auto approved scopes that are part of the token
-			autoApprovedScopes.retainAll(tokenScopes);
-
-			// Check if the user's approval has changed after this token was granted. If it has, reject the token
-			List<Approval> approvals = approvalStore.getApprovals(username, clientId);
-			Set<String> approvedScopes = new HashSet<String>();
-			approvedScopes.addAll(autoApprovedScopes);
-			// Search through the users approvals for scopes that are requested, not auto approved, not expired,
-			// not DENIED and not approved more recently than when this access token was issued.
-			for (Approval approval : approvals) {
-				if (!autoApprovedScopes.contains(approval.getScope()) && approval.getStatus() == ApprovalStatus.APPROVED
-						&& tokenScopes.contains(approval.getScope())) {
-
-					if (!approval.isCurrentlyActive()) {
-						logger.debug("Approval " + approval + " has expired. Need to re-approve.");
-						throw new InvalidTokenException("Invalid access token (approvals expired)");
-					}
-					if ((new Date(accessTokenIssueDate)).before(approval.getLastUpdatedAt())) {
-						logger.debug("At least one approval " + approval + " was updated more recently at "
-								+ approval.getLastUpdatedAt() + " access token was issued at "
-								+ new Date(accessTokenIssueDate));
-						throw new InvalidTokenException("Invalid access token (approvals updated): " + approval.getLastUpdatedAt());
-					}
-					approvedScopes.add(approval.getScope());
-				}
-				else {
-					// Ignore that approval
-				}
+			Set<String> autoApprovedScopes = getAutoApprovedScopes(claims.get(GRANT_TYPE), tokenScopes, client);
+			if (autoApprovedScopes.containsAll(tokenScopes)) {
+				return token;
 			}
-
-			if (approvedScopes.size() != tokenScopes.size()) {
-				logger.debug("All token scopes " + tokenScopes + " were not approved " + approvedScopes);
-				throw new InvalidTokenException("Invalid access token (not all scopes are approved): " + accessToken);
-			}
+			checkForApproval(username, clientId, tokenScopes, autoApprovedScopes, new Date(accessTokenIssueDate));
 		}
 
 		return token;
+	}
+
+	private Set<String> getAutoApprovedScopes(Object grantType, Collection<String> tokenScopes, ClientDetails client) {
+		// ALL requested scopes are considered auto-approved for password grant
+		if (grantType != null && "password".equals(grantType.toString())) {
+			return new HashSet<String>(tokenScopes);
+		}
+
+		// start with scopes listed as autoapprove in client config
+		Object autoApproved = client.getAdditionalInformation().get("autoapprove");
+		Set<String> autoApprovedScopes = new HashSet<String>();
+		if (autoApproved instanceof Collection<?>) {
+			@SuppressWarnings("unchecked")
+			Collection<? extends String> approvedScopes = (Collection<? extends String>) autoApproved;
+			autoApprovedScopes.addAll(approvedScopes);
+		} else if (autoApproved instanceof Boolean && (Boolean) autoApproved || "true".equals(autoApproved)) {
+			autoApprovedScopes.addAll(client.getScope());
+		}
+
+		// retain only the requested scopes
+		autoApprovedScopes.retainAll(tokenScopes);
+		return autoApprovedScopes;
 	}
 
 	private Map<String, Object> getClaimsForToken(String token) {

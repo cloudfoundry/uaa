@@ -38,4 +38,5 @@ public class Claims {
 	public static String ISS = "iss";
 	public static String IAT = "iat";
 	public static String CID = "cid";
+	public static String GRANT_TYPE = "grant_type";
 }
