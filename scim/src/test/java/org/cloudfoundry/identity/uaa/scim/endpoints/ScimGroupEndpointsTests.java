@@ -15,8 +15,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import javax.sql.DataSource;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter;
@@ -34,19 +32,21 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
-import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageConversionException;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.embedded.EmbeddedDatabase;
+import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.annotation.IfProfileValue;
@@ -64,31 +64,35 @@ public class ScimGroupEndpointsTests {
 
 	Log logger = LogFactory.getLog(getClass());
 
-	@Autowired
-	private DataSource dataSource;
+	private static EmbeddedDatabase database;
 
-	private JdbcTemplate template;
+	private static JdbcTemplate template;
 
-	private JdbcScimGroupProvisioning dao;
+	private static JdbcScimGroupProvisioning dao;
 
-	private JdbcScimUserProvisioning udao;
+	private static JdbcScimUserProvisioning udao;
 
-	private JdbcScimGroupMembershipManager mm;
+	private static JdbcScimGroupMembershipManager mm;
 
-	private ScimGroupEndpoints endpoints;
+	private static ScimGroupEndpoints endpoints;
 
-	private ScimUserEndpoints userEndpoints;
+	private static ScimUserEndpoints userEndpoints;
 
-	private List<String> groupIds;
+	private static List<String> groupIds;
 
 	private static final String SQL_INJECTION_FIELDS = "displayName,version,created,lastModified";
 
 	@Rule
 	public ExpectedException expectedEx = ExpectedException.none();
 
-	@Before
-	public void setup() {
-		template = new JdbcTemplate(dataSource);
+	@BeforeClass
+	public static void setup() {
+		EmbeddedDatabaseBuilder builder = new EmbeddedDatabaseBuilder();
+		builder.addScript("classpath:/org/cloudfoundry/identity/uaa/schema-hsqldb.sql");
+		builder.addScript("classpath:/org/cloudfoundry/identity/uaa/scim/schema-hsqldb.sql");
+		database = builder.build();
+
+		template = new JdbcTemplate(database);
 		dao = new JdbcScimGroupProvisioning(template);
 		udao = new JdbcScimUserProvisioning(template);
 		udao.setPasswordValidator(new NullPasswordValidator());
@@ -114,14 +118,14 @@ public class ScimGroupEndpointsTests {
 
 	}
 
-	@After
-	public void cleanup() throws Exception {
-		TestUtils.deleteFrom(dataSource, "users");
-		TestUtils.deleteFrom(dataSource, "groups");
-		TestUtils.deleteFrom(dataSource, "group_membership");
+	@AfterClass
+	public static void cleanup() throws Exception {
+		TestUtils.deleteFrom(database, "users");
+		TestUtils.deleteFrom(database, "groups");
+		TestUtils.deleteFrom(database, "group_membership");
 	}
 
-	private String addGroup(String name, List<ScimGroupMember> m) {
+	private static String addGroup(String name, List<ScimGroupMember> m) {
 		ScimGroup g = new ScimGroup("", name);
 		g = dao.create(g);
 		for (ScimGroupMember member : m) {
@@ -130,7 +134,7 @@ public class ScimGroupEndpointsTests {
 		return g.getId();
 	}
 
-	private ScimGroupMember createMember(ScimGroupMember.Type t, List<ScimGroupMember.Role> a) {
+	private static ScimGroupMember createMember(ScimGroupMember.Type t, List<ScimGroupMember.Role> a) {
 		String id = UUID.randomUUID().toString();
 		if (t == ScimGroupMember.Type.USER) {
 			id = userEndpoints.createUser(TestUtils.scimUserInstance(id)).getId();
@@ -138,6 +142,13 @@ public class ScimGroupEndpointsTests {
 			id = dao.create(new ScimGroup("", id)).getId();
 		}
 		return new ScimGroupMember(id, t, a);
+	}
+
+	private void deleteGroup(String name) {
+		for (ScimGroup g : dao.query("displayName eq '"+name+"'")) {
+			dao.delete(g.getId(), g.getVersion());
+			mm.removeMembersByGroupId(g.getId());
+		}
 	}
 
 	private void validateSearchResults (SearchResults<?> results, int expectedSize) {
@@ -244,6 +255,8 @@ public class ScimGroupEndpointsTests {
 		ScimGroup g1 = endpoints.createGroup(g);
 		validateGroup(g1, "clients.read", 1);
 		validateUserGroups(g.getMembers().get(0).getMemberId(), "clients.read");
+
+		deleteGroup("clients.read");
 	}
 
 	@Test
@@ -251,8 +264,14 @@ public class ScimGroupEndpointsTests {
 		ScimGroup g = new ScimGroup("", "clients.read");
 		g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
 		endpoints.createGroup(g);
-		expectedEx.expect(ScimResourceAlreadyExistsException.class);
-		endpoints.createGroup(g);
+		try {
+			endpoints.createGroup(g);
+			fail("must have thrown exception");
+		} catch (ScimResourceAlreadyExistsException ex) {
+			validateSearchResults(endpoints.listGroups("id", "displayName eq 'clients.read'", "id", "ASC", 1, 100), 1);
+		}
+
+		deleteGroup("clients.read");
 	}
 
 	@Test
@@ -296,8 +315,16 @@ public class ScimGroupEndpointsTests {
 		g2 = endpoints.createGroup(g2);
 
 		g1.setDisplayName("clients.write");
-		expectedEx.expect(InvalidScimResourceException.class);
-		endpoints.updateGroup(g1, g1.getId(), "*");
+		try {
+			endpoints.updateGroup(g1, g1.getId(), "*");
+			fail("must have thrown exception");
+		} catch (InvalidScimResourceException ex) {
+			validateSearchResults(endpoints.listGroups("id", "displayName eq 'clients.write'", "id", "ASC", 1, 100), 1);
+			validateSearchResults(endpoints.listGroups("id", "displayName eq 'clients.read'", "id", "ASC", 1, 100), 1);
+		}
+
+		deleteGroup("clients.read");
+		deleteGroup("clients.write");
 	}
 
 	@Test
@@ -318,6 +345,8 @@ public class ScimGroupEndpointsTests {
 			validateGroup(g1, "clients.read", 0);
 			validateSearchResults(endpoints.listGroups("id", "displayName eq 'clients.write'", "id", "ASC", 1, 100), 0);
 		}
+
+		deleteGroup("clients.read");
 	}
 
 	@Test
@@ -328,9 +357,15 @@ public class ScimGroupEndpointsTests {
 
 		g1.setDisplayName("clients.write");
 
-		expectedEx.expect(ScimException.class);
-		expectedEx.expectMessage("Invalid version");
-		endpoints.updateGroup(g1, g1.getId(), "version");
+		try {
+			endpoints.updateGroup(g1, g1.getId(), "version");
+		} catch (ScimException ex) {
+			assertTrue("Wrong exception message", ex.getMessage().contains("Invalid version"));
+			validateSearchResults(endpoints.listGroups("id", "displayName eq 'clients.write'", "id", "ASC", 1, 100), 0);
+			validateSearchResults(endpoints.listGroups("id", "displayName eq 'clients.read'", "id", "ASC", 1, 100), 1);
+		}
+
+		deleteGroup("clients.read");
 	}
 
 	@Test
@@ -341,9 +376,15 @@ public class ScimGroupEndpointsTests {
 
 		g1.setDisplayName("clients.write");
 
-		expectedEx.expect(ScimException.class);
-		expectedEx.expectMessage("Missing If-Match");
-		endpoints.updateGroup(g1, g1.getId(), null);
+		try {
+			endpoints.updateGroup(g1, g1.getId(), null);
+		} catch (ScimException ex) {
+			assertTrue("Wrong exception message", ex.getMessage().contains("Missing If-Match"));
+			validateSearchResults(endpoints.listGroups("id", "displayName eq 'clients.write'", "id", "ASC", 1, 100), 0);
+			validateSearchResults(endpoints.listGroups("id", "displayName eq 'clients.read'", "id", "ASC", 1, 100), 1);
+		}
+
+		deleteGroup("clients.read");
 	}
 
 	@Test
@@ -355,8 +396,11 @@ public class ScimGroupEndpointsTests {
 		g1.setDisplayName("clients.write");
 
 		endpoints.updateGroup(g1, g1.getId(), "\"*");
-
 		endpoints.updateGroup(g1, g1.getId(), "*\"");
+		validateSearchResults(endpoints.listGroups("id", "displayName eq 'clients.write'", "id", "ASC", 1, 100), 1);
+		validateSearchResults(endpoints.listGroups("id", "displayName eq 'clients.read'", "id", "ASC", 1, 100), 0);
+
+		deleteGroup("clients.write");
 	}
 
 	@Test
@@ -367,8 +411,14 @@ public class ScimGroupEndpointsTests {
 
 		g1.setDisplayName("clients.write");
 
-		expectedEx.expect(ScimException.class);
-		endpoints.updateGroup(g1, g1.getId(), String.valueOf(g1.getVersion() + 23));
+		try {
+			endpoints.updateGroup(g1, g1.getId(), String.valueOf(g1.getVersion() + 23));
+		} catch (ScimException ex) {
+			validateSearchResults(endpoints.listGroups("id", "displayName eq 'clients.write'", "id", "ASC", 1, 100), 0);
+			validateSearchResults(endpoints.listGroups("id", "displayName eq 'clients.read'", "id", "ASC", 1, 100), 1);
+		}
+
+		deleteGroup("clients.read");
 	}
 
 	@Test
@@ -378,10 +428,12 @@ public class ScimGroupEndpointsTests {
 		g = endpoints.createGroup(g);
 		validateUserGroups(g.getMembers().get(0).getMemberId(), "clients.read");
 
-		g.setDisplayName("superadmin");
+		g.setDisplayName("someadmin");
 		g.setMembers(null);
 		ScimGroup g1 = endpoints.updateGroup(g, g.getId(), "*");
-		validateGroup(g1, "superadmin", 0);
+		validateGroup(g1, "someadmin", 0);
+
+		deleteGroup("clients.read");
 	}
 
 	@Test
@@ -396,7 +448,6 @@ public class ScimGroupEndpointsTests {
 			endpoints.getGroup(g.getId());
 			fail("group should not exist");
 		} catch (ScimResourceNotFoundException ex) { }
-		logger.debug("deleted group: " + g);
 		validateUserGroups(g.getMembers().get(0).getMemberId(), "uaa.user");
 	}
 
@@ -406,8 +457,13 @@ public class ScimGroupEndpointsTests {
 		g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
 		g = endpoints.createGroup(g);
 
-		expectedEx.expect(ScimException.class);
-		endpoints.deleteGroup(g.getId(),String.valueOf(g.getVersion() + 3) );
+		try {
+			endpoints.deleteGroup(g.getId(),String.valueOf(g.getVersion() + 3) );
+		} catch (ScimException ex) {
+			validateSearchResults(endpoints.listGroups("id", "displayName eq 'clients.read'", "id", "ASC", 1, 100), 1);
+		}
+
+		deleteGroup("clients.read");
 	}
 
 	@Test
