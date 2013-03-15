@@ -219,7 +219,8 @@ public class ClientAdminEndpoints implements InitializingBean {
 														@RequestParam(required = false, defaultValue = "ascending") String sortOrder,
 														@RequestParam(required = false, defaultValue = "1") int startIndex,
 														@RequestParam(required = false, defaultValue = "100") int count) throws Exception {
-		List<ClientDetails> clients, result = new ArrayList<ClientDetails>();
+		List<ClientDetails> result = new ArrayList<ClientDetails>();
+		List<ClientDetails> clients;
 		try {
 			clients = clientDetailsService.query(filter, sortBy, "ascending".equalsIgnoreCase(sortOrder));
 			if (count > clients.size()) {
@@ -238,7 +239,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 
 		String[] attributes = attributesCommaSeparated.split(",");
 		try {
-			return SearchResultsFactory.buildSearchResultFrom(result, startIndex, count, attributes, attributeNameMapper, Arrays.asList(SCIM_CLIENTS_SCHEMA_URI));
+			return SearchResultsFactory.buildSearchResultFrom(result, startIndex, count, clients.size(), attributes, attributeNameMapper, Arrays.asList(SCIM_CLIENTS_SCHEMA_URI));
 		} catch (SpelParseException e) {
 			throw new UaaException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST.value());
 		} catch (SpelEvaluationException e) {

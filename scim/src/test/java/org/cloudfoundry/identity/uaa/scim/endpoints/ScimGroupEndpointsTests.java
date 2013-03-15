@@ -174,6 +174,21 @@ public class ScimGroupEndpointsTests {
 	}
 
 	@Test
+	public void testFindPageOfIds() {
+		SearchResults<?> results = endpoints.listGroups("id", "id pr", null, "ascending", 1, 1);
+		assertEquals(6, results.getTotalResults());
+		assertEquals(1, results.getResources().size());
+	}
+
+	@Test
+	public void testFindMultiplePagesOfIds() {
+		dao.setPageSize(1);
+		SearchResults<?> results = endpoints.listGroups("id", "id pr", null, "ascending", 1, 100);
+		assertEquals(6, results.getTotalResults());
+		assertEquals(6, results.getResources().size());
+	}
+
+	@Test
 	public void testListGroupsWithNameEqFilter() {
 		validateSearchResults(endpoints.listGroups("id,displayName", "displayName eq 'uaa.user'", "created", "ascending", 1, 100), 1);
 	}
