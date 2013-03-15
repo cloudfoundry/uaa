@@ -268,13 +268,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 		response.put(JTI, token.getAdditionalInformation().get(JTI));
 		response.putAll(token.getAdditionalInformation());
 
-		response.put(USER_ID, userId);
 		response.put(SUB, userId);
-		response.put(USER_NAME, username == null ? userId : username);
-		if (null != userEmail) {
-			response.put(EMAIL, userEmail);
-		}
-
 		if (null != clientScopes) {
 			response.put(AUTHORITIES, AuthorityUtils.authorityListToSet(clientScopes));
 		}
@@ -282,8 +276,16 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 		response.put(OAuth2AccessToken.SCOPE, requestedScopes);
 		response.put(CLIENT_ID, clientId);
 		response.put(CID, clientId);
+
 		if (null != grantType) {
 			response.put(GRANT_TYPE, grantType);
+		}
+		if(!"client_credentials".equals(grantType)) {
+			response.put(USER_ID, userId);
+			response.put(USER_NAME, username == null ? userId : username);
+			if (null != userEmail) {
+				response.put(EMAIL, userEmail);
+			}
 		}
 
 		response.put(IAT, System.currentTimeMillis() / 1000);
@@ -376,7 +378,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
 		response.put(JTI, UUID.randomUUID().toString());
 		response.put(SUB, user.getId());
-		response.put(USER_NAME, user.getUsername());
 		response.put(SCOPE, scopes);
 
 		response.put(IAT, System.currentTimeMillis() / 1000);
@@ -392,6 +393,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
 		if (null != grantType) {
 			response.put(GRANT_TYPE, grantType);
+		}
+		if (!"client_credentials".equals(grantType)) {
+			response.put(USER_NAME, user.getUsername());
 		}
 
 		response.put(AUD, scopes);
