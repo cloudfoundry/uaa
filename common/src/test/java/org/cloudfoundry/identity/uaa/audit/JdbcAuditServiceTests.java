@@ -37,7 +37,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  */
 @ContextConfiguration ("classpath:/test-data-source.xml")
 @RunWith (SpringJUnit4ClassRunner.class)
-@IfProfileValue (name = "spring.profiles.active", values = { "" , "hsqldb", "test,postgresql" })
+@IfProfileValue (name = "spring.profiles.active", values = { "" , "hsqldb", "test,postgresql", "test,mysql" })
 @ProfileValueSourceConfiguration (NullSafeSystemProfileValueSource.class)
 public class JdbcAuditServiceTests {
 
@@ -95,7 +95,7 @@ public class JdbcAuditServiceTests {
 	private AuditEvent getAuditEvent(AuditEventType type, String principal) {
 		return getAuditEvent(type, principal, null);
 	}
-	
+
 	private AuditEvent getAuditEvent(AuditEventType type, String principal, String data) {
 		return new AuditEvent(type, principal, authDetails, data, System.currentTimeMillis());
 	}

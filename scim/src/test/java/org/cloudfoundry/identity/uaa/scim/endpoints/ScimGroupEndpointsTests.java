@@ -58,7 +58,7 @@ import org.springframework.web.servlet.View;
 
 @ContextConfiguration("classpath:/test-data-source.xml")
 @RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = {"", "test,postgresql", "hsqldb"})
+@IfProfileValue(name = "spring.profiles.active", values = {"", "test,postgresql", "hsqldb", "test,mysql"})
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class ScimGroupEndpointsTests {
 
@@ -182,6 +182,21 @@ public class ScimGroupEndpointsTests {
 	@Test
 	public void testListGroups() throws Exception {
 		validateSearchResults(endpoints.listGroups("id,displayName", "id pr", "created", "ascending", 1, 100), 6);
+	}
+
+	@Test
+	public void testFindPageOfIds() {
+		SearchResults<?> results = endpoints.listGroups("id", "id pr", null, "ascending", 1, 1);
+		assertEquals(6, results.getTotalResults());
+		assertEquals(1, results.getResources().size());
+	}
+
+	@Test
+	public void testFindMultiplePagesOfIds() {
+		dao.setPageSize(1);
+		SearchResults<?> results = endpoints.listGroups("id", "id pr", null, "ascending", 1, 100);
+		assertEquals(6, results.getTotalResults());
+		assertEquals(6, results.getResources().size());
 	}
 
 	@Test
@@ -405,9 +420,9 @@ public class ScimGroupEndpointsTests {
 
 		deleteGroup("clients.read");
 	}
-	
+
 	@Test
-	public void testUpdateGroupWithNoMembers() {		
+	public void testUpdateGroupWithNoMembers() {
 		ScimGroup g = new ScimGroup("", "clients.read");
 		g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
 		g = endpoints.createGroup(g);

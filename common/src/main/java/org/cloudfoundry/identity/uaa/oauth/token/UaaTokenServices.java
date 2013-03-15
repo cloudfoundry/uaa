@@ -479,7 +479,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 	}
 
 	/**
-	 * This method is implemented only to support older API calls that assume the presence of a token store
+	 * This method is implemented to support older API calls that assume the presence of a token store
 	 */
 	@Override
 	public OAuth2AccessToken readAccessToken(String accessToken) {
