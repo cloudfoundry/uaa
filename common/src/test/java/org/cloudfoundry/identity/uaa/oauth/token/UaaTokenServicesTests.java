@@ -114,9 +114,9 @@ public class UaaTokenServicesTests {
 
 		assertEquals(claims.get("iss"), "http://localhost:8080/uaa/oauth/token");
 		assertEquals(claims.get("client_id"), "client");
-		assertEquals(claims.get("user_id"), "client");
+		assertNull("user_id should be null for a client token", claims.get("user_id"));
 		assertEquals(claims.get("sub"), "client");
-		assertEquals(claims.get("user_name"), "client");
+		assertNull("user_id should be null for a client token", claims.get("user_name"));
 		assertEquals(claims.get("cid"), "client");
 		assertEquals(claims.get("scope"), Arrays.asList(new String[] { "read", "write" }));
 		assertEquals(claims.get("aud"), Arrays.asList(new String[] { "scim", "clients" }));
