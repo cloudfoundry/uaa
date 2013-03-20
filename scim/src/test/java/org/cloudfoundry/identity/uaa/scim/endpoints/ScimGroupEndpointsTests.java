@@ -120,9 +120,8 @@ public class ScimGroupEndpointsTests {
 
 	@AfterClass
 	public static void cleanup() throws Exception {
-		TestUtils.deleteFrom(database, "users");
-		TestUtils.deleteFrom(database, "groups");
-		TestUtils.deleteFrom(database, "group_membership");
+		TestUtils.deleteFrom(database, "users", "groups", "group_membership");
+		database.shutdown();
 	}
 
 	private static String addGroup(String name, List<ScimGroupMember> m) {
