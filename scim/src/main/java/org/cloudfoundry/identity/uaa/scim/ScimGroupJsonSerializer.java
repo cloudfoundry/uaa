@@ -19,9 +19,11 @@ public class ScimGroupJsonSerializer extends JsonSerializer<ScimGroup> {
 		for (ScimGroupMember.Role authority : ScimGroupMember.Role.values()) {
 			String role = authority.toString().toLowerCase()+"s";
 			roles.put(role, new ArrayList<ScimGroupMember>());
-			for (ScimGroupMember member : group.getMembers()) {
-				if (member.getRoles().contains(authority)) {
-					roles.get(role).add(member);
+			if (group.getMembers() != null) {
+				for (ScimGroupMember member : group.getMembers()) {
+					if (member.getRoles().contains(authority)) {
+						roles.get(role).add(member);
+					}
 				}
 			}
 		}
