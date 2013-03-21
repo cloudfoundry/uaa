@@ -131,8 +131,11 @@ public class UaaConfiguration {
 	}
 
 	public static void main(String[] args) throws Exception {
+		if (args.length != 1) {
+			throw new IllegalArgumentException("YAML file required");
+		}
 		Yaml yaml = new Yaml(new UaaConfigConstructor());
-		BufferedReader br = new BufferedReader(new FileReader("/Users/luke/Work/cfidboost/config/uaa.yml"));
+		BufferedReader br = new BufferedReader(new FileReader(args[0]));
 		UaaConfiguration config = (UaaConfiguration) yaml.load(br);
 		ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
 		Validator validator = factory.getValidator();
