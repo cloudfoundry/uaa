@@ -55,7 +55,7 @@ public class JdbcFailedLoginCountingAuditServiceTests {
 	public void createService() throws Exception {
 		template = new JdbcTemplate(dataSource);
 		auditService = new JdbcFailedLoginCountingAuditService(dataSource);
-		template.execute("DELETE FROM SEC_AUDIT WHERE principal_id='1' or principal_id='clientA' or principal_id='clientB'");
+		template.execute("DELETE FROM sec_audit WHERE principal_id='1' or principal_id='clientA' or principal_id='clientB'");
 		authDetails = "1.1.1.1";
 	}
 
