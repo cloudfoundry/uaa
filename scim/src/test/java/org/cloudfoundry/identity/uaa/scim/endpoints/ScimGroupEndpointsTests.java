@@ -36,7 +36,6 @@ import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;

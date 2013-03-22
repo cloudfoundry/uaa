@@ -13,11 +13,10 @@
 -- Creates tables and adds constraints and columns incrementally, so
 -- it can be used to maintain the schema on cloudfoundry.com
 
-
-CREATE TABLE USERS (
+CREATE TABLE users (
    id char(36) not null primary key,
    created TIMESTAMP default current_timestamp not null,
-   lastModified TIMESTAMP default current_timestamp not null,
+   lastModified TIMESTAMP null,
    version BIGINT default 0 not null,
    username VARCHAR(255) not null,
    password VARCHAR(255) not null,
@@ -29,9 +28,9 @@ CREATE TABLE USERS (
    phoneNumber VARCHAR(255)
 ) ;
 
-CREATE UNIQUE INDEX unique_uk_1 on USERS (username);
+CREATE UNIQUE INDEX unique_uk_1 on users (username);
 
-CREATE TABLE SEC_AUDIT (
+CREATE TABLE sec_audit (
    principal_id char(36) not null,
    event_type INTEGER not null,
    origin VARCHAR(255) not null,
@@ -39,11 +38,7 @@ CREATE TABLE SEC_AUDIT (
    created TIMESTAMP default current_timestamp
 ) ;
 
-CREATE INDEX audit_principal ON SEC_AUDIT (principal_id);
-CREATE INDEX audit_created ON SEC_AUDIT (created);
-
-
-CREATE TABLE OAUTH_CLIENT_DETAILS (
+CREATE TABLE oauth_client_details (
   client_id VARCHAR(256) PRIMARY KEY,
   resource_ids VARCHAR(1024),
   client_secret VARCHAR(256),
@@ -56,31 +51,31 @@ CREATE TABLE OAUTH_CLIENT_DETAILS (
   additional_information VARCHAR(4096)
 ) ;
 
-create table OAUTH_CODE (
+create table oauth_code (
   code VARCHAR(256),
   authentication BLOB
 ) ;
  
-CREATE TABLE AUTHZ_APPROVALS (
+CREATE TABLE authz_approvals (
   userName VARCHAR(36) not null,
   clientId VARCHAR(36) not null,
   scope VARCHAR(255) not null,
-  expiresAt TIMESTAMP default current_timestamp not null,
+  expiresAt TIMESTAMP not null,
   status VARCHAR(50) default 'APPROVED' not null,
-  lastModifiedAt TIMESTAMP default current_timestamp not null,
+  lastModifiedAt TIMESTAMP not null,
   primary key (userName, clientId, scope)
 ) ;
 
-CREATE TABLE GROUPS (
+CREATE TABLE groups (
   id VARCHAR(36) not null primary key,
   displayName VARCHAR(255) not null,
   created TIMESTAMP default current_timestamp not null,
-  lastModified TIMESTAMP default current_timestamp not null,
+  lastModified TIMESTAMP null,
   version INTEGER default 0 not null,
   constraint unique_uk_2 unique(displayName)
 ) ;
 
-CREATE TABLE GROUP_MEMBERSHIP (
+CREATE TABLE group_membership (
   group_id VARCHAR(36) not null,
   member_id VARCHAR(36) not null,
   member_type VARCHAR(8) default 'USER' not null,
@@ -88,4 +83,3 @@ CREATE TABLE GROUP_MEMBERSHIP (
   added TIMESTAMP default current_timestamp not null,
   primary key (group_id, member_id)
 ) ;
-
