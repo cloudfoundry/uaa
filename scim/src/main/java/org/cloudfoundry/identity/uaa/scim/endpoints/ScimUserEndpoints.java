@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -40,6 +41,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException;
+import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -222,11 +224,13 @@ public class ScimUserEndpoints implements InitializingBean {
 			startIndex = 1;
 		}
 
-		List<ScimUser> input;
+		List<ScimUser> input = new ArrayList<ScimUser>();
+		List<ScimUser> result;
 		try {
-			input = dao.query(filter, sortBy, sortOrder.equals("ascending"));
-			for (ScimUser user : input.subList(startIndex - 1, startIndex + count - 1)) {
+			result = dao.query(filter, sortBy, sortOrder.equals("ascending"));
+			for (ScimUser user : UaaPagingUtils.subList(result, startIndex, count)) {
 				syncApprovals(syncGroups(user));
+				input.add(user);
 			}
 		}
 		catch (IllegalArgumentException e) {
@@ -235,13 +239,13 @@ public class ScimUserEndpoints implements InitializingBean {
 
 		if (!StringUtils.hasLength(attributesCommaSeparated)) {
 			// Return all user data
-			return new SearchResults<ScimUser>(Arrays.asList(ScimUser.SCHEMAS), input, startIndex, count, input.size());
+			return new SearchResults<ScimUser>(Arrays.asList(ScimUser.SCHEMAS), input, startIndex, count, result.size());
 		}
 
 		AttributeNameMapper mapper = new SimpleAttributeNameMapper(Collections.<String, String> singletonMap("emails\\.(.*)", "emails.![$1]"));
 		String[] attributes = attributesCommaSeparated.split(",");
 		try {
-			return SearchResultsFactory.buildSearchResultFrom(input, startIndex, count, attributes, mapper, Arrays.asList(ScimUser.SCHEMAS));
+			return SearchResultsFactory.buildSearchResultFrom(input, startIndex, count, result.size(), attributes, mapper, Arrays.asList(ScimUser.SCHEMAS));
 		} catch (SpelParseException e) {
 			throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST);
 		} catch (SpelEvaluationException e) {

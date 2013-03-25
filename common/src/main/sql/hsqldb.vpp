@@ -4,3 +4,4 @@
 #end
 #macro (notnull $name)ALTER COLUMN ${name} set NOT NULL#end
 #macro (lower_constraint $name)${name}#end
+#macro (second_timestamp)default ${SYSDATE} not null#end

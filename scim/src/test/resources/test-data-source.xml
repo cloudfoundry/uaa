@@ -49,4 +49,11 @@
 		</bean>
 	</beans>
 
+   <beans profile="mysql">
+        <context:property-placeholder location="${MYSQL_PROPERTIES:mysql.properties}"/>
+        <bean id="platform" class="java.lang.String">
+            <constructor-arg value="mysql" />
+        </bean>
+    </beans>
+    
 </beans>
