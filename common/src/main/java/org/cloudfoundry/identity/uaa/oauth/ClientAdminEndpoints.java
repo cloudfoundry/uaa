@@ -35,6 +35,7 @@ import org.cloudfoundry.identity.uaa.rest.SearchResultsFactory;
 import org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.expression.spel.SpelEvaluationException;
@@ -218,7 +219,8 @@ public class ClientAdminEndpoints implements InitializingBean {
 														@RequestParam(required = false, defaultValue = "ascending") String sortOrder,
 														@RequestParam(required = false, defaultValue = "1") int startIndex,
 														@RequestParam(required = false, defaultValue = "100") int count) throws Exception {
-		List<ClientDetails> clients, result = new ArrayList<ClientDetails>();
+		List<ClientDetails> result = new ArrayList<ClientDetails>();
+		List<ClientDetails> clients;
 		try {
 			clients = clientDetailsService.query(filter, sortBy, "ascending".equalsIgnoreCase(sortOrder));
 			if (count > clients.size()) {
@@ -227,7 +229,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 		} catch (IllegalArgumentException e) {
 			throw new UaaException("Invalid filter expression: [" + filter + "]", HttpStatus.BAD_REQUEST.value());
 		}
-		for (ClientDetails client : clients.subList(startIndex - 1, startIndex + count - 1)) {
+		for (ClientDetails client : UaaPagingUtils.subList(clients, startIndex, count)) {
 			result.add(removeSecret(client));
 		}
 
@@ -237,7 +239,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 
 		String[] attributes = attributesCommaSeparated.split(",");
 		try {
-			return SearchResultsFactory.buildSearchResultFrom(result, startIndex, count, attributes, attributeNameMapper, Arrays.asList(SCIM_CLIENTS_SCHEMA_URI));
+			return SearchResultsFactory.buildSearchResultFrom(result, startIndex, count, clients.size(), attributes, attributeNameMapper, Arrays.asList(SCIM_CLIENTS_SCHEMA_URI));
 		} catch (SpelParseException e) {
 			throw new UaaException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST.value());
 		} catch (SpelEvaluationException e) {

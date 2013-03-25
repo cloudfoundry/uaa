@@ -14,16 +14,23 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.jwt.Jwt;
 import org.springframework.security.jwt.JwtHelper;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
+import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
+import org.springframework.security.oauth2.provider.error.DefaultWebResponseExceptionTranslator;
+import org.springframework.security.oauth2.provider.error.WebResponseExceptionTranslator;
 import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -39,6 +46,8 @@ public class CheckTokenEndpoint implements InitializingBean {
 
 	private ResourceServerTokenServices resourceServerTokenServices;
 	private ObjectMapper mapper = new ObjectMapper();
+	protected final Log logger = LogFactory.getLog(getClass());
+	private WebResponseExceptionTranslator exceptionTranslator = new DefaultWebResponseExceptionTranslator();
 
 	public void setTokenServices(ResourceServerTokenServices resourceServerTokenServices) {
 		this.resourceServerTokenServices = resourceServerTokenServices;
@@ -84,5 +93,15 @@ public class CheckTokenEndpoint implements InitializingBean {
 		}
 
 		return claims;
+	}
+
+	@ExceptionHandler(OAuth2Exception.class)
+	public ResponseEntity<OAuth2Exception> handleException(Exception e) throws Exception {
+		logger.info("Handling error: " + e.getClass().getSimpleName() + ", " + e.getMessage());
+		return exceptionTranslator.translate(e);
+	}
+
+	public void setExceptionTranslator(WebResponseExceptionTranslator exceptionTranslator) {
+		this.exceptionTranslator = exceptionTranslator;
 	}
 }

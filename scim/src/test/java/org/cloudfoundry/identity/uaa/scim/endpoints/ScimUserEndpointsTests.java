@@ -389,6 +389,14 @@ public class ScimUserEndpointsTests {
 	}
 
 	@Test
+	public void testFindMultiplePagesOfIds() {
+		dao.setPageSize(1);
+		SearchResults<?> results = endpoints.findUsers("id", "id pr", null, "ascending", 1, 100);
+		assertEquals(2, results.getTotalResults());
+		assertEquals(2, results.getResources().size());
+	}
+
+	@Test
 	public void testFindAllNames() {
 		SearchResults<?> results = endpoints.findUsers("userName", "id pr", null, "ascending", 1, 100);
 		Collection<Object> values = getSetFromMaps(results.getResources(), "userName");

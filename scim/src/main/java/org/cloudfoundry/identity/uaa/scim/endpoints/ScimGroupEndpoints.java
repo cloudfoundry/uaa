@@ -1,5 +1,13 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
@@ -14,6 +22,9 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
+import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.expression.spel.SpelEvaluationException;
 import org.springframework.expression.spel.SpelParseException;
@@ -34,12 +45,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
 
-import javax.servlet.http.HttpServletRequest;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 @Controller
 public class ScimGroupEndpoints {
 
@@ -52,6 +57,12 @@ public class ScimGroupEndpoints {
 	private HttpMessageConverter<?>[] messageConverters = new RestTemplate().getMessageConverters().toArray(new HttpMessageConverter<?>[0]);
 
 	private final Log logger = LogFactory.getLog(getClass());
+
+	private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
+
+	public void setSecurityContextAccessor(SecurityContextAccessor securityContextAccessor) {
+		this.securityContextAccessor = securityContextAccessor;
+	}
 
 	public void setStatuses(Map<Class<? extends Exception>, HttpStatus> statuses) {
 		this.statuses = statuses;
@@ -66,6 +77,38 @@ public class ScimGroupEndpoints {
 		this.membershipManager = membershipManager;
 	}
 
+	private boolean isReaderMember(ScimGroup group, String userId) {
+		if (null == userId) {
+			return true;
+		}
+		for (ScimGroupMember member : group.getMembers()) {
+			if (member.getMemberId().equals(userId) && member.getRoles().contains(ScimGroupMember.Role.READER)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private List<ScimGroup> filterForCurrentUser(List<ScimGroup> input, int startIndex, int count, String userId) {
+		List<ScimGroup> response = new ArrayList<ScimGroup>();
+		int	expectedResponseSize = Math.min(count, input.size());
+		boolean needMore = response.size() < expectedResponseSize;
+		while (needMore && startIndex <= input.size()) {
+			for (ScimGroup group : UaaPagingUtils.subList(input, startIndex, count)) {
+				group.setMembers(membershipManager.getMembers(group.getId()));
+				if (isReaderMember(group, userId)) {
+					response.add(group);
+					needMore = response.size() < expectedResponseSize;
+				}
+				if (!needMore) {
+					break;
+				}
+			}
+			startIndex += count;
+		}
+		return response;
+	}
+
 	@RequestMapping(value = {"/Groups"}, method = RequestMethod.GET)
 	@ResponseBody
 	public SearchResults<?> listGroups(@RequestParam(value = "attributes", required = false) String attributesCommaSeparated,
@@ -74,24 +117,25 @@ public class ScimGroupEndpoints {
 									  @RequestParam(required = false, defaultValue = "ascending") String sortOrder,
 									  @RequestParam(required = false, defaultValue = "1") int startIndex,
 									  @RequestParam(required = false, defaultValue = "100") int count) {
-		List<ScimGroup> input;
+
+		List<ScimGroup> result;
 		try {
-			input = dao.query(filter, sortBy, "ascending".equalsIgnoreCase(sortOrder));
-			for (ScimGroup group : input.subList(startIndex - 1, startIndex + count - 1)) {
-				group.setMembers(membershipManager.getMembers(group.getId()));
-			}
-		}
-		catch (IllegalArgumentException e) {
+			result = dao.query(filter, sortBy, "ascending".equalsIgnoreCase(sortOrder));
+		} catch (IllegalArgumentException e) {
 			throw new ScimException("Invalid filter expression: [" + filter + "]", HttpStatus.BAD_REQUEST);
 		}
 
+		List<ScimGroup> input = securityContextAccessor.isUser() ?
+										filterForCurrentUser(result, startIndex, count, securityContextAccessor.getUserId())
+										: filterForCurrentUser(result, startIndex, count, null);
+
 		if (!StringUtils.hasLength(attributesCommaSeparated)) {
-			return new SearchResults<ScimGroup>(Arrays.asList(ScimGroup.SCHEMAS), input, startIndex, count, input.size());
+			return new SearchResults<ScimGroup>(Arrays.asList(ScimGroup.SCHEMAS), input, startIndex, count, result.size());
 		}
 
 		String[] attributes = attributesCommaSeparated.split(",");
 		try {
-			return SearchResultsFactory.buildSearchResultFrom(input, startIndex, count, attributes, Arrays.asList(ScimCore.SCHEMAS));
+			return SearchResultsFactory.buildSearchResultFrom(input, startIndex, count, result.size(), attributes, Arrays.asList(ScimCore.SCHEMAS));
 		} catch (SpelParseException e) {
 			throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST);
 		} catch (SpelEvaluationException e) {

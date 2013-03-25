@@ -20,19 +20,25 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
 
 	private SearchQueryConverter queryConverter = new SimpleSearchQueryConverter();
 
-	private boolean pagination = true;
+	private int pageSize = 200;
 
 	protected AbstractQueryable(JdbcTemplate jdbcTemplate, RowMapper<T> rowMapper) {
 		this.jdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
 		this.rowMapper = rowMapper;
 	}
-	
+
 	public void setQueryConverter(SearchQueryConverter queryConverter) {
 		this.queryConverter = queryConverter;
 	}
 
-	public void setPagination(boolean pagination) {
-		this.pagination = pagination;
+	/**
+	 * The maximum number of items fetched from the database in one hit. If less than or equal to zero, then there is no
+	 * limit.
+	 * 
+	 * @param pageSize the page size to use for backing queries (default 200)
+	 */
+	public void setPageSize(int pageSize) {
+		this.pageSize = pageSize;
 	}
 
 	@Override
@@ -48,9 +54,10 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
 		try {
 			String completeSql = getBaseSqlQuery() + " where " + where.getSql();
 			logger.debug("complete sql: " + completeSql + ", params: " + where.getParams());
-			if (pagination) {
-				result = new JdbcPagingList<T>(jdbcTemplate, completeSql, where.getParams(), rowMapper, 200);
-			} else {
+			if (pageSize > 0 && pageSize < Integer.MAX_VALUE) {
+				result = new JdbcPagingList<T>(jdbcTemplate, completeSql, where.getParams(), rowMapper, pageSize);
+			}
+			else {
 				result = jdbcTemplate.query(completeSql, where.getParams(), rowMapper);
 			}
 			return result;
