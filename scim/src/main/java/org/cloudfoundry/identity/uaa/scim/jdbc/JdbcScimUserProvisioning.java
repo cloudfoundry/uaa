@@ -75,7 +75,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
 
 	public static final String USER_BY_ID_QUERY = "select " + USER_FIELDS + " from users " + "where id=?";
 
-	public static final String ALL_USERS = "select " + USER_FIELDS + " from users";
+	public static final String ALL_usetre = "select " + USER_FIELDS + " from users";
 
 	static final Pattern unquotedEq = Pattern.compile("(id|username|email|givenName|familyName) eq [^'^\"].*",
 															 Pattern.CASE_INSENSITIVE);
@@ -110,7 +110,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
 
 	@Override
 	protected String getBaseSqlQuery() {
-		return ALL_USERS;
+		return ALL_usetre;
 	}
 
 	@Override

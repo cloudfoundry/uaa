@@ -15,7 +15,7 @@
 CREATE TABLE USERS (
    id char(36) not null primary key,
    created ${TIMESTAMP} default ${SYSDATE} not null,
-   lastModified ${TIMESTAMP} default ${SYSDATE} not null,
+   lastModified ${TIMESTAMP} #second_timestamp(),
    version ${BIGINT} default 0 not null,
    username ${IGNORECASE}(255) not null,
    password ${VARCHAR}(255) not null,
