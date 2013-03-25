@@ -64,11 +64,11 @@ the login endpoint to tell you about the system:
     }
     
 Then you can try logging in with the UAA ruby gem.  Make sure you have
-ruby 1.9, and bundler installed, then
+ruby 1.9, then
 
-    $ cd gem/; bundle
-    $ ./bin/uaac target http://localhost:8080/uaa
-    $ ./bin/uaac token get marissa koala
+    $ gem install cf-uaac
+    $ uaac target http://localhost:8080/uaa
+    $ uaac token get marissa koala
 
 (or leave out the username / password to be prompted).
 
@@ -82,34 +82,20 @@ console).
 Then you can login as a resource server and retrieve the token
 details:
 
-    $ ./bin/uaac target http://localhost:8080/uaa app
-    $ ./bin/uaac login token [token-value-from-above]
+    $ uaac target http://localhost:8080/uaa
+    $ uaac token decode [token-value-from-above]
     
-You will be prompted for the client secret (`appclientsecret`), and
-then you should see your username and the client id of the original
+You should see your username and the client id of the original
 token grant on stdout, e.g.
 
-    id: 6e1ac414-f446-4869-9b41-41f1f41b96df
-    resource-ids: 
-    -   tokens
-    -   openid
-    -   cloud_controller
-    -   password
-    expires-at: 1339120767
-    scope: 
-    -   read
-    -   write
-    -   openid
-    -   password
-    email: marissa@test.org
-    client-authorities: 
-    -   ROLE_UNTRUSTED
-    expires-in: 43158
-    user-authorities: 
-    -   uaa.user
-    user-id: marissa
-    client-id: vmc
-    token-id: 90162e5c-228d-4620-b457-83e2d591eedf
+      exp: 1355348409
+      user_name: marissa
+      scope: cloud_controller.read openid password.write scim.userids tokens.read tokens.write
+      email: marissa@test.org
+      aud: scim tokens openid cloud_controller password
+      jti: ea2fac72-3f51-4c8f-a7a6-5ffc117af542
+      user_id: ba14fea0-9d87-4f0c-b59e-32aaa8eb1434
+      client_id: vmc
 
 ### Demo of command line usage on cloudfoundry.com
 
@@ -126,11 +112,11 @@ about the system:
       }
     }
     
-You can then try logging in with the UAA ruby gem.  Make sure you have ruby 1.9, and bundler installed, then
+You can then try logging in with the UAA ruby gem.  Make sure you have ruby 1.9, then
 
-    $ cd gem/; bundle
-    $ ./bin/uaac target uaa.cloudfoundry.com vmc
-    $ ./bin/uaac login implicit [yourusername] [yourpassword]
+    $ gem install cf-uaac
+    $ uaac target uaa.cloudfoundry.com
+    $ uaac token get [yourusername] [yourpassword]
 
 (or leave out the username / password to be prompted).
 
@@ -267,6 +253,22 @@ will look for an environment variable (or system property)
 `UAA_TEST_USERNAME` before defaulting to `marissa`.  This is the trick
 used to expose `UAA_ADMIN_CLIENT_SECRET` etc. in the standard
 configuration.
+
+### Using Maven with to test with postgresql or mysql
+
+The default uaa unit tests (mvn test) use hsqldb.
+
+To run the unit tests using postgresql:
+
+    $ SPRING_PROFILES_ACTIVE=test,postgresql CLOUD_FOUNDRY_CONFIG_PATH=src/test/resources/test/profiles/postgresql mvn test
+
+To run the unit tests using mysql:
+
+    $ SPRING_PROFILES_ACTIVE=test,mysql CLOUD_FOUNDRY_CONFIG_PATH=src/test/resources/test/profiles/mysql mvn test
+
+The database configuration for the common and scim modules is located at:
+common/src/test/resources/(mysql|postgresql).properties
+scim/src/test/resources/(mysql|postgresql).properties
 
 ## Inventory
 

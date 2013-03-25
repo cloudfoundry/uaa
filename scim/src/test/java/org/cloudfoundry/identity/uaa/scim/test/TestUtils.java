@@ -31,16 +31,25 @@ import org.springframework.util.ClassUtils;
 
 /**
  * Common methods for DB manipulation and so on.
- * 
+ *
  * @author Luke Taylor
  * @author Dave Syer
- * 
+ *
  */
 public class TestUtils {
 
 	private static Environment environment = TestProfileEnvironment.getEnvironment();
 
-	private static String platform = environment.acceptsProfiles("postgresql") ? "postgresql" : "hsqldb";
+	private static String platform;
+
+	static {
+		try {
+			platform = environment.acceptsProfiles("postgresql") ? "postgresql" : "hsqldb";
+		} catch (IllegalArgumentException e) {
+			// SPRING_PROFILES_ACTIVE not set
+			platform = "hsqldb";
+		}
+	}
 
 	public static void runScript(DataSource dataSource, String stem) throws Exception {
 		ResourceDatabasePopulator populator = new ResourceDatabasePopulator();

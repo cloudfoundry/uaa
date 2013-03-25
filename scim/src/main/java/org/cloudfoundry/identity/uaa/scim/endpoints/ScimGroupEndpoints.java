@@ -1,5 +1,13 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
@@ -14,6 +22,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
+import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.expression.spel.SpelEvaluationException;
 import org.springframework.expression.spel.SpelParseException;
@@ -33,12 +42,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
-
-import javax.servlet.http.HttpServletRequest;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 @Controller
 public class ScimGroupEndpoints {
@@ -74,11 +77,13 @@ public class ScimGroupEndpoints {
 									  @RequestParam(required = false, defaultValue = "ascending") String sortOrder,
 									  @RequestParam(required = false, defaultValue = "1") int startIndex,
 									  @RequestParam(required = false, defaultValue = "100") int count) {
-		List<ScimGroup> input;
+		List<ScimGroup> input = new ArrayList<ScimGroup>();
+		List<ScimGroup> result;
 		try {
-			input = dao.query(filter, sortBy, "ascending".equalsIgnoreCase(sortOrder));
-			for (ScimGroup group : input.subList(startIndex - 1, startIndex + count - 1)) {
+			result = dao.query(filter, sortBy, "ascending".equalsIgnoreCase(sortOrder));
+			for (ScimGroup group : UaaPagingUtils.subList(result, startIndex, count)) {
 				group.setMembers(membershipManager.getMembers(group.getId()));
+				input.add(group);
 			}
 		}
 		catch (IllegalArgumentException e) {
@@ -86,12 +91,12 @@ public class ScimGroupEndpoints {
 		}
 
 		if (!StringUtils.hasLength(attributesCommaSeparated)) {
-			return new SearchResults<ScimGroup>(Arrays.asList(ScimGroup.SCHEMAS), input, startIndex, count, input.size());
+			return new SearchResults<ScimGroup>(Arrays.asList(ScimGroup.SCHEMAS), input, startIndex, count, result.size());
 		}
 
 		String[] attributes = attributesCommaSeparated.split(",");
 		try {
-			return SearchResultsFactory.buildSearchResultFrom(input, startIndex, count, attributes, Arrays.asList(ScimCore.SCHEMAS));
+			return SearchResultsFactory.buildSearchResultFrom(input, startIndex, count, result.size(), attributes, Arrays.asList(ScimCore.SCHEMAS));
 		} catch (SpelParseException e) {
 			throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST);
 		} catch (SpelEvaluationException e) {

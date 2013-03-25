@@ -30,19 +30,21 @@ import org.springframework.util.Log4jConfigurer;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
+import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.Constructor;
 
 /**
  * An {@link ApplicationContextInitializer} for a web application to enable it to externalize the environment and
  * logging configuration. A YAML config file is loaded if present and inserted into the environment. In addition if the
  * YAML contains some special properties, some initialization is carried out:
- * 
+ *
  * <ul>
  * <li><code>spring_profiles</code> - then the active profiles are set</li>
  * <li><code>logging.config</code> - then log4j is initialized from that location (if it exists)</li>
  * </ul>
- * 
+ *
  * @author Dave Syer
- * 
+ *
  */
 public class YamlServletProfileInitializer implements ApplicationContextInitializer<ConfigurableWebApplicationContext> {
 
@@ -85,11 +87,13 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 					resources.add(defaultResource);
 				}
 			}
-			
+
 			resources.add(resource);
 			factory.setResources(resources.toArray(new Resource[resources.size()]));
-			
+
 			Map<String, Object> map = factory.getObject();
+			String yamlStr = (new Yaml()).dump(map);
+			map.put("__rawYaml", yamlStr);
 			NestedMapPropertySource properties = new NestedMapPropertySource("servletConfigYaml", map);
 			applicationContext.getEnvironment().getPropertySources().addLast(properties);
 			applySpringProfiles(applicationContext.getEnvironment(), servletContext);
