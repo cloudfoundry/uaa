@@ -4,6 +4,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,9 +33,9 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
+import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -80,6 +82,8 @@ public class ScimGroupEndpointsTests {
 
 	private static List<String> groupIds;
 
+	private static List<String> userIds;
+
 	private static final String SQL_INJECTION_FIELDS = "displayName,version,created,lastModified";
 
 	@Rule
@@ -107,7 +111,8 @@ public class ScimGroupEndpointsTests {
 		userEndpoints.setScimGroupMembershipManager(mm);
 
 		groupIds = new ArrayList<String>();
-		groupIds.add(addGroup("uaa.resource", Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER),
+		userIds = new ArrayList<String>();
+		groupIds.add(addGroup("uaa.resource", Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN),
 															   createMember(ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER),
 															   createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)))
 		);
@@ -137,8 +142,10 @@ public class ScimGroupEndpointsTests {
 		String id = UUID.randomUUID().toString();
 		if (t == ScimGroupMember.Type.USER) {
 			id = userEndpoints.createUser(TestUtils.scimUserInstance(id)).getId();
+			userIds.add(id);
 		} else {
 			id = dao.create(new ScimGroup("", id)).getId();
+			groupIds.add(id);
 		}
 		return new ScimGroupMember(id, t, a);
 	}
@@ -176,6 +183,13 @@ public class ScimGroupEndpointsTests {
 		for (ScimUser.Group g : user.getGroups()) {
 			assertTrue(expectedAuthorities.contains(g.getDisplay()));
 		}
+	}
+
+	private SecurityContextAccessor mockSecurityContextAccessor(String userId) {
+		SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
+		when(sca.getUserId()).thenReturn(userId);
+		when(sca.isUser()).thenReturn(true);
+		return sca;
 	}
 
 	@Test
@@ -232,13 +246,13 @@ public class ScimGroupEndpointsTests {
 		expectedEx.expect(ScimException.class);
 		expectedEx.expectMessage("Invalid filter expression");
 		endpoints.listGroups("id,display", "displayName='something'; select " + SQL_INJECTION_FIELDS
-				+ " from groups where displayName='something'", "created", "ascending", 1, 100);
+												   + " from groups where displayName='something'", "created", "ascending", 1, 100);
 	}
 
 	@Test
 	public void testGetGroup() throws Exception {
-		ScimGroup g = endpoints.getGroup(groupIds.get(0));
-		validateGroup(g, "uaa.resource", 3);
+		ScimGroup g = endpoints.getGroup(groupIds.get(groupIds.size()-1));
+		validateGroup(g, "uaa.none", 2);
 	}
 
 	@Test
@@ -489,6 +503,12 @@ public class ScimGroupEndpointsTests {
 		validateView(endpoints.handleException(new BadSqlGrammarException("", "", null), request), HttpStatus.BAD_REQUEST);
 		validateView(endpoints.handleException(new IllegalArgumentException(""), request), HttpStatus.BAD_REQUEST);
 		validateView(endpoints.handleException(new DataIntegrityViolationException(""), request), HttpStatus.BAD_REQUEST);
+	}
+
+	@Test
+	public void testListGroupsAsUser() {
+		endpoints.setSecurityContextAccessor(mockSecurityContextAccessor(userIds.get(0)));
+		validateSearchResults(endpoints.listGroups("id,displayName", "id pr", "created", "ascending", 1, 100), 1);
 	}
 
 	private void validateView (View view, HttpStatus status) {

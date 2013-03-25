@@ -211,14 +211,14 @@ public class JdbcScimUserProvisioningTests {
 	@Test
 	public void canChangePasswordWithouOldPassword() throws Exception {
 		assertTrue(db.changePassword(JOE_ID, null, "koala123$marissa"));
-		String storedPassword = template.queryForObject("SELECT password from USERS where ID=?", String.class, JOE_ID);
+		String storedPassword = template.queryForObject("SELECT password from users where ID=?", String.class, JOE_ID);
 		assertTrue(BCrypt.checkpw("koala123$marissa", storedPassword));
 	}
 
 	@Test
 	public void canChangePasswordWithCorrectOldPassword() throws Exception {
 		assertTrue(db.changePassword(JOE_ID, "joespassword", "koala123$marissa"));
-		String storedPassword = template.queryForObject("SELECT password from USERS where ID=?", String.class, JOE_ID);
+		String storedPassword = template.queryForObject("SELECT password from users where ID=?", String.class, JOE_ID);
 		assertTrue(BCrypt.checkpw("koala123$marissa", storedPassword));
 	}
 
