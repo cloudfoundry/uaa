@@ -57,7 +57,7 @@
 						<c:if test="${(denied_scopes != null) && (! empty denied_scopes)}">
 							<p> You have already denied '${client_id}' access to the following: </p>
 							<c:forEach items="${denied_scopes}" var="scope">
-	                           <input type="checkbox" name="scope.${count}" value="${scope['code']}"><spring:message code="${scope['code']}"
+	                           <input type="checkbox" checked="checked" name="scope.${count}" value="${scope['code']}"><spring:message code="${scope['code']}"
 	                                   text="${scope['text']}" /><br/>
 	                           <c:set var="count" value="${count + 1}" />
 	                       </c:forEach>
@@ -65,7 +65,7 @@
 	                    <c:if test="${(undecided_scopes != null) && (! empty undecided_scopes)}">
 	                       <p> Do you want to allow '${client_id}' to: </p>
 	                       <c:forEach items="${undecided_scopes}" var="scope">
-	                           <input type="checkbox" name="scope.${count}" value="${scope['code']}"><spring:message code="${scope['code']}"
+	                           <input type="checkbox" checked="checked" name="scope.${count}" value="${scope['code']}"><spring:message code="${scope['code']}"
 	                                   text="${scope['text']}" /><br/>
                                <c:set var="count" value="${count + 1}" />
 	                       </c:forEach>

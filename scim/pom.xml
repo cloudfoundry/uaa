@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.cloudfoundry.identity</groupId>
 		<artifactId>cloudfoundry-identity-parent</artifactId>
-		<version>1.4.0</version>
+		<version>1.4.1</version>
 		<relativePath>..</relativePath>
 	</parent>
 
@@ -47,6 +47,7 @@
 								</macrodef>
 								<sql-script platform="hsqldb" />
 								<sql-script platform="postgresql" />
+								<sql-script platform="mysql" />
 							</target>
 						</configuration>
 						<goals>
@@ -171,6 +172,13 @@
 			<scope>test</scope>
 		</dependency>
 
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>5.1.23</version>
+            <scope>test</scope>
+        </dependency>
+        
 		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-all</artifactId>

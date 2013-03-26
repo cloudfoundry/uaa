@@ -156,6 +156,25 @@ Generating new asymmetric key pairs
     openssl genrsa -out privkey.pem 2048
     openssl rsa -pubout -in privkey.pem -out pubkey.pem
 
+Aysmmetric key pairs can be set directly in the yaml file using block literals.
+Make sure the entire key is indented.
+
+.. code-block:: yaml
+
+   jwt:
+      token:
+         signing-key: |
+            -----BEGIN RSA PRIVATE KEY-----
+            MIIEowIBAAKCAQEAyV3Ws3gLOvi169ZPx8v3t9UZpxcG0fqtQzC4X+Ff7dlx4w6P
+            ...
+            pYPYK4M+4Gwi7O49a63G+lzX7BqUWYBXR84iZG+vWz2F3ICjiOIz
+            -----END RSA PRIVATE KEY-----
+         verification-key: |
+            -----BEGIN PUBLIC KEY-----
+            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyV3Ws3gLOvi169ZPx8v3
+            ...
+            XwIDAQAB
+            -----END PUBLIC KEY-----
 
 Clients
 -------

@@ -10,7 +10,18 @@
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  */
-package org.cloudfoundry.identity.uaa.scim.jdbc;
+package org.cloudfoundry.identity.uaa.rest.jdbc;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.sql.DataSource;
 
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingList;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
@@ -26,23 +37,13 @@ import org.springframework.test.annotation.ProfileValueSourceConfiguration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import javax.sql.DataSource;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
 /**
  * @author Luke Taylor
  * @author Dave Syer
  */
 @ContextConfiguration("classpath:/test-data-source.xml")
 @RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "", "test,postgresql", "hsqldb" })
+@IfProfileValue(name = "spring.profiles.active", values = { "", "test,postgresql", "hsqldb", "test,mysql" })
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class JdbcPagingListTests {
 
@@ -154,24 +155,17 @@ public class JdbcPagingListTests {
 		assertEquals(5, count);
 	}
 
-	@Test
+	@Test(expected=IndexOutOfBoundsException.class)
 	public void testSubListExtendsBeyondSize() throws Exception {
 		list = new JdbcPagingList<Map<String, Object>>(template, "SELECT * from foo", new ColumnMapRowMapper(), 3);
-		list = list.subList(1, 40);
-		assertEquals(4, list.size());
-		int count = 0;
-		for (Map<String, Object> map : list) {
-			count++;
-			assertNotNull(map.get("name"));
-		}
-		assertEquals(4, count);
+		list.subList(1, 40);
 	}
 
 	@Test
 	public void testSubListFromDeletedElements() throws Exception {
 		list = new JdbcPagingList<Map<String, Object>>(template, "SELECT * from foo", new ColumnMapRowMapper(), 3);
 		template.update("DELETE from foo where id>3");
-		list = list.subList(1, 40);
+		list = list.subList(1, list.size());
 		assertEquals(4, list.size());
 		int count = 0;
 		for (Map<String, Object> map : list) {

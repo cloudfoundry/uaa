@@ -38,7 +38,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  */
 @ContextConfiguration ("classpath:/test-data-source.xml")
 @RunWith (SpringJUnit4ClassRunner.class)
-@IfProfileValue (name = "spring.profiles.active", values = { "" , "hsqldb", "test,postgresql" })
+@IfProfileValue (name = "spring.profiles.active", values = { "" , "hsqldb", "test,postgresql", "test,mysql" })
 @ProfileValueSourceConfiguration (NullSafeSystemProfileValueSource.class)
 public class JdbcFailedLoginCountingAuditServiceTests {
 
@@ -55,7 +55,7 @@ public class JdbcFailedLoginCountingAuditServiceTests {
 	public void createService() throws Exception {
 		template = new JdbcTemplate(dataSource);
 		auditService = new JdbcFailedLoginCountingAuditService(dataSource);
-		template.execute("DELETE FROM SEC_AUDIT WHERE principal_id='1' or principal_id='clientA' or principal_id='clientB'");
+		template.execute("DELETE FROM sec_audit WHERE principal_id='1' or principal_id='clientA' or principal_id='clientB'");
 		authDetails = "1.1.1.1";
 	}
 
