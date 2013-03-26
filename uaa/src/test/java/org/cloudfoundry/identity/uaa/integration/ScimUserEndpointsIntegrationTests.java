@@ -285,6 +285,36 @@ public class ScimUserEndpointsIntegrationTests {
 
 	}
 
+	@Test
+	public void createUserWithJustACaseChangeFails() throws Exception {
+		String userName = JOEL;
+		String userNameDifferenceCase = userName.toUpperCase();
+
+		ScimUser user = new ScimUser();
+		user.setUserName(userName);
+		user.setName(new ScimUser.Name("Joel", "D'sa"));
+		user.addEmail("joel@blah.com");
+
+		@SuppressWarnings("rawtypes")
+		ResponseEntity<Map> response = client.postForEntity(serverRunning.getUrl(userEndpoint), user, Map.class);
+		@SuppressWarnings("unchecked")
+		Map<String, String> joel = response.getBody();
+		assertEquals(JOEL, joel.get("userName"));
+
+		ScimUser userDifferentCase = new ScimUser();
+		userDifferentCase.setUserName(userNameDifferenceCase);
+		userDifferentCase.setName(new ScimUser.Name("Joel", "D'sa"));
+		userDifferentCase.addEmail("joel@blah.com");
+
+		response = client.postForEntity(serverRunning.getUrl(userEndpoint), userDifferentCase, Map.class);
+		@SuppressWarnings("unchecked")
+		Map<String, String> error = response.getBody();
+
+		// System.err.println(error);
+		assertEquals("scim_resource_already_exists", error.get("error"));
+
+	}
+
 	// curl -v -H "Content-Type: application/json" -H "Accept: application/json" -X DELETE
 	// -H "If-Match: 0" http://localhost:8080/uaa/User/joel
 	@Test

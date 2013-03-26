@@ -121,8 +121,8 @@ class LoginApplication < Sinatra::Base
           session[:confirm_key] = (confirmation_info["options"]["confirm"]["key"] \
             if confirmation_info["options"] && confirmation_info["options"]["confirm"]) || "user_oauth_approval"
               
-          erb :confirm, :locals => {:client_id => confirmation_info["authorizationRequest"]["clientId"], \
-                                    :scopes => confirmation_info["authorizationRequest"]["scope"]}
+          erb :confirm, :locals => {:client_id => confirmation_info["auth_request"]["authorizationParameters"]["client_id"], \
+                                    :scopes => confirmation_info["auth_request"]["authorizationParameters"]["scope"]}
         when 302
           # Access confirmation not required, get the code.
           $logger.debug "#{uaa_response.headers[:location]}"

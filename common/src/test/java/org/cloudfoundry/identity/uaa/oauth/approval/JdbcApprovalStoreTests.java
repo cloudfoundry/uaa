@@ -40,7 +40,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @ContextConfiguration("classpath:/test-data-source.xml")
 @RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = {"", "test,postgresql", "hsqldb"})
+@IfProfileValue(name = "spring.profiles.active", values = {"", "test,postgresql", "hsqldb", "test,mysql"})
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class JdbcApprovalStoreTests {
 	@Autowired
@@ -92,8 +92,8 @@ public class JdbcApprovalStoreTests {
 		Approval approval = approvals.get(0);
 		assertEquals(clientId, approval.getClientId());
 		assertEquals(userName, approval.getUserName());
-		assertEquals(expiresAt.getTime(), approval.getExpiresAt().getTime());
-		assertEquals(lastUpdatedAt.getTime(), approval.getLastUpdatedAt().getTime());
+		assertEquals(Math.round(expiresAt.getTime() / 1000), Math.round(approval.getExpiresAt().getTime() / 1000));
+		assertEquals(Math.round(lastUpdatedAt.getTime() / 1000), Math.round(approval.getLastUpdatedAt().getTime() / 1000));
 		assertEquals(scope, approval.getScope());
 		assertEquals(status, approval.getStatus());
 	}
@@ -128,22 +128,23 @@ public class JdbcApprovalStoreTests {
 	public void addSameApprovalRepeatedlyUpdatesExpiry() {
 		assertTrue(dao.addApproval(new Approval("u2", "c2", "dash.user", 6000, APPROVED)));
 		Approval app = dao.getApprovals("u2", "c2").iterator().next();
-		assertTrue(app.getExpiresAt().before(new Date(new Date().getTime() + 6000)));
+		assertEquals(Math.round(app.getExpiresAt().getTime() / 1000), Math.round((new Date().getTime() + 6000) / 1000));
 
 		assertTrue(dao.addApproval(new Approval("u2", "c2", "dash.user", 8000, APPROVED)));
 		app = dao.getApprovals("u2", "c2").iterator().next();
-		assertTrue(app.getExpiresAt().after(new Date(new Date().getTime() + 6000)));
+		assertEquals(Math.round(app.getExpiresAt().getTime() / 1000), Math.round((new Date().getTime() + 8000) / 1000));
 	}
 
 	@Test
 	public void addSameApprovalDifferentStatusRepeatedlyOnlyUpdatesStatus() {
 		assertTrue(dao.addApproval(new Approval("u2", "c2", "dash.user", 6000, APPROVED)));
 		Approval app = dao.getApprovals("u2", "c2").iterator().next();
-		assertTrue(app.getExpiresAt().before(new Date(new Date().getTime() + 6000)));
+		assertEquals(Math.round(app.getExpiresAt().getTime() / 1000), Math.round((new Date().getTime() + 6000) / 1000));
 
-		assertTrue(dao.addApproval(new Approval("u2", "c2", "dash.user", 8000, APPROVED)));
+		assertTrue(dao.addApproval(new Approval("u2", "c2", "dash.user", 8000, DENIED)));
 		app = dao.getApprovals("u2", "c2").iterator().next();
-		assertTrue(app.getExpiresAt().after(new Date(new Date().getTime() + 6000)));
+		assertEquals(Math.round(app.getExpiresAt().getTime() / 1000), Math.round((new Date().getTime() + 6000) / 1000));
+		assertEquals(DENIED, app.getStatus());
 	}
 
 	@Test
@@ -153,19 +154,25 @@ public class JdbcApprovalStoreTests {
 
 		dao.refreshApproval(new Approval(app.getUserName(), app.getClientId(), app.getScope(), now, APPROVED));
 		app = dao.getApprovals("u1", "c1").iterator().next();
-		assertEquals(now, app.getExpiresAt());
+		assertEquals(Math.round(now.getTime() / 1000), Math.round(app.getExpiresAt().getTime() / 1000));
 	}
 
 	@Test
-	public void canPurgeExpiredApprovals() {
-		assertEquals(3, dao.getApprovals("userName pr").size());
+	public void canPurgeExpiredApprovals() throws InterruptedException {
+		List<Approval> approvals = dao.getApprovals("userName pr");
+		assertEquals(3, approvals.size());
 		addApproval("u3", "c3", "test1", 0, APPROVED);
 		addApproval("u3", "c3", "test2", 0, DENIED);
 		addApproval("u3", "c3", "test3", 0, APPROVED);
-		assertEquals(6, dao.getApprovals("userName pr").size());
+		List<Approval> newApprovals = dao.getApprovals("userName pr");
+		assertEquals(6, newApprovals.size());
 
+		// On mysql, the expiry is rounded off to the nearest second so
+		// the following assert could randomly fail.
+		Thread.sleep(500);
 		dao.purgeExpiredApprovals();
-		assertEquals(3, dao.getApprovals("userName pr").size());
+		List<Approval> remainingApprovals = dao.getApprovals("userName pr");
+		assertEquals(3, remainingApprovals.size());
 	}
 
 }
