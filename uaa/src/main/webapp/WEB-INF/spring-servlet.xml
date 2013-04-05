@@ -109,9 +109,6 @@
 					<constructor-arg value="/" />
 				</bean>
 				<bean class="org.springframework.security.web.util.AntPathRequestMatcher">
-					<constructor-arg value="/home" />
-				</bean>
-				<bean class="org.springframework.security.web.util.AntPathRequestMatcher">
 					<constructor-arg value="/spring_security_login" />
 				</bean>
 				<bean class="org.springframework.security.web.util.AntPathRequestMatcher">
@@ -162,7 +159,6 @@
 	<!--Basic application beans. -->
 	<bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.authentication.login.LoginInfoEndpoint" />
 
-	<bean id="homeController" class="org.cloudfoundry.identity.uaa.home.HomeController" />
 	<bean id="healthzEndpoint" class="org.cloudfoundry.identity.uaa.web.HealthzEndpoint" />
 
 </beans>

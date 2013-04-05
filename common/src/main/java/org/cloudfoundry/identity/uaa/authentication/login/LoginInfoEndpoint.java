@@ -62,7 +62,7 @@ public class LoginInfoEndpoint {
 		this.prompts = prompts;
 	}
 
-	@RequestMapping(value = { "/info", "/login" })
+	@RequestMapping(value = { "/", "/info", "/login" })
 	public String loginInfo(Model model, Principal principal) {
 		Map<String, String[]> map = new LinkedHashMap<String, String[]>();
 		for (Prompt prompt : prompts) {
