@@ -26,6 +26,9 @@ import javax.sql.DataSource;
 
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
+import org.cloudfoundry.identity.uaa.rest.jdbc.DefaultLimitSqlAdapter;
+import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
+import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.rest.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
@@ -48,13 +51,16 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @ContextConfiguration("classpath:/test-data-source.xml")
 @RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = {"", "test,postgresql", "hsqldb", "test,mysql"})
+@IfProfileValue(name = "spring.profiles.active", values = {"", "test,postgresql", "hsqldb", "test,mysql", "test,oracle"})
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class ApprovalsAdminEndpointsTests {
 	@Autowired
 	private DataSource dataSource;
 
 	private JdbcTemplate template;
+	
+	@Autowired
+	private LimitSqlAdapter limitSqlAdapter;
 
 	private JdbcApprovalStore dao;
 
@@ -70,7 +76,8 @@ public class ApprovalsAdminEndpointsTests {
 		template = new JdbcTemplate(dataSource);
 		marissa = userDao.retrieveUserByName("marissa");
 
-		dao = new JdbcApprovalStore(template, new SimpleSearchQueryConverter());
+		dao = new JdbcApprovalStore(template, new JdbcPagingListFactory(template, limitSqlAdapter),
+				new SimpleSearchQueryConverter());
 		endpoints = new ApprovalsAdminEndpoints();
 		endpoints.setApprovalStore(dao);
 		endpoints.setUaaUserDatabase(userDao);

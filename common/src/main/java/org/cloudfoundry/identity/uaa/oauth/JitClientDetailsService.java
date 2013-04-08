@@ -13,6 +13,7 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
@@ -26,8 +27,8 @@ import org.springframework.security.oauth2.provider.JdbcClientDetailsService;
  */
 public class JitClientDetailsService extends JdbcQueryableClientDetailsService {
 
-	public JitClientDetailsService(JdbcClientDetailsService delegate, JdbcTemplate jdbcTemplate) {
-		super(delegate, jdbcTemplate);
+	public JitClientDetailsService(JdbcClientDetailsService delegate, JdbcTemplate jdbcTemplate, JdbcPagingListFactory pagingListFactory) {
+		super(delegate, jdbcTemplate, pagingListFactory);
 	}
 
 	@Override
