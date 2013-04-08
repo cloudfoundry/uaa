@@ -1,51 +1,43 @@
 package org.cloudfoundry.identity.uaa.config;
 
+import static org.junit.Assert.assertEquals;
+
 import javax.validation.ConstraintViolationException;
 import javax.validation.constraints.NotNull;
 
 import org.junit.Test;
-import org.springframework.context.support.StaticApplicationContext;
-import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.core.env.StandardEnvironment;
 import org.yaml.snakeyaml.error.YAMLException;
 
 /**
  * @author Luke Taylor
+ * @author Dave Syer
  */
 public class YamlConfigurationValidatorTests {
-	YamlConfigurationValidator validator;
+	
+	private YamlConfigurationValidator<Foo> validator;
 
-	private void createValidator(final String yaml) throws Exception {
-		StaticApplicationContext ctx = new StaticApplicationContext();
-		ConfigurableEnvironment env = new StandardEnvironment() {
-			@Override
-			public String getRequiredProperty(String key) {
-				if (key.equals("__rawYaml")) {
-					return yaml;
-				}
-				return super.getRequiredProperty(key);
-			}
-		};
-		ctx.setEnvironment(env);
-		validator = new YamlConfigurationValidator(new FooConstructor());
+	private Foo createFoo(final String yaml) throws Exception {
+		validator = new YamlConfigurationValidator<Foo>(new FooConstructor());
+		validator.setYaml(yaml);
 		validator.setExceptionIfInvalid(true);
-		validator.setApplicationContext(ctx);
 		validator.afterPropertiesSet();
+		return validator.getObject();
 	}
 
 	@Test
 	public void validYamlLoadsWithNoErrors() throws Exception {
-		createValidator("foo-name: blah\nbar: blah");
+		Foo foo = createFoo("foo-name: blah\nbar: blah");
+		assertEquals("blah", foo.bar);
 	}
 
 	@Test(expected = YAMLException.class)
 	public void unknownPropertyCausesLoadFailure() throws Exception {
-		createValidator("hi: hello\nname: foo\nbar: blah");
+		createFoo("hi: hello\nname: foo\nbar: blah");
 	}
 
 	@Test(expected = ConstraintViolationException.class)
 	public void missingPropertyCausesValidationError() throws Exception {
-		createValidator("bar: blah");
+		createFoo("bar: blah");
 	}
 
 	private static class Foo {
