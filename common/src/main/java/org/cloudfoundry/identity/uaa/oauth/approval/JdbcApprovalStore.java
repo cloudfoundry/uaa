@@ -26,6 +26,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingList;
+import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.SearchQueryConverter;
 import org.cloudfoundry.identity.uaa.rest.jdbc.SearchQueryConverter.ProcessedFilter;
 import org.springframework.dao.DataAccessException;
@@ -39,6 +40,8 @@ import org.springframework.util.Assert;
 public class JdbcApprovalStore implements ApprovalStore {
 
 	private final JdbcTemplate jdbcTemplate;
+	
+	private JdbcPagingListFactory pagingListFactory;
 
 	private final Log logger = LogFactory.getLog(getClass());
 
@@ -62,11 +65,12 @@ public class JdbcApprovalStore implements ApprovalStore {
 
 	private boolean handleRevocationsAsExpiry = false;
 
-	public JdbcApprovalStore(JdbcTemplate jdbcTemplate, SearchQueryConverter queryConverter) {
+	public JdbcApprovalStore(JdbcTemplate jdbcTemplate, JdbcPagingListFactory pagingListFactory, SearchQueryConverter queryConverter) {
 		Assert.notNull(jdbcTemplate);
 		Assert.notNull(queryConverter);
 		this.jdbcTemplate = jdbcTemplate;
 		this.queryConverter = queryConverter;
+		this.pagingListFactory = pagingListFactory;
 	}
 
 	public void setHandleRevocationsAsExpiry(boolean handleRevocationsAsExpiry) {
@@ -168,7 +172,7 @@ public class JdbcApprovalStore implements ApprovalStore {
 		ProcessedFilter where = queryConverter.convert(filter, null, true);
 		logger.debug(String.format("Filtering approvals with filter: [%s]", where));
 		try {
-			return new JdbcPagingList<Approval>(jdbcTemplate, GET_AUTHZ_SQL + " where " +
+			return pagingListFactory.createJdbcPagingList(GET_AUTHZ_SQL + " where " +
 					where.getSql(), where.getParams(), rowMapper, 200);
 		}
 		catch (DataAccessException e) {

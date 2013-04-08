@@ -19,6 +19,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.Collections;
 import java.util.UUID;
 
+import javax.annotation.Resource;
 import javax.sql.DataSource;
 
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
@@ -43,7 +44,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  */
 @ContextConfiguration("classpath:/test-data-source.xml")
 @RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "" , "hsqldb", "test,postgresql", "test,mysql" })
+@IfProfileValue(name = "spring.profiles.active", values = { "" , "hsqldb", "test,postgresql", "test,mysql", "test,oracle" })
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class JdbcUaaUserDatabaseTests {
 
@@ -51,7 +52,7 @@ public class JdbcUaaUserDatabaseTests {
 	private DataSource dataSource;
 
 	private JdbcUaaUserDatabase db;
-
+	
 	private static final String JOE_ID = "550e8400-e29b-41d4-a716-446655440000";
 
 	private static final String addUserSql = "insert into users (id, username, password, email, givenName, familyName, phoneNumber) values (?,?,?,?,?,?,?)";

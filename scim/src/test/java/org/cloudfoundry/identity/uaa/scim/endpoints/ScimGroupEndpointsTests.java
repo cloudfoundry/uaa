@@ -21,6 +21,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter;
 import org.cloudfoundry.identity.uaa.rest.SearchResults;
+import org.cloudfoundry.identity.uaa.rest.jdbc.DefaultLimitSqlAdapter;
+import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -60,7 +62,7 @@ import org.springframework.web.servlet.View;
 
 @ContextConfiguration("classpath:/test-data-source.xml")
 @RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = {"", "test,postgresql", "hsqldb", "test,mysql"})
+@IfProfileValue(name = "spring.profiles.active", values = {"", "test,postgresql", "hsqldb", "test,mysql", "test,oracle"})
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class ScimGroupEndpointsTests {
 
@@ -97,8 +99,9 @@ public class ScimGroupEndpointsTests {
 		database = builder.build();
 
 		template = new JdbcTemplate(database);
-		dao = new JdbcScimGroupProvisioning(template);
-		udao = new JdbcScimUserProvisioning(template);
+		JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(template, new DefaultLimitSqlAdapter());
+		dao = new JdbcScimGroupProvisioning(template, pagingListFactory);
+		udao = new JdbcScimUserProvisioning(template, pagingListFactory);
 		udao.setPasswordValidator(new NullPasswordValidator());
 		mm = new JdbcScimGroupMembershipManager(template);
 		mm.setScimGroupProvisioning(dao);

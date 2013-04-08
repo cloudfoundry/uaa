@@ -15,6 +15,7 @@
 
 	<bean id="scimUserProvisioning" class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning">
 		<constructor-arg ref="jdbcTemplate" />
+		<constructor-arg name="pagingListFactory" ref="jdbcPagingListFactory" />
 		<!-- Password validation turned off to match cloud controller policies -->
 		<property name="passwordValidator">
 			<bean class="org.cloudfoundry.identity.uaa.password.ZxcvbnPasswordValidator">
@@ -41,6 +42,7 @@
 
 	<bean id="scimGroupProvisioning" class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning">
 		<constructor-arg ref="jdbcTemplate" />
+		<constructor-arg name="pagingListFactory" ref="jdbcPagingListFactory" />
 	</bean>
 
 	<bean id="groupMembershipManager" class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager">

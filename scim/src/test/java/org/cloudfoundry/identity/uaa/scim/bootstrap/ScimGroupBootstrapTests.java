@@ -9,6 +9,9 @@ import javax.sql.DataSource;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.rest.jdbc.DefaultLimitSqlAdapter;
+import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
+import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
@@ -29,7 +32,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @ContextConfiguration("classpath:/test-data-source.xml")
 @RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = {"", "test,postgresql", "hsqldb", "test,mysql"})
+@IfProfileValue(name = "spring.profiles.active", values = {"", "test,postgresql", "hsqldb", "test,mysql", "test,oracle"})
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class ScimGroupBootstrapTests {
 
@@ -37,6 +40,9 @@ public class ScimGroupBootstrapTests {
 
 	@Autowired
 	private DataSource dataSource;
+
+	@Autowired
+	private LimitSqlAdapter limitSqlAdapter;
 
 	private JdbcTemplate template;
 
@@ -51,8 +57,9 @@ public class ScimGroupBootstrapTests {
 	@Before
 	public void setup() {
 		template = new JdbcTemplate(dataSource);
-		gDB = new JdbcScimGroupProvisioning(template);
-		uDB = new JdbcScimUserProvisioning(template);
+		JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(template, limitSqlAdapter);
+		gDB = new JdbcScimGroupProvisioning(template, pagingListFactory);
+		uDB = new JdbcScimUserProvisioning(template, pagingListFactory);
 		uDB.setPasswordValidator(new NullPasswordValidator());
 		mDB = new JdbcScimGroupMembershipManager(template);
 		mDB.setScimGroupProvisioning(gDB);

@@ -29,7 +29,7 @@
 	<bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
 		<property name="dataSource" ref="dataSource" />
 	</bean>
-
+	
 	<jdbc:initialize-database ignore-failures="ALL" data-source="dataSource">
 		<jdbc:script location="classpath:org/cloudfoundry/identity/uaa/schema-#{@platform}.sql" />
 	</jdbc:initialize-database>
@@ -39,6 +39,7 @@
 		<bean id="platform" class="java.lang.String">
 			<constructor-arg value="hsqldb" />
 		</bean>
+		<bean id="limitSqlAdapter" class="org.cloudfoundry.identity.uaa.rest.jdbc.DefaultLimitSqlAdapter"/>
 	</beans>
 
 	<beans profile="postgresql">
@@ -46,6 +47,7 @@
 		<bean id="platform" class="java.lang.String">
 			<constructor-arg value="postgresql" />
 		</bean>
+		<bean id="limitSqlAdapter" class="org.cloudfoundry.identity.uaa.rest.jdbc.DefaultLimitSqlAdapter"/>
 	</beans>
 	
    <beans profile="mysql">
@@ -53,6 +55,15 @@
         <bean id="platform" class="java.lang.String">
             <constructor-arg value="mysql" />
         </bean>
+        <bean id="limitSqlAdapter" class="org.cloudfoundry.identity.uaa.rest.jdbc.DefaultLimitSqlAdapter"/>
+    </beans>
+
+   <beans profile="oracle">
+        <context:property-placeholder location="${ORACLE_PROPERTIES:oracle.properties}"/>
+        <bean id="platform" class="java.lang.String">
+            <constructor-arg value="oracle" />
+        </bean>
+        <bean id="limitSqlAdapter" class="org.cloudfoundry.identity.uaa.rest.jdbc.OracleLimitSqlAdapter"/>
     </beans>
 
 </beans>

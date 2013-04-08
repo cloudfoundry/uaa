@@ -29,6 +29,9 @@ import java.util.UUID;
 import javax.sql.DataSource;
 
 import org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper;
+import org.cloudfoundry.identity.uaa.rest.jdbc.DefaultLimitSqlAdapter;
+import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
+import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
@@ -59,7 +62,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  */
 @ContextConfiguration("classpath:/test-data-source.xml")
 @RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "", "test,postgresql", "hsqldb", "test,mysql" })
+@IfProfileValue(name = "spring.profiles.active", values = { "", "test,postgresql", "hsqldb", "test,mysql", "test,oracle" })
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class JdbcScimUserProvisioningTests {
 
@@ -67,6 +70,9 @@ public class JdbcScimUserProvisioningTests {
 	private DataSource dataSource;
 
 	private JdbcTemplate template;
+	
+	@Autowired
+	private LimitSqlAdapter limitSqlAdapter;
 
 	private JdbcScimUserProvisioning db;
 
@@ -87,7 +93,7 @@ public class JdbcScimUserProvisioningTests {
 
         template = new JdbcTemplate(dataSource);
 
-		db = new JdbcScimUserProvisioning(template);
+		db = new JdbcScimUserProvisioning(template, new JdbcPagingListFactory(template, limitSqlAdapter));
 		ScimSearchQueryConverter filterConverter = new ScimSearchQueryConverter();
 		Map<String, String> replaceWith = new HashMap<String, String>();
 		replaceWith.put("emails\\.value", "email");
@@ -122,7 +128,7 @@ public class JdbcScimUserProvisioningTests {
 	public void clear() throws Exception {
 		template.execute("delete from users where id = '" + JOE_ID + "'");
 		template.execute("delete from users where id = '" + MABEL_ID + "'");
-		template.execute("delete from users where userName = 'jo@foo.com'");
+		template.execute("delete from users where userName = 'JO@FOO.COM'");
 	}
 
 	@Test
@@ -253,7 +259,7 @@ public class JdbcScimUserProvisioningTests {
 	public void canDeactivateExistingUser() {
         String tmpUserId = createUserForDelete();
         ScimUser deletedUser = db.delete(tmpUserId, 0);
-		assertEquals(1, template.queryForList("select * from users where id=? and active=false", tmpUserId).size());
+		assertEquals(1, template.queryForList("select * from users where id=? and active=?", tmpUserId, false).size());
 		assertFalse(deletedUser.isActive());
 		assertEquals(1, db.query("username eq '" + tmpUserId + "' and active eq false").size());
         removeUser(tmpUserId);

@@ -9,6 +9,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.rest.jdbc.AbstractQueryable;
+import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -31,8 +32,8 @@ public class JdbcQueryableClientDetailsService extends AbstractQueryable<ClientD
 	private static final String BASE_FIND_STATEMENT = "select client_id, " + CLIENT_FIELDS
 															  + " from oauth_client_details";
 
-	public JdbcQueryableClientDetailsService(JdbcClientDetailsService delegate, JdbcTemplate jdbcTemplate) {
-		super(jdbcTemplate, new ClientDetailsRowMapper());
+	public JdbcQueryableClientDetailsService(JdbcClientDetailsService delegate, JdbcTemplate jdbcTemplate, JdbcPagingListFactory pagingListFactory) {
+		super(jdbcTemplate, pagingListFactory, new ClientDetailsRowMapper());
 		this.delegate = delegate;
 	}
 

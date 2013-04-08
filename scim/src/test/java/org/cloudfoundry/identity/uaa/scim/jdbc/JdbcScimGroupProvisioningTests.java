@@ -10,6 +10,9 @@ import javax.sql.DataSource;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.rest.jdbc.DefaultLimitSqlAdapter;
+import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
+import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
@@ -29,7 +32,7 @@ import org.springframework.util.StringUtils;
 
 @ContextConfiguration("classpath:/test-data-source.xml")
 @RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = {"", "test,postgresql", "hsqldb", "test,mysql"})
+@IfProfileValue(name = "spring.profiles.active", values = {"", "test,postgresql", "hsqldb", "test,mysql", "test,oracle"})
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class JdbcScimGroupProvisioningTests {
 
@@ -39,6 +42,9 @@ public class JdbcScimGroupProvisioningTests {
 	private DataSource dataSource;
 
 	private JdbcTemplate template;
+
+	@Autowired
+	private LimitSqlAdapter limitSqlAdapter;
 
 	private JdbcScimGroupProvisioning dao;
 
@@ -53,7 +59,7 @@ public class JdbcScimGroupProvisioningTests {
 
 		template = new JdbcTemplate(dataSource);
 
-		dao = new JdbcScimGroupProvisioning(template);
+		dao = new JdbcScimGroupProvisioning(template, new JdbcPagingListFactory(template, limitSqlAdapter));
 
 		addGroup("g1", "uaa.user");
 		addGroup("g2", "uaa.admin");

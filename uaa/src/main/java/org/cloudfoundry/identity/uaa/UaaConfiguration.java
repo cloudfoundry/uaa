@@ -21,7 +21,7 @@ import org.yaml.snakeyaml.Yaml;
  */
 public class UaaConfiguration {
 	public String name;
-	@Pattern(regexp="(default|postgresql|hsqldb|mysql)")
+	@Pattern(regexp="(default|postgresql|hsqldb|mysql|oracle)")
 	public String platform;
 	public String spring_profiles;
 	@URL(message = "issuer.uri must be a valid URL")
