@@ -155,6 +155,8 @@ public class ClientAdminEndpointsIntegrationTests {
 		client.setResourceIds(Collections.singleton("foo"));
 		client.setClientSecret(null);
 		client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("some.crap"));
+		client.setAccessTokenValiditySeconds(60);
+		client.setRefreshTokenValiditySeconds(120);
 		client.setAdditionalInformation(Collections.<String,Object>singletonMap("foo", Arrays.asList("rab")));
 
 		ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients/{client}"),
@@ -166,6 +168,8 @@ public class ClientAdminEndpointsIntegrationTests {
 		String body = response.getBody();
 		assertTrue(body.contains(client.getClientId()));
 		assertTrue(body.contains("some.crap"));
+		assertTrue(body.contains("refresh_token_validity\":120"));
+		assertTrue(body.contains("access_token_validity\":60"));
 		assertTrue("Wrong body: " + body, body.contains("\"foo\":[\"rab\"]"));
 
 	}
