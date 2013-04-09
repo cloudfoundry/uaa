@@ -137,27 +137,25 @@ object OAuthComponents {
    * Single vmc login action with a specific username/password
    */
   def vmcLogin(username: String = "${username}", password: String = "${password}"): ActionBuilder =
-    vmcAction("VMC login", username, password)
-      .check(status is 302, fragmentToken.saveAs("access_token"))
+    vmcAction("CF login", username, password)
+      .check(status is 200, jsonToken.saveAs("access_token"))
 
   def vmcLoginBadPassword(username: String = "${username}"): ActionBuilder =
-    vmcAction("VMC failed login - bad password", username, "pXssword")
+    vmcAction("CF failed login - bad password", username, "pXssword")
       .check(status is 401)
 
   def vmcLoginBadUsername(): ActionBuilder =
-    vmcAction("VMC failed login - no user", "idontexist", "password")
+    vmcAction("CF failed login - no user", "idontexist", "password")
       .check(status is 401)
 
   private def vmcAction(name: String, username: String, password: String) =
     http(name)
-      .post("/oauth/authorize")
-      .param("client_id", "vmc")
-      .param("source", "credentials")
+      .post("/oauth/token")
       .param("username", username)
       .param("password", password)
-      .param("redirect_uri", "https://uaa.cloudfoundry.com/redirect/vmc")
-      .param("response_type", "token")
-      .headers(plainHeaders)
+      .param("grant_type", "password")
+      .basicAuth("cf", "")
+      .header("Accept", "application/json")
 
   def login: ActionBuilder = login("${username}", "${password}")
 

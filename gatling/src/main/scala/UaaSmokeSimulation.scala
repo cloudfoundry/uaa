@@ -27,16 +27,16 @@ class UaaSmokeSimulation extends Simulation {
       .exec(logout)
   }
 
-  val vmcLogins = scenario("VMC Logins")
+  val vmcLogins = scenario("CF Logins")
     .during(Duration) {
       feed(UsernamePasswordFeeder())
+//        .exec(vmcLoginBadPassword())
         .exec(vmcLogin())
         .exec(vmcLogin())
-        .exec(vmcLoginBadPassword())
-        .exec(vmcLoginBadUsername())
+//        .exec(vmcLoginBadUsername())
         .exec(vmcLogin())
         .exec(vmcLogin(username="shaun1", password="password"))
-        .pause(0, 2000)
+        .pause(0, 2)
   }
 
   val random = new scala.util.Random()
@@ -83,9 +83,9 @@ class UaaSmokeSimulation extends Simulation {
   setUp(
        uiLoginLogout.users(2).ramp(10).protocolConfig(loginHttpConfig)
        , scimWorkout.users(3).ramp(10).protocolConfig(uaaHttpConfig)
-       , authzCodeLogin.users(10).ramp(10).protocolConfig(loginHttpConfig)
+       , authzCodeLogin.users(5).ramp(10).protocolConfig(loginHttpConfig)
        , passwordScores.users(1).ramp(10).protocolConfig(uaaHttpConfig)
-       , vmcLogins.users(15).ramp(10).protocolConfig(uaaHttpConfig)
+       , vmcLogins.users(10).ramp(1).protocolConfig(uaaHttpConfig)
     )
 
 }
