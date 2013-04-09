@@ -25,6 +25,7 @@ case class Client(id: String, secret: String, scopes: Seq[String], resources: Se
           "scope" : [%s],
           "resource_ids" : [%s],
           "authorities" : [%s],
+          "autoapprove": true,
           "authorized_grant_types" : [%s]
     }
     """.format(id, secret, redirectJson, fmt(scopes), fmt(resources), fmt(authorities), fmt(grants))

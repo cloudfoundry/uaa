@@ -16,6 +16,7 @@ object GatlingPlugin {
     gatlingResultsDirectory <<= target(_.getAbsolutePath + "/gatling-results"),
     gatlingDataDirectory <<= (resourceDirectory in Compile).apply(_.getAbsolutePath),
     gatlingConfigFile <<= (resourceDirectory in Compile).apply(_.getAbsolutePath + "/gatling.conf"),
+    trapExit := true,
 
     libraryDependencies <++= (gatlingVersion) { gv => Seq(
       "com.excilys.ebi.gatling" % "gatling-app" % gv,
@@ -30,7 +31,7 @@ object GatlingPlugin {
 //                        "--config-file", gcf,
                         "--simulations-binaries-folder", cd.absolutePath)
 
-          toError(runner.run("com.excilys.ebi.gatling.app.Gatling", Build.data(cp), args, s.log))
+          runner.run("com.excilys.ebi.gatling.app.Gatling", Build.data(cp), args, s.log)
         }
     }
   )

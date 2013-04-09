@@ -55,7 +55,7 @@ object Config {
 
   // Client to mimic a registered application for authorization code flows etc.
   val appClient = Client(
-      id = "app_client",
+      id = "gatling_app",
       secret= "app_client_secret",
       scopes = Seq("cloud_controller.read","cloud_controller.write","openid","password.write","tokens.read","tokens.write"),
       redirectUri = Some("http://localhost:8080/app"),

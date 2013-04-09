@@ -9,8 +9,9 @@ import uaa.OAuthComponents._
 import uaa.{UniqueGroupFeeder, UniqueUsernamePasswordFeeder}
 import bootstrap._
 
-class UaaUserDataCreationSimulation extends Simulation {
-  val registerClients = scenario("Register clients")
+
+object RegisterClients {
+  val scn = scenario("Register clients")
     .exec(adminClientLogin())
     .doIf(haveAccessToken)(exec(
         registerClient(scimClient)
@@ -19,32 +20,27 @@ class UaaUserDataCreationSimulation extends Simulation {
         registerClient(appClient)
       )
     )
+}
 
+
+class UaaUserDataCreationSimulation extends Simulation {
   def createUsers = scenario("Create users")
     .pause(5)
     .exec(createScimUsers(UniqueUsernamePasswordFeeder(users)))
 
   setUp(
-      registerClients.users(1).protocolConfig(uaaHttpConfig)
-      , createUsers.users(5).protocolConfig(uaaHttpConfig)
+      RegisterClients.scn.users(1).protocolConfig(uaaHttpConfig)
+//      , createUsers.users(5).protocolConfig(uaaHttpConfig)
     )
 }
 
 class UaaGroupDataCreationSimulation extends Simulation {
-  val registerClients = scenario("Register clients")
-    .exec(adminClientLogin())
-    .doIf(haveAccessToken)(exec(
-    registerClient(scimClient)
-    )
-    .exec(registerClient(appClient))
-  )
-
   def createGroups = scenario("Create groups")
     .pause(5)
     .exec(createScimGroups(UniqueGroupFeeder()))
 
   setUp(
-      registerClients.users(1).protocolConfig(uaaHttpConfig),
+      RegisterClients.scn.users(1).protocolConfig(uaaHttpConfig),
       createGroups.users(5).protocolConfig(uaaHttpConfig)
     )
 }
