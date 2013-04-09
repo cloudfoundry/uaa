@@ -1,11 +1,11 @@
 
 import com.excilys.ebi.gatling.core.Predef._
-
 import com.excilys.ebi.gatling.http.Predef._
-import java.util.concurrent.TimeUnit
+
 import uaa.Config._
 import uaa.ScimApi._
-import uaa.{UniqueUsernamePasswordFeeder, User, UsernamePasswordFeeder}
+import uaa.UsernamePasswordFeeder
+import bootstrap._
 
 import uaa.OAuthComponents._
 
@@ -22,26 +22,26 @@ class UaaSmokeSimulation extends Simulation {
   val uiLoginLogout = scenario("UI Login/Logout")
     .feed(UsernamePasswordFeeder())
     .during(Duration) {
-      chain.exec(login)
-      .pause(0, 2000, TimeUnit.MILLISECONDS)
-      .insertChain(logout)
+      exec(login)
+      .pause(0, 2)
+      .exec(logout)
   }
 
   val vmcLogins = scenario("VMC Logins")
     .during(Duration) {
-      chain.feed(UsernamePasswordFeeder())
+      feed(UsernamePasswordFeeder())
         .exec(vmcLogin())
         .exec(vmcLogin())
         .exec(vmcLoginBadPassword())
         .exec(vmcLoginBadUsername())
         .exec(vmcLogin())
         .exec(vmcLogin(username="shaun1", password="password"))
-        .pause(0, 2000, TimeUnit.MILLISECONDS)
+        .pause(0, 2000)
   }
 
   val random = new scala.util.Random()
 
-  val randomUserFeeder = new Feeder() {
+  val randomUserFeeder = new Feeder[String]() {
     def hasNext = true
     def next() = Map("username" -> ("randy_" + random.nextLong()), "password" -> "password")
   }
@@ -56,7 +56,7 @@ class UaaSmokeSimulation extends Simulation {
           .exec(createUser)
           .exec(findUserByName("username"))
           .exec(getUser)
-          .pause(0, 2000, TimeUnit.MILLISECONDS)
+          .pause(0, 2)
        }
     }
 
@@ -80,15 +80,12 @@ class UaaSmokeSimulation extends Simulation {
       .pause(1,5)
     }
 
-
-  def apply = {
-    Seq(
-       uiLoginLogout.configure users 2 ramp 10 protocolConfig loginHttpConfig
-       , scimWorkout.configure users 10 ramp 10 protocolConfig uaaHttpConfig
-       , authzCodeLogin.configure users 10 ramp 10 protocolConfig loginHttpConfig
-       , passwordScores.configure users 1 ramp 10 protocolConfig uaaHttpConfig
-       , vmcLogins.configure users 15 ramp 10 protocolConfig uaaHttpConfig
+  setUp(
+       uiLoginLogout.users(2).ramp(10).protocolConfig(loginHttpConfig)
+       , scimWorkout.users(3).ramp(10).protocolConfig(uaaHttpConfig)
+       , authzCodeLogin.users(10).ramp(10).protocolConfig(loginHttpConfig)
+       , passwordScores.users(1).ramp(10).protocolConfig(uaaHttpConfig)
+       , vmcLogins.users(15).ramp(10).protocolConfig(uaaHttpConfig)
     )
-  }
 
 }

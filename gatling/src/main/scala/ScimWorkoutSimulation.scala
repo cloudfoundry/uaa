@@ -1,15 +1,13 @@
 import com.excilys.ebi.gatling.core.Predef._
+import com.excilys.ebi.gatling.http.Predef._
 
-import java.util.concurrent.ConcurrentLinkedQueue
 import uaa.Config._
-
-import uaa.ConstantFeeder
-import uaa.RandomGroupMemberFeeder
 import uaa.ScimApi._
 import uaa._
 import uaa.SequentialDisplayNameFeeder
 import uaa.UsernamePasswordFeeder
 
+import bootstrap._
 /**
  * @author Luke Taylor
  * @author Vidya Valmikinathan
@@ -32,16 +30,16 @@ class ScimWorkoutSimulation extends Simulation {
       .exec(getGroup)
     }
     .repeat(nUsers - 1) { // repeatedly update the same group and make it grow gradually
-      bootstrap.feed(RandomGroupMemberFeeder(users, 1))
+      feed(RandomGroupMemberFeeder(users, 1))
       .exec(findUserByName("memberName_1", "memberId"))
       .exec(addGroupMember("memberId"))
     }
     .repeat(1) { // prepare base for next part of workout
-      bootstrap.feed(ConstantFeeder("displayName", "acme"))
+      feed(ConstantFeeder("displayName", "acme"))
       .exec(findGroupByName("displayName", "memberId"))
     }
     .repeat(20) { // nest groups repeatedly
-      bootstrap.feed(UniqueGroupFeeder(users, groups, 1))
+      feed(UniqueGroupFeeder(users, groups, 1))
       .exec(findUserByName("displayName", "groupId"))
       .exec(getGroup)
       .exec(nestGroup)
@@ -54,11 +52,8 @@ class ScimWorkoutSimulation extends Simulation {
         s})
     }
 
-
-  def apply = {
-    Seq(
-      scimWorkout.configure users 1 protocolConfig uaaHttpConfig,
-      groupsWorkout.configure users 1 protocolConfig uaaHttpConfig
+    setUp (
+      scimWorkout.users(1).protocolConfig(uaaHttpConfig),
+      groupsWorkout.users(1).protocolConfig(uaaHttpConfig)
     )
-  }
 }

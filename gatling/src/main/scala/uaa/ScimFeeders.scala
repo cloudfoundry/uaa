@@ -11,7 +11,7 @@ import collection.{mutable}
  * Various types of feeders for SCIM resources
  * @author Vidya Valmikinathan
  */
-case class UniqueUsernamePasswordFeeder(usrs: Seq[User], password: Option[String] = None) extends Feeder {
+case class UniqueUsernamePasswordFeeder(usrs: Seq[User], password: Option[String] = None) extends Feeder[String] {
   private val users = new ConcurrentLinkedQueue[User](usrs)
 
   println("%d users".format(users.size()))
@@ -25,7 +25,7 @@ case class UniqueUsernamePasswordFeeder(usrs: Seq[User], password: Option[String
   def hasNext = !users.isEmpty
 }
 
-case class UniqueGroupFeeder(usrs: Seq[User] = Config.users, grps: Seq[Group] = Config.groups, grpSize: Int = Config.avgGroupSize) extends Feeder {
+case class UniqueGroupFeeder(usrs: Seq[User] = Config.users, grps: Seq[Group] = Config.groups, grpSize: Int = Config.avgGroupSize) extends Feeder[String] {
   private val nameFeeder = new UniqueDisplayNameFeeder(grps)
   private val memberFeeder = new RandomGroupMemberFeeder(usrs, grpSize)
 
@@ -40,7 +40,7 @@ case class UniqueGroupFeeder(usrs: Seq[User] = Config.users, grps: Seq[Group] = 
   }
 }
 
-case class UniqueDisplayNameFeeder(grps: Seq[Group]) extends Feeder {
+case class UniqueDisplayNameFeeder(grps: Seq[Group]) extends Feeder[String] {
   private val groups = new ConcurrentLinkedQueue[Group](grps)
 
   println("%d groups".format(groups.size()))
@@ -52,7 +52,7 @@ case class UniqueDisplayNameFeeder(grps: Seq[Group]) extends Feeder {
   def hasNext = !groups.isEmpty
 }
 
-case class SequentialDisplayNameFeeder(grps: Seq[Group] = Config.groups, resetAfter: Int = (Config.groups.size-1)) extends Feeder {
+case class SequentialDisplayNameFeeder(grps: Seq[Group] = Config.groups, resetAfter: Int = (Config.groups.size-1)) extends Feeder[String] {
   private val groups = grps
   private var counter = -1
 
@@ -68,7 +68,7 @@ case class SequentialDisplayNameFeeder(grps: Seq[Group] = Config.groups, resetAf
 
 }
 
-case class RandomGroupMemberFeeder(usrs: Seq[User] = Config.users, n: Int = Config.avgGroupSize) extends Feeder {
+case class RandomGroupMemberFeeder(usrs: Seq[User] = Config.users, n: Int = Config.avgGroupSize) extends Feeder[String] {
   private val users = usrs
   private val randGen = new Random
   private val num = n
@@ -87,7 +87,7 @@ case class RandomGroupMemberFeeder(usrs: Seq[User] = Config.users, n: Int = Conf
   def hasNext = !users.isEmpty && num > 0
 }
 
-case class ConstantFeeder(key: String = "constantKey", value: String = "constantValue") extends Feeder {
+case class ConstantFeeder(key: String = "constantKey", value: String = "constantValue") extends Feeder[String] {
   def hasNext = true
 
   def next = {

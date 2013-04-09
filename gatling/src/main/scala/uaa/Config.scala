@@ -15,15 +15,16 @@ package uaa
 import com.excilys.ebi.gatling.http.Predef.httpConfig
 import java.io.File
 import io.Source
+import com.excilys.ebi.gatling.http.config.HttpProtocolConfiguration
 
 /**
  */
 object Config {
   // Number of base data users to create
-  val nUsers = 10000
+  val nUsers = 1000
 
   // Number of base data groups to create
-  val nGroups = 500
+  val nGroups = 50
 
   // Average number of members in a group
   val avgGroupSize = nUsers/nGroups
@@ -39,7 +40,7 @@ object Config {
     target
   }
 
-  def baseUrl = (sys.env.get("VCAP_BVT_TARGET") orElse yetiTarget) map (_.replace("api.", ""))
+  def baseUrl = (sys.env.get("VCAP_BVT_TARGET") orElse yetiTarget) map (_.replace("ccng.", ""))
 
   private def prependHttp(url: String) = if (url.startsWith("http")) url else "http://" + url
 

@@ -49,8 +49,8 @@ object UaaGatlingBuild extends Build {
     val typesafeRepo = "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases"
 
     val buildSettings = Defaults.defaultSettings ++ gatlingSettings ++ Seq (
-      scalaVersion := "2.9.2",
-      gatlingVersion := "1.3.5",
+      scalaVersion := "2.9.3",
+      gatlingVersion := "1.4.6",
       version      := "0.1-SNAPSHOT",
       resolvers ++= Seq(mavenLocalRepo, excilysReleaseRepo, excilys3rdPartyRepo, jenkinsRepo, typesafeRepo, twitterRepo))
 

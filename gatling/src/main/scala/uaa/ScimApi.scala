@@ -20,6 +20,7 @@ import uaa.OAuthComponents._
 import uaa.Config._
 import com.excilys.ebi.gatling.http.Predef._
 import com.excilys.ebi.gatling.core.action.builder.ActionBuilder
+import bootstrap._
 
 /**
  * @author Luke Taylor
@@ -37,28 +38,28 @@ object ScimApi {
    * Usernames can optionally be prefixed
    */
   def createScimUsers(userFeeder: UniqueUsernamePasswordFeeder): ChainBuilder =
-    chain.exec(
+    exec(
       scimClientLogin()
     )
     .doIf(haveAccessToken)(
-      chain.loop(
-      chain.feed(userFeeder)
+      asLongAs(s => {userFeeder.hasNext}) {
+      feed(userFeeder)
         .exec((s: Session) => {println("Creating user: %s" format(s.getAttribute("username"))); s})
         .exec(createUser)
-      ).asLongAs(s => {userFeeder.hasNext})
+      }
     )
 
   def createScimGroups(groupFeeder: UniqueGroupFeeder): ChainBuilder =
-    chain.exec(
+    exec(
       scimClientLogin()
     )
     .doIf(haveAccessToken)(
-      chain.loop(
-        chain.feed(groupFeeder)
+      asLongAs(s => {groupFeeder.hasNext}) {
+        feed(groupFeeder)
           .exec(findUserByName("memberName_1", "memberId_1"))
           .exec(findUserByName("memberName_2", "memberId_2"))
           .exec(createGroup)
-      ).asLongAs(s => {groupFeeder.hasNext})
+      }
     )
 
   /**
@@ -171,7 +172,7 @@ object ScimApi {
    * @param member the id of the user to add
    * @return
    */
-  def addGroupMember (member: String) =
+  def addGroupMember (member: String) : ActionBuilder =
     http("Add member to group")
       .put("/Groups/${groupId}")
       .header("Authorization", "Bearer ${access_token}")
@@ -183,7 +184,7 @@ object ScimApi {
   /**
    * Add a group as member to another group.
    */
-  def nestGroup =
+  def nestGroup : ActionBuilder =
     http("Add member to group")
       .put("/Groups/${groupId}")
       .header("Authorization", "Bearer ${access_token}")

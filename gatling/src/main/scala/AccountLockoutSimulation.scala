@@ -5,6 +5,7 @@ import uaa.Config._
 import uaa.UniqueUsernamePasswordFeeder
 import uaa.OAuthComponents._
 
+import bootstrap._
 /**
  * Simulates logins with an incorrect password until the account is locked out,
  * followed by an attempt with the correct password (which should fail)
@@ -14,7 +15,7 @@ class AccountLockoutSimulation extends Simulation {
   val lockoutScenario = scenario("Account Lockout")
       .feed(UniqueUsernamePasswordFeeder(users))
       .repeat(10)(
-        chain.exec(vmcLoginBadPassword())
+        exec(vmcLoginBadPassword())
       )
       .pause(61*5) // 5 mins 5 secs
       .exec((s:Session) => {
@@ -22,10 +23,7 @@ class AccountLockoutSimulation extends Simulation {
       })
       .exec(vmcLogin())
 
-
-  def apply = {
-    Seq(
-      lockoutScenario.configure users 5 protocolConfig uaaHttpConfig
-    )
-  }
+  setUp (
+      lockoutScenario.users(5).protocolConfig(uaaHttpConfig)
+  )
 }

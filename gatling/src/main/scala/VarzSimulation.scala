@@ -3,6 +3,7 @@ import com.excilys.ebi.gatling.core.Predef._
 
 import com.excilys.ebi.gatling.http.Predef._
 import uaa.Config._
+import bootstrap._
 
 /**
  * Scenarios which hit /varz and /healthz.
@@ -13,8 +14,8 @@ class VarzSimulation extends Simulation {
   val Duration = 60
 
   def varzScenario(duration: Int = 60) = scenario("Varz")
-    .loop(
-      chain.exec(
+    .during(duration) (
+      exec(
         http("Varz")
         .get("/varz")
         .basicAuth(varz_client_id, varz_client_secret)
@@ -31,7 +32,7 @@ class VarzSimulation extends Simulation {
           .basicAuth(varz_client_id, varz_client_secret)
           .check(status is 200)
       )
-    ).during(duration)
+    )
 
-  def apply() = Seq (varzScenario(Duration).configure users 50 ramp 10 protocolConfig uaaHttpConfig )
+    setUp( varzScenario(Duration).users(50).ramp(10).protocolConfig(uaaHttpConfig) )
 }
