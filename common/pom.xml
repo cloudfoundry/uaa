@@ -221,7 +221,7 @@
 			<groupId>org.hibernate</groupId>
 			<artifactId>hibernate-validator</artifactId>
 			<version>4.3.1.Final</version>
-			<!--<optional>true</optional>-->
+			<optional>true</optional>
 		</dependency>
 
 		<dependency>
