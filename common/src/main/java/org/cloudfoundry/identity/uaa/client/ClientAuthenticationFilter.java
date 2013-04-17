@@ -62,7 +62,7 @@ public class ClientAuthenticationFilter extends AbstractPreAuthenticatedProcessi
 	private boolean oauth2Available = false;
 
 	/**
-	 * @param socialClientUserDetailsSource the socialClientUserDetailsSource to set
+	 * @param principalSource the PreAuthenticatedPrincipalSource to set
 	 */
 	public void setPreAuthenticatedPrincipalSource(PreAuthenticatedPrincipalSource<?> principalSource) {
 		this.principalSource = principalSource;
