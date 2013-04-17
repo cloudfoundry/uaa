@@ -35,8 +35,8 @@
 							password.</div>
 					</c:if>
 					<c:forEach items="${prompts}" var="prompt">
-						<input id='${prompt.key}' type='${prompt.value[0]}'
-							name='${prompt.key}' placeholder='${prompt.value[1]}' />
+						<input id='${prompt.key==null ? prompt.name : prompt.key}' type='${prompt.key==null ? prompt.type : prompt.value[0]}'
+							name='${prompt.key==null ? prompt.name : prompt.key}' placeholder='${prompt.key==null ? prompt.text : prompt.value[1]}' />
 					</c:forEach>
 				</div>
 				<button type="submit" class="button">Sign in</button>
