@@ -29,6 +29,7 @@ the access decisions taken by the UAA are used as an example.
 		- [User Account Management](#user-account-management)
 		- [Username from ID Queries](#username-from-id-queries)
 		- [User Profiles](#user-profiles)
+		- [Groups & Membership Management](#group-membership-management)
 		- [Token Resources for Providers](#token-resources-for-providers)
 		- [Management Information](#management-information)
 		- [Login Prompts](#login-prompts)
@@ -348,11 +349,17 @@ Resource ID = `password`.  Rules:
 
 Resource ID = `scim`.  Rules:
 
-* List or inspect users
-  * Token has scope `scim.read`
+* List or search users
+  * Token with scope `scim.read` provides read/query access to ALL users in the UAA
 
-* Delete, add or update user account
+* Delete, add user account
   * Token has scope `scim.write`
+
+* Update existing user account
+  * Token with scope `scim.write` lets you update ANY user's information in the UAA
+
+In addition, a User Token obtained by a client with authorities `scim.me` (eg. token from authorization_code
+or password grant flow) provides read/query/update access to that particular user's account.
 
 ### Username from ID Queries
 
@@ -368,6 +375,28 @@ Used for Single Sign On (OpenID Connect lite).  Resource ID = `openid`.  Rules:
 
 * Obtain user profile data
   * Token has scope `openid`
+
+### Groups & Membership Management
+
+Resource ID = `scim`. Rules:
+
+* List or Search groups
+  * Token has scope `scim.read`
+
+* Delete or Add groups
+  * Token has scope `scim.write`
+
+* Update group name or add/remove members
+  * Token has either `scim.write` OR `groups.update`
+
+In addition, a User Token obtained by a client with authorities `scim.me` (eg. token from authorization_code
+or password grant flow) provides the following access:
+
+* List or Search groups
+  * Response contains the group(s) that lists the user as a `reader`.
+
+* Update group name or add/remove members
+  * The user is listed as a `writer` in the group being updated.
 
 ### Token Resources for Providers
 
