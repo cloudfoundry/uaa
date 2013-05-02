@@ -17,6 +17,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.Rule;
@@ -44,7 +45,7 @@ public class LoginInfoEndpointIntegrationTests {
 		ResponseEntity<Map> response = serverRunning.getForObject("/info", Map.class);
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		@SuppressWarnings("unchecked")
-		Map<String, String[]> prompts = (Map<String, String[]>) response.getBody().get("prompts");
+		List<Map<String, String[]>> prompts = (List<Map<String, String[]>>) response.getBody().get("prompts");
 		assertNotNull(prompts);
 
 	}

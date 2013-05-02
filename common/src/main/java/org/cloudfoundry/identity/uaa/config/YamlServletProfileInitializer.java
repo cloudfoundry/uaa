@@ -31,7 +31,6 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.constructor.Constructor;
 
 /**
  * An {@link ApplicationContextInitializer} for a web application to enable it to externalize the environment and
@@ -54,6 +53,10 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 
 	public static final String[] DEFAULT_PROFILE_CONFIG_FILE_LOCATIONS = new String[] { "${APPLICATION_CONFIG_URL}",
 			"file:${APPLICATION_CONFIG_FILE}" };
+
+	private static final String DEFAULT_YAML_KEY = "environmentYamlKey";
+
+	private String rawYamlKey = DEFAULT_YAML_KEY;
 
 	@Override
 	public void initialize(ConfigurableWebApplicationContext applicationContext) {
@@ -93,7 +96,7 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 
 			Map<String, Object> map = factory.getObject();
 			String yamlStr = (new Yaml()).dump(map);
-			map.put("__rawYaml", yamlStr);
+			map.put(rawYamlKey, yamlStr);
 			NestedMapPropertySource properties = new NestedMapPropertySource("servletConfigYaml", map);
 			applicationContext.getEnvironment().getPropertySources().addLast(properties);
 			applySpringProfiles(applicationContext.getEnvironment(), servletContext);

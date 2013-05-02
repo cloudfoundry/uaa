@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>org.cloudfoundry.identity</groupId>
 		<artifactId>cloudfoundry-identity-parent</artifactId>
-		<version>1.4.1</version>
+		<version>1.4.2</version>
 		<relativePath>..</relativePath>
 	</parent>
 
@@ -327,6 +327,12 @@
 			<groupId>edu.vt.middleware</groupId>
 			<artifactId>vt-password</artifactId>
 			<scope>runtime</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.hibernate</groupId>
+			<artifactId>hibernate-validator</artifactId>
+			<version>4.3.1.Final</version>
 		</dependency>
 
 		<dependency>

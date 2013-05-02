@@ -95,13 +95,19 @@ public class CheckTokenEndpoint implements InitializingBean {
 		return claims;
 	}
 
-	@ExceptionHandler(OAuth2Exception.class)
+	@ExceptionHandler(InvalidTokenException.class)
 	public ResponseEntity<OAuth2Exception> handleException(Exception e) throws Exception {
 		logger.info("Handling error: " + e.getClass().getSimpleName() + ", " + e.getMessage());
-		return exceptionTranslator.translate(e);
+		// This isn't an oauth resource, so we don't want to send an unauthorized code here.
+		// The client has already authenticated successfully with basic auth and should just
+		// get back the invalid token error.
+		InvalidTokenException e400 = new InvalidTokenException(e.getMessage()) {
+			@Override
+			public int getHttpErrorCode() {
+				return 400;
+			}
+		};
+		return exceptionTranslator.translate(e400);
 	}
 
-	public void setExceptionTranslator(WebResponseExceptionTranslator exceptionTranslator) {
-		this.exceptionTranslator = exceptionTranslator;
-	}
 }

@@ -12,6 +12,7 @@
  */
 package org.cloudfoundry.identity.uaa.oauth;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Collection;
 import java.util.HashSet;
@@ -24,6 +25,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
@@ -38,24 +40,44 @@ import org.springframework.security.oauth2.provider.token.ResourceServerTokenSer
 import org.springframework.util.Assert;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.DefaultResponseErrorHandler;
+import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
 /**
+ * Queries the /check_token endpoint to obtain the contents of an access token.
+ *
+ * If the endpoint returns a 400 response, this indicates that the token is invalid.
+ *
  * @author Dave Syer
- * 
+ * @author Luke Taylor
+ *
  */
 public class RemoteTokenServices implements ResourceServerTokenServices {
 
 	protected final Log logger = LogFactory.getLog(getClass());
 
-	private RestOperations restTemplate = new RestTemplate();
+	private RestOperations restTemplate;
 
 	private String checkTokenEndpointUrl;
 
 	private String clientId;
 
 	private String clientSecret;
+
+	public RemoteTokenServices() {
+		restTemplate = new RestTemplate();
+		((RestTemplate)restTemplate).setErrorHandler(new DefaultResponseErrorHandler() {
+			@Override
+			// Ignore 400
+			public void handleError(ClientHttpResponse response) throws IOException {
+				if (response.getRawStatusCode() != 400) {
+					super.handleError(response);
+				}
+			}
+		});
+	}
 
 	public void setRestTemplate(RestOperations restTemplate) {
 		this.restTemplate = restTemplate;

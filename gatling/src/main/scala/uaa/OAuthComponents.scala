@@ -25,6 +25,7 @@ import com.excilys.ebi.gatling.http.request.HttpPhase
 import OAuthCheckBuilder._
 import com.excilys.ebi.gatling.core.action.builder.ActionBuilder
 import com.excilys.ebi.gatling.http.response.ExtendedResponse
+import bootstrap._
 
 /**
  * Checks for the presence of an access token or authorization code in the fragment/parameters of the Location header
@@ -122,7 +123,7 @@ object OAuthComponents {
    * in the client session under the key "access_token".
    */
   def clientCredentialsAccessTokenRequest(
-    username: String, password: String, client_id: String, scope: String = "") =
+    username: String, password: String, client_id: String, scope: String = ""): ActionBuilder =
       http("Client Credentials Token Request")
         .post("/oauth/token")
         .basicAuth(username, password)
@@ -136,27 +137,25 @@ object OAuthComponents {
    * Single vmc login action with a specific username/password
    */
   def vmcLogin(username: String = "${username}", password: String = "${password}"): ActionBuilder =
-    vmcAction("VMC login", username, password)
-      .check(status is 302, fragmentToken.saveAs("access_token"))
+    vmcAction("CF login", username, password)
+      .check(status is 200, jsonToken.saveAs("access_token"))
 
   def vmcLoginBadPassword(username: String = "${username}"): ActionBuilder =
-    vmcAction("VMC failed login - bad password", username, "pXssword")
+    vmcAction("CF failed login - bad password", username, "pXssword")
       .check(status is 401)
 
   def vmcLoginBadUsername(): ActionBuilder =
-    vmcAction("VMC failed login - no user", "idontexist", "password")
+    vmcAction("CF failed login - no user", "idontexist", "password")
       .check(status is 401)
 
   private def vmcAction(name: String, username: String, password: String) =
     http(name)
-      .post("/oauth/authorize")
-      .param("client_id", "vmc")
-      .param("source", "credentials")
+      .post("/oauth/token")
       .param("username", username)
       .param("password", password)
-      .param("redirect_uri", "https://uaa.cloudfoundry.com/redirect/vmc")
-      .param("response_type", "token")
-      .headers(plainHeaders)
+      .param("grant_type", "password")
+      .basicAuth("cf", "")
+      .header("Accept", "application/json")
 
   def login: ActionBuilder = login("${username}", "${password}")
 
@@ -168,7 +167,7 @@ object OAuthComponents {
     .headers(plainHeaders)
     .check(status.is(302), saveLocation())
 
-  def logout = chain.exec(
+  def logout = exec(
       http("Logout")
         .get("/logout.do")
         .headers(plainHeaders)
@@ -191,7 +190,7 @@ object OAuthComponents {
   def authorizationCodeLogin(username: String, password: String, client:Client): ChainBuilder = {
     val redirectUri = client.redirectUri.getOrElse(throw new RuntimeException("Client does not have a redirectUri"))
 
-     bootstrap.exec(
+     exec(
         http("Initial Request To Root")
            .get("/").check(status.is(302)))
         .exec(http("Authorization Endpoint")
@@ -211,13 +210,13 @@ object OAuthComponents {
         http("Reload after login")
           .get("${location}")
           .check(status.saveAs("status"), authCode.saveAs("code")))
-      .doIf(statusIs(200))(chain.exec( // Not auto-approved, so we do the approval page
+      .doIf(statusIs(200))(exec( // Not auto-approved, so we do the approval page
         http("Authorization Approval")
           .post("/oauth/authorize")
           .param("user_oauth_approval", "true")
           .check(status.is(302), authCode.saveAs("code"))))
       .exec(clearCookies(_))
-      .doIf(haveAuthCode) { chain.exec(
+      .doIf(haveAuthCode) {exec(
         http("Access Token Request")
           .post("/oauth/token")
           .basicAuth(client.id, client.secret)

@@ -17,7 +17,7 @@ import com.excilys.ebi.gatling.core.feeder.Feeder
 /**
  * Counter-based username generator with fixed password, defaulting to "password".
  */
-case class UsernamePasswordFeeder(prefix: String = "shaun", password: String = "password", resetAfter: Int = Config.nUsers) extends Feeder {
+case class UsernamePasswordFeeder(prefix: String = "shaun", password: String = "password", resetAfter: Int = Config.nUsers) extends Feeder[String] {
   var counter = 0
 
   def next = {

@@ -51,12 +51,11 @@ public class FormLoginIntegrationTests {
 		ResponseEntity<Void> result = serverRunning.getForResponse(location, headers);
 		// should be directed to the login screen...
 		assertEquals(HttpStatus.FOUND, result.getStatusCode());
-		
+
 		location = result.getHeaders().getLocation().toString();
 		assertTrue(location.contains("/login"));
 	}
-	
-	@Test
+
 	public void testUnauthenticatedHomeRedirect() throws Exception {
 
 		HttpHeaders headers = new HttpHeaders();
@@ -66,11 +65,11 @@ public class FormLoginIntegrationTests {
 		ResponseEntity<Void> result = serverRunning.getForResponse(location, headers);
 		// should be directed to the login screen...
 		assertEquals(HttpStatus.FOUND, result.getStatusCode());
-		
+
 		location = result.getHeaders().getLocation().toString();
 		assertTrue(location.contains("/login"));
 	}
-	
+
 	@Test
 	public void testSuccessfulAuthenticationFlow() throws Exception {
 
@@ -81,7 +80,7 @@ public class FormLoginIntegrationTests {
 		ResponseEntity<Void> result = serverRunning.getForResponse(location, headers);
 		// should be directed to the login screen...
 		assertEquals(HttpStatus.FOUND, result.getStatusCode());
-		
+
 		location = result.getHeaders().getLocation().toString();
 		ResponseEntity<String> response = serverRunning.getForString(location, headers);
 		assertTrue(response.getBody().contains("/login.do"));

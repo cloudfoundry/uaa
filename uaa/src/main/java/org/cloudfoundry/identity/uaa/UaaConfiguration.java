@@ -15,7 +15,7 @@ import org.yaml.snakeyaml.TypeDescription;
 import org.yaml.snakeyaml.Yaml;
 
 /**
- * Java representation of the UAA YML configuration for validation purposes.
+ * Java representation of the UAA YAML configuration for validation purposes.
  *
  * @author Luke Taylor
  */

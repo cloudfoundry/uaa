@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.authentication.login;
 import java.io.IOException;
 import java.security.Principal;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -62,8 +63,8 @@ public class LoginInfoEndpoint {
 		this.prompts = prompts;
 	}
 
-	@RequestMapping(value = { "/info", "/login" })
-	public String loginInfo(Model model, Principal principal) {
+	@RequestMapping(value = { "/", "/login" })
+	public String login(Model model, Principal principal) {
 		Map<String, String[]> map = new LinkedHashMap<String, String[]>();
 		for (Prompt prompt : prompts) {
 			map.put(prompt.getName(), prompt.getDetails());
@@ -80,6 +81,20 @@ public class LoginInfoEndpoint {
 			return "login";
 		}
 		return "home";
+	}
+	@RequestMapping("/info")
+	public String info(Model model, Principal principal) {
+		String result = login(model, principal);
+		List<Map<String, String>> list = new ArrayList<Map<String,String>>();
+		for (Prompt prompt : prompts) {
+			Map<String, String> map = new LinkedHashMap<String, String>();
+			map.put("name", prompt.getName());
+			map.put("type", prompt.getDetails()[0]);
+			map.put("text", prompt.getDetails()[1]);
+			list.add(map);
+		}
+		model.addAttribute("prompts", list);
+		return result;
 	}
 
 }

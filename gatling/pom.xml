@@ -12,8 +12,8 @@
 		<scala.version>2.9.2</scala.version>
 		<encoding>UTF-8</encoding>
 
-		<gatling.version>1.3.5</gatling.version>
-		<gatling-highcharts.version>1.3.5</gatling-highcharts.version>
+		<gatling.version>1.4.6</gatling.version>
+		<gatling-highcharts.version>1.4.6</gatling-highcharts.version>
 
 		<maven-scala-plugin.version>2.15.2</maven-scala-plugin.version>
 	</properties>
@@ -42,6 +42,11 @@
 				<version>${gatling-highcharts.version}</version>
 			</dependency>
 			<dependency>
+				<groupId>com.excilys.ebi.gatling.highcharts</groupId>
+				<artifactId>gatling-highcharts-maven-archetype</artifactId>
+				<version>${gatling-highcharts.version}</version>
+			</dependency>
+			<dependency>
 				<groupId>org.scala-lang</groupId>
 				<artifactId>scala-library</artifactId>
 				<version>${scala.version}</version>
@@ -54,6 +59,10 @@
 		</dependencies>
 	</dependencyManagement>
 	<dependencies>
+		<dependency>
+			<groupId>com.excilys.ebi.gatling.highcharts</groupId>
+			<artifactId>gatling-highcharts-maven-archetype</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>com.excilys.ebi.gatling</groupId>
 			<artifactId>gatling-app</artifactId>
@@ -103,7 +112,7 @@
 					<artifactId>maven-scala-plugin</artifactId>
 					<version>${maven-scala-plugin.version}</version>
 				</plugin>
-				<!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself.-->
+				<!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself. -->
 				<plugin>
 					<groupId>org.eclipse.m2e</groupId>
 					<artifactId>lifecycle-mapping</artifactId>
