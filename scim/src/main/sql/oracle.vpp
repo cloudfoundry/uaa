@@ -1,0 +1,7 @@
+#macro (sequence $name $value)CREATE SEQUENCE ${name} MAXVALUE 9223372036854775807 NOCYCLE;
+#end
+## Oracle must redefine the entire column
+#macro (notnull $name $type)MODIFY ${name} ${type} NOT NULL#end
+#macro (lower_constraint $name)lower(${name})#end
+#macro (second_timestamp)default ${SYSDATE} not null#end
+#macro (convert_boolean $value)#if( $value )1#end#if( !$value )0#end#end

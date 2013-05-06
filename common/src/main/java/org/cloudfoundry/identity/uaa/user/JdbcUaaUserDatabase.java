@@ -39,7 +39,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
 	public static final String USER_FIELDS = "id,username,password,email,givenName,familyName,created,lastModified ";
 
 	public static final String DEFAULT_USER_BY_USERNAME_QUERY = "select " + USER_FIELDS + "from users "
-			+ "where lower(username) = ? and active=true";
+			+ "where lower(username) = ? and active=?";
 
 	public static final String DEFAULT_USER_AUTHORITIES_QUERY = "select authorities from users where id = ?";
 	
@@ -73,7 +73,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
 	@Override
 	public UaaUser retrieveUserByName(String username) throws UsernameNotFoundException {
 		try {
-			return jdbcTemplate.queryForObject(userByUserNameQuery, mapper, username.toLowerCase(Locale.US));
+			return jdbcTemplate.queryForObject(userByUserNameQuery, mapper, username.toLowerCase(Locale.US), true);
 		}
 		catch (EmptyResultDataAccessException e) {
 			throw new UsernameNotFoundException(username);

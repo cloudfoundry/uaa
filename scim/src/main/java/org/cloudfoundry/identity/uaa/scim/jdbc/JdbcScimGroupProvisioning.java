@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.scim.jdbc;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.AbstractQueryable;
+import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
@@ -47,8 +48,8 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup> impl
 
 	private final RowMapper<ScimGroup> rowMapper = new ScimGroupRowMapper();
 
-	public JdbcScimGroupProvisioning(JdbcTemplate jdbcTemplate) {
-		super(jdbcTemplate, new ScimGroupRowMapper());
+	public JdbcScimGroupProvisioning(JdbcTemplate jdbcTemplate, JdbcPagingListFactory pagingListFactory) {
+		super(jdbcTemplate, pagingListFactory, new ScimGroupRowMapper());
 		Assert.notNull(jdbcTemplate);
 		this.jdbcTemplate = jdbcTemplate;
 		setQueryConverter(new ScimSearchQueryConverter());

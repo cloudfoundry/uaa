@@ -16,6 +16,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
+import org.cloudfoundry.identity.uaa.rest.jdbc.DefaultLimitSqlAdapter;
+import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
@@ -55,7 +57,8 @@ public class PasswordChangeEndpointTests {
 	public void setup() {
 
 		JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
-		JdbcScimUserProvisioning dao = new JdbcScimUserProvisioning(jdbcTemplate);
+		JdbcScimUserProvisioning dao = new JdbcScimUserProvisioning(jdbcTemplate,
+				new JdbcPagingListFactory(jdbcTemplate, new DefaultLimitSqlAdapter()));
 		dao.setPasswordEncoder(NoOpPasswordEncoder.getInstance());
 		dao.setPasswordValidator(new NullPasswordValidator());
 

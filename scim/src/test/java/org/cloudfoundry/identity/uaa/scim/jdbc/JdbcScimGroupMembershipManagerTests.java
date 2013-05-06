@@ -18,6 +18,9 @@ import javax.sql.DataSource;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.rest.jdbc.DefaultLimitSqlAdapter;
+import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
+import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
@@ -38,7 +41,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @ContextConfiguration("classpath:/test-data-source.xml")
 @RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = {"", "test,postgresql", "hsqldb", "test,mysql"})
+@IfProfileValue(name = "spring.profiles.active", values = {"", "test,postgresql", "hsqldb", "test,mysql", "test,oracle"})
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class JdbcScimGroupMembershipManagerTests {
 
@@ -48,6 +51,9 @@ public class JdbcScimGroupMembershipManagerTests {
 	private DataSource dataSource;
 
 	private JdbcTemplate template;
+	
+	@Autowired
+	private LimitSqlAdapter limitSqlAdapter;
 
 	private JdbcScimGroupProvisioning gdao;
 
@@ -66,9 +72,10 @@ public class JdbcScimGroupMembershipManagerTests {
 
 		template = new JdbcTemplate(dataSource);
 
-		udao = new JdbcScimUserProvisioning(template);
+		JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(template, limitSqlAdapter);
+		udao = new JdbcScimUserProvisioning(template, pagingListFactory);
 		udao.setPasswordValidator(new NullPasswordValidator());
-		gdao = new JdbcScimGroupProvisioning(template);
+		gdao = new JdbcScimGroupProvisioning(template, pagingListFactory);
 
 		dao = new JdbcScimGroupMembershipManager(template);
 		dao.setScimGroupProvisioning(gdao);

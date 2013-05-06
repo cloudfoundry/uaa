@@ -13,6 +13,8 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 public abstract class AbstractQueryable<T> implements Queryable<T> {
 
 	private NamedParameterJdbcTemplate jdbcTemplate;
+	
+	private JdbcPagingListFactory pagingListFactory;
 
 	private RowMapper<T> rowMapper;
 
@@ -22,8 +24,9 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
 
 	private int pageSize = 200;
 
-	protected AbstractQueryable(JdbcTemplate jdbcTemplate, RowMapper<T> rowMapper) {
+	protected AbstractQueryable(JdbcTemplate jdbcTemplate, JdbcPagingListFactory pagingListFactory, RowMapper<T> rowMapper) {
 		this.jdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+		this.pagingListFactory = pagingListFactory;
 		this.rowMapper = rowMapper;
 	}
 
@@ -55,7 +58,7 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
 			String completeSql = getBaseSqlQuery() + " where " + where.getSql();
 			logger.debug("complete sql: " + completeSql + ", params: " + where.getParams());
 			if (pageSize > 0 && pageSize < Integer.MAX_VALUE) {
-				result = new JdbcPagingList<T>(jdbcTemplate, completeSql, where.getParams(), rowMapper, pageSize);
+				result = pagingListFactory.createJdbcPagingList(completeSql, where.getParams(), rowMapper, pageSize);
 			}
 			else {
 				result = jdbcTemplate.query(completeSql, where.getParams(), rowMapper);

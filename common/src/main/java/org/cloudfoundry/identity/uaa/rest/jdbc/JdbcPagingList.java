@@ -51,22 +51,25 @@ public class JdbcPagingList<E> extends AbstractList<E> {
 	private final String sql;
 
 	private final NamedParameterJdbcTemplate parameterJdbcTemplate;
+	
+	private final LimitSqlAdapter  limitSqlAdapter;
 
-	public JdbcPagingList(JdbcTemplate jdbTemplate, String sql, RowMapper<E> mapper, int pageSize) {
-		this(jdbTemplate, sql, Collections.<String, Object> emptyMap(), mapper, pageSize);
+	public JdbcPagingList(JdbcTemplate jdbTemplate, LimitSqlAdapter limitSqlAdapter, String sql, RowMapper<E> mapper, int pageSize) {
+		this(jdbTemplate, limitSqlAdapter, sql, Collections.<String, Object> emptyMap(), mapper, pageSize);
 	}
 
-	public JdbcPagingList(JdbcTemplate jdbcTemplate, String sql, Map<String, ?> args, RowMapper<E> mapper, int pageSize) {
-		this(new NamedParameterJdbcTemplate(jdbcTemplate), sql, args, mapper, pageSize);
+	public JdbcPagingList(JdbcTemplate jdbcTemplate, LimitSqlAdapter limitSqlAdapter, String sql, Map<String, ?> args, RowMapper<E> mapper, int pageSize) {
+		this(new NamedParameterJdbcTemplate(jdbcTemplate), limitSqlAdapter, sql, args, mapper, pageSize);
 	}
 
-	public JdbcPagingList(NamedParameterJdbcTemplate jdbcTemplate, String sql, Map<String, ?> args, RowMapper<E> mapper, int pageSize) {
+	public JdbcPagingList(NamedParameterJdbcTemplate jdbcTemplate, LimitSqlAdapter limitSqlAdapter, String sql, Map<String, ?> args, RowMapper<E> mapper, int pageSize) {
 		this.parameterJdbcTemplate = jdbcTemplate;
 		this.sql = sql;
 		this.args = args;
 		this.mapper = mapper;
 		this.size = parameterJdbcTemplate.queryForInt(getCountSql(sql), args);
 		this.pageSize = pageSize;
+		this.limitSqlAdapter = limitSqlAdapter;
 	}
 
 	@Override
@@ -75,7 +78,7 @@ public class JdbcPagingList<E> extends AbstractList<E> {
 			throw new ArrayIndexOutOfBoundsException(index);
 		}
 		if (current == null || index - start >= pageSize || index < start) {
-			current = parameterJdbcTemplate.query(getLimitSql(sql, index, pageSize), args, mapper);
+			current = parameterJdbcTemplate.query(limitSqlAdapter.getLimitSql(sql, index, pageSize), args, mapper);
 			start = index;
 		}
 		return current.get(index - start);
@@ -92,10 +95,6 @@ public class JdbcPagingList<E> extends AbstractList<E> {
 			throw new IndexOutOfBoundsException("The indexes provided are outside the bounds of this list.");
 		}
 		return new SafeIteratorList<E>(super.subList(fromIndex, toIndex));
-	}
-
-	private String getLimitSql(String sql, int index, int size) {
-		return sql + " limit " + size + " offset " + index;
 	}
 
 	private String getCountSql(String sql) {
