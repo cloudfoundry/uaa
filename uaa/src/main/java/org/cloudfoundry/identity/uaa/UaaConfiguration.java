@@ -1,27 +1,37 @@
 package org.cloudfoundry.identity.uaa;
 
-import javax.validation.*;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Pattern;
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.validation.ConstraintViolation;
+import javax.validation.Valid;
+import javax.validation.Validation;
+import javax.validation.Validator;
+import javax.validation.ValidatorFactory;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Pattern;
+
+import org.cloudfoundry.identity.uaa.UaaConfiguration.OAuth.Client;
 import org.cloudfoundry.identity.uaa.config.CustomPropertyConstructor;
 import org.hibernate.validator.constraints.URL;
 import org.yaml.snakeyaml.TypeDescription;
 import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.AbstractConstruct;
+import org.yaml.snakeyaml.constructor.Construct;
+import org.yaml.snakeyaml.nodes.Node;
 
 /**
  * Java representation of the UAA YAML configuration for validation purposes.
- *
+ * 
  * @author Luke Taylor
  */
 public class UaaConfiguration {
 	public String name;
-	@Pattern(regexp="(default|postgresql|hsqldb|mysql|oracle)")
+	@Pattern(regexp = "(default|postgresql|hsqldb|mysql|oracle)")
 	public String platform;
 	public String spring_profiles;
 	@URL(message = "issuer.uri must be a valid URL")
@@ -81,7 +91,7 @@ public class UaaConfiguration {
 		@Valid
 		public Authorize authorize;
 		@Valid
-		public Map<String,OAuthClient> clients;
+		public Map<String, OAuthClient> clients;
 
 		public static class Client {
 			public String override;
@@ -98,6 +108,7 @@ public class UaaConfiguration {
 		@NotNull(message = "Each oauth client requires an 'id'")
 		public String id;
 		public boolean override;
+		public List<String> autoapprove;
 		public String scope;
 		public String secret;
 		public String authorities;
@@ -126,6 +137,12 @@ public class UaaConfiguration {
 			TypeDescription oauthDesc = new TypeDescription(OAuth.class);
 			oauthDesc.putMapPropertyType("clients", String.class, OAuthClient.class);
 			addTypeDescription(oauthDesc);
+			TypeDescription clientDesc = new TypeDescription(Client.class);
+			clientDesc.putListPropertyType("autoapprove", String.class);
+			addTypeDescription(clientDesc);
+			TypeDescription oauthClientDesc = new TypeDescription(OAuthClient.class);
+			oauthClientDesc.putListPropertyType("autoapprove", String.class);
+			addTypeDescription(oauthClientDesc);
 			addPropertyAlias("issuer.uri", UaaConfiguration.class, "issuerUri");
 			addPropertyAlias("login.addnew", UaaConfiguration.class, "loginAddnew");
 			addPropertyAlias("password-policy", UaaConfiguration.class, "passwordPolicy");
@@ -137,6 +154,18 @@ public class UaaConfiguration {
 			addPropertyAlias("access-token-validity", OAuthClient.class, "accessTokenValidity");
 			addPropertyAlias("refresh-token-validity", OAuthClient.class, "refreshTokenValidity");
 			addPropertyAlias("user.override", Scim.class, "userOverride");
+		}
+		@Override
+		protected Construct getConstructor(Node node) {
+			if (List.class.isAssignableFrom(node.getType())) {
+				return new AbstractConstruct() {
+					@Override
+					public Object construct(Node node) {
+						return new ArrayList<Object>();
+					}					
+				};
+			}
+			return super.getConstructor(node);
 		}
 	}
 
