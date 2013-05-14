@@ -3,8 +3,7 @@
 
 spring_profiles: postgresql # default is empty
 
-login:
-  addnew: false # true in default profile  
+login.addnew: false # true in default profile  
 
 database:
   driverClassName: org.postgresql.Driver # only if spring_profiles=postgresql
@@ -12,16 +11,14 @@ database:
   username: root # only if spring_profiles=postgresql
   password: changeme # only if spring_profiles=postgresql
 
-password-policy:
-  required-score: 0
+password-policy.required-score: 0
 
 jwt:
   token:
     signing-key: tokenkey
     verification-key: tokenkey
 
-issuer:
-  uri: http://localhost:8080/uaa
+issuer.uri: http://localhost:8080/uaa
 
 scim:
   delete:

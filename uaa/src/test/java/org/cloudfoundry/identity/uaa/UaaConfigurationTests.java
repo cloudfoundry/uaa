@@ -21,6 +21,8 @@ public class UaaConfigurationTests {
 	public void validYamlIsOk() throws Exception {
 		createValidator(
 			"name: uaa\n" +
+			"issuer.uri: http://foo.com\n" +
+			"login.addnew: true\n" +
 			"oauth:\n" +
 			"  clients:\n" +
 			"    vmc:\n" +

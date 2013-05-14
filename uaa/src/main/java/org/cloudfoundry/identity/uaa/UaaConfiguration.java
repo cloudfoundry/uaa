@@ -28,6 +28,9 @@ public class UaaConfiguration {
 	public String issuerUri;
 	public boolean dump_requests;
 	public boolean require_https;
+	public boolean loginAddnew;
+	@Valid
+	public PasswordPolicy passwordPolicy;
 	@Valid
 	public Database database;
 	@Valid
@@ -112,6 +115,10 @@ public class UaaConfiguration {
 		public List<String> users;
 	}
 
+	public static class PasswordPolicy {
+		public int requiredScore;
+	}
+
 	public static class UaaConfigConstructor extends CustomPropertyConstructor {
 
 		public UaaConfigConstructor() {
@@ -120,6 +127,9 @@ public class UaaConfiguration {
 			oauthDesc.putMapPropertyType("clients", String.class, OAuthClient.class);
 			addTypeDescription(oauthDesc);
 			addPropertyAlias("issuer.uri", UaaConfiguration.class, "issuerUri");
+			addPropertyAlias("login.addnew", UaaConfiguration.class, "loginAddnew");
+			addPropertyAlias("password-policy", UaaConfiguration.class, "passwordPolicy");
+			addPropertyAlias("required-score", PasswordPolicy.class, "requiredScore");
 			addPropertyAlias("signing-key", Jwt.Token.class, "signingKey");
 			addPropertyAlias("verification-key", Jwt.Token.class, "verificationKey");
 			addPropertyAlias("authorized-grant-types", OAuthClient.class, "grantTypes");
