@@ -21,6 +21,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.cloudfoundry.identity.uaa.authorization.ExternalAuthorizationManager;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.springframework.security.core.GrantedAuthority;
@@ -53,6 +54,8 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
 	private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
 
 	private Collection<String> defaultScopes = new HashSet<String>();
+
+	private ExternalAuthorizationManager externalAuthorizationManager = null;
 
 	public UaaAuthorizationRequestManager(ClientDetailsService clientDetailsService) {
 		this.clientDetailsService = clientDetailsService;
@@ -133,6 +136,9 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
 			scopes = checkUserScopes(scopes, securityContextAccessor.getAuthorities(), clientDetails);
 		}
 
+		Set<String> scopesFromExternalAuthorities = findScopesFromAuthorities(authorizationParameters.get("authorities"));
+		scopes.addAll(scopesFromExternalAuthorities);
+
 		Set<String> resourceIds = getResourceIds(clientDetails, scopes);
 		clientDetails.setResourceIds(resourceIds);
 		DefaultAuthorizationRequest request = new DefaultAuthorizationRequest(authorizationParameters);
@@ -142,8 +148,15 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
 		request.addClientDetails(clientDetails);
 
 		return request;
-
 	}
+
+	private Set<String> findScopesFromAuthorities(String authorities) {
+		if (null == externalAuthorizationManager) {
+			return new HashSet<String>();
+		}
+		return externalAuthorizationManager.findScopesFromAuthorities(authorities);
+	}
+
 
 	/**
 	 * Apply UAA rules to validate the requested scope. For client credentials grants the valid scopes are actually in
@@ -231,6 +244,10 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
 			}
 		}
 		return resourceIds.isEmpty() ? clientDetails.getResourceIds() : resourceIds;
+	}
+
+	public void setExternalAuthorizationManager(ExternalAuthorizationManager externalAuthorizationManager) {
+		this.externalAuthorizationManager = externalAuthorizationManager;
 	}
 
 }

@@ -55,6 +55,7 @@ public class UaaAuthorizationRequestManagerTests {
 		parameters.put("client_id", "foo");
 		factory = new UaaAuthorizationRequestManager(clientDetailsService);
 		factory.setSecurityContextAccessor(new StubSecurityContextAccessor());
+		factory.setExternalAuthorizationManager(null);
 		Mockito.when(clientDetailsService.loadClientByClientId("foo")).thenReturn(client);
 	}
 

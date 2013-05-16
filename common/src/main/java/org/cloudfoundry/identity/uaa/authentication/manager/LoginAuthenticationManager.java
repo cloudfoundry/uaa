@@ -39,7 +39,7 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
 	/**
 	 * Flag to indicate that the scim user bootstrap (if provided) should be used to add new accounts when
 	 * authenticated.
-	 * 
+	 *
 	 * @param addNewAccounts the flag to set (default false)
 	 */
 	public void setAddNewAccounts(boolean addNewAccounts) {
@@ -141,5 +141,4 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
 		}
 		return new UaaUser(name, generator.generate(), email, givenName, familyName);
 	}
-
 }

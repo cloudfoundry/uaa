@@ -87,21 +87,21 @@ public class AccessController {
 					"User must be authenticated with before authorizing access.");
 		}
 
-		AuthorizationRequest clientAuth = (AuthorizationRequest) model.remove("authorizationRequest");
-		if (clientAuth == null) {
+		AuthorizationRequest clientAuthRequest = (AuthorizationRequest) model.remove("authorizationRequest");
+		if (clientAuthRequest == null) {
 			model.put("error",
 					"No authorization request is present, so we cannot confirm access (we don't know what you are asking for).");
 			// response.sendError(HttpServletResponse.SC_BAD_REQUEST);
 		}
 		else {
-			ClientDetails client = clientDetailsService.loadClientByClientId(clientAuth.getClientId());
+			ClientDetails client = clientDetailsService.loadClientByClientId(clientAuthRequest.getClientId());
 			// TODO: Need to fix the copy constructor to copy additionalInfo
 			BaseClientDetails modifiableClient = new BaseClientDetails(client);
 			modifiableClient.setClientSecret(null);
-			model.put("auth_request", clientAuth);
+			model.put("auth_request", clientAuthRequest);
 			model.put("client", modifiableClient); // TODO: remove this once it has gone from jsp pages
-			model.put("client_id", clientAuth.getClientId());
-			model.put("redirect_uri", getRedirectUri(modifiableClient, clientAuth));
+			model.put("client_id", clientAuthRequest.getClientId());
+			model.put("redirect_uri", getRedirectUri(modifiableClient, clientAuthRequest));
 
 			// Find the auto approved scopes for this clients
 			Map<String, Object> additionalInfo = client.getAdditionalInformation();
@@ -118,7 +118,7 @@ public class AccessController {
 
 			List<Approval> filteredApprovals = new ArrayList<Approval>();
 			// Remove auto approved scopes
-			List<Approval> approvals = approvalStore.getApprovals(principal.getName(), clientAuth.getClientId());
+			List<Approval> approvals = approvalStore.getApprovals(principal.getName(), clientAuthRequest.getClientId());
 			for (Approval approval : approvals) {
 				if (!(autoApprovedScopes.contains(approval.getScope()))) {
 					filteredApprovals.add(approval);
@@ -145,7 +145,7 @@ public class AccessController {
 			ArrayList<String> undecidedScopes = new ArrayList<String>();
 
 			//Filter the scopes approved/denied from the ones requested
-			for(String scope : clientAuth.getScope()) {
+			for(String scope : clientAuthRequest.getScope()) {
 				if (!approvedScopes.contains(scope) && !deniedScopes.contains(scope) && !autoApprovedScopes.contains(scope)) {
 					undecidedScopes.add(scope);
 				}
