@@ -29,7 +29,7 @@ the access decisions taken by the UAA are used as an example.
 		- [User Account Management](#user-account-management)
 		- [Username from ID Queries](#username-from-id-queries)
 		- [User Profiles](#user-profiles)
-		- [Groups & Membership Management](#group-membership-management)
+		- [Groups & Membership Management](#groups--membership-management)
 		- [Token Resources for Providers](#token-resources-for-providers)
 		- [Management Information](#management-information)
 		- [Login Prompts](#login-prompts)
