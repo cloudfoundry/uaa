@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
@@ -132,18 +133,31 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
 			}
 		}
 
+
+		Set<String> scopesFromExternalAuthorities = null;
 		if (!"client_credentials".equals(grantType) && securityContextAccessor.isUser()) {
 			scopes = checkUserScopes(scopes, securityContextAccessor.getAuthorities(), clientDetails);
+
+			// TODO: will the grantType ever contain client_credentials or authorization_code
+			// External Authorities are things like LDAP groups that will be mapped to Oauth scopes
+			// Add those scopes to the request. These scopes will not be validated against the scopes
+			// registered to a client.
+			// These scopes also do not need approval. The fact that they are already in an external 
+			// group communicates user approval. Denying approval does not mean much
+			scopesFromExternalAuthorities = findScopesFromAuthorities(authorizationParameters.get("authorities"));
 		}
-
-		Set<String> scopesFromExternalAuthorities = findScopesFromAuthorities(authorizationParameters.get("authorities"));
-		scopes.addAll(scopesFromExternalAuthorities);
-
+		
 		Set<String> resourceIds = getResourceIds(clientDetails, scopes);
 		clientDetails.setResourceIds(resourceIds);
 		DefaultAuthorizationRequest request = new DefaultAuthorizationRequest(authorizationParameters);
 		if (!scopes.isEmpty()) {
 			request.setScope(scopes);
+		}
+		if (scopesFromExternalAuthorities != null) {
+			Map<String, String> existingAuthorizationParameters = new LinkedHashMap<String, String>();
+			existingAuthorizationParameters.putAll(request.getAuthorizationParameters());
+			existingAuthorizationParameters.put("externalScopes", OAuth2Utils.formatParameterList(scopesFromExternalAuthorities));
+			request.setAuthorizationParameters(existingAuthorizationParameters);
 		}
 		request.addClientDetails(clientDetails);
 

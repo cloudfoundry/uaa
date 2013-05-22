@@ -15,17 +15,23 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
 
+import org.cloudfoundry.identity.uaa.authorization.ExternalAuthorizationManager;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.StubSecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -34,12 +40,22 @@ import org.springframework.security.oauth2.common.exceptions.InvalidScopeExcepti
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
+import org.springframework.test.annotation.IfProfileValue;
+import org.springframework.test.annotation.ProfileValueSourceConfiguration;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.util.StringUtils;
 
 /**
  * @author Dave Syer
  *
  */
+
+@ContextConfiguration("classpath:/test-data-source.xml")
+@RunWith(SpringJUnit4ClassRunner.class)
+@IfProfileValue(name = "spring.profiles.active", values = {"", "test,postgresql", "hsqldb", "test,mysql", "test,oracle"})
+@ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class UaaAuthorizationRequestManagerTests {
 
 	private UaaAuthorizationRequestManager factory;
@@ -194,4 +210,90 @@ public class UaaAuthorizationRequestManagerTests {
 		parameters.put("scope", "read");
 		factory.validateParameters(parameters, new BaseClientDetails("foo", null, "read,write", "implicit", null));
 	}
+	
+	@Test
+	public void testSuccessWithAnExternalAuthorizationRequestWithASingleExternallyMappedScope() {
+		parameters.put("client_id", "foo");
+		parameters.put("scope", "read");
+		parameters.put("authorities", "{\"externalGroups.0\": \"cn=test_org,ou=people,o=springsource,o=org\"}");
+		SecurityContextAccessor securityContextAccessor = new StubSecurityContextAccessor() {
+			@Override
+			public boolean isUser() {
+				return true;
+			}
+
+			@Override
+			public Collection<? extends GrantedAuthority> getAuthorities() {
+				return AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz");
+			}
+		};
+		factory.setSecurityContextAccessor(securityContextAccessor);
+		TestExternalAuthorizationManager externalAuthManager = new TestExternalAuthorizationManager();
+		Set<String> acmeScopes = new HashSet<String>();
+		acmeScopes.add("acme");
+		externalAuthManager.defineScopesForAuthorities("{\"externalGroups.0\": \"cn=test_org,ou=people,o=springsource,o=org\"}", acmeScopes);
+		
+		factory.setExternalAuthorizationManager(externalAuthManager);
+		AuthorizationRequest authorizationRequest = factory.createAuthorizationRequest(parameters);
+		assertEquals("acme", ((DefaultAuthorizationRequest)authorizationRequest).getAuthorizationParameters().get("externalScopes"));
+	}
+	
+	@Test
+	public void testSuccessWithAnExternalAuthorizationRequestWithMultipleExternallyMappedScopes() {
+		parameters.put("client_id", "foo");
+		parameters.put("scope", "read");
+		parameters.put("authorities", "{\"externalGroups.0\": \"cn=test_org,ou=people,o=springsource,o=org\"}");
+		SecurityContextAccessor securityContextAccessor = new StubSecurityContextAccessor() {
+			@Override
+			public boolean isUser() {
+				return true;
+			}
+
+			@Override
+			public Collection<? extends GrantedAuthority> getAuthorities() {
+				return AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz");
+			}
+		};
+		factory.setSecurityContextAccessor(securityContextAccessor);
+		TestExternalAuthorizationManager externalAuthManager = new TestExternalAuthorizationManager();
+		Set<String> acmeScopes = new HashSet<String>();
+		acmeScopes.add("acme");
+		acmeScopes.add("acme1");
+		externalAuthManager.defineScopesForAuthorities("{\"externalGroups.0\": \"cn=test_org,ou=people,o=springsource,o=org\"}", acmeScopes);
+		
+		factory.setExternalAuthorizationManager(externalAuthManager);
+		AuthorizationRequest authorizationRequest = factory.createAuthorizationRequest(parameters);
+		assertEquals("acme1 acme", ((DefaultAuthorizationRequest)authorizationRequest).getAuthorizationParameters().get("externalScopes"));
+	}
+	
+	@Test
+	public void testSuccessWithAnExternalAuthorizationRequestWithNoExternallyMappedScopes() {
+		parameters.put("client_id", "foo");
+		parameters.put("scope", "read");
+		
+		TestExternalAuthorizationManager externalAuthManager = new TestExternalAuthorizationManager();
+		Set<String> acmeScopes = new HashSet<String>();
+		acmeScopes.add("acme");
+		externalAuthManager.defineScopesForAuthorities("{\"externalGroups.0\": \"cn=test_org,ou=people,o=springsource,o=org\"}", acmeScopes);
+		
+		factory.setExternalAuthorizationManager(externalAuthManager);
+		AuthorizationRequest authorizationRequest = factory.createAuthorizationRequest(parameters);
+		assertNull(((DefaultAuthorizationRequest)authorizationRequest).getAuthorizationParameters().get("externalScopes"));
+	}
+	
+	private class TestExternalAuthorizationManager implements ExternalAuthorizationManager {
+
+		private Map<String, Set<String>> desiredScopes = new HashMap<String, Set<String>>();
+				
+		public void defineScopesForAuthorities(String authorities, Set<String>scopes) {
+			desiredScopes.put(authorities, scopes);
+		}
+
+		@Override
+		public Set<String> findScopesFromAuthorities(String authorities) {
+			return desiredScopes.get(authorities);
+		}
+	
+	}
+	
 }

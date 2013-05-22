@@ -282,7 +282,7 @@
 	<util:list id="defaultUsers" />
 	<util:list id="defaultMembers" />
 	<util:list id="defaultExternalMembers">
-        <value>acme|cn=test_org,ou=groups,dc=openam,dc=forgerock,dc=org</value>
+        <value>organizations.acme|cn=pivotal_engineering,ou=groups,dc=openam,dc=forgerock,dc=org</value>
     </util:list>
 	<bean id="defaultGroups" class="java.lang.String">
 		<constructor-arg value="" />
@@ -297,7 +297,7 @@
 			<value>acme.dev|marissa</value>
 		</util:list>
 		<bean id="defaultGroups" class="java.lang.String">
-			<constructor-arg value="acme,acme.dev,acme.qa" />
+			<constructor-arg value="acme,acme.dev,acme.qa,organizations.acme" />
 		</bean>
 		<bean id="userIdsEnabled" class="java.lang.Boolean">
 			<constructor-arg value="${scim.userids_enabled:true}" />

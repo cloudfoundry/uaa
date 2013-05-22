@@ -75,7 +75,7 @@
 							<entry key="id" value="app" />
 							<entry key="secret" value="appclientsecret" />
 							<entry key="authorized-grant-types" value="password,implicit,authorization_code,client_credentials" />
-							<entry key="scope" value="cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,acme" />
+							<entry key="scope" value="cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,organizations.acme" />
 							<entry key="authorities" value="uaa.resource" />
 							<entry key="autoapprove">
 								<list>
