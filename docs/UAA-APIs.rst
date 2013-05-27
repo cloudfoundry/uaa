@@ -190,7 +190,7 @@ In addition to the normal authentication of the ``/oauth/authorize`` endpoint de
     id: login,
     secret: loginsecret,
     scope: uaa.none,
-    authorized-grant-types: client_credentials,
+    authorized_grant_types: client_credentials,
     authorities: oauth.login
 
 To authenticate the ``/oauth/authorize`` endpoint using this channel the Login Server has to provide a standard OAuth2 bearer token header _and_ some additional parameters to identify the user: ``source=login`` is mandatory, as is ``username``, plus optionally ``[email, given_name, family_name]``.  The UAA will lookup the user in its internal database and if it is found the request is authenticated.  The UAA can be configured to automatically register authenicated users that are missing from its database, but this will only work if all the fields are provided.  The response from the UAA (if the Login Server asks for JSON content) has enough information to get approval from the user and pass the response back to the UAA.
