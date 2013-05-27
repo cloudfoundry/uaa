@@ -308,8 +308,8 @@ This endpoint mirrors the OpenID Connect ``/check_id`` endpoint, so not very RES
 
 Notes:
 
-* The ``user_name`` is the same as you get from the `OpenID Connect`_ ``/userinfo`` endpoint.  The ``user_id`` field is the same as you would use to get the full user profile from ``/User``.
-* Many of the fields in the response are a courtesy, allowing the caller to avoid further round trip queries to pick up the same information (e.g. via the ``/User`` endpoint).
+* The ``user_name`` is the same as you get from the `OpenID Connect`_ ``/userinfo`` endpoint.  The ``user_id`` field is the same as you would use to get the full user profile from ``/Users``.
+* Many of the fields in the response are a courtesy, allowing the caller to avoid further round trip queries to pick up the same information (e.g. via the ``/Users`` endpoint).
 * The ``aud`` claim is the resource ids that are the audience for the token.  A Resource Server should check that it is on this list or else reject the token.
 * The ``client_id`` data represent the client that the token was granted for, not the caller.  The value can be used by the caller, for example, to verify that the client has been granted permission to access a resource.
 * Error Responses: see `OAuth2 Error responses <http://tools.ietf.org/html/draft-ietf-oauth-v2-26#section-5.2>`_ and this addition::
@@ -381,14 +381,14 @@ User Account Management APIs
 UAA supports the `SCIM <http://simplecloud.info>`_ standard for
 these APIs and endpoints.  These endpoints are themselves secured by OAuth2, and access decision is done based on the 'scope' and 'aud' fields of the JWT OAuth2 token.
 
-Create a User: ``POST /User``
+Create a User: ``POST /Users``
 ------------------------------
 
 See `SCIM - Creating Resources`__
 
 __ http://www.simplecloud.info/specs/draft-scim-rest-api-01.html#create-resource
 
-* Request: ``POST /User``
+* Request: ``POST /Users``
 * Request Headers: Authorization header containing an OAuth2_ bearer token with::
 
         scope = scim.write
@@ -439,12 +439,12 @@ The ``userName`` is unique in the UAA, but is allowed to change.  Each user also
         401 - Unauthorized
 
 
-Update a User: ``PUT /User/{id}``
+Update a User: ``PUT /Users/{id}``
 ----------------------------------------
 
 See `SCIM - Modifying with PUT <http://www.simplecloud.info/specs/draft-scim-rest-api-01.html#edit-resource-with-put>`_
 
-* Request: ``PUT /User/{id}``
+* Request: ``PUT /Users/{id}``
 * Request Headers: Authorization header containing an OAuth2_ bearer token with::
 
         scope = scim.write
@@ -496,12 +496,12 @@ See `SCIM - Modifying with PUT <http://www.simplecloud.info/specs/draft-scim-res
 
   Note: SCIM also optionally supports partial update using PATCH.
 
-Change Password: ``PUT /User/{id}/password``
+Change Password: ``PUT /Users/{id}/password``
 ----------------------------------------------
 
 See `SCIM - Changing Password <http://www.simplecloud.info/specs/draft-scim-rest-api-01.html#change-password>`_
 
-* Request: ``PUT /User/{id}/password``
+* Request: ``PUT /Users/{id}/password``
 * Request Headers: Authorization header containing an OAuth2_ bearer token with::
 
         scope = password.write
@@ -573,12 +573,12 @@ Filters: note that, per the specification, attribute values are comma separated 
         400 - Bad Request
         401 - Unauthorized
 
-Delete a User: ``DELETE /User/{id}``
+Delete a User: ``DELETE /Users/{id}``
 -------------------------------------
 
 See `SCIM - Deleting Resources <http://www.simplecloud.info/specs/draft-scim-rest-api-01.html#delete-resource>`_.
 
-* Request: ``DELETE /User/{id}``
+* Request: ``DELETE /Users/{id}``
 * Request Headers: 
 
   + Authorization header containing an OAuth2_ bearer token with::
