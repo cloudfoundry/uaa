@@ -142,11 +142,11 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
 			// External Authorities are things like LDAP groups that will be mapped to Oauth scopes
 			// Add those scopes to the request. These scopes will not be validated against the scopes
 			// registered to a client.
-			// These scopes also do not need approval. The fact that they are already in an external 
+			// These scopes also do not need approval. The fact that they are already in an external
 			// group communicates user approval. Denying approval does not mean much
 			scopesFromExternalAuthorities = findScopesFromAuthorities(authorizationParameters.get("authorities"));
 		}
-		
+
 		Set<String> resourceIds = getResourceIds(clientDetails, scopes);
 		clientDetails.setResourceIds(resourceIds);
 		DefaultAuthorizationRequest request = new DefaultAuthorizationRequest(authorizationParameters);
