@@ -17,7 +17,9 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.Test;
@@ -59,7 +61,7 @@ public class UaaRequestMatcherTests {
 	public void pathMatcherMatchesExpectedPathsAndAcceptHeaderNull() throws Exception {
 		// Accept only JSON
 		UaaRequestMatcher matcher = new UaaRequestMatcher("/somePath");
-		matcher.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+		matcher.setAccept(Arrays.asList(MediaType.APPLICATION_JSON.toString()));
 		assertTrue(matcher.matches(request("/somePath", null)));
 	}
 
@@ -67,7 +69,7 @@ public class UaaRequestMatcherTests {
 	public void pathMatcherMatchesExpectedPathsAndMatchingAcceptHeader() throws Exception {
 		// Accept only JSON
 		UaaRequestMatcher matcher = new UaaRequestMatcher("/somePath");
-		matcher.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+		matcher.setAccept(Arrays.asList(MediaType.APPLICATION_JSON.toString()));
 		assertTrue(matcher.matches(request("/somePath", "application/json")));
 	}
 
@@ -75,7 +77,7 @@ public class UaaRequestMatcherTests {
 	public void pathMatcherMatchesExpectedPathsAndNonMatchingAcceptHeader() throws Exception {
 		// Accept only JSON
 		UaaRequestMatcher matcher = new UaaRequestMatcher("/somePath");
-		matcher.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+		matcher.setAccept(Arrays.asList(MediaType.APPLICATION_JSON.toString()));
 		assertFalse(matcher.matches(request("/somePath", "application/html")));
 	}
 
@@ -83,7 +85,7 @@ public class UaaRequestMatcherTests {
 	public void pathMatcherMatchesExpectedPathsAndRequestParameters() throws Exception {
 		// Accept only JSON
 		UaaRequestMatcher matcher = new UaaRequestMatcher("/somePath");
-		matcher.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+		matcher.setAccept(Arrays.asList(MediaType.APPLICATION_JSON.toString()));
 		matcher.setParameters(Collections.singletonMap("response_type", "token"));
 		assertTrue(matcher.matches(request("/somePath", null, "response_type", "token")));
 	}
@@ -92,7 +94,7 @@ public class UaaRequestMatcherTests {
 	public void pathMatcherMatchesExpectedPathsAndMultipleRequestParameters() throws Exception {
 		// Accept only JSON
 		UaaRequestMatcher matcher = new UaaRequestMatcher("/somePath");
-		matcher.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+		matcher.setAccept(Arrays.asList(MediaType.APPLICATION_JSON.toString()));
 		Map<String, String> params = new LinkedHashMap<String, String>();
 		params.put("source", "foo");
 		params.put("response_type", "token");
@@ -105,7 +107,7 @@ public class UaaRequestMatcherTests {
 	public void pathMatcherMatchesExpectedPathsAndEmptyParameters() throws Exception {
 		// Accept only JSON
 		UaaRequestMatcher matcher = new UaaRequestMatcher("/somePath");
-		matcher.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+		matcher.setAccept(Arrays.asList(MediaType.APPLICATION_JSON.toString()));
 		matcher.setParameters(Collections.singletonMap("code", ""));
 		assertTrue(matcher.matches(request("/somePath", null, "code", "FOO")));
 		assertFalse(matcher.matches(request("/somePath", null)));
@@ -115,7 +117,7 @@ public class UaaRequestMatcherTests {
 	public void pathMatcherMatchesExpectedPathsAndRequestParametersWithAcceptHeader() throws Exception {
 		// Accept only JSON
 		UaaRequestMatcher matcher = new UaaRequestMatcher("/somePath");
-		matcher.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+		matcher.setAccept(Arrays.asList(MediaType.APPLICATION_JSON.toString()));
 		matcher.setParameters(Collections.singletonMap("response_type", "token"));
 		assertTrue(matcher.matches(request("/somePath", "application/json", "response_type", "token")));
 	}
@@ -124,7 +126,7 @@ public class UaaRequestMatcherTests {
 	public void pathMatcherMatchesExpectedPathsAndRequestParametersWithNonMatchingAcceptHeader() throws Exception {
 		// Accept only JSON
 		UaaRequestMatcher matcher = new UaaRequestMatcher("/somePath");
-		matcher.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+		matcher.setAccept(Arrays.asList(MediaType.APPLICATION_JSON.toString()));
 		matcher.setParameters(Collections.singletonMap("response_type", "token"));
 		assertFalse(matcher.matches(request("/somePath", "application/html", "response_type", "token")));
 	}
@@ -133,20 +135,66 @@ public class UaaRequestMatcherTests {
 	public void pathMatcherMatchesWithMultipleAccepts() throws Exception {
 		// Accept only JSON
 		UaaRequestMatcher matcher = new UaaRequestMatcher("/somePath");
-		matcher.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+		matcher.setAccept(Arrays.asList(MediaType.APPLICATION_JSON.toString()));
 		assertTrue(matcher
 				.matches(request("/somePath",
-				String.format("%s,%s", MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML))));
+				String.format("%s,%s", MediaType.APPLICATION_JSON.toString(), MediaType.APPLICATION_XML.toString()))));
 	}
 
 	@Test
 	public void pathMatcherMatchesWithMultipleAcceptTargets() throws Exception {
 		// Accept only JSON
 		UaaRequestMatcher matcher = new UaaRequestMatcher("/somePath");
-		matcher.setAccept(Arrays.asList(MediaType.APPLICATION_JSON, MediaType.APPLICATION_FORM_URLENCODED));
+		matcher.setAccept(Arrays.asList(MediaType.APPLICATION_JSON.toString(), MediaType.APPLICATION_FORM_URLENCODED.toString()));
 		assertTrue(matcher
 				.matches(request("/somePath",
-				String.format("%s,%s", MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML))));
+				String.format("%s,%s", MediaType.APPLICATION_JSON.toString(), MediaType.APPLICATION_XML.toString()))));
 	}
 
+	@Test
+	public void pathMatcherMatchesWithSingleHeader() throws Exception {
+		UaaRequestMatcher matcher = new UaaRequestMatcher("/somePath");
+		matcher.setHeaders(Collections.singletonMap("Authorization", Collections.singletonList("Basic")));
+		MockHttpServletRequest testRequest = request("/somePath",
+				String.format("%s,%s", MediaType.APPLICATION_JSON.toString(), MediaType.APPLICATION_XML.toString()));
+		testRequest.addHeader("Authorization", "Basic abc");
+		assertTrue(matcher
+				.matches(testRequest));
+	}
+
+	@Test
+	public void pathMatcherDoesNotMatchInvalidHeader() throws Exception {
+		UaaRequestMatcher matcher = new UaaRequestMatcher("/somePath");
+		matcher.setHeaders(Collections.singletonMap("Authorization", Collections.singletonList("Basic")));
+		MockHttpServletRequest testRequest = request("/somePath",
+				String.format("%s,%s", MediaType.APPLICATION_JSON.toString(), MediaType.APPLICATION_XML.toString()));
+		assertFalse(matcher
+				.matches(testRequest));
+	}
+
+	@Test
+	public void pathMatcherMatchesOneOfMultipleHeaders() throws Exception {
+		UaaRequestMatcher matcher = new UaaRequestMatcher("/somePath");
+		Map<String, List<String>> configMap = new HashMap<String, List<String>>();
+		configMap.put("Authorization", Arrays.asList(new String[] {"Basic", "Bearer"}));
+		matcher.setHeaders(configMap);
+		MockHttpServletRequest testRequest = request("/somePath",
+				String.format("%s,%s", MediaType.APPLICATION_JSON.toString(), MediaType.APPLICATION_XML.toString()));
+		testRequest.addHeader("Authorization", "Basic abc");
+		assertFalse(matcher
+				.matches(testRequest));
+	}
+
+	@Test
+	public void pathMatcherDoesNotMatchOneOfMultipleHeaders() throws Exception {
+		UaaRequestMatcher matcher = new UaaRequestMatcher("/somePath");
+		Map<String, List<String>> configMap = new HashMap<String, List<String>>();
+		configMap.put("Authorization", Arrays.asList(new String[] {"Basic", "Bearer"}));
+		matcher.setHeaders(configMap);
+		MockHttpServletRequest testRequest = request("/somePath",
+				String.format("%s,%s", MediaType.APPLICATION_JSON.toString(), MediaType.APPLICATION_XML.toString()));
+		testRequest.addHeader("Authorization", "non matching header value");
+		assertFalse(matcher
+				.matches(testRequest));
+	}
 }

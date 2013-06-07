@@ -282,7 +282,7 @@
 	<util:list id="defaultUsers" />
 	<util:list id="defaultMembers" />
 	<util:list id="defaultExternalMembers">
-        <value>organizations.acme|cn=test_org,ou=groups,dc=openam,dc=forgerock,dc=org</value>
+        <value>organizations.acme|cn=test_org,ou=people,o=springsource,o=org</value>
     </util:list>
 	<bean id="defaultGroups" class="java.lang.String">
 		<constructor-arg value="" />

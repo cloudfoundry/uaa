@@ -27,7 +27,6 @@ import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.oauth2.common.exceptions.BadClientCredentialsException;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
@@ -191,13 +190,6 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
 					throw new InvalidScopeException("Invalid scope: " + scope
 							+ ". Did you know that you can get default scopes by simply sending no value?", validScope);
 				}
-			}
-		}
-		// Client id is not mandatory in the request, but if it's there we can prevent a clash
-		if (parameters.containsKey("grant_type") && parameters.containsKey("client_id")) {
-			String clientId = parameters.get("client_id");
-			if (!clientDetails.getClientId().equals(clientId)) {
-				throw new BadClientCredentialsException();
 			}
 		}
 	}

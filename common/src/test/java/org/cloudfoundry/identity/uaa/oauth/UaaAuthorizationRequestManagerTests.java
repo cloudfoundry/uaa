@@ -35,7 +35,6 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.oauth2.common.exceptions.BadClientCredentialsException;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
@@ -203,14 +202,6 @@ public class UaaAuthorizationRequestManagerTests {
 		factory.validateParameters(parameters, new BaseClientDetails("foo", null, "read,write", "implicit", null));
 	}
 
-	@Test(expected=BadClientCredentialsException.class)
-	public void tesstWrongClientId() {
-		parameters.put("grant_type", "authorization_code");
-		parameters.put("client_id", "bar");
-		parameters.put("scope", "read");
-		factory.validateParameters(parameters, new BaseClientDetails("foo", null, "read,write", "implicit", null));
-	}
-	
 	@Test
 	public void testSuccessWithAnExternalAuthorizationRequestWithASingleExternallyMappedScope() {
 		parameters.put("client_id", "foo");
@@ -232,12 +223,12 @@ public class UaaAuthorizationRequestManagerTests {
 		Set<String> acmeScopes = new HashSet<String>();
 		acmeScopes.add("acme");
 		externalAuthManager.defineScopesForAuthorities("{\"externalGroups.0\": \"cn=test_org,ou=people,o=springsource,o=org\"}", acmeScopes);
-		
+
 		factory.setExternalAuthorizationManager(externalAuthManager);
 		AuthorizationRequest authorizationRequest = factory.createAuthorizationRequest(parameters);
 		assertEquals("acme", ((DefaultAuthorizationRequest)authorizationRequest).getAuthorizationParameters().get("externalScopes"));
 	}
-	
+
 	@Test
 	public void testSuccessWithAnExternalAuthorizationRequestWithMultipleExternallyMappedScopes() {
 		parameters.put("client_id", "foo");
@@ -260,31 +251,31 @@ public class UaaAuthorizationRequestManagerTests {
 		acmeScopes.add("acme");
 		acmeScopes.add("acme1");
 		externalAuthManager.defineScopesForAuthorities("{\"externalGroups.0\": \"cn=test_org,ou=people,o=springsource,o=org\"}", acmeScopes);
-		
+
 		factory.setExternalAuthorizationManager(externalAuthManager);
 		AuthorizationRequest authorizationRequest = factory.createAuthorizationRequest(parameters);
 		assertEquals("acme1 acme", ((DefaultAuthorizationRequest)authorizationRequest).getAuthorizationParameters().get("externalScopes"));
 	}
-	
+
 	@Test
 	public void testSuccessWithAnExternalAuthorizationRequestWithNoExternallyMappedScopes() {
 		parameters.put("client_id", "foo");
 		parameters.put("scope", "read");
-		
+
 		TestExternalAuthorizationManager externalAuthManager = new TestExternalAuthorizationManager();
 		Set<String> acmeScopes = new HashSet<String>();
 		acmeScopes.add("acme");
 		externalAuthManager.defineScopesForAuthorities("{\"externalGroups.0\": \"cn=test_org,ou=people,o=springsource,o=org\"}", acmeScopes);
-		
+
 		factory.setExternalAuthorizationManager(externalAuthManager);
 		AuthorizationRequest authorizationRequest = factory.createAuthorizationRequest(parameters);
 		assertNull(((DefaultAuthorizationRequest)authorizationRequest).getAuthorizationParameters().get("externalScopes"));
 	}
-	
+
 	private class TestExternalAuthorizationManager implements ExternalAuthorizationManager {
 
 		private Map<String, Set<String>> desiredScopes = new HashMap<String, Set<String>>();
-				
+
 		public void defineScopesForAuthorities(String authorities, Set<String>scopes) {
 			desiredScopes.put(authorities, scopes);
 		}
@@ -293,7 +284,7 @@ public class UaaAuthorizationRequestManagerTests {
 		public Set<String> findScopesFromAuthorities(String authorities) {
 			return desiredScopes.get(authorities);
 		}
-	
+
 	}
-	
+
 }
