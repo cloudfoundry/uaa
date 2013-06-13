@@ -1,18 +1,17 @@
 package org.cloudfoundry.identity.uaa.authorization.external;
 
-import java.io.IOException;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authorization.ExternalAuthorizationManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion;
 import org.springframework.util.StringUtils;
@@ -22,6 +21,8 @@ public class LdapGroupMappingAuthorizationManager implements ExternalAuthorizati
 	private ScimGroupExternalMembershipManager externalMembershipManager;
 
 	private ScimGroupProvisioning scimGroupProvisioning;
+
+	private static final Log logger = LogFactory.getLog(LdapGroupMappingAuthorizationManager.class);
 
 	private static ObjectMapper mapper = new ObjectMapper();
 
@@ -35,22 +36,12 @@ public class LdapGroupMappingAuthorizationManager implements ExternalAuthorizati
 		Set<String> authorityList = new LinkedHashSet<String>();
 
 		if(StringUtils.hasLength(authorities)) {
-			@SuppressWarnings("unchecked")
 			Map<String, String> incomingExternalGroupMap = null;
 			try {
 				incomingExternalGroupMap = mapper.readValue(authorities.getBytes(), Map.class);
 			}
-			catch (JsonParseException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			catch (JsonMappingException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			catch (Throwable t) {
+				logger.error("Unable to read external groups", t);
 			}
 
 			String externalGroupKey = "externalGroups.";
