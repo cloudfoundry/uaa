@@ -39,7 +39,7 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
 
 /**
  * @author Dave Syer
- * 
+ *
  */
 public class LoginAuthenticationManagerTests {
 

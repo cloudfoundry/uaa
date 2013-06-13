@@ -51,6 +51,12 @@
 		<property name="scimUserProvisioning" ref="scimUserProvisioning" />
 		<property name="defaultUserGroups" ref="defaultUserAuthorities" />
 	</bean>
+	
+   <bean id="externalGroupMembershipManager" class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager">
+        <constructor-arg name="jdbcTemplate" ref="jdbcTemplate" />
+        <constructor-arg name="pagingListFactory" ref="jdbcPagingListFactory" />
+        <property name="scimGroupProvisioning" ref="scimGroupProvisioning" />
+    </bean>
 
 	<!-- Add a handler adapter with special knowledge of the ScimUser endpoints -->
 	<bean class="org.cloudfoundry.identity.uaa.scim.endpoints.HandlerAdapterFactoryBean" />
@@ -244,6 +250,12 @@
 		<property name="groupMembers" ref="members" />
 	</bean>
 
+    <bean id="scimExternalGroupBootstrap" class="org.cloudfoundry.identity.uaa.scim.bootstrap.ScimExternalGroupBootstrap">
+        <constructor-arg name="scimGroupProvisioning" ref="scimGroupProvisioning" />
+        <constructor-arg name="externalMembershipManager" ref="externalGroupMembershipManager" />
+        <property name="externalGroupMap" ref="externalGroups" />
+    </bean>
+    
 	<bean id="nonDefaultUserGroups" class="java.lang.String">
 		<!-- Scopes known to the UAA. Here so the groups will exist and users MAY be added to them, but not automatically like 
 			defaultUserAuthorities -->
@@ -260,9 +272,18 @@
 		<property name="sourceList"
 			value="#{(@config['scim']==null or @config['scim']['group_membership']==null)?@defaultMembers:@config['scim']['group_membership']}" />
 	</bean>
+	
+	<!-- Space separated list of groups -->
+	<bean id="externalGroups" class="org.springframework.beans.factory.config.ListFactoryBean">
+        <property name="sourceList"
+            value="#{(@config['scim']==null or @config['scim']['external_groups']==null)?@defaultExternalMembers:@config['scim']['external_groups']}" />
+    </bean>
 
 	<util:list id="defaultUsers" />
 	<util:list id="defaultMembers" />
+	<util:list id="defaultExternalMembers">
+        <value>organizations.acme|cn=test_org,ou=people,o=springsource,o=org</value>
+    </util:list>
 	<bean id="defaultGroups" class="java.lang.String">
 		<constructor-arg value="" />
 	</bean>
@@ -276,7 +297,7 @@
 			<value>acme.dev|marissa</value>
 		</util:list>
 		<bean id="defaultGroups" class="java.lang.String">
-			<constructor-arg value="acme,acme.dev,acme.qa" />
+			<constructor-arg value="acme,acme.dev,acme.qa,organizations.acme" />
 		</bean>
 		<bean id="userIdsEnabled" class="java.lang.Boolean">
 			<constructor-arg value="${scim.userids_enabled:true}" />

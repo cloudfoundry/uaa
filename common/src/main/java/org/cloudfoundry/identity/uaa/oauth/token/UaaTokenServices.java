@@ -34,6 +34,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -67,6 +68,7 @@ import org.springframework.security.oauth2.common.OAuth2RefreshToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
+import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
@@ -330,12 +332,20 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 		String clientId = authentication.getAuthorizationRequest().getClientId();
 		Set<String> userScopes = authentication.getAuthorizationRequest().getScope();
 		String grantType = authentication.getAuthorizationRequest().getAuthorizationParameters().get("grant_type");
-
+		
+		Set<String> modifiableUserScopes = new LinkedHashSet<String>();
+		modifiableUserScopes.addAll(userScopes);
+		String externalScopes = authentication.getAuthorizationRequest().getAuthorizationParameters()
+				.get("externalScopes");
+		if (null != externalScopes && StringUtils.hasLength(externalScopes)) {
+			modifiableUserScopes.addAll(OAuth2Utils.parseParameterList(externalScopes));
+		}
+		
 		ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
 		Integer validity = client.getAccessTokenValiditySeconds();
 
 		OAuth2AccessToken accessToken = createAccessToken(userId, username, userEmail,
-				validity != null ? validity.intValue() : accessTokenValiditySeconds, clientScopes, userScopes,
+				validity != null ? validity.intValue() : accessTokenValiditySeconds, clientScopes, modifiableUserScopes,
 				clientId, authentication.getAuthorizationRequest().getResourceIds(), grantType,
 				refreshToken != null ? refreshToken.getValue() : null);
 

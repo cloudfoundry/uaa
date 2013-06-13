@@ -29,3 +29,10 @@ CREATE TABLE group_membership (
   added TIMESTAMP default current_timestamp not null,
   primary key (group_id, member_id)
 ) ;
+
+CREATE TABLE external_group_mapping (
+  group_id VARCHAR(36) not null,
+  external_group VARCHAR(255) not null,
+  added TIMESTAMP default current_timestamp not null,
+  primary key (group_id, external_group)
+);
