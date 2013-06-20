@@ -12,6 +12,7 @@
  */
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import static org.cloudfoundry.identity.uaa.oauth.Claims.ADDITIONAL_AZ_ATTR;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.AUD;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.AUTHORITIES;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.CID;
@@ -184,9 +185,12 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 		// if we have reached so far, issue an access token
 		Integer validity = client.getAccessTokenValiditySeconds();
 
+		@SuppressWarnings("unchecked")
+		Map<String, String> additionalAuthorizationInfo = (Map<String, String>) claims.get(ADDITIONAL_AZ_ATTR);
+
 		OAuth2AccessToken accessToken = createAccessToken(user.getId(), user.getUsername(), user.getEmail(),
 				validity != null ? validity.intValue() : accessTokenValiditySeconds, null, requestedScopes, clientId,
-				request.getResourceIds(), grantType, refreshTokenValue);
+				request.getResourceIds(), grantType, refreshTokenValue, additionalAuthorizationInfo);
 
 		return accessToken;
 	}
@@ -226,7 +230,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
 	private OAuth2AccessToken createAccessToken(String userId, String username, String userEmail, int validitySeconds,
 			Collection<GrantedAuthority> clientScopes, Set<String> requestedScopes, String clientId,
-			Set<String> resourceIds, String grantType, String refreshToken) throws AuthenticationException {
+			Set<String> resourceIds, String grantType, String refreshToken, Map<String, String> additionalAuthorizationAttributes) throws AuthenticationException {
 		String tokenId = UUID.randomUUID().toString();
 		DefaultOAuth2AccessToken accessToken = new DefaultOAuth2AccessToken(tokenId);
 		if (validitySeconds > 0) {
@@ -243,6 +247,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
 		Map<String, Object> info = new HashMap<String, Object>();
 		info.put(JTI, accessToken.getValue());
+		if (null != additionalAuthorizationAttributes) {
+			info.put(ADDITIONAL_AZ_ATTR, additionalAuthorizationAttributes);
+		}
 		accessToken.setAdditionalInformation(info);
 
 		String content;
@@ -332,7 +339,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 		String clientId = authentication.getAuthorizationRequest().getClientId();
 		Set<String> userScopes = authentication.getAuthorizationRequest().getScope();
 		String grantType = authentication.getAuthorizationRequest().getAuthorizationParameters().get("grant_type");
-		
+
 		Set<String> modifiableUserScopes = new LinkedHashSet<String>();
 		modifiableUserScopes.addAll(userScopes);
 		String externalScopes = authentication.getAuthorizationRequest().getAuthorizationParameters()
@@ -340,17 +347,46 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 		if (null != externalScopes && StringUtils.hasLength(externalScopes)) {
 			modifiableUserScopes.addAll(OAuth2Utils.parseParameterList(externalScopes));
 		}
-		
+
+		Map<String, String> additionalAuthorizationAttributes = getAdditionalAuthorizationAttributes(authentication
+				.getAuthorizationRequest().getAuthorizationParameters().get("authorities"));
+
 		ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
 		Integer validity = client.getAccessTokenValiditySeconds();
 
 		OAuth2AccessToken accessToken = createAccessToken(userId, username, userEmail,
 				validity != null ? validity.intValue() : accessTokenValiditySeconds, clientScopes, modifiableUserScopes,
 				clientId, authentication.getAuthorizationRequest().getResourceIds(), grantType,
-				refreshToken != null ? refreshToken.getValue() : null);
+				refreshToken != null ? refreshToken.getValue() : null, additionalAuthorizationAttributes);
 
 		return accessToken;
 
+	}
+
+	/**
+	 * This method searches the authorities in the request for additionalAuthorizationAttributes
+	 * and returns a map of these attributes that will later be added to the token
+	 *
+	 * @param authoritiesJson
+	 * @return
+	 */
+	private Map<String, String> getAdditionalAuthorizationAttributes(String authoritiesJson) {
+		if (StringUtils.hasLength(authoritiesJson)) {
+			Map authorities = null;
+			try {
+				authorities = mapper.readValue(authoritiesJson.getBytes(), Map.class);
+				@SuppressWarnings("unchecked")
+				Map<String, String> additionalAuthorizationAttributes = (Map<String, String>) authorities
+						.get("additionalAuthorizationAttributes");
+
+				return additionalAuthorizationAttributes;
+			}
+			catch (Throwable t) {
+				logger.error("Unable to read additionalAuthorizationAttributes", t);
+			}
+		}
+
+		return null;
 	}
 
 	private ExpiringOAuth2RefreshToken createRefreshToken(OAuth2Authentication authentication) {
@@ -359,6 +395,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 		if (!isRefreshTokenSupported(grantType)) {
 			return null;
 		}
+
+		Map<String, String> additionalAuthorizationAttributes = getAdditionalAuthorizationAttributes(authentication
+				.getAuthorizationRequest().getAuthorizationParameters().get("authorities"));
 
 		int validitySeconds = getRefreshTokenValiditySeconds(authentication.getAuthorizationRequest());
 		ExpiringOAuth2RefreshToken token = new DefaultExpiringOAuth2RefreshToken(UUID.randomUUID().toString(),
@@ -369,7 +408,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 		String content;
 		try {
 			content = mapper.writeValueAsString(createJWTRefreshToken(token, user, authentication
-					.getAuthorizationRequest().getScope(), authentication.getAuthorizationRequest().getClientId(), grantType));
+					.getAuthorizationRequest().getScope(), authentication.getAuthorizationRequest().getClientId(), grantType, additionalAuthorizationAttributes));
 		}
 		catch (Exception e) {
 			throw new IllegalStateException("Cannot convert access token to JSON", e);
@@ -382,13 +421,16 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 	}
 
 	private Map<String, ?> createJWTRefreshToken(OAuth2RefreshToken token, UaaUser user, Set<String> scopes,
-			String clientId, String grantType) {
+			String clientId, String grantType, Map<String, String> additionalAuthorizationAttributes) {
 
 		Map<String, Object> response = new LinkedHashMap<String, Object>();
 
 		response.put(JTI, UUID.randomUUID().toString());
 		response.put(SUB, user.getId());
 		response.put(SCOPE, scopes);
+		if (null != additionalAuthorizationAttributes) {
+			response.put(ADDITIONAL_AZ_ATTR, additionalAuthorizationAttributes);
+		}
 
 		response.put(IAT, System.currentTimeMillis() / 1000);
 		if (((ExpiringOAuth2RefreshToken) token).getExpiration() != null) {

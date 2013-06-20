@@ -25,7 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.cloudfoundry.identity.uaa.authorization.ExternalAuthorizationManager;
+import org.cloudfoundry.identity.uaa.authorization.ExternalGroupMappingAuthorizationManager;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.StubSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
@@ -70,7 +70,7 @@ public class UaaAuthorizationRequestManagerTests {
 		parameters.put("client_id", "foo");
 		factory = new UaaAuthorizationRequestManager(clientDetailsService);
 		factory.setSecurityContextAccessor(new StubSecurityContextAccessor());
-		factory.setExternalAuthorizationManager(null);
+		factory.setExternalGroupMappingAuthorizationManager(null);
 		Mockito.when(clientDetailsService.loadClientByClientId("foo")).thenReturn(client);
 	}
 
@@ -224,7 +224,7 @@ public class UaaAuthorizationRequestManagerTests {
 		acmeScopes.add("acme");
 		externalAuthManager.defineScopesForAuthorities("{\"externalGroups.0\": \"cn=test_org,ou=people,o=springsource,o=org\"}", acmeScopes);
 
-		factory.setExternalAuthorizationManager(externalAuthManager);
+		factory.setExternalGroupMappingAuthorizationManager(externalAuthManager);
 		AuthorizationRequest authorizationRequest = factory.createAuthorizationRequest(parameters);
 		assertEquals("acme", ((DefaultAuthorizationRequest)authorizationRequest).getAuthorizationParameters().get("externalScopes"));
 	}
@@ -252,7 +252,7 @@ public class UaaAuthorizationRequestManagerTests {
 		acmeScopes.add("acme1");
 		externalAuthManager.defineScopesForAuthorities("{\"externalGroups.0\": \"cn=test_org,ou=people,o=springsource,o=org\"}", acmeScopes);
 
-		factory.setExternalAuthorizationManager(externalAuthManager);
+		factory.setExternalGroupMappingAuthorizationManager(externalAuthManager);
 		AuthorizationRequest authorizationRequest = factory.createAuthorizationRequest(parameters);
 		assertEquals("acme1 acme", ((DefaultAuthorizationRequest)authorizationRequest).getAuthorizationParameters().get("externalScopes"));
 	}
@@ -267,12 +267,12 @@ public class UaaAuthorizationRequestManagerTests {
 		acmeScopes.add("acme");
 		externalAuthManager.defineScopesForAuthorities("{\"externalGroups.0\": \"cn=test_org,ou=people,o=springsource,o=org\"}", acmeScopes);
 
-		factory.setExternalAuthorizationManager(externalAuthManager);
+		factory.setExternalGroupMappingAuthorizationManager(externalAuthManager);
 		AuthorizationRequest authorizationRequest = factory.createAuthorizationRequest(parameters);
 		assertNull(((DefaultAuthorizationRequest)authorizationRequest).getAuthorizationParameters().get("externalScopes"));
 	}
 
-	private class TestExternalAuthorizationManager implements ExternalAuthorizationManager {
+	private class TestExternalAuthorizationManager implements ExternalGroupMappingAuthorizationManager {
 
 		private Map<String, Set<String>> desiredScopes = new HashMap<String, Set<String>>();
 

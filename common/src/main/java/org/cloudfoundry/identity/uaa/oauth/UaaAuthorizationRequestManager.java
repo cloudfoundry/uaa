@@ -22,7 +22,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.cloudfoundry.identity.uaa.authorization.ExternalAuthorizationManager;
+import org.cloudfoundry.identity.uaa.authorization.ExternalGroupMappingAuthorizationManager;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.springframework.security.core.GrantedAuthority;
@@ -55,7 +55,7 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
 
 	private Collection<String> defaultScopes = new HashSet<String>();
 
-	private ExternalAuthorizationManager externalAuthorizationManager = null;
+	private ExternalGroupMappingAuthorizationManager externalGroupMappingAuthorizationManager = null;
 
 	public UaaAuthorizationRequestManager(ClientDetailsService clientDetailsService) {
 		this.clientDetailsService = clientDetailsService;
@@ -158,16 +158,17 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
 			existingAuthorizationParameters.put("externalScopes", OAuth2Utils.formatParameterList(scopesFromExternalAuthorities));
 			request.setAuthorizationParameters(existingAuthorizationParameters);
 		}
+
 		request.addClientDetails(clientDetails);
 
 		return request;
 	}
 
 	private Set<String> findScopesFromAuthorities(String authorities) {
-		if (null == externalAuthorizationManager) {
+		if (null == externalGroupMappingAuthorizationManager) {
 			return new HashSet<String>();
 		}
-		return externalAuthorizationManager.findScopesFromAuthorities(authorities);
+		return externalGroupMappingAuthorizationManager.findScopesFromAuthorities(authorities);
 	}
 
 
@@ -252,8 +253,8 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
 		return resourceIds.isEmpty() ? clientDetails.getResourceIds() : resourceIds;
 	}
 
-	public void setExternalAuthorizationManager(ExternalAuthorizationManager externalAuthorizationManager) {
-		this.externalAuthorizationManager = externalAuthorizationManager;
+	public void setExternalGroupMappingAuthorizationManager(ExternalGroupMappingAuthorizationManager externalGroupMappingAuthorizationManager) {
+		this.externalGroupMappingAuthorizationManager = externalGroupMappingAuthorizationManager;
 	}
 
 }

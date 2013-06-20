@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -1108,5 +1109,26 @@ public class UaaTokenServicesTests {
 		assertNull(loadedAuthentication.getDetails());
 
 		assertNull(loadedAuthentication.getUserAuthentication());
+	}
+
+	@Test
+	public void testCreateAccessTokenAuthcodeGrantAdditionalAuthorizationAttributes() {
+		DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
+				Arrays.asList(new String[] { "read", "write" }));
+		authorizationRequest.setResourceIds(new HashSet<String>(Arrays.asList(new String[] { "scim", "clients" })));
+		Map<String, String> azParameters = new HashMap<String, String>(
+				authorizationRequest.getAuthorizationParameters());
+		azParameters.put("grant_type", "authorization_code");
+		azParameters.put("authorities", "{\"additionalAuthorizationAttributes\":{\"external_group\":\"domain\\\\group1\", \"external_id\":\"abcd1234\"}}");
+		authorizationRequest.setAuthorizationParameters(azParameters);
+		Authentication userAuthentication = new UsernamePasswordAuthenticationToken(new UaaPrincipal(new UaaUser(
+				"jdsa", "password", "jdsa@vmware.com", null, null)), "n/a", null);
+
+		OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
+		OAuth2AccessToken token = testCreateAccessTokenForAUser(authentication, false);
+		Map<String, String> azMap = new LinkedHashMap<String, String>();
+		azMap.put("external_group", "domain\\group1");
+		azMap.put("external_id", "abcd1234");
+		assertEquals(azMap, token.getAdditionalInformation().get("az_attr"));
 	}
 }
