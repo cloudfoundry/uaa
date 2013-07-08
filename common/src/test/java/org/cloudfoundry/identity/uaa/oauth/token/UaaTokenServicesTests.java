@@ -1119,7 +1119,7 @@ public class UaaTokenServicesTests {
 		Map<String, String> azParameters = new HashMap<String, String>(
 				authorizationRequest.getAuthorizationParameters());
 		azParameters.put("grant_type", "authorization_code");
-		azParameters.put("authorities", "{\"additionalAuthorizationAttributes\":{\"external_group\":\"domain\\\\group1\", \"external_id\":\"abcd1234\"}}");
+		azParameters.put("authorities", "{\"az_attr\":{\"external_group\":\"domain\\\\group1\", \"external_id\":\"abcd1234\"}}");
 		authorizationRequest.setAuthorizationParameters(azParameters);
 		Authentication userAuthentication = new UsernamePasswordAuthenticationToken(new UaaPrincipal(new UaaUser(
 				"jdsa", "password", "jdsa@vmware.com", null, null)), "n/a", null);

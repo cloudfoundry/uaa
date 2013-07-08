@@ -377,7 +377,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 				authorities = mapper.readValue(authoritiesJson.getBytes(), Map.class);
 				@SuppressWarnings("unchecked")
 				Map<String, String> additionalAuthorizationAttributes = (Map<String, String>) authorities
-						.get("additionalAuthorizationAttributes");
+						.get("az_attr");
 
 				return additionalAuthorizationAttributes;
 			}
