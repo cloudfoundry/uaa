@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
 import java.io.Serializable;
+import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -20,7 +21,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetails;
 
 /**
  * Contains additional information about the authentication request which may be of use in auditing etc.
- * 
+ *
  * @author Luke Taylor
  * @author Dave Syer
  */
@@ -31,6 +32,8 @@ public class UaaAuthenticationDetails implements Serializable {
 	private String sessionId;
 
 	private String clientId;
+
+	private Map<String, String> extendedAuthorizationInfo;
 
 	public UaaAuthenticationDetails(HttpServletRequest request) {
 		WebAuthenticationDetails webAuthenticationDetails = new WebAuthenticationDetails(request);
@@ -70,7 +73,7 @@ public class UaaAuthenticationDetails implements Serializable {
 			if (sb.length()>0) {
 				sb.append(", ");
 			}
-			sb.append("sessionId=").append(sessionId);			
+			sb.append("sessionId=").append(sessionId);
 		}
 		return sb.toString();
 	}
@@ -113,5 +116,9 @@ public class UaaAuthenticationDetails implements Serializable {
 		else if (!sessionId.equals(other.sessionId))
 			return false;
 		return true;
+	}
+
+	public Map<String, String> getExtendedAuthorizationInfo() {
+		return extendedAuthorizationInfo;
 	}
 }

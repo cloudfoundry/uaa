@@ -74,7 +74,7 @@ ruby 1.9, then
 
 This authenticates and obtains an access token from the server using
 the OAuth2 implicit grant, similar to the approach intended for a
-client like VMC. The token is stored in `~/.uuac.yml`, so dig into
+client like VMC. The token is stored in `~/.uaac.yml`, so dig into
 that file and pull out the access token for your `vmc` target (or use
 `--verbose` on the login command line above to see it logged to your
 console).

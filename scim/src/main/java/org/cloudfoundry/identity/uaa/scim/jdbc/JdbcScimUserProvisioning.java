@@ -25,6 +25,7 @@ import java.util.regex.Pattern;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.AbstractQueryable;
+import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Name;
@@ -63,7 +64,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
 
 	public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, userName=?, email=?, givenName=?, familyName=?, active=?, phoneNumber=? where id=? and version=?";
 
-	public static final String DEACTIVATE_USER_SQL = "update users set active=false where id=?";
+	public static final String DEACTIVATE_USER_SQL = "update users set active=? where id=?";
 
     public static final String DELETE_USER_SQL = "delete from users where id=?";
 
@@ -90,8 +91,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
 
 	private final RowMapper<ScimUser> mapper = new ScimUserRowMapper();
 
-	public JdbcScimUserProvisioning(JdbcTemplate jdbcTemplate) {
-		super(jdbcTemplate, new ScimUserRowMapper());
+	public JdbcScimUserProvisioning(JdbcTemplate jdbcTemplate, JdbcPagingListFactory pagingListFactory) {
+		super(jdbcTemplate, pagingListFactory, new ScimUserRowMapper());
 		Assert.notNull(jdbcTemplate);
 		this.jdbcTemplate = jdbcTemplate;
 		setQueryConverter(new ScimSearchQueryConverter());
@@ -272,10 +273,10 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
         int updated;
         if (version < 0) {
             // Ignore
-            updated = jdbcTemplate.update(DEACTIVATE_USER_SQL, user.getId());
+            updated = jdbcTemplate.update(DEACTIVATE_USER_SQL, false, user.getId());
         }
         else {
-            updated = jdbcTemplate.update(DEACTIVATE_USER_SQL + " and version=?", user.getId(), version);
+            updated = jdbcTemplate.update(DEACTIVATE_USER_SQL + " and version=?", false, user.getId(), version);
         }
         if (updated == 0) {
             throw new OptimisticLockingFailureException(String.format(

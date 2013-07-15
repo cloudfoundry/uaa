@@ -14,6 +14,7 @@
 	<bean id="clientDetailsService" class="org.cloudfoundry.identity.uaa.oauth.JdbcQueryableClientDetailsService">
 		<constructor-arg name="delegate" ref="jdbcClientDetailsService" />
 		<constructor-arg name="jdbcTemplate" ref="jdbcTemplate" />
+		<constructor-arg name="pagingListFactory" ref="jdbcPagingListFactory" />
 	</bean>
 
 	<bean id="clientRegistrationService" class="org.springframework.security.oauth2.provider.JdbcClientDetailsService">
@@ -32,6 +33,7 @@
 		<bean id="clientDetailsService" class="org.cloudfoundry.identity.uaa.oauth.JitClientDetailsService">
 			<constructor-arg name="delegate" ref="jdbcClientDetailsService" />
 			<constructor-arg name="jdbcTemplate" ref="jdbcTemplate" />
+			<constructor-arg name="pagingListFactory" ref="jdbcPagingListFactory" />
 		</bean>
 
 	</beans>
@@ -73,7 +75,7 @@
 							<entry key="id" value="app" />
 							<entry key="secret" value="appclientsecret" />
 							<entry key="authorized-grant-types" value="password,implicit,authorization_code,client_credentials" />
-							<entry key="scope" value="cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids" />
+							<entry key="scope" value="cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,organizations.acme" />
 							<entry key="authorities" value="uaa.resource" />
 							<entry key="autoapprove">
 								<list>

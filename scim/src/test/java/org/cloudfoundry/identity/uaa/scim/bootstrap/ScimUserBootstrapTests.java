@@ -12,6 +12,8 @@
  */
 package org.cloudfoundry.identity.uaa.scim.bootstrap;
 
+import org.cloudfoundry.identity.uaa.rest.jdbc.DefaultLimitSqlAdapter;
+import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
@@ -56,9 +58,10 @@ public class ScimUserBootstrapTests {
 		builder.addScript("classpath:/org/cloudfoundry/identity/uaa/scim/schema-hsqldb.sql");
 		database = builder.build();
 		JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
-		db = new JdbcScimUserProvisioning(jdbcTemplate);
+		JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, new DefaultLimitSqlAdapter());
+		db = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory);
 		db.setPasswordValidator(new NullPasswordValidator());
-		gdb = new JdbcScimGroupProvisioning(jdbcTemplate);
+		gdb = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
 		mdb = new JdbcScimGroupMembershipManager(jdbcTemplate);
 		mdb.setScimUserProvisioning(db);
 		mdb.setScimGroupProvisioning(gdb);

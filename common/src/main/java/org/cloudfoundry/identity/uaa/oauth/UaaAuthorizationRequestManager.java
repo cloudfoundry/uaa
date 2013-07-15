@@ -17,15 +17,16 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.cloudfoundry.identity.uaa.authorization.ExternalGroupMappingAuthorizationManager;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.oauth2.common.exceptions.BadClientCredentialsException;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
@@ -53,6 +54,8 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
 	private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
 
 	private Collection<String> defaultScopes = new HashSet<String>();
+
+	private ExternalGroupMappingAuthorizationManager externalGroupMappingAuthorizationManager = null;
 
 	public UaaAuthorizationRequestManager(ClientDetailsService clientDetailsService) {
 		this.clientDetailsService = clientDetailsService;
@@ -129,8 +132,18 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
 			}
 		}
 
+
+		Set<String> scopesFromExternalAuthorities = null;
 		if (!"client_credentials".equals(grantType) && securityContextAccessor.isUser()) {
 			scopes = checkUserScopes(scopes, securityContextAccessor.getAuthorities(), clientDetails);
+
+			// TODO: will the grantType ever contain client_credentials or authorization_code
+			// External Authorities are things like LDAP groups that will be mapped to Oauth scopes
+			// Add those scopes to the request. These scopes will not be validated against the scopes
+			// registered to a client.
+			// These scopes also do not need approval. The fact that they are already in an external
+			// group communicates user approval. Denying approval does not mean much
+			scopesFromExternalAuthorities = findScopesFromAuthorities(authorizationParameters.get("authorities"));
 		}
 
 		Set<String> resourceIds = getResourceIds(clientDetails, scopes);
@@ -139,11 +152,25 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
 		if (!scopes.isEmpty()) {
 			request.setScope(scopes);
 		}
+		if (scopesFromExternalAuthorities != null) {
+			Map<String, String> existingAuthorizationParameters = new LinkedHashMap<String, String>();
+			existingAuthorizationParameters.putAll(request.getAuthorizationParameters());
+			existingAuthorizationParameters.put("external_scopes", OAuth2Utils.formatParameterList(scopesFromExternalAuthorities));
+			request.setAuthorizationParameters(existingAuthorizationParameters);
+		}
+
 		request.addClientDetails(clientDetails);
 
 		return request;
-
 	}
+
+	private Set<String> findScopesFromAuthorities(String authorities) {
+		if (null == externalGroupMappingAuthorizationManager) {
+			return new HashSet<String>();
+		}
+		return externalGroupMappingAuthorizationManager.findScopesFromAuthorities(authorities);
+	}
+
 
 	/**
 	 * Apply UAA rules to validate the requested scope. For client credentials grants the valid scopes are actually in
@@ -164,13 +191,6 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
 					throw new InvalidScopeException("Invalid scope: " + scope
 							+ ". Did you know that you can get default scopes by simply sending no value?", validScope);
 				}
-			}
-		}
-		// Client id is not mandatory in the request, but if it's there we can prevent a clash
-		if (parameters.containsKey("grant_type") && parameters.containsKey("client_id")) {
-			String clientId = parameters.get("client_id");
-			if (!clientDetails.getClientId().equals(clientId)) {
-				throw new BadClientCredentialsException();
 			}
 		}
 	}
@@ -231,6 +251,10 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
 			}
 		}
 		return resourceIds.isEmpty() ? clientDetails.getResourceIds() : resourceIds;
+	}
+
+	public void setExternalGroupMappingAuthorizationManager(ExternalGroupMappingAuthorizationManager externalGroupMappingAuthorizationManager) {
+		this.externalGroupMappingAuthorizationManager = externalGroupMappingAuthorizationManager;
 	}
 
 }

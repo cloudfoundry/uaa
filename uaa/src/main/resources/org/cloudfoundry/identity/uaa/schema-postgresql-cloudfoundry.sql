@@ -125,3 +125,10 @@ CREATE TABLE AUTHZ_APPROVALS (
 DROP TABLE oauth_client_token;
 DROP TABLE oauth_access_token;
 DROP TABLE oauth_refresh_token;
+
+CREATE TABLE external_group_mapping (
+  group_id VARCHAR(36) not null,
+  external_group VARCHAR(255) not null,
+  added TIMESTAMP default current_timestamp not null,
+  primary key (group_id, external_group)
+);

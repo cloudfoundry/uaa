@@ -66,8 +66,14 @@
 				<value>given_name</value>
 				<value>family_name</value>
 				<value>email</value>
+				<value>authorities</value>
 			</list>
 		</property>
+	</bean>
+	
+	<bean id="ldapGroupMappingAuthorizationManager" class="org.cloudfoundry.identity.uaa.authorization.external.LdapGroupMappingAuthorizationManager">
+        <property name="externalMembershipManager" ref="externalGroupMembershipManager" />
+        <property name="scimGroupProvisioning" ref="scimGroupProvisioning" />
 	</bean>
 
 	<bean id="loginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LoginAuthenticationManager">

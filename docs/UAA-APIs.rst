@@ -330,6 +330,45 @@ An OAuth2 defined endpoint which accepts authorization code or refresh tokens an
 
 * Request: ``POST /oauth/token``
 
+=============== =================================================
+Request         ``POST /oauth/token``
+Request Body    the authorization code (form encoded), e.g.::
+
+                  code=F45jH
+
+Response Codes  ``200 OK``
+Response Body   ::
+
+                  {
+                  "access_token":"2YotnFZFEjr1zCsicMWpAA",
+                  "token_type":"bearer",
+                  "expires_in":3600,
+                  }
+
+=============== =================================================
+
+
+Support for additional authorization attributes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Additional user defined claims can be added to the token by sending them in the token request. The format of the request is as follows::
+
+        authorities={"additionalAuthorizationAttributes":{"external_group":"domain\\group1","external_id":"abcd1234"}}
+
+A sample password grant request is as follows::
+
+        POST /uaa/oauth/token HTTP/1.1
+        Host: localhost:8080
+        Accept: application/json
+        Authorization: Basic YXBwOmFwcGNsaWVudHNlY3JldA==
+        "grant_type=password&username=marissa&password=koala&authorities=%7B%22additionalAuthorizationAttributes%22%3A%7B%22external_group%22%3A%22domain%5C%5Cgroup1%22%2C%20%22external_id%22%3A%22abcd1234%22%7D%7D%0A"
+
+The access token will contain an az_attr claim like::
+        
+        "az_attr":{"external_group":"domain\\group1","external_id":"abcd1234"}}
+
+These attributes can be requested in an authorization code flow as well.
+
 OpenID Check ID Endpoint: ``POST /check_id``
 ---------------------------------------------
 

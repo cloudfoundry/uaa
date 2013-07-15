@@ -14,3 +14,4 @@
 
 DROP TABLE  group_membership ;
 DROP TABLE  groups ;
+DROP TABLE  external_group_mapping IF EXISTS;

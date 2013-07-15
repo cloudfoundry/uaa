@@ -36,6 +36,8 @@ import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.JdbcApprovalStore;
 import org.cloudfoundry.identity.uaa.rest.SearchResults;
 import org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper;
+import org.cloudfoundry.identity.uaa.rest.jdbc.DefaultLimitSqlAdapter;
+import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -108,7 +110,8 @@ public class ScimUserEndpointsTests {
 	@Before
 	public void setUp() {
 		JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
-		dao = new JdbcScimUserProvisioning(jdbcTemplate);
+		JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, new DefaultLimitSqlAdapter());
+		dao = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory);
 		dao.setPasswordEncoder(NoOpPasswordEncoder.getInstance());
 		dao.setPasswordValidator(new NullPasswordValidator());
 		ScimSearchQueryConverter filterConverter = new ScimSearchQueryConverter();
@@ -122,7 +125,7 @@ public class ScimUserEndpointsTests {
 		endpoints.setScimUserProvisioning(dao);
 		mm = new JdbcScimGroupMembershipManager(jdbcTemplate);
 		mm.setScimUserProvisioning(dao);
-		JdbcScimGroupProvisioning gdao = new JdbcScimGroupProvisioning(jdbcTemplate);
+		JdbcScimGroupProvisioning gdao = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
 		mm.setScimGroupProvisioning(gdao);
 		mm.setDefaultUserGroups(Collections.singleton("uaa.user"));
 		endpoints.setScimGroupMembershipManager(mm);
@@ -143,7 +146,7 @@ public class ScimUserEndpointsTests {
 		map.put(HttpMediaTypeException.class, HttpStatus.BAD_REQUEST);
 		endpoints.setStatuses(map);
 
-		am = new JdbcApprovalStore(jdbcTemplate, new ScimSearchQueryConverter());
+		am = new JdbcApprovalStore(jdbcTemplate, pagingListFactory, new ScimSearchQueryConverter());
 		endpoints.setApprovalStore(am);
 	}
 

@@ -4,6 +4,9 @@ import static org.junit.Assert.assertEquals;
 
 import javax.sql.DataSource;
 
+import org.cloudfoundry.identity.uaa.rest.jdbc.DefaultLimitSqlAdapter;
+import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
+import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.junit.After;
@@ -20,7 +23,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @ContextConfiguration("classpath:/test-data-source.xml")
 @RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = {"", "test,postgresql", "hsqldb", "test,mysql"})
+@IfProfileValue(name = "spring.profiles.active", values = {"", "test,postgresql", "hsqldb", "test,mysql", "test,oracle"})
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class JdbcScimClientDetailsServiceTests {
 
@@ -31,6 +34,9 @@ public class JdbcScimClientDetailsServiceTests {
 	@Autowired
 	private DataSource dataSource;
 
+	@Autowired
+	private LimitSqlAdapter limitSqlAdapter;
+	
 	private static final String INSERT_SQL = "insert into oauth_client_details (client_id, client_secret, resource_ids, scope, authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, refresh_token_validity) values (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
 	@Before
@@ -38,7 +44,7 @@ public class JdbcScimClientDetailsServiceTests {
 		// creates a HSQL in-memory db populated from default scripts classpath:schema.sql and classpath:data.sql
 		jdbcTemplate = new JdbcTemplate(dataSource);
 		JdbcClientDetailsService delegate = new JdbcClientDetailsService(dataSource);
-		service = new JdbcQueryableClientDetailsService(delegate, jdbcTemplate);
+		service = new JdbcQueryableClientDetailsService(delegate, jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter));
 
 		addClient("vmc", "secret", "cc", "cc.read,cc.write",
 						 "implicit", "myRedirectUri", "cc.read,cc.write", 100, 200);
