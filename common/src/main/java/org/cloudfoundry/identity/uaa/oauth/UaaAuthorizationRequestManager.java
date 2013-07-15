@@ -155,7 +155,7 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
 		if (scopesFromExternalAuthorities != null) {
 			Map<String, String> existingAuthorizationParameters = new LinkedHashMap<String, String>();
 			existingAuthorizationParameters.putAll(request.getAuthorizationParameters());
-			existingAuthorizationParameters.put("externalScopes", OAuth2Utils.formatParameterList(scopesFromExternalAuthorities));
+			existingAuthorizationParameters.put("external_scopes", OAuth2Utils.formatParameterList(scopesFromExternalAuthorities));
 			request.setAuthorizationParameters(existingAuthorizationParameters);
 		}
 

@@ -226,7 +226,7 @@ public class UaaAuthorizationRequestManagerTests {
 
 		factory.setExternalGroupMappingAuthorizationManager(externalAuthManager);
 		AuthorizationRequest authorizationRequest = factory.createAuthorizationRequest(parameters);
-		assertEquals("acme", ((DefaultAuthorizationRequest)authorizationRequest).getAuthorizationParameters().get("externalScopes"));
+		assertEquals("acme", ((DefaultAuthorizationRequest)authorizationRequest).getAuthorizationParameters().get("external_scopes"));
 	}
 
 	@Test
@@ -254,7 +254,7 @@ public class UaaAuthorizationRequestManagerTests {
 
 		factory.setExternalGroupMappingAuthorizationManager(externalAuthManager);
 		AuthorizationRequest authorizationRequest = factory.createAuthorizationRequest(parameters);
-		assertEquals("acme1 acme", ((DefaultAuthorizationRequest)authorizationRequest).getAuthorizationParameters().get("externalScopes"));
+		assertEquals("acme1 acme", ((DefaultAuthorizationRequest)authorizationRequest).getAuthorizationParameters().get("external_scopes"));
 	}
 
 	@Test
@@ -269,7 +269,7 @@ public class UaaAuthorizationRequestManagerTests {
 
 		factory.setExternalGroupMappingAuthorizationManager(externalAuthManager);
 		AuthorizationRequest authorizationRequest = factory.createAuthorizationRequest(parameters);
-		assertNull(((DefaultAuthorizationRequest)authorizationRequest).getAuthorizationParameters().get("externalScopes"));
+		assertNull(((DefaultAuthorizationRequest)authorizationRequest).getAuthorizationParameters().get("external_scopes"));
 	}
 
 	private class TestExternalAuthorizationManager implements ExternalGroupMappingAuthorizationManager {

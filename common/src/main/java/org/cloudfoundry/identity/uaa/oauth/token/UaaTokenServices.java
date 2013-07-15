@@ -343,7 +343,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 		Set<String> modifiableUserScopes = new LinkedHashSet<String>();
 		modifiableUserScopes.addAll(userScopes);
 		String externalScopes = authentication.getAuthorizationRequest().getAuthorizationParameters()
-				.get("externalScopes");
+				.get("external_scopes");
 		if (null != externalScopes && StringUtils.hasLength(externalScopes)) {
 			modifiableUserScopes.addAll(OAuth2Utils.parseParameterList(externalScopes));
 		}
