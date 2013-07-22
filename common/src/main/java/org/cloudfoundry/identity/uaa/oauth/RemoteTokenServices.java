@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -136,6 +137,12 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
 			clientDetails.setResourceIds(resourceIds);
 			clientDetails.setAuthorities(clientAuthorities);
 			clientAuthentication.addClientDetails(clientDetails);
+		}
+
+
+		if (map.containsKey(Claims.ADDITIONAL_AZ_ATTR)) {
+			clientAuthentication.setAuthorizationParameters(Collections.singletonMap(Claims.ADDITIONAL_AZ_ATTR,
+			(String) map.get(Claims.ADDITIONAL_AZ_ATTR)));
 		}
 
 		Authentication userAuthentication = getUserAuthentication(map, scope);

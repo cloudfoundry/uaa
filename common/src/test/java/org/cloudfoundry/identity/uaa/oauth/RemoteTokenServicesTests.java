@@ -18,7 +18,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.cloudfoundry.identity.uaa.oauth.RemoteTokenServices;
 import org.junit.Test;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -85,4 +84,15 @@ public class RemoteTokenServicesTests {
 		assertEquals("[uaa.user]", result.getUserAuthentication().getAuthorities().toString());
 	}
 
+	@Test
+	public void testTokenRetrievalWithAdditionalAuthorizationAttributes() throws Exception {
+		String tokenAdditionalAuthorizationAttributes = "{\"test\": 1}";
+		body.put(Claims.ADDITIONAL_AZ_ATTR, tokenAdditionalAuthorizationAttributes);
+
+		OAuth2Authentication result = services.loadAuthentication("FOO");
+
+		assertNotNull(result);
+		assertEquals(tokenAdditionalAuthorizationAttributes, result.getAuthorizationRequest()
+				.getAuthorizationParameters().get(Claims.ADDITIONAL_AZ_ATTR));
+	}
 }
