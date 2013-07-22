@@ -18,6 +18,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.Collections;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -41,7 +42,6 @@ import org.springframework.util.Assert;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.DefaultResponseErrorHandler;
-import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
@@ -138,6 +138,12 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
 			clientDetails.setAuthorities(clientAuthorities);
 			clientAuthentication.addClientDetails(clientDetails);
 		}
+
+
+        if (map.containsKey(Claims.ADDITIONAL_AZ_ATTR)) {
+            clientAuthentication.setAuthorizationParameters(Collections.singletonMap(Claims.ADDITIONAL_AZ_ATTR,
+                    (String) map.get(Claims.ADDITIONAL_AZ_ATTR)));
+        }
 
 		Authentication userAuthentication = getUserAuthentication(map, scope);
 
