@@ -14,6 +14,7 @@
 package org.cloudfoundry.identity.uaa.password.event;
 
 import java.security.Principal;
+import java.util.Date;
 import java.util.List;
 
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
@@ -29,9 +30,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 /**
  * Event publisher for password changes with the resulting event type varying according to the input and outcome. Can be
  * used as an aspect intercepting calls to a component that changes user password.
- * 
+ *
  * @author Dave Syer
- * 
+ *
  */
 public class PasswordChangeEventPublisher implements ApplicationEventPublisherAware {
 
@@ -66,9 +67,10 @@ public class PasswordChangeEventPublisher implements ApplicationEventPublisherAw
 		try {
 			// If the request came in for a user by id we should be able to retrieve the username
 			ScimUser scimUser = dao.retrieve(userId);
+			Date today = new Date();
 			if (scimUser != null) {
-				return new UaaUser(scimUser.getUserName(), "N/A", getEmail(scimUser), scimUser.getGivenName(),
-						scimUser.getFamilyName());
+				return new UaaUser(scimUser.getId(), scimUser.getUserName(), "N/A", getEmail(scimUser), null, scimUser.getGivenName(),
+						scimUser.getFamilyName(), today, today);
 			}
 		}
 		catch (ScimResourceNotFoundException e) {
