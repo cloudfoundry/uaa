@@ -54,7 +54,7 @@ public class PeriodLockoutPolicy implements AccountLoginPolicy {
 			// Check whether time of most recent failure is within the lockout period
 			AuditEvent lastFailure = mostRecentFailure(events);
 			if (lastFailure != null && lastFailure.getTime() > System.currentTimeMillis() - lockoutPeriodMs) {
-				logger.warn("User " + user.getId() + " has "
+				logger.warn("User " + user.getUsername() + " and id " + user.getId() + " has "
 					+ failureCount + " failed logins within the last checking period." );
 				return false;
 			}
