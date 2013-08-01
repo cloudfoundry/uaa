@@ -21,7 +21,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 
 /**
  * @author Dave Syer
- * 
+ *
  */
 public class PasswordChangeEvent extends AbstractPasswordChangeEvent {
 
@@ -31,7 +31,7 @@ public class PasswordChangeEvent extends AbstractPasswordChangeEvent {
 
 	@Override
 	public AuditEvent getAuditEvent() {
-		return createAuditRecord(getUser().getUsername(), AuditEventType.PasswordChangeSuccess,
+		return createAuditRecord(getUser().getId(), AuditEventType.PasswordChangeSuccess,
 				getOrigin(getPrincipal()), getMessage());
 	}
 
