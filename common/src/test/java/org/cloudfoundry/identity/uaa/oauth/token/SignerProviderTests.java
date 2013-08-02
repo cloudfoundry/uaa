@@ -91,8 +91,8 @@ public class SignerProviderTests {
 		signerProvider.afterPropertiesSet();
 	}
 
-	@Test(expected = IllegalStateException.class)
-	public void keysNotSameWithMacSigner() throws Exception {
+	@Test
+	public void keyMatchingWithMacSigner() throws Exception {
 		signerProvider.setSigningKey("aKey");
 		signerProvider.setVerifierKey(new String("aKey"));
 		signerProvider.afterPropertiesSet();

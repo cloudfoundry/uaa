@@ -59,7 +59,7 @@ public class SignerProvider implements InitializingBean {
 			}
 		}
 		else {
-			Assert.state(this.signingKey == this.verifierKey,
+			Assert.state(this.signingKey.equals(this.verifierKey),
 					"For MAC signing you do not need to specify the verifier key separately, and if you do it must match the signing key");
 		}
 	}
