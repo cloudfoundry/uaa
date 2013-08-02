@@ -39,20 +39,20 @@ CREATE TABLE sec_audit (
 ) ;
 
 CREATE TABLE oauth_client_details (
-  client_id VARCHAR(256) PRIMARY KEY,
+  client_id VARCHAR(255) PRIMARY KEY,
   resource_ids VARCHAR(1024),
-  client_secret VARCHAR(256),
-  scope VARCHAR(256),
-  authorized_grant_types VARCHAR(256),
+  client_secret VARCHAR(255),
+  scope VARCHAR(255),
+  authorized_grant_types VARCHAR(255),
   web_server_redirect_uri VARCHAR(1024),
-  authorities VARCHAR(256),
+  authorities VARCHAR(255),
   access_token_validity INTEGER default 0,
   refresh_token_validity INTEGER default 0,
   additional_information VARCHAR(4096)
 ) ;
 
 create table oauth_code (
-  code VARCHAR(256),
+  code VARCHAR(255),
   authentication BLOB
 ) ;
  
