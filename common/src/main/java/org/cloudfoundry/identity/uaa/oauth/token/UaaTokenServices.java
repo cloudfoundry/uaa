@@ -494,6 +494,13 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 	public OAuth2Authentication loadAuthentication(String accessToken) throws AuthenticationException {
 		Map<String, Object> claims = getClaimsForToken(accessToken);
 
+		// Check token expiry
+		Integer expiration = (Integer) claims.get(EXP);
+		if(expiration != null && new Date(expiration * 1000l).before(new Date())) {
+			throw new InvalidTokenException("Invalid access token (expired): " + accessToken + " expired at "
+					+ new Date(expiration * 1000l));
+		}
+
 		@SuppressWarnings("unchecked")
 		ArrayList<String> scopes = (ArrayList<String>) claims.get(SCOPE);
 

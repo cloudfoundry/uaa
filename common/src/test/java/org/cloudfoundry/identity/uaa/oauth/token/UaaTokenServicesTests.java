@@ -543,7 +543,7 @@ public class UaaTokenServicesTests {
 		assertTrue(((String) claims.get("jti")).length() > 0);
 		assertTrue(((Integer) claims.get("iat")) > 0);
 		assertTrue(((Integer) claims.get("exp")) > 0);
-		assertTrue(((Integer) claims.get("exp")) - ((Integer) claims.get("iat")) == 60 * 60 * 12);
+		assertTrue(((Integer) claims.get("exp")) - ((Integer) claims.get("iat")) > 0);
 		if (noRefreshToken) {
 			assertNull(accessToken.getRefreshToken());
 		}
@@ -572,7 +572,7 @@ public class UaaTokenServicesTests {
 			assertTrue(((String) refreshTokenClaims.get("jti")).length() > 0);
 			assertTrue(((Integer) refreshTokenClaims.get("iat")) > 0);
 			assertTrue(((Integer) refreshTokenClaims.get("exp")) > 0);
-			assertTrue(((Integer) refreshTokenClaims.get("exp")) - ((Integer) refreshTokenClaims.get("iat")) == 60 * 60 * 24 * 30);
+			assertTrue(((Integer) refreshTokenClaims.get("exp")) - ((Integer) refreshTokenClaims.get("iat")) > 0);
 		}
 
 		return accessToken;
@@ -1109,6 +1109,30 @@ public class UaaTokenServicesTests {
 		assertNull(loadedAuthentication.getDetails());
 
 		assertNull(loadedAuthentication.getUserAuthentication());
+	}
+
+	@Test(expected = InvalidTokenException.class)
+	public void testLoadAuthenticationWithAnExpiredToken() throws InterruptedException {
+		BaseClientDetails shortExpiryClient = new BaseClientDetails("client", "scim, clients", "read, write",
+				"authorization_code, password, implicit, client_credentials", "update");
+		shortExpiryClient.setAccessTokenValiditySeconds(1);
+		clientDetailsService.setClientDetailsStore(Collections
+				.singletonMap("client", shortExpiryClient));
+
+		DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
+				Arrays.asList(new String[] { "read", "write" }));
+		authorizationRequest.setResourceIds(new HashSet<String>(Arrays.asList(new String[] { "scim", "clients" })));
+		Map<String, String> azParameters = new HashMap<String, String>(
+				authorizationRequest.getAuthorizationParameters());
+		azParameters.put("grant_type", "authorization_code");
+		authorizationRequest.setAuthorizationParameters(azParameters);
+		Authentication userAuthentication = new UsernamePasswordAuthenticationToken(new UaaPrincipal(new UaaUser(
+				"jdsa", "password", "jdsa@vmware.com", null, null)), "n/a", null);
+
+		OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
+		OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
+		Thread.sleep(1000l);
+		tokenServices.loadAuthentication(accessToken.getValue());
 	}
 
 	@Test
