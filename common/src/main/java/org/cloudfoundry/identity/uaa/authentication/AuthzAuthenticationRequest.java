@@ -60,7 +60,7 @@ public class AuthzAuthenticationRequest implements Authentication {
 	@Override
 	public Collection<? extends GrantedAuthority> getAuthorities() {
 		if (null != info.get("authorities")) {
-			Collection<ExtendedUaaAuthority> returnAuthorities = new LinkedHashSet();
+			Collection<ExtendedUaaAuthority> returnAuthorities = new LinkedHashSet<ExtendedUaaAuthority>();
 
 			String[] authorities = StringUtils.commaDelimitedListToStringArray(info.get("authorities"));
 

@@ -19,7 +19,6 @@ import static org.junit.Assert.assertTrue;
 import java.util.Collections;
 import java.util.UUID;
 
-import javax.annotation.Resource;
 import javax.sql.DataSource;
 
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;

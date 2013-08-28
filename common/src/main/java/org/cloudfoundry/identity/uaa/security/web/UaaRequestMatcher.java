@@ -216,7 +216,6 @@ public final class UaaRequestMatcher implements RequestMatcher {
 		return sb.toString();
 	}
 
-	@SuppressWarnings("unchecked")
 	public void setHeaders(Map<String, List<String>> headers) {
 		for (String headerName : headers.keySet()) {
 			List<String> expectedValues = new ArrayList<String>();

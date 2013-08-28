@@ -146,7 +146,7 @@ public class SocialClientUserDetailsSource implements InitializingBean, PreAuthe
 
 	private Object getUserId(Map<String, String> map) {
 		String key = "id";
-		if (userInfoUrl.contains("cloudfoundry.com")) {
+		if (userInfoUrl.contains("run.pivotal.io")) {
 			key = "user_id";
 		}
 		return map.get(key);
@@ -157,7 +157,7 @@ public class SocialClientUserDetailsSource implements InitializingBean, PreAuthe
 		if (map.containsKey(key)) {
 			return map.get(key);
 		}
-		if (userInfoUrl.contains("cloudfoundry.com") || userInfoUrl.endsWith("/uaa/userinfo")) {
+		if (userInfoUrl.contains("run.pivotal.io") || userInfoUrl.endsWith("/uaa/userinfo")) {
 			key = "user_name";
 		}
 		if (userInfoUrl.contains("github.com")) {

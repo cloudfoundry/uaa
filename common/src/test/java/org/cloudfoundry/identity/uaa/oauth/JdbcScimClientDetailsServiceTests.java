@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 
 import javax.sql.DataSource;
 
-import org.cloudfoundry.identity.uaa.rest.jdbc.DefaultLimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
