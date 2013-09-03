@@ -18,6 +18,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Test;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -86,13 +87,14 @@ public class RemoteTokenServicesTests {
 
 	@Test
 	public void testTokenRetrievalWithAdditionalAuthorizationAttributes() throws Exception {
-		String tokenAdditionalAuthorizationAttributes = "{\"test\": 1}";
-		body.put(Claims.ADDITIONAL_AZ_ATTR, tokenAdditionalAuthorizationAttributes);
+		ObjectMapper mapper = new ObjectMapper();
+		Map additionalAuthorizationAttributesMap = Collections.singletonMap("test", 1);
+		body.put(Claims.ADDITIONAL_AZ_ATTR, additionalAuthorizationAttributesMap);
 
 		OAuth2Authentication result = services.loadAuthentication("FOO");
 
 		assertNotNull(result);
-		assertEquals(tokenAdditionalAuthorizationAttributes, result.getAuthorizationRequest()
+		assertEquals(mapper.writeValueAsString(additionalAuthorizationAttributesMap), result.getAuthorizationRequest()
 				.getAuthorizationParameters().get(Claims.ADDITIONAL_AZ_ATTR));
 	}
 }
