@@ -22,6 +22,7 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -65,6 +66,8 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
 	private String clientId;
 
 	private String clientSecret;
+
+	private ObjectMapper mapper = new ObjectMapper();
 
 	public RemoteTokenServices() {
 		restTemplate = new RestTemplate();
@@ -141,8 +144,12 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
 
 
 		if (map.containsKey(Claims.ADDITIONAL_AZ_ATTR)) {
-			clientAuthentication.setAuthorizationParameters(Collections.singletonMap(Claims.ADDITIONAL_AZ_ATTR,
-			(String) map.get(Claims.ADDITIONAL_AZ_ATTR)));
+			try {
+				clientAuthentication.setAuthorizationParameters(Collections.singletonMap(Claims.ADDITIONAL_AZ_ATTR,
+						mapper.writeValueAsString(map.get(Claims.ADDITIONAL_AZ_ATTR))));
+			} catch (IOException e) {
+				throw new IllegalStateException("Cannot convert access token to JSON", e);
+			}
 		}
 
 		Authentication userAuthentication = getUserAuthentication(map, scope);
