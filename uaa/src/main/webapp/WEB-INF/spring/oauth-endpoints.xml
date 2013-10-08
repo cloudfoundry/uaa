@@ -26,29 +26,6 @@
 		<oauth:password authentication-manager-ref="compositeAuthenticationManager" />
 	</oauth:authorization-server>
 
-	<http name="tokenEndpointSecurity" create-session="stateless" authentication-manager-ref="clientAuthenticationManager"
-	    request-matcher-ref="oauthTokenMatcher"
-		entry-point-ref="basicAuthenticationEntryPoint" xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
-		<anonymous enabled="false" />
-		<custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
-		<custom-filter ref="tokenEndpointAuthenticationFilter" after="BASIC_AUTH_FILTER" />
-		<access-denied-handler ref="oauthAccessDeniedHandler" />
-	</http>
-
-    <bean id="oauthTokenMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
-        <constructor-arg value="/oauth/token" />
-        <property name="headers">
-            <map>
-                <entry key="authorization">
-                    <list>
-                        <value>Basic </value>
-                    </list>
-                </entry>
-            </map>
-        </property>
-    </bean>
-
    <http name="tokenEndpointSecurityForAuthServers" create-session="stateless" authentication-manager-ref="clientAuthenticationManager"
         request-matcher-ref="oauthBearerTokenMatcher"
         entry-point-ref="oauthAuthenticationEntryPoint" xmlns="http://www.springframework.org/schema/security">
@@ -71,6 +48,16 @@
             </map>
         </property>
     </bean>
+
+	<http name="tokenEndpointSecurity" create-session="stateless" authentication-manager-ref="clientAuthenticationManager"
+	    pattern="/oauth/token/**"
+		entry-point-ref="basicAuthenticationEntryPoint" xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+		<anonymous enabled="false" />
+		<custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
+		<custom-filter ref="tokenEndpointAuthenticationFilter" after="BASIC_AUTH_FILTER" />
+		<access-denied-handler ref="oauthAccessDeniedHandler" />
+	</http>
 
 	<!-- Version of the /authorize endpoint for stateless clients such as VMC -->
 	<http name="statelessAuthzEndpointSecurity" request-matcher-ref="oauthAuthorizeRequestMatcher" create-session="stateless"
