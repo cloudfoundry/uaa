@@ -605,6 +605,25 @@ Filters: note that, per the specification, attribute values are comma separated 
           ]
         }
 
+Query for the existence of a specific username.
+
+* Response Body (for ``GET /Users?attributes=userName&filter=userName eq 'bjensen'``)::
+	
+	HTTP/1.1 200 OK
+        Content-Type: application/json
+        
+        {
+    	  "resources": [
+            {
+              "userName": "bjensen"
+            }
+          ],
+    	  "startIndex": 1,
+    	  "itemsPerPage": 100,
+    	  "totalResults": 1,
+    	  "schemas":["urn:scim:schemas:core:1.0"]
+	}
+
 
 * Response Codes::
 
