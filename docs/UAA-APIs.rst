@@ -976,19 +976,19 @@ Response code    ``200 OK`` if successful with client details in JSON response
 Response body   *example* ::
 
                   HTTP/1.1 200 OK
-                  {foo: {
-                    client_id : foo,
-                    scope : [uaa.none]
-                    resource_ids : [none],
-                    authorities : [cloud_controller.read,cloud_controller.write,scim.read],
-                    authorized_grant_types : [client_credentials]
+                  {"foo": {
+                    "client_id" : "foo",
+                    "scope" : ["uaa.none"],
+                    "resource_ids" : ["none"],
+                    "authorities" : ["cloud_controller.read","cloud_controller.write","scim.read"],
+                    "authorized_grant_types" : ["client_credentials"]
                   },
-                  bar: {
-                    client_id : bar,
-                    scope : [cloud_controller.read,cloud_controller.write,openid],
-                    resource_ids : [none],
-                    authorities : [uaa.none],
-                    authorized_grant_types : [authorization_code]
+                  "bar": {
+                    "client_id" : "bar",
+                    "scope" : ["cloud_controller.read","cloud_controller.write","openid"],
+                    "resource_ids" : ["none"],
+                    "authorities" : ["uaa.none"],
+                    "authorized_grant_types" : ["authorization_code"]
                   }}
 
 ==============  ===========================================================================
@@ -1005,11 +1005,11 @@ Response body   *example*::
 
                   HTTP/1.1 200 OK
                   {
-                    client_id : foo,
-                    scope : [uaa.none],
-                    resource_ids : [none],
-                    authorities : [cloud_controller.read,cloud_controller.write,scim.read],
-                    authorized_grant_types : [client_credentials]
+                    "client_id" : "foo",
+                    "scope" : ["uaa.none"],
+                    "resource_ids" : ["none"],
+                    "authorities" : ["cloud_controller.read","cloud_controller.write","scim.read"],
+                    "authorized_grant_types" : ["client_credentials"]
                   }
 
 =============== ===============================================================
@@ -1028,13 +1028,13 @@ Example request::
 
     POST /oauth/clients/foo
     {
-      client_id : foo,
-      client_secret : fooclientsecret, // optional for untrusted clients
-      scope : [uaa.none],
-      resource_ids : [none],
-      authorities : [cloud_controller.read,cloud_controller.write,openid],
-      authorized_grant_types : [client_credentials],
-      access_token_validity: 43200
+      "client_id" : "foo",
+      "client_secret" : "fooclientsecret", // optional for untrusted clients
+      "scope" : ["uaa.none"],
+      "resource_ids" : ["none"],
+      "authorities" : ["cloud_controller.read","cloud_controller.write","openid"],
+      "authorized_grant_types" : ["client_credentials"],
+      "access_token_validity": 43200
     }
 
 (Also available for grant types that support it: ``refresh_token_validity``.)
@@ -1053,11 +1053,11 @@ Example::
 
     PUT /oauth/clients/foo
     {
-      client_id : foo,
-      scope : [uaa.none],
-      resource_ids : [none],
-      authorities : [cloud_controller.read,cloud_controller.write,openid],
-      authorized_grant_types : [client_credentials]
+      "client_id" : "foo",
+      "scope" : ["uaa.none"],
+      "resource_ids" : ["none"],
+      "authorities" : ["cloud_controller.read","cloud_controller.write","openid"],
+      "authorized_grant_types" : ["client_credentials"]
     }
 
 N.B. the secret will not be changed, even if it is included in the
@@ -1088,8 +1088,8 @@ Example::
 
     PUT /oauth/clients/foo/secret
     {
-      oldSecret: fooclientsecret,
-      secret: newclientsceret
+      "oldSecret": "fooclientsecret",
+      "secret": "newclientsceret"
     }
 
 UI Endpoints
