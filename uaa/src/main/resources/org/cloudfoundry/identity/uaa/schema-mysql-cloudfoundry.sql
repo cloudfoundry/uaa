@@ -11,7 +11,7 @@
 -- subcomponent's license, as noted in the LICENSE file.
 --
 -- Creates tables and adds constraints and columns incrementally, so
--- it can be used to maintain the schema on cloudfoundry.com
+-- it can be used to maintain the schema
 
 CREATE TABLE users (
    id char(36) not null primary key,
