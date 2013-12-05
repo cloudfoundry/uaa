@@ -46,8 +46,8 @@
 			<p>
 				If you are reading this you are probably in the wrong place because
 				the UAA does not support a branded UI out of the box. To login to
-				<code>cloudfoundry.com</code>
-				<a href="https://login.cloudfoundry.com">click here.</a> If you were
+				<code>Pivotal Web Services</code>
+				<a href="https://login.run.pivotal.io">click here.</a> If you were
 				re-directed here by another application, please contact the owner of
 				that application and tell them to use the Login Server as UI entry
 				point.
@@ -58,7 +58,7 @@
 		title="Version: ${app.version}, Commit: ${commit_id}, Timestamp: ${timestamp}">
 		Copyright &copy;
 		<fmt:formatDate value="<%=new java.util.Date()%>" pattern="yyyy" />
-		VMware, Inc. All rights reserved.
+		Pivotal Software, Inc. All rights reserved.
 	</div>
 </body>
 </html>

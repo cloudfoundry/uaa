@@ -47,7 +47,7 @@
 		<div title="Version: ${app.version}, Commit: ${commit_id}, Timestamp: ${timestamp}">
 			Copyright &copy;
 			<fmt:formatDate value="<%=new java.util.Date()%>" pattern="yyyy" />
-			VMware, Inc. All rights reserved.
+			Pivotal Software, Inc. All rights reserved.
 		</div>
 	</div>
 </body>
