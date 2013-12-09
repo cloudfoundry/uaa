@@ -16,8 +16,11 @@
 package org.cloudfoundry.identity.uaa.user;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
+import org.junit.Ignore;
 import org.junit.Test;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 /**
  * @author Dave Syer
@@ -39,6 +42,20 @@ public class UaaAuthorityTests {
 	@Test
 	public void testAdminFromAuthorities() {
 		assertEquals(UaaAuthority.UAA_ADMIN, UaaAuthority.fromAuthorities("uaa.user,uaa.admin"));
+	}
+	
+	@Test
+	public void testAuthority() {
+		assertEquals(UaaAuthority.UAA_ADMIN, UaaAuthority.authority("uaa.admin"));
+		assertEquals(UaaAuthority.UAA_USER, UaaAuthority.authority("uaa.user"));
+		assertEquals(new SimpleGrantedAuthority("tacos"), UaaAuthority.authority("tacos"));
+	}
+	
+	@Test
+	@Ignore("Is this a worth while test")
+	public void testSubstringAuthority() {
+		assertFalse(UaaAuthority.UAA_ADMIN.equals(UaaAuthority.authority("some.scope.with.subscope.uaa.admin")));
+
 	}
 
 }
