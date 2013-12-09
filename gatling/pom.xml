@@ -12,8 +12,8 @@
 		<scala.version>2.9.2</scala.version>
 		<encoding>UTF-8</encoding>
 
-		<gatling.version>1.5.0-SNAPSHOT</gatling.version>
-		<gatling-highcharts.version>1.5.0-SNAPSHOT</gatling-highcharts.version>
+		<gatling.version>1.4.6</gatling.version>
+		<gatling-highcharts.version>1.4.6</gatling-highcharts.version>
 
 		<maven-scala-plugin.version>2.15.2</maven-scala-plugin.version>
 	</properties>
