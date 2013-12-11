@@ -31,6 +31,7 @@ import static org.cloudfoundry.identity.uaa.oauth.Claims.USER_NAME;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -506,7 +507,11 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
 		AuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest((String) claims.get(CLIENT_ID),
 				scopes);
-		((DefaultAuthorizationRequest) authorizationRequest).setResourceIds(null);
+
+		ArrayList<String> rids = (ArrayList<String>)claims.get(AUD);
+		Set<String> resourceIds =Collections.unmodifiableSet(new HashSet<String>(rids)); 
+		((DefaultAuthorizationRequest) authorizationRequest).setResourceIds(resourceIds);
+
 		((DefaultAuthorizationRequest) authorizationRequest).setApproved(true);
 
 		Collection<? extends GrantedAuthority> authorities = AuthorityUtils
