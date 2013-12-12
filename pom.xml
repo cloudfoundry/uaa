@@ -338,9 +338,9 @@
 		</pluginManagement>
 		<extensions>
 			<extension>
-				<groupId>org.springframework.build.aws</groupId>
-				<artifactId>org.springframework.build.aws.maven</artifactId>
-				<version>3.0.0.RELEASE</version>
+				<groupId>org.springframework.build</groupId>
+				<artifactId>aws-maven</artifactId>
+				<version>5.0.0.BUILD-SNAPSHOT</version>
 			</extension>
 		</extensions>
 	</build>
