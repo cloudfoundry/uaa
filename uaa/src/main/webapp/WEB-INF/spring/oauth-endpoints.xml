@@ -227,6 +227,7 @@
 		<value>scim.userids</value>
 		<value>uaa.user</value>
 		<value>approvals.me</value>
+        <value>oauth.approvals</value>
 	</util:set>
 
 	<bean id="userDatabase" class="org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase">
