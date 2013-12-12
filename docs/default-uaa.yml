@@ -46,7 +46,7 @@ oauth:
     login:
       id: login
       secret: loginsecret
-      scope: openid
+      scope: openid, oauth.approvals
       authorized-grant-types: client_credentials,authorization_code
       authorities: oauth.login
 

@@ -8,7 +8,7 @@ oauth:
     login:
       id: login
       secret: loginsecret
-      scope: uaa.none
+      scope: uaa.none, oauth.approvals
       authorized-grant-types: client_credentials
       authorities: oauth.login
 

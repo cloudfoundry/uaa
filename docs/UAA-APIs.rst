@@ -189,7 +189,7 @@ In addition to the normal authentication of the ``/oauth/authorize`` endpoint de
 
     id: login,
     secret: loginsecret,
-    scope: uaa.none,
+    scope: uaa.none,oauth.approvals
     authorized_grant_types: client_credentials,
     authorities: oauth.login
 
