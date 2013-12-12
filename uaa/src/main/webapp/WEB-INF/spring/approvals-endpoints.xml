@@ -45,12 +45,12 @@
 	<http name="approvalsSecurity" pattern="/approvals" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
 		entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
 		xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+        <intercept-url pattern="/**" access="scope=oauth.approvals"/>
 		<custom-filter ref="approvalsResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
 		<access-denied-handler ref="oauthAccessDeniedHandler" />
 	</http>
 
 	<oauth:resource-server id="approvalsResourceAuthenticationFilter" token-services-ref="tokenServices"
-		resource-id="uaa" entry-point-ref="oauthAuthenticationEntryPoint" />
+		resource-id="oauth" entry-point-ref="oauthAuthenticationEntryPoint" />
 
 </beans>
