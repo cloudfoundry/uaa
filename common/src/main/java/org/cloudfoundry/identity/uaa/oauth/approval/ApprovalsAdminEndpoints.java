@@ -13,7 +13,6 @@
 package org.cloudfoundry.identity.uaa.oauth.approval;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -104,8 +103,6 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 		List<Approval> input = approvalStore.getApprovals(
 				String.format("%s and " + USER_FILTER_TEMPLATE, filter, username));
 		List<Approval> approvals = UaaPagingUtils.subList(input, startIndex, count);
-		//filter the list of available approvals
-		approvals = filterForClient(approvals);
 
 		// Find the clients for these approvals
 		Set<String> clientIds = new HashSet<String>();
@@ -144,26 +141,6 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 
 		return filteredApprovals;
 	}
-	
-	/**
-	 * The only client that can control 
-	 * @param approvals
-	 * @return
-	 */
-	private List<Approval> filterForClient(List<Approval> approvals) {
-	    String clientId = securityContextAccessor.getClientId();
-	    if ("login".equals(clientId)) {
-	        //login client can handle any approvals
-	        return approvals;
-	    }
-	    ArrayList<Approval> result = new ArrayList<Approval>();
-	    for (Approval approval : approvals) {
-	        if (clientId!=null && clientId.equals(approval.getClientId())) {
-	            result.add(approval);
-	        }
-	    }
-	    return result;
-	}
 
 	private String getCurrentUsername() {
 		if (!securityContextAccessor.isUser()) {
@@ -178,15 +155,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 	Approval[] approvals) {
 		String username = getCurrentUsername();
 		logger.debug("Updating approvals for user: " + username);
-		approvals =  (Approval[]) (filterForClient(Arrays.asList(approvals)).toArray(new Approval[0]));
-
-		String clientId = securityContextAccessor.getClientId();
-		if ("login".equals(clientId)) {
-		    approvalStore.revokeApprovals(String.format(USER_FILTER_TEMPLATE, username));
-		} else {
-		    approvalStore.revokeApprovals(String.format(USER_AND_CLIENT_FILTER_TEMPLATE, username,clientId));
-		}
-		
+		approvalStore.revokeApprovals(String.format(USER_FILTER_TEMPLATE, username));
 		for (Approval approval : approvals) {
 			if (!isValidUser(approval.getUserName())) {
 				logger.warn(String.format("%s attemting to update approvals for %s", username, approval.getUserName()));
@@ -196,13 +165,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 			approval.setLastUpdatedAt(new Date());
 			approvalStore.addApproval(approval);
 		}
-		if ("login".equals(clientId)) {
-		    return approvalStore.getApprovals(String.format(USER_FILTER_TEMPLATE, username));
-        } else {
-            return approvalStore.getApprovals(String.format(USER_AND_CLIENT_FILTER_TEMPLATE, username,clientId));
-        }
-		
-		
+		return approvalStore.getApprovals(String.format(USER_FILTER_TEMPLATE, username));
 	}
 
 	private boolean isValidUser(String username) {
@@ -223,12 +186,8 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 	String clientId) {
 		String username = getCurrentUsername();
 		logger.debug("Revoking all existing approvals for user: " + username + " and client " + clientId);
-        if ("login".equals(clientId)) {
-            approvalStore.revokeApprovals(String.format(USER_FILTER_TEMPLATE, username));
-        } else {
-            approvalStore.revokeApprovals(String.format(USER_AND_CLIENT_FILTER_TEMPLATE, username,clientId));
-        }
-        return new SimpleMessage("ok", "Approvals of user " + username + " and client " + clientId + " revoked");
+		approvalStore.revokeApprovals(String.format(USER_AND_CLIENT_FILTER_TEMPLATE, username, clientId));
+		return new SimpleMessage("ok", "Approvals of user " + username + " and client " + clientId + " revoked");
 	}
 
 	@ExceptionHandler
