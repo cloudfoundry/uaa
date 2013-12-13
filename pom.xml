@@ -434,12 +434,12 @@
 	</licenses>
 	<distributionManagement>
 		<repository>
-			<id>spring-release</id>
+			<id>spring-release-write</id>
 			<name>Spring Release Repository</name>
 			<url>s3://maven.springframework.org/release</url>
 		</repository>
 		<snapshotRepository>
-			<id>spring-snapshot</id>
+			<id>spring-snapshot-write</id>
 			<name>Spring Snapshot Repository</name>
 			<url>s3://maven.springframework.org/snapshot</url>
 		</snapshotRepository>
