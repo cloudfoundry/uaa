@@ -6,7 +6,7 @@
 	<name>CloudFoundry Identity - Parent</name>
     <description>The UAA is the Identity Management Solution for Cloud Foundry</description>
 	<packaging>pom</packaging>
-	<version>1.4.6</version>
+	<version>1.4.7</version>
 	<url>http://github.com/cloudfoundry/uaa</url>
 	<modules>
 		<module>common</module>
@@ -44,7 +44,7 @@
 			</repository>
 			<repository>
 			<!-- necessary for Spring Security OAuth SNAPSHOT dependency -->
-				<id>spring-snapshost</id>
+				<id>spring-snapshot</id>
 				<name>Spring Framework Maven Snapshot Repository</name>
 				<url>http://maven.springframework.org/snapshot</url>
 			</repository>
@@ -338,9 +338,9 @@
 		</pluginManagement>
 		<extensions>
 			<extension>
-				<groupId>org.springframework.build.aws</groupId>
-				<artifactId>org.springframework.build.aws.maven</artifactId>
-				<version>3.0.0.RELEASE</version>
+				<groupId>org.springframework.build</groupId>
+				<artifactId>aws-maven</artifactId>
+				<version>5.0.0.BUILD-SNAPSHOT</version>
 			</extension>
 		</extensions>
 	</build>
@@ -393,6 +393,15 @@
 				<enabled>false</enabled>
 			</snapshots>
 		</pluginRepository>
+		<pluginRepository>
+			<!-- necessary for Spring Security OAuth SNAPSHOT dependency -->
+			<id>spring-snapshot</id>
+			<name>Spring Framework Maven Snapshot Repository</name>
+			<url>http://maven.springframework.org/snapshot</url>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</pluginRepository>
 	</pluginRepositories>
 	<scm>
 		<url>http://github.com/cloudfoundry/uaa</url>
@@ -434,12 +443,12 @@
 	</licenses>
 	<distributionManagement>
 		<repository>
-			<id>spring-release</id>
+			<id>spring-release-write</id>
 			<name>Spring Release Repository</name>
 			<url>s3://maven.springframework.org/release</url>
 		</repository>
 		<snapshotRepository>
-			<id>spring-snapshot</id>
+			<id>spring-snapshot-write</id>
 			<name>Spring Snapshot Repository</name>
 			<url>s3://maven.springframework.org/snapshot</url>
 		</snapshotRepository>

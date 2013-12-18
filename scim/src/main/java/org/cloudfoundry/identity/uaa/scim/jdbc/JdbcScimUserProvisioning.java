@@ -91,6 +91,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
 
 	private final RowMapper<ScimUser> mapper = new ScimUserRowMapper();
 
+	private Pattern usernamePattern = Pattern.compile("[a-zA-Z0-9+\\-_.@]+");
+
 	public JdbcScimUserProvisioning(JdbcTemplate jdbcTemplate, JdbcPagingListFactory pagingListFactory) {
 		super(jdbcTemplate, pagingListFactory, new ScimUserRowMapper());
 		Assert.notNull(jdbcTemplate);
@@ -175,8 +177,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
 	}
 
 	private void validate(final ScimUser user) throws InvalidScimResourceException {
-		if (!user.getUserName().matches("[a-z0-9+-_.@]+")) {
-			throw new InvalidScimResourceException("Username must be lower case alphanumeric with optional characters '._@'.");
+		if (!usernamePattern.matcher(user.getUserName()).matches()) {
+			throw new InvalidScimResourceException("Username must match pattern: " + usernamePattern.pattern());
 		}
 		if (user.getEmails()==null || user.getEmails().isEmpty()) {
 			throw new InvalidScimResourceException("An email must be provided.");
@@ -325,6 +327,14 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
 	public void setPasswordEncoder(PasswordEncoder passwordEncoder) {
 		Assert.notNull(passwordEncoder, "passwordEncoder cannot be null");
 		this.passwordEncoder = passwordEncoder;
+	}
+
+	/**
+	 * Sets the regular expression which will be used to validate the username.
+	 */
+	public void setUsernamePattern(String usernamePattern) {
+		Assert.hasText(usernamePattern, "Username pattern must not be empty");
+		this.usernamePattern = Pattern.compile(usernamePattern);
 	}
 
 	private static final class ScimUserRowMapper implements RowMapper<ScimUser> {

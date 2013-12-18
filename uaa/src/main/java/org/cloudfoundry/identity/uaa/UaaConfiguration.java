@@ -124,6 +124,7 @@ public class UaaConfiguration {
 		public boolean userids_enabled;
 		public boolean userOverride;
 		public List<String> users;
+		public String username_pattern;
 	}
 
 	public static class PasswordPolicy {

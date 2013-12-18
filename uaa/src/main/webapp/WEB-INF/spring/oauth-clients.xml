@@ -88,7 +88,7 @@
 						<map>
 							<entry key="id" value="login" />
 							<entry key="secret" value="loginsecret" />
-							<entry key="scope" value="openid,uaa.user,oauth.approvals" />
+							<entry key="scope" value="openid,oauth.approvals" />
 							<entry key="authorized-grant-types" value="client_credentials,authorization_code" />
 							<entry key="authorities" value="oauth.login" />
 							<entry key="autoapprove" value="true" />

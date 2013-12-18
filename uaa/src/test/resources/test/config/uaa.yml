@@ -9,6 +9,7 @@ oauth:
       - my
       - support
 scim:
+  username_pattern: '[a-z0-9+\-_.@]+'
   users:
     - paul|wombat|paul@test.org|Paul|Smith|uaa.admin
     - stefan|wallaby|stefan@test.org|Stefan|Schmidt
