@@ -133,10 +133,10 @@ public class JdbcScimUserProvisioningTests {
 
 	@Test
 	public void canCreateUser() {
-		ScimUser user = new ScimUser(null, "JO@FOO.COM", "Jo", "User");
+		ScimUser user = new ScimUser(null, "jo@foo.com", "Jo", "User");
 		user.addEmail("jo@blah.com");
 		ScimUser created = db.createUser(user, "j7hyqpassX");
-		assertEquals("JO@FOO.COM", created.getUserName());
+		assertEquals("jo@foo.com", created.getUserName());
 		assertNotNull(created.getId());
 		assertNotSame(user.getId(), created.getId());
 		Map<String, Object> map = template.queryForMap("select * from users where id=?", created.getId());
@@ -147,10 +147,10 @@ public class JdbcScimUserProvisioningTests {
 
 	@Test
 	public void canCreateUserWithoutGivenNameAndFamilyName() {
-		ScimUser user = new ScimUser(null, "JO@FOO.COM", null, null);
+		ScimUser user = new ScimUser(null, "jo@foo.com", null, null);
 		user.addEmail("jo@blah.com");
 		ScimUser created = db.createUser(user, "j7hyqpassX");
-		assertEquals("JO@FOO.COM", created.getUserName());
+		assertEquals("jo@foo.com", created.getUserName());
 		assertNotNull(created.getId());
 		assertNotSame(user.getId(), created.getId());
 		Map<String, Object> map = template.queryForMap("select * from users where id=?", created.getId());
@@ -213,9 +213,18 @@ public class JdbcScimUserProvisioningTests {
 		ScimUser joe = db.update(JOE_ID, jo);
 		assertEquals("joe", joe.getUserName());
 	}
-
+/*
+	@Test(expected = InvalidScimResourceException.class)
+	public void updateWithCapitalLetterInUsernameIsError() throws Exception {
+		ScimUser jo = new ScimUser(null, "joSephine", "Jo", "NewUser");
+		jo.addEmail("jo@blah.com");
+		jo.setVersion(1);
+		ScimUser joe = db.update(JOE_ID, jo);
+		assertEquals("joe", joe.getUserName());
+	}
+*/
 	@Test
-	public void canChangePasswordWithouOldPassword() throws Exception {
+	public void canChangePasswordWithoutOldPassword() throws Exception {
 		assertTrue(db.changePassword(JOE_ID, null, "koala123$marissa"));
 		String storedPassword = template.queryForObject("SELECT password from users where ID=?", String.class, JOE_ID);
 		assertTrue(BCrypt.checkpw("koala123$marissa", storedPassword));

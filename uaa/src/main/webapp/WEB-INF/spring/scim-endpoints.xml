@@ -24,6 +24,7 @@
 		</property>
 		<property name="queryConverter" ref="scimUserQueryConverter" />
 		<property name="deactivateOnDelete" value="${scim.delete.deactivate:false}" />
+		<property name="usernamePattern" value="${scim.username_pattern:[a-zA-Z0-9+\-_.@]+}" />
 	</bean>
 
 	<bean id="scimUserQueryConverter" class="org.cloudfoundry.identity.uaa.scim.jdbc.ScimSearchQueryConverter">

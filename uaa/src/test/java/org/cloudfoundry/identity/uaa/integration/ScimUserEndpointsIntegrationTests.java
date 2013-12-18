@@ -51,7 +51,7 @@ public class ScimUserEndpointsIntegrationTests {
 
 	private final String JOEL = "joel_" + new RandomValueStringGenerator().generate().toLowerCase();
 
-	private final String JOE = "joe_" + new RandomValueStringGenerator().generate().toLowerCase();
+	private final String JOE = "JOE_" + new RandomValueStringGenerator().generate().toLowerCase();
 
 	private final String DELETE_ME = "deleteme_" + new RandomValueStringGenerator().generate().toLowerCase();
 
