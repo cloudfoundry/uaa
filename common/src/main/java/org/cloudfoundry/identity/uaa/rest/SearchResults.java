@@ -54,5 +54,23 @@ public class SearchResults<T> {
 	public Collection<T> getResources() {
 		return resources;
 	}
+	
+   public String toString() {
+        StringBuilder builder = new StringBuilder("SearchResults[schemas:");
+        builder.append(getSchemas());
+        builder.append("; count:");
+        builder.append(getTotalResults());
+        builder.append("; size:");
+        builder.append(getResources().size());
+        builder.append("; index:" );
+        builder.append(getStartIndex());
+        builder.append("; resources:");
+        builder.append(getResources());
+        builder.append("; id:");
+        builder.append(System.identityHashCode(this));
+        builder.append(";]");
+        return builder.toString();
+    }
+
 
 }
