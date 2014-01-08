@@ -511,7 +511,11 @@ public class ScimGroupEndpointsTests {
 	@Test
 	public void testListGroupsAsUser() {
 		endpoints.setSecurityContextAccessor(mockSecurityContextAccessor(userIds.get(0)));
-		validateSearchResults(endpoints.listGroups("id,displayName", "id pr", "created", "ascending", 1, 100), 1);
+		try {
+		    validateSearchResults(endpoints.listGroups("id,displayName", "id pr", "created", "ascending", 1, 100), 1);
+		} finally {
+		    endpoints.setSecurityContextAccessor(null);
+		}
 	}
 
 	private void validateView (View view, HttpStatus status) {
