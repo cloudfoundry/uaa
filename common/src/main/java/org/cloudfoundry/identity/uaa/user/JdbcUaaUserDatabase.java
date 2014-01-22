@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.user;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -36,14 +37,12 @@ import org.springframework.util.StringUtils;
  */
 public class JdbcUaaUserDatabase implements UaaUserDatabase {
 
-	public static final String USER_FIELDS = "id,username,password,email,givenName,familyName,created,lastModified ";
+	public static final String USER_FIELDS = "id,username,password,email,givenName,familyName,created,lastModified, authorities ";
 
 	public static final String DEFAULT_USER_BY_USERNAME_QUERY = "select " + USER_FIELDS + "from users "
 			+ "where lower(username) = ? and active=?";
 
-	public static final String DEFAULT_USER_AUTHORITIES_QUERY = "select authorities from users where id = ?";
-
-	private String userAuthoritiesQuery = DEFAULT_USER_AUTHORITIES_QUERY;
+	private String userAuthoritiesQuery = null;
 
 	private String userByUserNameQuery = DEFAULT_USER_BY_USERNAME_QUERY;
 
@@ -74,8 +73,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
 	public UaaUser retrieveUserByName(String username) throws UsernameNotFoundException {
 		try {
 			return jdbcTemplate.queryForObject(userByUserNameQuery, mapper, username.toLowerCase(Locale.US), true);
-		}
-		catch (EmptyResultDataAccessException e) {
+		} catch (EmptyResultDataAccessException e) {
 			throw new UsernameNotFoundException(username);
 		}
 	}
@@ -84,10 +82,24 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
 		@Override
 		public UaaUser mapRow(ResultSet rs, int rowNum) throws SQLException {
 			String id = rs.getString(1);
-			List<GrantedAuthority> authorities = AuthorityUtils.commaSeparatedStringToAuthorityList(getAuthorities(id));
-			return new UaaUser(id, rs.getString(2), rs.getString(3), rs.getString(4),
+			if (userAuthoritiesQuery==null) {
+			    return new UaaUser(id, rs.getString(2), rs.getString(3), rs.getString(4),
+	                    getDefaultAuthorities(rs.getString(9)), rs.getString(5), rs.getString(6),
+	                    rs.getTimestamp(7), rs.getTimestamp(8));
+			} else {
+			    List<GrantedAuthority> authorities = AuthorityUtils.commaSeparatedStringToAuthorityList(getAuthorities(id));
+			    return new UaaUser(id, rs.getString(2), rs.getString(3), rs.getString(4),
 					authorities, rs.getString(5), rs.getString(6),
 					rs.getTimestamp(7), rs.getTimestamp(8));
+			}
+		}
+		
+		private List<GrantedAuthority> getDefaultAuthorities(String defaultAuth) {
+		    List<String> authorities = new ArrayList<String>();
+		    authorities.addAll(StringUtils.commaDelimitedListToSet(defaultAuth));
+            authorities.addAll(defaultAuthorities);
+            String authsString = StringUtils.collectionToCommaDelimitedString(new HashSet<String>(authorities));
+            return AuthorityUtils.commaSeparatedStringToAuthorityList(authsString);
 		}
 
 		private String getAuthorities(final String userId) {
