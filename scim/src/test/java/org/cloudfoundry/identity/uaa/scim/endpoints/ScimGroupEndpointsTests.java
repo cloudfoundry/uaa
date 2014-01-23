@@ -92,11 +92,13 @@ public class ScimGroupEndpointsTests {
 	public ExpectedException expectedEx = ExpectedException.none();
 
 	@BeforeClass
-	public static void setup() {
+	public static void setup() throws Exception {
 		EmbeddedDatabaseBuilder builder = new EmbeddedDatabaseBuilder();
 		builder.addScript("classpath:/org/cloudfoundry/identity/uaa/schema-hsqldb.sql");
 		builder.addScript("classpath:/org/cloudfoundry/identity/uaa/scim/schema-hsqldb.sql");
 		database = builder.build();
+		//confirm that everything is clean prior to test.
+		TestUtils.deleteFrom(database, "users", "groups", "group_membership");
 
 		template = new JdbcTemplate(database);
 		JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(template, new DefaultLimitSqlAdapter());
