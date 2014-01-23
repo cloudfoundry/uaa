@@ -27,6 +27,10 @@
 			<param-name>contextInitializerClasses</param-name>
 			<param-value>org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer</param-value>
 		</init-param>
+        <init-param>
+            <param-name>environmentConfigDefaults</param-name>
+            <param-value>uaa.yml</param-value>
+        </init-param>
 		<init-param>
 			<param-name>environmentConfigLocations</param-name>
 			<param-value>${UAA_CONFIG_URL},file:${UAA_CONFIG_PATH}/uaa.yml,file:${CLOUD_FOUNDRY_CONFIG_PATH}/uaa.yml</param-value>
