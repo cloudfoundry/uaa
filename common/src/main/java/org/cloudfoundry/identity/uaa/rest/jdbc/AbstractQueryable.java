@@ -43,6 +43,10 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
 	public void setPageSize(int pageSize) {
 		this.pageSize = pageSize;
 	}
+	
+	public int getPageSize() {
+	    return pageSize;
+	}
 
 	@Override
 	public List<T> query(String filter) {

@@ -209,10 +209,15 @@ public class ScimGroupEndpointsTests {
 
 	@Test
 	public void testFindMultiplePagesOfIds() {
+		int pageSize = dao.getPageSize();
 		dao.setPageSize(1);
-		SearchResults<?> results = endpoints.listGroups("id", "id pr", null, "ascending", 1, 100);
-		assertEquals(6, results.getTotalResults());
-		assertEquals(6, results.getResources().size());
+		try {
+		    SearchResults<?> results = endpoints.listGroups("id", "id pr", null, "ascending", 1, 100);
+		    assertEquals(6, results.getTotalResults());
+		    assertEquals(6, results.getResources().size());
+		}finally {
+		    dao.setPageSize(pageSize);
+		}
 	}
 
 	@Test
