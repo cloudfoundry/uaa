@@ -101,7 +101,7 @@ public class JdbcScimGroupExternalMembershipManagerTests {
 		assertEquals(externalMapping.size(), 1);
 	}
 
-	@Test(expected = MemberAlreadyExistsException.class)
+	@Test
 	public void addExternalMappingToGroupThatAlreadyExists() {
 		ScimGroup group = gdao.retrieve("g1");
 		assertNotNull(group);
@@ -115,6 +115,8 @@ public class JdbcScimGroupExternalMembershipManagerTests {
 		assertEquals(externalMapping.size(), 1);
 
 		ScimGroupExternalMember dupMember = edao.mapExternalGroup("g1", "cn=engineering,ou=groups,dc=example,dc=com");
+		assertEquals(member.getGroupId(), "g1");
+        assertEquals(member.getExternalGroup(), "cn=engineering,ou=groups,dc=example,dc=com");
 	}
 
 	@Test
