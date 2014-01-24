@@ -79,7 +79,9 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
 					}
 				});
 			} catch (DuplicateKeyException e) {
-				throw new MemberAlreadyExistsException("The mapping between group " + group.getDisplayName() + " and external group " + externalGroup + " already exists");
+			    //we should not throw, if the mapping exist, we should leave it there.
+			    logger.info("The mapping between group " + group.getDisplayName() + " and external group " + externalGroup + " already exists");
+				//throw new MemberAlreadyExistsException("The mapping between group " + group.getDisplayName() + " and external group " + externalGroup + " already exists");
 			}
 			return getExternalGroupMap(groupId, externalGroup);
 		} else {

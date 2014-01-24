@@ -24,6 +24,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
 
 import javax.sql.DataSource;
@@ -85,6 +86,8 @@ public class JdbcScimUserProvisioningTests {
     private static final String addUserSqlFormat = "insert into users (id, username, password, email, givenName, familyName, phoneNumber) values ('%s','%s','%s','%s','%s','%s', '%s')";
 
     private static final String deleteUserSqlFormat = "delete from users where id='%s'";
+    
+    private static final String verifyUserSqlFormat = "select verified from users where id=?";
 
     private int existingUserCount = 0;
 
@@ -322,6 +325,90 @@ public class JdbcScimUserProvisioningTests {
         assertNotSame(tmpUserId, user.getId());
         assertEquals(1, db.query("username eq '" + tmpUserId + "'").size());
         removeUser(user.getId());
+    }
+    
+    @Test
+    public void testCreatedUserNotVerified() {
+        String tmpUserIdString = createUserForDelete();
+        boolean verified = template.queryForObject(verifyUserSqlFormat, Boolean.class, tmpUserIdString);
+        assertFalse(verified);
+        ScimUser user = db.retrieve(tmpUserIdString);
+        assertFalse(user.isVerified());
+        removeUser(tmpUserIdString);
+    }
+    
+    
+
+    @Test
+    public void testUpdatedUserVerified() {
+        String tmpUserIdString = createUserForDelete();
+        boolean verified = template.queryForObject(verifyUserSqlFormat, Boolean.class, tmpUserIdString);
+        assertFalse(verified);
+        db.verifyUser(tmpUserIdString, -1);
+        verified = template.queryForObject(verifyUserSqlFormat, Boolean.class, tmpUserIdString);
+        assertTrue(verified);
+        removeUser(tmpUserIdString);
+    }
+
+    @Test
+    public void testUpdatedVersionedUserVerified() {
+        String tmpUserIdString = createUserForDelete();
+        ScimUser user = db.retrieve(tmpUserIdString);
+        assertFalse(user.isVerified());
+        user = db.verifyUser(tmpUserIdString, user.getVersion());
+        assertTrue(user.isVerified());
+        removeUser(tmpUserIdString);
+    }
+    
+    @Test
+    public void testUserVerifiedThroughUpdate() {
+        String tmpUserIdString = createUserForDelete();
+        ScimUser user = db.retrieve(tmpUserIdString);
+        assertFalse(user.isVerified());
+        user.setVerified(true);
+        user = db.update(tmpUserIdString, user);
+        assertTrue(user.isVerified());
+        removeUser(tmpUserIdString);
+    }
+    
+    @Test(expected=ScimResourceNotFoundException.class)
+    public void testUserVerifiedInvalidUserId() {
+        String tmpUserIdString = createUserForDelete();
+        try {
+            ScimUser user = db.retrieve(tmpUserIdString);
+            assertFalse(user.isVerified());
+            user = db.verifyUser("-1-1-1", -1);
+            assertTrue(user.isVerified());
+        }finally {
+            removeUser(tmpUserIdString);
+        }
+    }
+    
+    @Test(expected=ScimResourceNotFoundException.class)
+    public void testUserUpdateInvalidUserId() {
+        String tmpUserIdString = createUserForDelete();
+        try {
+            ScimUser user = db.retrieve(tmpUserIdString);
+            assertFalse(user.isVerified());
+            user.setVerified(true);
+            user = db.update("-1-1-1", user);
+            assertTrue(user.isVerified());
+        }finally {
+            removeUser(tmpUserIdString);
+        }
+    }
+
+    @Test(expected=OptimisticLockingFailureException.class)
+    public void testUpdatedIncorrectVersionUserVerified() {
+        String tmpUserIdString = createUserForDelete();
+        try {
+            ScimUser user = db.retrieve(tmpUserIdString);
+            assertFalse(user.isVerified());
+            user = db.verifyUser(tmpUserIdString, user.getVersion()+50);
+            assertTrue(user.isVerified());
+        } finally {
+            removeUser(tmpUserIdString);
+        }
     }
 
     @Test(expected = ScimResourceNotFoundException.class)

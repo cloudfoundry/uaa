@@ -107,5 +107,74 @@
 			</property>
 		</bean>
 	</beans>
+    <beans profile="postgresql-eclipse">
+        <bean class="org.cloudfoundry.identity.uaa.oauth.ClientAdminBootstrap">
+            <property name="clientRegistrationService" ref="clientRegistrationService" />
+            <property name="clients">
+                <map>
+                    <entry key="admin">
+                        <map>
+                            <entry key="id" value="admin" />
+                            <entry key="authorized-grant-types" value="client_credentials" />
+                            <entry key="scope" value="uaa.none" />
+                            <entry key="authorities" value="uaa.admin,clients.read,clients.write,clients.secret,scim.read,scim.write" />
+                            <entry key="secret" value="adminsecret" />
+                        </map>
+                    </entry>
+                    <entry key="vmc">
+                        <map>
+                            <entry key="id" value="vmc" />
+                            <entry key="authorized-grant-types" value="implicit,password,refresh_token" />
+                            <entry key="scope" value="cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,cloud_controller.admin,scim.read,scim.write" />
+                            <entry key="authorities" value="uaa.none" />
+                            <entry key="autoapprove" value="true" />
+                        </map>
+                    </entry>
+                    <entry key="cf">
+                        <map>
+                            <entry key="id" value="cf" />
+                            <entry key="authorized-grant-types" value="implicit,password,refresh_token" />
+                            <entry key="scope" value="cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,cloud_controller.admin,scim.read,scim.write" />
+                            <entry key="authorities" value="uaa.none" />
+                            <entry key="autoapprove" value="true" />
+                        </map>
+                    </entry>
+                    <entry key="app">
+                        <map>
+                            <entry key="id" value="app" />
+                            <entry key="secret" value="appclientsecret" />
+                            <entry key="authorized-grant-types" value="password,implicit,authorization_code,client_credentials" />
+                            <entry key="scope" value="cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,organizations.acme" />
+                            <entry key="authorities" value="uaa.resource" />
+                            <entry key="autoapprove">
+                                <list>
+                                    <value>openid</value>
+                                </list>
+                            </entry>
+                        </map>
+                    </entry>
+                    <entry key="login">
+                        <map>
+                            <entry key="id" value="login" />
+                            <entry key="secret" value="loginsecret" />
+                            <entry key="scope" value="openid,oauth.approvals" />
+                            <entry key="authorized-grant-types" value="client_credentials,authorization_code" />
+                            <entry key="authorities" value="oauth.login" />
+                            <entry key="autoapprove" value="true" />
+                        </map>
+                    </entry>
+                    <entry key="dashboard">
+                        <map>
+                            <entry key="id" value="dashboard" />
+                            <entry key="secret" value="dashboardsecret" />
+                            <entry key="scope" value="dashboard.user,openid" />
+                            <entry key="authorized-grant-types" value="authorization_code" />
+                            <entry key="authorities" value="uaa.resource" />
+                        </map>
+                    </entry>
+                </map>
+            </property>
+        </bean>
+    </beans>
 
 </beans>

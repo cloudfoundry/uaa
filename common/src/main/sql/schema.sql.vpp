@@ -24,7 +24,8 @@ CREATE TABLE USERS (
    givenName ${VARCHAR}(255),
    familyName ${VARCHAR}(255),
    active ${BOOLEAN} default #convert_boolean(true) not null,
-   phoneNumber ${VARCHAR}(255)
+   phoneNumber ${VARCHAR}(255),
+   verified ${BOOLEAN} default #convert_boolean(false) not null,
 ) $!{VOODOO};
 
 CREATE UNIQUE INDEX unique_uk_1 on users (#lower_constraint("username"));

@@ -37,7 +37,9 @@ import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
+import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -70,21 +72,21 @@ public class ScimGroupEndpointsTests {
 
 	private static EmbeddedDatabase database;
 
-	private static JdbcTemplate template;
+	private volatile JdbcTemplate template;
 
-	private static JdbcScimGroupProvisioning dao;
+	private volatile JdbcScimGroupProvisioning dao;
 
-	private static JdbcScimUserProvisioning udao;
+	private volatile JdbcScimUserProvisioning udao;
 
-	private static JdbcScimGroupMembershipManager mm;
+	private volatile JdbcScimGroupMembershipManager mm;
 
-	private static ScimGroupEndpoints endpoints;
+	private volatile ScimGroupEndpoints endpoints;
 
-	private static ScimUserEndpoints userEndpoints;
+	private volatile ScimUserEndpoints userEndpoints;
 
-	private static List<String> groupIds;
+	private volatile List<String> groupIds;
 
-	private static List<String> userIds;
+	private volatile List<String> userIds;
 
 	private static final String SQL_INJECTION_FIELDS = "displayName,version,created,lastModified";
 
@@ -99,42 +101,48 @@ public class ScimGroupEndpointsTests {
 		database = builder.build();
 		//confirm that everything is clean prior to test.
 		TestUtils.deleteFrom(database, "users", "groups", "group_membership");
+	}
+	
+	@Before
+	public void setUpForTest() throws Exception {
+	    template = new JdbcTemplate(database);
+        JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(template, new DefaultLimitSqlAdapter());
+        dao = new JdbcScimGroupProvisioning(template, pagingListFactory);
+        udao = new JdbcScimUserProvisioning(template, pagingListFactory);
+        udao.setPasswordValidator(new NullPasswordValidator());
+        mm = new JdbcScimGroupMembershipManager(template);
+        mm.setScimGroupProvisioning(dao);
+        mm.setScimUserProvisioning(udao);
+        mm.setDefaultUserGroups(Collections.singleton("uaa.user"));
 
-		template = new JdbcTemplate(database);
-		JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(template, new DefaultLimitSqlAdapter());
-		dao = new JdbcScimGroupProvisioning(template, pagingListFactory);
-		udao = new JdbcScimUserProvisioning(template, pagingListFactory);
-		udao.setPasswordValidator(new NullPasswordValidator());
-		mm = new JdbcScimGroupMembershipManager(template);
-		mm.setScimGroupProvisioning(dao);
-		mm.setScimUserProvisioning(udao);
-		mm.setDefaultUserGroups(Collections.singleton("uaa.user"));
+        endpoints = new ScimGroupEndpoints(dao, mm);
+        userEndpoints = new ScimUserEndpoints();
+        userEndpoints.setScimUserProvisioning(udao);
+        userEndpoints.setScimGroupMembershipManager(mm);
 
-		endpoints = new ScimGroupEndpoints(dao, mm);
-		userEndpoints = new ScimUserEndpoints();
-		userEndpoints.setScimUserProvisioning(udao);
-		userEndpoints.setScimGroupMembershipManager(mm);
-
-		groupIds = new ArrayList<String>();
-		userIds = new ArrayList<String>();
-		groupIds.add(addGroup("uaa.resource", Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN),
-															   createMember(ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER),
-															   createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)))
-		);
-		groupIds.add(addGroup("uaa.admin", Collections.<ScimGroupMember>emptyList()));
-		groupIds.add(addGroup("uaa.none", Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER),
-															   createMember(ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_ADMIN)))
-		);
-
+        groupIds = new ArrayList<String>();
+        userIds = new ArrayList<String>();
+        groupIds.add(addGroup("uaa.resource", Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN),
+                                                               createMember(ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER),
+                                                               createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)))
+        );
+        groupIds.add(addGroup("uaa.admin", Collections.<ScimGroupMember>emptyList()));
+        groupIds.add(addGroup("uaa.none", Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER),
+                                                               createMember(ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_ADMIN)))
+        );
+	}
+	
+	@After
+	public void cleanDB() throws Exception {
+	    TestUtils.deleteFrom(database, "users", "groups", "group_membership");
 	}
 
 	@AfterClass
 	public static void cleanup() throws Exception {
-		TestUtils.deleteFrom(database, "users", "groups", "group_membership");
 		database.shutdown();
 	}
 
-	private static String addGroup(String name, List<ScimGroupMember> m) {
+	private String addGroup(String name, List<ScimGroupMember> m) {
 		ScimGroup g = new ScimGroup("", name);
 		g = dao.create(g);
 		for (ScimGroupMember member : m) {
@@ -143,7 +151,7 @@ public class ScimGroupEndpointsTests {
 		return g.getId();
 	}
 
-	private static ScimGroupMember createMember(ScimGroupMember.Type t, List<ScimGroupMember.Role> a) {
+	private ScimGroupMember createMember(ScimGroupMember.Type t, List<ScimGroupMember.Role> a) {
 		String id = UUID.randomUUID().toString();
 		if (t == ScimGroupMember.Type.USER) {
 			id = userEndpoints.createUser(TestUtils.scimUserInstance(id)).getId();
@@ -535,4 +543,7 @@ public class ScimGroupEndpointsTests {
 		}
 		assertEquals(status.value(), response.getStatus());
 	}
+	
+	
+	
 }
