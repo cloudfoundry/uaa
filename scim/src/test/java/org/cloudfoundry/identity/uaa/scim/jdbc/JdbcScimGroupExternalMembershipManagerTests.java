@@ -115,8 +115,8 @@ public class JdbcScimGroupExternalMembershipManagerTests {
 		assertEquals(externalMapping.size(), 1);
 
 		ScimGroupExternalMember dupMember = edao.mapExternalGroup("g1", "cn=engineering,ou=groups,dc=example,dc=com");
-		assertEquals(member.getGroupId(), "g1");
-        assertEquals(member.getExternalGroup(), "cn=engineering,ou=groups,dc=example,dc=com");
+		assertEquals(dupMember.getGroupId(), "g1");
+        assertEquals(dupMember.getExternalGroup(), "cn=engineering,ou=groups,dc=example,dc=com");
 	}
 
 	@Test
