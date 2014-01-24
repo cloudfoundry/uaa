@@ -306,7 +306,7 @@
 	</beans>
     <beans profile="postgresql-eclipse">
         <util:list id="defaultUsers">
-            <value>marissa|koala|marissa@test.org|Marissa|Bloggs|uaa.user</value>
+            <value>marissa|dr0wssaPH@ck|marissa@test.org|Marissa|Bloggs|uaa.user</value>
         </util:list>
         <util:list id="defaultMembers">
             <value>acme|acme.dev,acme.qa</value>
