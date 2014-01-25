@@ -16,6 +16,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.net.URI;
 import java.util.Arrays;
 import java.util.Map;
 
@@ -33,7 +34,10 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
+import org.springframework.security.oauth2.client.token.grant.code.AuthorizationCodeResourceDetails;
 import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordResourceDetails;
+import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
+import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
@@ -53,65 +57,88 @@ public class CheckTokenEndpointIntegrationTests {
 	@Test
 	public void testDecodeToken() throws Exception {
 
-		{
-			MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
-			formData.add("grant_type", "password");
-			formData.add("username", testAccounts.getUserName());
-			formData.add("password", testAccounts.getPassword());
-			formData.add("scope", "cloud_controller.read");
+		//TODO Fix to use json API rather than HTML
+	    HttpHeaders headers = new HttpHeaders();
+        // TODO: should be able to handle just TEXT_HTML
+        headers.setAccept(Arrays.asList(MediaType.TEXT_HTML, MediaType.ALL));
 
-			HttpHeaders headers = new HttpHeaders();
-			ResourceOwnerPasswordResourceDetails app = testAccounts.getDefaultResourceOwnerPasswordResource();
-			headers.set("Authorization", testAccounts.getAuthorizationHeader(app.getClientId(), app.getClientSecret()));
-			headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        AuthorizationCodeResourceDetails resource = testAccounts.getDefaultAuthorizationCodeResource();
 
-			//Get an access token to add an approval
-			@SuppressWarnings("rawtypes")
-			ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, headers);
-			assertEquals(HttpStatus.OK, response.getStatusCode());
-			String token = (String) response.getBody().get("access_token");
+        URI uri = serverRunning.buildUri("/oauth/authorize").queryParam("response_type", "code")
+                .queryParam("state", "mystateid").queryParam("client_id", resource.getClientId())
+                .queryParam("redirect_uri", resource.getPreEstablishedRedirectUri()).build();
+        ResponseEntity<Void> result = serverRunning.getForResponse(uri.toString(), headers);
+        assertEquals(HttpStatus.FOUND, result.getStatusCode());
+        String location = result.getHeaders().getLocation().toString();
 
-			// add an approval for the scope requested
-			HttpHeaders approvalHeaders = new HttpHeaders();
-			approvalHeaders.set("Authorization", "bearer " + token);
-			ResponseEntity<Approval[]> approvals = serverRunning.getRestTemplate().exchange(
-					serverRunning.getUrl("/approvals"),
-					HttpMethod.PUT,
-					new HttpEntity<Approval[]>((new Approval[]{new Approval(testAccounts.getUserName(), "app",
-							"cloud_controller.read", 50000, ApprovalStatus.APPROVED)}), approvalHeaders), Approval[].class);
+        if (result.getHeaders().containsKey("Set-Cookie")) {
+            String cookie = result.getHeaders().getFirst("Set-Cookie");
+            headers.set("Cookie", cookie);
+        }
 
-			assertEquals(HttpStatus.OK, approvals.getStatusCode());
-		}
+        ResponseEntity<String> response = serverRunning.getForString(location, headers);
+        // should be directed to the login screen...
+        assertTrue(response.getBody().contains("/login.do"));
+        assertTrue(response.getBody().contains("username"));
+        assertTrue(response.getBody().contains("password"));
 
-		// Get a fresh access token
-		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
-		formData.add("grant_type", "password");
-		formData.add("username", testAccounts.getUserName());
-		formData.add("password", testAccounts.getPassword());
-		formData.add("scope", "cloud_controller.read");
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+        formData.add("username", testAccounts.getUserName());
+        formData.add("password", testAccounts.getPassword());
 
-		HttpHeaders headers = new HttpHeaders();
-		ResourceOwnerPasswordResourceDetails app = testAccounts.getDefaultResourceOwnerPasswordResource();
-		headers.set("Authorization", testAccounts.getAuthorizationHeader(app.getClientId(), app.getClientSecret()));
-		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        // Should be redirected to the original URL, but now authenticated
+        result = serverRunning.postForResponse("/login.do", headers, formData);
+        assertEquals(HttpStatus.FOUND, result.getStatusCode());
 
-		//Get an access token to add an approval
-		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, headers);
-		assertEquals(HttpStatus.OK, response.getStatusCode());
-		String token = (String) response.getBody().get("access_token");
+        if (result.getHeaders().containsKey("Set-Cookie")) {
+            String cookie = result.getHeaders().getFirst("Set-Cookie");
+            headers.set("Cookie", cookie);
+        }
+
+        response = serverRunning.getForString(result.getHeaders().getLocation().toString(), headers);
+        if (response.getStatusCode() == HttpStatus.OK) {
+            // The grant access page should be returned
+            assertTrue(response.getBody().contains("Do you authorize"));
+
+            formData.clear();
+            formData.add("user_oauth_approval", "true");
+            result = serverRunning.postForResponse("/oauth/authorize", headers, formData);
+            assertEquals(HttpStatus.FOUND, result.getStatusCode());
+            location = result.getHeaders().getLocation().toString();
+        }
+        else {
+            // Token cached so no need for second approval
+            assertEquals(HttpStatus.FOUND, response.getStatusCode());
+            location = response.getHeaders().getLocation().toString();
+        }
+        assertTrue("Wrong location: " + location,
+                location.matches(resource.getPreEstablishedRedirectUri() + ".*code=.+"));
+
+        formData.clear();
+        formData.add("client_id", resource.getClientId());
+        formData.add("redirect_uri", resource.getPreEstablishedRedirectUri());
+        formData.add("grant_type", "authorization_code");
+        formData.add("code", location.split("code=")[1].split("&")[0]);
+        HttpHeaders tokenHeaders = new HttpHeaders();
+        tokenHeaders.set("Authorization",
+                testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> tokenResponse = serverRunning.postForMap("/oauth/token", formData, tokenHeaders);
+        assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
+        
+        @SuppressWarnings("unchecked")
+        OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(tokenResponse.getBody());
 
 		formData = new LinkedMultiValueMap<String, String>();
-		ClientCredentialsResourceDetails resource = testAccounts.getClientCredentialsResource("app", null, "app", "appclientsecret");
 		headers.set("Authorization", testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
-		formData.add("token", token);
+		formData.add("token", accessToken.getValue());
 
-		response = serverRunning.postForMap("/check_token", formData, headers);
-		assertEquals(HttpStatus.OK, response.getStatusCode());
-		System.err.println(response.getBody());
+		tokenResponse = serverRunning.postForMap("/check_token", formData, headers);
+		assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
+		System.err.println(tokenResponse.getBody());
 
 		@SuppressWarnings("unchecked")
-		Map<String, String> map = response.getBody();
+		Map<String, String> map = tokenResponse.getBody();
 		assertEquals(testAccounts.getUserName(), map.get("user_name"));
 		assertEquals(testAccounts.getEmail(), map.get("email"));
 
