@@ -91,5 +91,11 @@
 			<property name="userDatabase" ref="userDatabase" />
 		</bean>
 	</beans>
+    <beans profile="postgresql-eclipse">
+        <bean id="loginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LoginAuthenticationManager">
+            <property name="addNewAccounts" value="${login.addnew:true}" />
+            <property name="userDatabase" ref="userDatabase" />
+        </bean>
+    </beans>
 
 </beans>

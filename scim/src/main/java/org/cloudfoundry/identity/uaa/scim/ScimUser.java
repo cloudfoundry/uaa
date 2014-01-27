@@ -284,6 +284,8 @@ public final class ScimUser extends ScimCore {
 	private String timezone;
 
 	private boolean active = true;
+	
+	private boolean verified = false;
 
 	@JsonProperty
 	private String password;
@@ -423,8 +425,16 @@ public final class ScimUser extends ScimCore {
 	public void setActive(boolean active) {
 		this.active = active;
 	}
+	
+	public boolean isVerified() {
+        return verified;
+    }
 
-	@JsonIgnore
+    public void setVerified(boolean verified) {
+        this.verified = verified;
+    }
+
+    @JsonIgnore
 	public String getPrimaryEmail() {
 		if (getEmails() == null || getEmails().isEmpty()) {
 			return null;

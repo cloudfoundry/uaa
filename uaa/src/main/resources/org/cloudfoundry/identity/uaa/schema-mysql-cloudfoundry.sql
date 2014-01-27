@@ -25,7 +25,8 @@ CREATE TABLE users (
    givenName VARCHAR(255),
    familyName VARCHAR(255),
    active BOOLEAN default true not null,
-   phoneNumber VARCHAR(255)
+   phoneNumber VARCHAR(255),
+   verified boolean default false not null
 ) ;
 
 CREATE UNIQUE INDEX unique_uk_1 on users (username);

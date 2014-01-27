@@ -573,6 +573,38 @@ See `SCIM - Changing Password <http://www.simplecloud.info/specs/draft-scim-rest
 
 .. note:: SCIM specifies that a password change is a PATCH, but since this isn't supported by many clients, we have used PUT.  SCIM offers the option to use POST with a header override - if clients want to send `X-HTTP-Method-Override` they can ask us to add support for that.
 
+Verify User: ``GET /Users/{id}/verify``
+----------------------------------------------
+
+
+* Request: ``GET /Users/{id}/verify``
+* Request Headers: Authorization header containing an OAuth2_ bearer token with::
+
+        scope = scim.write
+        aud = scim
+
+  OR ::
+
+        user_id = {id} i.e id of the user whose verify status is being set to true
+
+* Request Body::
+
+        Host: example.com
+        Accept: application/json
+        Authorization: Bearer h480djs93hd8
+
+
+* Response Body: the updated details
+
+* Response Codes::
+
+        200 - Updated successfully
+        400 - Bad Request
+        401 - Unauthorized
+        404 - Not found
+
+.. note:: SCIM specifies that a password change is a PATCH, but since this isn't supported by many clients, we have used PUT.  SCIM offers the option to use POST with a header override - if clients want to send `X-HTTP-Method-Override` they can ask us to add support for that.
+
 Query for Information: ``GET /Users``
 ---------------------------------------
 

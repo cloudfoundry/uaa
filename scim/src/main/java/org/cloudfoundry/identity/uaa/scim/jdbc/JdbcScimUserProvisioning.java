@@ -57,14 +57,16 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
 
 	private final Log logger = LogFactory.getLog(getClass());
 
-	public static final String USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName,active,phoneNumber";
+	public static final String USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName,active,phoneNumber,verified";
 
 	public static final String CREATE_USER_SQL = "insert into users (" + USER_FIELDS
-			+ ",password) values (?,?,?,?,?,?,?,?,?,?,?)";
+			+ ",password) values (?,?,?,?,?,?,?,?,?,?,?,?)";
 
-	public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, userName=?, email=?, givenName=?, familyName=?, active=?, phoneNumber=? where id=? and version=?";
+	public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, userName=?, email=?, givenName=?, familyName=?, active=?, phoneNumber=?, verified=? where id=? and version=?";
 
 	public static final String DEACTIVATE_USER_SQL = "update users set active=? where id=?";
+	
+	public static final String VERIFY_USER_SQL = "update users set verified=? where id=?";
 
     public static final String DELETE_USER_SQL = "delete from users where id=?";
 
@@ -156,7 +158,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
 					ps.setBoolean(9, user.isActive());
 					String phoneNumber = extractPhoneNumber(user);
 					ps.setString(10, phoneNumber);
-					ps.setString(11, user.getPassword());
+					ps.setBoolean(11, user.isVerified());
+					ps.setString(12, user.getPassword());
 				}
 
 			});
@@ -208,8 +211,10 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
 				ps.setString(6, user.getName().getFamilyName());
 				ps.setBoolean(7, user.isActive());
 				ps.setString(8, extractPhoneNumber(user));
-				ps.setString(9, id);
-				ps.setInt(10, user.getVersion());
+				ps.setBoolean(9, user.isVerified());
+				ps.setString(10, id);
+				ps.setInt(11, user.getVersion());
+				
 			}
 		});
 		ScimUser result = retrieve(id);
@@ -292,6 +297,29 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
         return user;
     }
 
+    public ScimUser verifyUser(String id, int version) throws ScimResourceNotFoundException, InvalidScimResourceException {
+        logger.info("Verifying user: " + id);
+        int updated;
+        if (version < 0) {
+            // Ignore
+            updated = jdbcTemplate.update(VERIFY_USER_SQL, true, id);
+        }
+        else {
+            updated = jdbcTemplate.update(VERIFY_USER_SQL + " and version=?", true, id, version);
+        }
+        ScimUser user = retrieve(id);
+        if (updated == 0) {
+            throw new OptimisticLockingFailureException(String.format(
+                    "Attempt to update a user (%s) with wrong version: expected=%d but found=%d", user.getId(),
+                    user.getVersion(), version));
+        }
+        if (updated > 1) {
+            throw new IncorrectResultSizeDataAccessException(1);
+        }
+        return user;
+    }
+
+    
     private ScimUser deleteUser(ScimUser user, int version) {
         logger.info("Deleting user: " + user.getId());
         int updated;
@@ -350,6 +378,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
 			String familyName = rs.getString(8);
 			boolean active = rs.getBoolean(9);
 			String phoneNumber = rs.getString(10);
+			boolean verified = rs.getBoolean(11);
 			ScimUser user = new ScimUser();
 			user.setId(id);
 			ScimMeta meta = new ScimMeta();
@@ -367,6 +396,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
 			name.setFamilyName(familyName);
 			user.setName(name);
 			user.setActive(active);
+			user.setVerified(verified);
 			return user;
 		}
 	}

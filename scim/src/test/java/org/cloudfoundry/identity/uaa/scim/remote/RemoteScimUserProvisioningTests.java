@@ -104,6 +104,18 @@ public class RemoteScimUserProvisioningTests {
 				.thenReturn(new ResponseEntity<ScimUser>(user, HttpStatus.OK));
 		service.delete("1234", 123456789);
 	}
+	
+   @Test
+    public void testVerifyUser() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("If-Match", "123456789");
+        Mockito.when(
+                restTemplate.exchange(Mockito.eq("http://base/User/{id}/verify"), Mockito.eq(HttpMethod.GET),
+                        Mockito.argThat(new HttpHeadersMatcher()), Mockito.eq(ScimUser.class), Mockito.eq("1234")))
+                .thenReturn(new ResponseEntity<ScimUser>(user, HttpStatus.OK));
+        ScimUser user = service.verifyUser("1234", 123456789);
+    }
+
 
 	private static class HttpHeadersMatcher extends ArgumentMatcher<HttpEntity<Void>> {
 

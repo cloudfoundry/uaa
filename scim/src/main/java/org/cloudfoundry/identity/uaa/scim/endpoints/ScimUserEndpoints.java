@@ -189,6 +189,17 @@ public class ScimUserEndpoints implements InitializingBean {
 		scimDeletes.incrementAndGet();
 		return user;
 	}
+	
+    @RequestMapping(value = "/Users/{userId}/verify", method = RequestMethod.GET)
+    @ResponseBody
+    public ScimUser verifyUser(@PathVariable String userId,
+            @RequestHeader(value = "If-Match", required = false) String etag) {
+        int version = etag == null ? -1 : getVersion(userId, etag);
+        ScimUser user = dao.verifyUser(userId, version);
+        scimUpdates.incrementAndGet();
+        return user;
+    }
+	
 
 	private int getVersion(String userId, String etag) {
 		String value = etag.trim();

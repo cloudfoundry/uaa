@@ -18,7 +18,5 @@ DROP TABLE  OAUTH_CLIENT_DETAILS ;
 DROP TABLE  GROUPS ;
 DROP TABLE  GROUP_MEMBERSHIP ;
 DROP TABLE  AUTHZ_APPROVALS ;
-DROP TABLE  oauth_client_token ;
-DROP TABLE  oauth_access_token ;
-DROP TABLE  oauth_refresh_token ;
 DROP TABLE  oauth_code ;
+DROP TABLE external_group_mapping;

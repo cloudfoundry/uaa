@@ -102,8 +102,18 @@ public class RemoteScimUserProvisioning implements ScimUserProvisioning {
 		restTemplate.put(baseUrl + "/User/{id}/password", request, id);
 		return true;
 	}
+	
+	
 
 	@Override
+    public ScimUser verifyUser(String id, int version) throws ScimResourceNotFoundException,
+            InvalidScimResourceException {
+	    HttpHeaders headers = new HttpHeaders();
+        headers.set("If-Match", String.format("%d", version));
+        return restTemplate.exchange(baseUrl + "/User/{id}/verify", HttpMethod.GET, new HttpEntity<Void>(headers), ScimUser.class, id).getBody();
+	}
+
+    @Override
 	public ScimUser delete(String id, int version) throws ScimResourceNotFoundException {
 		HttpHeaders headers = new HttpHeaders();
 		headers.set("If-Match", String.format("%d", version));

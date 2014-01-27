@@ -18,6 +18,8 @@ import static org.junit.Assert.*;
 import java.util.Arrays;
 import java.util.Map;
 
+import org.cloudfoundry.identity.uaa.integration.ServerRunning;
+import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.http.*;
@@ -31,13 +33,15 @@ import org.springframework.web.client.RestTemplate;
  * @author Luke Taylor
  */
 public class RemoteAuthenticationEndpointTests {
-	@Rule
-	public ServerRunning serverRunning = ServerRunning.isRunning();
+    @Rule
+    public ServerRunning serverRunning = ServerRunning.isRunning();
+
+    private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
 
 	@Test
 	public void remoteAuthenticationSucceedsWithCorrectCredentials() throws Exception {
 		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = authenticate("marissa", "koala");
+		ResponseEntity<Map> response = authenticate(testAccounts.getUserName(), testAccounts.getPassword());
 		assertEquals(HttpStatus.OK, response.getStatusCode());
 		assertEquals("marissa", response.getBody().get("username"));
 	}

@@ -63,7 +63,7 @@ public class ScimGroupEndpointsIntegrationTests {
 
 	private final Log logger = LogFactory.getLog(getClass());
 
-	private static final List<String> defaultGroups = Arrays.asList("openid","scim.me","cloud_controller.read","cloud_controller.write","password.write","scim.userids","uaa.user","approvals.me");
+	private static final List<String> defaultGroups = Arrays.asList("openid","scim.me","cloud_controller.read","cloud_controller.write","password.write","scim.userids","uaa.user","approvals.me", "oauth.approvals");
 
 	@Rule
 	public ServerRunning serverRunning = ServerRunning.isRunning();

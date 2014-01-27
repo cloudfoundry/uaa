@@ -26,7 +26,7 @@ CREATE TABLE USERS (
    familyName VARCHAR(255) not null
 ) ;
 
-ALTER TABLE users DROP CONSTRAINT unique_uk_1;
+ALTER TABLE users DROP CONSTRAINT IF EXISTS unique_uk_1;
 CREATE UNIQUE INDEX unique_uk_1_1 on users (LOWER(username));
 ALTER TABLE USERS ADD COLUMN active BOOLEAN default true;
 ALTER TABLE USERS ALTER COLUMN created SET NOT NULL;
@@ -39,6 +39,16 @@ UPDATE USERS set authorities='uaa.user' where authority=0 and authorities not li
 UPDATE USERS set authorities='uaa.admin,uaa.user' where authority=1 and authorities not like '%.%';
 ALTER TABLE USERS ALTER COLUMN givenName drop not NULL;
 ALTER TABLE USERS ALTER COLUMN familyName drop not NULL;
+
+-- add column with null allowed for existing users
+ALTER TABLE USERS ADD COLUMN VERIFIED BOOLEAN;
+-- everyone who was here before the column existed gets set to true
+UPDATE USERS SET VERIFIED=TRUE;
+-- modify the column to be default to false
+ALTER TABLE USERS ALTER COLUMN VERIFIED SET DEFAULT false;
+--  and do not allow null anymore to prevent new users from getting the wrong value
+ALTER TABLE USERS ALTER COLUMN VERIFIED SET NOT NULL;
+
 
 CREATE TABLE SEC_AUDIT (
    principal_id char(36) not null,
@@ -83,30 +93,6 @@ CREATE TABLE GROUP_MEMBERSHIP (
   primary key (group_id, member_id)
 ) ;
 
-create table oauth_client_token (
-  token_id VARCHAR(256),
-  token BYTEA,
-  authentication_id VARCHAR(256),
-  user_name VARCHAR(256),
-  client_id VARCHAR(256)
-) ;
-
-create table oauth_access_token (
-  token_id VARCHAR(256),
-  token BYTEA,
-  authentication_id VARCHAR(256),
-  user_name VARCHAR(256),
-  client_id VARCHAR(256),
-  authentication BYTEA,
-  refresh_token VARCHAR(256)
-) ;
-
-create table oauth_refresh_token (
-  token_id VARCHAR(256),
-  token BYTEA,
-  authentication BYTEA
-) ;
-
 create table oauth_code (
   code VARCHAR(256), authentication BYTEA
 ) ;
@@ -120,10 +106,6 @@ CREATE TABLE AUTHZ_APPROVALS (
   lastModifiedAt TIMESTAMP default current_timestamp not null,
   primary key (userName, clientId, scope)
 ) ;
-
-DROP TABLE oauth_client_token;
-DROP TABLE oauth_access_token;
-DROP TABLE oauth_refresh_token;
 
 CREATE TABLE external_group_mapping (
   group_id VARCHAR(36) not null,
