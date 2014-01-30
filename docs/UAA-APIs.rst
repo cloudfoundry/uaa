@@ -622,7 +622,7 @@ Filters: note that, per the specification, attribute values are comma separated 
         scope = scim.read
         aud = scim
 
-* Response Body (for ``GET /Users?attributes=id&filter=emails.value eq bjensen@example.com``)::
+* Response Body (for ``GET /Users?attributes=id&filter=emails.value eq 'bjensen@example.com'``)::
 
         HTTP/1.1 200 OK
         Content-Type: application/json
