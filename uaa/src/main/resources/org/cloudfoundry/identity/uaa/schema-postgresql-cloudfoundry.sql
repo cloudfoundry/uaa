@@ -43,7 +43,7 @@ ALTER TABLE USERS ALTER COLUMN familyName drop not NULL;
 -- add column with null allowed for existing users
 ALTER TABLE USERS ADD COLUMN VERIFIED BOOLEAN;
 -- everyone who was here before the column existed gets set to true
-UPDATE USERS SET VERIFIED=TRUE;
+UPDATE USERS SET VERIFIED=TRUE WHERE VERIFIED IS NULL;
 -- modify the column to be default to false
 ALTER TABLE USERS ALTER COLUMN VERIFIED SET DEFAULT false;
 --  and do not allow null anymore to prevent new users from getting the wrong value
