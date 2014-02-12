@@ -25,9 +25,17 @@ CREATE TABLE users (
    givenName VARCHAR(255),
    familyName VARCHAR(255),
    active BOOLEAN default true not null,
-   phoneNumber VARCHAR(255),
-   verified boolean default false not null
+   phoneNumber VARCHAR(255)
 ) ;
+
+-- add column with null allowed for existing users
+ALTER TABLE USERS ADD COLUMN VERIFIED BOOLEAN;
+-- everyone who was here before the column existed gets set to true
+UPDATE USERS SET VERIFIED=TRUE WHERE VERIFIED IS NULL;
+-- modify the column to be default to false and not null
+ALTER TABLE USERS ALTER COLUMN VERIFIED SET DEFAULT false;
+--  and do not allow null anymore to prevent new users from getting the wrong value
+ALTER TABLE USERS MODIFY VERIFIED BOOLEAN NOT NULL;
 
 CREATE UNIQUE INDEX unique_uk_1 on users (username);
 
