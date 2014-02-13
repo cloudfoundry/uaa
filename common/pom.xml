@@ -213,12 +213,13 @@
 			<version>1.12</version>
 		</dependency>
 
-		<dependency>
-			<groupId>org.hsqldb</groupId>
-			<artifactId>hsqldb-j5</artifactId>
-			<version>2.2.4</version>
-			<scope>test</scope>
-		</dependency>
+        <dependency>
+            <groupId>org.hsqldb</groupId>
+            <artifactId>hsqldb</artifactId>
+            <scope>test</scope>
+            <version>2.3.1</version>
+        </dependency>
+
 
 		<dependency>
 			<groupId>postgresql</groupId>
