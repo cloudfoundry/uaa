@@ -31,8 +31,7 @@
 	</bean>
 	
 	<jdbc:initialize-database ignore-failures="ALL" data-source="dataSource">
-		<jdbc:script location="classpath:org/cloudfoundry/identity/uaa/schema-#{@platform}.sql" />
-		<jdbc:script location="classpath:org/cloudfoundry/identity/uaa/scim/schema-#{@platform}.sql" />
+		<jdbc:script location="classpath:/org/cloudfoundry/identity/uaa/db/#{@platform}/v01_5_2__initial_db.sql" />
 	</jdbc:initialize-database>
 
 	<beans profile="default,hsqldb">

@@ -31,7 +31,7 @@
     
     <bean id="flyway" class="com.googlecode.flyway.core.Flyway" init-method="migrate">
         <property name="dataSource" ref="dataSource"/>
-        <property name="locations" value="classpath*:org/cloudfoundry/identity/uaa/db/#{@scripts}/"/>
+        <property name="locations" value="classpath:org/cloudfoundry/identity/uaa/db/#{@scripts}/"/>
         <property name="initVersion" value="#{@scripts-version}"/>
     </bean>
 
