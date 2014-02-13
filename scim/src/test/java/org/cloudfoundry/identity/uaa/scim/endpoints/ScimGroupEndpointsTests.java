@@ -96,7 +96,7 @@ public class ScimGroupEndpointsTests {
 	@BeforeClass
 	public static void setup() throws Exception {
 		EmbeddedDatabaseBuilder builder = new EmbeddedDatabaseBuilder();
-		builder.addScript("classpath:/org/cloudfoundry/identity/uaa/db/hsqldb/v01_5_2__initial_db.sql");
+		builder.addScript("classpath:/org/cloudfoundry/identity/uaa/db/hsqldb/V1_5_2__initial_db.sql");
 		database = builder.build();
 		//confirm that everything is clean prior to test.
 		TestUtils.deleteFrom(database, "users", "groups", "group_membership");

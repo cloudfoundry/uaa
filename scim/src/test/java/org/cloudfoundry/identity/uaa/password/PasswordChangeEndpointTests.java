@@ -48,7 +48,7 @@ public class PasswordChangeEndpointTests {
 	@BeforeClass
 	public static void init() {
 		EmbeddedDatabaseBuilder builder = new EmbeddedDatabaseBuilder();
-		builder.addScript("classpath:/org/cloudfoundry/identity/uaa/db/hsqldb/v01_5_2__initial_db.sql");
+		builder.addScript("classpath:/org/cloudfoundry/identity/uaa/db/hsqldb/V1_5_2__initial_db.sql");
 		database = builder.build();
 	}
 	
