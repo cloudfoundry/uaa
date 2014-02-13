@@ -102,8 +102,7 @@ public class ScimUserEndpointsTests {
 	@BeforeClass
 	public static void setUpDatabase() {
 		EmbeddedDatabaseBuilder builder = new EmbeddedDatabaseBuilder();
-		builder.addScript("classpath:/org/cloudfoundry/identity/uaa/schema-hsqldb.sql");
-		builder.addScript("classpath:/org/cloudfoundry/identity/uaa/scim/schema-hsqldb.sql");
+		builder.addScript("classpath:/org/cloudfoundry/identity/uaa/db/hsqldb/V1_5_2__initial_db.sql");
 		database = builder.build();		
 	}
 

@@ -54,8 +54,7 @@ public class ScimUserBootstrapTests {
 	@Before
 	public void setUp() {
 		EmbeddedDatabaseBuilder builder = new EmbeddedDatabaseBuilder();
-		builder.addScript("classpath:/org/cloudfoundry/identity/uaa/schema-hsqldb.sql");
-		builder.addScript("classpath:/org/cloudfoundry/identity/uaa/scim/schema-hsqldb.sql");
+		builder.addScript("classpath:/org/cloudfoundry/identity/uaa/db/hsqldb/V1_5_2__initial_db.sql");
 		database = builder.build();
 		JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
 		JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, new DefaultLimitSqlAdapter());

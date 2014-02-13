@@ -1,8 +1,0 @@
-#macro (sequence $name $value)CREATE TABLE ${name} (
-	ID BIGINT IDENTITY
-);
-#end
-#macro (notnull $name $type)ALTER COLUMN ${name} set NOT NULL#end
-#macro (lower_constraint $name)${name}#end
-#macro (second_timestamp)default ${SYSDATE} not null#end
-#macro (convert_boolean $value)${value}#end
