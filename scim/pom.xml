@@ -15,49 +15,6 @@
 	<description>Simple Cloud Identity Management (SCIM) Java library code for the UAA</description>
 
 	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-antrun-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>generate-sql</id>
-						<phase>generate-sources</phase>
-						<configuration>
-							<target>
-								<typedef resource="foundrylogic/vpp/typedef.properties" />
-								<taskdef resource="foundrylogic/vpp/taskdef.properties" />
-								<macrodef name="sql-script">
-									<attribute name="platform" />
-									<sequential>
-										<vppcopy todir="${basedir}/target/generated-resources" overwrite="true">
-											<config>
-												<context>
-													<property key="includes" value="src/main/sql" />
-													<property file="${basedir}/src/main/sql/@{platform}.properties" />
-												</context>
-												<engine>
-													<property key="velocimacro.library" value="src/main/sql/@{platform}.vpp" />
-												</engine>
-											</config>
-											<fileset dir="${basedir}/src/main/sql" includes="schema*.sql.vpp" />
-											<mapper type="glob" from="*.sql.vpp" to="*-@{platform}.sql" />
-										</vppcopy>
-									</sequential>
-								</macrodef>
-								<sql-script platform="hsqldb" />
-								<sql-script platform="postgresql" />
-								<sql-script platform="mysql" />
-								<sql-script platform="oracle" />
-							</target>
-						</configuration>
-						<goals>
-							<goal>run</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-		</plugins>
 		<pluginManagement>
 			<plugins>
 				<plugin>

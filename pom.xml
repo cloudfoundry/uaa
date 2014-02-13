@@ -201,11 +201,6 @@
 							<artifactId>ant-apache-regexp</artifactId>
 							<version>1.7.0</version>
 						</dependency>
-						<dependency>
-							<groupId>foundrylogic.vpp</groupId>
-							<artifactId>vpp</artifactId>
-							<version>2.2.1</version>
-						</dependency>
 					</dependencies>
 				</plugin>
 				<!--This plugin's configuration is used to store Eclipse m2e settings
