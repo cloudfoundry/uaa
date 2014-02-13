@@ -28,6 +28,12 @@
 		<property name="validationQuery" value="#{@validationQuery}"/>
 		<property name="testOnBorrow" value="true"/>
 	</bean>
+    
+    <bean id="flyway" class="com.googlecode.flyway.core.Flyway" init-method="migrate">
+        <property name="dataSource" ref="dataSource"/>
+        <property name="locations" value="classpath*:org/cloudfoundry/identity/uaa/db/#{@scripts}/"/>
+        <property name="initVersion" value="#{@scripts-version}"/>
+    </bean>
 
 	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
 		<property name="dataSource" ref="dataSource" />
@@ -60,18 +66,4 @@
 		<constructor-arg ref="jdbcTemplate"/>
 		<constructor-arg ref="limitSqlAdapter"/>
 	</bean>
-
-	<jdbc:initialize-database ignore-failures="ALL" data-source="dataSource">
-		<jdbc:script location="classpath*:org/cloudfoundry/identity/uaa/schema-#{@scripts}.sql" />
-		<jdbc:script location="classpath*:org/cloudfoundry/identity/uaa/scim/schema-#{@scripts}.sql" />
-	</jdbc:initialize-database>
-    
-    <beans profile="postgresql-eclipse">
-      <jdbc:initialize-database ignore-failures="ALL" data-source="dataSource">
-          <jdbc:script location="classpath*:org/cloudfoundry/identity/uaa/scim/schema-drop-postgresql.sql" />
-          <jdbc:script location="classpath*:org/cloudfoundry/identity/uaa/schema-postgresql-drop-cloudfoundry.sql" />
-          <jdbc:script location="classpath*:org/cloudfoundry/identity/uaa/schema-#{@scripts}.sql" />
-          <jdbc:script location="classpath*:org/cloudfoundry/identity/uaa/scim/schema-#{@scripts}.sql" />
-      </jdbc:initialize-database>
-    </beans>
 </beans>
