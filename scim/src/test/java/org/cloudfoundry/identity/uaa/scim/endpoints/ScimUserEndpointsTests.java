@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import com.googlecode.flyway.core.Flyway;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
@@ -102,8 +103,12 @@ public class ScimUserEndpointsTests {
 	@BeforeClass
 	public static void setUpDatabase() {
 		EmbeddedDatabaseBuilder builder = new EmbeddedDatabaseBuilder();
-		builder.addScript("classpath:/org/cloudfoundry/identity/uaa/db/hsqldb/V1_5_2__initial_db.sql");
-		database = builder.build();		
+        database = builder.build();
+        Flyway flyway = new Flyway();
+        flyway.setInitVersion("1.5.2");
+        flyway.setLocations("classpath:/org/cloudfoundry/identity/uaa/db/hsqldb/");
+        flyway.setDataSource(database);
+        flyway.migrate();
 	}
 
 	@Before

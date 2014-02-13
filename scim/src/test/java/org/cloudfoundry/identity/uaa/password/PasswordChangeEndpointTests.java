@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.password;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.googlecode.flyway.core.Flyway;
 import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.rest.jdbc.DefaultLimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
@@ -44,12 +45,17 @@ public class PasswordChangeEndpointTests {
 	private PasswordChangeEndpoint endpoints;
 
 	private static EmbeddedDatabase database;
+    private static Flyway flyway;
 
-	@BeforeClass
+    @BeforeClass
 	public static void init() {
 		EmbeddedDatabaseBuilder builder = new EmbeddedDatabaseBuilder();
-		builder.addScript("classpath:/org/cloudfoundry/identity/uaa/db/hsqldb/V1_5_2__initial_db.sql");
 		database = builder.build();
+        flyway = new Flyway();
+        flyway.setInitVersion("1.5.2");
+        flyway.setLocations("classpath:/org/cloudfoundry/identity/uaa/db/hsqldb/");
+        flyway.setDataSource(database);
+        flyway.migrate();
 	}
 	
 	@Before

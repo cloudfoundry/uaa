@@ -29,10 +29,21 @@
 	<bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
 		<property name="dataSource" ref="dataSource" />
 	</bean>
-	
-	<jdbc:initialize-database ignore-failures="ALL" data-source="dataSource">
-		<jdbc:script location="classpath:/org/cloudfoundry/identity/uaa/db/#{@platform}/V1_5_2__initial_db.sql" />
-	</jdbc:initialize-database>
+
+    <bean id="scriptsversion" class="java.lang.String">
+        <constructor-arg value="1.5.2" />
+    </bean>
+
+    <bean id="scripts" class="java.lang.String">
+        <constructor-arg ref="platform" />
+    </bean>
+
+    <bean id="flyway" class="com.googlecode.flyway.core.Flyway" init-method="migrate">
+        <property name="initOnMigrate" value="true"/>
+        <property name="dataSource" ref="dataSource"/>
+        <property name="locations" value="classpath:org/cloudfoundry/identity/uaa/db/#{@scripts}/"/>
+        <property name="initVersion" value="#{@scriptsversion}"/>
+    </bean>
 
 	<beans profile="default,hsqldb">
 		<context:property-placeholder location="hsqldb.properties"/>

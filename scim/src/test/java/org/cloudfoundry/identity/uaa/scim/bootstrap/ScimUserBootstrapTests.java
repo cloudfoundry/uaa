@@ -12,6 +12,7 @@
  */
 package org.cloudfoundry.identity.uaa.scim.bootstrap;
 
+import com.googlecode.flyway.core.Flyway;
 import org.cloudfoundry.identity.uaa.rest.jdbc.DefaultLimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints;
@@ -50,12 +51,17 @@ public class ScimUserBootstrapTests {
 	private ScimUserEndpoints userEndpoints;
 
 	private EmbeddedDatabase database;
+    private Flyway flyway;
 
-	@Before
+    @Before
 	public void setUp() {
 		EmbeddedDatabaseBuilder builder = new EmbeddedDatabaseBuilder();
-		builder.addScript("classpath:/org/cloudfoundry/identity/uaa/db/hsqldb/V1_5_2__initial_db.sql");
 		database = builder.build();
+        flyway = new Flyway();
+        flyway.setInitVersion("1.5.2");
+        flyway.setLocations("classpath:/org/cloudfoundry/identity/uaa/db/hsqldb/");
+        flyway.setDataSource(database);
+        flyway.migrate();
 		JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
 		JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, new DefaultLimitSqlAdapter());
 		db = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory);

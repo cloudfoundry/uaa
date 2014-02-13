@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import com.googlecode.flyway.core.Flyway;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter;
@@ -68,7 +69,8 @@ import org.springframework.web.servlet.View;
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class ScimGroupEndpointsTests {
 
-	Log logger = LogFactory.getLog(getClass());
+    private static Flyway flyway;
+    Log logger = LogFactory.getLog(getClass());
 
 	private static EmbeddedDatabase database;
 
@@ -96,8 +98,12 @@ public class ScimGroupEndpointsTests {
 	@BeforeClass
 	public static void setup() throws Exception {
 		EmbeddedDatabaseBuilder builder = new EmbeddedDatabaseBuilder();
-		builder.addScript("classpath:/org/cloudfoundry/identity/uaa/db/hsqldb/V1_5_2__initial_db.sql");
 		database = builder.build();
+        flyway = new Flyway();
+        flyway.setInitVersion("1.5.2");
+        flyway.setLocations("classpath:/org/cloudfoundry/identity/uaa/db/hsqldb/");
+        flyway.setDataSource(database);
+        flyway.migrate();
 		//confirm that everything is clean prior to test.
 		TestUtils.deleteFrom(database, "users", "groups", "group_membership");
 	}
