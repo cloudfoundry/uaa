@@ -351,7 +351,6 @@
         <dependency>
             <groupId>org.hsqldb</groupId>
             <artifactId>hsqldb</artifactId>
-            <scope>test</scope>
             <version>2.3.1</version>
         </dependency>
 
