@@ -14,8 +14,8 @@
 		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.1.xsd
 		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
 
-	<import resource="spring/data-source.xml" />
-	<import resource="spring/env.xml" />
+	<import resource="classpath:spring/data-source.xml" />
+	<import resource="classpath:spring/env.xml" />
 	<import resource="spring/audit.xml" />
 
 	<sec:http pattern="/resources/**" security="none" />
