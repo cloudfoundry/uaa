@@ -4,14 +4,21 @@
 #spring_profiles: mysql,default
 #spring_profiles: postgresql,default
 
+#database:
+#  url: jdbc:postgresql:uaa
+#  username: root
+#  password: changeme
+
+#note - this is not the place to set these properties
+# - they are just here for documentation purposes
 #database.driverClassName: org.postgresql.Driver
 #database.url: jdbc:postgresql:uaa
 #database.username: root
-#database.password: password
+#database.password: changeme
 
 #postgresql commands that were run were
 #create database uaa;
-#create user root with superuser password 'password';
+#create user root with superuser password 'changeme';
 
 
 #database.driverClassName: org.mariadb.jdbc.Driver
