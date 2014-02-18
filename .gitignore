@@ -25,3 +25,5 @@ Servers/
 *.swo
 coverage.ec
 git.properties
+.springBeans
+
