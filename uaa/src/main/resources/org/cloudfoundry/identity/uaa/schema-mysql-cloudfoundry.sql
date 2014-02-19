@@ -29,13 +29,13 @@ CREATE TABLE users (
 ) ;
 
 -- add column with null allowed for existing users
-ALTER TABLE USERS ADD COLUMN VERIFIED BOOLEAN;
+ALTER TABLE users ADD COLUMN verified BOOLEAN;
 -- everyone who was here before the column existed gets set to true
-UPDATE USERS SET VERIFIED=TRUE WHERE VERIFIED IS NULL;
+UPDATE users SET verified=TRUE WHERE verified IS NULL;
 -- modify the column to be default to false and not null
-ALTER TABLE USERS ALTER COLUMN VERIFIED SET DEFAULT false;
+ALTER TABLE users ALTER COLUMN verified SET DEFAULT false;
 --  and do not allow null anymore to prevent new users from getting the wrong value
-ALTER TABLE USERS MODIFY VERIFIED BOOLEAN NOT NULL;
+ALTER TABLE users MODIFY verified BOOLEAN NOT NULL;
 
 CREATE UNIQUE INDEX unique_uk_1 on users (username);
 
