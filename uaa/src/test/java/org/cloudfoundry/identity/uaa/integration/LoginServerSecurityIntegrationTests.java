@@ -193,7 +193,7 @@ public class LoginServerSecurityIntegrationTests {
 		}
 		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAuthorizationUri(), params, headers);
-		if (testAccounts.isProfileActive("default") || testAccounts.isProfileActive("postgresql-eclipse")) {
+		if (testAccounts.isProfileActive("default")) {
 			// In the default profile user accounts are automatically provisioned
 			assertEquals(HttpStatus.FOUND, response.getStatusCode());
 			String results = response.getHeaders().getLocation().getFragment();
