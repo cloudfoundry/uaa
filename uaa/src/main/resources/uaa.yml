@@ -5,6 +5,7 @@
 #spring_profiles: postgresql,default
 
 #database:
+#  driverClassName: org.postgresql.Driver
 #  url: jdbc:postgresql:uaa
 #  username: root
 #  password: changeme
