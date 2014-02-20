@@ -1,5 +1,5 @@
 #!/bin/bash
-mvn tomcat:run --quiet &
+mvn tomcat:run --quiet > /dev/null &
 echo $! > mvn.pid
 sleep 30
 
