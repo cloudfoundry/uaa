@@ -6,6 +6,12 @@ before_script:
   - if [ "$CLOUD_FOUNDRY_CONFIG_PATH" != "" ]; then psql -c 'create role root NOSUPERUSER LOGIN INHERIT CREATEDB;' -U postgres; fi
   - if [ "$CLOUD_FOUNDRY_CONFIG_PATH" != "" ]; then psql -c "alter role root with password 'changeme';" -U postgres; fi
 
-install: mvn -U install --quiet -DskipTests=true
-script: mvn clean test
+install: 
+  -  mvn -U clean --quiet -DskipTests=true
+  -  mvn -U install --quiet -DskipTests=true
+script: 
+  - ./.run-script.sh
+  - mvn test
+  - kill -9 `cat mvn.pid`
+  - rm -f mvn.pid
 
