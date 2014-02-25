@@ -67,14 +67,14 @@ public class CloudfoundryApiIntegrationTests {
 		approvalHeaders.set("Authorization", "bearer " + accessToken.getValue());
 		Date oneMinuteAgo = new Date(System.currentTimeMillis() - 60000);
 		Date expiresAt = new Date(System.currentTimeMillis() + 60000);
-		ResponseEntity<Approval[]> approvals = serverRunning.getRestTemplate().exchange(
-				serverRunning.getUrl("/uaa/approvals"),
-				HttpMethod.PUT,
-				new HttpEntity<Approval[]>((new Approval[]{new Approval(testAccounts.getUserName(), "app",
-						"cloud_controller.read", expiresAt, ApprovalStatus.APPROVED,oneMinuteAgo), new Approval(testAccounts.getUserName(), "app",
-								"openid", expiresAt, ApprovalStatus.APPROVED,oneMinuteAgo),new Approval(testAccounts.getUserName(), "app",
-										"password.write", expiresAt, ApprovalStatus.APPROVED,oneMinuteAgo)}), approvalHeaders), Approval[].class);
-		assertEquals(HttpStatus.OK, approvals.getStatusCode());
+//		ResponseEntity<Approval[]> approvals = serverRunning.getRestTemplate().exchange(
+//				serverRunning.getUrl("/uaa/approvals"),
+//				HttpMethod.PUT,
+//				new HttpEntity<Approval[]>((new Approval[]{new Approval(testAccounts.getUserName(), "app",
+//						"cloud_controller.read", expiresAt, ApprovalStatus.APPROVED,oneMinuteAgo), new Approval(testAccounts.getUserName(), "app",
+//								"openid", expiresAt, ApprovalStatus.APPROVED,oneMinuteAgo),new Approval(testAccounts.getUserName(), "app",
+//										"password.write", expiresAt, ApprovalStatus.APPROVED,oneMinuteAgo)}), approvalHeaders), Approval[].class);
+//		assertEquals(HttpStatus.OK, approvals.getStatusCode());
 
 		// System.err.println(accessToken);
 		// The client doesn't know how to use an OAuth bearer token
