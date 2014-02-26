@@ -25,6 +25,7 @@
 		<version>${project.version}</version>
 		<packaging>war</packaging>
 		<generatePom>true</generatePom>
+        <dot.git.directory>../.git</dot.git.directory>
 	</properties>
 
 	<profiles>
@@ -113,6 +114,7 @@
 					<dateFormat>yyyy-MM-dd'T'HH:mm:ssZ</dateFormat>
 					<generateGitPropertiesFile>true</generateGitPropertiesFile>
 					<generateGitPropertiesFilename>src/main/resources/git.properties</generateGitPropertiesFilename>
+                    <dotGitDirectory>${dot.git.directory}</dotGitDirectory>
 				</configuration>
 			</plugin>
 		</plugins>
