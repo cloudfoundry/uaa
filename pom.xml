@@ -6,7 +6,7 @@
 	<name>CloudFoundry Identity - Parent</name>
     <description>The UAA is the Identity Management Solution for Cloud Foundry</description>
 	<packaging>pom</packaging>
-	<version>1.5.3</version>
+	<version>1.5.4</version>
 	<url>http://github.com/cloudfoundry/uaa</url>
 	<modules>
 		<module>common</module>
@@ -201,11 +201,6 @@
 							<artifactId>ant-apache-regexp</artifactId>
 							<version>1.7.0</version>
 						</dependency>
-						<dependency>
-							<groupId>foundrylogic.vpp</groupId>
-							<artifactId>vpp</artifactId>
-							<version>2.2.1</version>
-						</dependency>
 					</dependencies>
 				</plugin>
 				<!--This plugin's configuration is used to store Eclipse m2e settings
@@ -247,7 +242,7 @@
 									<pluginExecutionFilter>
 										<groupId>pl.project13.maven</groupId>
 										<artifactId>git-commit-id-plugin</artifactId>
-										<versionRange>[1.0,)</versionRange>
+										<versionRange>2.1.9</versionRange>
 										<goals>
 											<goal>revision</goal>
 										</goals>
@@ -340,7 +335,7 @@
 			<extension>
 				<groupId>org.springframework.build</groupId>
 				<artifactId>aws-maven</artifactId>
-				<version>5.0.0.BUILD-SNAPSHOT</version>
+				<version>5.0.0.RELEASE</version>
 			</extension>
 		</extensions>
 	</build>

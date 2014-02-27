@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.cloudfoundry.identity</groupId>
 		<artifactId>cloudfoundry-identity-parent</artifactId>
-		<version>1.5.3</version>
+		<version>1.5.4</version>
 		<relativePath>..</relativePath>
 	</parent>
 
@@ -15,49 +15,6 @@
 	<description>Simple Cloud Identity Management (SCIM) Java library code for the UAA</description>
 
 	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-antrun-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>generate-sql</id>
-						<phase>generate-sources</phase>
-						<configuration>
-							<target>
-								<typedef resource="foundrylogic/vpp/typedef.properties" />
-								<taskdef resource="foundrylogic/vpp/taskdef.properties" />
-								<macrodef name="sql-script">
-									<attribute name="platform" />
-									<sequential>
-										<vppcopy todir="${basedir}/target/generated-resources" overwrite="true">
-											<config>
-												<context>
-													<property key="includes" value="src/main/sql" />
-													<property file="${basedir}/src/main/sql/@{platform}.properties" />
-												</context>
-												<engine>
-													<property key="velocimacro.library" value="src/main/sql/@{platform}.vpp" />
-												</engine>
-											</config>
-											<fileset dir="${basedir}/src/main/sql" includes="schema*.sql.vpp" />
-											<mapper type="glob" from="*.sql.vpp" to="*-@{platform}.sql" />
-										</vppcopy>
-									</sequential>
-								</macrodef>
-								<sql-script platform="hsqldb" />
-								<sql-script platform="postgresql" />
-								<sql-script platform="mysql" />
-								<sql-script platform="oracle" />
-							</target>
-						</configuration>
-						<goals>
-							<goal>run</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-		</plugins>
 		<pluginManagement>
 			<plugins>
 				<plugin>
@@ -152,19 +109,12 @@
 			<scope>test</scope>
 		</dependency>
 
-		<dependency>
-			<groupId>commons-dbcp</groupId>
-			<artifactId>commons-dbcp</artifactId>
-			<version>1.4</version>
-			<scope>test</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>org.hsqldb</groupId>
-			<artifactId>hsqldb-j5</artifactId>
-			<version>2.2.4</version>
-			<scope>test</scope>
-		</dependency>
+        <dependency>
+            <groupId>org.hsqldb</groupId>
+            <artifactId>hsqldb</artifactId>
+            <scope>test</scope>
+            <version>2.3.1</version>
+        </dependency>
 
 		<dependency>
 			<groupId>postgresql</groupId>
@@ -193,6 +143,14 @@
 			<scope>test</scope>
 		</dependency>
 
-	</dependencies>
+        <dependency>
+            <groupId>org.apache.tomcat</groupId>
+            <artifactId>tomcat-jdbc</artifactId>
+            <version>7.0.32</version>
+            <scope>test</scope>
+        </dependency>
+
+
+    </dependencies>
 
 </project>

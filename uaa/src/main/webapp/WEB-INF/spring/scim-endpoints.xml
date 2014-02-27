@@ -304,20 +304,4 @@
 			<constructor-arg value="${scim.userids_enabled:true}" />
 		</bean>
 	</beans>
-    <beans profile="postgresql-eclipse">
-        <util:list id="defaultUsers">
-            <value>marissa|dr0wssaPH@ck|marissa@test.org|Marissa|Bloggs|uaa.user</value>
-        </util:list>
-        <util:list id="defaultMembers">
-            <value>acme|acme.dev,acme.qa</value>
-            <value>acme.dev|marissa</value>
-        </util:list>
-        <bean id="defaultGroups" class="java.lang.String">
-            <constructor-arg value="acme,acme.dev,acme.qa,organizations.acme" />
-        </bean>
-        <bean id="userIdsEnabled" class="java.lang.Boolean">
-            <constructor-arg value="${scim.userids_enabled:true}" />
-        </bean>
-    </beans>
-
 </beans>

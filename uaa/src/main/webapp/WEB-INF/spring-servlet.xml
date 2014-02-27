@@ -14,8 +14,15 @@
 		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.1.xsd
 		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
 
-	<import resource="spring/data-source.xml" />
-	<import resource="spring/env.xml" />
+    <bean class="org.cloudfoundry.identity.uaa.config.YamlConfigurationValidator">
+        <constructor-arg>
+            <bean class="org.cloudfoundry.identity.uaa.UaaConfiguration.UaaConfigConstructor"/>
+        </constructor-arg>
+        <property name="yaml" value="${environmentYamlKey}"/>
+    </bean>
+
+	<import resource="classpath:spring/data-source.xml" />
+	<import resource="classpath:spring/env.xml" />
 	<import resource="spring/audit.xml" />
 
 	<sec:http pattern="/resources/**" security="none" />
@@ -43,8 +50,6 @@
 	<import resource="spring/openid-endpoints.xml" />
 	<import resource="spring/password-endpoints.xml" />
 
-	<context:property-placeholder properties-ref="applicationProperties" />
-
     <bean id="messageSource" class="org.springframework.context.support.ResourceBundleMessageSource">
       <property name="basename" value="messages" />
     </bean>
@@ -52,10 +57,6 @@
 	<authentication-manager id="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security" />
 
 	<bean id="authenticationDetailsSource" class="org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetailsSource" />
-
-	<context:mbean-server id="mbeanServer" />
-
-	<context:mbean-export server="mbeanServer" default-domain="spring.application" registration="replaceExisting" />
 
 	<bean id="basicAuthenticationEntryPoint" class="org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint">
 		<property name="realmName" value="UAA/client" />

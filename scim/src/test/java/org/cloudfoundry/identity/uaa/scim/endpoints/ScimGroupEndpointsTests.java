@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import com.googlecode.flyway.core.Flyway;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter;
@@ -62,13 +63,14 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.HttpMediaTypeException;
 import org.springframework.web.servlet.View;
 
-@ContextConfiguration("classpath:/test-data-source.xml")
+@ContextConfiguration(locations = {"classpath:spring/env.xml", "classpath:spring/data-source.xml"})
 @RunWith(SpringJUnit4ClassRunner.class)
 @IfProfileValue(name = "spring.profiles.active", values = {"", "test,postgresql", "hsqldb", "test,mysql", "test,oracle"})
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class ScimGroupEndpointsTests {
 
-	Log logger = LogFactory.getLog(getClass());
+    private static Flyway flyway;
+    Log logger = LogFactory.getLog(getClass());
 
 	private static EmbeddedDatabase database;
 
@@ -96,9 +98,12 @@ public class ScimGroupEndpointsTests {
 	@BeforeClass
 	public static void setup() throws Exception {
 		EmbeddedDatabaseBuilder builder = new EmbeddedDatabaseBuilder();
-		builder.addScript("classpath:/org/cloudfoundry/identity/uaa/schema-hsqldb.sql");
-		builder.addScript("classpath:/org/cloudfoundry/identity/uaa/scim/schema-hsqldb.sql");
 		database = builder.build();
+        flyway = new Flyway();
+        flyway.setInitVersion("1.5.2");
+        flyway.setLocations("classpath:/org/cloudfoundry/identity/uaa/db/hsqldb/");
+        flyway.setDataSource(database);
+        flyway.migrate();
 		//confirm that everything is clean prior to test.
 		TestUtils.deleteFrom(database, "users", "groups", "group_membership");
 	}
