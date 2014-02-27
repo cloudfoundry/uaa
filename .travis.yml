@@ -5,7 +5,7 @@ before_script:
   - if [ "$CLOUD_FOUNDRY_CONFIG_PATH" != "" ]; then psql -c 'create database uaa;' -U postgres; fi
   - if [ "$CLOUD_FOUNDRY_CONFIG_PATH" != "" ]; then psql -c 'create role root NOSUPERUSER LOGIN INHERIT CREATEDB;' -U postgres; fi
   - if [ "$CLOUD_FOUNDRY_CONFIG_PATH" != "" ]; then psql -c "alter role root with password 'changeme';" -U postgres; fi
-  - git pull --depth=1000
+  - git pull --unshallow
 install: 
   -  mvn -U clean --quiet -DskipTests=true
   -  mvn -U install --quiet -DskipTests=true
