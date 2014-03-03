@@ -18,8 +18,9 @@
 	<sec:http pattern="/authenticate/**" security="none" />
 
 	<http request-matcher-ref="loginAuthorizeRequestMatcher" create-session="always" entry-point-ref="oauthAuthenticationEntryPoint"
-		authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+		  authentication-manager-ref="loginAuthenticationMgr" access-decision-manager-ref="accessDecisionManager"
+          xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/**" access="scope=oauth.login" />
 		<custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
 		<custom-filter ref="loginAuthenticationFilter" position="FORM_LOGIN_FILTER" />
 		<anonymous enabled="false" />
@@ -77,7 +78,6 @@
 	</bean>
 
 	<bean id="loginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LoginAuthenticationManager">
-		<property name="addNewAccounts" value="${login.addnew:false}" />
 		<property name="userDatabase" ref="userDatabase" />
 	</bean>
 
@@ -85,10 +85,4 @@
 		<constructor-arg ref="authzAuthenticationMgr" />
 	</bean>
 
-	<beans profile="default">
-		<bean id="loginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LoginAuthenticationManager">
-			<property name="addNewAccounts" value="${login.addnew:true}" />
-			<property name="userDatabase" ref="userDatabase" />
-		</bean>
-	</beans>
 </beans>

@@ -107,34 +107,31 @@ public class LoginAuthenticationManagerTests {
 
 	@Test
 	public void testHappyDayAutoAddButWithExistingUser() {
-		manager.setAddNewAccounts(true);
 		UaaUser user = UaaUserTestFactory.getUser("FOO", "foo", "fo@test.org", "Foo", "Bar");
 		Mockito.when(userDatabase.retrieveUserByName("foo")).thenReturn(user);
 		Authentication authentication = manager.authenticate(UaaAuthenticationTestFactory
-				.getAuthenticationRequest("foo"));
+				.getAuthenticationRequest("foo", true));
 		assertEquals(user.getUsername(), ((UaaPrincipal) authentication.getPrincipal()).getName());
 		assertEquals(user.getId(), ((UaaPrincipal) authentication.getPrincipal()).getId());
 	}
 
 	@Test
 	public void testHappyDayAutoAddButWithNewUser() {
-		manager.setAddNewAccounts(true);
 		UaaUser user = UaaUserTestFactory.getUser("FOO", "foo", "fo@test.org", "Foo", "Bar");
 		Mockito.when(userDatabase.retrieveUserByName("foo")).thenThrow(new UsernameNotFoundException("planned"))
 				.thenReturn(user);
 		Authentication authentication = manager.authenticate(UaaAuthenticationTestFactory
-				.getAuthenticationRequest("foo"));
+				.getAuthenticationRequest("foo", true));
 		assertEquals(user.getUsername(), ((UaaPrincipal) authentication.getPrincipal()).getName());
 		assertEquals(user.getId(), ((UaaPrincipal) authentication.getPrincipal()).getId());
 	}
 
 	@Test(expected = BadCredentialsException.class)
 	public void testFailedAutoAddButWithNewUser() {
-		manager.setAddNewAccounts(true);
 		UaaUser user = UaaUserTestFactory.getUser("FOO", "foo", "fo@test.org", "Foo", "Bar");
 		Mockito.when(userDatabase.retrieveUserByName("foo")).thenThrow(new UsernameNotFoundException("planned"));
 		Authentication authentication = manager.authenticate(UaaAuthenticationTestFactory
-				.getAuthenticationRequest("foo"));
+				.getAuthenticationRequest("foo", true));
 		assertEquals(user.getUsername(), ((UaaPrincipal) authentication.getPrincipal()).getName());
 		assertEquals(user.getId(), ((UaaPrincipal) authentication.getPrincipal()).getId());
 	}

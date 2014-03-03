@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
@@ -26,6 +27,8 @@ import org.springframework.security.web.authentication.WebAuthenticationDetails;
  * @author Dave Syer
  */
 public class UaaAuthenticationDetails implements Serializable {
+    
+    public static final String ADD_NEW = "add_new";
 
 	private final String origin;
 
@@ -33,7 +36,7 @@ public class UaaAuthenticationDetails implements Serializable {
 
 	private String clientId;
 
-	private Map<String, String> extendedAuthorizationInfo;
+	private Map<String, String> extendedAuthorizationInfo = new HashMap<String, String>();
 
 	public UaaAuthenticationDetails(HttpServletRequest request) {
 		WebAuthenticationDetails webAuthenticationDetails = new WebAuthenticationDetails(request);
@@ -43,6 +46,8 @@ public class UaaAuthenticationDetails implements Serializable {
 		if (clientId != null) {
 			this.clientId = clientId;
 		}
+		Boolean addNew = Boolean.parseBoolean(request.getParameter(ADD_NEW));
+		extendedAuthorizationInfo.put(ADD_NEW, addNew.toString());
 	}
 
 	public String getOrigin() {

@@ -12,8 +12,21 @@
  */
 package org.cloudfoundry.identity.uaa.authentication;
 
+import java.util.UUID;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
+
 import org.cloudfoundry.identity.uaa.user.MockUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 
 /**
  * @author Dave Syer
@@ -30,7 +43,29 @@ public class UaaAuthenticationTestFactory {
 	}
 
 	public static AuthzAuthenticationRequest getAuthenticationRequest(String name) {
-		return new AuthzAuthenticationRequest(name, "password", null);
+	    return getAuthenticationRequest(name,false);
+	}
+	
+	public static AuthzAuthenticationRequest getAuthenticationRequest(String name, boolean addNew) {
+	    UaaAuthenticationDetails details = null;
+	    if (addNew) {
+	        String sessionId = UUID.randomUUID().toString();
+	        
+	        HttpSession session = mock(HttpSession.class);
+	        when(session.getId()).thenReturn(sessionId);
+	        
+	        HttpServletRequest req = mock(HttpServletRequest.class);
+	        when(req.getSession()).thenReturn(session);
+	        when(req.getSession(false)).thenReturn(session);
+	        when(req.getSession(true)).thenReturn(session);
+	        when(req.getRemoteAddr()).thenReturn("127.0.0.1");
+	        
+	        
+	        when(req.getParameter("client_id")).thenReturn(name);
+	        when(req.getParameter(UaaAuthenticationDetails.ADD_NEW)).thenReturn(String.valueOf(addNew));
+	        details = new UaaAuthenticationDetails(req);
+	    }
+		return new AuthzAuthenticationRequest(name, "password", details);
 	}
 
 }
