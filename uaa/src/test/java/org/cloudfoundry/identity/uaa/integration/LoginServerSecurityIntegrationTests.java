@@ -182,18 +182,25 @@ public class LoginServerSecurityIntegrationTests {
 	@Test
 	@OAuth2ContextConfiguration(LoginClient.class)
 	public void testWrongUsernameIsError() throws Exception {
+	    
 		((RestTemplate) serverRunning.getRestTemplate())
 				.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
 		ImplicitResourceDetails resource = testAccounts.getDefaultImplicitResource();
+		
+		boolean isDefault = testAccounts.isProfileActive("default");
+		
 		params.set("client_id", resource.getClientId());
 		params.set("username", "bogus");
+		if (isDefault) {
+		    params.set("add_new", "true");
+		}
 		String redirect = resource.getPreEstablishedRedirectUri();
 		if (redirect != null) {
 			params.set("redirect_uri", redirect);
 		}
 		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAuthorizationUri(), params, headers);
-		if (testAccounts.isProfileActive("default")) {
+		if (isDefault) {
 			// In the default profile user accounts are automatically provisioned
 			assertEquals(HttpStatus.FOUND, response.getStatusCode());
 			String results = response.getHeaders().getLocation().getFragment();
