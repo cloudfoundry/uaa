@@ -32,19 +32,7 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
 
 	private UaaUserDatabase userDatabase;
 
-	boolean addNewAccounts = false;
-
 	private RandomValueStringGenerator generator = new RandomValueStringGenerator();
-
-	/**
-	 * Flag to indicate that the scim user bootstrap (if provided) should be used to add new accounts when
-	 * authenticated.
-	 *
-	 * @param addNewAccounts the flag to set (default false)
-	 */
-	public void setAddNewAccounts(boolean addNewAccounts) {
-		this.addNewAccounts = addNewAccounts;
-	}
 
 	@Override
 	public void setApplicationEventPublisher(ApplicationEventPublisher eventPublisher) {
@@ -68,7 +56,6 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
 
 		AuthzAuthenticationRequest req = (AuthzAuthenticationRequest) request;
 		Map<String, String> info = req.getInfo();
-
 		logger.debug("Processing authentication request for " + req.getName());
 
 		SecurityContext context = SecurityContextHolder.getContext();
@@ -77,10 +64,13 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
 			OAuth2Authentication authentication = (OAuth2Authentication) context.getAuthentication();
 			if (authentication.isClientOnly()) {
 				UaaUser user = getUser(req, info);
+				UaaAuthenticationDetails authdetails = (UaaAuthenticationDetails) req.getDetails();
+				boolean addNewAccounts = authdetails!=null &&
+				                         authdetails.getExtendedAuthorizationInfo()!=null && 
+				                         Boolean.parseBoolean(authdetails.getExtendedAuthorizationInfo().get(UaaAuthenticationDetails.ADD_NEW));
 				try {
 					user = userDatabase.retrieveUserByName(user.getUsername());
-				}
-				catch (UsernameNotFoundException e) {
+				} catch (UsernameNotFoundException e) {
 					// Not necessarily fatal
 					if (addNewAccounts) {
 						// Register new users automatically
@@ -97,7 +87,7 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
 					}
 				}
 				Authentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(),
-						(UaaAuthenticationDetails) req.getDetails());
+						authdetails);
 				publish(new UserAuthenticationSuccessEvent(user, success));
 				return success;
 			}

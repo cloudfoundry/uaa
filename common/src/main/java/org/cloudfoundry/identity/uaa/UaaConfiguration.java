@@ -145,6 +145,7 @@ public class UaaConfiguration {
 			oauthClientDesc.putListPropertyType("autoapprove", String.class);
 			addTypeDescription(oauthClientDesc);
 			addPropertyAlias("issuer.uri", UaaConfiguration.class, "issuerUri");
+			//login.addnew is ignored - it is not needed anymore. 
 			addPropertyAlias("login.addnew", UaaConfiguration.class, "loginAddnew");
 			addPropertyAlias("password-policy", UaaConfiguration.class, "passwordPolicy");
 			addPropertyAlias("required-score", PasswordPolicy.class, "requiredScore");
