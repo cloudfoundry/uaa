@@ -18,9 +18,14 @@
 	<sec:http pattern="/authenticate/**" security="none" />
 
 	<http request-matcher-ref="loginAuthorizeRequestMatcher" create-session="always" entry-point-ref="oauthAuthenticationEntryPoint"
-		  authentication-manager-ref="loginAuthenticationMgr" access-decision-manager-ref="accessDecisionManager"
+		  authentication-manager-ref="loginAuthenticationMgr" 
           xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/**" access="scope=oauth.login" />
+		<!-- 
+        we should be way more stringent with security here
+        <intercept-url pattern="/**" access="scope=oauth.login" />
+        and add to the element access-decision-manager-ref="accessDecisionManager"
+         -->
+        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
 		<custom-filter ref="loginAuthenticationFilter" position="FORM_LOGIN_FILTER" />
 		<anonymous enabled="false" />
