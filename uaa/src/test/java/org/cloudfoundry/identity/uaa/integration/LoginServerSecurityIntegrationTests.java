@@ -181,38 +181,51 @@ public class LoginServerSecurityIntegrationTests {
 
 	@Test
 	@OAuth2ContextConfiguration(LoginClient.class)
-	public void testWrongUsernameIsError() throws Exception {
+	public void testWrongUsernameIsErrorAddNewEnabled() throws Exception {
 	    
 		((RestTemplate) serverRunning.getRestTemplate())
 				.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
 		ImplicitResourceDetails resource = testAccounts.getDefaultImplicitResource();
 		
-		boolean isDefault = testAccounts.isProfileActive("default");
-		
 		params.set("client_id", resource.getClientId());
-		params.set("username", "bogus");
-		if (isDefault) {
-		    params.set("add_new", "true");
-		}
+		params.set("username", "bogus1");
+		params.set("add_new", "true");
 		String redirect = resource.getPreEstablishedRedirectUri();
 		if (redirect != null) {
 			params.set("redirect_uri", redirect);
 		}
 		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAuthorizationUri(), params, headers);
-		if (isDefault) {
-			// In the default profile user accounts are automatically provisioned
-			assertEquals(HttpStatus.FOUND, response.getStatusCode());
-			String results = response.getHeaders().getLocation().getFragment();
-			assertTrue("There should be an access token: " + results, results.contains("access_token"));
-		} else { // user account is not automatically provisioned
-			assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-			@SuppressWarnings("unchecked")
-			Map<String,String> results = response.getBody();
-			assertNotNull("There should be an error: " + results, results.containsKey("error"));			
-		}
+		// addnew:true user accounts are automatically provisioned.
+		assertEquals(HttpStatus.FOUND, response.getStatusCode());
+		String results = response.getHeaders().getLocation().getFragment();
+		assertTrue("There should be an access token: " + results, results.contains("access_token"));
 	}
 
+	@Test
+    @OAuth2ContextConfiguration(LoginClient.class)
+    public void testWrongUsernameIsErrorAddNewDisabled() throws Exception {
+        
+        ((RestTemplate) serverRunning.getRestTemplate())
+                .setRequestFactory(new HttpComponentsClientHttpRequestFactory());
+        ImplicitResourceDetails resource = testAccounts.getDefaultImplicitResource();
+        
+        params.set("client_id", resource.getClientId());
+        params.set("username", "bogus2");
+        params.set("add_new", "false");
+        String redirect = resource.getPreEstablishedRedirectUri();
+        if (redirect != null) {
+            params.set("redirect_uri", redirect);
+        }
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAuthorizationUri(), params, headers);
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        @SuppressWarnings("unchecked")
+        Map<String,String> results = response.getBody();
+        assertNotNull("There should be an error: " + results, results.containsKey("error"));            
+    }
+
+	
 	private static class LoginClient extends ClientCredentialsResourceDetails {
 		@SuppressWarnings("unused")
 		public LoginClient(Object target) {
