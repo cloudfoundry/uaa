@@ -196,7 +196,7 @@ public class LoginServerSecurityIntegrationTests {
 		}
 		@SuppressWarnings("rawtypes")
 		ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAuthorizationUri(), params, headers);
-		// addnew:true user accounts are automatically provisioned.
+		// add_new:true user accounts are automatically provisioned.
 		assertEquals(HttpStatus.FOUND, response.getStatusCode());
 		String results = response.getHeaders().getLocation().getFragment();
 		assertTrue("There should be an access token: " + results, results.contains("access_token"));
