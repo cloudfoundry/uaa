@@ -28,7 +28,7 @@ If this works you are in business:
     $ cd uaa
     $ mvn install
 
-Each module has a `mvn tomcat:run` target to run individually, or you
+Each module has a `mvn tomcat7:run` target to run individually, or you
 could import them as projects into STS (use 2.8.0 or better if you
 can).  The apps all work together the apps running on the same port
 (8080) as `/uaa`, `/app` and `/api`.
@@ -49,7 +49,7 @@ You can also build the app and push it to Cloud Foundry, e.g.
 First run the UAA server as described above:
 
     $ cd uaa
-    $ mvn tomcat:run
+    $ mvn tomcat7:run
 
 Then start another terminal and from the project base directory,  ask
 the login endpoint to tell you about the system:
@@ -128,7 +128,8 @@ grant, the same as used by a client like VMC.
 With all apps deployed into a running server on port 8080 the tests
 will include integration tests (a check is done before each test that
 the app is running).  You can deploy them in your IDE or using the
-command line with `mvn tomcat:run` and then run the tests as normal.
+command line with `mvn tomcat7:run -P integration` and then run the
+tests as normal.
 
 For individual modules, or for the whole project, you can also run
 integration tests and the server from the command line in one go with
@@ -308,7 +309,7 @@ In CloudFoundry terms
 
 The authentication service is `uaa`. It's a plain Spring MVC webapp.
 Deploy as normal in Tomcat or your container of choice, or execute
-`mvn tomcat:run` to run it directly from `uaa` directory in the source
+`mvn tomcat7:run` to run it directly from `uaa` directory in the source
 tree (make sure the common jar is installed first using `mvn install`
 from the common subdirectory or from the top level directory).  When
 running with maven it listens on port 8080.
@@ -364,11 +365,11 @@ The active profiles can be configured in `uaa.yml` using
 or by passing the `spring.profiles.active` parameter to the JVM. For,
 example to run with an embedded HSQL database:
 
-     mvn -Dspring.profiles.active=hsqldb tomcat:run
+     mvn -Dspring.profiles.active=hsqldb tomcat7:run
 
 Or to use PostgreSQL instead of HSQL:
 
-     mvn -Dspring.profiles.active=postgresql tomcat:run
+     mvn -Dspring.profiles.active=postgresql tomcat7:run
 
 To bootstrap a microcloud type environment you need an admin client.
 For this there is a database initializer component that inserts an
@@ -398,7 +399,7 @@ accounts as necessary to make the tests work.
 An example resource server.  It hosts a service which returns
 a list of mock applications under `/apps`.
 
-Run it using `mvn tomcat:run` from the `api` directory (once all other
+Run it using `mvn tomcat7:run` from the `api` directory (once all other
 tomcat processes have been shutdown). This will deploy the app to a
 Tomcat manager on port 8080.
 
@@ -407,7 +408,7 @@ Tomcat manager on port 8080.
 This is a user interface app (primarily aimed at browsers) that uses
 OpenId Connect for authentication (i.e. SSO) and OAuth2 for access
 grants.  It authenticates with the Auth service, and then accesses
-resources in the API service.  Run it with `mvn tomcat:run` from the
+resources in the API service.  Run it with `mvn tomcat7:run` from the
 `app` directory (once all other tomcat processes have been shutdown).
 
 The application can operate in multiple different profiles according
