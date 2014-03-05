@@ -23,28 +23,6 @@
 		<packaging>war</packaging>
 	</properties>
 
-	<profiles>
-		<profile>
-			<id>integration</id>
-			<dependencies>
-				<dependency>
-					<groupId>${project.groupId}</groupId>
-					<artifactId>uaa</artifactId>
-					<version>${project.version}</version>
-					<type>war</type>
-					<scope>tomcat</scope>
-				</dependency>
-				<dependency>
-					<groupId>${project.groupId}</groupId>
-					<artifactId>api</artifactId>
-					<version>${project.version}</version>
-					<type>war</type>
-					<scope>tomcat</scope>
-				</dependency>
-			</dependencies>
-		</profile>
-	</profiles>
-
 	<build>
 		<plugins>
 			<plugin>
@@ -62,7 +40,6 @@
                     <artifactId>tomcat7-maven-plugin</artifactId>
                     <configuration>
                         <path>/app</path>
-                        <addContextWarDependencies>true</addContextWarDependencies>
                     </configuration>
                 </plugin>
 				<plugin>
