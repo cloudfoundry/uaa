@@ -1,0 +1,16 @@
+set -e -x
+
+#clean up source code, we don't need that anymore
+rm -rf ${BUILD_DIR}/uaa/scim
+rm -rf ${BUILD_DIR}/uaa/common
+rm -rf ${BUILD_DIR}/uaa/gatling
+rm -rf ${BUILD_DIR}/uaa/samples
+rm -rf ${BUILD_DIR}/uaa/docs
+rm -rf ${BUILD_DIR}/uaa/uaa
+
+rm -f ${BUILD_DIR}/uaa/README.md
+rm -f ${BUILD_DIR}/uaa/NOTICE
+rm -f ${BUILD_DIR}/uaa/.run-script.sh
+rm -f ${BUILD_DIR}/uaa/.travis.yml
+rm -f ${BUILD_DIR}/uaa/pom.xml
+rm -f ${BUILD_DIR}/uaa/LICENSE
