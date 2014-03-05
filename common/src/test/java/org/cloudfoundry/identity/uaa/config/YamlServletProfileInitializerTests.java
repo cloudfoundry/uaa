@@ -29,9 +29,11 @@ import org.springframework.util.Log4jConfigurer;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.support.StandardServletEnvironment;
 
+import java.util.Enumeration;
+
 /**
  * @author Dave Syer
- * 
+ *
  */
 public class YamlServletProfileInitializerTests {
 
@@ -49,6 +51,9 @@ public class YamlServletProfileInitializerTests {
 
 	@Before
 	public void setup() {
+        Mockito.when(servletConfig.getInitParameterNames()).thenReturn(new EmptyEnumerationOfString());
+        Mockito.when(servletContext.getInitParameterNames()).thenReturn(new EmptyEnumerationOfString());
+
 		Mockito.when(context.getServletConfig()).thenReturn(servletConfig);
 		Mockito.when(context.getServletContext()).thenReturn(servletContext);
 		Mockito.when(context.getEnvironment()).thenReturn(environment);
@@ -101,7 +106,6 @@ public class YamlServletProfileInitializerTests {
 		initializer.initialize(context);
 
 		assertEquals("bar", environment.getActiveProfiles()[0]);
-
 	}
 
 	@Test
@@ -113,7 +117,6 @@ public class YamlServletProfileInitializerTests {
 		initializer.initialize(context);
 
 		assertEquals("bar", environment.getActiveProfiles()[0]);
-
 	}
 
 	@Test
@@ -150,7 +153,6 @@ public class YamlServletProfileInitializerTests {
 
 		assertEquals("bar", environment.getProperty("foo"));
 		assertEquals("baz", environment.getProperty("spam.foo"));
-
 	}
 
 	@Test
@@ -164,7 +166,6 @@ public class YamlServletProfileInitializerTests {
 
 		assertEquals("bar", environment.getProperty("foo"));
 		assertEquals("baz", environment.getProperty("spam.foo"));
-
 	}
 
 	@Test
@@ -178,7 +179,6 @@ public class YamlServletProfileInitializerTests {
 
 		assertEquals("bar", environment.getProperty("foo"));
 		assertEquals("baz", environment.getProperty("spam.foo"));
-
 	}
 
 	@Test
@@ -193,7 +193,6 @@ public class YamlServletProfileInitializerTests {
 
 		assertEquals("bar", environment.getProperty("foo"));
 		assertEquals("baz", environment.getProperty("spam.foo"));
-
 	}
 
 	@Test
@@ -208,7 +207,17 @@ public class YamlServletProfileInitializerTests {
 
 		assertEquals("bar", environment.getProperty("foo"));
 		assertEquals("baz", environment.getProperty("spam.foo"));
+    }
 
-	}
+    private static class EmptyEnumerationOfString implements Enumeration<String> {
+        @Override
+        public boolean hasMoreElements() {
+            return false;
+        }
 
+        @Override
+        public String nextElement() {
+            return null;
+        }
+    }
 }
