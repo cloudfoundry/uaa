@@ -130,7 +130,8 @@
 
 	<mvc:resources location="/" mapping="/**" />
 
-	<mvc:annotation-driven/>
+	<!--<mvc:annotation-driven/>-->
+    <bean class="org.cloudfoundry.identity.uaa.config.WebMvcConfig" />
 	
 	<mvc:default-servlet-handler />
 
