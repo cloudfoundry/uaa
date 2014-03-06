@@ -34,6 +34,7 @@
         <property name="dataSource" ref="dataSource"/>
         <property name="locations" value="classpath:org/cloudfoundry/identity/uaa/db/#{@scripts}/"/>
         <property name="initVersion" value="#{@scriptsversion}"/>
+        <property name="target" value="${db.target:9223372036854775807}"/>
     </bean>
 
 	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
