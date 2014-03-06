@@ -36,7 +36,7 @@ public class V1_5_4__NormalizeTableAndColumnNames extends DatabaseInformation1_5
         List<ColumnInfo> columns = jdbcTemplate.query(colQuery,new ColumnMapper());
         for (ColumnInfo column : columns) {
             if (processColumn(column)) {
-                String sql = "ALTER TABLE " + column.tableName + " RENAME " + column.columnName + " TO " + column.columnName.toLowerCase();
+                String sql = "ALTER TABLE " + column.tableName + " RENAME \"" + column.columnName + "\" TO \"" + column.columnName.toLowerCase()+"\"";
                 logger.info("Renaming column: ["+sql+"]");
                 jdbcTemplate.execute(sql);
             }
