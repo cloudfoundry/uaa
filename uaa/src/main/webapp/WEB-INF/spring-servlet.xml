@@ -10,7 +10,7 @@
        xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
 	xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-1.0.xsd
 		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-3.2.xsd
-		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.2.xsd
+		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.1.xsd
 		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.2.xsd">
 
     <bean class="org.cloudfoundry.identity.uaa.config.YamlConfigurationValidator">
@@ -105,19 +105,19 @@
 	<bean id="uiRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.DelegatingRequestMatcher">
 		<constructor-arg>
 			<list>
-				<bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
+				<bean class="org.springframework.security.web.util.AntPathRequestMatcher">
 					<constructor-arg value="/" />
 				</bean>
-				<bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
+				<bean class="org.springframework.security.web.util.AntPathRequestMatcher">
 					<constructor-arg value="/spring_security_login" />
 				</bean>
-				<bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
+				<bean class="org.springframework.security.web.util.AntPathRequestMatcher">
 					<constructor-arg value="/oauth/**" />
 				</bean>
-				<bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
+				<bean class="org.springframework.security.web.util.AntPathRequestMatcher">
 					<constructor-arg value="/login**" />
 				</bean>
-				<bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
+				<bean class="org.springframework.security.web.util.AntPathRequestMatcher">
 					<constructor-arg value="/logout.do*" />
 				</bean>
 			</list>
