@@ -16,6 +16,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import org.codehaus.jackson.annotate.JsonCreator;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
@@ -76,6 +77,7 @@ public enum UaaAuthority implements GrantedAuthority {
 		return userType;
 	}
 
+	@JsonCreator
 	public static UaaAuthority fromAuthorities(String authorities) {
 		String type = authorities == null ? "uaa.user" : authorities.toLowerCase();
 		return type.contains("uaa.admin") ? UAA_ADMIN : UAA_USER;

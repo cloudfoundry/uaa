@@ -63,18 +63,18 @@
 	<!-- End support for older login servers -->
 
 	<bean id="loginAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationFilter">
-		<constructor-arg ref="loginAuthenticationMgr" />
-		<property name="parameterNames">
-			<list>
-				<value>login</value>
-				<value>username</value>
-				<value>given_name</value>
-				<value>family_name</value>
-				<value>email</value>
-				<value>authorities</value>
-			</list>
-		</property>
-	</bean>
+             <constructor-arg ref="loginAuthenticationMgr" />
+             <property name="parameterNames">
+                 <list>
+                     <value>login</value>
+                     <value>username</value>
+                     <value>given_name</value>
+                     <value>family_name</value>
+                     <value>email</value>
+                     <value>authorities</value>
+                 </list>
+             </property>
+         </bean>
 	
 	<bean id="ldapGroupMappingAuthorizationManager" class="org.cloudfoundry.identity.uaa.authorization.external.LdapGroupMappingAuthorizationManager">
         <property name="externalMembershipManager" ref="externalGroupMembershipManager" />
@@ -88,5 +88,28 @@
 	<bean class="org.cloudfoundry.identity.uaa.authentication.login.RemoteAuthenticationEndpoint">
 		<constructor-arg ref="authzAuthenticationMgr" />
 	</bean>
+
+    
+    
+    <bean id="codeStore" class="org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore">
+        <constructor-arg ref="dataSource" />
+    </bean>
+
+    <bean id="codeStoreEndpoints" class="org.cloudfoundry.identity.uaa.codestore.CodeStoreEndpoints">
+        <property name="expiringCodeStore" ref="codeStore" />
+        <property name="messageConverters">
+            <bean class="org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter" />
+        </property>
+    </bean>
+    
+    <http create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"
+          authentication-manager-ref="emptyAuthenticationManager" access-decision-manager-ref="accessDecisionManager"
+          pattern="/Codes/**"
+          xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/**" access="scope=oauth.login" />
+        <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
+        <anonymous enabled="false" />
+        <access-denied-handler ref="oauthAccessDeniedHandler" />
+    </http>
 
 </beans>
