@@ -128,13 +128,8 @@
 
 	<oauth:web-expression-handler id="oauthWebExpressionHandler" />
 
-
-    <!--<mvc:resources location="/" mapping="/**" />-->
-
     <context:annotation-config/>
     <bean class="org.cloudfoundry.identity.uaa.config.MvcConfig" />
-
-    <!--<mvc:default-servlet-handler />-->
 
 	<bean id="viewResolver" class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
 		<property name="mediaTypes">
