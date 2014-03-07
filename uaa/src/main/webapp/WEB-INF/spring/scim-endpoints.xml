@@ -59,9 +59,6 @@
         <property name="scimGroupProvisioning" ref="scimGroupProvisioning" />
     </bean>
 
-	<!-- Add a handler adapter with special knowledge of the ScimUser endpoints -->
-	<bean class="org.cloudfoundry.identity.uaa.scim.endpoints.HandlerAdapterFactoryBean" />
-
 	<util:map id="exceptionToStatusMap" key-type="java.lang.Class" value-type="org.springframework.http.HttpStatus">
 		<entry key="org.springframework.dao.DataIntegrityViolationException" value="BAD_REQUEST" />
 		<entry key="org.springframework.http.converter.HttpMessageConversionException" value="BAD_REQUEST" />

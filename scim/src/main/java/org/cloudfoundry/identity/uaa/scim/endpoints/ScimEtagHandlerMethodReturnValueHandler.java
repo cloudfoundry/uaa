@@ -12,9 +12,6 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 
-/**
-* Created by pivotal on 3/6/14.
-*/
 public class ScimEtagHandlerMethodReturnValueHandler extends RequestResponseBodyMethodProcessor {
 
     public ScimEtagHandlerMethodReturnValueHandler(List<HttpMessageConverter<?>> messageConverters) {
@@ -36,5 +33,4 @@ public class ScimEtagHandlerMethodReturnValueHandler extends RequestResponseBody
         }
         super.handleReturnValue(returnValue, returnType, mavContainer, webRequest);
     }
-
 }
