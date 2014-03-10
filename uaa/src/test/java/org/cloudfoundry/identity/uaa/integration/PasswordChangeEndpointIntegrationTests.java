@@ -100,7 +100,7 @@ public class PasswordChangeEndpointIntegrationTests {
 
 		HttpHeaders headers = new HttpHeaders();
 		ResponseEntity<Void> result = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password",
-				HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers), null, joe.getId());
+				HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers), Void.class, joe.getId());
 		assertEquals(HttpStatus.OK, result.getStatusCode());
 
 	}
@@ -121,7 +121,7 @@ public class PasswordChangeEndpointIntegrationTests {
 
 		HttpHeaders headers = new HttpHeaders();
 		ResponseEntity<Void> result = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password",
-				HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers), null, joe.getId());
+				HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers), Void.class, joe.getId());
 		assertEquals(HttpStatus.OK, result.getStatusCode());
 
 	}
@@ -141,7 +141,7 @@ public class PasswordChangeEndpointIntegrationTests {
 
 		HttpHeaders headers = new HttpHeaders();
 		ResponseEntity<Void> result = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password",
-				HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers), null, joe.getId());
+				HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers), Void.class, joe.getId());
 		assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
 
 	}
@@ -189,7 +189,7 @@ public class PasswordChangeEndpointIntegrationTests {
 		//Change the password
 		HttpHeaders passwordChangeHeaders = new HttpHeaders();
 		ResponseEntity<Void> passwordChangeResult = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password",
-				HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, passwordChangeHeaders), null, joe.getId());
+				HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, passwordChangeHeaders), Void.class, joe.getId());
 		assertEquals(HttpStatus.OK, passwordChangeResult.getStatusCode());
 
 		MultiValueMap<String, String> newData = new LinkedMultiValueMap<String, String>();
