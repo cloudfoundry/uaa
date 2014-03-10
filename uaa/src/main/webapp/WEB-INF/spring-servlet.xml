@@ -135,11 +135,6 @@
 	<mvc:default-servlet-handler />
 
 	<bean id="viewResolver" class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
-		<property name="mediaTypes">
-			<map>
-				<entry key="json" value="application/json" />
-			</map>
-		</property>
 		<property name="viewResolvers">
 			<list>
 				<bean class="org.cloudfoundry.identity.uaa.web.ForwardAwareInternalResourceViewResolver">
