@@ -195,6 +195,18 @@ public class ScimUserEndpointsIntegrationTests {
 
 	}
 
+	@Test
+	public void getUserHasEtag() throws Exception {
+		ResponseEntity<ScimUser> response = createUser(JOE, "Joe", "User", "joe@blah.com");
+		ScimUser joe = response.getBody();
+		assertEquals(JOE, joe.getUserName());
+
+		// Check we can GET the user
+		ResponseEntity<ScimUser> result = client.getForEntity(serverRunning.getUrl(userEndpoint + "/{id}"),
+                ScimUser.class, joe.getId());
+		assertEquals("\"" + joe.getVersion() + "\"", result.getHeaders().getFirst("ETag"));
+	}
+
 	// curl -v -H "Content-Type: application/json" -X PUT -H "Accept: application/json" --data
 	// "{\"userName\":\"joe\",\"schemas\":[\"urn:scim:schemas:core:1.0\"]}" http://localhost:8080/uaa/User
 	@Test
