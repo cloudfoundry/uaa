@@ -291,9 +291,9 @@ public class YamlBindingTests {
 		
 		String[] value();
 
-		String message() default "Required fields are not provided for field ''{0}''";
+        String message() default "Required keys are not provided for field";
 
-		Class<?>[] groups() default { };
+        Class<?>[] groups() default { };
 
 		Class<? extends Payload>[] payload() default { };
 
@@ -301,20 +301,20 @@ public class YamlBindingTests {
 
 	public static class RequiredKeysValidator implements ConstraintValidator<RequiredKeys, Map<String, Object>> {
 
-		private String[] fields;
+        private String[] requiredKeys;
 
-		@Override
+        @Override
 		public void initialize(RequiredKeys constraintAnnotation) {
-			fields = constraintAnnotation.value();
-		}
+            requiredKeys = constraintAnnotation.value();
+        }
 
 		@Override
 		public boolean isValid(Map<String, Object> value, ConstraintValidatorContext context) {
 			boolean valid = true;
-			for (String field : fields) {
-				if (!value.containsKey(field)) {
-					context.buildConstraintViolationWithTemplate("Missing field ''{0}''").addNode(field).addConstraintViolation();
-					valid = false;
+            for (String key : requiredKeys) {
+                if (!value.containsKey(key)) {
+                    context.buildConstraintViolationWithTemplate("Missing key ''" + key + "''").addConstraintViolation();
+                    valid = false;
 				}
 			}
 			return valid;
@@ -324,8 +324,8 @@ public class YamlBindingTests {
 
 	public static class TargetWithValidatedMap {
 
-		@RequiredKeys({ "foo", "value" })
-		private Map<String, Object> info;
+        @RequiredKeys({"foo", "baz"})
+        private Map<String, Object> info;
 
 		public Map<String, Object> getInfo() {
 			return info;

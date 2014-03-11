@@ -12,22 +12,6 @@
  */
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.junit.internal.matchers.StringContains.containsString;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
 import com.googlecode.flyway.core.Flyway;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -50,13 +34,7 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.ScimSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.ExpectedException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -73,6 +51,11 @@ import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.HttpMediaTypeException;
 import org.springframework.web.servlet.View;
+
+import java.util.*;
+
+import static org.junit.Assert.*;
+import static org.junit.internal.matchers.StringContains.containsString;
 
 /**
  * @author Dave Syer
@@ -184,7 +167,7 @@ public class ScimUserEndpointsTests {
 		ScimUser user = new ScimUser(null, "dave", "David", "Syer");
 		user.addEmail("dsyer@vmware.com");
 		user.setGroups(Arrays.asList(new ScimUser.Group(null, "test1")));
-		ScimUser created = endpoints.createUser(user);
+		ScimUser created = endpoints.createUser(user, new MockHttpServletResponse());
 		validateUserGroups(created, "uaa.user");
 	}
 
@@ -192,11 +175,11 @@ public class ScimUserEndpointsTests {
 	public void groupsIsSyncedCorrectlyOnUpdate() {
 		ScimUser user = new ScimUser(null, "dave", "David", "Syer");
 		user.addEmail("dsyer@vmware.com");
-		ScimUser created = endpoints.createUser(user);
+		ScimUser created = endpoints.createUser(user, new MockHttpServletResponse());
 		validateUserGroups(created, "uaa.user");
 
 		created.setGroups(Arrays.asList(new ScimUser.Group(null, "test1")));
-		ScimUser updated = endpoints.updateUser(created, created.getId(), "*");
+		ScimUser updated = endpoints.updateUser(created, created.getId(), "*", new MockHttpServletResponse());
 		validateUserGroups(updated, "uaa.user");
 	}
 
@@ -204,15 +187,15 @@ public class ScimUserEndpointsTests {
 	public void groupsIsSyncedCorrectlyOnGet() {
 		ScimUser user = new ScimUser(null, "dave", "David", "Syer");
 		user.addEmail("dsyer@vmware.com");
-		ScimUser created = endpoints.createUser(user);
+		ScimUser created = endpoints.createUser(user, new MockHttpServletResponse());
 
 		validateUserGroups(created, "uaa.user");
 
 		ScimGroup g = new ScimGroup("test1");
 		g.setMembers(Arrays.asList(new ScimGroupMember(created.getId())));
-		g = groupEndpoints.createGroup(g);
+		g = groupEndpoints.createGroup(g, new MockHttpServletResponse());
 
-		validateUserGroups(endpoints.getUser(created.getId()), "test1");
+		validateUserGroups(endpoints.getUser(created.getId(), new MockHttpServletResponse()), "test1");
 	}
 
 	@Test
@@ -221,7 +204,7 @@ public class ScimUserEndpointsTests {
 		ScimUser user = new ScimUser(null, "vidya", "Vidya", "V");
 		user.addEmail("vidya@vmware.com");
 		user.setApprovals(Collections.singleton(new Approval("vidya", "c1", "s1", 6000, Approval.ApprovalStatus.APPROVED)));
-		ScimUser created = endpoints.createUser(user);
+		ScimUser created = endpoints.createUser(user, new MockHttpServletResponse());
 
 		assertNotNull(created.getApprovals());
 		assertEquals(1, created.getApprovals().size());
@@ -235,30 +218,30 @@ public class ScimUserEndpointsTests {
 		ScimUser user = new ScimUser(null, "vidya", "Vidya", "V");
 		user.addEmail("vidya@vmware.com");
 		user.setApprovals(Collections.singleton(new Approval("vidya", "c1", "s1", 6000, Approval.ApprovalStatus.APPROVED)));
-		ScimUser created = endpoints.createUser(user);
+		ScimUser created = endpoints.createUser(user, new MockHttpServletResponse());
 		assertNotNull(created.getApprovals());
 		assertEquals(2, created.getApprovals().size());
 
 		created.setApprovals(Collections.singleton(new Approval("vidya", "c1", "s1", 6000, Approval.ApprovalStatus.APPROVED)));
-		ScimUser updated = endpoints.updateUser(created, created.getId(), "*");
+		ScimUser updated = endpoints.updateUser(created, created.getId(), "*", new MockHttpServletResponse());
 		assertEquals(2, updated.getApprovals().size());
 	}
 
 	@Test
 	public void approvalsIsSyncedCorrectlyOnGet() {
-		assertEquals(0, endpoints.getUser(joel.getId()).getApprovals().size());
+		assertEquals(0, endpoints.getUser(joel.getId(), new MockHttpServletResponse()).getApprovals().size());
 
 		am.addApproval(new Approval(joel.getUserName(), "c1", "s1", 6000, Approval.ApprovalStatus.APPROVED));
 		am.addApproval(new Approval(joel.getUserName(), "c1", "s2", 6000, Approval.ApprovalStatus.DENIED));
 
-		assertEquals(2, endpoints.getUser(joel.getId()).getApprovals().size());
+		assertEquals(2, endpoints.getUser(joel.getId(), new MockHttpServletResponse()).getApprovals().size());
 	}
 
 	@Test
 	public void userGetsADefaultPassword() {
 		ScimUser user = new ScimUser(null, "dave", "David", "Syer");
 		user.addEmail("dsyer@vmware.com");
-		ScimUser created = endpoints.createUser(user);
+		ScimUser created = endpoints.createUser(user, new MockHttpServletResponse());
 		assertNull("A newly created user revealed its password", created.getPassword());
 		JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
 		String password = jdbcTemplate.queryForObject("select password from users where id=?", String.class,
@@ -271,7 +254,7 @@ public class ScimUserEndpointsTests {
 	public void userWithNoEmailNotAllowed() {
 		ScimUser user = new ScimUser(null, "dave", "David", "Syer");
 		try {
-			endpoints.createUser(user);
+			endpoints.createUser(user, new MockHttpServletResponse());
 			fail("Expected InvalidScimResourceException");
 		}
 		catch (InvalidScimResourceException e) {
@@ -317,7 +300,7 @@ public class ScimUserEndpointsTests {
 		ScimUser user = new ScimUser(null, "dave", "David", "Syer");
 		user.addEmail("dsyer@vmware.com");
 		ReflectionTestUtils.setField(user, "password", "foo");
-		ScimUser created = endpoints.createUser(user);
+		ScimUser created = endpoints.createUser(user, new MockHttpServletResponse());
 		assertNull("A newly created user revealed its password", created.getPassword());
 		JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
 		String password = jdbcTemplate.queryForObject("select password from users where id=?", String.class,
@@ -329,7 +312,7 @@ public class ScimUserEndpointsTests {
 		ScimUser exGuy = new ScimUser(null, "deleteme", "Expendable", "Guy");
 		exGuy.addEmail("exguy@imonlyheretobedeleted.com");
 		exGuy = dao.createUser(exGuy, "exguyspassword");
-		endpoints.deleteUser(exGuy.getId(), Integer.toString(exGuy.getMeta().getVersion()));
+		endpoints.deleteUser(exGuy.getId(), Integer.toString(exGuy.getMeta().getVersion()), new MockHttpServletResponse());
 	}
 
 	@Test
@@ -337,7 +320,7 @@ public class ScimUserEndpointsTests {
 		ScimUser exGuy = new ScimUser(null, "deleteme", "Expendable", "Guy");
 		exGuy.addEmail("exguy@imonlyheretobedeleted.com");
 		exGuy = dao.createUser(exGuy, "exguyspassword");
-		endpoints.deleteUser(exGuy.getId(), "\"*");
+		endpoints.deleteUser(exGuy.getId(), "\"*", new MockHttpServletResponse());
 	}
 
 	@Test(expected = OptimisticLockingFailureException.class)
@@ -345,7 +328,7 @@ public class ScimUserEndpointsTests {
 		ScimUser exGuy = new ScimUser(null, "deleteme2", "Expendable", "Guy");
 		exGuy.addEmail("exguy2@imonlyheretobedeleted.com");
 		exGuy = dao.createUser(exGuy, "exguyspassword");
-		endpoints.deleteUser(exGuy.getId(), Integer.toString(exGuy.getMeta().getVersion() + 1));
+		endpoints.deleteUser(exGuy.getId(), Integer.toString(exGuy.getMeta().getVersion() + 1), new MockHttpServletResponse());
 	}
 
 	@Test
@@ -353,7 +336,7 @@ public class ScimUserEndpointsTests {
 		ScimUser exGuy = new ScimUser(null, "deleteme3", "Expendable", "Guy");
 		exGuy.addEmail("exguy3@imonlyheretobedeleted.com");
 		exGuy = dao.createUser(exGuy, "exguyspassword");
-		endpoints.deleteUser(exGuy.getId(), null);
+		endpoints.deleteUser(exGuy.getId(), null, new MockHttpServletResponse());
 	}
 
 	@Test
@@ -364,11 +347,11 @@ public class ScimUserEndpointsTests {
 
 		ScimGroup g = new ScimGroup("test1");
 		g.setMembers(Arrays.asList(new ScimGroupMember(exGuy.getId())));
-		g = groupEndpoints.createGroup(g);
+		g = groupEndpoints.createGroup(g, new MockHttpServletResponse());
 		validateGroupMembers(g, exGuy.getId(), true);
 
-		endpoints.deleteUser(exGuy.getId(), "*");
-		validateGroupMembers(groupEndpoints.getGroup(g.getId()), exGuy.getId(), false);
+		endpoints.deleteUser(exGuy.getId(), "*", new MockHttpServletResponse());
+		validateGroupMembers(groupEndpoints.getGroup(g.getId(), new MockHttpServletResponse()), exGuy.getId(), false);
 	}
 
 	private void validateGroupMembers(ScimGroup g, String mId, boolean expected) {
@@ -488,7 +471,43 @@ public class ScimUserEndpointsTests {
 				.contains(joel.getId()));
 	}
 
-	@SuppressWarnings("unchecked")
+    @Test
+    public void testCreateIncludesETagHeader() throws Exception {
+        ScimUser user = new ScimUser(null, "dave", "David", "Syer");
+        user.addEmail("dave@vmware.com");
+        MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
+        endpoints.createUser(user, httpServletResponse);
+        assertEquals("\"0\"", httpServletResponse.getHeader("ETag"));
+    }
+
+    @Test
+    public void testGetIncludesETagHeader() throws Exception {
+        ScimUser user = new ScimUser(null, "dave", "David", "Syer");
+        user.addEmail("dave@vmware.com");
+        MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
+        endpoints.getUser(joel.getId(), httpServletResponse);
+        assertEquals("\"0\"", httpServletResponse.getHeader("ETag"));
+    }
+
+    @Test
+    public void testUpdateIncludesETagHeader() throws Exception {
+        ScimUser user = new ScimUser(null, "dave", "David", "Syer");
+        user.addEmail("dave@vmware.com");
+        MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
+        endpoints.updateUser(joel, joel.getId(), "*", httpServletResponse);
+        assertEquals("\"1\"", httpServletResponse.getHeader("ETag"));
+    }
+
+    @Test
+    public void testVerifyIncludesETagHeader() throws Exception {
+        ScimUser user = new ScimUser(null, "dave", "David", "Syer");
+        user.addEmail("dave@vmware.com");
+        MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
+        endpoints.verifyUser(""+joel.getId(), "*", httpServletResponse);
+        assertEquals("\"0\"", httpServletResponse.getHeader("ETag"));
+    }
+
+    @SuppressWarnings("unchecked")
 	private Collection<Object> getSetFromMaps(Collection<?> resources, String key) {
 		Collection<Object> result = new ArrayList<Object>();
 		for (Object map : resources) {

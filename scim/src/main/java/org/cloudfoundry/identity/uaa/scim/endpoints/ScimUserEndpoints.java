@@ -12,21 +12,6 @@
  */
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import javax.servlet.http.HttpServletRequest;
-
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReport;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
@@ -57,17 +42,16 @@ import org.springframework.security.crypto.codec.Hex;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.security.SecureRandom;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * User provisioning and query endpoints. Implements the core API from the Simple Cloud Identity Management (SCIM)
@@ -81,9 +65,10 @@ import org.springframework.web.servlet.View;
 @Controller
 @ManagedResource
 public class ScimUserEndpoints implements InitializingBean {
-	private static final String USER_APPROVALS_FILTER_TEMPLATE = "userName eq '%s'";
+    private static final String USER_APPROVALS_FILTER_TEMPLATE = "userName eq '%s'";
+    public static final String E_TAG = "ETag";
 
-	private ScimUserProvisioning dao;
+    private ScimUserProvisioning dao;
 
 	private ScimGroupMembershipManager membershipManager;
 
@@ -148,21 +133,26 @@ public class ScimUserEndpoints implements InitializingBean {
 
 	@RequestMapping(value = "/Users/{userId}", method = RequestMethod.GET)
 	@ResponseBody
-	public ScimUser getUser(@PathVariable String userId) {
-		return syncApprovals(syncGroups(dao.retrieve(userId)));
+	public ScimUser getUser(@PathVariable String userId, HttpServletResponse httpServletResponse) {
+        ScimUser scimUser = syncApprovals(syncGroups(dao.retrieve(userId)));
+        addETagHeader(httpServletResponse, scimUser);
+        return scimUser;
 	}
 
-	@RequestMapping(value = "/Users", method = RequestMethod.POST)
+    @RequestMapping(value = "/Users", method = RequestMethod.POST)
 	@ResponseStatus(HttpStatus.CREATED)
 	@ResponseBody
-	public ScimUser createUser(@RequestBody ScimUser user) {
-		return syncApprovals(syncGroups(dao.createUser(user, user.getPassword() == null ? generatePassword() : user.getPassword())));
+	public ScimUser createUser(@RequestBody ScimUser user, HttpServletResponse httpServletResponse) {
+        ScimUser scimUser = syncApprovals(syncGroups(dao.createUser(user, user.getPassword() == null ? generatePassword() : user.getPassword())));
+        addETagHeader(httpServletResponse, scimUser);
+        return scimUser;
 	}
 
 	@RequestMapping(value = "/Users/{userId}", method = RequestMethod.PUT)
 	@ResponseBody
 	public ScimUser updateUser(@RequestBody ScimUser user, @PathVariable String userId,
-			@RequestHeader(value = "If-Match", required = false, defaultValue = "NaN") String etag) {
+                               @RequestHeader(value = "If-Match", required = false, defaultValue = "NaN") String etag,
+                               HttpServletResponse httpServletResponse) {
 		if (etag.equals("NaN")) {
 			throw new ScimException("Missing If-Match for PUT", HttpStatus.BAD_REQUEST);
 		}
@@ -171,7 +161,9 @@ public class ScimUserEndpoints implements InitializingBean {
 		try {
 			ScimUser updated = dao.update(userId, user);
 			scimUpdates.incrementAndGet();
-			return syncApprovals(syncGroups(updated));
+            ScimUser scimUser = syncApprovals(syncGroups(updated));
+            addETagHeader(httpServletResponse, scimUser);
+            return scimUser;
 		}
 		catch (OptimisticLockingFailureException e) {
 			throw new ScimResourceConflictException(e.getMessage());
@@ -181,9 +173,10 @@ public class ScimUserEndpoints implements InitializingBean {
 	@RequestMapping(value = "/Users/{userId}", method = RequestMethod.DELETE)
 	@ResponseBody
 	public ScimUser deleteUser(@PathVariable String userId,
-			@RequestHeader(value = "If-Match", required = false) String etag) {
+			@RequestHeader(value = "If-Match", required = false) String etag,
+            HttpServletResponse httpServletResponse) {
 		int version = etag == null ? -1 : getVersion(userId, etag);
-		ScimUser user = getUser(userId);
+		ScimUser user = getUser(userId, httpServletResponse);
 		dao.delete(userId, version);
 		membershipManager.removeMembersByMemberId(userId);
 		scimDeletes.incrementAndGet();
@@ -193,10 +186,12 @@ public class ScimUserEndpoints implements InitializingBean {
     @RequestMapping(value = "/Users/{userId}/verify", method = RequestMethod.GET)
     @ResponseBody
     public ScimUser verifyUser(@PathVariable String userId,
-            @RequestHeader(value = "If-Match", required = false) String etag) {
+                               @RequestHeader(value = "If-Match", required = false) String etag,
+                               HttpServletResponse httpServletResponse) {
         int version = etag == null ? -1 : getVersion(userId, etag);
         ScimUser user = dao.verifyUser(userId, version);
         scimUpdates.incrementAndGet();
+        addETagHeader(httpServletResponse, user);
         return user;
     }
 	
@@ -353,4 +348,8 @@ public class ScimUserEndpoints implements InitializingBean {
 		Assert.notNull(membershipManager, "ScimGroupMembershipManager must be set");
 		Assert.notNull(approvalStore, "ApprovalStore must be set");
 	}
+
+    private void addETagHeader(HttpServletResponse httpServletResponse, ScimUser scimUser) {
+        httpServletResponse.setHeader(E_TAG, "\"" + scimUser.getVersion() + "\"");
+    }
 }

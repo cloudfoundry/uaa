@@ -87,7 +87,7 @@ public class VmcScimUserEndpointIntegrationTests {
 
 		HttpHeaders headers = new HttpHeaders();
 		ResponseEntity<Void> result = client.exchange(serverRunning.getUrl(usersEndpoint) + "/{id}/password",
-				HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers), null, joe.getId());
+				HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers), Void.class, joe.getId());
 		assertEquals(HttpStatus.OK, result.getStatusCode());
 
 		// The implicit grant for vmc requires extra parameters in the authorization request
@@ -114,7 +114,7 @@ public class VmcScimUserEndpointIntegrationTests {
 		HttpHeaders headers = new HttpHeaders();
 		RestOperations client = serverRunning.getRestTemplate();
 		ResponseEntity<Void> result = client.exchange(serverRunning.getUrl(usersEndpoint) + "/{id}/password",
-				HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers), null, joe.getId());
+				HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers), Void.class, joe.getId());
 		assertEquals(HttpStatus.OK, result.getStatusCode());
 
 	}
@@ -125,7 +125,7 @@ public class VmcScimUserEndpointIntegrationTests {
 		HttpHeaders headers = new HttpHeaders();
 		RestOperations client = serverRunning.getRestTemplate();
 		ResponseEntity<Void> result = client.exchange(serverRunning.getUrl("/userinfo"), HttpMethod.GET,
-				new HttpEntity<Void>(null, headers), null, joe.getId());
+				new HttpEntity<Void>(null, headers), Void.class, joe.getId());
 		assertEquals(HttpStatus.OK, result.getStatusCode());
 
 	}

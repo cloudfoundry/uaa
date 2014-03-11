@@ -123,7 +123,7 @@ public class ScimGroupEndpointsIntegrationTests {
 
 		HttpHeaders headers = new HttpHeaders();
 		ResponseEntity<Void> result = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password",
-				HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers), null, u.getId());
+				HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers), Void.class, u.getId());
 		assertEquals(HttpStatus.OK, result.getStatusCode());
 		return u;
 	}

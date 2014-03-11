@@ -15,8 +15,8 @@ package org.cloudfoundry.identity.uaa.scim.bootstrap;
 import com.googlecode.flyway.core.Flyway;
 import org.cloudfoundry.identity.uaa.rest.jdbc.DefaultLimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
-import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
@@ -28,6 +28,7 @@ import org.junit.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabase;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.authority.AuthorityUtils;
 
 import java.util.Arrays;
@@ -102,7 +103,7 @@ public class ScimUserBootstrapTests {
 		assertEquals(1, users.size());
 
 		String id = (String) users.iterator().next().get("id");
-		ScimUser user = userEndpoints.getUser(id);
+		ScimUser user = userEndpoints.getUser(id, new MockHttpServletResponse());
 		// uaa.user is always added
 		assertEquals(3, user.getGroups().size());
 	}
@@ -122,7 +123,7 @@ public class ScimUserBootstrapTests {
 		assertEquals(1, users.size());
 
 		String id = (String) users.iterator().next().get("id");
-		ScimUser user = userEndpoints.getUser(id);
+		ScimUser user = userEndpoints.getUser(id, new MockHttpServletResponse());
 		// uaa.user is always added
 		assertEquals("Joe", user.getGivenName());
 	}
@@ -143,7 +144,7 @@ public class ScimUserBootstrapTests {
 		assertEquals(1, users.size());
 
 		String id = (String) users.iterator().next().get("id");
-		ScimUser user = userEndpoints.getUser(id);
+		ScimUser user = userEndpoints.getUser(id, new MockHttpServletResponse());
 		// uaa.user is always added
 		assertEquals("Joel", user.getGivenName());
 	}
@@ -164,7 +165,7 @@ public class ScimUserBootstrapTests {
 		assertEquals(1, users.size());
 
 		String id = (String) users.iterator().next().get("id");
-		ScimUser user = userEndpoints.getUser(id);
+		ScimUser user = userEndpoints.getUser(id, new MockHttpServletResponse());
 		// uaa.user is always added
 		assertEquals(4, user.getGroups().size());
 	}
@@ -187,7 +188,7 @@ public class ScimUserBootstrapTests {
 		assertEquals(1, users.size());
 
 		String id = (String) users.iterator().next().get("id");
-		ScimUser user = userEndpoints.getUser(id);
+		ScimUser user = userEndpoints.getUser(id, new MockHttpServletResponse());
 		// uaa.user is always added
 		assertEquals(2, user.getGroups().size());
 	}

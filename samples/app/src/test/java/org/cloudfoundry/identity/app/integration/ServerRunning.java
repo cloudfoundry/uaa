@@ -246,7 +246,7 @@ public class ServerRunning extends TestWatchman implements RestTemplateHolder, U
 
 	public ResponseEntity<Void> getForResponse(String path, final HttpHeaders headers, Object... uriVariables) {
 		HttpEntity<Void> request = new HttpEntity<Void>(null, headers);
-		ResponseEntity<Void> exchange = client.exchange(getUrl(path), HttpMethod.GET, request, null, uriVariables);
+		ResponseEntity<Void> exchange = client.exchange(getUrl(path), HttpMethod.GET, request, Void.class, uriVariables);
 		logger.info("Response headers: " + exchange.getHeaders());
 		return exchange;
 	}
@@ -257,7 +257,7 @@ public class ServerRunning extends TestWatchman implements RestTemplateHolder, U
 		actualHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
 		ResponseEntity<Void> exchange = client.exchange(getUrl(path), HttpMethod.POST,
-				new HttpEntity<MultiValueMap<String, String>>(params, actualHeaders), null);
+				new HttpEntity<MultiValueMap<String, String>>(params, actualHeaders), Void.class);
 		logger.info("Response headers: " + exchange.getHeaders());
 		return exchange;
 	}
