@@ -1,24 +1,12 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.servlet.http.HttpServletRequest;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReport;
 import org.cloudfoundry.identity.uaa.rest.SearchResults;
 import org.cloudfoundry.identity.uaa.rest.SearchResultsFactory;
-import org.cloudfoundry.identity.uaa.scim.ScimCore;
-import org.cloudfoundry.identity.uaa.scim.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.scim.*;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
@@ -33,20 +21,18 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.util.*;
+
 @Controller
 public class ScimGroupEndpoints {
+
+    public static final String E_TAG = "ETag";
 
 	private final ScimGroupProvisioning dao;
 
@@ -145,17 +131,18 @@ public class ScimGroupEndpoints {
 
 	@RequestMapping(value = {"/Groups/{groupId}"}, method = RequestMethod.GET)
 	@ResponseBody
-	public ScimGroup getGroup(@PathVariable String groupId) {
+	public ScimGroup getGroup(@PathVariable String groupId, HttpServletResponse httpServletResponse) {
 		logger.debug("retrieving group with id: " + groupId);
 		ScimGroup group = dao.retrieve(groupId);
 		group.setMembers(membershipManager.getMembers(groupId));
+        addETagHeader(httpServletResponse, group);
 		return group;
 	}
 
 	@RequestMapping(value = {"/Groups"}, method = RequestMethod.POST)
 	@ResponseStatus(HttpStatus.CREATED)
 	@ResponseBody
-	public ScimGroup createGroup(@RequestBody ScimGroup group) {
+	public ScimGroup createGroup(@RequestBody ScimGroup group, HttpServletResponse httpServletResponse) {
 		ScimGroup created = dao.create(group);
 		if (group.getMembers() != null) {
 			for (ScimGroupMember member : group.getMembers()) {
@@ -169,13 +156,15 @@ public class ScimGroupEndpoints {
 			}
 		}
 		created.setMembers(membershipManager.getMembers(created.getId()));
+        addETagHeader(httpServletResponse, created);
 		return created;
 	}
 
 	@RequestMapping(value = {"/Groups/{groupId}"}, method = RequestMethod.PUT)
 	@ResponseBody
 	public ScimGroup updateGroup(@RequestBody ScimGroup group, @PathVariable String groupId,
-								 @RequestHeader(value = "If-Match", required = false) String etag) {
+                                 @RequestHeader(value = "If-Match", required = false) String etag,
+                                 HttpServletResponse httpServletResponse) {
 		if (etag == null) {
 			throw new ScimException("Missing If-Match for PUT", HttpStatus.BAD_REQUEST);
 		}
@@ -183,7 +172,7 @@ public class ScimGroupEndpoints {
 		int version = getVersion(groupId, etag);
 		group.setVersion(version);
 
-		ScimGroup existing = getGroup(groupId);
+		ScimGroup existing = getGroup(groupId, httpServletResponse);
 		try {
 			ScimGroup updated = dao.update(groupId, group);
 			if (group.getMembers() != null && group.getMembers().size() > 0) {
@@ -192,6 +181,7 @@ public class ScimGroupEndpoints {
 				membershipManager.removeMembersByGroupId(updated.getId());
 			}
 			updated.setMembers(membershipManager.getMembers(updated.getId()));
+            addETagHeader(httpServletResponse, updated);
 			return updated;
 		} catch (IncorrectResultSizeDataAccessException ex) {
 			logger.error("Error updating group, restoring to previous state");
@@ -224,8 +214,9 @@ public class ScimGroupEndpoints {
 	@RequestMapping(value = {"/Groups/{groupId}"}, method = RequestMethod.DELETE)
 	@ResponseBody
 	public ScimGroup deleteGroup(@PathVariable String groupId,
-								 @RequestHeader(value = "If-Match", required = false, defaultValue = "*") String etag) {
-		ScimGroup group = getGroup(groupId);
+                                 @RequestHeader(value = "If-Match", required = false, defaultValue = "*") String etag,
+                                 HttpServletResponse httpServletResponse) {
+		ScimGroup group = getGroup(groupId, httpServletResponse);
 		logger.debug("deleting group: " + group);
 		try {
 			membershipManager.removeMembersByGroupId(groupId);
@@ -276,4 +267,8 @@ public class ScimGroupEndpoints {
 										   HttpStatus.BAD_REQUEST);
 		}
 	}
+
+    private void addETagHeader(HttpServletResponse httpServletResponse, ScimGroup scimGroup) {
+        httpServletResponse.setHeader(E_TAG, "\"" + scimGroup.getVersion() + "\"");
+    }
 }

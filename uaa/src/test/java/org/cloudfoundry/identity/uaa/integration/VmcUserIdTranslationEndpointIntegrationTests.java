@@ -91,7 +91,7 @@ public class VmcUserIdTranslationEndpointIntegrationTests {
 
 		HttpHeaders headers = new HttpHeaders();
 		ResponseEntity<Void> result = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password",
-				HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers), null, joe.getId());
+				HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers), Void.class, joe.getId());
 		assertEquals(HttpStatus.OK, result.getStatusCode());
 
 		// The implicit grant for vmc requires extra parameters in the authorization request
