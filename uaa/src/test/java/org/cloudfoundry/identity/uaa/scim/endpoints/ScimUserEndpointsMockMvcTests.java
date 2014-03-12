@@ -1,9 +1,9 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
+import com.googlecode.flyway.core.Flyway;
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.test.HsqldbHelper;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.After;
@@ -49,7 +49,9 @@ public class ScimUserEndpointsMockMvcTests {
     @After
     public void tearDown() throws Exception {
         DataSource datasource = webApplicationContext.getBean(DataSource.class);
-        HsqldbHelper.truncateSchema(datasource);
+        Flyway flyway = new Flyway();
+        flyway.setDataSource(datasource);
+        flyway.clean();
         webApplicationContext.close();
     }
 
