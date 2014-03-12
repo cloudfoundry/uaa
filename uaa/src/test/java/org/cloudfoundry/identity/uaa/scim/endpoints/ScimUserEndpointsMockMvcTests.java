@@ -48,9 +48,7 @@ public class ScimUserEndpointsMockMvcTests {
 
     @After
     public void tearDown() throws Exception {
-        DataSource datasource = webApplicationContext.getBean(DataSource.class);
-        Flyway flyway = new Flyway();
-        flyway.setDataSource(datasource);
+        Flyway flyway = webApplicationContext.getBean(Flyway.class);
         flyway.clean();
         webApplicationContext.close();
     }
