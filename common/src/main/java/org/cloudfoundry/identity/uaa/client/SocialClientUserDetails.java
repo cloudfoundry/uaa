@@ -14,6 +14,11 @@ package org.cloudfoundry.identity.uaa.client;
 
 import java.util.Collection;
 
+import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.codehaus.jackson.annotate.JsonCreator;
+import org.codehaus.jackson.annotate.JsonIgnore;
+import org.codehaus.jackson.annotate.JsonProperty;
+import org.codehaus.jackson.map.annotate.JsonDeserialize;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 
@@ -23,6 +28,7 @@ import org.springframework.security.core.GrantedAuthority;
  * @author Luke Taylor
  * @author Dave Syer
  */
+
 public class SocialClientUserDetails extends AbstractAuthenticationToken {
 
 	public static class Source {
@@ -78,8 +84,9 @@ public class SocialClientUserDetails extends AbstractAuthenticationToken {
 	private Object id;
 
 	private String source;
-
-	public SocialClientUserDetails(String username, Collection<? extends GrantedAuthority> authorities) {
+	
+	@JsonCreator
+	public SocialClientUserDetails(@JsonProperty("username") String username, @JsonProperty("authorities") @JsonDeserialize(contentAs=UaaAuthority.class) Collection<? extends GrantedAuthority> authorities) {
 		super(authorities);
 		setAuthenticated(authorities!=null && !authorities.isEmpty());
 		this.username = username;
@@ -101,6 +108,7 @@ public class SocialClientUserDetails extends AbstractAuthenticationToken {
 		this.email = email;
 	}
 
+	@JsonIgnore
 	public String getName() {
 		// This is used as the principal name (which could then be used to look up tokens etc)
 		return username;
@@ -126,13 +134,28 @@ public class SocialClientUserDetails extends AbstractAuthenticationToken {
 		return username;
 	}
 
+	@JsonIgnore
 	@Override
 	public Object getCredentials() {
 		return "N/A";
 	}
 
+	@JsonIgnore
 	@Override
 	public Object getPrincipal() {
 		return this.username;
 	}
+	
+	/*{"details":"app",
+	 * "authorities":["UAA_USER"],
+	 * "authenticated":true,
+	 * "username":"marissa",
+	 * "email":null,
+	 * "name":"marissa",
+	 * "source":null,
+	 * "externalId":null,
+	 * "fullName":null,
+	 * "credentials":"N/A",
+	 * "principal":"marissa"}
+	 */
 }
