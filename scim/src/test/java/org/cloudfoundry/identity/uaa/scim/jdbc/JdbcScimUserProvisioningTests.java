@@ -20,6 +20,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -193,10 +194,28 @@ public class JdbcScimUserProvisioningTests {
         ScimUser jo = new ScimUser(null, "josephine", "Jo", "NewUser");
         PhoneNumber emptyNumber = new PhoneNumber();
         jo.addEmail("jo@blah.com");
+        jo.setPhoneNumbers(new ArrayList<PhoneNumber>());
+        ScimUser joe = db.update(JOE_ID, jo);
+    }
+
+    @Test
+    public void updateWithEmptyPhoneNumberWorks() {
+        ScimUser jo = new ScimUser(null, "josephine", "Jo", "NewUser");
+        PhoneNumber emptyNumber = new PhoneNumber();
+        jo.addEmail("jo@blah.com");
         jo.setPhoneNumbers(Arrays.asList(emptyNumber));
         ScimUser joe = db.update(JOE_ID, jo);
     }
 
+    @Test
+    public void updateWithWhiteSpacePhoneNumberWorks() {
+        ScimUser jo = new ScimUser(null, "josephine", "Jo", "NewUser");
+        PhoneNumber emptyNumber = new PhoneNumber();
+        emptyNumber.setValue(" ");
+        jo.addEmail("jo@blah.com");
+        jo.setPhoneNumbers(Arrays.asList(emptyNumber));
+        ScimUser joe = db.update(JOE_ID, jo);
+    }
 
     @Test
     public void updateCannotModifyGroups() {
