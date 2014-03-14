@@ -1,3 +1,15 @@
+/*******************************************************************************
+ *     Cloud Foundry 
+ *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *
+ *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *     You may not use this product except in compliance with the License.
+ *
+ *     This product includes a number of subcomponents with
+ *     separate copyright notices and license terms. Your use of these
+ *     subcomponents is subject to the terms and conditions of the
+ *     subcomponent's license, as noted in the LICENSE file.
+ *******************************************************************************/
 package org.cloudfoundry.identity.uaa.codestore;
 
 import java.sql.Timestamp;
@@ -5,6 +17,7 @@ import java.sql.Timestamp;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.map.annotate.JsonDeserialize;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
+
 @JsonSerialize
 @JsonDeserialize
 public class ExpiringCode {
@@ -15,7 +28,8 @@ public class ExpiringCode {
 
     private String data;
 
-    public ExpiringCode() {}
+    public ExpiringCode() {
+    }
 
     public ExpiringCode(String code, Timestamp expiresAt, String data) {
         this.code = code;
@@ -49,20 +63,26 @@ public class ExpiringCode {
 
     @JsonIgnore
     public boolean isExpired() {
-        if (expiresAt == null) return false;
+        if (expiresAt == null)
+            return false;
         return expiresAt.getTime() < System.currentTimeMillis();
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof ExpiringCode)) return false;
+        if (this == o)
+            return true;
+        if (!(o instanceof ExpiringCode))
+            return false;
 
         ExpiringCode that = (ExpiringCode) o;
 
-        if (code != null ? !code.equals(that.code) : that.code != null) return false;
-        if (data != null ? !data.equals(that.data) : that.data != null) return false;
-        if (expiresAt != null ? !expiresAt.equals(that.expiresAt) : that.expiresAt != null) return false;
+        if (code != null ? !code.equals(that.code) : that.code != null)
+            return false;
+        if (data != null ? !data.equals(that.data) : that.data != null)
+            return false;
+        if (expiresAt != null ? !expiresAt.equals(that.expiresAt) : that.expiresAt != null)
+            return false;
 
         return true;
     }
@@ -76,15 +96,14 @@ public class ExpiringCode {
     public String toString() {
         return "ExpiringCode [code=" + code + ", expiresAt=" + expiresAt + ", data=" + trimToLength(data, 1024) + "]";
     }
-    
+
     private String trimToLength(String s, int length) {
         int min = Math.min(s.length(), length);
-        if (min==s.length()) {
+        if (min == s.length()) {
             return s;
         } else {
-            return s.substring(0,min);
+            return s.substring(0, min);
         }
     }
-    
-    
+
 }

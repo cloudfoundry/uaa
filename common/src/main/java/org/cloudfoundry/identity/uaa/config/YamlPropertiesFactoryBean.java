@@ -1,15 +1,15 @@
-/*
- * Cloud Foundry 2012.02.03 Beta
- * Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved.
+/*******************************************************************************
+ *     Cloud Foundry 
+ *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
- * This product is licensed to you under the Apache License, Version 2.0 (the "License").
- * You may not use this product except in compliance with the License.
+ *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *     You may not use this product except in compliance with the License.
  *
- * This product includes a number of subcomponents with
- * separate copyright notices and license terms. Your use of these
- * subcomponents is subject to the terms and conditions of the
- * subcomponent's license, as noted in the LICENSE file.
- */
+ *     This product includes a number of subcomponents with
+ *     separate copyright notices and license terms. Your use of these
+ *     subcomponents is subject to the terms and conditions of the
+ *     subcomponent's license, as noted in the LICENSE file.
+ *******************************************************************************/
 package org.cloudfoundry.identity.uaa.config;
 
 import java.util.Map;
@@ -18,9 +18,12 @@ import java.util.Properties;
 import org.springframework.beans.factory.FactoryBean;
 
 /**
- * Factory for Java Properties that reads from a YAML source. YAML is a nice human-readable format for configuration,
- * and it has some useful hierarchical properties. It's more or less a superset of JSON, so it has a lot of similar
- * features. The Properties created by this factory have nested paths for hierarchical objects, so for instance this
+ * Factory for Java Properties that reads from a YAML source. YAML is a nice
+ * human-readable format for configuration,
+ * and it has some useful hierarchical properties. It's more or less a superset
+ * of JSON, so it has a lot of similar
+ * features. The Properties created by this factory have nested paths for
+ * hierarchical objects, so for instance this
  * YAML
  * 
  * <pre>
@@ -42,8 +45,9 @@ import org.springframework.beans.factory.FactoryBean;
  * environments.prod.name=My Cool App
  * </pre>
  * 
- * Lists are represented as comma-separated values (useful for simple String values) and also as property keys with
- * <code>[]</code> dereferencers, for example this YAML:
+ * Lists are represented as comma-separated values (useful for simple String
+ * values) and also as property keys with <code>[]</code> dereferencers, for
+ * example this YAML:
  * 
  * <pre>
  * servers:
@@ -64,36 +68,36 @@ import org.springframework.beans.factory.FactoryBean;
  */
 public class YamlPropertiesFactoryBean extends YamlProcessor implements FactoryBean<Properties> {
 
-	private Properties instance;
+    private Properties instance;
 
-	@Override
-	public Properties getObject() {
-		if (instance==null) {
-			instance  = doGetObject();
-		}
-		return instance;
-	}
+    @Override
+    public Properties getObject() {
+        if (instance == null) {
+            instance = doGetObject();
+        }
+        return instance;
+    }
 
-	private Properties doGetObject() {
-		final Properties result = new Properties();
-		MatchCallback callback = new MatchCallback() {
-			@Override
-			public void process(Properties properties, Map<String, Object> map) {
-				result.putAll(properties);
-			}
-		};
-		process(callback);
-		return result;
-	}
+    private Properties doGetObject() {
+        final Properties result = new Properties();
+        MatchCallback callback = new MatchCallback() {
+            @Override
+            public void process(Properties properties, Map<String, Object> map) {
+                result.putAll(properties);
+            }
+        };
+        process(callback);
+        return result;
+    }
 
-	@Override
-	public Class<?> getObjectType() {
-		return Properties.class;
-	}
+    @Override
+    public Class<?> getObjectType() {
+        return Properties.class;
+    }
 
-	@Override
-	public boolean isSingleton() {
-		return true;
-	}
+    @Override
+    public boolean isSingleton() {
+        return true;
+    }
 
 }

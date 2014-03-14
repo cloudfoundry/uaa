@@ -1,4 +1,23 @@
+/*******************************************************************************
+ *     Cloud Foundry 
+ *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *
+ *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *     You may not use this product except in compliance with the License.
+ *
+ *     This product includes a number of subcomponents with
+ *     separate copyright notices and license terms. Your use of these
+ *     subcomponents is subject to the terms and conditions of the
+ *     subcomponent's license, as noted in the LICENSE file.
+ *******************************************************************************/
 package org.cloudfoundry.identity.uaa.codestore;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.concurrent.atomic.AtomicLong;
+
+import javax.sql.DataSource;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -8,33 +27,24 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
-import javax.sql.DataSource;
-
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.util.concurrent.atomic.AtomicLong;
-
 public class JdbcExpiringCodeStore implements ExpiringCodeStore {
-    
+
     public static final String tableName = "expiring_code_store";
     public static final String fields = "code, expiresat, data";
-    
+
     public static final String insert = "insert into " + tableName + " (" + fields + ") values (?,?,?)";
     public static final String delete = "delete from " + tableName + " where code = ?";
     public static final String deleteExpired = "delete from " + tableName + " where expiresat < ?";
-    public static final String select = "select " + fields + " from " + tableName +" where code = ?";
+    public static final String select = "select " + fields + " from " + tableName + " where code = ?";
 
-    
     private Log logger = LogFactory.getLog(getClass());
-    
+
     private RandomValueStringGenerator generator = new RandomValueStringGenerator(6);
 
     private JdbcTemplate jdbcTemplate;
-    
-    
+
     private AtomicLong lastExpired = new AtomicLong();
-    private long expirationInterval = 60 * 1000; //once a minue
+    private long expirationInterval = 60 * 1000; // once a minue
 
     public long getExpirationInterval() {
         return expirationInterval;
@@ -45,13 +55,13 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
     }
 
     protected JdbcExpiringCodeStore() {
-        //package protected for unit tests only
+        // package protected for unit tests only
     }
-    
+
     public JdbcExpiringCodeStore(DataSource dataSource) {
         setDataSource(dataSource);
     }
-    
+
     public void setDataSource(DataSource dataSource) {
         jdbcTemplate = new JdbcTemplate(dataSource);
     }
@@ -67,19 +77,19 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
         }
 
         int count = 0;
-        while (count<3) {
+        while (count < 3) {
             count++;
             String code = generator.generate();
             try {
                 int update = jdbcTemplate.update(insert, code, expiresAt.getTime(), data);
-                if (update==1) {
+                if (update == 1) {
                     ExpiringCode expiringCode = new ExpiringCode(code, expiresAt, data);
                     return expiringCode;
                 } else {
-                    logger.warn("Unable to store expiring code:"+code);
+                    logger.warn("Unable to store expiring code:" + code);
                 }
             } catch (DataIntegrityViolationException x) {
-                if (count==3) {
+                if (count == 3) {
                     throw x;
                 }
             }
@@ -91,18 +101,18 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
     @Override
     public ExpiringCode retrieveCode(String code) {
         cleanExpiredEntries();
-        
+
         if (code == null) {
             throw new NullPointerException();
         }
-        
+
         try {
             ExpiringCode expiringCode = jdbcTemplate.queryForObject(select, new JdbcExpiringCodeMapper(), code);
             try {
-                if (expiringCode!=null) {
+                if (expiringCode != null) {
                     jdbcTemplate.update(delete, code);
                 }
-                if (expiringCode.getExpiresAt().getTime()<System.currentTimeMillis()) {
+                if (expiringCode.getExpiresAt().getTime() < System.currentTimeMillis()) {
                     expiringCode = null;
                 }
             } finally {
@@ -121,27 +131,27 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
     public int cleanExpiredEntries() {
         long now = System.currentTimeMillis();
         long lastCheck = lastExpired.get();
-        
-        if ( (now-lastCheck) > expirationInterval && lastExpired.compareAndSet(lastCheck, now) ) {
+
+        if ((now - lastCheck) > expirationInterval && lastExpired.compareAndSet(lastCheck, now)) {
             int count = jdbcTemplate.update(deleteExpired, now);
-            logger.debug("Expiring code sweeper complete, deleted "+count+" entries.");
+            logger.debug("Expiring code sweeper complete, deleted " + count + " entries.");
             return count;
         }
-        
+
         return 0;
     }
-    
+
     protected static class JdbcExpiringCodeMapper implements RowMapper<ExpiringCode> {
 
         @Override
         public ExpiringCode mapRow(ResultSet rs, int rowNum) throws SQLException {
-            int pos=1;
+            int pos = 1;
             String code = rs.getString(pos++);
             Timestamp expiresAt = new Timestamp(rs.getLong(pos++));
             String data = rs.getString(pos++).toString();
-            return new ExpiringCode(code,expiresAt,data);
+            return new ExpiringCode(code, expiresAt, data);
         }
-        
+
     }
-    
+
 }

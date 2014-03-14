@@ -1,3 +1,15 @@
+/*******************************************************************************
+ *     Cloud Foundry 
+ *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *
+ *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *     You may not use this product except in compliance with the License.
+ *
+ *     This product includes a number of subcomponents with
+ *     separate copyright notices and license terms. Your use of these
+ *     subcomponents is subject to the terms and conditions of the
+ *     subcomponent's license, as noted in the LICENSE file.
+ *******************************************************************************/
 package org.cloudfoundry.identity.uaa.codestore;
 
 import static org.junit.Assert.assertEquals;
@@ -9,17 +21,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Method;
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collection;
 
-import javax.activation.DataSource;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore.JdbcExpiringCodeMapper;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.junit.After;
@@ -40,9 +48,10 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestContextManager;
 import org.springframework.util.ReflectionUtils;
 
-@ContextConfiguration(locations = {"classpath:spring/env.xml", "classpath:spring/data-source.xml"})
+@ContextConfiguration(locations = { "classpath:spring/env.xml", "classpath:spring/data-source.xml" })
 @RunWith(Parameterized.class)
-@IfProfileValue(name = "spring.profiles.active", values = {"", "test,postgresql", "hsqldb", "test,mysql", "test,oracle"})
+@IfProfileValue(name = "spring.profiles.active", values = { "", "test,postgresql", "hsqldb", "test,mysql",
+                "test,oracle" })
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class ExpiringCodeStoreTests {
 
@@ -56,13 +65,12 @@ public class ExpiringCodeStoreTests {
     }
 
     @Parameters
-    public static Collection<Object []> data() {
-        return Arrays.asList(new Object[][]{
-            {InMemoryExpiringCodeStore.class},{JdbcExpiringCodeStore.class},
+    public static Collection<Object[]> data() {
+        return Arrays.asList(new Object[][] {
+                        { InMemoryExpiringCodeStore.class }, { JdbcExpiringCodeStore.class },
         });
     }
 
-    
     @Autowired
     JdbcTemplate jdbcTemplate;
 
@@ -72,14 +80,14 @@ public class ExpiringCodeStoreTests {
 
         TestContextManager testContextManager = new TestContextManager(getClass());
         testContextManager.prepareTestInstance(this);
-        
+
         if (expiringCodeStore instanceof InMemoryExpiringCodeStore) {
 
         } else {
-            //confirm that everything is clean prior to test.
+            // confirm that everything is clean prior to test.
             TestUtils.deleteFrom(jdbcTemplate.getDataSource(), JdbcExpiringCodeStore.tableName);
             if (expiringCodeStore instanceof JdbcExpiringCodeStore) {
-                ((JdbcExpiringCodeStore)expiringCodeStore).setDataSource(jdbcTemplate.getDataSource());
+                ((JdbcExpiringCodeStore) expiringCodeStore).setDataSource(jdbcTemplate.getDataSource());
             }
         }
     }
@@ -165,55 +173,58 @@ public class ExpiringCodeStoreTests {
     public void testRetrieveCodeWithNullCode() throws Exception {
         expiringCodeStore.retrieveCode(null);
     }
-    
+
     @Test
     public void testStoreLargeData() throws Exception {
-        char[] oneMb = new char[1024*1024];
+        char[] oneMb = new char[1024 * 1024];
         Arrays.fill(oneMb, 'a');
         String aaaString = new String(oneMb);
-        ExpiringCode expiringCode = expiringCodeStore.generateCode(aaaString, new Timestamp(System.currentTimeMillis()+60000));
+        ExpiringCode expiringCode = expiringCodeStore.generateCode(aaaString, new Timestamp(
+                        System.currentTimeMillis() + 60000));
         String code = expiringCode.getCode();
         ExpiringCode actualCode = expiringCodeStore.retrieveCode(code);
         assertEquals(expiringCode, actualCode);
     }
-    
+
     @Test
     public void testExpiredCodeReturnsNull() throws Exception {
         String data = "{}";
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 1000);
         ExpiringCode generatedCode = expiringCodeStore.generateCode(data, expiresAt);
-        Thread.currentThread().sleep(1001);
+        Thread.currentThread();
+        Thread.sleep(1001);
         ExpiringCode retrievedCode = expiringCodeStore.retrieveCode(generatedCode.getCode());
         assertNull(retrievedCode);
     }
-    
+
     @Test
     public void testDatabaseDown() throws Exception {
         if (JdbcExpiringCodeStore.class == expiringCodeStoreClass) {
             javax.sql.DataSource ds = mock(javax.sql.DataSource.class);
             when(ds.getConnection()).thenThrow(new SQLException());
-            ((JdbcExpiringCodeStore)expiringCodeStore).setDataSource(ds);
+            ((JdbcExpiringCodeStore) expiringCodeStore).setDataSource(ds);
             try {
                 String data = "{}";
                 Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 10000000);
                 ExpiringCode generatedCode = expiringCodeStore.generateCode(data, expiresAt);
                 fail("Database is down, should not generate a code");
             } catch (DataAccessException x) {
-                
+
             }
         }
-        
+
     }
-    
-    @Test(expected=EmptyResultDataAccessException.class)
+
+    @Test(expected = EmptyResultDataAccessException.class)
     public void testExpirationCleaner() throws Exception {
         if (JdbcExpiringCodeStore.class == expiringCodeStoreClass) {
-            jdbcTemplate.update(JdbcExpiringCodeStore.insert,"test", System.currentTimeMillis()-1000, "{}");
-            ((JdbcExpiringCodeStore)expiringCodeStore).cleanExpiredEntries();
-            jdbcTemplate.queryForObject(JdbcExpiringCodeStore.select, new JdbcExpiringCodeStore.JdbcExpiringCodeMapper(), "test");
+            jdbcTemplate.update(JdbcExpiringCodeStore.insert, "test", System.currentTimeMillis() - 1000, "{}");
+            ((JdbcExpiringCodeStore) expiringCodeStore).cleanExpiredEntries();
+            jdbcTemplate.queryForObject(JdbcExpiringCodeStore.select,
+                            new JdbcExpiringCodeStore.JdbcExpiringCodeMapper(), "test");
         } else {
             throw new EmptyResultDataAccessException(1);
         }
-        
+
     }
 }

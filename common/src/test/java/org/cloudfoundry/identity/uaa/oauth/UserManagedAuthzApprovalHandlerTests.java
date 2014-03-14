@@ -1,15 +1,15 @@
-/*
- * Cloud Foundry 2012.02.03 Beta
- * Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved.
+/*******************************************************************************
+ *     Cloud Foundry 
+ *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
- * This product is licensed to you under the Apache License, Version 2.0 (the "License").
- * You may not use this product except in compliance with the License.
+ *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *     You may not use this product except in compliance with the License.
  *
- * This product includes a number of subcomponents with
- * separate copyright notices and license terms. Your use of these
- * subcomponents is subject to the terms and conditions of the
- * subcomponent's license, as noted in the LICENSE file.
- */
+ *     This product includes a number of subcomponents with
+ *     separate copyright notices and license terms. Your use of these
+ *     subcomponents is subject to the terms and conditions of the
+ *     subcomponent's license, as noted in the LICENSE file.
+ *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
 import static org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus.APPROVED;
@@ -51,295 +51,314 @@ import org.springframework.test.annotation.ProfileValueSourceConfiguration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@ContextConfiguration(locations = {"classpath:spring/env.xml", "classpath:spring/data-source.xml"})
+@ContextConfiguration(locations = { "classpath:spring/env.xml", "classpath:spring/data-source.xml" })
 @RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "", "test,postgresql", "hsqldb", "test,mysql", "test,oracle" })
+@IfProfileValue(name = "spring.profiles.active", values = { "", "test,postgresql", "hsqldb", "test,mysql",
+                "test,oracle" })
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class UserManagedAuthzApprovalHandlerTests {
 
-	private final UserManagedAuthzApprovalHandler handler = new UserManagedAuthzApprovalHandler();
+    private final UserManagedAuthzApprovalHandler handler = new UserManagedAuthzApprovalHandler();
 
-	@Autowired
-	private DataSource dataSource;
+    @Autowired
+    private DataSource dataSource;
 
-	private JdbcTemplate template;
-	
-	@Autowired
-	private LimitSqlAdapter limitSqlAdapter;
+    private JdbcTemplate template;
 
-	private ApprovalStore approvalStore = null;
+    @Autowired
+    private LimitSqlAdapter limitSqlAdapter;
 
-	@Before
-	public void setup() {
-		template = new JdbcTemplate(dataSource);
-		approvalStore = new JdbcApprovalStore(template, new JdbcPagingListFactory(template, limitSqlAdapter),
-				new SimpleSearchQueryConverter());
-		handler.setApprovalStore(approvalStore);
-		handler.setClientDetailsService(mockClientDetailsService("foo", new String[] { "cloud_controller.read",
-				"cloud_controller.write", "openid" }, Collections.<String, Object> emptyMap()));
-	}
+    private ApprovalStore approvalStore = null;
 
-	private QueryableResourceManager<ClientDetails> mockClientDetailsService(String id, String[] scope, Map<String, Object> addlInfo) {
-		@SuppressWarnings("unchecked")
-		QueryableResourceManager<ClientDetails> service = Mockito.mock(QueryableResourceManager.class);
-		ClientDetails details = Mockito.mock(ClientDetails.class);
-		Mockito.when(service.retrieve(id)).thenReturn(details);
-		Mockito.when(details.getScope()).thenReturn(new HashSet<String>(Arrays.asList(scope)));
-		Mockito.when(details.getAdditionalInformation()).thenReturn(addlInfo);
-		return service;
-	}
+    @Before
+    public void setup() {
+        template = new JdbcTemplate(dataSource);
+        approvalStore = new JdbcApprovalStore(template, new JdbcPagingListFactory(template, limitSqlAdapter),
+                        new SimpleSearchQueryConverter());
+        handler.setApprovalStore(approvalStore);
+        handler.setClientDetailsService(mockClientDetailsService("foo", new String[] { "cloud_controller.read",
+                        "cloud_controller.write", "openid" }, Collections.<String, Object> emptyMap()));
+    }
 
-	@Test
-	public void testNoScopeApproval() {
-		DefaultAuthorizationRequest request = new DefaultAuthorizationRequest(new HashMap<String, String>());
-		request.setApproved(true);
-		// The request is approved but does not request any scopes. The user has also not approved any scopes. Approved.
-		assertTrue(handler.isApproved(request, new TestAuthentication("marissa", true)));
-	}
+    private QueryableResourceManager<ClientDetails> mockClientDetailsService(String id, String[] scope,
+                    Map<String, Object> addlInfo) {
+        @SuppressWarnings("unchecked")
+        QueryableResourceManager<ClientDetails> service = Mockito.mock(QueryableResourceManager.class);
+        ClientDetails details = Mockito.mock(ClientDetails.class);
+        Mockito.when(service.retrieve(id)).thenReturn(details);
+        Mockito.when(details.getScope()).thenReturn(new HashSet<String>(Arrays.asList(scope)));
+        Mockito.when(details.getAdditionalInformation()).thenReturn(addlInfo);
+        return service;
+    }
 
-	@Test
-	public void testNoPreviouslyApprovedScopes() {
-		DefaultAuthorizationRequest request = new DefaultAuthorizationRequest("foo", new HashSet<String>(Arrays.asList(
-				"cloud_controller.read", "cloud_controller.write")));
-		request.setApproved(false);
-		// The request needs user approval for scopes. The user has also not approved any scopes prior to this request.
-		// Not approved.
-		assertFalse(handler.isApproved(request, new TestAuthentication("marissa", true)));
-	}
+    @Test
+    public void testNoScopeApproval() {
+        DefaultAuthorizationRequest request = new DefaultAuthorizationRequest(new HashMap<String, String>());
+        request.setApproved(true);
+        // The request is approved but does not request any scopes. The user has
+        // also not approved any scopes. Approved.
+        assertTrue(handler.isApproved(request, new TestAuthentication("marissa", true)));
+    }
 
-	@Test
-	public void testAuthzApprovedButNoPreviouslyApprovedScopes() {
-		DefaultAuthorizationRequest request = new DefaultAuthorizationRequest("foo", new HashSet<String>(Arrays.asList(
-				"cloud_controller.read", "cloud_controller.write")));
-		request.setApproved(true);
-		// The request needs user approval for scopes. The user has also not approved any scopes prior to this request.
-		// Not approved.
-		assertFalse(handler.isApproved(request, new TestAuthentication("marissa", true)));
-	}
+    @Test
+    public void testNoPreviouslyApprovedScopes() {
+        DefaultAuthorizationRequest request = new DefaultAuthorizationRequest("foo", new HashSet<String>(Arrays.asList(
+                        "cloud_controller.read", "cloud_controller.write")));
+        request.setApproved(false);
+        // The request needs user approval for scopes. The user has also not
+        // approved any scopes prior to this request.
+        // Not approved.
+        assertFalse(handler.isApproved(request, new TestAuthentication("marissa", true)));
+    }
 
-	@Test
-	public void testNoRequestedScopesButSomeApprovedScopes() {
-		DefaultAuthorizationRequest request = new DefaultAuthorizationRequest("foo", new HashSet<String>());
-		request.setApproved(false);
-		TestAuthentication userAuthentication = new TestAuthentication("marissa", true);
+    @Test
+    public void testAuthzApprovedButNoPreviouslyApprovedScopes() {
+        DefaultAuthorizationRequest request = new DefaultAuthorizationRequest("foo", new HashSet<String>(Arrays.asList(
+                        "cloud_controller.read", "cloud_controller.write")));
+        request.setApproved(true);
+        // The request needs user approval for scopes. The user has also not
+        // approved any scopes prior to this request.
+        // Not approved.
+        assertFalse(handler.isApproved(request, new TestAuthentication("marissa", true)));
+    }
 
-		long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
-		Date nextWeek = new Date(theFuture);
+    @Test
+    public void testNoRequestedScopesButSomeApprovedScopes() {
+        DefaultAuthorizationRequest request = new DefaultAuthorizationRequest("foo", new HashSet<String>());
+        request.setApproved(false);
+        TestAuthentication userAuthentication = new TestAuthentication("marissa", true);
 
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.read",
-				nextWeek, APPROVED));
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.write",
-				nextWeek, DENIED));
+        long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
+        Date nextWeek = new Date(theFuture);
 
-		// The request is approved because the user has not requested any scopes
-		assertTrue(handler.isApproved(request, new TestAuthentication("marissa", true)));
-		assertEquals(0, request.getScope().size());
-	}
+        approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.read",
+                        nextWeek, APPROVED));
+        approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.write",
+                        nextWeek, DENIED));
 
-	@Test
-	public void testRequestedScopesDontMatchApprovalsAtAll() {
-		DefaultAuthorizationRequest request = new DefaultAuthorizationRequest("foo", new HashSet<String>(
-				Arrays.asList("openid")));
-		request.setApproved(false);
-		TestAuthentication userAuthentication = new TestAuthentication("marissa", true);
+        // The request is approved because the user has not requested any scopes
+        assertTrue(handler.isApproved(request, new TestAuthentication("marissa", true)));
+        assertEquals(0, request.getScope().size());
+    }
 
-		long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
-		Date nextWeek = new Date(theFuture);
+    @Test
+    public void testRequestedScopesDontMatchApprovalsAtAll() {
+        DefaultAuthorizationRequest request = new DefaultAuthorizationRequest("foo", new HashSet<String>(
+                        Arrays.asList("openid")));
+        request.setApproved(false);
+        TestAuthentication userAuthentication = new TestAuthentication("marissa", true);
 
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.read",
-				nextWeek, APPROVED));
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.write",
-				nextWeek, DENIED));
+        long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
+        Date nextWeek = new Date(theFuture);
 
-		// The request is not approved because the user has not yet approved the scopes requested
-		assertFalse(handler.isApproved(request, new TestAuthentication("marissa", true)));
-	}
+        approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.read",
+                        nextWeek, APPROVED));
+        approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.write",
+                        nextWeek, DENIED));
 
-	@Test
-	public void testOnlySomeRequestedScopeMatchesApproval() {
-		DefaultAuthorizationRequest request = new DefaultAuthorizationRequest("foo", new HashSet<String>(Arrays.asList(
-				"openid", "cloud_controller.read")));
-		request.setApproved(false);
-		TestAuthentication userAuthentication = new TestAuthentication("marissa", true);
+        // The request is not approved because the user has not yet approved the
+        // scopes requested
+        assertFalse(handler.isApproved(request, new TestAuthentication("marissa", true)));
+    }
 
-		long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
-		Date nextWeek = new Date(theFuture);
+    @Test
+    public void testOnlySomeRequestedScopeMatchesApproval() {
+        DefaultAuthorizationRequest request = new DefaultAuthorizationRequest("foo", new HashSet<String>(Arrays.asList(
+                        "openid", "cloud_controller.read")));
+        request.setApproved(false);
+        TestAuthentication userAuthentication = new TestAuthentication("marissa", true);
 
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.read",
-				nextWeek, APPROVED));
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.write",
-				nextWeek, DENIED));
+        long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
+        Date nextWeek = new Date(theFuture);
 
-		// The request is not approved because the user has not yet approved all the scopes requested
-		assertFalse(handler.isApproved(request, new TestAuthentication("marissa", true)));
-	}
+        approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.read",
+                        nextWeek, APPROVED));
+        approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.write",
+                        nextWeek, DENIED));
 
-	@Test
-	public void testOnlySomeRequestedScopeMatchesDeniedApprovalButScopeAutoApproved() {
-		DefaultAuthorizationRequest request = new DefaultAuthorizationRequest("foo", new HashSet<String>(Arrays.asList(
-				"openid", "cloud_controller.read")));
-		request.setApproved(false);
-		TestAuthentication userAuthentication = new TestAuthentication("marissa", true);
+        // The request is not approved because the user has not yet approved all
+        // the scopes requested
+        assertFalse(handler.isApproved(request, new TestAuthentication("marissa", true)));
+    }
 
-		long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
-		Date nextWeek = new Date(theFuture);
+    @Test
+    public void testOnlySomeRequestedScopeMatchesDeniedApprovalButScopeAutoApproved() {
+        DefaultAuthorizationRequest request = new DefaultAuthorizationRequest("foo", new HashSet<String>(Arrays.asList(
+                        "openid", "cloud_controller.read")));
+        request.setApproved(false);
+        TestAuthentication userAuthentication = new TestAuthentication("marissa", true);
 
-		handler.setClientDetailsService(mockClientDetailsService("foo", new String[] { "cloud_controller.read",
-				"cloud_controller.write", "openid" }, Collections.singletonMap("autoapprove", (Object) "true")));
+        long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
+        Date nextWeek = new Date(theFuture);
 
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.read",
-				nextWeek, DENIED));
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "openid", nextWeek, DENIED));
+        handler.setClientDetailsService(mockClientDetailsService("foo", new String[] { "cloud_controller.read",
+                        "cloud_controller.write", "openid" }, Collections.singletonMap("autoapprove", (Object) "true")));
 
-		assertTrue(handler.isApproved(request, new TestAuthentication("marissa", true)));
-		assertEquals(new HashSet<String>(Arrays.asList(new String[]{"cloud_controller.read","openid"})), request.getScope());
-	}
+        approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.read",
+                        nextWeek, DENIED));
+        approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "openid", nextWeek, DENIED));
 
-	@Test
-	public void testRequestedScopesMatchApprovalButAdditionalScopesRequested() {
-		DefaultAuthorizationRequest request = new DefaultAuthorizationRequest("foo", new HashSet<String>(Arrays.asList(
-				"openid", "cloud_controller.read", "cloud_controller.write")));
-		request.setApproved(false);
-		TestAuthentication userAuthentication = new TestAuthentication("marissa", true);
+        assertTrue(handler.isApproved(request, new TestAuthentication("marissa", true)));
+        assertEquals(new HashSet<String>(Arrays.asList(new String[] { "cloud_controller.read", "openid" })),
+                        request.getScope());
+    }
 
-		long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
-		Date nextWeek = new Date(theFuture);
+    @Test
+    public void testRequestedScopesMatchApprovalButAdditionalScopesRequested() {
+        DefaultAuthorizationRequest request = new DefaultAuthorizationRequest("foo", new HashSet<String>(Arrays.asList(
+                        "openid", "cloud_controller.read", "cloud_controller.write")));
+        request.setApproved(false);
+        TestAuthentication userAuthentication = new TestAuthentication("marissa", true);
 
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.read",
-				nextWeek, APPROVED));
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.write",
-				nextWeek, DENIED));
+        long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
+        Date nextWeek = new Date(theFuture);
 
-		// The request is not approved because the user has not yet approved all the scopes requested
-		assertFalse(handler.isApproved(request, new TestAuthentication("marissa", true)));
-	}
+        approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.read",
+                        nextWeek, APPROVED));
+        approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.write",
+                        nextWeek, DENIED));
 
-	@Test
-	public void testAllRequestedScopesMatchApproval() {
-		DefaultAuthorizationRequest request = new DefaultAuthorizationRequest("foo", new HashSet<String>(Arrays.asList(
-				"openid", "cloud_controller.read", "cloud_controller.write")));
-		request.setApproved(false);
-		TestAuthentication userAuthentication = new TestAuthentication("marissa", true);
+        // The request is not approved because the user has not yet approved all
+        // the scopes requested
+        assertFalse(handler.isApproved(request, new TestAuthentication("marissa", true)));
+    }
 
-		long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
-		Date nextWeek = new Date(theFuture);
+    @Test
+    public void testAllRequestedScopesMatchApproval() {
+        DefaultAuthorizationRequest request = new DefaultAuthorizationRequest("foo", new HashSet<String>(Arrays.asList(
+                        "openid", "cloud_controller.read", "cloud_controller.write")));
+        request.setApproved(false);
+        TestAuthentication userAuthentication = new TestAuthentication("marissa", true);
 
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "openid", nextWeek, APPROVED));
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.read",
-				nextWeek, APPROVED));
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.write",
-				nextWeek, APPROVED));
+        long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
+        Date nextWeek = new Date(theFuture);
 
-		// The request is approved because the user has approved all the scopes requested
-		assertTrue(handler.isApproved(request, new TestAuthentication("marissa", true)));
-		assertEquals(new HashSet<String>(Arrays.asList(new String[]{"openid","cloud_controller.read","cloud_controller.write"})), request.getScope());
-	}
+        approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "openid", nextWeek, APPROVED));
+        approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.read",
+                        nextWeek, APPROVED));
+        approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.write",
+                        nextWeek, APPROVED));
 
-	@Test
-	public void testRequestedScopesMatchApprovalButSomeDenied() {
-		DefaultAuthorizationRequest request = new DefaultAuthorizationRequest("foo", new HashSet<String>(Arrays.asList(
-				"openid", "cloud_controller.read", "cloud_controller.write")));
-		request.setApproved(false);
-		TestAuthentication userAuthentication = new TestAuthentication("marissa", true);
+        // The request is approved because the user has approved all the scopes
+        // requested
+        assertTrue(handler.isApproved(request, new TestAuthentication("marissa", true)));
+        assertEquals(new HashSet<String>(Arrays.asList(new String[] { "openid", "cloud_controller.read",
+                        "cloud_controller.write" })), request.getScope());
+    }
 
-		long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
-		Date nextWeek = new Date(theFuture);
+    @Test
+    public void testRequestedScopesMatchApprovalButSomeDenied() {
+        DefaultAuthorizationRequest request = new DefaultAuthorizationRequest("foo", new HashSet<String>(Arrays.asList(
+                        "openid", "cloud_controller.read", "cloud_controller.write")));
+        request.setApproved(false);
+        TestAuthentication userAuthentication = new TestAuthentication("marissa", true);
 
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "openid", nextWeek, APPROVED));
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.read",
-				nextWeek, APPROVED));
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.write",
-				nextWeek, DENIED));
+        long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
+        Date nextWeek = new Date(theFuture);
 
-		// The request is approved because the user has acted on all requested scopes
-		assertTrue(handler.isApproved(request, new TestAuthentication("marissa", true)));
-		assertEquals(new HashSet<String>(Arrays.asList(new String[]{"openid","cloud_controller.read"})), request.getScope());
-	}
+        approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "openid", nextWeek, APPROVED));
+        approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.read",
+                        nextWeek, APPROVED));
+        approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.write",
+                        nextWeek, DENIED));
 
-	@Test
-	public void testRequestedScopesMatchApprovalSomeDeniedButDeniedScopesAutoApproved() {
-		DefaultAuthorizationRequest request = new DefaultAuthorizationRequest("foo", new HashSet<String>(Arrays.asList(
-				"openid", "cloud_controller.read", "cloud_controller.write")));
-		request.setApproved(false);
-		TestAuthentication userAuthentication = new TestAuthentication("marissa", true);
+        // The request is approved because the user has acted on all requested
+        // scopes
+        assertTrue(handler.isApproved(request, new TestAuthentication("marissa", true)));
+        assertEquals(new HashSet<String>(Arrays.asList(new String[] { "openid", "cloud_controller.read" })),
+                        request.getScope());
+    }
 
-		long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
-		Date nextWeek = new Date(theFuture);
+    @Test
+    public void testRequestedScopesMatchApprovalSomeDeniedButDeniedScopesAutoApproved() {
+        DefaultAuthorizationRequest request = new DefaultAuthorizationRequest("foo", new HashSet<String>(Arrays.asList(
+                        "openid", "cloud_controller.read", "cloud_controller.write")));
+        request.setApproved(false);
+        TestAuthentication userAuthentication = new TestAuthentication("marissa", true);
 
-		handler.setClientDetailsService(mockClientDetailsService("foo", new String[] { "cloud_controller.read",
-				"cloud_controller.write", "openid" },
-				Collections.singletonMap("autoapprove", (Object) Collections.singletonList("cloud_controller.write"))));
+        long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
+        Date nextWeek = new Date(theFuture);
 
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "openid", nextWeek, APPROVED));
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.read",
-				nextWeek, APPROVED));
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.write",
-				nextWeek, DENIED));
+        handler.setClientDetailsService(mockClientDetailsService(
+                        "foo",
+                        new String[] { "cloud_controller.read",
+                                        "cloud_controller.write", "openid" },
+                        Collections.singletonMap("autoapprove",
+                                        (Object) Collections.singletonList("cloud_controller.write"))));
 
-		// The request is not approved because the user has denied some of the scopes requested
-		assertTrue(handler.isApproved(request, new TestAuthentication("marissa", true)));
-		assertEquals(new HashSet<String>(Arrays.asList(new String[]{"openid","cloud_controller.read","cloud_controller.write"})), request.getScope());
-	}
+        approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "openid", nextWeek, APPROVED));
+        approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.read",
+                        nextWeek, APPROVED));
+        approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.write",
+                        nextWeek, DENIED));
 
-	@Test
-	public void testSomeRequestedScopesMatchApproval() {
-		DefaultAuthorizationRequest request = new DefaultAuthorizationRequest("foo", new HashSet<String>(
-				Arrays.asList("openid")));
-		request.setApproved(false);
-		TestAuthentication userAuthentication = new TestAuthentication("marissa", true);
+        // The request is not approved because the user has denied some of the
+        // scopes requested
+        assertTrue(handler.isApproved(request, new TestAuthentication("marissa", true)));
+        assertEquals(new HashSet<String>(Arrays.asList(new String[] { "openid", "cloud_controller.read",
+                        "cloud_controller.write" })), request.getScope());
+    }
 
-		long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
-		Date nextWeek = new Date(theFuture);
+    @Test
+    public void testSomeRequestedScopesMatchApproval() {
+        DefaultAuthorizationRequest request = new DefaultAuthorizationRequest("foo", new HashSet<String>(
+                        Arrays.asList("openid")));
+        request.setApproved(false);
+        TestAuthentication userAuthentication = new TestAuthentication("marissa", true);
 
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "openid", nextWeek, APPROVED));
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.read",
-				nextWeek, APPROVED));
-		approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.write",
-				nextWeek, APPROVED));
+        long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
+        Date nextWeek = new Date(theFuture);
 
-		// The request is approved because the user has approved all the scopes requested
-		assertTrue(handler.isApproved(request, new TestAuthentication("marissa", true)));
-		assertEquals(new HashSet<String>(Arrays.asList(new String[]{"openid"})), request.getScope());
-	}
+        approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "openid", nextWeek, APPROVED));
+        approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.read",
+                        nextWeek, APPROVED));
+        approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "cloud_controller.write",
+                        nextWeek, APPROVED));
 
-	@After
-	public void cleanupDataSource() throws Exception {
-		TestUtils.deleteFrom(dataSource, "authz_approvals");
-		assertEquals(0, template.queryForInt("select count(*) from authz_approvals"));
-	}
+        // The request is approved because the user has approved all the scopes
+        // requested
+        assertTrue(handler.isApproved(request, new TestAuthentication("marissa", true)));
+        assertEquals(new HashSet<String>(Arrays.asList(new String[] { "openid" })), request.getScope());
+    }
 
-	@SuppressWarnings("serial")
-	protected static class TestAuthentication extends AbstractAuthenticationToken {
-		private final String principal;
+    @After
+    public void cleanupDataSource() throws Exception {
+        TestUtils.deleteFrom(dataSource, "authz_approvals");
+        assertEquals(0, template.queryForInt("select count(*) from authz_approvals"));
+    }
 
-		private String name;
+    @SuppressWarnings("serial")
+    protected static class TestAuthentication extends AbstractAuthenticationToken {
+        private final String principal;
 
-		public TestAuthentication(String name, boolean authenticated) {
-			super(null);
-			setAuthenticated(authenticated);
-			this.principal = name;
-			this.name = name;
-		}
+        private String name;
 
-		@Override
-		public Object getCredentials() {
-			return null;
-		}
+        public TestAuthentication(String name, boolean authenticated) {
+            super(null);
+            setAuthenticated(authenticated);
+            this.principal = name;
+            this.name = name;
+        }
 
-		@Override
-		public String getPrincipal() {
-			return this.principal;
-		}
+        @Override
+        public Object getCredentials() {
+            return null;
+        }
 
-		@Override
-		public String getName() {
-			return name;
-		}
+        @Override
+        public String getPrincipal() {
+            return this.principal;
+        }
 
-		public void setName(String name) {
-			this.name = name;
-		}
+        @Override
+        public String getName() {
+            return name;
+        }
 
-	}
+        public void setName(String name) {
+            this.name = name;
+        }
+
+    }
 
 }

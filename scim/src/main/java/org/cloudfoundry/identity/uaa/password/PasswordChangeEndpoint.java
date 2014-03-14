@@ -1,15 +1,15 @@
-/*
- * Cloud Foundry 2012.02.03 Beta
- * Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved.
+/*******************************************************************************
+ *     Cloud Foundry 
+ *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
- * This product is licensed to you under the Apache License, Version 2.0 (the "License").
- * You may not use this product except in compliance with the License.
+ *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *     You may not use this product except in compliance with the License.
  *
- * This product includes a number of subcomponents with
- * separate copyright notices and license terms. Your use of these
- * subcomponents is subject to the terms and conditions of the
- * subcomponent's license, as noted in the LICENSE file.
- */
+ *     This product includes a number of subcomponents with
+ *     separate copyright notices and license terms. Your use of these
+ *     subcomponents is subject to the terms and conditions of the
+ *     subcomponent's license, as noted in the LICENSE file.
+ *******************************************************************************/
 package org.cloudfoundry.identity.uaa.password;
 
 import org.apache.commons.logging.Log;
@@ -42,90 +42,97 @@ import org.springframework.web.servlet.View;
 @Controller
 public class PasswordChangeEndpoint {
 
-	private final Log logger = LogFactory.getLog(getClass());
+    private final Log logger = LogFactory.getLog(getClass());
 
-	private ScimUserProvisioning dao;
+    private ScimUserProvisioning dao;
 
-	private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
+    private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
 
-	private HttpMessageConverter<?>[] messageConverters = new RestTemplate().getMessageConverters().toArray(
-			new HttpMessageConverter<?>[0]);
-	
-	public void setScimUserProvisioning(ScimUserProvisioning provisioning) {
-		this.dao = provisioning;
-	}
+    private HttpMessageConverter<?>[] messageConverters = new RestTemplate().getMessageConverters().toArray(
+                    new HttpMessageConverter<?>[0]);
 
-	/**
-	 * Set the message body converters to use.
-	 * <p>
-	 * These converters are used to convert from and to HTTP requests and responses.
-	 */
-	public void setMessageConverters(HttpMessageConverter<?>[] messageConverters) {
-		this.messageConverters = messageConverters;
-	}
+    public void setScimUserProvisioning(ScimUserProvisioning provisioning) {
+        this.dao = provisioning;
+    }
 
-	void setSecurityContextAccessor(SecurityContextAccessor securityContextAccessor) {
-		this.securityContextAccessor = securityContextAccessor;
-	}
+    /**
+     * Set the message body converters to use.
+     * <p>
+     * These converters are used to convert from and to HTTP requests and
+     * responses.
+     */
+    public void setMessageConverters(HttpMessageConverter<?>[] messageConverters) {
+        this.messageConverters = messageConverters;
+    }
 
-	@RequestMapping(value = "/Users/{userId}/password", method = RequestMethod.PUT)
-	@ResponseBody
-	public SimpleMessage changePassword(@PathVariable String userId, @RequestBody PasswordChangeRequest change) {
-		checkPasswordChangeIsAllowed(userId, change.getOldPassword());
-		if (!dao.changePassword(userId, change.getOldPassword(), change.getPassword())) {
-			throw new InvalidPasswordException("Password not changed for user: " + userId);
-		}
-		return new SimpleMessage("ok", "password updated");
-	}
+    void setSecurityContextAccessor(SecurityContextAccessor securityContextAccessor) {
+        this.securityContextAccessor = securityContextAccessor;
+    }
 
-	@ExceptionHandler
-	public View handleException(ScimResourceNotFoundException e) {
-		// There's no point throwing BadCredentialsException here because it is caught and
-		// logged (then ignored) by the caller.
-		return new ConvertingExceptionView(new ResponseEntity<ExceptionReport>(new ExceptionReport(
-				new BadCredentialsException("Invalid password change request"), false), HttpStatus.UNAUTHORIZED),
-				messageConverters);
-	}
+    @RequestMapping(value = "/Users/{userId}/password", method = RequestMethod.PUT)
+    @ResponseBody
+    public SimpleMessage changePassword(@PathVariable String userId, @RequestBody PasswordChangeRequest change) {
+        checkPasswordChangeIsAllowed(userId, change.getOldPassword());
+        if (!dao.changePassword(userId, change.getOldPassword(), change.getPassword())) {
+            throw new InvalidPasswordException("Password not changed for user: " + userId);
+        }
+        return new SimpleMessage("ok", "password updated");
+    }
 
-	@ExceptionHandler
-	public View handleException(ScimException e) {
-		// No need to log the underlying exception (it will be logged by the caller)
-		return new ConvertingExceptionView(new ResponseEntity<ExceptionReport>(new ExceptionReport(
-				new BadCredentialsException("Invalid password change request"), false), e.getStatus()),
-				messageConverters);
-	}
+    @ExceptionHandler
+    public View handleException(ScimResourceNotFoundException e) {
+        // There's no point throwing BadCredentialsException here because it is
+        // caught and
+        // logged (then ignored) by the caller.
+        return new ConvertingExceptionView(
+                        new ResponseEntity<ExceptionReport>(new ExceptionReport(
+                                        new BadCredentialsException("Invalid password change request"), false),
+                                        HttpStatus.UNAUTHORIZED),
+                        messageConverters);
+    }
 
-	private void checkPasswordChangeIsAllowed(String userId, String oldPassword) {
-		if (securityContextAccessor.isClient()) {
-			// Trusted client (not acting on behalf of user)
-			return;
-		}
+    @ExceptionHandler
+    public View handleException(ScimException e) {
+        // No need to log the underlying exception (it will be logged by the
+        // caller)
+        return new ConvertingExceptionView(new ResponseEntity<ExceptionReport>(new ExceptionReport(
+                        new BadCredentialsException("Invalid password change request"), false), e.getStatus()),
+                        messageConverters);
+    }
 
-		// Call is by or on behalf of end user
-		String currentUser = securityContextAccessor.getUserId();
+    private void checkPasswordChangeIsAllowed(String userId, String oldPassword) {
+        if (securityContextAccessor.isClient()) {
+            // Trusted client (not acting on behalf of user)
+            return;
+        }
 
-		if (securityContextAccessor.isAdmin()) {
+        // Call is by or on behalf of end user
+        String currentUser = securityContextAccessor.getUserId();
 
-			// even an admin needs to provide the old value to change his password
-			if (userId.equals(currentUser) && !StringUtils.hasText(oldPassword)) {
-				throw new InvalidPasswordException("Previous password is required even for admin");
-			}
+        if (securityContextAccessor.isAdmin()) {
 
-		}
-		else {
+            // even an admin needs to provide the old value to change his
+            // password
+            if (userId.equals(currentUser) && !StringUtils.hasText(oldPassword)) {
+                throw new InvalidPasswordException("Previous password is required even for admin");
+            }
 
-			if (!userId.equals(currentUser)) {
-				logger.warn("User with id " + currentUser + " attempting to change password for user " + userId);
-				// TODO: This should be audited when we have non-authentication events in the log
-				throw new InvalidPasswordException("Not permitted to change another user's password");
-			}
+        }
+        else {
 
-			// User is changing their own password, old password is required
-			if (!StringUtils.hasText(oldPassword)) {
-				throw new InvalidPasswordException("Previous password is required");
-			}
+            if (!userId.equals(currentUser)) {
+                logger.warn("User with id " + currentUser + " attempting to change password for user " + userId);
+                // TODO: This should be audited when we have non-authentication
+                // events in the log
+                throw new InvalidPasswordException("Not permitted to change another user's password");
+            }
 
-		}
+            // User is changing their own password, old password is required
+            if (!StringUtils.hasText(oldPassword)) {
+                throw new InvalidPasswordException("Previous password is required");
+            }
 
-	}
+        }
+
+    }
 }

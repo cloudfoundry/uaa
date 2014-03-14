@@ -1,15 +1,15 @@
-/*
- * Cloud Foundry 2012.02.03 Beta
- * Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved.
+/*******************************************************************************
+ *     Cloud Foundry 
+ *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
- * This product is licensed to you under the Apache License, Version 2.0 (the "License").
- * You may not use this product except in compliance with the License.
+ *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *     You may not use this product except in compliance with the License.
  *
- * This product includes a number of subcomponents with
- * separate copyright notices and license terms. Your use of these
- * subcomponents is subject to the terms and conditions of the
- * subcomponent's license, as noted in the LICENSE file.
- */
+ *     This product includes a number of subcomponents with
+ *     separate copyright notices and license terms. Your use of these
+ *     subcomponents is subject to the terms and conditions of the
+ *     subcomponent's license, as noted in the LICENSE file.
+ *******************************************************************************/
 package org.cloudfoundry.identity.app.integration;
 
 import java.io.IOException;
@@ -50,8 +50,9 @@ import org.springframework.web.util.UriUtils;
 
 /**
  * <p>
- * A rule that prevents integration tests from failing if the server application is not running or not accessible. If
- * the server is not running in the background all the tests here will simply be skipped because of a violated
+ * A rule that prevents integration tests from failing if the server application
+ * is not running or not accessible. If the server is not running in the
+ * background all the tests here will simply be skipped because of a violated
  * assumption (showing as successful). Usage:
  * </p>
  * 
@@ -61,8 +62,9 @@ import org.springframework.web.util.UriUtils;
  * &#064;Test public void testSendAndReceive() throws Exception { // ... test using server etc. }
  * </pre>
  * <p>
- * The rule can be declared as static so that it only has to check once for all tests in the enclosing test case, but
- * there isn't a lot of overhead in making it non-static.
+ * The rule can be declared as static so that it only has to check once for all
+ * tests in the enclosing test case, but there isn't a lot of overhead in making
+ * it non-static.
  * </p>
  * 
  * @see Assume
@@ -73,277 +75,282 @@ import org.springframework.web.util.UriUtils;
  */
 public class ServerRunning extends TestWatchman implements RestTemplateHolder, UrlHelper {
 
-	private static Log logger = LogFactory.getLog(ServerRunning.class);
+    private static Log logger = LogFactory.getLog(ServerRunning.class);
 
-	// Static so that we only test once on failure: speeds up test suite
-	private static Map<String, Boolean> serverOnline = new HashMap<String, Boolean>();
+    // Static so that we only test once on failure: speeds up test suite
+    private static Map<String, Boolean> serverOnline = new HashMap<String, Boolean>();
 
-	private static final String DEFAULT_ROOT_PATH = "http://localhost:8080/app";
+    private static final String DEFAULT_ROOT_PATH = "http://localhost:8080/app";
 
-	private static final String DEFAULT_AUTH_SERVER_PATH = "http://localhost:8080/uaa";
+    private static final String DEFAULT_AUTH_SERVER_PATH = "http://localhost:8080/uaa";
 
-	private String authServerRoot = DEFAULT_AUTH_SERVER_PATH;
-	
-	private String rootPath = DEFAULT_ROOT_PATH;
+    private String authServerRoot = DEFAULT_AUTH_SERVER_PATH;
 
-	private RestOperations client;
+    private String rootPath = DEFAULT_ROOT_PATH;
 
-	private ConfigurableEnvironment environment;
+    private RestOperations client;
 
-	private Boolean integrationTest;
+    private ConfigurableEnvironment environment;
 
-	/**
-	 * @return a new rule that assumes an existing running broker
-	 */
-	public static ServerRunning isRunning() {
-		return new ServerRunning();
-	}
+    private Boolean integrationTest;
 
-	private ServerRunning() {
-		this.environment = TestProfileEnvironment.getEnvironment();
-		this.integrationTest = environment.getProperty("uaa.integration.test", Boolean.class, false);
-		setRootPath(environment.getProperty("app.path", DEFAULT_ROOT_PATH));
-		setAuthServerRoot(environment.getProperty("uaa.path", DEFAULT_AUTH_SERVER_PATH));
-		client = createRestTemplate();
-	}
+    /**
+     * @return a new rule that assumes an existing running broker
+     */
+    public static ServerRunning isRunning() {
+        return new ServerRunning();
+    }
 
-	/**
-	 * @param authServerRoot the authServerRoot to set
-	 */
-	public void setAuthServerRoot(String authServerRoot) {
-		this.authServerRoot = authServerRoot;
-	}
-	
-	/**
-	 * @param rootPath the rootPath to set
-	 */
-	public void setRootPath(String rootPath) {
-		this.rootPath = rootPath;
-		if (!serverOnline.containsKey(rootPath)) {
-			serverOnline.put(rootPath, true);
-		}
-	}
+    private ServerRunning() {
+        this.environment = TestProfileEnvironment.getEnvironment();
+        this.integrationTest = environment.getProperty("uaa.integration.test", Boolean.class, false);
+        setRootPath(environment.getProperty("app.path", DEFAULT_ROOT_PATH));
+        setAuthServerRoot(environment.getProperty("uaa.path", DEFAULT_AUTH_SERVER_PATH));
+        client = createRestTemplate();
+    }
 
-	@Override
-	public Statement apply(Statement base, FrameworkMethod method, Object target) {
+    /**
+     * @param authServerRoot the authServerRoot to set
+     */
+    public void setAuthServerRoot(String authServerRoot) {
+        this.authServerRoot = authServerRoot;
+    }
 
-		// Check at the beginning, so this can be used as a static field
-		if (!integrationTest) {
-			Assume.assumeTrue(serverOnline.get(rootPath));
-		}
+    /**
+     * @param rootPath the rootPath to set
+     */
+    public void setRootPath(String rootPath) {
+        this.rootPath = rootPath;
+        if (!serverOnline.containsKey(rootPath)) {
+            serverOnline.put(rootPath, true);
+        }
+    }
 
-		RestTemplate client = new RestTemplate();
-		boolean online = false;
-		try {
-			client.getForEntity(new UriTemplate(getAuthServerUrl("/login")).toString(), String.class);
-			client.getForEntity(new UriTemplate(getUrl("/login_error.jsp")).toString(), String.class);
-			online = true;
-			logger.info("Basic connectivity test passed");
-		}
-		catch (RestClientException e) {
-			logger.warn(String.format(
-					"Not executing tests because basic connectivity test failed for root=" + rootPath), e);
-			if (!integrationTest) {
-				Assume.assumeNoException(e);
-			}
-		}
-		finally {
-			if (!online) {
-				serverOnline.put(rootPath, false);
-			}
-		}
+    @Override
+    public Statement apply(Statement base, FrameworkMethod method, Object target) {
 
-		return super.apply(base, method, target);
+        // Check at the beginning, so this can be used as a static field
+        if (!integrationTest) {
+            Assume.assumeTrue(serverOnline.get(rootPath));
+        }
 
-	}
+        RestTemplate client = new RestTemplate();
+        boolean online = false;
+        try {
+            client.getForEntity(new UriTemplate(getAuthServerUrl("/login")).toString(), String.class);
+            client.getForEntity(new UriTemplate(getUrl("/login_error.jsp")).toString(), String.class);
+            online = true;
+            logger.info("Basic connectivity test passed");
+        } catch (RestClientException e) {
+            logger.warn(String.format(
+                            "Not executing tests because basic connectivity test failed for root=" + rootPath), e);
+            if (!integrationTest) {
+                Assume.assumeNoException(e);
+            }
+        } finally {
+            if (!online) {
+                serverOnline.put(rootPath, false);
+            }
+        }
 
-	public String getBaseUrl() {
-		return rootPath;
-	}
+        return super.apply(base, method, target);
 
-	public String getAccessTokenUri() {
-		return getAuthServerUrl("/oauth/token");
-	}
+    }
 
-	public String getAuthorizationUri() {
-		return getAuthServerUrl("/oauth/authorize");
-	}
+    @Override
+    public String getBaseUrl() {
+        return rootPath;
+    }
 
-	public String getClientsUri() {
-		return getAuthServerUrl("/oauth/clients");
-	}
+    @Override
+    public String getAccessTokenUri() {
+        return getAuthServerUrl("/oauth/token");
+    }
 
-	public String getUsersUri() {
-		return getAuthServerUrl("/Users");
-	}
+    @Override
+    public String getAuthorizationUri() {
+        return getAuthServerUrl("/oauth/authorize");
+    }
 
-	public String getUserUri() {
-		return getAuthServerUrl("/Users");
-	}
+    @Override
+    public String getClientsUri() {
+        return getAuthServerUrl("/oauth/clients");
+    }
 
-	public String getAuthServerUrl(String path) {
-		return getExternalUrl(authServerRoot, path);
-	}
+    @Override
+    public String getUsersUri() {
+        return getAuthServerUrl("/Users");
+    }
 
-	public String getUrl(String path) {
-		return getExternalUrl(rootPath, path);
-	}
+    @Override
+    public String getUserUri() {
+        return getAuthServerUrl("/Users");
+    }
 
-	private String getExternalUrl(String root, String path) {
-		if (path.startsWith("http")) {
-			try {
-				return URLDecoder.decode(path, "UTF-8");
-			}
-			catch (UnsupportedEncodingException e) {
-				throw new IllegalStateException(e);
-			}
-		}
-		if (!path.startsWith("/")) {
-			path = "/" + path;
-		}
-		return root + path;
-	}
+    public String getAuthServerUrl(String path) {
+        return getExternalUrl(authServerRoot, path);
+    }
 
-	public ResponseEntity<String> postForString(String path, MultiValueMap<String, String> formData) {
-		return postForString(path, formData, new HttpHeaders());
-	}
+    @Override
+    public String getUrl(String path) {
+        return getExternalUrl(rootPath, path);
+    }
 
-	public ResponseEntity<String> postForString(String path, MultiValueMap<String, String> formData, HttpHeaders headers) {
-		if (headers.getContentType() == null) {
-			headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-		}
-		return client.exchange(getUrl(path), HttpMethod.POST, new HttpEntity<MultiValueMap<String, String>>(formData,
-				headers), String.class);
-	}
+    private String getExternalUrl(String root, String path) {
+        if (path.startsWith("http")) {
+            try {
+                return URLDecoder.decode(path, "UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+        if (!path.startsWith("/")) {
+            path = "/" + path;
+        }
+        return root + path;
+    }
 
-	@SuppressWarnings("rawtypes")
-	public ResponseEntity<Map> postForMap(String path, MultiValueMap<String, String> formData) {
-		return postForMap(path, formData, new HttpHeaders());
-	}
+    public ResponseEntity<String> postForString(String path, MultiValueMap<String, String> formData) {
+        return postForString(path, formData, new HttpHeaders());
+    }
 
-	@SuppressWarnings("rawtypes")
-	public ResponseEntity<Map> postForMap(String path, MultiValueMap<String, String> formData, HttpHeaders headers) {
-		if (headers.getContentType() == null) {
-			headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-		}
-		return client.exchange(getUrl(path), HttpMethod.POST, new HttpEntity<MultiValueMap<String, String>>(formData,
-				headers), Map.class);
-	}
+    public ResponseEntity<String> postForString(String path, MultiValueMap<String, String> formData, HttpHeaders headers) {
+        if (headers.getContentType() == null) {
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        }
+        return client.exchange(getUrl(path), HttpMethod.POST, new HttpEntity<MultiValueMap<String, String>>(formData,
+                        headers), String.class);
+    }
 
-	public ResponseEntity<String> getForString(String path) {
-		ResponseEntity<String> exchange = client.exchange(getUrl(path), HttpMethod.GET, new HttpEntity<Void>(
-				(Void) null), String.class);
-		logger.info("Response headers: " + exchange.getHeaders());
-		return exchange;
-	}
+    @SuppressWarnings("rawtypes")
+    public ResponseEntity<Map> postForMap(String path, MultiValueMap<String, String> formData) {
+        return postForMap(path, formData, new HttpHeaders());
+    }
 
-	public ResponseEntity<String> getForString(String path, final HttpHeaders headers) {
-		HttpEntity<Void> request = new HttpEntity<Void>(null, headers);
-		ResponseEntity<String> exchange = client.exchange(getUrl(path), HttpMethod.GET, request, String.class);
-		logger.info("Response headers: " + exchange.getHeaders());
-		return exchange;
-	}
+    @SuppressWarnings("rawtypes")
+    public ResponseEntity<Map> postForMap(String path, MultiValueMap<String, String> formData, HttpHeaders headers) {
+        if (headers.getContentType() == null) {
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        }
+        return client.exchange(getUrl(path), HttpMethod.POST, new HttpEntity<MultiValueMap<String, String>>(formData,
+                        headers), Map.class);
+    }
 
-	public ResponseEntity<Void> getForResponse(String path, final HttpHeaders headers, Object... uriVariables) {
-		HttpEntity<Void> request = new HttpEntity<Void>(null, headers);
-		ResponseEntity<Void> exchange = client.exchange(getUrl(path), HttpMethod.GET, request, Void.class, uriVariables);
-		logger.info("Response headers: " + exchange.getHeaders());
-		return exchange;
-	}
+    public ResponseEntity<String> getForString(String path) {
+        ResponseEntity<String> exchange = client.exchange(getUrl(path), HttpMethod.GET, new HttpEntity<Void>(
+                        (Void) null), String.class);
+        logger.info("Response headers: " + exchange.getHeaders());
+        return exchange;
+    }
 
-	public ResponseEntity<Void> postForResponse(String path, HttpHeaders headers, MultiValueMap<String, String> params) {
-		HttpHeaders actualHeaders = new HttpHeaders();
-		actualHeaders.putAll(headers);
-		actualHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+    public ResponseEntity<String> getForString(String path, final HttpHeaders headers) {
+        HttpEntity<Void> request = new HttpEntity<Void>(null, headers);
+        ResponseEntity<String> exchange = client.exchange(getUrl(path), HttpMethod.GET, request, String.class);
+        logger.info("Response headers: " + exchange.getHeaders());
+        return exchange;
+    }
 
-		ResponseEntity<Void> exchange = client.exchange(getUrl(path), HttpMethod.POST,
-				new HttpEntity<MultiValueMap<String, String>>(params, actualHeaders), Void.class);
-		logger.info("Response headers: " + exchange.getHeaders());
-		return exchange;
-	}
+    public ResponseEntity<Void> getForResponse(String path, final HttpHeaders headers, Object... uriVariables) {
+        HttpEntity<Void> request = new HttpEntity<Void>(null, headers);
+        ResponseEntity<Void> exchange = client
+                        .exchange(getUrl(path), HttpMethod.GET, request, Void.class, uriVariables);
+        logger.info("Response headers: " + exchange.getHeaders());
+        return exchange;
+    }
 
-	@Override
-	public void setRestTemplate(RestOperations restTemplate) {
-		client = restTemplate;
-	}
+    public ResponseEntity<Void> postForResponse(String path, HttpHeaders headers, MultiValueMap<String, String> params) {
+        HttpHeaders actualHeaders = new HttpHeaders();
+        actualHeaders.putAll(headers);
+        actualHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-	@Override
-	public RestOperations getRestTemplate() {
-		return client;
-	}
+        ResponseEntity<Void> exchange = client.exchange(getUrl(path), HttpMethod.POST,
+                        new HttpEntity<MultiValueMap<String, String>>(params, actualHeaders), Void.class);
+        logger.info("Response headers: " + exchange.getHeaders());
+        return exchange;
+    }
 
-	public RestOperations createRestTemplate() {
-		RestTemplate client = new RestTemplate(new SimpleClientHttpRequestFactory() {
-			@Override
-			protected void prepareConnection(HttpURLConnection connection, String httpMethod) throws IOException {
-				super.prepareConnection(connection, httpMethod);
-				connection.setInstanceFollowRedirects(false);
-			}
-		});
-		client.setErrorHandler(new ResponseErrorHandler() {
-			// Pass errors through in response entity for status code analysis
-			public boolean hasError(ClientHttpResponse response) throws IOException {
-				return false;
-			}
+    @Override
+    public void setRestTemplate(RestOperations restTemplate) {
+        client = restTemplate;
+    }
 
-			public void handleError(ClientHttpResponse response) throws IOException {
-			}
-		});
-		return client;
-	}
+    @Override
+    public RestOperations getRestTemplate() {
+        return client;
+    }
 
-	public UriBuilder buildUri(String url) {
-		return UriBuilder.fromUri(url.startsWith("http:") ? url : getUrl(url));
-	}
+    public RestOperations createRestTemplate() {
+        RestTemplate client = new RestTemplate(new SimpleClientHttpRequestFactory() {
+            @Override
+            protected void prepareConnection(HttpURLConnection connection, String httpMethod) throws IOException {
+                super.prepareConnection(connection, httpMethod);
+                connection.setInstanceFollowRedirects(false);
+            }
+        });
+        client.setErrorHandler(new ResponseErrorHandler() {
+            // Pass errors through in response entity for status code analysis
+            @Override
+            public boolean hasError(ClientHttpResponse response) throws IOException {
+                return false;
+            }
 
-	public static class UriBuilder {
+            @Override
+            public void handleError(ClientHttpResponse response) throws IOException {
+            }
+        });
+        return client;
+    }
 
-		private final String url;
+    public UriBuilder buildUri(String url) {
+        return UriBuilder.fromUri(url.startsWith("http:") ? url : getUrl(url));
+    }
 
-		private MultiValueMap<String, String> params = new LinkedMultiValueMap<String, String>();
+    public static class UriBuilder {
 
-		public UriBuilder(String url) {
-			this.url = url;
-		}
+        private final String url;
 
-		public static UriBuilder fromUri(String url) {
-			return new UriBuilder(url);
-		}
+        private MultiValueMap<String, String> params = new LinkedMultiValueMap<String, String>();
 
-		public UriBuilder queryParam(String key, String value) {
-			params.add(key, value);
-			return this;
-		}
+        public UriBuilder(String url) {
+            this.url = url;
+        }
 
-		public URI build() {
-			StringBuilder builder = new StringBuilder(url);
-			try {
-				if (!params.isEmpty()) {
-					builder.append("?");
-					boolean first = true;
-					for (String key : params.keySet()) {
-						if (!first) {
-							builder.append("&");
-						}
-						else {
-							first = false;
-						}
-						for (String value : params.get(key)) {
-							builder.append(key + "=" + UriUtils.encodeQueryParam(value, "UTF-8"));
-						}
-					}
-				}
-				return new URI(builder.toString());
-			}
-			catch (UnsupportedEncodingException ex) {
-				// should not happen, UTF-8 is always supported
-				throw new IllegalStateException(ex);
-			}
-			catch (URISyntaxException ex) {
-				throw new IllegalArgumentException("Could not create URI from [" + builder + "]: " + ex, ex);
-			}
-		}
+        public static UriBuilder fromUri(String url) {
+            return new UriBuilder(url);
+        }
 
-	}
+        public UriBuilder queryParam(String key, String value) {
+            params.add(key, value);
+            return this;
+        }
+
+        public URI build() {
+            StringBuilder builder = new StringBuilder(url);
+            try {
+                if (!params.isEmpty()) {
+                    builder.append("?");
+                    boolean first = true;
+                    for (String key : params.keySet()) {
+                        if (!first) {
+                            builder.append("&");
+                        }
+                        else {
+                            first = false;
+                        }
+                        for (String value : params.get(key)) {
+                            builder.append(key + "=" + UriUtils.encodeQueryParam(value, "UTF-8"));
+                        }
+                    }
+                }
+                return new URI(builder.toString());
+            } catch (UnsupportedEncodingException ex) {
+                // should not happen, UTF-8 is always supported
+                throw new IllegalStateException(ex);
+            } catch (URISyntaxException ex) {
+                throw new IllegalArgumentException("Could not create URI from [" + builder + "]: " + ex, ex);
+            }
+        }
+
+    }
 
 }

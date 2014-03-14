@@ -1,13 +1,15 @@
-/*!
- * jQuery Simple Treeview Plugin
- * Examples and documentation at: http://mkhudon.com/jquery/simpletreeview
- * Copyright (c) 2009 mkhudon
- * Version: 0.1 (20-AUG-2009)
- * Dual licensed under the MIT and GPL licenses:
- * http://www.opensource.org/licenses/mit-license.php
- * http://www.gnu.org/licenses/gpl.html
- * Requires: jQuery v1.2.x or later
- */
+/*******************************************************************************
+ *     Cloud Foundry 
+ *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *
+ *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *     You may not use this product except in compliance with the License.
+ *
+ *     This product includes a number of subcomponents with
+ *     separate copyright notices and license terms. Your use of these
+ *     subcomponents is subject to the terms and conditions of the
+ *     subcomponent's license, as noted in the LICENSE file.
+ *******************************************************************************/
 (function($){
 	
 	// Extend jQuery to reverse and shift object arrays
