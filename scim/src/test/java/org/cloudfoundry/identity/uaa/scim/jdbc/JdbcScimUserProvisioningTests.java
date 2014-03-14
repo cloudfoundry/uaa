@@ -20,6 +20,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -33,6 +34,7 @@ import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
+import org.cloudfoundry.identity.uaa.scim.ScimUser.PhoneNumber;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
@@ -69,6 +71,7 @@ public class JdbcScimUserProvisioningTests {
     @Autowired
     private DataSource dataSource;
 
+    @Autowired
     private JdbcTemplate template;
 
     @Autowired
@@ -92,9 +95,6 @@ public class JdbcScimUserProvisioningTests {
 
     @Before
     public void createDatasource() throws Exception {
-
-        template = new JdbcTemplate(dataSource);
-
         db = new JdbcScimUserProvisioning(template, new JdbcPagingListFactory(template, limitSqlAdapter));
         ScimSearchQueryConverter filterConverter = new ScimSearchQueryConverter();
         Map<String, String> replaceWith = new HashMap<String, String>();
@@ -187,6 +187,16 @@ public class JdbcScimUserProvisioningTests {
         assertEquals(JOE_ID, joe.getId());
         assertNull(joe.getGroups());
     }
+    
+    @Test
+    public void updateWithEmptyPhoneListWorks() {
+        ScimUser jo = new ScimUser(null, "josephine", "Jo", "NewUser");
+        PhoneNumber emptyNumber = new PhoneNumber();
+        jo.addEmail("jo@blah.com");
+        jo.setPhoneNumbers(Arrays.asList(emptyNumber));
+        ScimUser joe = db.update(JOE_ID, jo);
+    }
+
 
     @Test
     public void updateCannotModifyGroups() {

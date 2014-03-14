@@ -24,6 +24,7 @@ import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.map.annotate.JsonDeserialize;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
 
 /**
  * Object to hold SCIM data for Jackson to map to and from JSON
@@ -357,6 +358,17 @@ public final class ScimUser extends ScimCore {
     }
 
     public void setPhoneNumbers(List<PhoneNumber> phoneNumbers) {
+        if (phoneNumbers!=null && phoneNumbers.size()>0) {
+            ArrayList<PhoneNumber> list = new ArrayList<PhoneNumber>();
+            list.addAll(phoneNumbers);
+            for (int i=(list.size()-1); i>=0; i--) {
+                PhoneNumber pn = list.get(i);
+                if (pn==null || (!StringUtils.hasText(pn.getValue()))) {
+                    list.remove(i);
+                }
+            }
+            phoneNumbers = list;
+        }
         this.phoneNumbers = phoneNumbers;
     }
 
