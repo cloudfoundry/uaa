@@ -164,7 +164,7 @@ public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper 
         try {
             client.getForEntity(new UriTemplate(getUrl("/login")).toString(), String.class);
             online = true;
-            logger.info("Basic connectivity test passed");
+            logger.debug("Basic connectivity test passed");
         } catch (RestClientException e) {
             logger.warn(String.format("Basic connectivity test failed for hostName=%s, port=%d: %s", hostName, port, e));
             if (!integrationTest) {

@@ -82,7 +82,6 @@ public class ExpiringCodeStoreMockMvcTests {
                         .content(requestBody);
 
         mockMvc.perform(post)
-                        .andDo(print())
                         .andExpect(status().isCreated())
                         .andExpect(jsonPath("$.code").exists())
                         .andExpect(jsonPath("$.expiresAt").value(ts.getTime()))
@@ -105,7 +104,6 @@ public class ExpiringCodeStoreMockMvcTests {
                         .content(requestBody);
 
         mockMvc.perform(post)
-                        .andDo(print())
                         .andExpect(status().isForbidden());
     }
 
@@ -121,7 +119,6 @@ public class ExpiringCodeStoreMockMvcTests {
                         .content(requestBody);
 
         mockMvc.perform(post)
-                        .andDo(print())
                         .andExpect(status().isUnauthorized());
     }
 
@@ -137,7 +134,6 @@ public class ExpiringCodeStoreMockMvcTests {
                         .content(requestBody);
 
         mockMvc.perform(post)
-                        .andDo(print())
                         .andExpect(status().isBadRequest());
 
     }
@@ -153,7 +149,6 @@ public class ExpiringCodeStoreMockMvcTests {
                         .content(requestBody);
 
         mockMvc.perform(post)
-                        .andDo(print())
                         .andExpect(status().isBadRequest());
 
     }
@@ -170,7 +165,6 @@ public class ExpiringCodeStoreMockMvcTests {
                         .content(requestBody);
 
         mockMvc.perform(post)
-                        .andDo(print())
                         .andExpect(status().isBadRequest());
 
     }
@@ -187,7 +181,6 @@ public class ExpiringCodeStoreMockMvcTests {
                         .content(requestBody);
 
         MvcResult result = mockMvc.perform(post)
-                        .andDo(print())
                         .andExpect(status().isCreated())
                         .andReturn();
 
@@ -198,7 +191,6 @@ public class ExpiringCodeStoreMockMvcTests {
                         .accept(MediaType.APPLICATION_JSON);
 
         result = mockMvc.perform(get)
-                        .andDo(print())
                         .andExpect(status().isOk())
                         .andReturn();
 
@@ -219,7 +211,6 @@ public class ExpiringCodeStoreMockMvcTests {
                         .content(requestBody);
 
         MvcResult result = mockMvc.perform(post)
-                        .andDo(print())
                         .andExpect(status().isCreated())
                         .andReturn();
 
@@ -230,7 +221,6 @@ public class ExpiringCodeStoreMockMvcTests {
                         .accept(MediaType.APPLICATION_JSON);
 
         result = mockMvc.perform(get)
-                        .andDo(print())
                         .andExpect(status().isNotFound())
                         .andReturn();
     }

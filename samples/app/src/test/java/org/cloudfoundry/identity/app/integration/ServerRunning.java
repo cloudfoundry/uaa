@@ -140,7 +140,7 @@ public class ServerRunning extends TestWatchman implements RestTemplateHolder, U
             client.getForEntity(new UriTemplate(getAuthServerUrl("/login")).toString(), String.class);
             client.getForEntity(new UriTemplate(getUrl("/login_error.jsp")).toString(), String.class);
             online = true;
-            logger.info("Basic connectivity test passed");
+            logger.debug("Basic connectivity test passed");
         } catch (RestClientException e) {
             logger.warn(String.format(
                             "Not executing tests because basic connectivity test failed for root=" + rootPath), e);
@@ -239,14 +239,14 @@ public class ServerRunning extends TestWatchman implements RestTemplateHolder, U
     public ResponseEntity<String> getForString(String path) {
         ResponseEntity<String> exchange = client.exchange(getUrl(path), HttpMethod.GET, new HttpEntity<Void>(
                         (Void) null), String.class);
-        logger.info("Response headers: " + exchange.getHeaders());
+        logger.debug("Response headers: " + exchange.getHeaders());
         return exchange;
     }
 
     public ResponseEntity<String> getForString(String path, final HttpHeaders headers) {
         HttpEntity<Void> request = new HttpEntity<Void>(null, headers);
         ResponseEntity<String> exchange = client.exchange(getUrl(path), HttpMethod.GET, request, String.class);
-        logger.info("Response headers: " + exchange.getHeaders());
+        logger.debug("Response headers: " + exchange.getHeaders());
         return exchange;
     }
 
@@ -254,7 +254,7 @@ public class ServerRunning extends TestWatchman implements RestTemplateHolder, U
         HttpEntity<Void> request = new HttpEntity<Void>(null, headers);
         ResponseEntity<Void> exchange = client
                         .exchange(getUrl(path), HttpMethod.GET, request, Void.class, uriVariables);
-        logger.info("Response headers: " + exchange.getHeaders());
+        logger.debug("Response headers: " + exchange.getHeaders());
         return exchange;
     }
 
@@ -265,7 +265,7 @@ public class ServerRunning extends TestWatchman implements RestTemplateHolder, U
 
         ResponseEntity<Void> exchange = client.exchange(getUrl(path), HttpMethod.POST,
                         new HttpEntity<MultiValueMap<String, String>>(params, actualHeaders), Void.class);
-        logger.info("Response headers: " + exchange.getHeaders());
+        logger.debug("Response headers: " + exchange.getHeaders());
         return exchange;
     }
 

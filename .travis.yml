@@ -1,18 +1,30 @@
 language: java
-
-before_script:
-  - if [ "$CLOUD_FOUNDRY_CONFIG_PATH" != "" ]; then psql -c 'create database cloud_controller;' -U postgres; fi
-  - if [ "$CLOUD_FOUNDRY_CONFIG_PATH" != "" ]; then psql -c 'create database uaa;' -U postgres; fi
-  - if [ "$CLOUD_FOUNDRY_CONFIG_PATH" != "" ]; then psql -c 'create role root NOSUPERUSER LOGIN INHERIT CREATEDB;' -U postgres; fi
-  - if [ "$CLOUD_FOUNDRY_CONFIG_PATH" != "" ]; then psql -c "alter role root with password 'changeme';" -U postgres; fi
+services:
+  - mysql
+  - postgresql
 before_install:
+  - mvn -v
   - git pull --unshallow
+before_script:
+  - mysql -e 'create database uaa;'
+  - psql -c 'create database uaa;' -U postgres
+  - psql -c "create user root with superuser password 'changeme';" --dbname=uaa -U postgres
+  - mysql -e "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('changeme');" 
+  - mysql -e "SET PASSWORD FOR 'root'@'127.0.0.1' = PASSWORD('changeme');"  
 install: 
   -  mvn -U clean --quiet -DskipTests=true
   -  mvn -U install --quiet -DskipTests=true
 script: 
   - ./.run-script.sh
-  - mvn test
+  - mvn test --quiet
   - kill -9 `cat mvn.pid`
   - rm -f mvn.pid
-
+  - ./.run-script.sh "-Dspring.profiles.active=default,mysql"
+  - mvn test --quiet
+  - kill -9 `cat mvn.pid`
+  - rm -f mvn.pid
+  - ./.run-script.sh  "-Dspring.profiles.active=default,postgresql"
+  - mvn test --quiet
+  - kill -9 `cat mvn.pid`
+  - rm -f mvn.pid
+  

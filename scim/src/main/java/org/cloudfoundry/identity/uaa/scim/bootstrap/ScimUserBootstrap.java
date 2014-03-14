@@ -107,8 +107,8 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
 
     private void updateUser(ScimUser existingUser, UaaUser updatedUser) {
         String id = existingUser.getId();
-        logger.info("Updating user account: " + updatedUser + " with SCIM Id: " + id);
-        logger.info("Removing existing group memberships ...");
+        logger.debug("Updating user account: " + updatedUser + " with SCIM Id: " + id);
+        logger.debug("Removing existing group memberships ...");
         Set<ScimGroup> existingGroups = membershipManager.getGroupsWithMember(id, true);
 
         for (ScimGroup g : existingGroups) {
@@ -119,13 +119,13 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
         newScimUser.setVersion(existingUser.getVersion());
         scimUserProvisioning.update(id, newScimUser);
         Collection<String> newGroups = convertToGroups(updatedUser.getAuthorities());
-        logger.info("Adding new groups " + newGroups);
+        logger.debug("Adding new groups " + newGroups);
         addGroups(id, newGroups);
         scimUserProvisioning.changePassword(id, null, updatedUser.getPassword());
     }
 
     private void createNewUser(UaaUser user) {
-        logger.info("Registering new user account: " + user);
+        logger.debug("Registering new user account: " + user);
         ScimUser newScimUser = scimUserProvisioning.createUser(convertToScimUser(user), user.getPassword());
         addGroups(newScimUser.getId(), convertToGroups(user.getAuthorities()));
     }

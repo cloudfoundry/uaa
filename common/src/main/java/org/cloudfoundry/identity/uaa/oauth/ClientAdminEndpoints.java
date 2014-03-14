@@ -190,7 +190,12 @@ public class ClientAdminEndpoints implements InitializingBean {
         ClientDetails details = client;
         try {
             ClientDetails existing = getClientDetails(clientId);
-            details = syncWithExisting(existing, client);
+            if (existing==null) {
+                //TODO - should we proceed? Previous code did by throwing a NPE and logging a warning
+                logger.warn("Couldn't fetch client config, null, for client_id: " + clientId);
+            } else {
+                details = syncWithExisting(existing, client);
+            }
         } catch (Exception e) {
             logger.warn("Couldn't fetch client config for client_id: " + clientId, e);
         }
@@ -330,7 +335,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 
         if ((requestedGrantTypes.contains("authorization_code") || requestedGrantTypes.contains("password"))
                         && !requestedGrantTypes.contains("refresh_token")) {
-            logger.info("requested grant type missing refresh_token: " + clientId);
+            logger.debug("requested grant type missing refresh_token: " + clientId);
 
             requestedGrantTypes.add("refresh_token");
         }

@@ -133,7 +133,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
     @Override
     public ScimUser create(final ScimUser user) {
         validate(user);
-        logger.info("Creating new user: " + user.getUserName());
+        logger.debug("Creating new user: " + user.getUserName());
 
         final String id = UUID.randomUUID().toString();
         try {
@@ -197,7 +197,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
     @Override
     public ScimUser update(final String id, final ScimUser user) throws InvalidScimResourceException {
         validate(user);
-        logger.info("Updating user " + user.getUserName());
+        logger.debug("Updating user " + user.getUserName());
 
         int updated = jdbcTemplate.update(UPDATE_USER_SQL, new PreparedStatementSetter() {
             @Override
@@ -275,7 +275,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
     }
 
     private ScimUser deactivateUser(ScimUser user, int version) {
-        logger.info("Deactivating user: " + user.getId());
+        logger.debug("Deactivating user: " + user.getId());
         int updated;
         if (version < 0) {
             // Ignore
@@ -299,7 +299,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
     @Override
     public ScimUser verifyUser(String id, int version) throws ScimResourceNotFoundException,
                     InvalidScimResourceException {
-        logger.info("Verifying user: " + id);
+        logger.debug("Verifying user: " + id);
         int updated;
         if (version < 0) {
             // Ignore
@@ -321,7 +321,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
     }
 
     private ScimUser deleteUser(ScimUser user, int version) {
-        logger.info("Deleting user: " + user.getId());
+        logger.debug("Deleting user: " + user.getId());
         int updated;
 
         if (version < 0) {

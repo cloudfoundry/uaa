@@ -1,7 +1,7 @@
 #!/bin/bash
 
 export MAVEN_OPTS="-Xss8192k"
-mvn -X tomcat7:run -Pintegration --quiet > /tmp/tomcat.log 2>&1 &
+mvn tomcat7:run -Pintegration $1 --quiet > /tmp/tomcat.log 2>&1 &
 echo $! > mvn.pid
 
 SLEEP_TIME=120

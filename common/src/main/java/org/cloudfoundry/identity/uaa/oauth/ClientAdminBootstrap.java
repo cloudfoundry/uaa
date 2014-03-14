@@ -127,7 +127,7 @@ public class ClientAdminBootstrap implements InitializingBean {
             Map<String, Object> info = new HashMap<String, Object>(client.getAdditionalInformation());
             info.put("autoapprove", true);
             base.setAdditionalInformation(info);
-            logger.info("Adding autoapprove flag: " + base);
+            logger.debug("Adding autoapprove flag: " + base);
             clientRegistrationService.updateClientDetails(base);
         }
 
@@ -158,7 +158,7 @@ public class ClientAdminBootstrap implements InitializingBean {
             }
             BaseClientDetails newClient = new BaseClientDetails(client);
             newClient.setRegisteredRedirectUri(uris);
-            logger.info("Adding https callback: " + newClient);
+            logger.debug("Adding https callback: " + newClient);
             clientRegistrationService.updateClientDetails(newClient);
         }
     }
@@ -204,7 +204,7 @@ public class ClientAdminBootstrap implements InitializingBean {
                 clientRegistrationService.addClientDetails(client);
             } catch (ClientAlreadyExistsException e) {
                 if (override == null || override) {
-                    logger.info("Overriding client details for " + clientId);
+                    logger.debug("Overriding client details for " + clientId);
                     clientRegistrationService.updateClientDetails(client);
                     if (StringUtils.hasText(client.getClientSecret())) {
                         clientRegistrationService.updateClientSecret(clientId, client.getClientSecret());

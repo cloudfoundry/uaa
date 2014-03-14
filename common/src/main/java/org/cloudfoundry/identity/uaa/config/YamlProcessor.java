@@ -142,7 +142,6 @@ public class YamlProcessor {
         boolean found = false;
         for (Resource resource : resources) {
             try {
-                logger.info("Loading from YAML: " + resource);
                 int count = 0;
                 for (Object object : yaml.loadAll(resource.getInputStream())) {
                     if (resolutionMethod != ResolutionMethod.FIRST_FOUND || !found) {
@@ -166,9 +165,7 @@ public class YamlProcessor {
             } catch (IOException e) {
                 if (resolutionMethod == ResolutionMethod.FIRST_FOUND
                                 || resolutionMethod == ResolutionMethod.OVERRIDE_AND_IGNORE) {
-                    if (logger.isWarnEnabled()) {
-                        logger.warn("Could not load map from " + resource + ": " + e.getMessage());
-                    }
+                    logger.warn("Could not load map from " + resource + ": " + e.getMessage());
                 }
                 else {
                     throw new IllegalStateException(e);

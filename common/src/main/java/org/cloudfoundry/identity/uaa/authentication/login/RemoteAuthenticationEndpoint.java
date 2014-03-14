@@ -68,7 +68,8 @@ public class RemoteAuthenticationEndpoint {
         } catch (AuthenticationException e) {
             responseBody.put("error", "authentication failed");
         } catch (Exception e) {
-            logger.info("Failed to authenticate user ", e);
+            logger.debug("Failed to authenticate user ", e);
+            responseBody.put("error", "error");
             status = HttpStatus.INTERNAL_SERVER_ERROR;
         }
 

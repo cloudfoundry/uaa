@@ -166,7 +166,7 @@ public class ServerRunning extends TestWatchman implements RestTemplateHolder, U
             client.getForEntity(new UriTemplate(getUrl("/uaa/login", uaaPort)).toString(), String.class);
             client.getForEntity(new UriTemplate(getUrl("/api/index.html")).toString(), String.class);
             online = true;
-            logger.info("Basic connectivity test passed");
+            logger.debug("Basic connectivity test passed");
         } catch (RestClientException e) {
             logger.warn(String.format(
                             "Not executing tests because basic connectivity test failed for hostName=%s, port=%d",
