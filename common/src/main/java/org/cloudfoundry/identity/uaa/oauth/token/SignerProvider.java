@@ -51,7 +51,7 @@ public class SignerProvider implements InitializingBean {
             byte[] test = "test".getBytes();
             try {
                 verifier.verify(test, signer.sign(test));
-                logger.info("Signing and verification RSA keys match");
+                logger.debug("Signing and verification RSA keys match");
             } catch (InvalidSignatureException e) {
                 throw new RuntimeException("Signing and verification RSA keys do not match", e);
             }
@@ -104,7 +104,7 @@ public class SignerProvider implements InitializingBean {
 
         if (isAssymetricKey(key)) {
             signer = new RsaSigner(key);
-            logger.info("Configured with RSA signing key");
+            logger.debug("Configured with RSA signing key");
         }
         else {
             // Assume it's an HMAC key
