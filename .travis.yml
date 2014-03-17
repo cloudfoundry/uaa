@@ -20,11 +20,11 @@ script:
   - kill -9 `cat mvn.pid`
   - rm -f mvn.pid
   - ./.run-script.sh "-Dspring.profiles.active=default,mysql"
-  - mvn test --quiet
+  - mvn test --quiet -Dspring.profiles.active=default,mysql
   - kill -9 `cat mvn.pid`
   - rm -f mvn.pid
-  - ./.run-script.sh  "-Dspring.profiles.active=default,postgresql"
-  - mvn test --quiet
+  - ./.run-script.sh  "-Dspring.profiles.active=default,postgresql" 
+  - mvn test --quiet -Dspring.profiles.active=default,postgresql
   - kill -9 `cat mvn.pid`
   - rm -f mvn.pid
   
