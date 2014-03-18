@@ -15,6 +15,28 @@
 	<description>Simple Cloud Identity Management (SCIM) Java library code for the UAA</description>
 
 	<build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+            <resource>
+                <directory>../common/src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>log4j.properties</include>
+                </includes>
+            </resource>
+        </resources>
+        <testResources>
+            <testResource>
+                <directory>../common/src/test/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>log4j.properties</include>
+                </includes>
+            </testResource>
+        </testResources>
 		<pluginManagement>
 			<plugins>
 				<plugin>
