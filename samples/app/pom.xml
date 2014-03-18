@@ -45,6 +45,10 @@
                     <include>log4j.properties</include>
                 </includes>
             </testResource>
+            <testResource>
+                <directory>src/test/resources</directory>
+                <filtering>true</filtering>
+            </testResource>
         </testResources>
 		<plugins>
 			<plugin>
