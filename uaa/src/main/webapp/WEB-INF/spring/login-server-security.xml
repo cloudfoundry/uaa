@@ -23,7 +23,7 @@
 
     <sec:http pattern="/authenticate/**" security="none" />
 
-    <http request-matcher-ref="loginAuthorizeRequestMatcher" create-session="always" entry-point-ref="oauthAuthenticationEntryPoint"
+    <http request-matcher-ref="loginAuthorizeRequestMatcher" create-session="never" entry-point-ref="oauthAuthenticationEntryPoint"
         authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
         <!--
             we should be way more stringent with security here
