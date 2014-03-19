@@ -229,6 +229,7 @@
         <value>uaa.user</value>
         <value>approvals.me</value>
         <value>oauth.approvals</value>
+        <value>cloud_controller.permissions</value>
     </util:set>
 
     <bean id="userDatabase" class="org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase">
