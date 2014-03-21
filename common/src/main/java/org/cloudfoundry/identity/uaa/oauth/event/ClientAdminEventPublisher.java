@@ -17,6 +17,7 @@ import java.security.Principal;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -55,14 +56,44 @@ public class ClientAdminEventPublisher implements ApplicationEventPublisherAware
         publish(new ClientCreateEvent(client, getPrincipal()));
     }
 
+    public void createTx(ClientDetails[] clients) {
+        for (ClientDetails client : clients) {
+            publish(new ClientCreateEvent(client, getPrincipal()));
+        }
+    }
+
     public void update(ClientDetails client) {
         publish(new ClientUpdateEvent(client, getPrincipal()));
+    }
+
+    public void updateTx(ClientDetails[] clients) {
+        for (ClientDetails client:clients) {
+            publish(new ClientUpdateEvent(client, getPrincipal()));
+        }
     }
 
     public ClientDetails delete(ProceedingJoinPoint jp, String clientId) throws Throwable {
         ClientDetails client = (ClientDetails) jp.proceed();
         publish(new ClientDeleteEvent(client, getPrincipal()));
         return client;
+    }
+
+    public void deleteTx(ClientDetails[] clients) {
+        for (ClientDetails client:clients) {
+            publish(new ClientDeleteEvent(client, getPrincipal()));
+        }
+    }
+
+    public void modifyTx(ClientDetailsModification[] clients) {
+        for (ClientDetailsModification client:clients) {
+            if (ClientDetailsModification.ADD.equals(client.getAction())) {
+                publish(new ClientCreateEvent(client, getPrincipal()));
+            } else if (ClientDetailsModification.UPDATE.equals(client.getAction())) {
+                publish(new ClientUpdateEvent(client, getPrincipal()));
+            } else if (ClientDetailsModification.DELETE.equals(client.getAction())) {
+                publish(new ClientCreateEvent(client, getPrincipal()));
+            }
+        }
     }
 
     public void secretFailure(String clientId, Exception e) {

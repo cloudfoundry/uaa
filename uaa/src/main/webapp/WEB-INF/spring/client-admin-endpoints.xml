@@ -67,11 +67,19 @@
     <aop:config proxy-target-class="true">
         <aop:aspect ref="clientAdminEventPublisher">
             <aop:after-returning method="create"
-                pointcut="execution(* *..ClientAdminEndpoints+.create*(..)) and bean(clientAdminEndpoints)" returning="client" />
+                pointcut="execution(* *..ClientAdminEndpoints+.createClientDetails(..)) and bean(clientAdminEndpoints)" returning="client" />
+            <aop:after-returning method="createTx"
+                pointcut="execution(* *..ClientAdminEndpoints+.createClientDetailsTx(..)) and bean(clientAdminEndpoints)" returning="clients" />
             <aop:after-returning method="update"
-                pointcut="execution(* *..ClientAdminEndpoints+.update*(..)) and bean(clientAdminEndpoints)" returning="client" />
+                pointcut="execution(* *..ClientAdminEndpoints+.updateClientDetails(..)) and bean(clientAdminEndpoints)" returning="client" />
+            <aop:after-returning method="updateTx"
+                pointcut="execution(* *..ClientAdminEndpoints+.updateClientDetails(..)) and bean(clientAdminEndpoints)" returning="clients" />
             <aop:around method="delete"
-                pointcut="execution(* *..ClientAdminEndpoints+.remove*(String, ..)) and args(clientId,..) and bean(clientAdminEndpoints)" />
+                pointcut="execution(* *..ClientAdminEndpoints+.removeClientDetails(String, ..)) and args(clientId,..) and bean(clientAdminEndpoints)" />
+            <aop:after-returning method="deleteTx"
+                pointcut="execution(* *..ClientAdminEndpoints+.removeClientDetailsTx(..)) and bean(clientAdminEndpoints)" returning="clients" />
+            <aop:after-returning method="modifyTx"
+                pointcut="execution(* *..ClientAdminEndpoints+.modifyClientDetailsTx(..)) and bean(clientAdminEndpoints)" returning="clients" />
             <aop:after-returning method="secretChange"
                 pointcut="execution(* *..ClientAdminEndpoints+.changeSecret(String, ..)) and args(clientId,..) and bean(clientAdminEndpoints)" />
             <aop:after-throwing method="secretFailure"
