@@ -1,32 +1,40 @@
 language: java
+env:
+  global:
+    - CATALINA_PID=/tmp/tomcat.pid
+    - CATALINA_OUT=/tmp/tomcat.log
+  matrix:
+    - TESTENV=mysql,default
+    - TESTENV=postgresql,default
+    - TESTENV=
 services:
   - mysql
   - postgresql
 before_install:
-  - mvn -v
   - git pull --unshallow
-before_script:
-  - mysql -e 'create database uaa;'
+  - wget -O tomcat.tar.gz http://archive.apache.org/dist/tomcat/tomcat-7/v7.0.52/bin/apache-tomcat-7.0.52.tar.gz
+  - psql -c 'drop database if exists uaa;' -U postgres
   - psql -c 'create database uaa;' -U postgres
+  - psql -c "drop user if exists root;" --dbname=uaa -U postgres
   - psql -c "create user root with superuser password 'changeme';" --dbname=uaa -U postgres
+  - mysql -e 'drop database if exists uaa;'
+  - mysql -e 'create database uaa;'
   - mysql -e "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('changeme');" 
-  - mysql -e "SET PASSWORD FOR 'root'@'127.0.0.1' = PASSWORD('changeme');"  
+  - mysql -e "SET PASSWORD FOR 'root'@'127.0.0.1' = PASSWORD('changeme');"
 install: 
-  -  mvn -U clean --quiet -DskipTests=true
-  -  mvn -U install --quiet -DskipTests=true
+  - mvn -U clean --quiet -DskipTests=true
+  - mvn -U install --quiet -DskipTests=true
+  - mkdir -p target/tomcat && tar zxf tomcat.tar.gz -C target/tomcat --strip-components 1 && rm -rf target/tomcat/webapps/*
+  - mvn -Dwar.exploded.dir=`pwd`/target/tomcat/webapps/uaa --quiet -pl uaa war:exploded
+  - mvn -Dwar.exploded.dir=`pwd`/target/tomcat/webapps/api --quiet -pl samples/api war:exploded
+  - mvn -Dwar.exploded.dir=`pwd`/target/tomcat/webapps/app --quiet -pl samples/app war:exploded
 script: 
-  - mvn test --quiet -Dspring.profiles.active=default,mysql
-  - mvn test --quiet -Dspring.profiles.active=default,postgresql
-  - ./.run-script.sh
-  - mvn test --quiet
-  - kill -9 `cat mvn.pid`
-  - rm -f mvn.pid
-  - ./.run-script.sh "-Dspring.profiles.active=default,mysql"
-  - mvn test --quiet
-  - kill -9 `cat mvn.pid`
-  - rm -f mvn.pid
-  - ./.run-script.sh  "-Dspring.profiles.active=default,postgresql" 
-  - mvn test --quiet
-  - kill -9 `cat mvn.pid`
-  - rm -f mvn.pid
-  
+  - ./.run-script.sh start
+  - mvn -Dtest=org.cloudfoundry.identity.uaa.integration.* -DfailIfNoTests=false test --quiet
+  - ./.run-script.sh stop
+  - mvn -Dspring.profiles.active=$TESTENV test --quiet
+after_failure:
+  - cat $CATALINA_OUT
+after_script:
+  - rm -rf tomcat
+  - rm -f tomcat.tar.gz
