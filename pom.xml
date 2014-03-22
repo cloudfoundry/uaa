@@ -35,6 +35,7 @@
 		<aspectj.version>1.6.9</aspectj.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <war.exploded.dir>target/temp</war.exploded.dir>
 	</properties>
 	<profiles>
 	  <profile>
