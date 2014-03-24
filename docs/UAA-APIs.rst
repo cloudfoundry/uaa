@@ -1071,6 +1071,41 @@ Example request::
 
 (Also available for grant types that support it: ``refresh_token_validity``.)
 
+Register Multiple Clients: ``POST /oauth/clients/tx``
+-------------------------------------------------------
+
+==============  ===============================================
+Request         ``POST /oauth/clients/tx``
+Request body    an array of client details
+Response code    ``201 CREATED`` if successful
+Response body   an array of client details
+Transactional   either all clients get registered or none
+==============  ===============================================
+
+Example request::
+
+    POST /oauth/clients/tx
+    [{
+      "client_id" : "foo",
+      "client_secret" : "fooclientsecret", // optional for untrusted clients
+      "scope" : ["uaa.none"],
+      "resource_ids" : ["none"],
+      "authorities" : ["cloud_controller.read","cloud_controller.write","openid"],
+      "authorized_grant_types" : ["client_credentials"],
+      "access_token_validity": 43200
+    },
+    {
+      "client_id" : "bar",
+      "client_secret" : "barclientsecret", // optional for untrusted clients
+      "scope" : ["uaa.none"],
+      "resource_ids" : ["none"],
+      "authorities" : ["cloud_controller.read","cloud_controller.write","openid"],
+      "authorized_grant_types" : ["client_credentials"],
+      "access_token_validity": 43200
+    }]
+
+
+
 Update Client: ``PUT /oauth/clients/{client_id}``
 ------------------------------------------------------
 
@@ -1095,6 +1130,85 @@ Example::
 N.B. the secret will not be changed, even if it is included in the
 request body (use the secret change endpoint instead).
 
+Update Multiple Clients: ``PUT /oauth/clients/tx``
+------------------------------------------------------
+
+==============  ===============================================
+Request         ``PUT /oauth/clients/tx``
+Request body    an array of client details
+Response code   ``200 OK`` if successful
+Response body   an array of client details
+Transactional   either all clients get registered or none
+==============  ===============================================
+
+Example::
+
+    PUT /oauth/clients/tx
+    [{
+      "client_id" : "foo",
+      "scope" : ["uaa.none"],
+      "resource_ids" : ["none"],
+      "authorities" : ["cloud_controller.read","cloud_controller.write","openid"],
+      "authorized_grant_types" : ["client_credentials"]
+    },
+    {
+      "client_id" : "foo",
+      "scope" : ["uaa.none"],
+      "resource_ids" : ["none"],
+      "authorities" : ["cloud_controller.read","cloud_controller.write","openid"],
+      "authorized_grant_types" : ["client_credentials"]
+    }]
+
+N.B. the secret will not be changed, even if it is included in the
+request body (use the secret change endpoint instead).
+
+Register, update or delete Multiple Clients: ``POST /oauth/clients/tx/modify``
+-------------------------------------------------------
+
+==============  ===============================================
+Request         ``POST /oauth/clients/tx/modify``
+Request body    an array of client details
+Response code    ``200 OK`` if successful
+Response body   an array of client details
+Transactional   either all clients get registered or none
+==============  ===============================================
+
+Example request::
+
+    POST /oauth/clients/tx
+    [{
+      "client_id" : "foo",
+      "client_secret" : "fooclientsecret", // optional for untrusted clients
+      "scope" : ["uaa.none"],
+      "resource_ids" : ["none"],
+      "authorities" : ["cloud_controller.read","cloud_controller.write","openid"],
+      "authorized_grant_types" : ["client_credentials"],
+      "access_token_validity": 43200,
+      "action" : "add"
+    },
+    {
+      "client_id" : "bar",
+      "client_secret" : "barclientsecret", // optional for untrusted clients
+      "scope" : ["uaa.none"],
+      "resource_ids" : ["none"],
+      "authorities" : ["cloud_controller.read","cloud_controller.write","openid"],
+      "authorized_grant_types" : ["client_credentials"],
+      "access_token_validity": 43200,
+      "action" : "update"
+    },
+    {
+      "client_id" : "zzz",
+      "client_secret" : "zzzclientsecret", // optional for untrusted clients
+      "scope" : ["uaa.none"],
+      "resource_ids" : ["none"],
+      "authorities" : ["cloud_controller.read","cloud_controller.write","openid"],
+      "authorized_grant_types" : ["client_credentials"],
+      "access_token_validity": 43200,
+      "action" : "delete"
+    }]
+
+
+
 Delete Client: ``DELETE /oauth/clients/{client_id}``
 -------------------------------------------------------
 
@@ -1103,6 +1217,17 @@ Request         ``DELETE /oauth/clients/{client_id}``
 Request body    *empty*
 Response code   ``200 OK``
 Response body   the old client
+==============  ===============================================
+
+Delete Multiple Clients: ``POST /oauth/clients/tx/delete``
+-------------------------------------------------------
+
+==============  ===============================================
+Request         ``POST /oauth/clients/tx/delete``
+Request body    an array of clients to be deleted
+Response code   ``200 OK``
+Response body   an array of the deleted clients
+Transactional   either all clients get registered or none
 ==============  ===============================================
 
 

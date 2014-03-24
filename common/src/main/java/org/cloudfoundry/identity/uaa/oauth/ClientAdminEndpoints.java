@@ -28,6 +28,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.message.SimpleMessage;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.rest.AttributeNameMapper;
 import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.rest.SearchResults;
@@ -54,6 +55,7 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -180,6 +182,64 @@ public class ClientAdminEndpoints implements InitializingBean {
         return removeSecret(client);
     }
 
+    @RequestMapping(value = "/oauth/clients/tx", method = RequestMethod.POST)
+    @ResponseStatus(HttpStatus.CREATED)
+    @ResponseBody
+    @Transactional
+    public ClientDetails[] createClientDetailsTx(@RequestBody BaseClientDetails[] clients) throws Exception {
+        if (clients==null || clients.length==0) {
+            throw new NoSuchClientException("Message body does not contain any clients.");
+        }
+        ClientDetails[] results = new ClientDetails[clients.length];
+        for (int i=0; i<clients.length; i++) {
+            results[i] = validateClient(clients[i], true);
+        }
+        return doInsertClientDetails(results);
+    }
+
+    protected ClientDetails[] doInsertClientDetails(ClientDetails[] details) {
+        for (int i=0; i<details.length; i++) {
+            clientRegistrationService.addClientDetails(details[i]);
+            details[i] = removeSecret(details[i]);
+        }
+        return details;
+    }
+    
+    @RequestMapping(value = "/oauth/clients/tx", method = RequestMethod.PUT)
+    @ResponseStatus(HttpStatus.OK)
+    @Transactional
+    @ResponseBody
+    public ClientDetails[] updateClientDetailsTx(@RequestBody BaseClientDetails[] clients) throws Exception {
+        if (clients==null || clients.length==0) {
+            throw new InvalidClientDetailsException("No clients specified for update.");
+        }
+        ClientDetails[] details = new ClientDetails[clients.length];
+        for (int i=0; i<clients.length; i++) {
+            ClientDetails client = clients[i];;
+            ClientDetails existing = getClientDetails(client.getClientId());
+            if (existing==null) {
+                throw new NoSuchClientException("Client "+client.getClientId()+" does not exist");
+            } else {
+                details[i] = syncWithExisting(existing, client);
+            }
+            details[i] = validateClient(details[i], false);
+        }        
+        return doProcessUpdates(details);
+    }
+
+    protected ClientDetails[] doProcessUpdates(ClientDetails[] details) {
+        ClientDetails[] result = new ClientDetails[details.length];
+        for (int i=0; i<result.length; i++) {
+            clientRegistrationService.updateClientDetails(details[i]);
+            clientUpdates.incrementAndGet();
+            result[i] = removeSecret(details[i]);
+        }
+        return result;
+
+    }
+
+    
+    
     @RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.PUT)
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
@@ -215,6 +275,58 @@ public class ClientAdminEndpoints implements InitializingBean {
         return removeSecret(details);
     }
 
+    @RequestMapping(value = "/oauth/clients/tx/delete", method = RequestMethod.POST)
+    @ResponseStatus(HttpStatus.OK)
+    @Transactional
+    @ResponseBody
+    public ClientDetails[] removeClientDetailsTx(@RequestBody BaseClientDetails[] details) throws Exception {
+        ClientDetails[] result = new ClientDetails[details.length];
+        for (int i=0; i<result.length; i++) {
+            result[i] = clientDetailsService.retrieve(details[i].getClientId());
+        }
+        return doProcessDeletes(result);
+    }
+
+    @RequestMapping(value = "/oauth/clients/tx/modify", method = RequestMethod.POST)
+    @ResponseStatus(HttpStatus.OK)
+    @Transactional
+    @ResponseBody
+    public ClientDetailsModification[] modifyClientDetailsTx(@RequestBody ClientDetailsModification[] details) throws Exception {
+        ClientDetailsModification[] result = new ClientDetailsModification[details.length];
+        for (int i=0; i<result.length; i++) {
+            if (ClientDetailsModification.ADD.equals(details[i].getAction())) {
+                ClientDetails client = validateClient(details[i], true);
+                clientRegistrationService.addClientDetails(client);
+                clientUpdates.incrementAndGet();
+                result[i] = new ClientDetailsModification(clientDetailsService.retrieve(details[i].getClientId()));
+            } else if (ClientDetailsModification.UPDATE.equals(details[i].getAction())) {
+                result[i] = new ClientDetailsModification(clientDetailsService.retrieve(details[i].getClientId()));
+                ClientDetails client = validateClient(details[i], false);
+                clientRegistrationService.updateClientDetails(client);
+                clientUpdates.incrementAndGet();
+            } else if (ClientDetailsModification.DELETE.equals(details[i].getAction())) {
+                result[i] = new ClientDetailsModification(clientDetailsService.retrieve(details[i].getClientId()));
+                clientRegistrationService.removeClientDetails(details[i].getClientId());
+                clientDeletes.incrementAndGet();
+            } else {
+                throw new InvalidClientDetailsException("Invalid action.");
+            }
+            result[i].setAction(details[i].getAction());
+            result[i].setClientSecret(null);
+        }
+        return result;
+    }
+
+    protected ClientDetails[] doProcessDeletes(ClientDetails[] details) {
+        for (int i=0; i<details.length; i++) {
+            clientRegistrationService.removeClientDetails(details[i].getClientId());
+            clientDeletes.incrementAndGet();
+            details[i] = removeSecret(details[i]);
+        }
+        return details;
+    }
+
+    
     @RequestMapping(value = "/oauth/clients", method = RequestMethod.GET)
     @ResponseBody
     public SearchResults<?> listClientDetails(
