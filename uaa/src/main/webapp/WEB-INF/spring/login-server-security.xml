@@ -95,8 +95,6 @@
         <constructor-arg ref="authzAuthenticationMgr" />
     </bean>
 
-
-
     <bean id="codeStore" class="org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore">
         <constructor-arg ref="dataSource" />
     </bean>
@@ -108,6 +106,11 @@
         </property>
     </bean>
 
+    <bean id="passwordResetEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpoints">
+        <constructor-arg ref="scimUserProvisioning"/>
+        <constructor-arg ref="codeStore"/>
+    </bean>
+
     <http create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="emptyAuthenticationManager"
         access-decision-manager-ref="accessDecisionManager" pattern="/Codes/**" xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="scope=oauth.login" />
@@ -116,4 +119,11 @@
         <access-denied-handler ref="oauthAccessDeniedHandler" />
     </http>
 
+    <http create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="emptyAuthenticationManager"
+        access-decision-manager-ref="accessDecisionManager" pattern="/password_resets" xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/**" access="scope=oauth.login" />
+        <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
+        <anonymous enabled="false" />
+        <access-denied-handler ref="oauthAccessDeniedHandler" />
+    </http>
 </beans>
