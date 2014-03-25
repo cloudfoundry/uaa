@@ -164,7 +164,7 @@ public class ScimUserEndpointsTests {
 
     @After
     public void cleanUp() throws Exception {
-        TestUtils.deleteFrom(database, "group_membership", "users", "groups");
+        TestUtils.deleteFrom(database, "group_membership", "users", "groups", "authz_approvals");
     }
 
     private void validateUserGroups(ScimUser user, String... gnm) {
