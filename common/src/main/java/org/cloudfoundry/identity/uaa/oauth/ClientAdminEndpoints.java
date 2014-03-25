@@ -28,6 +28,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.message.SimpleMessage;
+import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.rest.AttributeNameMapper;
 import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
@@ -105,6 +106,16 @@ public class ClientAdminEndpoints implements InitializingBean {
     private AtomicInteger clientSecretChanges = new AtomicInteger();
 
     private Set<String> reservedClientIds = StringUtils.commaDelimitedListToSet("uaa");
+
+    private ApprovalStore approvalStore;
+
+    public ApprovalStore getApprovalStore() {
+        return approvalStore;
+    }
+
+    public void setApprovalStore(ApprovalStore approvalStore) {
+        this.approvalStore = approvalStore;
+    }
 
     public void setAttributeNameMapper(AttributeNameMapper attributeNameMapper) {
         this.attributeNameMapper = attributeNameMapper;
@@ -270,8 +281,7 @@ public class ClientAdminEndpoints implements InitializingBean {
     @ResponseBody
     public ClientDetails removeClientDetails(@PathVariable String client) throws Exception {
         ClientDetails details = clientDetailsService.retrieve(client);
-        clientRegistrationService.removeClientDetails(client);
-        clientDeletes.incrementAndGet();
+        doProcessDeletes(new ClientDetails[] {details});
         return removeSecret(details);
     }
 
@@ -319,7 +329,13 @@ public class ClientAdminEndpoints implements InitializingBean {
 
     protected ClientDetails[] doProcessDeletes(ClientDetails[] details) {
         for (int i=0; i<details.length; i++) {
-            clientRegistrationService.removeClientDetails(details[i].getClientId());
+            String clientId = details[i].getClientId();
+            clientRegistrationService.removeClientDetails(clientId);
+            if (approvalStore!=null) {
+                approvalStore.revokeApprovals(String.format("clientId eq '%s'", clientId));
+            } else {
+                logger.warn("Approval store is null, unable to delete approvals for client:"+clientId);
+            }
             clientDeletes.incrementAndGet();
             details[i] = removeSecret(details[i]);
         }
