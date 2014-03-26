@@ -270,7 +270,7 @@ public class ClientAdminEndpointsMockMvcTests {
     public void testAddUpdateDeleteClientsTxDeleteFailedRollback() throws Exception {
         ClientDetailsModification[] details = new ClientDetailsModification[15];
         for (int i=0; i<5; i++) {
-            details[i] = (ClientDetailsModification)createClient(adminToken,null,null);
+            details[i] = (ClientDetailsModification)createClient(adminToken,null,"password");
             details[i].setRefreshTokenValiditySeconds(120);
             details[i].setAction(ClientDetailsModification.UPDATE);
         }
@@ -282,6 +282,17 @@ public class ClientAdminEndpointsMockMvcTests {
             details[i] = createBaseClient(null,null);
             details[i].setAction(ClientDetailsModification.ADD);
         }
+        
+        String userToken = testClient.getUserOAuthAccessToken(
+                        details[0].getClientId(), 
+                        "secret", 
+                        testAccounts.getUserName(), 
+                        testAccounts.getPassword(), 
+                        "oauth.approvals");
+        Approval[] approvals = addApprovals(userToken, details[0].getClientId());
+        approvals = getApprovals(userToken, details[0].getClientId());
+        assertEquals(3, approvals.length);
+        
 
         String deleteId = details[5].getClientId();
         details[5].setClientId("unknown.client.id");
@@ -309,6 +320,8 @@ public class ClientAdminEndpointsMockMvcTests {
             ClientDetails c = getClient(details[i].getClientId());
             assertNull(c);
         }
+        approvals = getApprovals(userToken, details[0].getClientId());
+        assertEquals(3, approvals.length);
     }
     
     @Test
