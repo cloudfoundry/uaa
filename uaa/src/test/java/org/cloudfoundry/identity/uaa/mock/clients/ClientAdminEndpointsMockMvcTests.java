@@ -1,45 +1,54 @@
 package org.cloudfoundry.identity.uaa.mock.clients;
 
-import com.googlecode.flyway.core.Flyway;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
 
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.oauth.InvalidClientDetailsException;
+import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
+import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.test.TestClient;
+import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockServletContext;
+import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
-import java.util.Arrays;
-import java.util.Collections;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.googlecode.flyway.core.Flyway;
 
 
 public class ClientAdminEndpointsMockMvcTests {
     private XmlWebApplicationContext webApplicationContext;
     private MockMvc mockMvc;
     private String adminToken = null;
+    private TestClient testClient = null;
+    private TestAccounts testAccounts = null;
 
     @Before
     public void setUp() throws Exception {
@@ -53,9 +62,14 @@ public class ClientAdminEndpointsMockMvcTests {
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).addFilter(springSecurityFilterChain)
                 .build();
 
-        TestClient testClient = new TestClient(mockMvc);
-        adminToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials",
-                "clients.read clients.write clients.secret");
+        testClient = new TestClient(mockMvc);
+        testAccounts = UaaTestAccounts.standard(null);
+        adminToken = testClient.getOAuthAccessToken(
+                        testAccounts.getAdminClientId(), 
+                        testAccounts.getAdminClientSecret(), 
+                        "client_credentials",
+                        "clients.read clients.write clients.secret");
+        
     }
 
     @After
@@ -80,7 +94,7 @@ public class ClientAdminEndpointsMockMvcTests {
                 .content(toString(details));
         ResultActions result = mockMvc.perform(createClientPost);
         result.andExpect(status().isCreated());
-        ClientDetails[] clients = arrayFromString(result.andReturn().getResponse().getContentAsString());
+        ClientDetails[] clients = clientArrayFromString(result.andReturn().getResponse().getContentAsString());
         for (ClientDetails client : clients) {
             ClientDetails c = getClient(client.getClientId());
             assertNotNull(c);
@@ -133,7 +147,7 @@ public class ClientAdminEndpointsMockMvcTests {
                 .content(toString(details));
         ResultActions result = mockMvc.perform(updateClientPut);
         result.andExpect(status().isOk());
-        ClientDetails[] clients = arrayFromString(result.andReturn().getResponse().getContentAsString());
+        ClientDetails[] clients = clientArrayFromString(result.andReturn().getResponse().getContentAsString());
         for (ClientDetails client : clients) {
             assertNotNull(getClient(client.getClientId()));
             assertEquals(new Integer(120), client.getRefreshTokenValiditySeconds());
@@ -296,6 +310,88 @@ public class ClientAdminEndpointsMockMvcTests {
             assertNull(c);
         }
     }
+    
+    @Test
+    public void testApprovalsAreDeleted() throws Exception {
+        ClientDetails details = createClient(adminToken, new RandomValueStringGenerator().generate(), "password");
+        String userToken = testClient.getUserOAuthAccessToken(
+                            details.getClientId(), 
+                            "secret", 
+                            testAccounts.getUserName(), 
+                            testAccounts.getPassword(), 
+                            "oauth.approvals");
+        Approval[] approvals = getApprovals(userToken, details.getClientId());
+        assertEquals(0, approvals.length);
+        addApprovals(userToken, details.getClientId());
+        approvals = getApprovals(userToken, details.getClientId());
+        assertEquals(3, approvals.length);
+        
+        MockHttpServletRequestBuilder deleteClientsPost = post("/oauth/clients/tx/delete")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .accept(APPLICATION_JSON)
+                        .contentType(APPLICATION_JSON)
+                        .content(toString(new ClientDetails[] {details}));
+        ResultActions result = mockMvc.perform(deleteClientsPost);
+        result.andExpect(status().isOk());
+        approvals = getApprovals(userToken, details.getClientId());
+        assertEquals(0, approvals.length);
+    }
+    
+    @Test
+    public void testApprovalsAreDeleted2() throws Exception {
+        ClientDetails details = createClient(adminToken, new RandomValueStringGenerator().generate(), "password");
+        String userToken = testClient.getUserOAuthAccessToken(
+                            details.getClientId(), 
+                            "secret", 
+                            testAccounts.getUserName(), 
+                            testAccounts.getPassword(), 
+                            "oauth.approvals");
+        Approval[] approvals = getApprovals(userToken, details.getClientId());
+        assertEquals(0, approvals.length);
+        addApprovals(userToken, details.getClientId());
+        approvals = getApprovals(userToken, details.getClientId());
+        assertEquals(3, approvals.length);
+        
+        MockHttpServletRequestBuilder deleteClientsPost = delete("/oauth/clients/"+details.getClientId())
+                        .header("Authorization", "Bearer " + adminToken)
+                        .accept(APPLICATION_JSON);
+        ResultActions result = mockMvc.perform(deleteClientsPost);
+        result.andExpect(status().isOk());
+        approvals = getApprovals(userToken, details.getClientId());
+        assertEquals(0, approvals.length);
+    }
+    
+
+    private Approval[] getApprovals(String token, String clientId) throws Exception {
+        String filter = "clientId eq '"+clientId+"'";
+        
+        MockHttpServletRequestBuilder get = get("/approvals")
+                        .header("Authorization", "Bearer " + token)
+                        .accept(APPLICATION_JSON)
+                        .param("filter", filter);
+        MvcResult result = mockMvc.perform(get).andExpect(status().isOk()).andReturn();
+        String body = result.getResponse().getContentAsString();
+        Approval[] approvals = (Approval[])arrayFromString(body, Approval[].class);
+        return approvals;
+    }
+
+
+    private Approval[] addApprovals(String token, String clientId) throws Exception {
+        Date oneMinuteAgo = new Date(System.currentTimeMillis() - 60000);
+        Date expiresAt = new Date(System.currentTimeMillis() + 60000);
+        Approval[] approvals = new Approval[] {
+            new Approval(testAccounts.getUserName(), clientId, "cloud_controller.read", expiresAt, ApprovalStatus.APPROVED,oneMinuteAgo), 
+            new Approval(testAccounts.getUserName(), clientId, "openid", expiresAt, ApprovalStatus.APPROVED,oneMinuteAgo),
+            new Approval(testAccounts.getUserName(), clientId, "password.write", expiresAt, ApprovalStatus.APPROVED,oneMinuteAgo)};
+        
+        MockHttpServletRequestBuilder put = put("/approvals")
+            .header("Authorization", "Bearer " + token)
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .content(toString(approvals));
+        mockMvc.perform(put).andExpect(status().isOk());
+        return approvals;
+    }
 
     private ClientDetails createClient(String token, String id, String grantTypes) throws Exception {
         BaseClientDetails client = createBaseClient(id,grantTypes);
@@ -317,7 +413,7 @@ public class ClientAdminEndpointsMockMvcTests {
         HttpStatus status = HttpStatus.valueOf(responseCode);
         String body = result.andReturn().getResponse().getContentAsString();
         if (status == HttpStatus.OK) {
-            return fromString(body);
+            return clientFromString(body);
         } else if ( status == HttpStatus.NOT_FOUND) {
             return null;
         } else {
@@ -333,7 +429,7 @@ public class ClientAdminEndpointsMockMvcTests {
         if (grantTypes==null) {
             grantTypes = "client_credentials";
         }
-        ClientDetailsModification client = new ClientDetailsModification(id, "", "foo,bar", grantTypes, "uaa.none");
+        ClientDetailsModification client = new ClientDetailsModification(id, "", "foo,bar,oauth.approvals", grantTypes, "uaa.none");
         client.setClientSecret("secret");
         client.setAdditionalInformation(Collections.<String, Object> singletonMap("foo", Arrays.asList("bar")));
         return client;
@@ -347,22 +443,31 @@ public class ClientAdminEndpointsMockMvcTests {
         return result;
     }
 
-    private String toString(ClientDetails client) throws Exception {
+    private String toString(Object client) throws Exception {
         return new ObjectMapper().writeValueAsString(client);
     }
 
-    private String toString(ClientDetails[] clients) throws Exception {
+    private String toString(Object[] clients) throws Exception {
         return new ObjectMapper().writeValueAsString(clients);
     }
 
-    private ClientDetails fromString(String client) throws Exception {
+    private ClientDetails clientFromString(String client) throws Exception {
+        return (ClientDetails)fromString(client, ClientDetailsModification.class);
+    }
+    
+    private Object fromString(String body, Class<?> clazz) throws Exception {
         ObjectMapper mapper = new ObjectMapper();
-        return (ClientDetails)mapper.readValue(client, ClientDetailsModification.class);
+        return mapper.readValue(body, clazz);
     }
 
-    private ClientDetails[] arrayFromString(String clients) throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        return (ClientDetails[])mapper.readValue(clients, ClientDetailsModification[].class);
+    private ClientDetails[] clientArrayFromString(String clients) throws Exception {
+        return (ClientDetails[])arrayFromString(clients, ClientDetailsModification[].class);
     }
+    
+    private Object[] arrayFromString(String body, Class<?> clazz) throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        return (Object[])mapper.readValue(body, clazz);
+    }
+    
 
 }

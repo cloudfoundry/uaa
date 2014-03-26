@@ -46,6 +46,22 @@ public class TestClient {
         OAuthToken oauthToken = objectMapper.readValue(result.getResponse().getContentAsByteArray(), OAuthToken.class);
         return oauthToken.accessToken;
     }
+    
+    public String getUserOAuthAccessToken(String clientId, String clientSecret, String username, String password, String scope)
+                    throws Exception {
+        String basicDigestHeaderValue = "Basic "
+                        + new String(Base64.encodeBase64((clientId + ":" + clientSecret).getBytes()));
+        MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
+                        .header("Authorization", basicDigestHeaderValue)
+                        .param("grant_type", "password")
+                        .param("client_id", clientId)
+                        .param("username", username)
+                        .param("password", password)
+                        .param("scope", scope);
+        MvcResult result = mockMvc.perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
+        OAuthToken oauthToken = objectMapper.readValue(result.getResponse().getContentAsByteArray(), OAuthToken.class);
+        return oauthToken.accessToken;
+    }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class OAuthToken {
