@@ -14,10 +14,14 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CREATED;
+import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
+import static org.springframework.http.HttpStatus.OK;
 
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.codehaus.jackson.annotate.JsonProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -48,5 +52,46 @@ public class PasswordResetEndpoints {
         ScimUser scimUser = results.get(0);
         String code = expiringCodeStore.generateCode(scimUser.getId(), new Timestamp(System.currentTimeMillis() + PASSWORD_RESET_LIFETIME)).getCode();
         return new ResponseEntity<String>(code, CREATED);
+    }
+
+    @RequestMapping(value = "/password_change", method = RequestMethod.POST)
+    public ResponseEntity<String> changePassword(@RequestBody PasswordChange passwordChange) {
+
+        ExpiringCode expiringCode = expiringCodeStore.retrieveCode(passwordChange.getCode());
+        if (expiringCode == null) {
+            return new ResponseEntity<String>(BAD_REQUEST);
+        }
+        String userId = expiringCode.getData();
+        String newPassword = passwordChange.getNewPassword();
+        if (!scimUserProvisioning.changePassword(userId, null, newPassword)) {
+            return new ResponseEntity<String>(INTERNAL_SERVER_ERROR);
+        }
+
+        ScimUser user = scimUserProvisioning.retrieve(userId);
+        return new ResponseEntity<String>(user.getUserName(), OK);
+    }
+
+    private static class PasswordChange {
+        @JsonProperty("code")
+        private String code;
+
+        @JsonProperty("new_password")
+        private String newPassword;
+
+        public String getCode() {
+            return code;
+        }
+
+        public void setCode(String code) {
+            this.code = code;
+        }
+
+        public String getNewPassword() {
+            return newPassword;
+        }
+
+        public void setNewPassword(String newPassword) {
+            this.newPassword = newPassword;
+        }
     }
 }

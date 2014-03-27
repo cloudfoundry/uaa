@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.cloudfoundry.identity.uaa.test.DefaultIntegrationTestConfig;
@@ -28,6 +29,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
@@ -57,14 +59,29 @@ public class PasswordResetEndpointsIntegrationTest {
     }
 
     @Test
-    public void testCreatingAPasswordReset() throws Exception {
-        MockHttpServletRequestBuilder post = post("/password_resets")
+    public void testAPasswordReset() throws Exception {
+        MockHttpServletRequestBuilder post;
+
+        post = post("/password_resets")
                 .header("Authorization", "Bearer " + loginToken)
                 .contentType(APPLICATION_JSON)
-                .content("marissa")
+                .content("marissa@test.org")
+                .accept(APPLICATION_JSON);
+
+        MvcResult result = mockMvc.perform(post)
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        String code = result.getResponse().getContentAsString();
+
+        post = post("/password_change")
+                .header("Authorization", "Bearer " + loginToken)
+                .contentType(APPLICATION_JSON)
+                .content("{\"code\":\"" + code + "\",\"new_password\":\"new_secret\"}")
                 .accept(APPLICATION_JSON);
 
         mockMvc.perform(post)
-                .andExpect(status().isCreated());
+                .andExpect(status().isOk())
+                .andExpect(content().string("marissa"));
     }
 }

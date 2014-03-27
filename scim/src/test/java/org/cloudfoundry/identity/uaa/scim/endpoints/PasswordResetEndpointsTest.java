@@ -37,11 +37,12 @@ public class PasswordResetEndpointsTest {
 
     private MockMvc mockMvc;
     private ScimUserProvisioning scimUserProvisioning;
+    private ExpiringCodeStore expiringCodeStore;
 
     @Before
     public void setUp() throws Exception {
         scimUserProvisioning = Mockito.mock(ScimUserProvisioning.class);
-        ExpiringCodeStore expiringCodeStore = Mockito.mock(ExpiringCodeStore.class);
+        expiringCodeStore = Mockito.mock(ExpiringCodeStore.class);
         PasswordResetEndpoints controller = new PasswordResetEndpoints(scimUserProvisioning, expiringCodeStore);
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
 
@@ -78,5 +79,26 @@ public class PasswordResetEndpointsTest {
 
         mockMvc.perform(post)
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void testChangingAPasswordWithAValidCode() throws Exception {
+        Mockito.when(expiringCodeStore.retrieveCode("secret_code"))
+                .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis()), "eyedee"));
+
+        Mockito.when(scimUserProvisioning.changePassword("eyedee", null, "new_secret")).thenReturn(true);
+
+        ScimUser scimUser = new ScimUser("eyedee", "userman", "User", "Man");
+        scimUser.addEmail("user@example.com");
+        Mockito.when(scimUserProvisioning.retrieve("eyedee")).thenReturn(scimUser);
+
+        MockHttpServletRequestBuilder post = post("/password_change")
+                .contentType(APPLICATION_JSON)
+                .content("{\"code\":\"secret_code\",\"new_password\":\"new_secret\"}")
+                .accept(APPLICATION_JSON);
+
+        mockMvc.perform(post)
+                .andExpect(status().isOk())
+                .andExpect(content().string("userman"));
     }
 }
