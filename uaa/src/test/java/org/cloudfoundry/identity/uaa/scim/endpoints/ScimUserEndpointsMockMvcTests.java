@@ -117,6 +117,32 @@ public class ScimUserEndpointsMockMvcTests {
                         .andExpect(jsonPath("$.name.givenName").value("Joel"));
     }
 
+    @Test
+    public void testUpdateUser() throws Exception {
+        ScimUserProvisioning usersRepository = webApplicationContext.getBean(ScimUserProvisioning.class);
+        ScimUser user = new ScimUser(null, "otheruser", "Other", "User");
+        user.addEmail("otheruser@vmware.com");
+        user = usersRepository.createUser(user, "password");
+
+        user.setUserName("ou");
+        user.setName(new ScimUser.Name("Joe", "Smith"));
+
+        MockHttpServletRequestBuilder put = MockMvcRequestBuilders.put("/Users/" + user.getId())
+                .header("Authorization", "Bearer " + scimToken)
+                .header("If-Match", "\"" + user.getVersion() + "\"")
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(new ObjectMapper().writeValueAsBytes(user));
+
+        mockMvc.perform(put)
+                .andExpect(status().isOk())
+                .andExpect(header().string("ETag", "\"1\""))
+                .andExpect(jsonPath("$.userName").value("ou"))
+                .andExpect(jsonPath("$.emails[0].value").value("otheruser@vmware.com"))
+                .andExpect(jsonPath("$.name.givenName").value("Joe"))
+                .andExpect(jsonPath("$.name.familyName").value("Smith"));
+    }
+
     private void createScimClient(String adminAccessToken, String id, String secret) throws Exception {
         ClientDetailsModification client = new ClientDetailsModification(id, "oauth", "foo,bar", "client_credentials", "scim.read,scim.write,password.write,oauth.approvals");
         client.setClientSecret(secret);
