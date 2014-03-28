@@ -156,7 +156,7 @@ public class UaaTestAccounts implements TestAccounts {
     }
 
     public ClientCredentialsResourceDetails getAdminClientCredentialsResource() {
-        return getClientCredentialsResource(new String[] { "clients.read", "clients.write", "clients.secret" },
+        return getClientCredentialsResource(new String[] { "clients.read", "clients.write", "clients.secret", "clients.admin" },
                         getAdminClientId(), getAdminClientSecret());
     }
 

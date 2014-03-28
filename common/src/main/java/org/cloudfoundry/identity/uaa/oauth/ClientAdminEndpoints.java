@@ -47,6 +47,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.jmx.export.annotation.ManagedMetric;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.jmx.support.MetricType;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.common.exceptions.BadClientCredentialsException;
 import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
@@ -109,12 +113,22 @@ public class ClientAdminEndpoints implements InitializingBean {
 
     private ApprovalStore approvalStore;
 
+    private AuthenticationManager authenticationManager;
+
     public ApprovalStore getApprovalStore() {
         return approvalStore;
     }
 
     public void setApprovalStore(ApprovalStore approvalStore) {
         this.approvalStore = approvalStore;
+    }
+
+    public AuthenticationManager getAuthenticationManager() {
+        return authenticationManager;
+    }
+
+    public void setAuthenticationManager(AuthenticationManager authenticationManager) {
+        this.authenticationManager = authenticationManager;
     }
 
     public void setAttributeNameMapper(AttributeNameMapper attributeNameMapper) {
@@ -309,15 +323,18 @@ public class ClientAdminEndpoints implements InitializingBean {
                 clientRegistrationService.addClientDetails(client);
                 clientUpdates.incrementAndGet();
                 result[i] = new ClientDetailsModification(clientDetailsService.retrieve(details[i].getClientId()));
-            } else if (ClientDetailsModification.UPDATE.equals(details[i].getAction())) {
-                result[i] = new ClientDetailsModification(clientDetailsService.retrieve(details[i].getClientId()));
-                ClientDetails client = validateClient(details[i], false);
-                clientRegistrationService.updateClientDetails(client);
-                clientUpdates.incrementAndGet();
             } else if (ClientDetailsModification.DELETE.equals(details[i].getAction())) {
                 result[i] = new ClientDetailsModification(clientDetailsService.retrieve(details[i].getClientId()));
                 clientRegistrationService.removeClientDetails(details[i].getClientId());
                 clientDeletes.incrementAndGet();
+            } else if (ClientDetailsModification.UPDATE.equals(details[i].getAction())) {
+                result[i] = updateClientNotSecret(details[i]);
+            } else if (ClientDetailsModification.UPDATE_SECRET.equals(details[i].getAction())) {
+                updateClientSecret(details[i]);
+                result[i] = updateClientNotSecret(details[i]);
+            } else if (ClientDetailsModification.SECRET.equals(details[i].getAction())) {
+                updateClientSecret(details[i]);
+                result[i] = details[i];
             } else {
                 throw new InvalidClientDetailsException("Invalid action.");
             }
@@ -327,22 +344,72 @@ public class ClientAdminEndpoints implements InitializingBean {
         return result;
     }
 
+    private ClientDetailsModification updateClientNotSecret(ClientDetailsModification c) {
+        ClientDetailsModification result = new ClientDetailsModification(clientDetailsService.retrieve(c.getClientId()));
+        ClientDetails client = validateClient(c, false);
+        clientRegistrationService.updateClientDetails(client);
+        clientUpdates.incrementAndGet();
+        return result;
+    }
+
+    private void updateClientSecret(ClientDetailsModification detail) {
+        boolean deleteApprovals = !(authenticateClient(detail.getClientId(), detail.getClientSecret()));
+        if (deleteApprovals) {
+            clientRegistrationService.updateClientSecret(detail.getClientId(), detail.getClientSecret());
+            deleteApprovals(detail.getClientId());
+            detail.setApprovalsDeleted(true);
+        }
+    }
+
+
+    @RequestMapping(value = "/oauth/clients/tx/secret", method = RequestMethod.POST)
+    @ResponseStatus(HttpStatus.OK)
+    @Transactional
+    @ResponseBody
+    public ClientDetailsModification[] changeSecretTx(@RequestBody SecretChangeRequest[] change) {
+
+        ClientDetailsModification[] clientDetails = new ClientDetailsModification[change.length];
+        String clientId=null;
+        try {
+            for (int i=0; i<change.length; i++) {
+                clientId = change[i].getClientId();
+                clientDetails[i] = new ClientDetailsModification(clientDetailsService.retrieve(clientId));
+                boolean oldPasswordOk = authenticateClient(clientId, change[i].getOldSecret());
+                clientRegistrationService.updateClientSecret(clientId, change[i].getSecret());
+                if (!oldPasswordOk) {
+                    deleteApprovals(clientId);
+                    clientDetails[i].setApprovalsDeleted(true);
+                }
+                clientDetails[i] = removeSecret(clientDetails[i]);
+            }
+        } catch (InvalidClientException e) {
+            throw new NoSuchClientException("No such client: " + clientId);
+        }
+        clientSecretChanges.getAndAdd(change.length);
+        return clientDetails;
+    }
+
+
     protected ClientDetails[] doProcessDeletes(ClientDetails[] details) {
         for (int i=0; i<details.length; i++) {
             String clientId = details[i].getClientId();
             clientRegistrationService.removeClientDetails(clientId);
-            if (approvalStore!=null) {
-                approvalStore.revokeApprovals(String.format("clientId eq '%s'", clientId));
-            } else {
-                logger.warn("Approval store is null, unable to delete approvals for client:"+clientId);
-            }
+            deleteApprovals(clientId);
             clientDeletes.incrementAndGet();
             details[i] = removeSecret(details[i]);
         }
         return details;
     }
 
-    
+    private void deleteApprovals(String clientId) {
+        if (approvalStore!=null) {
+            approvalStore.revokeApprovals(String.format("clientId eq '%s'", clientId));
+        } else {
+            throw new UnsupportedOperationException("No approval store configured on "+getClass().getName());
+        }
+    }
+
+
     @RequestMapping(value = "/oauth/clients", method = RequestMethod.GET)
     @ResponseBody
     public SearchResults<?> listClientDetails(
@@ -584,7 +651,7 @@ public class ClientAdminEndpoints implements InitializingBean {
         if (securityContextAccessor.isAdmin()) {
 
             // even an admin needs to provide the old value to change password
-            if (clientId.equals(currentClientId) && !StringUtils.hasText(oldSecret)) {
+            if (clientId.equals(currentClientId) && !authenticateClient(clientId, oldSecret)) {
                 throw new IllegalStateException("Previous secret is required even for admin");
             }
 
@@ -600,28 +667,30 @@ public class ClientAdminEndpoints implements InitializingBean {
             }
 
             // Client is changing their own secret, old password is required
-            if (!StringUtils.hasText(oldSecret)) {
-                throw new IllegalStateException("Previous secret is required");
+            if (!authenticateClient(clientId, oldSecret)) {
+                throw new IllegalStateException("Previous secret is required and must be valid");
             }
 
         }
 
     }
 
-    private ClientDetails removeSecret(ClientDetails client) {
+    private boolean authenticateClient(String clientId, String clientSecret) {
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(clientId,clientSecret);
+        try {
+            Authentication auth = authenticationManager.authenticate(authentication);
+            return auth.isAuthenticated();
+        } catch (AuthenticationException e) {
+            return false;
+        }
+    }
+
+    private ClientDetailsModification removeSecret(ClientDetails client) {
         if (client == null) {
             return null;
         }
-        BaseClientDetails details = new BaseClientDetails();
-        details.setClientId(client.getClientId());
-        details.setScope(client.getScope());
-        details.setResourceIds(client.getResourceIds());
-        details.setAuthorizedGrantTypes(client.getAuthorizedGrantTypes());
-        details.setRegisteredRedirectUri(client.getRegisteredRedirectUri());
-        details.setAuthorities(client.getAuthorities());
-        details.setAccessTokenValiditySeconds(client.getAccessTokenValiditySeconds());
-        details.setRefreshTokenValiditySeconds(client.getRefreshTokenValiditySeconds());
-        details.setAdditionalInformation(client.getAdditionalInformation());
+        ClientDetailsModification details = new ClientDetailsModification(client);
+        details.setClientSecret(null);
         return details;
     }
 
