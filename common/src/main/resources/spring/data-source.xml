@@ -29,7 +29,11 @@
 		<property name="testOnBorrow" value="true"/>
 	</bean> 
     
-    <bean id="flyway" class="com.googlecode.flyway.core.Flyway" init-method="migrate">
+    <bean id="dataSourceAccessor" class="org.cloudfoundry.identity.uaa.db.DataSourceAccessor" depends-on="dataSource">
+        <property name="dataSource" ref="dataSource"/>
+    </bean>
+
+    <bean id="flyway" class="com.googlecode.flyway.core.Flyway" init-method="migrate" depends-on="dataSourceAccessor">
         <property name="initOnMigrate" value="true"/>
         <property name="dataSource" ref="dataSource"/>
         <property name="locations" value="classpath:org/cloudfoundry/identity/uaa/db/#{@scripts}/"/>
