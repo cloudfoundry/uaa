@@ -1138,7 +1138,7 @@ Request         ``PUT /oauth/clients/tx``
 Request body    an array of client details
 Response code   ``200 OK`` if successful
 Response body   an array of client details
-Transactional   either all clients get registered or none
+Transactional   either all clients get updated or none
 ==============  ===============================================
 
 Example::
@@ -1170,7 +1170,7 @@ Request         ``POST /oauth/clients/tx/modify``
 Request body    an array of client details
 Response code    ``200 OK`` if successful
 Response body   an array of client details
-Transactional   either all clients get registered or none
+Transactional   either all clients get added/updated/deleted or no changes are performed
 ==============  ===============================================
 
 Example request::
