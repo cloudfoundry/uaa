@@ -85,7 +85,7 @@ public class UaaTestAccounts implements TestAccounts {
     @Override
     public String getPassword() {
         String defaultPassword = DEFAULT_WEAK_PASSWORD;
-        if (environment.getActiveProfiles().length > 0) {
+        if (environment.getActiveProfiles().length > 0 && (!isProfileActive("default"))) {
             // except in the default profile the password validator will block
             // "koala"
             defaultPassword = DEFAULT_STRING_PASSWORD;
