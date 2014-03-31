@@ -1,58 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Cloud Foundry
+    Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+
+    This product is licensed to you under the Apache License, Version 2.0 (the "License").
+    You may not use this product except in compliance with the License.
+
+    This product includes a number of subcomponents with
+    separate copyright notices and license terms. Your use of these
+    subcomponents is subject to the terms and conditions of the
+    subcomponent's license, as noted in the LICENSE file.
+
+-->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
-	<modelVersion>4.0.0</modelVersion>
+    <modelVersion>4.0.0</modelVersion>
 
-	<parent>
-		<groupId>org.cloudfoundry.identity</groupId>
-		<artifactId>cloudfoundry-identity-parent</artifactId>
-		<version>1.6.0-SNAPSHOT</version>
-		<relativePath>..</relativePath>
-	</parent>
+    <parent>
+        <groupId>org.cloudfoundry.identity</groupId>
+        <artifactId>cloudfoundry-identity-parent</artifactId>
+        <version>1.6.0-SNAPSHOT</version>
+        <relativePath>..</relativePath>
+    </parent>
 
-	<artifactId>cloudfoundry-identity-uaa</artifactId>
-	<packaging>war</packaging>
-	<name>UAA</name>
-	<description>User Account and Authentication Service</description>
+    <artifactId>cloudfoundry-identity-uaa</artifactId>
+    <packaging>war</packaging>
+    <name>UAA</name>
+    <description>User Account and Authentication Service</description>
 
-	<properties>
+    <properties>
         <m2eclipse.wtp.contextRoot>/uaa</m2eclipse.wtp.contextRoot>
-		<uaa.path>/uaa</uaa.path>
-		<!-- Brain dead install plugin (Maven 3) cannot extract this stuff from its own configuration -->
-		<file>target/${project.artifactId}-${project.version}.war</file>
-		<groupId>${project.groupId}</groupId>
-		<artifactId>uaa</artifactId>
-		<version>${project.version}</version>
-		<packaging>war</packaging>
-		<generatePom>true</generatePom>
+        <uaa.path>/uaa</uaa.path>
+        <!-- Brain dead install plugin (Maven 3) cannot extract this stuff from its own configuration -->
+        <file>target/${project.artifactId}-${project.version}.war</file>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>uaa</artifactId>
+        <version>${project.version}</version>
+        <packaging>war</packaging>
+        <generatePom>true</generatePom>
         <dot.git.directory>../.git</dot.git.directory>
-	</properties>
+    </properties>
 
-	<profiles>
-		<profile>
-			<id>devuaa</id>
-			<properties>
-				<CLOUD_FOUNDRY_CONFIG_PATH>${project.basedir}/src/test/resources/test/profiles/devuaa</CLOUD_FOUNDRY_CONFIG_PATH>
-			</properties>
-		</profile>
-		<profile>
-			<id>vcap</id>
-			<properties>
-				<CLOUD_FOUNDRY_CONFIG_PATH>${project.basedir}/src/test/resources/test/profiles/vcap</CLOUD_FOUNDRY_CONFIG_PATH>
-				<uaa.path>/</uaa.path>
-			</properties>
-		</profile>
-		<profile>
-			<id>local</id>
-			<properties>
-				<CLOUD_FOUNDRY_CONFIG_PATH>${project.basedir}/src/test/resources/test/profiles/local</CLOUD_FOUNDRY_CONFIG_PATH>
-				<uaa.path>/</uaa.path>
-			</properties>
-		</profile>
-		<profile>
-			<id>integration</id>
-			<build>
-				<plugins>
+    <profiles>
+        <profile>
+            <id>devuaa</id>
+            <properties>
+                <CLOUD_FOUNDRY_CONFIG_PATH>${project.basedir}/src/test/resources/test/profiles/devuaa</CLOUD_FOUNDRY_CONFIG_PATH>
+            </properties>
+        </profile>
+        <profile>
+            <id>vcap</id>
+            <properties>
+                <CLOUD_FOUNDRY_CONFIG_PATH>${project.basedir}/src/test/resources/test/profiles/vcap</CLOUD_FOUNDRY_CONFIG_PATH>
+                <uaa.path>/</uaa.path>
+            </properties>
+        </profile>
+        <profile>
+            <id>local</id>
+            <properties>
+                <CLOUD_FOUNDRY_CONFIG_PATH>${project.basedir}/src/test/resources/test/profiles/local</CLOUD_FOUNDRY_CONFIG_PATH>
+                <uaa.path>/</uaa.path>
+            </properties>
+        </profile>
+        <profile>
+            <id>integration</id>
+            <build>
+                <plugins>
                     <plugin>
                         <groupId>org.apache.tomcat.maven</groupId>
                         <artifactId>tomcat7-maven-plugin</artifactId>
@@ -78,32 +92,32 @@
                         </configuration>
                     </plugin>
                 </plugins>
-			</build>
-		</profile>
-		<profile>
-			<id>release</id>
-			<build>
-				<pluginManagement>
-					<plugins>
-						<plugin>
-							<!-- enable deployment for releases -->
-							<artifactId>maven-deploy-plugin</artifactId>
-							<configuration>
-								<skip>false</skip>
-							</configuration>
-						</plugin>
-					</plugins>
-				</pluginManagement>
-			</build>
-		</profile>
-	</profiles>
+            </build>
+        </profile>
+        <profile>
+            <id>release</id>
+            <build>
+                <pluginManagement>
+                    <plugins>
+                        <plugin>
+                            <!-- enable deployment for releases -->
+                            <artifactId>maven-deploy-plugin</artifactId>
+                            <configuration>
+                                <skip>false</skip>
+                            </configuration>
+                        </plugin>
+                    </plugins>
+                </pluginManagement>
+            </build>
+        </profile>
+    </profiles>
 
-	<build>
-		<resources>
-			<resource>
-				<directory>src/main/resources</directory>
-				<filtering>true</filtering>
-			</resource>
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
             <resource>
                 <directory>../common/src/main/resources</directory>
                 <filtering>true</filtering>
@@ -111,7 +125,7 @@
                     <include>log4j.properties</include>
                 </includes>
             </resource>
-		</resources>
+        </resources>
         <testResources>
             <testResource>
                 <directory>../common/src/test/resources</directory>
@@ -126,248 +140,248 @@
             </testResource>
         </testResources>
         <plugins>
-			<plugin>
-				<groupId>pl.project13.maven</groupId>
-				<artifactId>git-commit-id-plugin</artifactId>
-				<version>2.1.9</version>
-				<executions>
-					<execution>
-						<goals>
-							<goal>revision</goal>
-						</goals>
-					</execution>
-				</executions>
-				<configuration>
+            <plugin>
+                <groupId>pl.project13.maven</groupId>
+                <artifactId>git-commit-id-plugin</artifactId>
+                <version>2.1.9</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>revision</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
                     <failOnNoGitDirectory>false</failOnNoGitDirectory>
-					<verbose>false</verbose>
-					<dateFormat>yyyy-MM-dd'T'HH:mm:ssZ</dateFormat>
-					<generateGitPropertiesFile>true</generateGitPropertiesFile>
-					<generateGitPropertiesFilename>src/main/resources/git.properties</generateGitPropertiesFilename>
+                    <verbose>false</verbose>
+                    <dateFormat>yyyy-MM-dd'T'HH:mm:ssZ</dateFormat>
+                    <generateGitPropertiesFile>true</generateGitPropertiesFile>
+                    <generateGitPropertiesFilename>src/main/resources/git.properties</generateGitPropertiesFilename>
                     <dotGitDirectory>${dot.git.directory}</dotGitDirectory>
-				</configuration>
-			</plugin>
-		</plugins>
-		<pluginManagement>
-			<plugins>
-				<plugin>
-					<!--skip deploy by default (snapshots are expensive) -->
-					<artifactId>maven-deploy-plugin</artifactId>
-					<configuration>
-						<skip>false</skip>
-					</configuration>
-				</plugin>
-				<plugin>
-					<groupId>org.apache.tomcat.maven</groupId>
-					<artifactId>tomcat7-maven-plugin</artifactId>
-					<configuration>
-						<path>${uaa.path}</path>
-						<systemProperties>
-							<CLOUD_FOUNDRY_CONFIG_PATH>${CLOUD_FOUNDRY_CONFIG_PATH}</CLOUD_FOUNDRY_CONFIG_PATH>
-						</systemProperties>
-					</configuration>
-				</plugin>
+                </configuration>
+            </plugin>
+        </plugins>
+        <pluginManagement>
+            <plugins>
                 <plugin>
-					<groupId>org.apache.maven.plugins</groupId>
-					<artifactId>maven-surefire-plugin</artifactId>
-					<version>2.11</version>
-					<configuration>
-						<skip>${skipTests}</skip>
-						<includes>
-							<include>**/*Tests.java</include>
-						</includes>
-						<excludes>
-							<exclude>**/Abstract*.java</exclude>
-						</excludes>
-						<systemPropertyVariables>
-							<spring.profiles.active>${SPRING_PROFILES_ACTIVE}</spring.profiles.active>
-							<CLOUD_FOUNDRY_CONFIG_PATH>${CLOUD_FOUNDRY_CONFIG_PATH}</CLOUD_FOUNDRY_CONFIG_PATH>
-						</systemPropertyVariables>
-					</configuration>
-				</plugin>
-				<plugin>
-					<groupId>org.apache.maven.plugins</groupId>
-					<artifactId>maven-install-plugin</artifactId>
-					<version>2.3.1</version>
-					<executions>
-						<execution>
-							<id />
-							<phase>install</phase>
-							<goals>
-								<goal>install-file</goal>
-							</goals>
-							<inherited>false</inherited>
-							<configuration>
-								<file>target/${project.artifactId}-${project.version}.war</file>
-								<groupId>${project.groupId}</groupId>
-								<artifactId>uaa</artifactId>
-								<version>${project.version}</version>
-								<packaging>war</packaging>
-								<generatePom>true</generatePom>
-							</configuration>
-						</execution>
-					</executions>
-				</plugin>
-			</plugins>
-		</pluginManagement>
-	</build>
+                    <!--skip deploy by default (snapshots are expensive) -->
+                    <artifactId>maven-deploy-plugin</artifactId>
+                    <configuration>
+                        <skip>false</skip>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.tomcat.maven</groupId>
+                    <artifactId>tomcat7-maven-plugin</artifactId>
+                    <configuration>
+                        <path>${uaa.path}</path>
+                        <systemProperties>
+                            <CLOUD_FOUNDRY_CONFIG_PATH>${CLOUD_FOUNDRY_CONFIG_PATH}</CLOUD_FOUNDRY_CONFIG_PATH>
+                        </systemProperties>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>2.11</version>
+                    <configuration>
+                        <skip>${skipTests}</skip>
+                        <includes>
+                            <include>**/*Tests.java</include>
+                        </includes>
+                        <excludes>
+                            <exclude>**/Abstract*.java</exclude>
+                        </excludes>
+                        <systemPropertyVariables>
+                            <spring.profiles.active>${SPRING_PROFILES_ACTIVE}</spring.profiles.active>
+                            <CLOUD_FOUNDRY_CONFIG_PATH>${CLOUD_FOUNDRY_CONFIG_PATH}</CLOUD_FOUNDRY_CONFIG_PATH>
+                        </systemPropertyVariables>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-install-plugin</artifactId>
+                    <version>2.3.1</version>
+                    <executions>
+                        <execution>
+                            <id />
+                            <phase>install</phase>
+                            <goals>
+                                <goal>install-file</goal>
+                            </goals>
+                            <inherited>false</inherited>
+                            <configuration>
+                                <file>target/${project.artifactId}-${project.version}.war</file>
+                                <groupId>${project.groupId}</groupId>
+                                <artifactId>uaa</artifactId>
+                                <version>${project.version}</version>
+                                <packaging>war</packaging>
+                                <generatePom>true</generatePom>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
 
-	<pluginRepositories>
-		<pluginRepository>
-			<id>objectstyle</id>
-			<name>ObjectStyle.org Repository</name>
-			<url>http://objectstyle.org/maven2/</url>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</pluginRepository>
-	</pluginRepositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>objectstyle</id>
+            <name>ObjectStyle.org Repository</name>
+            <url>http://objectstyle.org/maven2/</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </pluginRepository>
+    </pluginRepositories>
 
-	<dependencies>
+    <dependencies>
 
-		<dependency>
-			<groupId>${project.groupId}</groupId>
-			<artifactId>cloudfoundry-identity-common</artifactId>
-			<version>${project.version}</version>
-			<scope>compile</scope>
-		</dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>cloudfoundry-identity-common</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+        </dependency>
 
-		<dependency>
-			<groupId>${project.groupId}</groupId>
-			<artifactId>cloudfoundry-identity-scim</artifactId>
-			<version>${project.version}</version>
-			<scope>compile</scope>
-		</dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>cloudfoundry-identity-scim</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+        </dependency>
 
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-core</artifactId>
-			<version>${spring.version}</version>
-		</dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-core</artifactId>
+            <version>${spring.version}</version>
+        </dependency>
 
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-webmvc</artifactId>
-			<version>${spring.version}</version>
-		</dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webmvc</artifactId>
+            <version>${spring.version}</version>
+        </dependency>
 
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-tx</artifactId>
-			<version>${spring.version}</version>
-		</dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-tx</artifactId>
+            <version>${spring.version}</version>
+        </dependency>
 
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-test</artifactId>
-			<version>${spring.version}</version>
-			<scope>test</scope>
-		</dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-test</artifactId>
+            <version>${spring.version}</version>
+            <scope>test</scope>
+        </dependency>
 
-		<dependency>
-			<groupId>org.springframework.security</groupId>
-			<artifactId>spring-security-config</artifactId>
-			<version>${spring.security.version}</version>
-			<scope>runtime</scope>
-		</dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-config</artifactId>
+            <version>${spring.security.version}</version>
+            <scope>runtime</scope>
+        </dependency>
 
-		<dependency>
-			<groupId>org.springframework.security</groupId>
-			<artifactId>spring-security-jwt</artifactId>
-			<version>${spring.security.jwt.version}</version>
-			<scope>runtime</scope>
-		</dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-jwt</artifactId>
+            <version>${spring.security.jwt.version}</version>
+            <scope>runtime</scope>
+        </dependency>
 
-		<dependency>
-			<groupId>org.springframework.retry</groupId>
-			<artifactId>spring-retry</artifactId>
-			<version>1.0.2.RELEASE</version>
-			<scope>runtime</scope>
-		</dependency>
+        <dependency>
+            <groupId>org.springframework.retry</groupId>
+            <artifactId>spring-retry</artifactId>
+            <version>1.0.2.RELEASE</version>
+            <scope>runtime</scope>
+        </dependency>
 
-		<dependency>
-			<groupId>org.aspectj</groupId>
-			<artifactId>aspectjweaver</artifactId>
-			<scope>runtime</scope>
-		</dependency>
-		
-		<dependency>
-			<groupId>org.aspectj</groupId>
-			<artifactId>aspectjrt</artifactId>
-			<scope>runtime</scope>
-		</dependency>
-		
-       <dependency>
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjweaver</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjrt</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
             <groupId>cglib</groupId>
             <artifactId>cglib</artifactId>
             <version>2.2.2</version>
         </dependency>
 
-		<dependency>
-		    <groupId>org.apache.tomcat</groupId>
-		    <artifactId>tomcat-jdbc</artifactId>
-		    <version>7.0.32</version>
-		    <scope>runtime</scope>
-		</dependency>
+        <dependency>
+            <groupId>org.apache.tomcat</groupId>
+            <artifactId>tomcat-jdbc</artifactId>
+            <version>7.0.32</version>
+            <scope>runtime</scope>
+        </dependency>
 
-		<dependency>
-			<groupId>log4j</groupId>
-			<artifactId>log4j</artifactId>
-			<version>1.2.14</version>
-			<scope>runtime</scope>
-		</dependency>
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.14</version>
+            <scope>runtime</scope>
+        </dependency>
 
-		<dependency>
-			<groupId>javax.servlet</groupId>
-			<artifactId>javax.servlet-api</artifactId>
-			<version>3.0.1</version>
-			<scope>provided</scope>
-		</dependency>
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+            <version>3.0.1</version>
+            <scope>provided</scope>
+        </dependency>
 
-		<dependency>
-			<groupId>javax.servlet.jsp</groupId>
-			<artifactId>jsp-api</artifactId>
-			<version>2.1</version>
-			<scope>provided</scope>
-		</dependency>
+        <dependency>
+            <groupId>javax.servlet.jsp</groupId>
+            <artifactId>jsp-api</artifactId>
+            <version>2.1</version>
+            <scope>provided</scope>
+        </dependency>
 
-		<dependency>
-			<groupId>javax.servlet</groupId>
-			<artifactId>jstl</artifactId>
-			<version>1.2</version>
-			<scope>runtime</scope>
-		</dependency>
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>jstl</artifactId>
+            <version>1.2</version>
+            <scope>runtime</scope>
+        </dependency>
 
-		<dependency>
-			<groupId>eu.tekul</groupId>
-			<artifactId>szxcvbn_2.8.2</artifactId>
-			<version>0.2</version>
-			<scope>runtime</scope>
-		</dependency>
+        <dependency>
+            <groupId>eu.tekul</groupId>
+            <artifactId>szxcvbn_2.8.2</artifactId>
+            <version>0.2</version>
+            <scope>runtime</scope>
+        </dependency>
 
-		<dependency>
-			<groupId>edu.vt.middleware</groupId>
-			<artifactId>vt-password</artifactId>
-			<scope>runtime</scope>
-		</dependency>
+        <dependency>
+            <groupId>edu.vt.middleware</groupId>
+            <artifactId>vt-password</artifactId>
+            <scope>runtime</scope>
+        </dependency>
 
-		<dependency>
-			<groupId>org.hibernate</groupId>
-			<artifactId>hibernate-validator</artifactId>
-			<version>4.3.1.Final</version>
-		</dependency>
+        <dependency>
+            <groupId>org.hibernate</groupId>
+            <artifactId>hibernate-validator</artifactId>
+            <version>4.3.1.Final</version>
+        </dependency>
 
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>4.8.2</version>
-			<scope>test</scope>
-		</dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.8.2</version>
+            <scope>test</scope>
+        </dependency>
 
-		<dependency>
-			<groupId>org.apache.httpcomponents</groupId>
-			<artifactId>httpclient</artifactId>
-			<scope>test</scope>
-		</dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <scope>test</scope>
+        </dependency>
 
         <dependency>
             <groupId>org.hsqldb</groupId>
@@ -375,32 +389,32 @@
             <version>2.3.1</version>
         </dependency>
 
-		<dependency>
-			<groupId>postgresql</groupId>
-			<artifactId>postgresql</artifactId>
-			<version>9.1-901.jdbc3</version>
-			<scope>runtime</scope>
-		</dependency>
+        <dependency>
+            <groupId>postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>9.1-901.jdbc3</version>
+            <scope>runtime</scope>
+        </dependency>
 
-		<dependency>
-			<groupId>org.mariadb.jdbc</groupId>
-			<artifactId>mariadb-java-client</artifactId>
-			<version>1.1.3</version>
-		</dependency>
-        
-<!--        <dependency>
-        	<groupId>com.oracle</groupId>
-        	<artifactId>ojdbc6</artifactId>
-        	<version>11.2.0.3</version>
-        	<scope>runtime</scope>
-        </dependency>-->
-        
-		<dependency>
-			<groupId>org.mockito</groupId>
-			<artifactId>mockito-all</artifactId>
-			<version>1.8.5</version>
-			<scope>test</scope>
-		</dependency>
+        <dependency>
+            <groupId>org.mariadb.jdbc</groupId>
+            <artifactId>mariadb-java-client</artifactId>
+            <version>1.1.3</version>
+        </dependency>
+
+        <!-- <dependency>
+            <groupId>com.oracle</groupId>
+            <artifactId>ojdbc6</artifactId>
+            <version>11.2.0.3</version>
+            <scope>runtime</scope>
+            </dependency> -->
+
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-all</artifactId>
+            <version>1.8.5</version>
+            <scope>test</scope>
+        </dependency>
 
         <dependency>
             <groupId>com.jayway.jsonpath</groupId>
@@ -416,6 +430,6 @@
             <scope>test</scope>
         </dependency>
 
-	</dependencies>
+    </dependencies>
 
 </project>
