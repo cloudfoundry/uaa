@@ -1,18 +1,15 @@
-/*
- * Copyright 2002-2011 the original author or authors.
+/*******************************************************************************
+ *     Cloud Foundry 
+ *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *     You may not use this product except in compliance with the License.
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+ *     This product includes a number of subcomponents with
+ *     separate copyright notices and license terms. Your use of these
+ *     subcomponents is subject to the terms and conditions of the
+ *     subcomponent's license, as noted in the LICENSE file.
+ *******************************************************************************/
 package org.cloudfoundry.identity.uaa.user;
 
 import static org.junit.Assert.assertEquals;
@@ -28,34 +25,34 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
  */
 public class UaaAuthorityTests {
 
-	@Test
-	public void testGetAuthority() {
-		assertEquals("uaa.user", UaaAuthority.UAA_USER.getAuthority());
-	}
+    @Test
+    public void testGetAuthority() {
+        assertEquals("uaa.user", UaaAuthority.UAA_USER.getAuthority());
+    }
 
-	@Test
-	public void testValueOf() {
-		assertEquals(0, UaaAuthority.UAA_USER.value());
-		assertEquals(1, UaaAuthority.UAA_ADMIN.value());
-	}
+    @Test
+    public void testValueOf() {
+        assertEquals(0, UaaAuthority.UAA_USER.value());
+        assertEquals(1, UaaAuthority.UAA_ADMIN.value());
+    }
 
-	@Test
-	public void testAdminFromAuthorities() {
-		assertEquals(UaaAuthority.UAA_ADMIN, UaaAuthority.fromAuthorities("uaa.user,uaa.admin"));
-	}
-	
-	@Test
-	public void testAuthority() {
-		assertEquals(UaaAuthority.UAA_ADMIN, UaaAuthority.authority("uaa.admin"));
-		assertEquals(UaaAuthority.UAA_USER, UaaAuthority.authority("uaa.user"));
-		assertEquals(new SimpleGrantedAuthority("tacos"), UaaAuthority.authority("tacos"));
-	}
-	
-	@Test
-	@Ignore("Is this a worth while test")
-	public void testSubstringAuthority() {
-		assertFalse(UaaAuthority.UAA_ADMIN.equals(UaaAuthority.authority("some.scope.with.subscope.uaa.admin")));
+    @Test
+    public void testAdminFromAuthorities() {
+        assertEquals(UaaAuthority.UAA_ADMIN, UaaAuthority.fromAuthorities("uaa.user,uaa.admin"));
+    }
 
-	}
+    @Test
+    public void testAuthority() {
+        assertEquals(UaaAuthority.UAA_ADMIN, UaaAuthority.authority("uaa.admin"));
+        assertEquals(UaaAuthority.UAA_USER, UaaAuthority.authority("uaa.user"));
+        assertEquals(new SimpleGrantedAuthority("tacos"), UaaAuthority.authority("tacos"));
+    }
+
+    @Test
+    @Ignore("Is this a worth while test")
+    public void testSubstringAuthority() {
+        assertFalse(UaaAuthority.UAA_ADMIN.equals(UaaAuthority.authority("some.scope.with.subscope.uaa.admin")));
+
+    }
 
 }

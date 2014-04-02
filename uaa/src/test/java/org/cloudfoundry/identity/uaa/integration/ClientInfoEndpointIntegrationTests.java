@@ -1,15 +1,15 @@
-/*
- * Cloud Foundry 2012.02.03 Beta
- * Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved.
+/*******************************************************************************
+ *     Cloud Foundry 
+ *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
- * This product is licensed to you under the Apache License, Version 2.0 (the "License").
- * You may not use this product except in compliance with the License.
+ *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *     You may not use this product except in compliance with the License.
  *
- * This product includes a number of subcomponents with
- * separate copyright notices and license terms. Your use of these
- * subcomponents is subject to the terms and conditions of the
- * subcomponent's license, as noted in the LICENSE file.
- */
+ *     This product includes a number of subcomponents with
+ *     separate copyright notices and license terms. Your use of these
+ *     subcomponents is subject to the terms and conditions of the
+ *     subcomponent's license, as noted in the LICENSE file.
+ *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration;
 
 import static org.junit.Assert.assertEquals;
@@ -34,57 +34,57 @@ import org.springframework.security.oauth2.client.token.grant.password.ResourceO
  */
 public class ClientInfoEndpointIntegrationTests {
 
-	@Rule
-	public ServerRunning serverRunning = ServerRunning.isRunning();
+    @Rule
+    public ServerRunning serverRunning = ServerRunning.isRunning();
 
-	private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
+    private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
 
-	@Rule
-	public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
+    @Rule
+    public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
 
-	@Test
-	public void testGetClientInfo() throws Exception {
+    @Test
+    public void testGetClientInfo() throws Exception {
 
-		HttpHeaders headers = new HttpHeaders();
-		AuthorizationCodeResourceDetails app = testAccounts.getDefaultAuthorizationCodeResource();
-		headers.set("Authorization", testAccounts.getAuthorizationHeader(app.getClientId(), app.getClientSecret()));
-		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        HttpHeaders headers = new HttpHeaders();
+        AuthorizationCodeResourceDetails app = testAccounts.getDefaultAuthorizationCodeResource();
+        headers.set("Authorization", testAccounts.getAuthorizationHeader(app.getClientId(), app.getClientSecret()));
+        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
 
-		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = serverRunning.getForObject("/clientinfo", Map.class, headers);
-		assertEquals(HttpStatus.OK, response.getStatusCode());
-		assertEquals(app.getClientId(), response.getBody().get("client_id"));
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> response = serverRunning.getForObject("/clientinfo", Map.class, headers);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(app.getClientId(), response.getBody().get("client_id"));
 
-	}
+    }
 
-	@Test
-	public void testImplicitClientInfo() throws Exception {
+    @Test
+    public void testImplicitClientInfo() throws Exception {
 
-		HttpHeaders headers = new HttpHeaders();
-		ImplicitResourceDetails app = testAccounts.getDefaultImplicitResource();
-		headers.set("Authorization", testAccounts.getAuthorizationHeader(app.getClientId(), ""));
-		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        HttpHeaders headers = new HttpHeaders();
+        ImplicitResourceDetails app = testAccounts.getDefaultImplicitResource();
+        headers.set("Authorization", testAccounts.getAuthorizationHeader(app.getClientId(), ""));
+        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
 
-		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = serverRunning.getForObject("/clientinfo", Map.class, headers);
-		assertEquals(HttpStatus.OK, response.getStatusCode());
-		assertEquals(app.getClientId(), response.getBody().get("client_id"));
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> response = serverRunning.getForObject("/clientinfo", Map.class, headers);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(app.getClientId(), response.getBody().get("client_id"));
 
-	}
+    }
 
-	@Test
-	public void testUnauthenticated() throws Exception {
+    @Test
+    public void testUnauthenticated() throws Exception {
 
-		HttpHeaders headers = new HttpHeaders();
-		ResourceOwnerPasswordResourceDetails app = testAccounts.getDefaultResourceOwnerPasswordResource();
-		headers.set("Authorization", testAccounts.getAuthorizationHeader(app.getClientId(), "bogus"));
-		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        HttpHeaders headers = new HttpHeaders();
+        ResourceOwnerPasswordResourceDetails app = testAccounts.getDefaultResourceOwnerPasswordResource();
+        headers.set("Authorization", testAccounts.getAuthorizationHeader(app.getClientId(), "bogus"));
+        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
 
-		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = serverRunning.getForObject("/clientinfo", Map.class, headers);
-		assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-		assertEquals("unauthorized", response.getBody().get("error"));
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> response = serverRunning.getForObject("/clientinfo", Map.class, headers);
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertEquals("unauthorized", response.getBody().get("error"));
 
-	}
+    }
 
 }

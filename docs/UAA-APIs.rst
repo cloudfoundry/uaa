@@ -1106,6 +1106,7 @@ Response body   the old client
 ==============  ===============================================
 
 
+
 Change Client Secret: ``PUT /oauth/clients/{client_id}/secret``
 ------------------------------------------------------------------
 
@@ -1123,6 +1124,174 @@ Example::
       "oldSecret": "fooclientsecret",
       "secret": "newclientsceret"
     }
+
+
+Register Multiple Clients: ``POST /oauth/clients/tx``
+-------------------------------------------------------
+
+==============  ===============================================
+Request         ``POST /oauth/clients/tx``
+Request body    an array of client details
+Response code    ``201 CREATED`` if successful
+Response body   an array of client details
+Transactional   either all clients get registered or none
+Scope Required  clients.admin
+==============  ===============================================
+
+Example request::
+
+    POST /oauth/clients/tx
+    [{
+      "client_id" : "foo",
+      "client_secret" : "fooclientsecret", // optional for untrusted clients
+      "scope" : ["uaa.none"],
+      "resource_ids" : ["none"],
+      "authorities" : ["cloud_controller.read","cloud_controller.write","openid"],
+      "authorized_grant_types" : ["client_credentials"],
+      "access_token_validity": 43200
+    },
+    {
+      "client_id" : "bar",
+      "client_secret" : "barclientsecret", // optional for untrusted clients
+      "scope" : ["uaa.none"],
+      "resource_ids" : ["none"],
+      "authorities" : ["cloud_controller.read","cloud_controller.write","openid"],
+      "authorized_grant_types" : ["client_credentials"],
+      "access_token_validity": 43200
+    }]
+
+
+
+
+Update Multiple Clients: ``PUT /oauth/clients/tx``
+------------------------------------------------------
+
+==============  ===============================================
+Request         ``PUT /oauth/clients/tx``
+Request body    an array of client details
+Response code   ``200 OK`` if successful
+Response body   an array of client details
+Transactional   either all clients get updated or none
+Scope Required  clients.admin
+==============  ===============================================
+
+Example::
+
+    PUT /oauth/clients/tx
+    [{
+      "client_id" : "foo",
+      "scope" : ["uaa.none"],
+      "resource_ids" : ["none"],
+      "authorities" : ["cloud_controller.read","cloud_controller.write","openid"],
+      "authorized_grant_types" : ["client_credentials"]
+    },
+    {
+      "client_id" : "foo",
+      "scope" : ["uaa.none"],
+      "resource_ids" : ["none"],
+      "authorities" : ["cloud_controller.read","cloud_controller.write","openid"],
+      "authorized_grant_types" : ["client_credentials"]
+    }]
+
+N.B. the secret will not be changed, even if it is included in the
+request body (use the secret change endpoint instead).
+
+Register, update or delete Multiple Clients: ``POST /oauth/clients/tx/modify``
+-------------------------------------------------------
+
+==============  ===============================================
+Request         ``POST /oauth/clients/tx/modify``
+Request body    an array of client details
+Response code    ``200 OK`` if successful
+Response body   an array of client details
+Transactional   either all clients get added/updated/deleted or no changes are performed
+Scope Required  clients.admin
+Rules           The 'secret' and 'update,secret' will change the secret and delete approvals.
+                To change secret without deleting approvals use the /oauth/clients/tx/secret API
+==============  ===============================================
+
+Example request::
+
+    POST /oauth/clients/tx
+    [{
+      "client_id" : "foo",
+      "client_secret" : "fooclientsecret", // optional for untrusted clients
+      "scope" : ["uaa.none"],
+      "resource_ids" : ["none"],
+      "authorities" : ["cloud_controller.read","cloud_controller.write","openid"],
+      "authorized_grant_types" : ["client_credentials"],
+      "access_token_validity": 43200,
+      "action" : "add"
+    },
+    {
+      "client_id" : "bar",
+      "client_secret" : "barclientsecret", // ignored and not required for an update
+      "scope" : ["uaa.none"],
+      "resource_ids" : ["none"],
+      "authorities" : ["cloud_controller.read","cloud_controller.write","openid"],
+      "authorized_grant_types" : ["client_credentials"],
+      "access_token_validity": 43200,
+      "action" : "update"
+    },
+    {
+      "client_id" : "bar",
+      "client_secret" : "barclientsecret", //new secret - if changed, approvals are deleted
+      "scope" : ["uaa.none"],
+      "resource_ids" : ["none"],
+      "authorities" : ["cloud_controller.read","cloud_controller.write","openid"],
+      "authorized_grant_types" : ["client_credentials"],
+      "access_token_validity": 43200,
+      "action" : "update,secret"
+    },
+    {
+      "client_id" : "zzz",
+      "action" : "delete"
+    },
+    {
+      "client_id" : "zzz",
+      "client_secret" : "zzzclientsecret", // new password, if changed client approvals are deleted
+      "action" : "secret"
+    }]
+
+Change Multiple Client Secrets: ``POST /oauth/clients/tx/secret``
+------------------------------------------------------------------
+
+==============  ===============================================
+Request         ``POST /oauth/clients/tx/secret``
+Request body    *an array of secret change request*
+Reponse code    ``200 OK`` if successful
+Response body   a list of all the clients that had their secret changed.
+Transactional   either all clients' secret changed or none
+Scope Required  clients.admin
+Rules           The 'secret' and 'update,secret' will change the secret and delete approvals.
+                To change secret without deleting approvals use the /oauth/clients/tx/secret API
+==============  ===============================================
+
+Example::
+
+    POST /oauth/clients/tx/secret
+    [{
+      "clientId" : "foo",
+      "oldSecret": "fooclientsecret",
+      "secret": "newfooclientsceret"
+    },{
+      "clientId" : "bar",
+      "oldSecret": "barclientsecret",
+      "secret": "newbarclientsceret"
+    }]
+
+
+Delete Multiple Clients: ``POST /oauth/clients/tx/delete``
+-------------------------------------------------------
+
+==============  ===============================================
+Request         ``POST /oauth/clients/tx/delete``
+Request body    an array of clients to be deleted
+Response code   ``200 OK``
+Response body   an array of the deleted clients
+Transactional   either all clients get deleted or none
+==============  ===============================================
+
 
 UI Endpoints
 ==============

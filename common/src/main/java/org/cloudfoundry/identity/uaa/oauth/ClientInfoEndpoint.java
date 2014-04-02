@@ -1,15 +1,15 @@
-/*
- * Cloud Foundry 2012.02.03 Beta
- * Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved.
+/*******************************************************************************
+ *     Cloud Foundry 
+ *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
- * This product is licensed to you under the Apache License, Version 2.0 (the "License").
- * You may not use this product except in compliance with the License.
+ *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *     You may not use this product except in compliance with the License.
  *
- * This product includes a number of subcomponents with
- * separate copyright notices and license terms. Your use of these
- * subcomponents is subject to the terms and conditions of the
- * subcomponent's license, as noted in the LICENSE file.
- */
+ *     This product includes a number of subcomponents with
+ *     separate copyright notices and license terms. Your use of these
+ *     subcomponents is subject to the terms and conditions of the
+ *     subcomponent's license, as noted in the LICENSE file.
+ *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
 import java.security.Principal;
@@ -32,29 +32,30 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @Controller
 public class ClientInfoEndpoint implements InitializingBean {
 
-	private ClientDetailsService clientDetailsService;
+    private ClientDetailsService clientDetailsService;
 
-	/**
-	 * @param clientDetailsService the clientDetailsService to set
-	 */
-	public void setClientDetailsService(ClientDetailsService clientDetailsService) {
-		this.clientDetailsService = clientDetailsService;
-	}
+    /**
+     * @param clientDetailsService the clientDetailsService to set
+     */
+    public void setClientDetailsService(ClientDetailsService clientDetailsService) {
+        this.clientDetailsService = clientDetailsService;
+    }
 
-	public void afterPropertiesSet() throws Exception {
-		Assert.notNull(clientDetailsService, "clientDetailsService must be set");
-	}
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        Assert.notNull(clientDetailsService, "clientDetailsService must be set");
+    }
 
-	@RequestMapping(value = "/clientinfo")
-	@ResponseBody
-	public ClientDetails clientinfo(Principal principal) {
+    @RequestMapping(value = "/clientinfo")
+    @ResponseBody
+    public ClientDetails clientinfo(Principal principal) {
 
-		String clientId = principal.getName();
-		BaseClientDetails client = new BaseClientDetails(clientDetailsService.loadClientByClientId(clientId));
-		client.setClientSecret(null);
-		client.setAdditionalInformation(Collections.<String, Object> emptyMap());
-		return client;
+        String clientId = principal.getName();
+        BaseClientDetails client = new BaseClientDetails(clientDetailsService.loadClientByClientId(clientId));
+        client.setClientSecret(null);
+        client.setAdditionalInformation(Collections.<String, Object> emptyMap());
+        return client;
 
-	}
+    }
 
 }

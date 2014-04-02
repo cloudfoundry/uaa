@@ -1,19 +1,24 @@
-/*
- * Cloud Foundry 2012.02.03 Beta
- * Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved.
+/*******************************************************************************
+ *     Cloud Foundry 
+ *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
- * This product is licensed to you under the Apache License, Version 2.0 (the "License").
- * You may not use this product except in compliance with the License.
+ *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *     You may not use this product except in compliance with the License.
  *
- * This product includes a number of subcomponents with
- * separate copyright notices and license terms. Your use of these
- * subcomponents is subject to the terms and conditions of the
- * subcomponent's license, as noted in the LICENSE file.
- */
+ *     This product includes a number of subcomponents with
+ *     separate copyright notices and license terms. Your use of these
+ *     subcomponents is subject to the terms and conditions of the
+ *     subcomponent's license, as noted in the LICENSE file.
+ *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client;
 
 import java.util.Collection;
 
+import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.codehaus.jackson.annotate.JsonCreator;
+import org.codehaus.jackson.annotate.JsonIgnore;
+import org.codehaus.jackson.annotate.JsonProperty;
+import org.codehaus.jackson.map.annotate.JsonDeserialize;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 
@@ -23,116 +28,139 @@ import org.springframework.security.core.GrantedAuthority;
  * @author Luke Taylor
  * @author Dave Syer
  */
+
 public class SocialClientUserDetails extends AbstractAuthenticationToken {
 
-	public static class Source {
+    public static class Source {
 
-		public static String CLOUD_FOUNDRY = "cloudfoundry";
+        public static String CLOUD_FOUNDRY = "cloudfoundry";
 
-		public static String GITHUB = "github";
+        public static String GITHUB = "github";
 
-		public static String FACEBOOK = "facebook";
+        public static String FACEBOOK = "facebook";
 
-		public static String TWITTER = "twitter";
+        public static String TWITTER = "twitter";
 
-		public static String LINKEDIN = "linkedin";
+        public static String LINKEDIN = "linkedin";
 
-		public static String GOOGLE = "google";
+        public static String GOOGLE = "google";
 
-		public static String classify(String userInfoUrl) {
-			String key = userInfoUrl.toLowerCase().replaceAll(".*//([a-z.]*)/.*", "$1");
-			if (userInfoUrl.contains("cloudfoundry.com")) {
-				key = CLOUD_FOUNDRY;
-			}
-			else if (userInfoUrl.contains("google.com") || userInfoUrl.contains("googleapis.com")) {
-				key = GOOGLE;
-			}
-			else if (userInfoUrl.contains("github.com")) {
-				key = GITHUB;
-			}
-			else if (userInfoUrl.contains("twitter.com")) {
-				key = TWITTER;
-			}
-			else if (userInfoUrl.contains("linkedin.com")) {
-				key = LINKEDIN;
-			}
-			else {
-				String[] keys = key.split("\\.");
-				if (keys.length > 1) {
-					key = keys[keys.length - 2];
-				}
-				if ("co".equals(key) && keys.length>2) {
-					key = keys[keys.length - 3];					
-				}
-			}
-			return key;
-		}
-	}
+        public static String classify(String userInfoUrl) {
+            String key = userInfoUrl.toLowerCase().replaceAll(".*//([a-z.]*)/.*", "$1");
+            if (userInfoUrl.contains("cloudfoundry.com")) {
+                key = CLOUD_FOUNDRY;
+            }
+            else if (userInfoUrl.contains("google.com") || userInfoUrl.contains("googleapis.com")) {
+                key = GOOGLE;
+            }
+            else if (userInfoUrl.contains("github.com")) {
+                key = GITHUB;
+            }
+            else if (userInfoUrl.contains("twitter.com")) {
+                key = TWITTER;
+            }
+            else if (userInfoUrl.contains("linkedin.com")) {
+                key = LINKEDIN;
+            }
+            else {
+                String[] keys = key.split("\\.");
+                if (keys.length > 1) {
+                    key = keys[keys.length - 2];
+                }
+                if ("co".equals(key) && keys.length > 2) {
+                    key = keys[keys.length - 3];
+                }
+            }
+            return key;
+        }
+    }
 
-	private String username;
-	
-	private String email;
+    private String username;
 
-	private String name;
+    private String email;
 
-	private Object id;
+    private String name;
 
-	private String source;
+    private Object id;
 
-	public SocialClientUserDetails(String username, Collection<? extends GrantedAuthority> authorities) {
-		super(authorities);
-		setAuthenticated(authorities!=null && !authorities.isEmpty());
-		this.username = username;
-	}
+    private String source;
 
-	public String getEmail() {
-		return email;
-	}
+    @JsonCreator
+    public SocialClientUserDetails(
+                    @JsonProperty("username") String username,
+                    @JsonProperty("authorities") @JsonDeserialize(contentAs = UaaAuthority.class) Collection<? extends GrantedAuthority> authorities) {
+        super(authorities);
+        setAuthenticated(authorities != null && !authorities.isEmpty());
+        this.username = username;
+    }
 
-	public Object getExternalId() {
-		return id;
-	}
+    public String getEmail() {
+        return email;
+    }
 
-	public void setExternalId(Object id) {
-		this.id = id;
-	}
+    public Object getExternalId() {
+        return id;
+    }
 
-	public void setEmail(String email) {
-		this.email = email;
-	}
+    public void setExternalId(Object id) {
+        this.id = id;
+    }
 
-	public String getName() {
-		// This is used as the principal name (which could then be used to look up tokens etc)
-		return username;
-	}
+    public void setEmail(String email) {
+        this.email = email;
+    }
 
-	public void setFullName(String name) {
-		this.name = name;
-	}
-	
-	public String getFullName() {
-		return this.name;
-	}
+    @Override
+    @JsonIgnore
+    public String getName() {
+        // This is used as the principal name (which could then be used to look
+        // up tokens etc)
+        return username;
+    }
 
-	public String getSource() {
-		return source;
-	}
+    public void setFullName(String name) {
+        this.name = name;
+    }
 
-	public void setSource(String source) {
-		this.source = source;
-	}
-	
-	public String getUsername() {
-		return username;
-	}
+    public String getFullName() {
+        return this.name;
+    }
 
-	@Override
-	public Object getCredentials() {
-		return "N/A";
-	}
+    public String getSource() {
+        return source;
+    }
 
-	@Override
-	public Object getPrincipal() {
-		return this.username;
-	}
+    public void setSource(String source) {
+        this.source = source;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    @JsonIgnore
+    @Override
+    public Object getCredentials() {
+        return "N/A";
+    }
+
+    @JsonIgnore
+    @Override
+    public Object getPrincipal() {
+        return this.username;
+    }
+
+    /*
+     * {"details":"app",
+     * "authorities":["UAA_USER"],
+     * "authenticated":true,
+     * "username":"marissa",
+     * "email":null,
+     * "name":"marissa",
+     * "source":null,
+     * "externalId":null,
+     * "fullName":null,
+     * "credentials":"N/A",
+     * "principal":"marissa"}
+     */
 }
