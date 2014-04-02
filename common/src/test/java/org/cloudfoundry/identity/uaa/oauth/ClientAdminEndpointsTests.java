@@ -16,6 +16,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
@@ -25,6 +26,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.rest.SearchResults;
 import org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper;
@@ -37,6 +39,10 @@ import org.junit.rules.ExpectedException;
 import org.mockito.Mockito;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
@@ -67,6 +73,10 @@ public class ClientAdminEndpointsTests {
 
     private ClientRegistrationService clientRegistrationService = null;
 
+    private AuthenticationManager authenticationManager = null;
+
+    private ApprovalStore approvalStore = null;
+
     @Rule
     public ExpectedException expected = ExpectedException.none();
 
@@ -77,10 +87,14 @@ public class ClientAdminEndpointsTests {
         clientDetailsService = Mockito.mock(QueryableResourceManager.class);
         securityContextAccessor = Mockito.mock(SecurityContextAccessor.class);
         clientRegistrationService = Mockito.mock(ClientRegistrationService.class);
+        authenticationManager = Mockito.mock(AuthenticationManager.class);
+        approvalStore = mock(ApprovalStore.class);
         
         endpoints.setClientDetailsService(clientDetailsService);
         endpoints.setClientRegistrationService(clientRegistrationService);
         endpoints.setSecurityContextAccessor(securityContextAccessor);
+        endpoints.setAuthenticationManager(authenticationManager);
+        endpoints.setApprovalStore(approvalStore);
 
         Map<String, String> attributeNameMap = new HashMap<String, String>();
         attributeNameMap.put("client_id", "clientId");
@@ -292,9 +306,11 @@ public class ClientAdminEndpointsTests {
 
     @Test
     public void testChangeSecret() throws Exception {
+        Authentication auth = mock(Authentication.class);
+        when(auth.isAuthenticated()).thenReturn(true);
+        when(authenticationManager.authenticate(any(Authentication.class))).thenReturn(auth);
 
         when(clientDetailsService.retrieve(detail.getClientId())).thenReturn(detail);
-
         SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
         when(sca.getClientId()).thenReturn(detail.getClientId());
         when(sca.isClient()).thenReturn(true);
@@ -351,6 +367,10 @@ public class ClientAdminEndpointsTests {
 
         when(clientDetailsService.retrieve(detail.getClientId())).thenReturn(detail);
 
+
+        when(authenticationManager.authenticate(any(Authentication.class))).thenThrow(new BadCredentialsException(""));
+
+
         SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
         when(sca.getClientId()).thenReturn(detail.getClientId());
         when(sca.isClient()).thenReturn(true);
@@ -369,7 +389,7 @@ public class ClientAdminEndpointsTests {
     public void testChangeSecretDeniedWhenOldSecretNotProvidedEvenFormAdmin() throws Exception {
 
         when(clientDetailsService.retrieve(detail.getClientId())).thenReturn(detail);
-
+        when(authenticationManager.authenticate(any(Authentication.class))).thenThrow(new BadCredentialsException(""));
         SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
         when(sca.getClientId()).thenReturn(detail.getClientId());
         when(sca.isClient()).thenReturn(true);

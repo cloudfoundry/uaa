@@ -10,43 +10,29 @@
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-package org.cloudfoundry.identity.uaa.oauth;
 
-import org.codehaus.jackson.map.annotate.JsonSerialize;
+package org.cloudfoundry.identity.uaa.oauth.event;
+
+import org.cloudfoundry.identity.uaa.audit.AuditEvent;
+import org.cloudfoundry.identity.uaa.audit.AuditEventType;
+import org.springframework.security.oauth2.provider.ClientDetails;
+
+import java.security.Principal;
 
 /**
  * @author Dave Syer
- * @author Luke Taylor
+ * 
  */
-@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
-public class SecretChangeRequest {
+public class ClientApprovalsDeletedEvent extends AbstractClientAdminEvent {
 
-    private String oldSecret;
-    private String secret;
-    private String clientId;
-
-    public String getSecret() {
-        return secret;
+    public ClientApprovalsDeletedEvent(ClientDetails client, Principal principal) {
+        super(client, principal);
     }
 
-    public void setSecret(String secret) {
-        this.secret = secret;
-    }
-
-    public String getOldSecret() {
-        return oldSecret;
-    }
-
-    public void setOldSecret(String old) {
-        this.oldSecret = old;
-    }
-
-    public String getClientId() {
-        return clientId;
-    }
-
-    public void setClientId(String clientId) {
-        this.clientId = clientId;
+    @Override
+    public AuditEvent getAuditEvent() {
+        return createAuditRecord(getClient().getClientId(), AuditEventType.ClientApprovalsDeleted,
+                getOrigin(getPrincipal()));
     }
 
 }

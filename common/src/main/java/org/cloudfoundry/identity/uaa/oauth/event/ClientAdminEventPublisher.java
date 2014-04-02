@@ -91,7 +91,27 @@ public class ClientAdminEventPublisher implements ApplicationEventPublisherAware
             } else if (ClientDetailsModification.UPDATE.equals(client.getAction())) {
                 publish(new ClientUpdateEvent(client, getPrincipal()));
             } else if (ClientDetailsModification.DELETE.equals(client.getAction())) {
-                publish(new ClientCreateEvent(client, getPrincipal()));
+                publish(new ClientDeleteEvent(client, getPrincipal()));
+            } else if (ClientDetailsModification.UPDATE_SECRET.equals(client.getAction())) {
+                publish(new ClientUpdateEvent(client, getPrincipal()));
+                if (client.isApprovalsDeleted()) {
+                    publish(new SecretChangeEvent(client, getPrincipal()));
+                    publish(new ClientApprovalsDeletedEvent(client, getPrincipal()));
+                }
+            } else if (ClientDetailsModification.SECRET.equals(client.getAction())) {
+                if (client.isApprovalsDeleted()) {
+                    publish(new SecretChangeEvent(client, getPrincipal()));
+                    publish(new ClientApprovalsDeletedEvent(client, getPrincipal()));
+                }
+            }
+        }
+    }
+
+    public void secretTx(ClientDetailsModification[] clients) {
+        for (ClientDetailsModification client:clients) {
+            publish(new ClientDeleteEvent(client, getPrincipal()));
+            if (client.isApprovalsDeleted()) {
+                publish(new ClientApprovalsDeletedEvent(client, getPrincipal()));
             }
         }
     }
