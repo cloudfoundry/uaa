@@ -149,7 +149,7 @@ public class ClientAdminEndpoints implements InitializingBean {
         this.clientDetailsService = clientDetailsService;
     }
 
-    void setSecurityContextAccessor(SecurityContextAccessor securityContextAccessor) {
+    public void setSecurityContextAccessor(SecurityContextAccessor securityContextAccessor) {
         this.securityContextAccessor = securityContextAccessor;
     }
 
