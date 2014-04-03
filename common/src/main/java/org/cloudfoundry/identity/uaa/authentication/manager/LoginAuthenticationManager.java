@@ -129,7 +129,11 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
         }
         if (email == null) {
             if (name.contains("@")) {
-                email = name;
+                if (name.split("@").length == 2 && !name.startsWith("@") && !name.endsWith("@")) {
+                    email = name;
+                } else {
+                    email = name.replaceAll("@", "") + "@unknown.org";
+                }
             }
             else {
                 email = name + "@unknown.org";
