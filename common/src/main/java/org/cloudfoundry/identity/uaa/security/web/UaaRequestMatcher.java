@@ -170,7 +170,7 @@ public final class UaaRequestMatcher implements RequestMatcher {
             return false;
         }
 
-        if (!((this.method == null && other.method == null) || (this.method != null && other.method != null && this.method != other.method))) {
+        if (!((this.method == null && other.method == null) || (this.method != null && other.method != null && this.method == other.method))) {
             return false;
         }
 
