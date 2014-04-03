@@ -19,12 +19,20 @@ import org.cloudfoundry.identity.uaa.oauth.SecretChangeRequest;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
+import org.cloudfoundry.identity.uaa.rest.SearchResults;
+import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.endpoints.ScimGroupEndpoints;
+import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints;
+import org.cloudfoundry.identity.uaa.scim.endpoints.UserIdConversionEndpoints;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.oauth2.client.test.TestAccounts;
@@ -41,6 +49,8 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import com.googlecode.flyway.core.Flyway;
+import java.util.Map;
+import javax.servlet.http.HttpServletResponse;
 
 
 public class ClientAdminEndpointsMockMvcTests {
@@ -49,6 +59,9 @@ public class ClientAdminEndpointsMockMvcTests {
     private String adminToken = null;
     private TestClient testClient = null;
     private TestAccounts testAccounts = null;
+    private String adminUserToken = null;
+    private ScimUserEndpoints scimUserEndpoints = null;
+    private ScimGroupEndpoints scimGroupEndpoints = null;
 
     @Before
     public void setUp() throws Exception {
@@ -62,6 +75,9 @@ public class ClientAdminEndpointsMockMvcTests {
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).addFilter(springSecurityFilterChain)
                 .build();
 
+        scimUserEndpoints = webApplicationContext.getBean(ScimUserEndpoints.class);
+        scimGroupEndpoints = webApplicationContext.getBean(ScimGroupEndpoints.class);
+
         testClient = new TestClient(mockMvc);
         testAccounts = UaaTestAccounts.standard(null);
         adminToken = testClient.getOAuthAccessToken(
@@ -69,7 +85,48 @@ public class ClientAdminEndpointsMockMvcTests {
                         testAccounts.getAdminClientSecret(), 
                         "client_credentials",
                         "clients.read clients.write clients.secret");
-        
+
+        setupAdminUserToken();
+    }
+
+    private void setupAdminUserToken() throws Exception {
+        HttpServletResponse mockResponse = Mockito.mock(HttpServletResponse.class);
+
+
+        SearchResults<Map<String, Object>> marissa = (SearchResults<Map<String, Object>>)scimUserEndpoints.findUsers("id,userName", "userName eq '" + testAccounts.getUserName() + "'", "userName", "asc", 0, 1);
+        String marissaId = (String)marissa.getResources().iterator().next().get("id");
+
+        //add marissa to uaa.admin
+        SearchResults<Map<String, Object>> uaaAdmin = (SearchResults<Map<String, Object>>) scimGroupEndpoints.listGroups("id,displayName", "displayName eq 'uaa.admin'", "displayName", "asc", 1, 1);
+        String groupId = (String)uaaAdmin.getResources().iterator().next().get("id");
+        ScimGroup group = scimGroupEndpoints.getGroup(groupId, mockResponse);
+        ScimGroupMember gm = new ScimGroupMember(marissaId, ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER));
+        group.getMembers().add(gm);
+        scimGroupEndpoints.updateGroup(group, groupId, String.valueOf(group.getVersion()), mockResponse);
+
+        //add marissa to clients.write
+        uaaAdmin = (SearchResults<Map<String, Object>>) scimGroupEndpoints.listGroups("id,displayName", "displayName eq 'clients.write'", "displayName", "asc", 1, 1);
+        groupId = (String)uaaAdmin.getResources().iterator().next().get("id");
+        group = scimGroupEndpoints.getGroup(groupId, mockResponse);
+        gm = new ScimGroupMember(marissaId, ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER));
+        group.getMembers().add(gm);
+        scimGroupEndpoints.updateGroup(group, groupId, String.valueOf(group.getVersion()), mockResponse);
+
+        //add marissa to clients.read
+        uaaAdmin = (SearchResults<Map<String, Object>>) scimGroupEndpoints.listGroups("id,displayName", "displayName eq 'clients.read'", "displayName", "asc", 1, 1);
+        groupId = (String)uaaAdmin.getResources().iterator().next().get("id");
+        group = scimGroupEndpoints.getGroup(groupId, mockResponse);
+        gm = new ScimGroupMember(marissaId, ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER));
+        group.getMembers().add(gm);
+        scimGroupEndpoints.updateGroup(group, groupId, String.valueOf(group.getVersion()), mockResponse);
+
+        ClientDetails adminClient = createAdminClient(adminToken);
+
+        adminUserToken = testClient.getUserOAuthAccessToken(adminClient.getClientId(),
+                                                            "secret",
+                                                            testAccounts.getUserName(),
+                                                            testAccounts.getPassword(),
+                                                            "uaa.admin,clients.read,clients.write");
     }
 
     @After
@@ -83,6 +140,12 @@ public class ClientAdminEndpointsMockMvcTests {
     public void testCreateClient() throws Exception {
         createClient(adminToken, new RandomValueStringGenerator().generate(), "client_credentials");
     }
+
+    @Test
+    public void testCreateClientAsAdminUser() throws Exception {
+        createClient(adminUserToken, new RandomValueStringGenerator().generate(), "client_credentials");
+    }
+
 
     @Test
     public void testCreateClientsTxSuccess() throws Exception {
@@ -630,15 +693,32 @@ public class ClientAdminEndpointsMockMvcTests {
         }
     }
 
+    private ClientDetails createAdminClient(String token) throws Exception {
+        String scopes = "uaa.admin,oauth.approvals,clients.read,clients.write";
+        BaseClientDetails client = createBaseClient(null, "password,client_credentials", scopes, scopes);
+
+        MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
+                .header("Authorization", "Bearer " + token)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(toString(client));
+        mockMvc.perform(createClientPost).andExpect(status().isCreated());
+        return getClient(client.getClientId());
+    }
+
 
     private ClientDetailsModification createBaseClient(String id, String grantTypes) {
+        return createBaseClient(id, grantTypes, "uaa.none", "foo,bar,oauth.approvals");
+    }
+
+    private ClientDetailsModification createBaseClient(String id, String grantTypes, String authorities, String scopes) {
         if (id==null) {
             id = new RandomValueStringGenerator().generate();
         }
         if (grantTypes==null) {
             grantTypes = "client_credentials";
         }
-        ClientDetailsModification client = new ClientDetailsModification(id, "", "foo,bar,oauth.approvals", grantTypes, "uaa.none");
+        ClientDetailsModification client = new ClientDetailsModification(id, "", scopes, grantTypes, authorities);
         client.setClientSecret("secret");
         client.setAdditionalInformation(Collections.<String, Object> singletonMap("foo", Arrays.asList("bar")));
         return client;
