@@ -1,6 +1,9 @@
 package org.cloudfoundry.identity.uaa.mock.clients;
 
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -13,26 +16,29 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 
+import org.cloudfoundry.identity.uaa.audit.AuditEventType;
+import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.oauth.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.oauth.SecretChangeRequest;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
+import org.cloudfoundry.identity.uaa.oauth.event.ClientAdminEventPublisher;
 import org.cloudfoundry.identity.uaa.rest.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ScimGroupEndpoints;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints;
-import org.cloudfoundry.identity.uaa.scim.endpoints.UserIdConversionEndpoints;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.oauth2.client.test.TestAccounts;
@@ -62,6 +68,8 @@ public class ClientAdminEndpointsMockMvcTests {
     private String adminUserToken = null;
     private ScimUserEndpoints scimUserEndpoints = null;
     private ScimGroupEndpoints scimGroupEndpoints = null;
+    private ApplicationEventPublisher applicationEventPublisher = null;
+    private ArgumentCaptor<AbstractUaaEvent> captor = null;
 
     @Before
     public void setUp() throws Exception {
@@ -86,11 +94,16 @@ public class ClientAdminEndpointsMockMvcTests {
                         "client_credentials",
                         "clients.read clients.write clients.secret");
 
-        setupAdminUserToken();
+        applicationEventPublisher = mock(ApplicationEventPublisher.class);
+        ClientAdminEventPublisher eventPublisher = (ClientAdminEventPublisher)webApplicationContext.getBean("clientAdminEventPublisher");
+        eventPublisher.setApplicationEventPublisher(applicationEventPublisher);
+        captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
+
+
     }
 
     private void setupAdminUserToken() throws Exception {
-        HttpServletResponse mockResponse = Mockito.mock(HttpServletResponse.class);
+        HttpServletResponse mockResponse = mock(HttpServletResponse.class);
 
 
         SearchResults<Map<String, Object>> marissa = (SearchResults<Map<String, Object>>)scimUserEndpoints.findUsers("id,userName", "userName eq '" + testAccounts.getUserName() + "'", "userName", "asc", 0, 1);
@@ -139,17 +152,25 @@ public class ClientAdminEndpointsMockMvcTests {
     @Test
     public void testCreateClient() throws Exception {
         createClient(adminToken, new RandomValueStringGenerator().generate(), "client_credentials");
+        verify(applicationEventPublisher, times(1)).publishEvent(captor.capture());
+        assertEquals(AuditEventType.ClientCreateSuccess, captor.getValue().getAuditEvent().getType());
     }
 
     @Test
     public void testCreateClientAsAdminUser() throws Exception {
+        setupAdminUserToken();
         createClient(adminUserToken, new RandomValueStringGenerator().generate(), "client_credentials");
+        verify(applicationEventPublisher, times(2)).publishEvent(captor.capture());
+        for (AbstractUaaEvent event : captor.getAllValues()) {
+            assertEquals(AuditEventType.ClientCreateSuccess, event.getAuditEvent().getType());
+        }
     }
 
 
     @Test
     public void testCreateClientsTxSuccess() throws Exception {
-        BaseClientDetails[] details = createBaseClients(5, null);
+        int count = 5;
+        BaseClientDetails[] details = createBaseClients(count, null);
         MockHttpServletRequestBuilder createClientPost = post("/oauth/clients/tx")
                 .header("Authorization", "Bearer " + adminToken)
                 .accept(APPLICATION_JSON)
@@ -162,6 +183,10 @@ public class ClientAdminEndpointsMockMvcTests {
             ClientDetails c = getClient(client.getClientId());
             assertNotNull(c);
             assertNull(c.getClientSecret());
+        }
+        verify(applicationEventPublisher, times(count)).publishEvent(captor.capture());
+        for (AbstractUaaEvent event : captor.getAllValues()) {
+            assertEquals(AuditEventType.ClientCreateSuccess, event.getAuditEvent().getType());
         }
     }
 
@@ -178,6 +203,7 @@ public class ClientAdminEndpointsMockMvcTests {
         for (ClientDetails client : details) {
             assertNull(getClient(client.getClientId()));
         }
+        verify(applicationEventPublisher, times(0)).publishEvent(captor.capture());
     }
 
     @Test
@@ -194,11 +220,13 @@ public class ClientAdminEndpointsMockMvcTests {
         for (ClientDetails client : details) {
             assertNull(getClient(client.getClientId()));
         }
+        verify(applicationEventPublisher, times(0)).publishEvent(captor.capture());
     }
 
     @Test
     public void testUpdateClientsTxSuccess() throws Exception {
-        BaseClientDetails[] details = new BaseClientDetails[5];
+        int count = 5;
+        BaseClientDetails[] details = new BaseClientDetails[count];
         for (int i=0; i<details.length; i++) {
             details[i] = (BaseClientDetails)createClient(adminToken,null,null);
             details[i].setRefreshTokenValiditySeconds(120);
@@ -215,11 +243,23 @@ public class ClientAdminEndpointsMockMvcTests {
             assertNotNull(getClient(client.getClientId()));
             assertEquals(new Integer(120), client.getRefreshTokenValiditySeconds());
         }
+        //create and then update events
+        verify(applicationEventPublisher, times(count*2)).publishEvent(captor.capture());
+        int index = 0;
+        for (AbstractUaaEvent event : captor.getAllValues()) {
+            if (index<count) {
+                assertEquals(AuditEventType.ClientCreateSuccess, event.getAuditEvent().getType());
+            } else {
+                assertEquals(AuditEventType.ClientUpdateSuccess, event.getAuditEvent().getType());
+            }
+            index++;
+        }
     }
 
     @Test
     public void testUpdateClientsTxInvalidId() throws Exception {
-        BaseClientDetails[] details = new BaseClientDetails[5];
+        int count = 5;
+        BaseClientDetails[] details = new BaseClientDetails[count];
         for (int i=0; i<details.length; i++) {
             details[i] = (BaseClientDetails)createClient(adminToken,null,null);
             details[i].setRefreshTokenValiditySeconds(120);
@@ -241,11 +281,14 @@ public class ClientAdminEndpointsMockMvcTests {
             assertNull(c.getClientSecret());
             assertNull(c.getRefreshTokenValiditySeconds());
         }
+        //create and then update events
+        verify(applicationEventPublisher, times(count)).publishEvent(captor.capture());
     }
 
     @Test
     public void testDeleteClientsTxSuccess() throws Exception {
-        BaseClientDetails[] details = new BaseClientDetails[5];
+        int count = 5;
+        BaseClientDetails[] details = new BaseClientDetails[count];
         for (int i=0; i<details.length; i++) {
             details[i] = (BaseClientDetails)createClient(adminToken,null,null);
         }
@@ -259,11 +302,23 @@ public class ClientAdminEndpointsMockMvcTests {
         for (ClientDetails client : details) {
             assertNull(getClient(client.getClientId()));
         }
+        //create and then update events
+        verify(applicationEventPublisher, times(count*2)).publishEvent(captor.capture());
+        int index = 0;
+        for (AbstractUaaEvent event : captor.getAllValues()) {
+            if (index<count) {
+                assertEquals(AuditEventType.ClientCreateSuccess, event.getAuditEvent().getType());
+            } else {
+                assertEquals(AuditEventType.ClientDeleteSuccess, event.getAuditEvent().getType());
+            }
+            index++;
+        }
     }
 
     @Test
     public void testDeleteClientsTxRollbackInvalidId() throws Exception {
-        BaseClientDetails[] details = new BaseClientDetails[5];
+        int count = 5;
+        BaseClientDetails[] details = new BaseClientDetails[count];
         for (int i=0; i<details.length; i++) {
             details[i] = (BaseClientDetails)createClient(adminToken,null,null);
         }
@@ -284,21 +339,23 @@ public class ClientAdminEndpointsMockMvcTests {
             assertNull(c.getClientSecret());
             assertNull(c.getRefreshTokenValiditySeconds());
         }
+        verify(applicationEventPublisher, times(count)).publishEvent(captor.capture());
     }
 
     @Test
     public void testAddUpdateDeleteClientsTxSuccess() throws Exception {
-        ClientDetailsModification[] details = new ClientDetailsModification[15];
-        for (int i=0; i<5; i++) {
+        int count = 5;
+        ClientDetailsModification[] details = new ClientDetailsModification[count*3];
+        for (int i=0; i<count; i++) {
             details[i] = (ClientDetailsModification)createClient(adminToken,null,null);
             details[i].setRefreshTokenValiditySeconds(120);
             details[i].setAction(ClientDetailsModification.UPDATE);
         }
-        for (int i=5; i<10; i++) {
+        for (int i=count; i<(count*2); i++) {
             details[i] = (ClientDetailsModification)createClient(adminToken,null,null);
             details[i].setAction(ClientDetailsModification.DELETE);
         }
-        for (int i=10; i<15; i++) {
+        for (int i=(count*2); i<(count*3); i++) {
             details[i] = createBaseClient(null,null);
             details[i].setAction(ClientDetailsModification.ADD);
         }
@@ -312,21 +369,32 @@ public class ClientAdminEndpointsMockMvcTests {
         ResultActions result = mockMvc.perform(modifyClientsPost);
         result.andExpect(status().isOk());
 
-        for (int i=0; i<5; i++) {
+        for (int i=0; i<count; i++) {
             ClientDetails c = getClient(details[i].getClientId());
             assertNotNull(c);
             assertEquals(new Integer(120), c.getRefreshTokenValiditySeconds());
 
         }
-        for (int i=5; i<10; i++) {
+        for (int i=count; i<(count*2); i++) {
             ClientDetails c = getClient(details[i].getClientId());
             assertNull(c);
         }
-        for (int i=10; i<15; i++) {
+        for (int i=(count*2); i<(count*3); i++) {
             ClientDetails c = getClient(details[i].getClientId());
             assertNotNull(c);
             assertNull(c.getRefreshTokenValiditySeconds());
         }
+        //create and then update events
+        verify(applicationEventPublisher, times(count*5)).publishEvent(captor.capture());
+//        int index = 0;
+//        for (AbstractUaaEvent event : captor.getAllValues()) {
+//            if (index<count) {
+//                assertEquals(AuditEventType.ClientCreateSuccess, event.getAuditEvent().getType());
+//            } else {
+//                assertEquals(AuditEventType.ClientUpdateSuccess, event.getAuditEvent().getType());
+//            }
+//            index++;
+//        }
     }
 
     @Test
@@ -347,11 +415,11 @@ public class ClientAdminEndpointsMockMvcTests {
         }
         
         String userToken = testClient.getUserOAuthAccessToken(
-                        details[0].getClientId(), 
-                        "secret", 
-                        testAccounts.getUserName(), 
-                        testAccounts.getPassword(), 
-                        "oauth.approvals");
+                details[0].getClientId(),
+                "secret",
+                testAccounts.getUserName(),
+                testAccounts.getPassword(),
+                "oauth.approvals");
         Approval[] approvals = addApprovals(userToken, details[0].getClientId());
         approvals = getApprovals(userToken, details[0].getClientId());
         assertEquals(3, approvals.length);
@@ -391,11 +459,11 @@ public class ClientAdminEndpointsMockMvcTests {
     public void testApprovalsAreDeleted() throws Exception {
         ClientDetails details = createClient(adminToken, new RandomValueStringGenerator().generate(), "password");
         String userToken = testClient.getUserOAuthAccessToken(
-                            details.getClientId(), 
-                            "secret", 
-                            testAccounts.getUserName(), 
-                            testAccounts.getPassword(), 
-                            "oauth.approvals");
+                details.getClientId(),
+                "secret",
+                testAccounts.getUserName(),
+                testAccounts.getPassword(),
+                "oauth.approvals");
         Approval[] approvals = getApprovals(userToken, details.getClientId());
         assertEquals(0, approvals.length);
         addApprovals(userToken, details.getClientId());

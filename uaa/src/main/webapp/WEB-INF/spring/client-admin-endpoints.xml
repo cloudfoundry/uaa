@@ -85,7 +85,7 @@
             <aop:after-returning method="createTx"
                 pointcut="execution(* *..ClientAdminEndpoints+.createClientDetailsTx(..)) and bean(clientAdminEndpoints)" returning="clients" />
             <aop:after-returning method="updateTx"
-                pointcut="execution(* *..ClientAdminEndpoints+.updateClientDetails(..)) and bean(clientAdminEndpoints)" returning="clients" />
+                pointcut="execution(* *..ClientAdminEndpoints+.updateClientDetailsTx(..)) and bean(clientAdminEndpoints)" returning="clients" />
             <aop:after-returning method="deleteTx"
                 pointcut="execution(* *..ClientAdminEndpoints+.removeClientDetailsTx(..)) and bean(clientAdminEndpoints)" returning="clients" />
             <aop:after-returning method="modifyTx"
