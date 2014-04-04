@@ -59,9 +59,7 @@ public class DefaultSecurityContextAccessor implements SecurityContextAccessor {
     @Override
     public boolean isAdmin() {
         Authentication a = SecurityContextHolder.getContext().getAuthentication();
-        if (isClient()) {
-            return hasUaaAdminScope(a);
-        } else if (isUser() && (a instanceof OAuth2Authentication)) {
+        if (isUser() && (a instanceof OAuth2Authentication)) {
             OAuth2Authentication oa = (OAuth2Authentication)a;
             return a != null && OAuth2ExpressionUtils.hasAnyScope(oa,new String[] {"uaa.admin"});
         } else {
