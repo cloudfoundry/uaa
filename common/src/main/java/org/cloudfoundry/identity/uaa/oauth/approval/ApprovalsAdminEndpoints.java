@@ -41,12 +41,7 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
 
@@ -164,6 +159,24 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
             approvalStore.addApproval(approval);
         }
         return approvalStore.getApprovals(String.format(USER_FILTER_TEMPLATE, username));
+    }
+
+    @RequestMapping(value = "/approvals/{clientId}", method = RequestMethod.PUT)
+    @ResponseBody
+    public List<Approval> updateClientApprovals(@PathVariable String clientId, @RequestBody Approval[] approvals) {
+        String username = getCurrentUsername();
+        logger.debug("Updating approvals for user: " + username);
+        approvalStore.revokeApprovals(String.format(USER_AND_CLIENT_FILTER_TEMPLATE, username, clientId));
+        for (Approval approval : approvals) {
+            if (!isValidUser(approval.getUserName())) {
+                logger.warn(String.format("%s attemting to update approvals for %s", username, approval.getUserName()));
+                throw new UaaException("unauthorized_operation", "Cannot update approvals for another user",
+                        HttpStatus.UNAUTHORIZED.value());
+            }
+            approval.setLastUpdatedAt(new Date());
+            approvalStore.addApproval(approval);
+        }
+        return approvalStore.getApprovals(String.format(USER_AND_CLIENT_FILTER_TEMPLATE, username, clientId));
     }
 
     private boolean isValidUser(String username) {

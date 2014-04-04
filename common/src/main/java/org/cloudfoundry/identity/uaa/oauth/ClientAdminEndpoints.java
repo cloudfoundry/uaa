@@ -682,6 +682,9 @@ public class ClientAdminEndpoints implements InitializingBean {
             return auth.isAuthenticated();
         } catch (AuthenticationException e) {
             return false;
+        } catch (IllegalArgumentException e) {
+            //TODO bug https://www.pivotaltracker.com/story/show/68894754
+            return false;
         }
     }
 

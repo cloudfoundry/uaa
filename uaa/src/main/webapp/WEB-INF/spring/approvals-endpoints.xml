@@ -49,7 +49,7 @@
         <property name="clientDetailsService" ref="jdbcClientDetailsService" />
     </bean>
 
-    <http name="approvalsSecurity" pattern="/approvals" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
+    <http name="approvalsSecurity" pattern="/approvals/**" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
         entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
         xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="scope=oauth.approvals" />

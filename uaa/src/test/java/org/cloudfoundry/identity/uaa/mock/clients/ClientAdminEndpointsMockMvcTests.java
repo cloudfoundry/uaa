@@ -1,13 +1,12 @@
 package org.cloudfoundry.identity.uaa.mock.clients;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.Arrays;
@@ -16,6 +15,7 @@ import java.util.Date;
 
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.oauth.InvalidClientDetailsException;
+import org.cloudfoundry.identity.uaa.oauth.SecretChangeRequest;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
@@ -373,7 +373,203 @@ public class ClientAdminEndpointsMockMvcTests {
         approvals = getApprovals(userToken, details.getClientId());
         assertEquals(0, approvals.length);
     }
-    
+
+    @Test
+    public void testSecretChangeTxApprovalsNotDeleted() throws Exception {
+        //create clients
+        ClientDetailsModification[] clients = createBaseClients(3, "client_credentials,password");
+        for (ClientDetailsModification c : clients) {
+            c.setAction(c.ADD);
+        }
+        MockHttpServletRequestBuilder modifyClientsPost = post("/oauth/clients/tx/modify")
+                .header("Authorization", "Bearer " + adminToken)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(toString(clients));
+        ResultActions result = mockMvc.perform(modifyClientsPost);
+        result.andExpect(status().isOk());
+
+        //add approvals to the client
+        for (ClientDetailsModification c : clients) {
+            String userToken = testClient.getUserOAuthAccessToken(
+                    c.getClientId(),
+                    "secret",
+                    testAccounts.getUserName(),
+                    testAccounts.getPassword(),
+                    "oauth.approvals");
+            addApprovals(userToken, c.getClientId());
+        }
+
+        //verify approvals to the client
+        for (ClientDetailsModification c : clients) {
+            String userToken = testClient.getUserOAuthAccessToken(
+                    c.getClientId(),
+                    "secret",
+                    testAccounts.getUserName(),
+                    testAccounts.getPassword(),
+                    "oauth.approvals");
+            assertEquals(3, getApprovals(userToken,c.getClientId()).length);
+        }
+
+        //change the secret, and we know the old secret
+        SecretChangeRequest[] srs = new SecretChangeRequest[clients.length];
+        for (int i=0; i<srs.length; i++) {
+            srs[i] = new SecretChangeRequest();
+            srs[i].setClientId(clients[i].getClientId());
+            srs[i].setOldSecret(clients[i].getClientSecret());
+            srs[i].setSecret("secret2");
+        }
+        modifyClientsPost = post("/oauth/clients/tx/secret")
+                .header("Authorization", "Bearer " + adminToken)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(toString(srs));
+        result = mockMvc.perform(modifyClientsPost);
+        result.andExpect(status().isOk());
+
+        //check that we still have approvals for each client
+        for (ClientDetailsModification c : clients) {
+            String userToken = testClient.getUserOAuthAccessToken(
+                    c.getClientId(),
+                    "secret2",
+                    testAccounts.getUserName(),
+                    testAccounts.getPassword(),
+                    "oauth.approvals");
+            assertEquals(3, getApprovals(userToken,c.getClientId()).length);
+        }
+
+    }
+
+    @Test
+    public void testSecretChangeModifyTxApprovalsDeleted() throws Exception {
+        //create clients
+        ClientDetailsModification[] clients = createBaseClients(3, "client_credentials,password");
+        for (ClientDetailsModification c : clients) {
+            c.setAction(c.ADD);
+        }
+        MockHttpServletRequestBuilder modifyClientsPost = post("/oauth/clients/tx/modify")
+                .header("Authorization", "Bearer " + adminToken)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(toString(clients));
+        ResultActions result = mockMvc.perform(modifyClientsPost);
+        result.andExpect(status().isOk());
+
+        clients = (ClientDetailsModification[])arrayFromString(result.andReturn().getResponse().getContentAsString(), ClientDetailsModification[].class);
+
+        //add approvals to the client
+        for (ClientDetailsModification c : clients) {
+            String userToken = testClient.getUserOAuthAccessToken(
+                    c.getClientId(),
+                    "secret",
+                    testAccounts.getUserName(),
+                    testAccounts.getPassword(),
+                    "oauth.approvals");
+            addApprovals(userToken, c.getClientId());
+        }
+
+        //verify approvals to the client
+        for (ClientDetailsModification c : clients) {
+            String userToken = testClient.getUserOAuthAccessToken(
+                    c.getClientId(),
+                    "secret",
+                    testAccounts.getUserName(),
+                    testAccounts.getPassword(),
+                    "oauth.approvals");
+            assertEquals(3, getApprovals(userToken,c.getClientId()).length);
+        }
+
+        //change the secret, and we know don't the old secret
+        for (ClientDetailsModification c : clients) {
+            c.setClientSecret("secret2");
+            c.setAction(c.UPDATE_SECRET);
+        }
+        modifyClientsPost = post("/oauth/clients/tx/modify")
+                .header("Authorization", "Bearer " + adminToken)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(toString(clients));
+        result = mockMvc.perform(modifyClientsPost);
+        result.andExpect(status().isOk());
+
+        //check that we still have approvals for each client
+        for (ClientDetailsModification c : clients) {
+            String userToken = testClient.getUserOAuthAccessToken(
+                    c.getClientId(),
+                    "secret2",
+                    testAccounts.getUserName(),
+                    testAccounts.getPassword(),
+                    "oauth.approvals");
+            assertEquals(0, getApprovals(userToken,c.getClientId()).length);
+        }
+    }
+
+    @Test
+    public void testSecretChangeModifyTxApprovalsNotDeleted() throws Exception {
+        //create clients
+        ClientDetailsModification[] clients = createBaseClients(3, "client_credentials,password");
+        for (ClientDetailsModification c : clients) {
+            c.setAction(c.ADD);
+        }
+        MockHttpServletRequestBuilder modifyClientsPost = post("/oauth/clients/tx/modify")
+                .header("Authorization", "Bearer " + adminToken)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(toString(clients));
+        ResultActions result = mockMvc.perform(modifyClientsPost);
+        result.andExpect(status().isOk());
+
+        clients = (ClientDetailsModification[])arrayFromString(result.andReturn().getResponse().getContentAsString(), ClientDetailsModification[].class);
+
+        //add approvals to the client
+        for (ClientDetailsModification c : clients) {
+            String userToken = testClient.getUserOAuthAccessToken(
+                    c.getClientId(),
+                    "secret",
+                    testAccounts.getUserName(),
+                    testAccounts.getPassword(),
+                    "oauth.approvals");
+            addApprovals(userToken, c.getClientId());
+        }
+
+        //verify approvals to the client
+        for (ClientDetailsModification c : clients) {
+            String userToken = testClient.getUserOAuthAccessToken(
+                    c.getClientId(),
+                    "secret",
+                    testAccounts.getUserName(),
+                    testAccounts.getPassword(),
+                    "oauth.approvals");
+            assertEquals(3, getApprovals(userToken,c.getClientId()).length);
+        }
+
+        //change the secret, and we know don't the old secret
+        for (ClientDetailsModification c : clients) {
+            c.setClientSecret("secret");
+            c.setAction(c.UPDATE_SECRET);
+        }
+        modifyClientsPost = post("/oauth/clients/tx/modify")
+                .header("Authorization", "Bearer " + adminToken)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(toString(clients));
+        result = mockMvc.perform(modifyClientsPost);
+        result.andExpect(status().isOk());
+
+        clients = (ClientDetailsModification[])arrayFromString(result.andReturn().getResponse().getContentAsString(), ClientDetailsModification[].class);
+
+        //check that we still have approvals for each client
+        for (ClientDetailsModification c : clients) {
+            assertFalse(c.isApprovalsDeleted());
+            String userToken = testClient.getUserOAuthAccessToken(
+                    c.getClientId(),
+                    "secret",
+                    testAccounts.getUserName(),
+                    testAccounts.getPassword(),
+                    "oauth.approvals");
+            assertEquals(3, getApprovals(userToken,c.getClientId()).length);
+        }
+    }
 
     private Approval[] getApprovals(String token, String clientId) throws Exception {
         String filter = "clientId eq '"+clientId+"'";
@@ -397,7 +593,7 @@ public class ClientAdminEndpointsMockMvcTests {
             new Approval(testAccounts.getUserName(), clientId, "openid", expiresAt, ApprovalStatus.APPROVED,oneMinuteAgo),
             new Approval(testAccounts.getUserName(), clientId, "password.write", expiresAt, ApprovalStatus.APPROVED,oneMinuteAgo)};
         
-        MockHttpServletRequestBuilder put = put("/approvals")
+        MockHttpServletRequestBuilder put = put("/approvals/"+clientId)
             .header("Authorization", "Bearer " + token)
             .accept(APPLICATION_JSON)
             .contentType(APPLICATION_JSON)
