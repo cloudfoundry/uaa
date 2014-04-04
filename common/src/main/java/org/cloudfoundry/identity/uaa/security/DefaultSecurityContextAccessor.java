@@ -22,6 +22,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.security.oauth2.provider.expression.OAuth2ExpressionUtils;
 
 /**
  * @author Luke Taylor
@@ -58,7 +59,18 @@ public class DefaultSecurityContextAccessor implements SecurityContextAccessor {
     @Override
     public boolean isAdmin() {
         Authentication a = SecurityContextHolder.getContext().getAuthentication();
-        return a != null && AuthorityUtils.authorityListToSet(a.getAuthorities()).contains("uaa.admin");
+        if (isClient()) {
+            return a != null && AuthorityUtils.authorityListToSet(a.getAuthorities()).contains("uaa.admin");
+        } else if (isUser()) {
+            if (a instanceof OAuth2Authentication) {
+                OAuth2Authentication oa = (OAuth2Authentication)a;
+                return a != null && OAuth2ExpressionUtils.hasAnyScope(oa,new String[] {"uaa.admin"});
+            } else {
+                return a != null && AuthorityUtils.authorityListToSet(a.getAuthorities()).contains("uaa.admin");
+            }
+        } else {
+            return false;
+        }
     }
 
     @Override
