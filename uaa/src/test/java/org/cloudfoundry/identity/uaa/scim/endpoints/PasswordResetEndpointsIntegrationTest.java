@@ -93,7 +93,7 @@ public class PasswordResetEndpointsIntegrationTest {
         MockHttpServletRequestBuilder post = post("/password_change")
                 .header("Authorization", "Bearer " + loginToken)
                 .contentType(APPLICATION_JSON)
-                .content("{\"username\":\"marissa\",\"old_password\":\"koala\",\"new_password\":\"new_secret\"}")
+                .content("{\"username\":\"marissa\",\"current_password\":\"koala\",\"new_password\":\"new_secret\"}")
                 .accept(APPLICATION_JSON);
 
         mockMvc.perform(post)

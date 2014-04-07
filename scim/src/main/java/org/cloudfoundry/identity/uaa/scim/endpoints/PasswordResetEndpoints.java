@@ -68,11 +68,11 @@ public class PasswordResetEndpoints {
     }
 
     private boolean isUsernamePasswordAuthenticatedChange(PasswordChange passwordChange) {
-        return passwordChange.getUsername() != null && passwordChange.getOldPassword() != null && passwordChange.getCode() == null;
+        return passwordChange.getUsername() != null && passwordChange.getCurrentPassword() != null && passwordChange.getCode() == null;
     }
 
     private boolean isCodeAuthenticatedChange(PasswordChange passwordChange) {
-        return passwordChange.getCode() != null && passwordChange.getOldPassword() == null && passwordChange.getUsername() == null;
+        return passwordChange.getCode() != null && passwordChange.getCurrentPassword() == null && passwordChange.getUsername() == null;
     }
 
     private ResponseEntity<String> changePasswordUsernamePasswordAuthenticated(PasswordChange passwordChange) {
@@ -80,7 +80,7 @@ public class PasswordResetEndpoints {
         if (results.isEmpty()) {
             return new ResponseEntity<String>(BAD_REQUEST);
         }
-        String oldPassword = passwordChange.getOldPassword();
+        String oldPassword = passwordChange.getCurrentPassword();
         ScimUser user = results.get(0);
         if (!scimUserProvisioning.changePassword(user.getId(), oldPassword, passwordChange.getNewPassword())) {
             return new ResponseEntity<String>(INTERNAL_SERVER_ERROR);
@@ -108,8 +108,8 @@ public class PasswordResetEndpoints {
         @JsonProperty("code")
         private String code;
 
-        @JsonProperty("old_password")
-        private String oldPassword;
+        @JsonProperty("current_password")
+        private String currentPassword;
 
         @JsonProperty("new_password")
         private String newPassword;
@@ -130,12 +130,12 @@ public class PasswordResetEndpoints {
             this.code = code;
         }
 
-        public String getOldPassword() {
-            return oldPassword;
+        public String getCurrentPassword() {
+            return currentPassword;
         }
 
-        public void setOldPassword(String oldPassword) {
-            this.oldPassword = oldPassword;
+        public void setCurrentPassword(String currentPassword) {
+            this.currentPassword = currentPassword;
         }
 
         public String getNewPassword() {

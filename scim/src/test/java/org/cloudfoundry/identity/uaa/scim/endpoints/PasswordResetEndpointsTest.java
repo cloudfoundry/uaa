@@ -113,7 +113,7 @@ public class PasswordResetEndpointsTest {
 
         MockHttpServletRequestBuilder post = post("/password_change")
                 .contentType(APPLICATION_JSON)
-                .content("{\"username\":\"userman\",\"old_password\":\"secret\",\"new_password\":\"new_secret\"}")
+                .content("{\"username\":\"userman\",\"current_password\":\"secret\",\"new_password\":\"new_secret\"}")
                 .accept(APPLICATION_JSON);
 
         mockMvc.perform(post)
@@ -125,7 +125,7 @@ public class PasswordResetEndpointsTest {
     public void testChangingAPasswordWithABadRequest() throws Exception {
         MockHttpServletRequestBuilder post = post("/password_change")
                 .contentType(APPLICATION_JSON)
-                .content("{\"code\":\"emailed_code\",\"username\":\"userman\",\"old_password\":\"secret\",\"new_password\":\"new_secret\"}")
+                .content("{\"code\":\"emailed_code\",\"username\":\"userman\",\"current_password\":\"secret\",\"new_password\":\"new_secret\"}")
                 .accept(APPLICATION_JSON);
 
         mockMvc.perform(post)
