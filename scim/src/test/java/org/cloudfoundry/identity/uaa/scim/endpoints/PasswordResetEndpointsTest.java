@@ -101,4 +101,34 @@ public class PasswordResetEndpointsTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string("userman"));
     }
+
+    @Test
+    public void testChangingAPasswordWithAUsernameAndPassword() throws Exception {
+        ScimUser user = new ScimUser("id001", "userman", null, null);
+        user.addEmail("user@example.com");
+        Mockito.when(scimUserProvisioning.query("userName eq 'userman'"))
+                .thenReturn(Arrays.asList(user));
+
+        Mockito.when(scimUserProvisioning.changePassword("id001", "secret", "new_secret")).thenReturn(true);
+
+        MockHttpServletRequestBuilder post = post("/password_change")
+                .contentType(APPLICATION_JSON)
+                .content("{\"username\":\"userman\",\"old_password\":\"secret\",\"new_password\":\"new_secret\"}")
+                .accept(APPLICATION_JSON);
+
+        mockMvc.perform(post)
+                .andExpect(status().isOk())
+                .andExpect(content().string("userman"));
+    }
+
+    @Test
+    public void testChangingAPasswordWithABadRequest() throws Exception {
+        MockHttpServletRequestBuilder post = post("/password_change")
+                .contentType(APPLICATION_JSON)
+                .content("{\"code\":\"emailed_code\",\"username\":\"userman\",\"old_password\":\"secret\",\"new_password\":\"new_secret\"}")
+                .accept(APPLICATION_JSON);
+
+        mockMvc.perform(post)
+                .andExpect(status().isBadRequest());
+    }
 }

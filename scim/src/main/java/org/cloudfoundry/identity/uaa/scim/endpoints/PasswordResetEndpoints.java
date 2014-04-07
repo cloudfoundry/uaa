@@ -56,27 +56,71 @@ public class PasswordResetEndpoints {
 
     @RequestMapping(value = "/password_change", method = RequestMethod.POST)
     public ResponseEntity<String> changePassword(@RequestBody PasswordChange passwordChange) {
+        ResponseEntity<String> responseEntity;
+        if (isCodeAuthenticatedChange(passwordChange)) {
+            responseEntity = changePasswordCodeAuthenticated(passwordChange);
+        } else if (isUsernamePasswordAuthenticatedChange(passwordChange)) {
+            responseEntity = changePasswordUsernamePasswordAuthenticated(passwordChange);
+        } else {
+            responseEntity = new ResponseEntity<String>(BAD_REQUEST);
+        }
+        return responseEntity;
+    }
 
+    private boolean isUsernamePasswordAuthenticatedChange(PasswordChange passwordChange) {
+        return passwordChange.getUsername() != null && passwordChange.getOldPassword() != null && passwordChange.getCode() == null;
+    }
+
+    private boolean isCodeAuthenticatedChange(PasswordChange passwordChange) {
+        return passwordChange.getCode() != null && passwordChange.getOldPassword() == null && passwordChange.getUsername() == null;
+    }
+
+    private ResponseEntity<String> changePasswordUsernamePasswordAuthenticated(PasswordChange passwordChange) {
+        List<ScimUser> results = scimUserProvisioning.query("userName eq '" + passwordChange.getUsername() + "'");
+        if (results.isEmpty()) {
+            return new ResponseEntity<String>(BAD_REQUEST);
+        }
+        String oldPassword = passwordChange.getOldPassword();
+        ScimUser user = results.get(0);
+        if (!scimUserProvisioning.changePassword(user.getId(), oldPassword, passwordChange.getNewPassword())) {
+            return new ResponseEntity<String>(INTERNAL_SERVER_ERROR);
+        }
+        return new ResponseEntity<String>(user.getUserName(), OK);
+    }
+
+    private ResponseEntity<String> changePasswordCodeAuthenticated(PasswordChange passwordChange) {
         ExpiringCode expiringCode = expiringCodeStore.retrieveCode(passwordChange.getCode());
         if (expiringCode == null) {
             return new ResponseEntity<String>(BAD_REQUEST);
         }
         String userId = expiringCode.getData();
-        String newPassword = passwordChange.getNewPassword();
-        if (!scimUserProvisioning.changePassword(userId, null, newPassword)) {
+        if (!scimUserProvisioning.changePassword(userId, null, passwordChange.getNewPassword())) {
             return new ResponseEntity<String>(INTERNAL_SERVER_ERROR);
         }
-
         ScimUser user = scimUserProvisioning.retrieve(userId);
         return new ResponseEntity<String>(user.getUserName(), OK);
     }
 
     private static class PasswordChange {
+        @JsonProperty("username")
+        private String username;
+
         @JsonProperty("code")
         private String code;
 
+        @JsonProperty("old_password")
+        private String oldPassword;
+
         @JsonProperty("new_password")
         private String newPassword;
+
+        public String getUsername() {
+            return username;
+        }
+
+        public void setUsername(String username) {
+            this.username = username;
+        }
 
         public String getCode() {
             return code;
@@ -84,6 +128,14 @@ public class PasswordResetEndpoints {
 
         public void setCode(String code) {
             this.code = code;
+        }
+
+        public String getOldPassword() {
+            return oldPassword;
+        }
+
+        public void setOldPassword(String oldPassword) {
+            this.oldPassword = oldPassword;
         }
 
         public String getNewPassword() {
