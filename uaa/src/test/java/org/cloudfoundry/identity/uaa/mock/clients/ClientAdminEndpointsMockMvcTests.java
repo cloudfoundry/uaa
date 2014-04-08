@@ -390,20 +390,20 @@ public class ClientAdminEndpointsMockMvcTests {
             int swit = index / count;
             switch (swit) {
                 case 0 :
-                case 1 :{
+                case 1 :
+                case 4 : {
+                    //1-10 and 21-25 events are create
                     assertEquals(AuditEventType.ClientCreateSuccess, event.getAuditEvent().getType());
                     break;
                 }
                 case 2 : {
+                    //the 11-15 events are update
                     assertEquals(AuditEventType.ClientUpdateSuccess, event.getAuditEvent().getType());
                     break;
                 }
                 case 3 : {
+                    //the 16-20 events are deletes
                     assertEquals(AuditEventType.ClientDeleteSuccess, event.getAuditEvent().getType());
-                    break;
-                }
-                case 4 : {
-                    assertEquals(AuditEventType.ClientCreateSuccess, event.getAuditEvent().getType());
                     break;
                 }
             }
@@ -594,8 +594,9 @@ public class ClientAdminEndpointsMockMvcTests {
 
     @Test
     public void testSecretChangeModifyTxApprovalsDeleted() throws Exception {
+        int count = 3;
         //create clients
-        ClientDetailsModification[] clients = createBaseClients(3, "client_credentials,password");
+        ClientDetailsModification[] clients = createBaseClients(count, "client_credentials,password");
         for (ClientDetailsModification c : clients) {
             c.setAction(c.ADD);
         }
@@ -655,6 +656,26 @@ public class ClientAdminEndpointsMockMvcTests {
                     "oauth.approvals");
             assertEquals(0, getApprovals(userToken,c.getClientId()).length);
             assertTrue(c.isApprovalsDeleted());
+        }
+
+        //verify(applicationEventPublisher, times(count*3)).publishEvent(captor.capture());
+        verify(applicationEventPublisher, times(12)).publishEvent(captor.capture());
+        int index = 0;
+        for (AbstractUaaEvent event : captor.getAllValues()) {
+            if (index<count) {
+                assertEquals(AuditEventType.ClientCreateSuccess, event.getAuditEvent().getType());
+            } else {
+                int swit = index % 3;
+                if (swit==0) {
+                    assertEquals(AuditEventType.ClientUpdateSuccess, event.getAuditEvent().getType());
+                } else if (swit==1) {
+                    assertEquals(AuditEventType.SecretChangeSuccess, event.getAuditEvent().getType());
+                } else {
+                    assertEquals(AuditEventType.ClientApprovalsDeleted, event.getAuditEvent().getType());
+                }
+            }
+
+            index++;
         }
     }
 
