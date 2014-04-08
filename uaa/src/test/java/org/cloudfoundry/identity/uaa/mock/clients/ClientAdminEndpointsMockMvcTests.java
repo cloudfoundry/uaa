@@ -384,17 +384,31 @@ public class ClientAdminEndpointsMockMvcTests {
             assertNotNull(c);
             assertNull(c.getRefreshTokenValiditySeconds());
         }
-        //create and then update events
         verify(applicationEventPublisher, times(count*5)).publishEvent(captor.capture());
-//        int index = 0;
-//        for (AbstractUaaEvent event : captor.getAllValues()) {
-//            if (index<count) {
-//                assertEquals(AuditEventType.ClientCreateSuccess, event.getAuditEvent().getType());
-//            } else {
-//                assertEquals(AuditEventType.ClientUpdateSuccess, event.getAuditEvent().getType());
-//            }
-//            index++;
-//        }
+        int index = 0;
+        for (AbstractUaaEvent event : captor.getAllValues()) {
+            int swit = index / count;
+            switch (swit) {
+                case 0 :
+                case 1 :{
+                    assertEquals(AuditEventType.ClientCreateSuccess, event.getAuditEvent().getType());
+                    break;
+                }
+                case 2 : {
+                    assertEquals(AuditEventType.ClientUpdateSuccess, event.getAuditEvent().getType());
+                    break;
+                }
+                case 3 : {
+                    assertEquals(AuditEventType.ClientDeleteSuccess, event.getAuditEvent().getType());
+                    break;
+                }
+                case 4 : {
+                    assertEquals(AuditEventType.ClientCreateSuccess, event.getAuditEvent().getType());
+                    break;
+                }
+            }
+            index++;
+        }
     }
 
     @Test
@@ -469,16 +483,19 @@ public class ClientAdminEndpointsMockMvcTests {
         addApprovals(userToken, details.getClientId());
         approvals = getApprovals(userToken, details.getClientId());
         assertEquals(3, approvals.length);
-        
+
         MockHttpServletRequestBuilder deleteClientsPost = post("/oauth/clients/tx/delete")
-                        .header("Authorization", "Bearer " + adminToken)
-                        .accept(APPLICATION_JSON)
-                        .contentType(APPLICATION_JSON)
-                        .content(toString(new ClientDetails[] {details}));
+                .header("Authorization", "Bearer " + adminToken)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(toString(new ClientDetails[]{details}));
         ResultActions result = mockMvc.perform(deleteClientsPost);
         result.andExpect(status().isOk());
         approvals = getApprovals(userToken, details.getClientId());
         assertEquals(0, approvals.length);
+        ClientDetailsModification[] deleted = (ClientDetailsModification[]) arrayFromString(result.andReturn().getResponse().getContentAsString(), ClientDetailsModification[].class);
+        assertTrue(deleted[0].isApprovalsDeleted());
+        verify(applicationEventPublisher, times(2)).publishEvent(captor.capture());
     }
     
     @Test
@@ -507,8 +524,9 @@ public class ClientAdminEndpointsMockMvcTests {
 
     @Test
     public void testSecretChangeTxApprovalsNotDeleted() throws Exception {
+        int count = 3;
         //create clients
-        ClientDetailsModification[] clients = createBaseClients(3, "client_credentials,password");
+        ClientDetailsModification[] clients = createBaseClients(count, "client_credentials,password");
         for (ClientDetailsModification c : clients) {
             c.setAction(c.ADD);
         }
@@ -558,6 +576,8 @@ public class ClientAdminEndpointsMockMvcTests {
         result = mockMvc.perform(modifyClientsPost);
         result.andExpect(status().isOk());
 
+        clients = (ClientDetailsModification[])arrayFromString(result.andReturn().getResponse().getContentAsString(), ClientDetailsModification[].class);
+
         //check that we still have approvals for each client
         for (ClientDetailsModification c : clients) {
             String userToken = testClient.getUserOAuthAccessToken(
@@ -567,6 +587,7 @@ public class ClientAdminEndpointsMockMvcTests {
                     testAccounts.getPassword(),
                     "oauth.approvals");
             assertEquals(3, getApprovals(userToken,c.getClientId()).length);
+            assertFalse(c.isApprovalsDeleted());
         }
 
     }
@@ -622,8 +643,9 @@ public class ClientAdminEndpointsMockMvcTests {
                 .content(toString(clients));
         result = mockMvc.perform(modifyClientsPost);
         result.andExpect(status().isOk());
+        clients = (ClientDetailsModification[])arrayFromString(result.andReturn().getResponse().getContentAsString(), ClientDetailsModification[].class);
 
-        //check that we still have approvals for each client
+        //check that we deleted approvals for each client
         for (ClientDetailsModification c : clients) {
             String userToken = testClient.getUserOAuthAccessToken(
                     c.getClientId(),
@@ -632,6 +654,7 @@ public class ClientAdminEndpointsMockMvcTests {
                     testAccounts.getPassword(),
                     "oauth.approvals");
             assertEquals(0, getApprovals(userToken,c.getClientId()).length);
+            assertTrue(c.isApprovalsDeleted());
         }
     }
 

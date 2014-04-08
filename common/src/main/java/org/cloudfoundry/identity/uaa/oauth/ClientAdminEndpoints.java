@@ -330,8 +330,9 @@ public class ClientAdminEndpoints implements InitializingBean {
             } else if (ClientDetailsModification.UPDATE.equals(details[i].getAction())) {
                 result[i] = updateClientNotSecret(details[i]);
             } else if (ClientDetailsModification.UPDATE_SECRET.equals(details[i].getAction())) {
-                updateClientSecret(details[i]);
+                boolean approvalsDeleted = updateClientSecret(details[i]);
                 result[i] = updateClientNotSecret(details[i]);
+                result[i].setApprovalsDeleted(approvalsDeleted);
             } else if (ClientDetailsModification.SECRET.equals(details[i].getAction())) {
                 updateClientSecret(details[i]);
                 result[i] = details[i];
@@ -352,13 +353,14 @@ public class ClientAdminEndpoints implements InitializingBean {
         return result;
     }
 
-    private void updateClientSecret(ClientDetailsModification detail) {
+    private boolean updateClientSecret(ClientDetailsModification detail) {
         boolean deleteApprovals = !(authenticateClient(detail.getClientId(), detail.getClientSecret()));
         if (deleteApprovals) {
             clientRegistrationService.updateClientSecret(detail.getClientId(), detail.getClientSecret());
             deleteApprovals(detail.getClientId());
             detail.setApprovalsDeleted(true);
         }
+        return deleteApprovals;
     }
 
 
@@ -391,14 +393,16 @@ public class ClientAdminEndpoints implements InitializingBean {
 
 
     protected ClientDetails[] doProcessDeletes(ClientDetails[] details) {
+        ClientDetailsModification[] result = new ClientDetailsModification[details.length];
         for (int i=0; i<details.length; i++) {
             String clientId = details[i].getClientId();
             clientRegistrationService.removeClientDetails(clientId);
             deleteApprovals(clientId);
             clientDeletes.incrementAndGet();
-            details[i] = removeSecret(details[i]);
+            result[i] = removeSecret(details[i]);
+            result[i].setApprovalsDeleted(true);
         }
-        return details;
+        return result;
     }
 
     private void deleteApprovals(String clientId) {
