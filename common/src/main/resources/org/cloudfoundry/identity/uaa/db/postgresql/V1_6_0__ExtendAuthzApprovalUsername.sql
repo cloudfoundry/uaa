@@ -1,0 +1,1 @@
+ALTER TABLE authz_approvals ALTER COLUMN username TYPE VARCHAR(255);
