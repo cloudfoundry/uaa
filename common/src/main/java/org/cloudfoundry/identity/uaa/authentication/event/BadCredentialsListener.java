@@ -1,15 +1,15 @@
-/*
- * Cloud Foundry 2012.02.03 Beta
- * Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved.
+/*******************************************************************************
+ *     Cloud Foundry 
+ *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
- * This product is licensed to you under the Apache License, Version 2.0 (the "License").
- * You may not use this product except in compliance with the License.
+ *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *     You may not use this product except in compliance with the License.
  *
- * This product includes a number of subcomponents with
- * separate copyright notices and license terms. Your use of these
- * subcomponents is subject to the terms and conditions of the
- * subcomponent's license, as noted in the LICENSE file.
- */
+ *     This product includes a number of subcomponents with
+ *     separate copyright notices and license terms. Your use of these
+ *     subcomponents is subject to the terms and conditions of the
+ *     subcomponent's license, as noted in the LICENSE file.
+ *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication.event;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
@@ -20,31 +20,32 @@ import org.springframework.security.authentication.event.AuthenticationFailureBa
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 /**
- * Spring {@code ApplicationListener} which picks up the listens for Spring Security events and relays them.
+ * Spring {@code ApplicationListener} which picks up the listens for Spring
+ * Security events and relays them.
  * 
  * @author Dave Syer
  */
 public class BadCredentialsListener implements ApplicationListener<AuthenticationFailureBadCredentialsEvent>,
-		ApplicationEventPublisherAware {
+                ApplicationEventPublisherAware {
 
-	private ApplicationEventPublisher publisher;
+    private ApplicationEventPublisher publisher;
 
-	@Override
-	public void setApplicationEventPublisher(ApplicationEventPublisher publisher) {
-		this.publisher = publisher;
-	}
+    @Override
+    public void setApplicationEventPublisher(ApplicationEventPublisher publisher) {
+        this.publisher = publisher;
+    }
 
-	@Override
-	public void onApplicationEvent(AuthenticationFailureBadCredentialsEvent event) {
-		AuthenticationFailureBadCredentialsEvent bce = (AuthenticationFailureBadCredentialsEvent) event;
-		String principal = bce.getAuthentication().getName();
-		UaaAuthenticationDetails details = (UaaAuthenticationDetails) bce.getAuthentication().getDetails();
-		if (bce.getException() instanceof UsernameNotFoundException) {
-			publisher.publishEvent(new PrincipalNotFoundEvent(principal, details));
-		}
-		else {
-			publisher.publishEvent(new PrincipalAuthenticationFailureEvent(principal, details));
-		}
-	}
+    @Override
+    public void onApplicationEvent(AuthenticationFailureBadCredentialsEvent event) {
+        AuthenticationFailureBadCredentialsEvent bce = event;
+        String principal = bce.getAuthentication().getName();
+        UaaAuthenticationDetails details = (UaaAuthenticationDetails) bce.getAuthentication().getDetails();
+        if (bce.getException() instanceof UsernameNotFoundException) {
+            publisher.publishEvent(new PrincipalNotFoundEvent(principal, details));
+        }
+        else {
+            publisher.publishEvent(new PrincipalAuthenticationFailureEvent(principal, details));
+        }
+    }
 
 }

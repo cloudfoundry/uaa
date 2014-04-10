@@ -1,15 +1,15 @@
-/*
- * Cloud Foundry 2012.02.03 Beta
- * Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved.
+/*******************************************************************************
+ *     Cloud Foundry 
+ *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
- * This product is licensed to you under the Apache License, Version 2.0 (the "License").
- * You may not use this product except in compliance with the License.
+ *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *     You may not use this product except in compliance with the License.
  *
- * This product includes a number of subcomponents with
- * separate copyright notices and license terms. Your use of these
- * subcomponents is subject to the terms and conditions of the
- * subcomponent's license, as noted in the LICENSE file.
- */
+ *     This product includes a number of subcomponents with
+ *     separate copyright notices and license terms. Your use of these
+ *     subcomponents is subject to the terms and conditions of the
+ *     subcomponent's license, as noted in the LICENSE file.
+ *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration;
 
 import static org.junit.Assert.assertEquals;
@@ -44,94 +44,94 @@ import org.springframework.util.MultiValueMap;
 @RunWith(Parameterized.class)
 public class AuthorizationCodeGrantIntegrationTests {
 
-	@Rule
-	public ServerRunning serverRunning = ServerRunning.isRunning();
+    @Rule
+    public ServerRunning serverRunning = ServerRunning.isRunning();
 
-	private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
+    private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
 
-	@Rule
-	public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
+    @Rule
+    public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
 
-	@Parameters
-	public static List<Object[]> parameters() {
-		// Make it run twice to test cached approvals
-		return Arrays.asList(new Object[0], new Object[0]);
-	}
+    @Parameters
+    public static List<Object[]> parameters() {
+        // Make it run twice to test cached approvals
+        return Arrays.asList(new Object[0], new Object[0]);
+    }
 
-	@Test
-	public void testSuccessfulAuthorizationCodeFlow() throws Exception {
+    @Test
+    public void testSuccessfulAuthorizationCodeFlow() throws Exception {
 
-		HttpHeaders headers = new HttpHeaders();
-		// TODO: should be able to handle just TEXT_HTML
-		headers.setAccept(Arrays.asList(MediaType.TEXT_HTML, MediaType.ALL));
+        HttpHeaders headers = new HttpHeaders();
+        // TODO: should be able to handle just TEXT_HTML
+        headers.setAccept(Arrays.asList(MediaType.TEXT_HTML, MediaType.ALL));
 
-		AuthorizationCodeResourceDetails resource = testAccounts.getDefaultAuthorizationCodeResource();
+        AuthorizationCodeResourceDetails resource = testAccounts.getDefaultAuthorizationCodeResource();
 
-		URI uri = serverRunning.buildUri("/oauth/authorize").queryParam("response_type", "code")
-				.queryParam("state", "mystateid").queryParam("client_id", resource.getClientId())
-				.queryParam("redirect_uri", resource.getPreEstablishedRedirectUri()).build();
-		ResponseEntity<Void> result = serverRunning.getForResponse(uri.toString(), headers);
-		assertEquals(HttpStatus.FOUND, result.getStatusCode());
-		String location = result.getHeaders().getLocation().toString();
+        URI uri = serverRunning.buildUri("/oauth/authorize").queryParam("response_type", "code")
+                        .queryParam("state", "mystateid").queryParam("client_id", resource.getClientId())
+                        .queryParam("redirect_uri", resource.getPreEstablishedRedirectUri()).build();
+        ResponseEntity<Void> result = serverRunning.getForResponse(uri.toString(), headers);
+        assertEquals(HttpStatus.FOUND, result.getStatusCode());
+        String location = result.getHeaders().getLocation().toString();
 
-		if (result.getHeaders().containsKey("Set-Cookie")) {
-			String cookie = result.getHeaders().getFirst("Set-Cookie");
-			headers.set("Cookie", cookie);
-		}
+        if (result.getHeaders().containsKey("Set-Cookie")) {
+            String cookie = result.getHeaders().getFirst("Set-Cookie");
+            headers.set("Cookie", cookie);
+        }
 
-		ResponseEntity<String> response = serverRunning.getForString(location, headers);
-		// should be directed to the login screen...
-		assertTrue(response.getBody().contains("/login.do"));
-		assertTrue(response.getBody().contains("username"));
-		assertTrue(response.getBody().contains("password"));
+        ResponseEntity<String> response = serverRunning.getForString(location, headers);
+        // should be directed to the login screen...
+        assertTrue(response.getBody().contains("/login.do"));
+        assertTrue(response.getBody().contains("username"));
+        assertTrue(response.getBody().contains("password"));
 
-		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
-		formData.add("username", testAccounts.getUserName());
-		formData.add("password", testAccounts.getPassword());
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+        formData.add("username", testAccounts.getUserName());
+        formData.add("password", testAccounts.getPassword());
 
-		// Should be redirected to the original URL, but now authenticated
-		result = serverRunning.postForResponse("/login.do", headers, formData);
-		assertEquals(HttpStatus.FOUND, result.getStatusCode());
+        // Should be redirected to the original URL, but now authenticated
+        result = serverRunning.postForResponse("/login.do", headers, formData);
+        assertEquals(HttpStatus.FOUND, result.getStatusCode());
 
-		if (result.getHeaders().containsKey("Set-Cookie")) {
-			String cookie = result.getHeaders().getFirst("Set-Cookie");
-			headers.set("Cookie", cookie);
-		}
+        if (result.getHeaders().containsKey("Set-Cookie")) {
+            String cookie = result.getHeaders().getFirst("Set-Cookie");
+            headers.set("Cookie", cookie);
+        }
 
-		response = serverRunning.getForString(result.getHeaders().getLocation().toString(), headers);
-		if (response.getStatusCode() == HttpStatus.OK) {
-			// The grant access page should be returned
-			assertTrue(response.getBody().contains("Do you authorize"));
+        response = serverRunning.getForString(result.getHeaders().getLocation().toString(), headers);
+        if (response.getStatusCode() == HttpStatus.OK) {
+            // The grant access page should be returned
+            assertTrue(response.getBody().contains("Do you authorize"));
 
-			formData.clear();
-			formData.add("user_oauth_approval", "true");
-			result = serverRunning.postForResponse("/oauth/authorize", headers, formData);
-			assertEquals(HttpStatus.FOUND, result.getStatusCode());
-			location = result.getHeaders().getLocation().toString();
-		}
-		else {
-			// Token cached so no need for second approval
-			assertEquals(HttpStatus.FOUND, response.getStatusCode());
-			location = response.getHeaders().getLocation().toString();
-		}
-		assertTrue("Wrong location: " + location,
-				location.matches(resource.getPreEstablishedRedirectUri() + ".*code=.+"));
+            formData.clear();
+            formData.add("user_oauth_approval", "true");
+            result = serverRunning.postForResponse("/oauth/authorize", headers, formData);
+            assertEquals(HttpStatus.FOUND, result.getStatusCode());
+            location = result.getHeaders().getLocation().toString();
+        }
+        else {
+            // Token cached so no need for second approval
+            assertEquals(HttpStatus.FOUND, response.getStatusCode());
+            location = response.getHeaders().getLocation().toString();
+        }
+        assertTrue("Wrong location: " + location,
+                        location.matches(resource.getPreEstablishedRedirectUri() + ".*code=.+"));
 
-		formData.clear();
-		formData.add("client_id", resource.getClientId());
-		formData.add("redirect_uri", resource.getPreEstablishedRedirectUri());
-		formData.add("grant_type", "authorization_code");
-		formData.add("code", location.split("code=")[1].split("&")[0]);
-		HttpHeaders tokenHeaders = new HttpHeaders();
-		tokenHeaders.set("Authorization",
-				testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
-		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> tokenResponse = serverRunning.postForMap("/oauth/token", formData, tokenHeaders);
-		assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
-		@SuppressWarnings("unchecked")
-		Map<String, String> body = tokenResponse.getBody();
-		Jwt token = JwtHelper.decode(body.get("access_token"));
-		assertTrue("Wrong claims: " + token.getClaims(), token.getClaims().contains("\"aud\""));
-		assertTrue("Wrong claims: " + token.getClaims(), token.getClaims().contains("\"user_id\""));
-	}
+        formData.clear();
+        formData.add("client_id", resource.getClientId());
+        formData.add("redirect_uri", resource.getPreEstablishedRedirectUri());
+        formData.add("grant_type", "authorization_code");
+        formData.add("code", location.split("code=")[1].split("&")[0]);
+        HttpHeaders tokenHeaders = new HttpHeaders();
+        tokenHeaders.set("Authorization",
+                        testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> tokenResponse = serverRunning.postForMap("/oauth/token", formData, tokenHeaders);
+        assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
+        @SuppressWarnings("unchecked")
+        Map<String, String> body = tokenResponse.getBody();
+        Jwt token = JwtHelper.decode(body.get("access_token"));
+        assertTrue("Wrong claims: " + token.getClaims(), token.getClaims().contains("\"aud\""));
+        assertTrue("Wrong claims: " + token.getClaims(), token.getClaims().contains("\"user_id\""));
+    }
 }

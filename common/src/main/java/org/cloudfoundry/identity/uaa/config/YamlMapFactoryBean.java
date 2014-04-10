@@ -1,15 +1,15 @@
-/*
- * Cloud Foundry 2012.02.03 Beta
- * Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved.
+/*******************************************************************************
+ *     Cloud Foundry 
+ *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
- * This product is licensed to you under the Apache License, Version 2.0 (the "License").
- * You may not use this product except in compliance with the License.
+ *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *     You may not use this product except in compliance with the License.
  *
- * This product includes a number of subcomponents with
- * separate copyright notices and license terms. Your use of these
- * subcomponents is subject to the terms and conditions of the
- * subcomponent's license, as noted in the LICENSE file.
- */
+ *     This product includes a number of subcomponents with
+ *     separate copyright notices and license terms. Your use of these
+ *     subcomponents is subject to the terms and conditions of the
+ *     subcomponent's license, as noted in the LICENSE file.
+ *******************************************************************************/
 package org.cloudfoundry.identity.uaa.config;
 
 import java.util.LinkedHashMap;
@@ -20,10 +20,14 @@ import java.util.Properties;
 import org.springframework.beans.factory.FactoryBean;
 
 /**
- * Factory for Map that reads from a YAML source. YAML is a nice human-readable format for configuration, and it has
- * some useful hierarchical properties. It's more or less a superset of JSON, so it has a lot of similar features. If
- * multiple resources are provided the later ones will override entries in the earlier ones hierarchically - that is all
- * entries with the same nested key of type Map at any depth are merged. For example:
+ * Factory for Map that reads from a YAML source. YAML is a nice human-readable
+ * format for configuration, and it has
+ * some useful hierarchical properties. It's more or less a superset of JSON, so
+ * it has a lot of similar features. If
+ * multiple resources are provided the later ones will override entries in the
+ * earlier ones hierarchically - that is all
+ * entries with the same nested key of type Map at any depth are merged. For
+ * example:
  * 
  * <pre>
  * foo:
@@ -61,53 +65,53 @@ import org.springframework.beans.factory.FactoryBean;
  */
 public class YamlMapFactoryBean extends YamlProcessor implements FactoryBean<Map<String, Object>> {
 
-	private Map<String, Object> instance;
+    private Map<String, Object> instance;
 
-	@Override
-	public Map<String, Object> getObject() {
-		if (instance==null) {
-			instance  = doGetObject();
-		}
-		return instance;
-	}
+    @Override
+    public Map<String, Object> getObject() {
+        if (instance == null) {
+            instance = doGetObject();
+        }
+        return instance;
+    }
 
-	private Map<String, Object> doGetObject() {
-		final Map<String, Object> result = new LinkedHashMap<String, Object>();
-		MatchCallback callback = new MatchCallback() {
-			@Override
-			public void process(Properties properties, Map<String, Object> map) {
-				merge(result, map);
-			}
-		};
-		process(callback);
-		return result;
-	}
+    private Map<String, Object> doGetObject() {
+        final Map<String, Object> result = new LinkedHashMap<String, Object>();
+        MatchCallback callback = new MatchCallback() {
+            @Override
+            public void process(Properties properties, Map<String, Object> map) {
+                merge(result, map);
+            }
+        };
+        process(callback);
+        return result;
+    }
 
-	@SuppressWarnings({ "unchecked", "rawtypes" })
-	private void merge(Map<String, Object> output, Map<String, Object> map) {
-		for (Entry<String, Object> entry : map.entrySet()) {
-			String key = entry.getKey();
-			Object value = entry.getValue();
-			Object existing = output.get(key);
-			if (value instanceof Map && existing instanceof Map) {
-				Map<String, Object> result = new LinkedHashMap<String, Object>((Map) existing);
-				merge(result, (Map) value);
-				output.put(key, result);
-			}
-			else {
-				output.put(key, value);
-			}
-		}
-	}
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    private void merge(Map<String, Object> output, Map<String, Object> map) {
+        for (Entry<String, Object> entry : map.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
+            Object existing = output.get(key);
+            if (value instanceof Map && existing instanceof Map) {
+                Map<String, Object> result = new LinkedHashMap<String, Object>((Map) existing);
+                merge(result, (Map) value);
+                output.put(key, result);
+            }
+            else {
+                output.put(key, value);
+            }
+        }
+    }
 
-	@Override
-	public Class<?> getObjectType() {
-		return Map.class;
-	}
+    @Override
+    public Class<?> getObjectType() {
+        return Map.class;
+    }
 
-	@Override
-	public boolean isSingleton() {
-		return true;
-	}
+    @Override
+    public boolean isSingleton() {
+        return true;
+    }
 
 }

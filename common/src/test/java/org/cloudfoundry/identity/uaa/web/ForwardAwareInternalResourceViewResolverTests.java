@@ -1,15 +1,15 @@
-/*
- * Cloud Foundry 2012.02.03 Beta
- * Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved.
+/*******************************************************************************
+ *     Cloud Foundry 
+ *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
- * This product is licensed to you under the Apache License, Version 2.0 (the "License").
- * You may not use this product except in compliance with the License.
+ *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *     You may not use this product except in compliance with the License.
  *
- * This product includes a number of subcomponents with
- * separate copyright notices and license terms. Your use of these
- * subcomponents is subject to the terms and conditions of the
- * subcomponent's license, as noted in the LICENSE file.
- */
+ *     This product includes a number of subcomponents with
+ *     separate copyright notices and license terms. Your use of these
+ *     subcomponents is subject to the terms and conditions of the
+ *     subcomponent's license, as noted in the LICENSE file.
+ *******************************************************************************/
 
 package org.cloudfoundry.identity.uaa.web;
 
@@ -32,51 +32,51 @@ import org.springframework.web.servlet.View;
  * 
  */
 public class ForwardAwareInternalResourceViewResolverTests {
-	
-	private ForwardAwareInternalResourceViewResolver resolver = new ForwardAwareInternalResourceViewResolver();
 
-	private MockHttpServletRequest request = new MockHttpServletRequest();
-	
-	@Before
-	public void start() {
-		ServletRequestAttributes attributes = new ServletRequestAttributes(request );
-		LocaleContextHolder.setLocale(request.getLocale());
-		RequestContextHolder.setRequestAttributes(attributes);
-	}
+    private ForwardAwareInternalResourceViewResolver resolver = new ForwardAwareInternalResourceViewResolver();
 
-	@After
-	public void clean() {
-		RequestContextHolder.resetRequestAttributes();
-	}
+    private MockHttpServletRequest request = new MockHttpServletRequest();
 
-	@Test
-	public void testResolveNonForward() throws Exception {
-		resolver.setApplicationContext(new GenericApplicationContext());
-		View view = resolver.resolveViewName("foo", Locale.US);
-		assertNotNull(view);
-	}
+    @Before
+    public void start() {
+        ServletRequestAttributes attributes = new ServletRequestAttributes(request);
+        LocaleContextHolder.setLocale(request.getLocale());
+        RequestContextHolder.setRequestAttributes(attributes);
+    }
 
-	@Test
-	public void testResolveRedirect() throws Exception {
-		resolver.setApplicationContext(new GenericApplicationContext());
-		View view = resolver.resolveViewName("redirect:foo", Locale.US);
-		assertNotNull(view);
-	}
+    @After
+    public void clean() {
+        RequestContextHolder.resetRequestAttributes();
+    }
 
-	@Test
-	public void testResolveForwardWithAccept() throws Exception {
-		request.addHeader("Accept", "application/json");
-		resolver.setApplicationContext(new GenericApplicationContext());
-		View view = resolver.resolveViewName("forward:foo", Locale.US);
-		assertNotNull(view);
-	}
+    @Test
+    public void testResolveNonForward() throws Exception {
+        resolver.setApplicationContext(new GenericApplicationContext());
+        View view = resolver.resolveViewName("foo", Locale.US);
+        assertNotNull(view);
+    }
 
-	@Test
-	public void testResolveForwardWithUnparseableAccept() throws Exception {
-		request.addHeader("Accept", "bar");
-		resolver.setApplicationContext(new GenericApplicationContext());
-		View view = resolver.resolveViewName("forward:foo", Locale.US);
-		assertNotNull(view);
-	}
+    @Test
+    public void testResolveRedirect() throws Exception {
+        resolver.setApplicationContext(new GenericApplicationContext());
+        View view = resolver.resolveViewName("redirect:foo", Locale.US);
+        assertNotNull(view);
+    }
+
+    @Test
+    public void testResolveForwardWithAccept() throws Exception {
+        request.addHeader("Accept", "application/json");
+        resolver.setApplicationContext(new GenericApplicationContext());
+        View view = resolver.resolveViewName("forward:foo", Locale.US);
+        assertNotNull(view);
+    }
+
+    @Test
+    public void testResolveForwardWithUnparseableAccept() throws Exception {
+        request.addHeader("Accept", "bar");
+        resolver.setApplicationContext(new GenericApplicationContext());
+        View view = resolver.resolveViewName("forward:foo", Locale.US);
+        assertNotNull(view);
+    }
 
 }

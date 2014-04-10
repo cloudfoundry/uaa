@@ -1,165 +1,169 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!-- Cloud Foundry 2012.02.03 Beta Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved. This product is licensed to
-	you under the Apache License, Version 2.0 (the "License"). You may not use this product except in compliance with the License.
-	This product includes a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents
-	is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file. -->
-<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mvc="http://www.springframework.org/schema/mvc"
-	xmlns="http://www.springframework.org/schema/beans" xmlns:context="http://www.springframework.org/schema/context"
-	xmlns:sec="http://www.springframework.org/schema/security" xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
-	xmlns:util="http://www.springframework.org/schema/util"
-	xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-1.0.xsd
-		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-3.1.xsd
-		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.1.xsd
-		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
-		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.1.xsd
-		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+<!--
+    Cloud Foundry
+    Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+
+    This product is licensed to you under the Apache License, Version 2.0 (the "License").
+    You may not use this product except in compliance with the License.
+
+    This product includes a number of subcomponents with
+    separate copyright notices and license terms. Your use of these
+    subcomponents is subject to the terms and conditions of the
+    subcomponent's license, as noted in the LICENSE file.
+
+-->
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
+    xmlns:sec="http://www.springframework.org/schema/security" xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
+    xmlns:mvc="http://www.springframework.org/schema/mvc"
+    xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-1.0.xsd
+		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.2.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd">
 
     <bean class="org.cloudfoundry.identity.uaa.config.YamlConfigurationValidator">
         <constructor-arg>
-            <bean class="org.cloudfoundry.identity.uaa.UaaConfiguration.UaaConfigConstructor"/>
+            <bean class="org.cloudfoundry.identity.uaa.UaaConfiguration.UaaConfigConstructor" />
         </constructor-arg>
-        <property name="yaml" value="${environmentYamlKey}"/>
+        <property name="yaml" value="${environmentYamlKey}" />
     </bean>
 
-	<import resource="classpath:spring/data-source.xml" />
-	<import resource="classpath:spring/env.xml" />
-	<import resource="spring/audit.xml" />
+    <import resource="classpath:spring/data-source.xml" />
+    <import resource="classpath:spring/env.xml" />
+    <import resource="spring/audit.xml" />
 
-	<sec:http pattern="/resources/**" security="none" />
-	<sec:http pattern="/favicon.ico" security="none" />
-	<sec:http pattern="/info" security="none" />
-	<sec:http pattern="/password/**" security="none" />
-	<sec:http pattern="/healthz/**" security="none" />
+    <sec:http pattern="/resources/**" security="none" />
+    <sec:http pattern="/favicon.ico" security="none" />
+    <sec:http pattern="/info" security="none" />
+    <sec:http pattern="/password/**" security="none" />
+    <sec:http pattern="/healthz/**" security="none" />
 
-	<bean class="org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor">
-		<property name="requireHttps" value="${require_https:false}" />
-		<property name="dumpRequests" value="${dump_requests:false}" />
-		<property name="redirectToHttps">
-			<list><value>uiSecurity</value></list>
-		</property>
-	</bean>
+    <bean class="org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor">
+        <property name="requireHttps" value="${require_https:false}" />
+        <property name="dumpRequests" value="${dump_requests:false}" />
+        <property name="redirectToHttps">
+            <list>
+                <value>uiSecurity</value>
+            </list>
+        </property>
+    </bean>
 
-	<import resource="spring/oauth-clients.xml" />
-	<!-- The order of these imports is important because of Spring Security filter chain rules -->
-	<import resource="spring/oauth-endpoints.xml" />
-	<import resource="spring/login-server-security.xml" />
-	<import resource="spring/scim-endpoints.xml" />
-	<import resource="spring/approvals-endpoints.xml" />
-	<import resource="spring/client-admin-endpoints.xml" />
-	<import resource="spring/resource-endpoints.xml" />
-	<import resource="spring/openid-endpoints.xml" />
-	<import resource="spring/password-endpoints.xml" />
+    <import resource="spring/oauth-clients.xml" />
+    <!-- The order of these imports is important because of Spring Security filter chain rules -->
+    <import resource="spring/oauth-endpoints.xml" />
+    <import resource="spring/login-server-security.xml" />
+    <import resource="spring/scim-endpoints.xml" />
+    <import resource="spring/approvals-endpoints.xml" />
+    <import resource="spring/client-admin-endpoints.xml" />
+    <import resource="spring/resource-endpoints.xml" />
+    <import resource="spring/openid-endpoints.xml" />
+    <import resource="spring/password-endpoints.xml" />
 
     <bean id="messageSource" class="org.springframework.context.support.ResourceBundleMessageSource">
-      <property name="basename" value="messages" />
+        <property name="basename" value="messages" />
     </bean>
-  
-	<authentication-manager id="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security" />
 
-	<bean id="authenticationDetailsSource" class="org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetailsSource" />
+    <authentication-manager id="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security" />
 
-	<bean id="basicAuthenticationEntryPoint" class="org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint">
-		<property name="realmName" value="UAA/client" />
-		<property name="typeName" value="Basic" />
-	</bean>
+    <bean id="authenticationDetailsSource" class="org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetailsSource" />
 
-	<bean id="accessDecisionManager" class="org.springframework.security.access.vote.UnanimousBased">
-		<constructor-arg>
-			<list>
-				<bean class="org.springframework.security.oauth2.provider.vote.ScopeVoter">
-					<property name="scopePrefix" value="scope=" />
-				</bean>
-				<bean class="org.springframework.security.access.vote.RoleVoter" />
-				<bean class="org.springframework.security.access.vote.AuthenticatedVoter" />
-			</list>
-		</constructor-arg>
-	</bean>
+    <bean id="basicAuthenticationEntryPoint" class="org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint">
+        <property name="realmName" value="UAA/client" />
+        <property name="typeName" value="Basic" />
+    </bean>
 
-	<bean id="oauthAuthenticationEntryPoint" class="org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint">
-		<property name="realmName" value="UAA/oauth" />
-	</bean>
+    <bean id="accessDecisionManager" class="org.springframework.security.access.vote.UnanimousBased">
+        <constructor-arg>
+            <list>
+                <bean class="org.springframework.security.oauth2.provider.vote.ScopeVoter">
+                    <property name="scopePrefix" value="scope=" />
+                </bean>
+                <bean class="org.springframework.security.access.vote.RoleVoter" />
+                <bean class="org.springframework.security.access.vote.AuthenticatedVoter" />
+            </list>
+        </constructor-arg>
+    </bean>
 
-	<bean id="oauthAccessDeniedHandler" class="org.springframework.security.oauth2.provider.error.OAuth2AccessDeniedHandler" />
+    <bean id="oauthAuthenticationEntryPoint" class="org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint">
+        <property name="realmName" value="UAA/oauth" />
+    </bean>
 
-	<http name="uiSecurity" request-matcher-ref="uiRequestMatcher" access-denied-page="/" authentication-manager-ref="authzAuthenticationMgr"
-		xmlns="http://www.springframework.org/schema/security">
-		<intercept-url pattern="/login**" access="IS_AUTHENTICATED_ANONYMOUSLY" />
-		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
-		<form-login authentication-failure-url="/login?error=true" login-page="/login" login-processing-url="/login.do"
-			username-parameter="username" default-target-url="/" password-parameter="password" authentication-details-source-ref="authenticationDetailsSource" />
-		<logout logout-url="/logout.do" success-handler-ref="logoutHandler" />
-	</http>
+    <bean id="oauthAccessDeniedHandler" class="org.springframework.security.oauth2.provider.error.OAuth2AccessDeniedHandler" />
 
-	<!-- Deny-all "buffer" which a request will hit if it isn't matched by any of the other filter chains -->
-	<sec:http name="denyAll" use-expressions="true" create-session="stateless" entry-point-ref="http403EntryPoint"
-		authentication-manager-ref="emptyAuthenticationManager">
-		<sec:intercept-url pattern="/**" access="denyAll" />
-	</sec:http>
+    <http name="uiSecurity" request-matcher-ref="uiRequestMatcher" access-denied-page="/"
+        authentication-manager-ref="authzAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/login**" access="IS_AUTHENTICATED_ANONYMOUSLY" />
+        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+        <form-login authentication-failure-url="/login?error=true" login-page="/login" login-processing-url="/login.do"
+            username-parameter="username" default-target-url="/" password-parameter="password"
+            authentication-details-source-ref="authenticationDetailsSource" />
+        <logout logout-url="/logout.do" success-handler-ref="logoutHandler" />
+    </http>
 
-	<bean id="http403EntryPoint" class="org.springframework.security.web.authentication.Http403ForbiddenEntryPoint" />
+    <!-- Deny-all "buffer" which a request will hit if it isn't matched by any of the other filter chains -->
+    <sec:http name="denyAll" use-expressions="true" create-session="stateless" entry-point-ref="http403EntryPoint"
+        authentication-manager-ref="emptyAuthenticationManager">
+        <sec:intercept-url pattern="/**" access="denyAll" />
+    </sec:http>
 
-	<bean id="logoutHandler" class="org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler">
-		<property name="targetUrlParameter" value="redirect" />
-		<property name="defaultTargetUrl" value="/" />
-	</bean>
+    <bean id="http403EntryPoint" class="org.springframework.security.web.authentication.Http403ForbiddenEntryPoint" />
 
-	<bean id="uiRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.DelegatingRequestMatcher">
-		<constructor-arg>
-			<list>
-				<bean class="org.springframework.security.web.util.AntPathRequestMatcher">
-					<constructor-arg value="/" />
-				</bean>
-				<bean class="org.springframework.security.web.util.AntPathRequestMatcher">
-					<constructor-arg value="/spring_security_login" />
-				</bean>
-				<bean class="org.springframework.security.web.util.AntPathRequestMatcher">
-					<constructor-arg value="/oauth/**" />
-				</bean>
-				<bean class="org.springframework.security.web.util.AntPathRequestMatcher">
-					<constructor-arg value="/login**" />
-				</bean>
-				<bean class="org.springframework.security.web.util.AntPathRequestMatcher">
-					<constructor-arg value="/logout.do*" />
-				</bean>
-			</list>
-		</constructor-arg>
-	</bean>
+    <bean id="logoutHandler" class="org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler">
+        <property name="targetUrlParameter" value="redirect" />
+        <property name="defaultTargetUrl" value="/" />
+    </bean>
 
-	<bean id="bcryptPasswordEncoder" class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder" />
+    <bean id="uiRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.DelegatingRequestMatcher">
+        <constructor-arg>
+            <list>
+                <bean class="org.springframework.security.web.util.AntPathRequestMatcher">
+                    <constructor-arg value="/" />
+                </bean>
+                <bean class="org.springframework.security.web.util.AntPathRequestMatcher">
+                    <constructor-arg value="/spring_security_login" />
+                </bean>
+                <bean class="org.springframework.security.web.util.AntPathRequestMatcher">
+                    <constructor-arg value="/oauth/**" />
+                </bean>
+                <bean class="org.springframework.security.web.util.AntPathRequestMatcher">
+                    <constructor-arg value="/login**" />
+                </bean>
+                <bean class="org.springframework.security.web.util.AntPathRequestMatcher">
+                    <constructor-arg value="/logout.do*" />
+                </bean>
+            </list>
+        </constructor-arg>
+    </bean>
 
-	<oauth:web-expression-handler id="oauthWebExpressionHandler" />
+    <bean id="bcryptPasswordEncoder" class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder" />
 
-	<mvc:resources location="/" mapping="/**" />
+    <oauth:web-expression-handler id="oauthWebExpressionHandler" />
 
-	<mvc:annotation-driven/>
-	
-	<mvc:default-servlet-handler />
+    <mvc:resources location="/" mapping="/**" />
 
-	<bean id="viewResolver" class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
-		<property name="mediaTypes">
-			<map>
-				<entry key="json" value="application/json" />
-			</map>
-		</property>
-		<property name="viewResolvers">
-			<list>
-				<bean class="org.cloudfoundry.identity.uaa.web.ForwardAwareInternalResourceViewResolver">
-					<property name="prefix" value="/WEB-INF/jsp/" />
-					<property name="suffix" value=".jsp" />
-				</bean>
-				<bean class="org.springframework.web.servlet.view.BeanNameViewResolver" />
-			</list>
-		</property>
-		<property name="defaultViews">
-			<bean class="org.springframework.web.servlet.view.json.MappingJacksonJsonView">
-				<property name="extractValueFromSingleKeyModel" value="true" />
-			</bean>
-		</property>
-	</bean>
+    <mvc:annotation-driven />
 
-	<!--Basic application beans. -->
-	<bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.authentication.login.LoginInfoEndpoint" />
+    <mvc:default-servlet-handler />
 
-	<bean id="healthzEndpoint" class="org.cloudfoundry.identity.uaa.web.HealthzEndpoint" />
+    <bean id="viewResolver" class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
+        <property name="viewResolvers">
+            <list>
+                <bean class="org.cloudfoundry.identity.uaa.web.ForwardAwareInternalResourceViewResolver">
+                    <property name="prefix" value="/WEB-INF/jsp/" />
+                    <property name="suffix" value=".jsp" />
+                </bean>
+                <bean class="org.springframework.web.servlet.view.BeanNameViewResolver" />
+            </list>
+        </property>
+        <property name="defaultViews">
+            <bean class="org.springframework.web.servlet.view.json.MappingJacksonJsonView">
+                <property name="extractValueFromSingleKeyModel" value="true" />
+            </bean>
+        </property>
+    </bean>
+
+    <!--Basic application beans. -->
+    <bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.authentication.login.LoginInfoEndpoint" />
+
+    <bean id="healthzEndpoint" class="org.cloudfoundry.identity.uaa.web.HealthzEndpoint" />
 
 </beans>

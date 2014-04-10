@@ -1,6 +1,6 @@
 --
--- Cloud Foundry 2012.02.03 Beta
--- Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved.
+-- Cloud Foundry 
+-- Copyright (c) [2014] Pivotal Software, Inc. All Rights Reserved.
 --
 -- This product is licensed to you under the Apache License, Version 2.0 (the "License").
 -- You may not use this product except in compliance with the License.
@@ -10,8 +10,6 @@
 -- subcomponents is subject to the terms and conditions of the
 -- subcomponent's license, as noted in the LICENSE file.
 --
--- Creates tables and adds constraints and columns incrementally, so
--- it can be used to maintain the schema
 
 CREATE TABLE users (
    id char(36) not null primary key,

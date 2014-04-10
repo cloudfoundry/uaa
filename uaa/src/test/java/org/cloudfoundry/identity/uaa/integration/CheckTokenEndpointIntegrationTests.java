@@ -1,15 +1,15 @@
-/*
- * Cloud Foundry 2012.02.03 Beta
- * Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved.
+/*******************************************************************************
+ *     Cloud Foundry 
+ *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
- * This product is licensed to you under the Apache License, Version 2.0 (the "License").
- * You may not use this product except in compliance with the License.
+ *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *     You may not use this product except in compliance with the License.
  *
- * This product includes a number of subcomponents with
- * separate copyright notices and license terms. Your use of these
- * subcomponents is subject to the terms and conditions of the
- * subcomponent's license, as noted in the LICENSE file.
- */
+ *     This product includes a number of subcomponents with
+ *     separate copyright notices and license terms. Your use of these
+ *     subcomponents is subject to the terms and conditions of the
+ *     subcomponent's license, as noted in the LICENSE file.
+ *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration;
 
 import static org.junit.Assert.assertEquals;
@@ -20,22 +20,17 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.Map;
 
-import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
-import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Rule;
 import org.junit.Test;
-import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
 import org.springframework.security.oauth2.client.token.grant.code.AuthorizationCodeResourceDetails;
-import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordResourceDetails;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.util.LinkedMultiValueMap;
@@ -46,27 +41,27 @@ import org.springframework.util.MultiValueMap;
  */
 public class CheckTokenEndpointIntegrationTests {
 
-	@Rule
-	public ServerRunning serverRunning = ServerRunning.isRunning();
+    @Rule
+    public ServerRunning serverRunning = ServerRunning.isRunning();
 
-	private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
+    private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
 
-	@Rule
-	public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
+    @Rule
+    public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
 
-	@Test
-	public void testDecodeToken() throws Exception {
+    @Test
+    public void testDecodeToken() throws Exception {
 
-		//TODO Fix to use json API rather than HTML
-	    HttpHeaders headers = new HttpHeaders();
+        // TODO Fix to use json API rather than HTML
+        HttpHeaders headers = new HttpHeaders();
         // TODO: should be able to handle just TEXT_HTML
         headers.setAccept(Arrays.asList(MediaType.TEXT_HTML, MediaType.ALL));
 
         AuthorizationCodeResourceDetails resource = testAccounts.getDefaultAuthorizationCodeResource();
 
         URI uri = serverRunning.buildUri("/oauth/authorize").queryParam("response_type", "code")
-                .queryParam("state", "mystateid").queryParam("client_id", resource.getClientId())
-                .queryParam("redirect_uri", resource.getPreEstablishedRedirectUri()).build();
+                        .queryParam("state", "mystateid").queryParam("client_id", resource.getClientId())
+                        .queryParam("redirect_uri", resource.getPreEstablishedRedirectUri()).build();
         ResponseEntity<Void> result = serverRunning.getForResponse(uri.toString(), headers);
         assertEquals(HttpStatus.FOUND, result.getStatusCode());
         String location = result.getHeaders().getLocation().toString();
@@ -112,7 +107,7 @@ public class CheckTokenEndpointIntegrationTests {
             location = response.getHeaders().getLocation().toString();
         }
         assertTrue("Wrong location: " + location,
-                location.matches(resource.getPreEstablishedRedirectUri() + ".*code=.+"));
+                        location.matches(resource.getPreEstablishedRedirectUri() + ".*code=.+"));
 
         formData.clear();
         formData.add("client_id", resource.getClientId());
@@ -121,83 +116,86 @@ public class CheckTokenEndpointIntegrationTests {
         formData.add("code", location.split("code=")[1].split("&")[0]);
         HttpHeaders tokenHeaders = new HttpHeaders();
         tokenHeaders.set("Authorization",
-                testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
+                        testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> tokenResponse = serverRunning.postForMap("/oauth/token", formData, tokenHeaders);
         assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
-        
+
         @SuppressWarnings("unchecked")
         OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(tokenResponse.getBody());
 
-		formData = new LinkedMultiValueMap<String, String>();
-		headers.set("Authorization", testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
-		formData.add("token", accessToken.getValue());
+        formData = new LinkedMultiValueMap<String, String>();
+        headers.set("Authorization",
+                        testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
+        formData.add("token", accessToken.getValue());
 
-		tokenResponse = serverRunning.postForMap("/check_token", formData, headers);
-		assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
-		System.err.println(tokenResponse.getBody());
+        tokenResponse = serverRunning.postForMap("/check_token", formData, headers);
+        assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
+        System.err.println(tokenResponse.getBody());
 
-		@SuppressWarnings("unchecked")
-		Map<String, String> map = tokenResponse.getBody();
-		assertEquals(testAccounts.getUserName(), map.get("user_name"));
-		assertEquals(testAccounts.getEmail(), map.get("email"));
+        @SuppressWarnings("unchecked")
+        Map<String, String> map = tokenResponse.getBody();
+        assertEquals(testAccounts.getUserName(), map.get("user_name"));
+        assertEquals(testAccounts.getEmail(), map.get("email"));
 
-	}
+    }
 
-	@Test
-	public void testTokenKey() throws Exception {
+    @Test
+    public void testTokenKey() throws Exception {
 
-		HttpHeaders headers = new HttpHeaders();
-		ClientCredentialsResourceDetails resource = testAccounts.getClientCredentialsResource("app", null, "app", "appclientsecret");
-		headers.set("Authorization", testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
-		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        HttpHeaders headers = new HttpHeaders();
+        ClientCredentialsResourceDetails resource = testAccounts.getClientCredentialsResource("app", null, "app",
+                        "appclientsecret");
+        headers.set("Authorization",
+                        testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
+        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
 
-		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = serverRunning.getForObject("/token_key", Map.class, headers);
-		assertEquals(HttpStatus.OK, response.getStatusCode());
-		@SuppressWarnings("unchecked")
-		Map<String, String> map = response.getBody();
-		// System.err.println(map);
-		assertNotNull(map.get("alg"));
-		assertNotNull(map.get("value"));
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> response = serverRunning.getForObject("/token_key", Map.class, headers);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        @SuppressWarnings("unchecked")
+        Map<String, String> map = response.getBody();
+        // System.err.println(map);
+        assertNotNull(map.get("alg"));
+        assertNotNull(map.get("value"));
 
-	}
+    }
 
-	@Test
-	public void testUnauthorized() throws Exception {
+    @Test
+    public void testUnauthorized() throws Exception {
 
-		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
-		formData.add("token", "FOO");
-		HttpHeaders headers = new HttpHeaders();
-		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+        formData.add("token", "FOO");
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
 
-		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = serverRunning.postForMap("/check_token", formData, headers);
-		assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> response = serverRunning.postForMap("/check_token", formData, headers);
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
 
-		@SuppressWarnings("unchecked")
-		Map<String, String> map = response.getBody();
-		assertTrue(map.containsKey("error"));
+        @SuppressWarnings("unchecked")
+        Map<String, String> map = response.getBody();
+        assertTrue(map.containsKey("error"));
 
-	}
+    }
 
-	@Test
-	public void testForbidden() throws Exception {
+    @Test
+    public void testForbidden() throws Exception {
 
-		MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
-		formData.add("token", "FOO");
-		HttpHeaders headers = new HttpHeaders();
-		headers.set("Authorization", "Basic " + new String(Base64.encode("vmc:".getBytes("UTF-8"))));
-		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+        formData.add("token", "FOO");
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Basic " + new String(Base64.encode("vmc:".getBytes("UTF-8"))));
+        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
 
-		@SuppressWarnings("rawtypes")
-		ResponseEntity<Map> response = serverRunning.postForMap("/check_token", formData, headers);
-		assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> response = serverRunning.postForMap("/check_token", formData, headers);
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
 
-		@SuppressWarnings("unchecked")
-		Map<String, String> map = response.getBody();
-		assertTrue(map.containsKey("error"));
+        @SuppressWarnings("unchecked")
+        Map<String, String> map = response.getBody();
+        assertTrue(map.containsKey("error"));
 
-	}
+    }
 
 }

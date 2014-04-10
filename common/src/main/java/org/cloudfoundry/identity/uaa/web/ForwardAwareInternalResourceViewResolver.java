@@ -1,15 +1,15 @@
-/*
- * Cloud Foundry 2012.02.03 Beta
- * Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved.
+/*******************************************************************************
+ *     Cloud Foundry 
+ *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
- * This product is licensed to you under the Apache License, Version 2.0 (the "License").
- * You may not use this product except in compliance with the License.
+ *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *     You may not use this product except in compliance with the License.
  *
- * This product includes a number of subcomponents with
- * separate copyright notices and license terms. Your use of these
- * subcomponents is subject to the terms and conditions of the
- * subcomponent's license, as noted in the LICENSE file.
- */
+ *     This product includes a number of subcomponents with
+ *     separate copyright notices and license terms. Your use of these
+ *     subcomponents is subject to the terms and conditions of the
+ *     subcomponent's license, as noted in the LICENSE file.
+ *******************************************************************************/
 
 package org.cloudfoundry.identity.uaa.web;
 
@@ -34,50 +34,49 @@ import org.springframework.web.servlet.view.InternalResourceViewResolver;
  */
 public class ForwardAwareInternalResourceViewResolver extends InternalResourceViewResolver {
 
-	private static final String ACCEPT_HEADER = "Accept";
-	
-	@Override
-	protected Object getCacheKey(String viewName, Locale locale) {
-		return super.getCacheKey(viewName + ";" + getRequestedMediaType(), locale);
-	}
+    private static final String ACCEPT_HEADER = "Accept";
 
-	@Override
-	protected View createView(String viewName, Locale locale) throws Exception {
-		View view = super.createView(viewName, locale);
-		if (viewName.startsWith(FORWARD_URL_PREFIX) || viewName.startsWith(REDIRECT_URL_PREFIX)) {
-			if (view instanceof AbstractView) {
-				MediaType requestedMediaType = getRequestedMediaType();
-				if (requestedMediaType != null) {
-					((AbstractView) view).setContentType(requestedMediaType.toString());
-				}
-			}
-		}
-		return view;
-	}
+    @Override
+    protected Object getCacheKey(String viewName, Locale locale) {
+        return super.getCacheKey(viewName + ";" + getRequestedMediaType(), locale);
+    }
 
-	private MediaType getRequestedMediaType() {
-		RequestAttributes attrs = RequestContextHolder.getRequestAttributes();
-		Assert.isInstanceOf(ServletRequestAttributes.class, attrs);
-		HttpServletRequest request = ((ServletRequestAttributes) attrs).getRequest();
-		MediaType requestedMediaType = getMediaTypes(request);
-		return requestedMediaType;
-	}
+    @Override
+    protected View createView(String viewName, Locale locale) throws Exception {
+        View view = super.createView(viewName, locale);
+        if (viewName.startsWith(FORWARD_URL_PREFIX) || viewName.startsWith(REDIRECT_URL_PREFIX)) {
+            if (view instanceof AbstractView) {
+                MediaType requestedMediaType = getRequestedMediaType();
+                if (requestedMediaType != null) {
+                    ((AbstractView) view).setContentType(requestedMediaType.toString());
+                }
+            }
+        }
+        return view;
+    }
 
-	private MediaType getMediaTypes(HttpServletRequest request) {
-		String acceptHeader = request.getHeader(ACCEPT_HEADER);
-		if (StringUtils.hasText(acceptHeader)) {
-			try {
-				List<MediaType> acceptableMediaTypes = MediaType.parseMediaTypes(acceptHeader);
-				return acceptableMediaTypes.isEmpty() ? null : acceptableMediaTypes.get(0);
-			}
-			catch (IllegalArgumentException ex) {
-				if (logger.isDebugEnabled()) {
-					logger.debug("Could not parse accept header [" + acceptHeader + "]: " + ex.getMessage());
-				}
-				return null;
-			}
-		}
-		return null;
-	}
+    private MediaType getRequestedMediaType() {
+        RequestAttributes attrs = RequestContextHolder.getRequestAttributes();
+        Assert.isInstanceOf(ServletRequestAttributes.class, attrs);
+        HttpServletRequest request = ((ServletRequestAttributes) attrs).getRequest();
+        MediaType requestedMediaType = getMediaTypes(request);
+        return requestedMediaType;
+    }
+
+    private MediaType getMediaTypes(HttpServletRequest request) {
+        String acceptHeader = request.getHeader(ACCEPT_HEADER);
+        if (StringUtils.hasText(acceptHeader)) {
+            try {
+                List<MediaType> acceptableMediaTypes = MediaType.parseMediaTypes(acceptHeader);
+                return acceptableMediaTypes.isEmpty() ? null : acceptableMediaTypes.get(0);
+            } catch (IllegalArgumentException ex) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Could not parse accept header [" + acceptHeader + "]: " + ex.getMessage());
+                }
+                return null;
+            }
+        }
+        return null;
+    }
 
 }

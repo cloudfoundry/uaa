@@ -1,15 +1,15 @@
-/*
- * Cloud Foundry 2012.02.03 Beta
- * Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved.
+/*******************************************************************************
+ *     Cloud Foundry 
+ *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
- * This product is licensed to you under the Apache License, Version 2.0 (the "License").
- * You may not use this product except in compliance with the License.
+ *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *     You may not use this product except in compliance with the License.
  *
- * This product includes a number of subcomponents with
- * separate copyright notices and license terms. Your use of these
- * subcomponents is subject to the terms and conditions of the
- * subcomponent's license, as noted in the LICENSE file.
- */
+ *     This product includes a number of subcomponents with
+ *     separate copyright notices and license terms. Your use of these
+ *     subcomponents is subject to the terms and conditions of the
+ *     subcomponent's license, as noted in the LICENSE file.
+ *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
 import static org.junit.Assert.assertEquals;
@@ -40,141 +40,148 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
 /**
  * @author Dave Syer
  * @author Joel D'sa
- *
+ * 
  */
 public class CheckTokenEndpointTests {
 
-	private CheckTokenEndpoint endpoint = new CheckTokenEndpoint();
+    private CheckTokenEndpoint endpoint = new CheckTokenEndpoint();
 
-	private OAuth2Authentication authentication;
+    private OAuth2Authentication authentication;
 
-	private int expiresIn =  60 * 60 * 12;
+    private int expiresIn = 60 * 60 * 12;
 
-	private OAuth2AccessToken accessToken = null;
+    private OAuth2AccessToken accessToken = null;
 
-	private UaaTokenServices tokenServices = new UaaTokenServices();
+    private UaaTokenServices tokenServices = new UaaTokenServices();
 
-	private InMemoryClientDetailsService clientDetailsService = new InMemoryClientDetailsService();
+    private InMemoryClientDetailsService clientDetailsService = new InMemoryClientDetailsService();
 
-	private ApprovalStore approvalStore = new InMemoryApprovalStore();
+    private ApprovalStore approvalStore = new InMemoryApprovalStore();
 
-	public CheckTokenEndpointTests() {
-		authentication = new OAuth2Authentication(new DefaultAuthorizationRequest("client", Collections.singleton("read")),
-				UaaAuthenticationTestFactory.getAuthentication("12345", "olds", "olds@vmware.com"));
+    public CheckTokenEndpointTests() {
+        authentication = new OAuth2Authentication(new DefaultAuthorizationRequest("client",
+                        Collections.singleton("read")),
+                        UaaAuthenticationTestFactory.getAuthentication("12345", "olds", "olds@vmware.com"));
 
-		SignerProvider signerProvider = new SignerProvider();
-		signerProvider.setSigningKey("abc");
-		signerProvider.setVerifierKey("abc");
-		tokenServices.setSignerProvider(signerProvider);
-		endpoint.setTokenServices(tokenServices);
-		Date oneSecondAgo = new Date(System.currentTimeMillis() - 1000);
-		Date thirtySecondsAhead = new Date(System.currentTimeMillis() + 30000);
-		UaaUserDatabase userDatabase = new MockUaaUserDatabase("12345", "olds", "olds@vmware.com", null, null, oneSecondAgo, oneSecondAgo);
-		tokenServices.setUserDatabase(userDatabase);
+        SignerProvider signerProvider = new SignerProvider();
+        signerProvider.setSigningKey("abc");
+        signerProvider.setVerifierKey("abc");
+        tokenServices.setSignerProvider(signerProvider);
+        endpoint.setTokenServices(tokenServices);
+        Date oneSecondAgo = new Date(System.currentTimeMillis() - 1000);
+        Date thirtySecondsAhead = new Date(System.currentTimeMillis() + 30000);
+        UaaUserDatabase userDatabase = new MockUaaUserDatabase("12345", "olds", "olds@vmware.com", null, null,
+                        oneSecondAgo, oneSecondAgo);
+        tokenServices.setUserDatabase(userDatabase);
 
-		approvalStore.addApproval(new Approval("olds", "client", "read", thirtySecondsAhead, ApprovalStatus.APPROVED,
-				oneSecondAgo));
-		approvalStore.addApproval(new Approval("olds", "client", "write", thirtySecondsAhead, ApprovalStatus.APPROVED,
-				oneSecondAgo));
-		tokenServices.setApprovalStore(approvalStore);
+        approvalStore.addApproval(new Approval("olds", "client", "read", thirtySecondsAhead, ApprovalStatus.APPROVED,
+                        oneSecondAgo));
+        approvalStore.addApproval(new Approval("olds", "client", "write", thirtySecondsAhead, ApprovalStatus.APPROVED,
+                        oneSecondAgo));
+        tokenServices.setApprovalStore(approvalStore);
 
-		Map<String, ? extends ClientDetails> clientDetailsStore = Collections.singletonMap("client", new BaseClientDetails("client", "scim, cc","read, write", "authorization_code, password", "scim.read, scim.write", "http://localhost:8080/uaa"));
-		clientDetailsService.setClientDetailsStore(clientDetailsStore);
-		tokenServices.setClientDetailsService(clientDetailsService);
+        Map<String, ? extends ClientDetails> clientDetailsStore = Collections.singletonMap("client",
+                        new BaseClientDetails("client", "scim, cc", "read, write", "authorization_code, password",
+                                        "scim.read, scim.write", "http://localhost:8080/uaa"));
+        clientDetailsService.setClientDetailsStore(clientDetailsStore);
+        tokenServices.setClientDetailsService(clientDetailsService);
 
-		accessToken = tokenServices.createAccessToken(authentication);
-	}
+        accessToken = tokenServices.createAccessToken(authentication);
+    }
 
-	@Test
-	public void testUserIdInResult() {
-		Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
-		assertEquals("olds", result.get("user_name"));
-		assertEquals("12345", result.get("user_id"));
-	}
+    @Test
+    public void testUserIdInResult() {
+        Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
+        assertEquals("olds", result.get("user_name"));
+        assertEquals("12345", result.get("user_id"));
+    }
 
-	@Test
-	public void testEmailInResult() {
-		Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
-		assertEquals("olds@vmware.com", result.get("email"));
-	}
+    @Test
+    public void testEmailInResult() {
+        Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
+        assertEquals("olds@vmware.com", result.get("email"));
+    }
 
-	@Test
-	public void testClientIdInResult() {
-		Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
-		assertEquals("client", result.get("client_id"));
-	}
+    @Test
+    public void testClientIdInResult() {
+        Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
+        assertEquals("client", result.get("client_id"));
+    }
 
-	@Test
-	public void testExpiryResult() {
-		Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
-		assertTrue(expiresIn + System.currentTimeMillis()/1000 >= Integer.parseInt(String.valueOf(result.get("exp"))));
-	}
+    @Test
+    public void testExpiryResult() {
+        Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
+        assertTrue(expiresIn + System.currentTimeMillis() / 1000 >= Integer.parseInt(String.valueOf(result.get("exp"))));
+    }
 
-	@Test
-	public void testUserAuthoritiesNotInResult() {
-		Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
-		assertEquals(null, result.get("user_authorities"));
-	}
+    @Test
+    public void testUserAuthoritiesNotInResult() {
+        Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
+        assertEquals(null, result.get("user_authorities"));
+    }
 
-	@Test
-	public void testClientAuthoritiesNotInResult() {
-		Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
-		assertEquals(null, result.get("client_authorities"));
-	}
+    @Test
+    public void testClientAuthoritiesNotInResult() {
+        Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
+        assertEquals(null, result.get("client_authorities"));
+    }
 
-	@Test(expected = InvalidTokenException.class)
-	public void testExpiredToken() throws Exception {
-		BaseClientDetails clientDetails = new BaseClientDetails("client", "scim, cc","read, write", "authorization_code, password", "scim.read, scim.write", "http://localhost:8080/uaa");
-		clientDetails.setAccessTokenValiditySeconds(1);
-		Map<String, ? extends ClientDetails> clientDetailsStore = Collections.singletonMap("client", clientDetails);
-		clientDetailsService.setClientDetailsStore(clientDetailsStore);
-		tokenServices.setClientDetailsService(clientDetailsService);
-		accessToken = tokenServices.createAccessToken(authentication);
+    @Test(expected = InvalidTokenException.class)
+    public void testExpiredToken() throws Exception {
+        BaseClientDetails clientDetails = new BaseClientDetails("client", "scim, cc", "read, write",
+                        "authorization_code, password", "scim.read, scim.write", "http://localhost:8080/uaa");
+        clientDetails.setAccessTokenValiditySeconds(1);
+        Map<String, ? extends ClientDetails> clientDetailsStore = Collections.singletonMap("client", clientDetails);
+        clientDetailsService.setClientDetailsStore(clientDetailsStore);
+        tokenServices.setClientDetailsService(clientDetailsService);
+        accessToken = tokenServices.createAccessToken(authentication);
 
-		Thread.sleep(1000);
+        Thread.sleep(1000);
 
-		Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
-		assertEquals("expired_token", result.get("error"));
-	}
+        Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
+        assertEquals("expired_token", result.get("error"));
+    }
 
-	@Test(expected = InvalidTokenException.class)
-	public void testUpdatedApprovals() {
-		Date thirtySecondsAhead = new Date(System.currentTimeMillis() + 30000);
-		approvalStore.addApproval(new Approval("olds", "client", "read", thirtySecondsAhead, ApprovalStatus.APPROVED,
-				new Date()));
-		Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
-		assertEquals(null, result.get("client_authorities"));
-	}
+    @Test(expected = InvalidTokenException.class)
+    public void testUpdatedApprovals() {
+        Date thirtySecondsAhead = new Date(System.currentTimeMillis() + 30000);
+        approvalStore.addApproval(new Approval("olds", "client", "read", thirtySecondsAhead, ApprovalStatus.APPROVED,
+                        new Date()));
+        Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
+        assertEquals(null, result.get("client_authorities"));
+    }
 
-	@Test(expected = InvalidTokenException.class)
-	public void testDeniedApprovals() {
-		Date oneSecondAgo = new Date(System.currentTimeMillis() - 1000);
-		Date thirtySecondsAhead = new Date(System.currentTimeMillis() + 30000);
-		approvalStore.revokeApproval(new Approval("olds", "client", "read", thirtySecondsAhead, ApprovalStatus.APPROVED,
-				oneSecondAgo));
-		approvalStore.addApproval(new Approval("olds", "client", "read", thirtySecondsAhead, ApprovalStatus.DENIED,
-				oneSecondAgo));
-		Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
-		assertEquals(null, result.get("client_authorities"));
-	}
+    @Test(expected = InvalidTokenException.class)
+    public void testDeniedApprovals() {
+        Date oneSecondAgo = new Date(System.currentTimeMillis() - 1000);
+        Date thirtySecondsAhead = new Date(System.currentTimeMillis() + 30000);
+        approvalStore.revokeApproval(new Approval("olds", "client", "read", thirtySecondsAhead,
+                        ApprovalStatus.APPROVED,
+                        oneSecondAgo));
+        approvalStore.addApproval(new Approval("olds", "client", "read", thirtySecondsAhead, ApprovalStatus.DENIED,
+                        oneSecondAgo));
+        Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
+        assertEquals(null, result.get("client_authorities"));
+    }
 
-	@Test(expected = InvalidTokenException.class)
-	public void testExpiredApprovals() {
-		approvalStore.revokeApproval(new Approval("olds", "client", "read", new Date(), ApprovalStatus.APPROVED,
-				new Date()));
-		approvalStore.addApproval(new Approval("olds", "client", "read", new Date(), ApprovalStatus.APPROVED,
-				new Date()));
-		Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
-		assertEquals(null, result.get("client_authorities"));
-	}
+    @Test(expected = InvalidTokenException.class)
+    public void testExpiredApprovals() {
+        approvalStore.revokeApproval(new Approval("olds", "client", "read", new Date(), ApprovalStatus.APPROVED,
+                        new Date()));
+        approvalStore.addApproval(new Approval("olds", "client", "read", new Date(), ApprovalStatus.APPROVED,
+                        new Date()));
+        Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
+        assertEquals(null, result.get("client_authorities"));
+    }
 
-	@Test
-	public void testClientOnly() {
-		authentication = new OAuth2Authentication(new DefaultAuthorizationRequest("client", Collections.singleton("read")), null);
-		accessToken = tokenServices.createAccessToken(authentication);
-		Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
-		assertEquals("client", result.get("client_id"));
-		assertEquals("client", result.get("user_id"));
-	}
+    @Test
+    public void testClientOnly() {
+        authentication = new OAuth2Authentication(new DefaultAuthorizationRequest("client",
+                        Collections.singleton("read")), null);
+        accessToken = tokenServices.createAccessToken(authentication);
+        Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
+        assertEquals("client", result.get("client_id"));
+        assertEquals("client", result.get("user_id"));
+    }
 
 }

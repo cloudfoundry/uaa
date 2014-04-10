@@ -1,3 +1,15 @@
+/*******************************************************************************
+ *     Cloud Foundry 
+ *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *
+ *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *     You may not use this product except in compliance with the License.
+ *
+ *     This product includes a number of subcomponents with
+ *     separate copyright notices and license terms. Your use of these
+ *     subcomponents is subject to the terms and conditions of the
+ *     subcomponent's license, as noted in the LICENSE file.
+ *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
 import static org.junit.Assert.assertEquals;
@@ -18,7 +30,6 @@ import javax.sql.DataSource;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.rest.jdbc.DefaultLimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -39,334 +50,337 @@ import org.springframework.test.annotation.ProfileValueSourceConfiguration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@ContextConfiguration(locations = {"classpath:spring/env.xml", "classpath:spring/data-source.xml"})
+@ContextConfiguration(locations = { "classpath:spring/env.xml", "classpath:spring/data-source.xml" })
 @RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = {"", "test,postgresql", "hsqldb", "test,mysql", "test,oracle"})
+@IfProfileValue(name = "spring.profiles.active", values = { "", "test,postgresql", "hsqldb", "test,mysql",
+                "test,oracle" })
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class JdbcScimGroupMembershipManagerTests {
 
-	Log logger = LogFactory.getLog(getClass());
+    Log logger = LogFactory.getLog(getClass());
 
-	@Autowired
-	private DataSource dataSource;
+    @Autowired
+    private DataSource dataSource;
 
-	private JdbcTemplate template;
-	
-	@Autowired
-	private LimitSqlAdapter limitSqlAdapter;
+    private JdbcTemplate template;
 
-	private JdbcScimGroupProvisioning gdao;
+    @Autowired
+    private LimitSqlAdapter limitSqlAdapter;
 
-	private JdbcScimUserProvisioning udao;
+    private JdbcScimGroupProvisioning gdao;
 
-	private JdbcScimGroupMembershipManager dao;
+    private JdbcScimUserProvisioning udao;
 
-	private static final String addUserSqlFormat = "insert into users (id, username, password, email, givenName, familyName, phoneNumber, authorities) values ('%s','%s','%s','%s','%s','%s','%s', '%s')";
+    private JdbcScimGroupMembershipManager dao;
 
-	private static final String addGroupSqlFormat = "insert into groups (id, displayName) values ('%s','%s')";
+    private static final String addUserSqlFormat = "insert into users (id, username, password, email, givenName, familyName, phoneNumber, authorities) values ('%s','%s','%s','%s','%s','%s','%s', '%s')";
 
-	private static final String addMemberSqlFormat = "insert into group_membership (group_id, member_id, member_type, authorities) values ('%s', '%s', '%s', '%s')";
+    private static final String addGroupSqlFormat = "insert into groups (id, displayName) values ('%s','%s')";
 
-	@Before
-	public void createDatasource() {
+    private static final String addMemberSqlFormat = "insert into group_membership (group_id, member_id, member_type, authorities) values ('%s', '%s', '%s', '%s')";
 
-		template = new JdbcTemplate(dataSource);
+    @Before
+    public void createDatasource() {
 
-		JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(template, limitSqlAdapter);
-		udao = new JdbcScimUserProvisioning(template, pagingListFactory);
-		udao.setPasswordValidator(new NullPasswordValidator());
-		gdao = new JdbcScimGroupProvisioning(template, pagingListFactory);
+        template = new JdbcTemplate(dataSource);
 
-		dao = new JdbcScimGroupMembershipManager(template);
-		dao.setScimGroupProvisioning(gdao);
-		dao.setScimUserProvisioning(udao);
-		dao.setDefaultUserGroups(Collections.singleton("uaa.user"));
+        JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(template, limitSqlAdapter);
+        udao = new JdbcScimUserProvisioning(template, pagingListFactory);
+        udao.setPasswordValidator(new NullPasswordValidator());
+        gdao = new JdbcScimGroupProvisioning(template, pagingListFactory);
 
-		addGroup("g1", "test1");
-		addGroup("g2", "test2");
-		addGroup("g3", "test3");
-		addUser("m1", "test");
-		addUser("m2", "test");
-		addUser("m3", "test");
+        dao = new JdbcScimGroupMembershipManager(template);
+        dao.setScimGroupProvisioning(gdao);
+        dao.setScimUserProvisioning(udao);
+        dao.setDefaultUserGroups(Collections.singleton("uaa.user"));
 
-		validateCount(0);
-	}
+        addGroup("g1", "test1");
+        addGroup("g2", "test2");
+        addGroup("g3", "test3");
+        addUser("m1", "test");
+        addUser("m2", "test");
+        addUser("m3", "test");
 
-	private void addMember(String gId, String mId, String mType, String authorities) {
-		template.execute(String.format(addMemberSqlFormat, gId, mId, mType, authorities));
-	}
+        validateCount(0);
+    }
 
-	private void addGroup(String id, String name) {
-		TestUtils.assertNoSuchUser(template, "id", id);
-		template.execute(String.format(addGroupSqlFormat, id, name));
-	}
+    private void addMember(String gId, String mId, String mType, String authorities) {
+        template.execute(String.format(addMemberSqlFormat, gId, mId, mType, authorities));
+    }
 
-	private void addUser(String id, String password) {
-		TestUtils.assertNoSuchUser(template, "id", id);
-		template.execute(String.format(addUserSqlFormat, id, id, password, id, id, id, id, ""));
-	}
+    private void addGroup(String id, String name) {
+        TestUtils.assertNoSuchUser(template, "id", id);
+        template.execute(String.format(addGroupSqlFormat, id, name));
+    }
 
-	private void validateCount(int expected) {
-		int existingMemberCount = template.queryForInt("select count(*) from group_membership");
-		assertEquals(expected, existingMemberCount);
-	}
+    private void addUser(String id, String password) {
+        TestUtils.assertNoSuchUser(template, "id", id);
+        template.execute(String.format(addUserSqlFormat, id, id, password, id, id, id, id, ""));
+    }
 
-	private void validateUserGroups (String id, String... gNm) {
-		Set<ScimGroup> directGroups = dao.getGroupsWithMember(id, false);
-		assertNotNull(directGroups);
-		Set<ScimGroup> indirectGroups = dao.getGroupsWithMember(id, true);
-		indirectGroups.removeAll(directGroups);
-		assertNotNull(indirectGroups);
+    private void validateCount(int expected) {
+        int existingMemberCount = template.queryForInt("select count(*) from group_membership");
+        assertEquals(expected, existingMemberCount);
+    }
 
-		Set<String> expectedAuthorities = Collections.<String> emptySet();
-		if (gNm != null) {
-			expectedAuthorities = new HashSet<String>(Arrays.asList(gNm));
-		}
-		expectedAuthorities.add("uaa.user");
+    private void validateUserGroups(String id, String... gNm) {
+        Set<ScimGroup> directGroups = dao.getGroupsWithMember(id, false);
+        assertNotNull(directGroups);
+        Set<ScimGroup> indirectGroups = dao.getGroupsWithMember(id, true);
+        indirectGroups.removeAll(directGroups);
+        assertNotNull(indirectGroups);
 
-		assertEquals(expectedAuthorities.size(), directGroups.size() + indirectGroups.size());
-		for (ScimGroup group : directGroups) {
-			assertTrue(expectedAuthorities.contains(group.getDisplayName()));
-		}
-		for (ScimGroup group : indirectGroups) {
-			assertTrue(expectedAuthorities.contains(group.getDisplayName()+".i"));
-		}
-	}
+        Set<String> expectedAuthorities = Collections.<String> emptySet();
+        if (gNm != null) {
+            expectedAuthorities = new HashSet<String>(Arrays.asList(gNm));
+        }
+        expectedAuthorities.add("uaa.user");
 
-	@After
-	public void cleanupDataSource() throws Exception {
-		TestUtils.deleteFrom(dataSource, "group_membership");
-		TestUtils.deleteFrom(dataSource, "groups");
-		TestUtils.deleteFrom(dataSource, "users");
+        assertEquals(expectedAuthorities.size(), directGroups.size() + indirectGroups.size());
+        for (ScimGroup group : directGroups) {
+            assertTrue(expectedAuthorities.contains(group.getDisplayName()));
+        }
+        for (ScimGroup group : indirectGroups) {
+            assertTrue(expectedAuthorities.contains(group.getDisplayName() + ".i"));
+        }
+    }
 
-		validateCount(0);
-	}
+    @After
+    public void cleanupDataSource() throws Exception {
+        TestUtils.deleteFrom(dataSource, "group_membership");
+        TestUtils.deleteFrom(dataSource, "groups");
+        TestUtils.deleteFrom(dataSource, "users");
 
-	@Test
-	public void canGetGroupsForMember() {
-		addMember("g1", "m3", "USER", "READER");
-		addMember("g1", "g2", "GROUP", "READER");
-		addMember("g3", "m2", "USER", "READER,WRITER");
-		addMember("g2", "m3", "USER", "READER");
+        validateCount(0);
+    }
 
-		Set<ScimGroup> groups = dao.getGroupsWithMember("g2", false);
-		assertNotNull(groups);
-		assertEquals(1, groups.size());
+    @Test
+    public void canGetGroupsForMember() {
+        addMember("g1", "m3", "USER", "READER");
+        addMember("g1", "g2", "GROUP", "READER");
+        addMember("g3", "m2", "USER", "READER,WRITER");
+        addMember("g2", "m3", "USER", "READER");
 
-		groups = dao.getGroupsWithMember("m3", true);
-		assertNotNull(groups);
-		assertEquals(3, groups.size());
-	}
+        Set<ScimGroup> groups = dao.getGroupsWithMember("g2", false);
+        assertNotNull(groups);
+        assertEquals(1, groups.size());
 
-	@Test
-	public void canGetGroupsForMemberEvenWhenCycleExistsInGroupHierarchy() {
-		addMember("g1", "m3", "USER", "READER");
-		addMember("g1", "g2", "GROUP", "READER");
-		addMember("g2", "g3", "GROUP", "READER");
-		addMember("g3", "g1", "GROUP", "READER");
+        groups = dao.getGroupsWithMember("m3", true);
+        assertNotNull(groups);
+        assertEquals(3, groups.size());
+    }
 
-		Set<ScimGroup> groups = dao.getGroupsWithMember("m3", true);
-		assertNotNull(groups);
-		assertEquals(4, groups.size());
-	}
+    @Test
+    public void canGetGroupsForMemberEvenWhenCycleExistsInGroupHierarchy() {
+        addMember("g1", "m3", "USER", "READER");
+        addMember("g1", "g2", "GROUP", "READER");
+        addMember("g2", "g3", "GROUP", "READER");
+        addMember("g3", "g1", "GROUP", "READER");
 
-	@Test
-	public void canAddMember() throws Exception {
-		validateCount(0);
-		ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER, null);
-		ScimGroupMember m2 = dao.addMember("g2", m1);
-		validateCount(1);
-		assertEquals(ScimGroupMember.Type.USER, m2.getType());
-		assertEquals(ScimGroupMember.GROUP_MEMBER, m2.getRoles());
-		assertEquals("m1", m2.getMemberId());
-		validateUserGroups("m1", "test2");
-	}
+        Set<ScimGroup> groups = dao.getGroupsWithMember("m3", true);
+        assertNotNull(groups);
+        assertEquals(4, groups.size());
+    }
 
-	@Test
-	public void canAddNestedGroupMember() {
-		addMember("g2", "m1", "USER", "READER");
+    @Test
+    public void canAddMember() throws Exception {
+        validateCount(0);
+        ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER, null);
+        ScimGroupMember m2 = dao.addMember("g2", m1);
+        validateCount(1);
+        assertEquals(ScimGroupMember.Type.USER, m2.getType());
+        assertEquals(ScimGroupMember.GROUP_MEMBER, m2.getRoles());
+        assertEquals("m1", m2.getMemberId());
+        validateUserGroups("m1", "test2");
+    }
 
-		ScimGroupMember g2 = new ScimGroupMember("g2", ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_ADMIN);
-		g2 = dao.addMember("g1", g2);
-		assertEquals(ScimGroupMember.Type.GROUP, g2.getType());
-		assertEquals(ScimGroupMember.GROUP_ADMIN, g2.getRoles());
-		assertEquals("g2", g2.getMemberId());
-		validateUserGroups("m1", "test1.i", "test2");
-	}
+    @Test
+    public void canAddNestedGroupMember() {
+        addMember("g2", "m1", "USER", "READER");
 
-	@Test (expected = InvalidScimResourceException.class)
-	public void cannotNestGroupWithinItself() {
-		ScimGroupMember g2 = new ScimGroupMember("g2", ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_ADMIN);
-		dao.addMember("g2", g2);
-	}
+        ScimGroupMember g2 = new ScimGroupMember("g2", ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_ADMIN);
+        g2 = dao.addMember("g1", g2);
+        assertEquals(ScimGroupMember.Type.GROUP, g2.getType());
+        assertEquals(ScimGroupMember.GROUP_ADMIN, g2.getRoles());
+        assertEquals("g2", g2.getMemberId());
+        validateUserGroups("m1", "test1.i", "test2");
+    }
 
-	@Test
-	public void canGetMembers() throws Exception {
-		addMember("g1", "m1", "USER", "READER");
-		addMember("g1", "g2", "GROUP", "READER");
-		addMember("g3", "m2", "USER", "READER,WRITER");
+    @Test(expected = InvalidScimResourceException.class)
+    public void cannotNestGroupWithinItself() {
+        ScimGroupMember g2 = new ScimGroupMember("g2", ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_ADMIN);
+        dao.addMember("g2", g2);
+    }
 
-		List<ScimGroupMember> members = dao.getMembers("g1");
-		assertNotNull(members);
-		assertEquals(2, members.size());
+    @Test
+    public void canGetMembers() throws Exception {
+        addMember("g1", "m1", "USER", "READER");
+        addMember("g1", "g2", "GROUP", "READER");
+        addMember("g3", "m2", "USER", "READER,WRITER");
 
-		members = dao.getMembers("g2");
-		assertNotNull(members);
-		assertEquals(0, members.size());
+        List<ScimGroupMember> members = dao.getMembers("g1");
+        assertNotNull(members);
+        assertEquals(2, members.size());
 
-	}
+        members = dao.getMembers("g2");
+        assertNotNull(members);
+        assertEquals(0, members.size());
 
-	@Test
-	public void testBackwardsCompatibilityToMemberAuthorities() {
-		addMember("g1", "m1", "USER", "READ");
-		addMember("g1", "g2", "GROUP", "member");
-		addMember("g1", "m2", "USER", "READER,write");
+    }
 
-		List<ScimGroupMember> members = dao.getMembers("g1");
-		assertNotNull(members);
-		assertEquals(3, members.size());
-		List<ScimGroupMember> readers = new ArrayList<ScimGroupMember>(), writers = new ArrayList<ScimGroupMember>();
-		for (ScimGroupMember member : members) {
-			if (member.getRoles().contains(ScimGroupMember.Role.READER)) {
-				readers.add(member);
-			}
-			if (member.getRoles().contains(ScimGroupMember.Role.WRITER)) {
-				writers.add(member);
-			}
-		}
-		assertEquals(2, readers.size());
-		assertEquals(1, writers.size());
-	}
+    @Test
+    public void testBackwardsCompatibilityToMemberAuthorities() {
+        addMember("g1", "m1", "USER", "READ");
+        addMember("g1", "g2", "GROUP", "member");
+        addMember("g1", "m2", "USER", "READER,write");
 
-	@Test
-	public void canGetDefaultGroupsUsingGetGroupsForMember() {
-		Set<ScimGroup> groups = dao.getGroupsWithMember("m1", false);
-		assertNotNull(groups);
-		assertEquals(1, groups.size());
-	}
+        List<ScimGroupMember> members = dao.getMembers("g1");
+        assertNotNull(members);
+        assertEquals(3, members.size());
+        List<ScimGroupMember> readers = new ArrayList<ScimGroupMember>(), writers = new ArrayList<ScimGroupMember>();
+        for (ScimGroupMember member : members) {
+            if (member.getRoles().contains(ScimGroupMember.Role.READER)) {
+                readers.add(member);
+            }
+            if (member.getRoles().contains(ScimGroupMember.Role.WRITER)) {
+                writers.add(member);
+            }
+        }
+        assertEquals(2, readers.size());
+        assertEquals(1, writers.size());
+    }
 
-	@Test
-	public void canGetAdminMembers() {
-		addMember("g1", "m3", "USER", "READER,WRITER");
-		addMember("g1", "g2", "GROUP", "READER");
+    @Test
+    public void canGetDefaultGroupsUsingGetGroupsForMember() {
+        Set<ScimGroup> groups = dao.getGroupsWithMember("m1", false);
+        assertNotNull(groups);
+        assertEquals(1, groups.size());
+    }
 
-		assertEquals(1, dao.getMembers("g1", ScimGroupMember.Role.WRITER).size());
-		assertTrue(dao.getMembers("g1", ScimGroupMember.Role.WRITER).contains(new ScimGroupMember("m3")));
+    @Test
+    public void canGetAdminMembers() {
+        addMember("g1", "m3", "USER", "READER,WRITER");
+        addMember("g1", "g2", "GROUP", "READER");
 
-		assertEquals(0, dao.getMembers("g2", ScimGroupMember.Role.WRITER).size());
-	}
+        assertEquals(1, dao.getMembers("g1", ScimGroupMember.Role.WRITER).size());
+        assertTrue(dao.getMembers("g1", ScimGroupMember.Role.WRITER).contains(new ScimGroupMember("m3")));
 
-	@Test
-	public void canGetMembersByAuthority() {
-		addMember("g1", "m3", "USER", "READER,WRITER");
-		addMember("g1", "g2", "GROUP", "READER,MEMBER");
-		addMember("g2", "g3", "GROUP", "MEMBER");
+        assertEquals(0, dao.getMembers("g2", ScimGroupMember.Role.WRITER).size());
+    }
 
-		assertEquals(1, dao.getMembers("g1", ScimGroupMember.Role.MEMBER).size());
-		assertEquals(2, dao.getMembers("g1", ScimGroupMember.Role.READER).size());
-		assertEquals(1, dao.getMembers("g1", ScimGroupMember.Role.WRITER).size());
+    @Test
+    public void canGetMembersByAuthority() {
+        addMember("g1", "m3", "USER", "READER,WRITER");
+        addMember("g1", "g2", "GROUP", "READER,MEMBER");
+        addMember("g2", "g3", "GROUP", "MEMBER");
 
-		assertEquals(1, dao.getMembers("g2", ScimGroupMember.Role.MEMBER).size());
-		assertEquals(0, dao.getMembers("g2", ScimGroupMember.Role.WRITER).size());
-	}
+        assertEquals(1, dao.getMembers("g1", ScimGroupMember.Role.MEMBER).size());
+        assertEquals(2, dao.getMembers("g1", ScimGroupMember.Role.READER).size());
+        assertEquals(1, dao.getMembers("g1", ScimGroupMember.Role.WRITER).size());
 
-	@Test
-	public void canGetMemberById() throws Exception {
-		addMember("g3", "m2", "USER", "READER,WRITER");
+        assertEquals(1, dao.getMembers("g2", ScimGroupMember.Role.MEMBER).size());
+        assertEquals(0, dao.getMembers("g2", ScimGroupMember.Role.WRITER).size());
+    }
 
-		ScimGroupMember m = dao.getMemberById("g3", "m2");
-		assertEquals(ScimGroupMember.Type.USER, m.getType());
-		assertEquals(ScimGroupMember.GROUP_ADMIN, m.getRoles());
-	}
+    @Test
+    public void canGetMemberById() throws Exception {
+        addMember("g3", "m2", "USER", "READER,WRITER");
 
-	@Test
-	public void canUpdateMember() throws Exception {
-		addMember("g1", "m1", "USER", "READER");
-		validateCount(1);
-		ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN);
-		ScimGroupMember m2 = dao.updateMember("g1", m1);
-		assertEquals(ScimGroupMember.GROUP_ADMIN, m2.getRoles());
-		assertNotSame(m1, m2);
+        ScimGroupMember m = dao.getMemberById("g3", "m2");
+        assertEquals(ScimGroupMember.Type.USER, m.getType());
+        assertEquals(ScimGroupMember.GROUP_ADMIN, m.getRoles());
+    }
 
-		validateCount(1);
-		validateUserGroups("m1", "test1");
-	}
+    @Test
+    public void canUpdateMember() throws Exception {
+        addMember("g1", "m1", "USER", "READER");
+        validateCount(1);
+        ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN);
+        ScimGroupMember m2 = dao.updateMember("g1", m1);
+        assertEquals(ScimGroupMember.GROUP_ADMIN, m2.getRoles());
+        assertNotSame(m1, m2);
 
-	@Test
-	public void canUpdateOrAddMembers() {
-		dao.addMember("g1", new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER));
-		dao.addMember("g1", new ScimGroupMember("g2", ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER));
-		dao.addMember("g2", new ScimGroupMember("m2", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN));
-		validateCount(3);
-		validateUserGroups("m1", "test1");
-		validateUserGroups("m2", "test2", "test1.i");
+        validateCount(1);
+        validateUserGroups("m1", "test1");
+    }
 
-		ScimGroupMember g2 = new ScimGroupMember("g2", ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_ADMIN);
-		ScimGroupMember m3 = new ScimGroupMember("m3", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER);
-		List<ScimGroupMember> members = dao.updateOrAddMembers("g1", Arrays.asList(g2, m3));
+    @Test
+    public void canUpdateOrAddMembers() {
+        dao.addMember("g1", new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER));
+        dao.addMember("g1", new ScimGroupMember("g2", ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER));
+        dao.addMember("g2", new ScimGroupMember("m2", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN));
+        validateCount(3);
+        validateUserGroups("m1", "test1");
+        validateUserGroups("m2", "test2", "test1.i");
 
-		validateCount(3);
-		assertEquals(2, members.size());
-		assertTrue(members.contains(new ScimGroupMember("g2", ScimGroupMember.Type.GROUP, null)));
-		assertTrue(members.contains(new ScimGroupMember("m3", ScimGroupMember.Type.USER, null)));
-		assertFalse(members.contains(new ScimGroupMember("m1", ScimGroupMember.Type.USER, null)));
-		validateUserGroups("m3", "test1");
-		validateUserGroups("m2", "test2", "test1.i");
-		validateUserGroups("m1");
-	}
+        ScimGroupMember g2 = new ScimGroupMember("g2", ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_ADMIN);
+        ScimGroupMember m3 = new ScimGroupMember("m3", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER);
+        List<ScimGroupMember> members = dao.updateOrAddMembers("g1", Arrays.asList(g2, m3));
 
-	@Test
-	public void canRemoveMemberById() throws Exception {
-		addMember("g1", "m1", "USER", "READER");
-		validateCount(1);
+        validateCount(3);
+        assertEquals(2, members.size());
+        assertTrue(members.contains(new ScimGroupMember("g2", ScimGroupMember.Type.GROUP, null)));
+        assertTrue(members.contains(new ScimGroupMember("m3", ScimGroupMember.Type.USER, null)));
+        assertFalse(members.contains(new ScimGroupMember("m1", ScimGroupMember.Type.USER, null)));
+        validateUserGroups("m3", "test1");
+        validateUserGroups("m2", "test2", "test1.i");
+        validateUserGroups("m1");
+    }
 
-		dao.removeMemberById("g1", "m1");
-		validateCount(0);
-		try {
-			dao.getMemberById("g1", "m1");
-			fail("member should not exist");
-		} catch (MemberNotFoundException ex) {
+    @Test
+    public void canRemoveMemberById() throws Exception {
+        addMember("g1", "m1", "USER", "READER");
+        validateCount(1);
 
-		}
-	}
+        dao.removeMemberById("g1", "m1");
+        validateCount(0);
+        try {
+            dao.getMemberById("g1", "m1");
+            fail("member should not exist");
+        } catch (MemberNotFoundException ex) {
 
-	@Test
-	public void canRemoveNestedGroupMember() {
-		dao.addMember("g1", new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER));
-		dao.addMember("g1", new ScimGroupMember("g2", ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER));
-		dao.addMember("g2", new ScimGroupMember("m2", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN));
-		validateCount(3);
-		validateUserGroups("m1", "test1");
-		validateUserGroups("m2", "test2", "test1.i");
+        }
+    }
 
-		dao.removeMemberById("g1", "g2");
-		try {
-			dao.getMemberById("g1", "g2");
-			fail("member should not exist");
-		} catch (MemberNotFoundException ex) {	}
-		validateCount(2);
-		validateUserGroups("m1", "test1");
-		validateUserGroups("m2", "test2");
+    @Test
+    public void canRemoveNestedGroupMember() {
+        dao.addMember("g1", new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER));
+        dao.addMember("g1", new ScimGroupMember("g2", ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER));
+        dao.addMember("g2", new ScimGroupMember("m2", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN));
+        validateCount(3);
+        validateUserGroups("m1", "test1");
+        validateUserGroups("m2", "test2", "test1.i");
 
-	}
+        dao.removeMemberById("g1", "g2");
+        try {
+            dao.getMemberById("g1", "g2");
+            fail("member should not exist");
+        } catch (MemberNotFoundException ex) {
+        }
+        validateCount(2);
+        validateUserGroups("m1", "test1");
+        validateUserGroups("m2", "test2");
 
-	@Test
-	public void canRemoveAllMembers() {
-		dao.addMember("g1", new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER));
-		dao.addMember("g1", new ScimGroupMember("g2", ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER));
-		dao.addMember("g2", new ScimGroupMember("m2", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN));
-		validateCount(3);
-		validateUserGroups("m1", "test1");
-		validateUserGroups("m2", "test2", "test1.i");
+    }
 
-		dao.removeMembersByGroupId("g1");
-		validateCount(1);
-		try {
-			dao.getMemberById("g1", "m1");
-			fail("member should not exist");
-		} catch (MemberNotFoundException ex) {	}
-		validateUserGroups("m1");
-		validateUserGroups("m2", "test2");
+    @Test
+    public void canRemoveAllMembers() {
+        dao.addMember("g1", new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER));
+        dao.addMember("g1", new ScimGroupMember("g2", ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER));
+        dao.addMember("g2", new ScimGroupMember("m2", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN));
+        validateCount(3);
+        validateUserGroups("m1", "test1");
+        validateUserGroups("m2", "test2", "test1.i");
 
-	}
+        dao.removeMembersByGroupId("g1");
+        validateCount(1);
+        try {
+            dao.getMemberById("g1", "m1");
+            fail("member should not exist");
+        } catch (MemberNotFoundException ex) {
+        }
+        validateUserGroups("m1");
+        validateUserGroups("m2", "test2");
+
+    }
 }
