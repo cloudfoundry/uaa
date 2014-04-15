@@ -490,7 +490,7 @@ at all in `vcap`).  In the UAA you can find the registration in the
     Standard OAuth2 Authorization Endpoint.  Client credentials and
     all other features are handled by the UAA in the back end, and the
     login application is used to render the UI (see
-    `access_confirmation.jsp`).
+    `access_confirmation.html`).
 
 3. Obtain access token
 
