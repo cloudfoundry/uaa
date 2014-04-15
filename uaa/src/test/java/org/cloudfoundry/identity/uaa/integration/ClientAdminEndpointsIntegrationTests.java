@@ -103,7 +103,7 @@ public class ClientAdminEndpointsIntegrationTests {
     }
 
     public BaseClientDetails[] doCreateClients() throws Exception {
-        headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read,clients.write,clients.secret"));
+        headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.admin,clients.read,clients.write,clients.secret"));
         headers.add("Accept", "application/json");
         String grantTypes = "client_credentials";
         RandomValueStringGenerator gen =  new RandomValueStringGenerator();
@@ -145,7 +145,7 @@ public class ClientAdminEndpointsIntegrationTests {
 
     @Test
     public void nonImplicitGrantClientWithoutSecretIsRejectedTxFails() throws Exception {
-        headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read,clients.write,clients.secret"));
+        headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.admin,clients.read,clients.write,clients.secret"));
         headers.add("Accept", "application/json");
         String grantTypes = "client_credentials";
         RandomValueStringGenerator gen =  new RandomValueStringGenerator();
@@ -173,7 +173,7 @@ public class ClientAdminEndpointsIntegrationTests {
 
     @Test
     public void duplicateIdsIsRejectedTxFails() throws Exception {
-        headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read,clients.write,clients.secret"));
+        headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.admin,clients.read,clients.write,clients.secret"));
         headers.add("Accept", "application/json");
         String grantTypes = "client_credentials";
         RandomValueStringGenerator gen =  new RandomValueStringGenerator();
@@ -279,7 +279,7 @@ public class ClientAdminEndpointsIntegrationTests {
     @Test
     public void testUpdateClients() throws Exception {
         BaseClientDetails[] clients = doCreateClients();
-        headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read,clients.write,clients.secret"));
+        headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.admin,clients.read,clients.write,clients.secret"));
         headers.add("Accept", "application/json");
         for (int i=0; i<clients.length; i++) {
             clients[i].setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("some.crap"));
@@ -305,7 +305,7 @@ public class ClientAdminEndpointsIntegrationTests {
     @Test
     public void testDeleteClients() throws Exception {
         BaseClientDetails[] clients = doCreateClients();
-        headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read,clients.write,clients.secret"));
+        headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.admin,clients.read,clients.write,clients.secret"));
         headers.add("Accept", "application/json");
         ResponseEntity<BaseClientDetails[]> result =
                 serverRunning.getRestTemplate().exchange(
@@ -324,7 +324,7 @@ public class ClientAdminEndpointsIntegrationTests {
     @Test
     public void testDeleteClientsMissingId() throws Exception {
         BaseClientDetails[] clients = doCreateClients();
-        headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read,clients.write,clients.secret"));
+        headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.admin,clients.read,clients.write,clients.secret"));
         headers.add("Accept", "application/json");
         String oldId = clients[clients.length-1].getClientId();
         clients[clients.length-1].setClientId("unknown.id");
