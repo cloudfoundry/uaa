@@ -44,12 +44,6 @@
 
     <profiles>
         <profile>
-            <id>devuaa</id>
-            <properties>
-                <CLOUD_FOUNDRY_CONFIG_PATH>${project.basedir}/src/test/resources/test/profiles/devuaa</CLOUD_FOUNDRY_CONFIG_PATH>
-            </properties>
-        </profile>
-        <profile>
             <id>vcap</id>
             <properties>
                 <CLOUD_FOUNDRY_CONFIG_PATH>${project.basedir}/src/test/resources/test/profiles/vcap</CLOUD_FOUNDRY_CONFIG_PATH>
