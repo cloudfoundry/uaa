@@ -20,6 +20,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.jwt.Jwt;
 import org.springframework.security.jwt.JwtHelper;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
@@ -71,6 +72,13 @@ public class CheckTokenEndpoint implements InitializingBean {
         if (token.isExpired()) {
             throw new InvalidTokenException("Token has expired");
         }
+
+        try {
+            resourceServerTokenServices.loadAuthentication(value);
+        } catch (AuthenticationException x) {
+            throw new InvalidTokenException((x.getMessage()));
+        }
+
 
         Map<String, ?> response = getClaimsForToken(value);
 
