@@ -447,10 +447,15 @@ public class ClientAdminEndpointsIntegrationTests {
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients/{client}"), HttpMethod.DELETE,
             new HttpEntity<BaseClientDetails>(client, getAuthenticatedHeaders(token)), Void.class,client.getClientId());
         assertEquals(HttpStatus.OK, result.getStatusCode());
+
+        //create a client that can read another clients approvals
+        String deletedClientId = client.getClientId();
+        client = createApprovalsClient("password");
+        userToken = getUserAccessToken(client.getClientId(), "secret", testAccounts.getUserName(), testAccounts.getPassword(),"oauth.approvals");
         //make sure we don't have any approvals
-        approvals = getApprovals(userToken.getValue(),client.getClientId());
+        approvals = getApprovals(userToken.getValue(),deletedClientId);
         Assert.assertEquals(0, approvals.length);
-        assertNull(getClient(client.getClientId()));
+        assertNull(getClient(deletedClientId));
     }
 
     @Test
@@ -471,10 +476,14 @@ public class ClientAdminEndpointsIntegrationTests {
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients/tx/delete"), HttpMethod.POST,
             new HttpEntity<BaseClientDetails[]>(new BaseClientDetails[] {client}, getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.admin"))), Void.class);
         assertEquals(HttpStatus.OK, result.getStatusCode());
+        //create a client that can read another clients approvals
+        String deletedClientId = client.getClientId();
+        client = createApprovalsClient("password");
+        userToken = getUserAccessToken(client.getClientId(), "secret", testAccounts.getUserName(), testAccounts.getPassword(),"oauth.approvals");
         //make sure we don't have any approvals
-        approvals = getApprovals(userToken.getValue(),client.getClientId());
+        approvals = getApprovals(userToken.getValue(),deletedClientId);
         Assert.assertEquals(0, approvals.length);
-        assertNull(getClient(client.getClientId()));
+        assertNull(getClient(deletedClientId));
     }
 
     @Test
@@ -496,10 +505,14 @@ public class ClientAdminEndpointsIntegrationTests {
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients/tx/modify"), HttpMethod.POST,
             new HttpEntity<BaseClientDetails[]>(new BaseClientDetails[] {client}, getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.admin"))), Void.class);
         assertEquals(HttpStatus.OK, result.getStatusCode());
+        //create a client that can read another clients approvals
+        String deletedClientId = client.getClientId();
+        client = createApprovalsClient("password");
+        userToken = getUserAccessToken(client.getClientId(), "secret", testAccounts.getUserName(), testAccounts.getPassword(),"oauth.approvals");
         //make sure we don't have any approvals
-        approvals = getApprovals(userToken.getValue(),client.getClientId());
+        approvals = getApprovals(userToken.getValue(),deletedClientId);
         Assert.assertEquals(0, approvals.length);
-        assertNull(getClient(client.getClientId()));
+        assertNull(getClient(deletedClientId));
     }
 
     private Approval[] getApprovals(String token, String clientId) throws Exception {
@@ -541,9 +554,19 @@ public class ClientAdminEndpointsIntegrationTests {
     private ClientDetailsModification createClient(String grantTypes) throws Exception {
         ClientDetailsModification client = new ClientDetailsModification(new RandomValueStringGenerator().generate(), "", "oauth.approvals,foo,bar",grantTypes, "uaa.none");
         client.setClientSecret("secret");
-        client.setAdditionalInformation(Collections.<String, Object> singletonMap("foo", Arrays.asList("bar")));
+        client.setAdditionalInformation(Collections.<String, Object>singletonMap("foo", Arrays.asList("bar")));
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
                         HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
+        assertEquals(HttpStatus.CREATED, result.getStatusCode());
+        return client;
+    }
+
+    private ClientDetailsModification createApprovalsClient(String grantTypes) throws Exception {
+        ClientDetailsModification client = new ClientDetailsModification(new RandomValueStringGenerator().generate(), "", "oauth.login,oauth.approvals,foo,bar",grantTypes, "uaa.none");
+        client.setClientSecret("secret");
+        client.setAdditionalInformation(Collections.<String, Object> singletonMap("foo", Arrays.asList("bar")));
+        ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
+                HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
         assertEquals(HttpStatus.CREATED, result.getStatusCode());
         return client;
     }

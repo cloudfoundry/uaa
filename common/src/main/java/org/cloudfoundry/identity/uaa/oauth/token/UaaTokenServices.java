@@ -61,12 +61,14 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.jwt.Jwt;
 import org.springframework.security.jwt.JwtHelper;
+import org.springframework.security.oauth2.client.resource.OAuth2AccessDeniedException;
 import org.springframework.security.oauth2.common.DefaultExpiringOAuth2RefreshToken;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.DefaultOAuth2RefreshToken;
 import org.springframework.security.oauth2.common.ExpiringOAuth2RefreshToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2RefreshToken;
+import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
 import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
@@ -74,7 +76,9 @@ import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.ClientRegistrationException;
 import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
+import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
@@ -514,6 +518,20 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         this.userDatabase = userDatabase;
     }
 
+    private void validateClient(String clientId) throws AuthenticationException {
+        if (clientId!=null) {
+            try {
+                clientDetailsService.loadClientByClientId(clientId);
+            } catch (NoSuchClientException x) {
+                throw new OAuth2AccessDeniedException("Invalid client:"+clientId);
+            } catch (ClientRegistrationException x) {
+                throw new OAuth2AccessDeniedException("Invalid client:"+clientId);
+            } catch (InvalidClientException x) {
+                throw new OAuth2AccessDeniedException("Invalid client:"+clientId);
+            }
+        }
+    }
+
     @Override
     public OAuth2Authentication loadAuthentication(String accessToken) throws AuthenticationException {
         Map<String, Object> claims = getClaimsForToken(accessToken);
@@ -524,6 +542,11 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             throw new InvalidTokenException("Invalid access token (expired): " + accessToken + " expired at "
                             + new Date(expiration * 1000l));
         }
+
+        // Check client ID is valid
+        validateClient((String) claims.get(CLIENT_ID));
+        validateClient((String)claims.get(CID));
+
 
         @SuppressWarnings("unchecked")
         ArrayList<String> scopes = (ArrayList<String>) claims.get(SCOPE);
