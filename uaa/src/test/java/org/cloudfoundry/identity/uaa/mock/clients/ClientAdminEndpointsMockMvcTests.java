@@ -524,6 +524,36 @@ public class ClientAdminEndpointsMockMvcTests {
     }
 
     @Test
+    public void testModifyApprovalsAreDeleted() throws Exception {
+        ClientDetails details = createClient(adminToken, new RandomValueStringGenerator().generate(), "password");
+        ((ClientDetailsModification)details).setAction(ClientDetailsModification.DELETE);
+        String userToken = testClient.getUserOAuthAccessToken(
+            details.getClientId(),
+            "secret",
+            testAccounts.getUserName(),
+            testAccounts.getPassword(),
+            "oauth.approvals");
+        Approval[] approvals = getApprovals(userToken, details.getClientId());
+        assertEquals(0, approvals.length);
+        addApprovals(userToken, details.getClientId());
+        approvals = getApprovals(userToken, details.getClientId());
+        assertEquals(3, approvals.length);
+
+        MockHttpServletRequestBuilder deleteClientsPost = post("/oauth/clients/tx/modify")
+            .header("Authorization", "Bearer " + adminToken)
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .content(toString(new ClientDetails[]{details}));
+        ResultActions result = mockMvc.perform(deleteClientsPost);
+        result.andExpect(status().isOk());
+        approvals = getApprovals(userToken, details.getClientId());
+        assertEquals(0, approvals.length);
+        ClientDetailsModification[] deleted = (ClientDetailsModification[]) arrayFromString(result.andReturn().getResponse().getContentAsString(), ClientDetailsModification[].class);
+        assertTrue(deleted[0].isApprovalsDeleted());
+        verify(applicationEventPublisher, times(2)).publishEvent(captor.capture());
+    }
+
+    @Test
     public void testSecretChangeTxApprovalsNotDeleted() throws Exception {
         int count = 3;
         //create clients

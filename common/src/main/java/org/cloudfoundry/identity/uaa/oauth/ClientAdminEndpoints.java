@@ -325,8 +325,8 @@ public class ClientAdminEndpoints implements InitializingBean {
                 result[i] = new ClientDetailsModification(clientDetailsService.retrieve(details[i].getClientId()));
             } else if (ClientDetailsModification.DELETE.equals(details[i].getAction())) {
                 result[i] = new ClientDetailsModification(clientDetailsService.retrieve(details[i].getClientId()));
-                clientRegistrationService.removeClientDetails(details[i].getClientId());
-                clientDeletes.incrementAndGet();
+                doProcessDeletes(new ClientDetails[] {result[i]});
+                result[i].setApprovalsDeleted(true);
             } else if (ClientDetailsModification.UPDATE.equals(details[i].getAction())) {
                 result[i] = updateClientNotSecret(details[i]);
             } else if (ClientDetailsModification.UPDATE_SECRET.equals(details[i].getAction())) {
@@ -334,8 +334,9 @@ public class ClientAdminEndpoints implements InitializingBean {
                 result[i] = updateClientNotSecret(details[i]);
                 result[i].setApprovalsDeleted(approvalsDeleted);
             } else if (ClientDetailsModification.SECRET.equals(details[i].getAction())) {
-                updateClientSecret(details[i]);
+                boolean approvalsDeleted = updateClientSecret(details[i]);
                 result[i] = details[i];
+                result[i].setApprovalsDeleted(approvalsDeleted);
             } else {
                 throw new InvalidClientDetailsException("Invalid action.");
             }
