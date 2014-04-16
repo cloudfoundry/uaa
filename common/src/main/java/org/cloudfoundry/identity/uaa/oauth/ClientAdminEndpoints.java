@@ -26,6 +26,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.message.SimpleMessage;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
@@ -71,6 +73,10 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
+import javax.servlet.http.HttpServletRequest;
 
 /**
  * Controller for listing and manipulating OAuth2 clients.
@@ -325,7 +331,7 @@ public class ClientAdminEndpoints implements InitializingBean {
                 result[i] = new ClientDetailsModification(clientDetailsService.retrieve(details[i].getClientId()));
             } else if (ClientDetailsModification.DELETE.equals(details[i].getAction())) {
                 result[i] = new ClientDetailsModification(clientDetailsService.retrieve(details[i].getClientId()));
-                doProcessDeletes(new ClientDetails[] {result[i]});
+                doProcessDeletes(new ClientDetails[]{result[i]});
                 result[i].setApprovalsDeleted(true);
             } else if (ClientDetailsModification.UPDATE.equals(details[i].getAction())) {
                 result[i] = updateClientNotSecret(details[i]);
@@ -683,12 +689,21 @@ public class ClientAdminEndpoints implements InitializingBean {
     private boolean authenticateClient(String clientId, String clientSecret) {
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(clientId,clientSecret);
         try {
+            HttpServletRequest curRequest =
+                ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
+            if (curRequest != null) {
+                authentication.setDetails(new UaaAuthenticationDetails(curRequest, clientId));
+            }
+        }catch (IllegalStateException x) {
+            //ignore - means no thread bound request found
+        }
+        try {
             Authentication auth = authenticationManager.authenticate(authentication);
             return auth.isAuthenticated();
         } catch (AuthenticationException e) {
             return false;
-        } catch (IllegalArgumentException e) {
-            //TODO bug https://www.pivotaltracker.com/story/show/68894754
+        } catch (Exception e) {
+            logger.debug("Unable to authenticate/validate "+clientId, e);
             return false;
         }
     }
