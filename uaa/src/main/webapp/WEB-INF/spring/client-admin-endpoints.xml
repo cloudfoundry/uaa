@@ -27,15 +27,22 @@
         <access-denied-handler ref="oauthAccessDeniedHandler" />
     </http>
 
-    <http name="clientAdminSecurity" pattern="/oauth/clients/**" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"
+    <http name="clientTxAdminSecurity" pattern="/oauth/clients/tx/**" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"
         use-expressions="true" authentication-manager-ref="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/tx/**" access="#oauth2.hasScope('clients.admin')" method="DELETE" />
-        <intercept-url pattern="/tx/**" access="#oauth2.hasScope('clients.admin')" method="POST" />
-        <intercept-url pattern="/tx/**" access="#oauth2.hasScope('clients.admin')" method="PUT" />
-        <intercept-url pattern="/**" access="#oauth2.hasScope('clients.write')" method="DELETE" />
-        <intercept-url pattern="/**" access="#oauth2.hasScope('clients.write')" method="POST" />
-        <intercept-url pattern="/**" access="#oauth2.hasScope('clients.write')" method="PUT" />
-        <intercept-url pattern="/**" access="#oauth2.hasScope('clients.read')" method="GET" />
+        <intercept-url pattern="/**" access="#oauth2.hasScope('clients.admin')" method="DELETE" />
+        <intercept-url pattern="/**" access="#oauth2.hasScope('clients.admin')" method="POST" />
+        <intercept-url pattern="/**" access="#oauth2.hasScope('clients.admin')" method="PUT" />
+        <custom-filter ref="clientResourceAuthenticationFilter" before="PRE_AUTH_FILTER" />
+        <access-denied-handler ref="oauthAccessDeniedHandler" />
+        <expression-handler ref="oauthWebExpressionHandler" />
+    </http>
+
+    <http name="clientAdminSecurity" pattern="/oauth/clients/**" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"
+          use-expressions="true" authentication-manager-ref="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/**" access="#oauth2.hasAnyScope('clients.write','clients.admin')" method="DELETE" />
+        <intercept-url pattern="/**" access="#oauth2.hasAnyScope('clients.write','clients.admin')" method="POST" />
+        <intercept-url pattern="/**" access="#oauth2.hasAnyScope('clients.write','clients.admin')" method="PUT" />
+        <intercept-url pattern="/**" access="#oauth2.hasAnyScope('clients.read','clients.admin')" method="GET" />
         <custom-filter ref="clientResourceAuthenticationFilter" before="PRE_AUTH_FILTER" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
         <expression-handler ref="oauthWebExpressionHandler" />

@@ -156,10 +156,7 @@ be used to run the server, or the tests or both:
 * `vcap`: also runs the server on the ROOT context and points the
   tests at `uaa.vcap.me`.
   
-* `devuaa`: points the tests at `http://devuaa.cloudfoundry.com` (an
-  instance of UAA deployed on cloudfoundry).
-  
-All these profiles set the `CLOUD_FOUNDRY_CONFIG_PATH` to pick up a
+These profiles set the `CLOUD_FOUNDRY_CONFIG_PATH` to pick up a
 `uaa.yml` and (if appropriate) set the context root for running the
 server (see below for more detail on that).
 
@@ -493,7 +490,7 @@ at all in `vcap`).  In the UAA you can find the registration in the
     Standard OAuth2 Authorization Endpoint.  Client credentials and
     all other features are handled by the UAA in the back end, and the
     login application is used to render the UI (see
-    `access_confirmation.jsp`).
+    `access_confirmation.html`).
 
 3. Obtain access token
 

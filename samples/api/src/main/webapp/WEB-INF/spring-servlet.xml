@@ -50,10 +50,7 @@
 	<bean id="propertyPlaceholderConfigurer" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer"
 		xmlns="http://www.springframework.org/schema/beans">
 		<property name="location">
-			<value>#{T(java.lang.System).getenv('VCAP_APPLICATION')==null ?
-				'classpath:/application.properties' :
-				'classpath:/application-cloud.properties'}
-			</value>
+			<value>classpath:/application.properties</value>
 		</property>
 	</bean>
 

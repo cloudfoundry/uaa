@@ -20,7 +20,7 @@
     <parent>
         <groupId>org.cloudfoundry.identity</groupId>
         <artifactId>cloudfoundry-identity-parent</artifactId>
-        <version>1.6.1</version>
+        <version>1.6.2</version>
         <relativePath>..</relativePath>
     </parent>
 
@@ -43,12 +43,6 @@
     </properties>
 
     <profiles>
-        <profile>
-            <id>devuaa</id>
-            <properties>
-                <CLOUD_FOUNDRY_CONFIG_PATH>${project.basedir}/src/test/resources/test/profiles/devuaa</CLOUD_FOUNDRY_CONFIG_PATH>
-            </properties>
-        </profile>
         <profile>
             <id>vcap</id>
             <properties>

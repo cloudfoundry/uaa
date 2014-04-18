@@ -18,6 +18,7 @@ import static org.junit.Assert.assertNull;
 
 import java.util.Arrays;
 
+import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -134,6 +135,24 @@ public class LoginAuthenticationManagerTests {
                         .getAuthenticationRequest("foo", true));
         assertEquals(user.getUsername(), ((UaaPrincipal) authentication.getPrincipal()).getName());
         assertEquals(user.getId(), ((UaaPrincipal) authentication.getPrincipal()).getId());
+    }
+
+    @Test
+    public void testAuthenticateWithStrangeNameAndMissingEmail() {
+        String username1 = "a@";
+        AuthzAuthenticationRequest req1 = UaaAuthenticationTestFactory.getAuthenticationRequest(username1, true);
+        UaaUser u1 = manager.getUser(req1, req1.getInfo());
+        assertEquals(username1, u1.getUsername());
+
+        String username2 = "@a";
+        AuthzAuthenticationRequest req2 = UaaAuthenticationTestFactory.getAuthenticationRequest(username2, true);
+        UaaUser u2 = manager.getUser(req2, req2.getInfo());
+        assertEquals(username2, u2.getUsername());
+
+        String username3 = "a@b@c";
+        AuthzAuthenticationRequest req3 = UaaAuthenticationTestFactory.getAuthenticationRequest(username3, true);
+        UaaUser u3 = manager.getUser(req3, req3.getInfo());
+        assertEquals(username3, u3.getUsername());
     }
 
 }
