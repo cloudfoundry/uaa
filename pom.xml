@@ -30,7 +30,7 @@
     </modules>
     <properties>
         <spring.version>4.0.3.RELEASE</spring.version>
-        <spring.security.version>3.2.2.RELEASE</spring.security.version>
+        <spring.security.version>3.2.3.RELEASE</spring.security.version>
         <spring.security.oauth.version>1.0.5.RELEASE</spring.security.oauth.version>
         <spring.security.jwt.version>1.0.1.RELEASE</spring.security.jwt.version>
         <aspectj.version>1.6.9</aspectj.version>
