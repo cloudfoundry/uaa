@@ -24,6 +24,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.params.ClientPNames;
 import org.apache.http.client.params.CookiePolicy;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.cloudfoundry.identity.uaa.test.TestProfileEnvironment;
 import org.cloudfoundry.identity.uaa.test.UrlHelper;
 import org.junit.Assume;
@@ -346,10 +347,11 @@ public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper 
     private static class StatelessRequestFactory extends HttpComponentsClientHttpRequestFactory {
         @Override
         public HttpClient getHttpClient() {
-            HttpClient client = super.getHttpClient();
-            client.getParams().setBooleanParameter(ClientPNames.HANDLE_REDIRECTS, false);
-            client.getParams().setParameter(ClientPNames.COOKIE_POLICY, CookiePolicy.IGNORE_COOKIES);
-            return client;
+            return HttpClientBuilder.create()
+                    .useSystemProperties()
+                    .disableRedirectHandling()
+                    .disableCookieManagement()
+                    .build();
         }
     }
 
