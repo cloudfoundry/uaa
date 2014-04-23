@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -54,7 +54,7 @@ public class ScimUserJsonDeserializer extends JsonDeserializer<ScimUser> {
                 } else if ("preferredLanguage".equalsIgnoreCase(fieldName)) {
                     user.setPreferredLanguage(jp.readValueAs(String.class));
                 } else if ("phoneNumbers".equalsIgnoreCase(fieldName)) {
-                    user.setPhoneNumbers(Arrays.asList(jp.readValueAs(ScimUser.PhoneNumber[].class)));
+                    user.setPhoneNumbers(Arrays.asList(jp.readValueAs(ScimPhoneNumber[].class)));
                 } else if ("password".equalsIgnoreCase(fieldName)) {
                     user.setPassword(jp.readValueAs(String.class));
                 } else if ("nickname".equalsIgnoreCase(fieldName)) {
@@ -64,7 +64,7 @@ public class ScimUserJsonDeserializer extends JsonDeserializer<ScimUser> {
                 } else if ("locale".equalsIgnoreCase(fieldName)) {
                     user.setLocale(jp.readValueAs(String.class));
                 } else if ("emails".equalsIgnoreCase(fieldName)) {
-                    user.setEmails(Arrays.asList(jp.readValueAs(ScimUser.Email[].class)));
+                    user.setEmails(Arrays.asList(jp.readValueAs(ScimEmail[].class)));
                 } else if ("groups".equalsIgnoreCase(fieldName)) {
                     user.setGroups(Arrays.asList(jp.readValueAs(ScimUser.Group[].class)));
                 } else if ("displayName".equalsIgnoreCase(fieldName)) {

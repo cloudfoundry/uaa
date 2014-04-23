@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -28,11 +28,11 @@ import org.springframework.util.StringUtils;
 
 /**
  * Object to hold SCIM data for Jackson to map to and from JSON
- * 
+ *
  * See the <a
  * href="http://www.simplecloud.info/specs/draft-scim-core-schema-02.html">SCIM
  * user schema</a>.
- * 
+ *
  * @author Luke Taylor
  */
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
@@ -202,76 +202,17 @@ public final class ScimUser extends ScimCore {
 
     }
 
-    @JsonSerialize(include = JsonSerialize.Inclusion.NON_DEFAULT)
-    public static final class Email {
-        private String value;
-
-        // this should probably be an enum
-        private String type;
-
-        private boolean primary = false;
-
-        public String getValue() {
-            return value;
-        }
-
-        public void setValue(String value) {
-            this.value = value;
-        }
-
-        public String getType() {
-            return type;
-        }
-
-        public void setType(String type) {
-            this.type = type;
-        }
-
-        public void setPrimary(boolean primary) {
-            this.primary = primary;
-        }
-
-        public boolean isPrimary() {
-            return primary;
-        }
-    }
-
-    @JsonSerialize(include = JsonSerialize.Inclusion.NON_DEFAULT)
-    public static final class PhoneNumber {
-        private String value;
-
-        // this should probably be an enum
-        private String type;
-
-        public String getValue() {
-            return value;
-        }
-
-        public void setValue(String value) {
-            this.value = value;
-        }
-
-        public String getType() {
-            return type;
-        }
-
-        public void setType(String type) {
-            this.type = type;
-        }
-
-    }
-
     private String userName;
 
     private Name name;
 
-    private List<Email> emails;
+    private List<ScimEmail> emails;
 
     private Set<Group> groups;
 
     private Set<Approval> approvals;
 
-    private List<PhoneNumber> phoneNumbers;
+    private List<ScimPhoneNumber> phoneNumbers;
 
     private String displayName;
 
@@ -329,11 +270,11 @@ public final class ScimUser extends ScimCore {
         this.name = name;
     }
 
-    public List<Email> getEmails() {
+    public List<ScimEmail> getEmails() {
         return emails;
     }
 
-    public void setEmails(List<Email> emails) {
+    public void setEmails(List<ScimEmail> emails) {
         this.emails = emails;
     }
 
@@ -353,16 +294,16 @@ public final class ScimUser extends ScimCore {
         this.groups = new LinkedHashSet<Group>(groups);
     }
 
-    public List<PhoneNumber> getPhoneNumbers() {
+    public List<ScimPhoneNumber> getPhoneNumbers() {
         return phoneNumbers;
     }
 
-    public void setPhoneNumbers(List<PhoneNumber> phoneNumbers) {
+    public void setPhoneNumbers(List<ScimPhoneNumber> phoneNumbers) {
         if (phoneNumbers!=null && phoneNumbers.size()>0) {
-            ArrayList<PhoneNumber> list = new ArrayList<PhoneNumber>();
+            ArrayList<ScimPhoneNumber> list = new ArrayList<ScimPhoneNumber>();
             list.addAll(phoneNumbers);
             for (int i=(list.size()-1); i>=0; i--) {
-                PhoneNumber pn = list.get(i);
+                ScimPhoneNumber pn = list.get(i);
                 if (pn==null || (!StringUtils.hasText(pn.getValue()))) {
                     list.remove(i);
                 }
@@ -458,9 +399,9 @@ public final class ScimUser extends ScimCore {
             return null;
         }
 
-        Email primaryEmail = null;
+        ScimEmail primaryEmail = null;
 
-        for (Email email : getEmails()) {
+        for (ScimEmail email : getEmails()) {
             if (email.isPrimary()) {
                 primaryEmail = email;
                 break;
@@ -492,37 +433,37 @@ public final class ScimUser extends ScimCore {
         Assert.hasText(newEmail);
 
         if (emails == null) {
-            emails = new ArrayList<Email>(1);
+            emails = new ArrayList<ScimEmail>(1);
         }
-        for (Email email : emails) {
-            if (email.value.equals(newEmail)) {
+        for (ScimEmail email : emails) {
+            if (email.getValue().equals(newEmail)) {
                 throw new IllegalArgumentException("Already contains email " + newEmail);
             }
         }
 
-        Email e = new Email();
+        ScimEmail e = new ScimEmail();
         e.setValue(newEmail);
         emails.add(e);
     }
 
     /**
      * Adds a new phone number with null type.
-     * 
+     *
      * @param newPhoneNumber
      */
     public void addPhoneNumber(String newPhoneNumber) {
         Assert.hasText(newPhoneNumber);
 
         if (phoneNumbers == null) {
-            phoneNumbers = new ArrayList<PhoneNumber>(1);
+            phoneNumbers = new ArrayList<ScimPhoneNumber>(1);
         }
-        for (PhoneNumber email : phoneNumbers) {
-            if (email.value.equals(newPhoneNumber) && email.getType() == null) {
+        for (ScimPhoneNumber email : phoneNumbers) {
+            if (email.getValue().equals(newPhoneNumber) && email.getType() == null) {
                 throw new IllegalArgumentException("Already contains phoneNumber " + newPhoneNumber);
             }
         }
 
-        PhoneNumber e = new PhoneNumber();
+        ScimPhoneNumber e = new ScimPhoneNumber();
         e.setValue(newPhoneNumber);
         phoneNumbers.add(e);
     }
@@ -551,7 +492,7 @@ public final class ScimUser extends ScimCore {
         }
 
         if (emails != null) {
-            for (Email email : emails) {
+            for (ScimEmail email : emails) {
                 words.add(email.getValue());
             }
         }

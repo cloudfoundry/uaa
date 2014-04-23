@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -157,7 +157,7 @@ public class ScimUserTests {
         ScimUser user = new ScimUser();
         user.setId("123");
         user.setUserName("joe");
-        ScimUser.Email email = new ScimUser.Email();
+        ScimEmail email = new ScimEmail();
         email.setValue("foo@bar.com");
         user.setEmails(Arrays.asList(email));
         StandardEvaluationContext context = new StandardEvaluationContext(user);

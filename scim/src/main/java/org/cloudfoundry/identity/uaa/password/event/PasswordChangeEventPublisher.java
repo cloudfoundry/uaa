@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -19,7 +19,7 @@ import java.util.List;
 
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUser.Email;
+import org.cloudfoundry.identity.uaa.scim.ScimEmail;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -32,9 +32,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
  * according to the input and outcome. Can be
  * used as an aspect intercepting calls to a component that changes user
  * password.
- * 
+ *
  * @author Dave Syer
- * 
+ *
  */
 public class PasswordChangeEventPublisher implements ApplicationEventPublisherAware {
 
@@ -83,12 +83,12 @@ public class PasswordChangeEventPublisher implements ApplicationEventPublisherAw
     }
 
     private String getEmail(ScimUser scimUser) {
-        List<Email> emails = scimUser.getEmails();
+        List<ScimEmail> emails = scimUser.getEmails();
         if (emails == null || emails.isEmpty()) {
             return scimUser.getUserName().contains("@") ? scimUser.getUserName() : scimUser.getUserName()
                             + "@unknown.org";
         }
-        for (Email email : emails) {
+        for (ScimEmail email : emails) {
             if (email.isPrimary()) {
                 return email.getValue();
             }

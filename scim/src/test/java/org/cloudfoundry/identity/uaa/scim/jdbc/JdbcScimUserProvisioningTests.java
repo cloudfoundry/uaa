@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -33,9 +33,9 @@ import javax.sql.DataSource;
 import org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
+import org.cloudfoundry.identity.uaa.scim.ScimPhoneNumber;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
-import org.cloudfoundry.identity.uaa.scim.ScimUser.PhoneNumber;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
@@ -188,20 +188,20 @@ public class JdbcScimUserProvisioningTests {
         assertEquals(JOE_ID, joe.getId());
         assertNull(joe.getGroups());
     }
-    
+
     @Test
     public void updateWithEmptyPhoneListWorks() {
         ScimUser jo = new ScimUser(null, "josephine", "Jo", "NewUser");
-        PhoneNumber emptyNumber = new PhoneNumber();
+        ScimPhoneNumber emptyNumber = new ScimPhoneNumber();
         jo.addEmail("jo@blah.com");
-        jo.setPhoneNumbers(new ArrayList<PhoneNumber>());
+        jo.setPhoneNumbers(new ArrayList<ScimPhoneNumber>());
         ScimUser joe = db.update(JOE_ID, jo);
     }
 
     @Test
     public void updateWithEmptyPhoneNumberWorks() {
         ScimUser jo = new ScimUser(null, "josephine", "Jo", "NewUser");
-        PhoneNumber emptyNumber = new PhoneNumber();
+        ScimPhoneNumber emptyNumber = new ScimPhoneNumber();
         jo.addEmail("jo@blah.com");
         jo.setPhoneNumbers(Arrays.asList(emptyNumber));
         ScimUser joe = db.update(JOE_ID, jo);
@@ -210,7 +210,7 @@ public class JdbcScimUserProvisioningTests {
     @Test
     public void updateWithWhiteSpacePhoneNumberWorks() {
         ScimUser jo = new ScimUser(null, "josephine", "Jo", "NewUser");
-        PhoneNumber emptyNumber = new PhoneNumber();
+        ScimPhoneNumber emptyNumber = new ScimPhoneNumber();
         emptyNumber.setValue(" ");
         jo.addEmail("jo@blah.com");
         jo.setPhoneNumbers(Arrays.asList(emptyNumber));
