@@ -25,6 +25,15 @@ public class SecretChangeRequest {
     private String secret;
     private String clientId;
 
+    public SecretChangeRequest() {
+    }
+
+    public SecretChangeRequest(String clientId, String oldSecret, String secret) {
+        this.oldSecret = oldSecret;
+        this.secret = secret;
+        this.clientId = clientId;
+    }
+
     public String getSecret() {
         return secret;
     }

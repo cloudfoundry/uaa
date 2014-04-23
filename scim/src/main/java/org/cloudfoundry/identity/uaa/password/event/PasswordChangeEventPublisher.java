@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundExceptio
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 /**
@@ -52,13 +53,8 @@ public class PasswordChangeEventPublisher implements ApplicationEventPublisherAw
     }
 
     public void passwordFailure(String userId, Exception e) {
-        UaaUser client = getUser(userId);
-        if (client == null) {
-            publish(new PasswordFailureEvent(e.getMessage(), client, getPrincipal()));
-        }
-        else {
-            publish(new PasswordFailureEvent(e.getMessage(), getPrincipal()));
-        }
+        UaaUser user = getUser(userId);
+        publish(new PasswordChangeFailureEvent(e.getMessage(), user, getPrincipal()));
     }
 
     public void passwordChange(String userId) {
@@ -96,7 +92,7 @@ public class PasswordChangeEventPublisher implements ApplicationEventPublisherAw
         return scimUser.getEmails().get(0).getValue();
     }
 
-    private Principal getPrincipal() {
+    private Authentication getPrincipal() {
         return SecurityContextHolder.getContext().getAuthentication();
     }
 

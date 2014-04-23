@@ -259,14 +259,14 @@ public class JdbcScimUserProvisioningTests {
      */
     @Test
     public void canChangePasswordWithoutOldPassword() throws Exception {
-        assertTrue(db.changePassword(JOE_ID, null, "koala123$marissa"));
+        db.changePassword(JOE_ID, null, "koala123$marissa");
         String storedPassword = template.queryForObject("SELECT password from users where ID=?", String.class, JOE_ID);
         assertTrue(BCrypt.checkpw("koala123$marissa", storedPassword));
     }
 
     @Test
     public void canChangePasswordWithCorrectOldPassword() throws Exception {
-        assertTrue(db.changePassword(JOE_ID, "joespassword", "koala123$marissa"));
+        db.changePassword(JOE_ID, "joespassword", "koala123$marissa");
         String storedPassword = template.queryForObject("SELECT password from users where ID=?", String.class, JOE_ID);
         assertTrue(BCrypt.checkpw("koala123$marissa", storedPassword));
     }
@@ -278,7 +278,7 @@ public class JdbcScimUserProvisioningTests {
 
     @Test(expected = ScimResourceNotFoundException.class)
     public void cannotChangePasswordIfOldPasswordDoesntMatch() {
-        assertTrue(db.changePassword("9999", null, "newpassword"));
+        db.changePassword("9999", null, "newpassword");
     }
 
     @Test(expected = InvalidPasswordException.class)

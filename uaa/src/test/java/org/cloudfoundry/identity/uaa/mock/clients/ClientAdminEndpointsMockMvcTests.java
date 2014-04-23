@@ -10,6 +10,12 @@ import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.oauth.event.ClientAdminEventPublisher;
+import org.cloudfoundry.identity.uaa.oauth.event.ClientApprovalsDeletedEvent;
+import org.cloudfoundry.identity.uaa.oauth.event.ClientCreateEvent;
+import org.cloudfoundry.identity.uaa.oauth.event.ClientDeleteEvent;
+import org.cloudfoundry.identity.uaa.oauth.event.ClientUpdateEvent;
+import org.cloudfoundry.identity.uaa.oauth.event.SecretChangeEvent;
+import org.cloudfoundry.identity.uaa.oauth.event.SecretFailureEvent;
 import org.cloudfoundry.identity.uaa.rest.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
@@ -18,6 +24,7 @@ import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.hamcrest.Matcher;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -25,7 +32,6 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockServletContext;
-import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -48,6 +54,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -89,11 +96,10 @@ public class ClientAdminEndpointsMockMvcTests {
 
         testClient = new TestClient(mockMvc);
         testAccounts = UaaTestAccounts.standard(null);
-        adminToken = testClient.getOAuthAccessToken(
-                        testAccounts.getAdminClientId(), 
-                        testAccounts.getAdminClientSecret(), 
-                        "client_credentials",
-                        "clients.admin clients.read clients.write clients.secret");
+        adminToken = testClient.getClientCredentialsOAuthAccessToken(
+            testAccounts.getAdminClientId(),
+            testAccounts.getAdminClientSecret(),
+            "clients.admin clients.read clients.write clients.secret");
 
         applicationEventPublisher = mock(ApplicationEventPublisher.class);
         ClientAdminEventPublisher eventPublisher = (ClientAdminEventPublisher)webApplicationContext.getBean("clientAdminEventPublisher");
@@ -394,16 +400,22 @@ public class ClientAdminEndpointsMockMvcTests {
                 case 4 : {
                     //1-10 and 21-25 events are create
                     assertEquals(AuditEventType.ClientCreateSuccess, event.getAuditEvent().getType());
+                    assertEquals(ClientCreateEvent.class, event.getClass());
+                    assertEquals(details[index<10?index:(index-count*2)].getClientId(), event.getAuditEvent().getPrincipalId());
                     break;
                 }
                 case 2 : {
                     //the 11-15 events are update
                     assertEquals(AuditEventType.ClientUpdateSuccess, event.getAuditEvent().getType());
+                    assertEquals(ClientUpdateEvent.class, event.getClass());
+                    assertEquals(details[index-(count*2)].getClientId(), event.getAuditEvent().getPrincipalId());
                     break;
                 }
                 case 3 : {
                     //the 16-20 events are deletes
                     assertEquals(AuditEventType.ClientDeleteSuccess, event.getAuditEvent().getType());
+                    assertEquals(ClientDeleteEvent.class, event.getClass());
+                    assertEquals(details[index-count*2].getClientId(), event.getAuditEvent().getPrincipalId());
                     break;
                 }
             }
@@ -654,6 +666,53 @@ public class ClientAdminEndpointsMockMvcTests {
     }
 
     @Test
+    public void testSecretChangeEvent() throws Exception {
+        String id = "secretchangeevent";
+        ClientDetails c = createClient(adminToken, id, "client_credentials");
+        SecretChangeRequest request = new SecretChangeRequest(id, "secret", "newsecret");
+        MockHttpServletRequestBuilder modifyClientsPost = put("/oauth/clients/" + id + "/secret")
+            .header("Authorization", "Bearer " + adminToken)
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .content(toString(request));
+        mockMvc.perform(modifyClientsPost)
+            .andExpect(status().isOk());
+        verify(applicationEventPublisher, times(2)).publishEvent(captor.capture());
+        assertEquals(SecretChangeEvent.class, captor.getValue().getClass());
+        SecretChangeEvent event = (SecretChangeEvent) captor.getValue();
+        assertEquals(id, event.getAuditEvent().getPrincipalId());
+    }
+
+    @Test
+    public void testFailedSecretChangeEvent() throws Exception {
+
+        String scopes = "oauth.approvals,clients.secret";
+        BaseClientDetails client = createBaseClient(null, "password,client_credentials", scopes, scopes);
+        MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
+            .header("Authorization", "Bearer " + adminToken)
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .content(toString(client));
+        mockMvc.perform(createClientPost).andExpect(status().isCreated());
+
+        String clientSecretToken = testClient.getClientCredentialsOAuthAccessToken(client.getClientId(), client.getClientSecret(), "clients.secret");
+
+        SecretChangeRequest request = new SecretChangeRequest(client.getClientId(), "invalidsecret", "newsecret");
+        MockHttpServletRequestBuilder modifyClientsPost = put("/oauth/clients/" + client.getClientId() + "/secret")
+            .header("Authorization", "Bearer " + clientSecretToken)
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .content(toString(request));
+        mockMvc.perform(modifyClientsPost)
+            .andExpect(status().isBadRequest());
+        verify(applicationEventPublisher, times(2)).publishEvent(captor.capture());
+        assertEquals(SecretFailureEvent.class, captor.getValue().getClass());
+        SecretFailureEvent event = (SecretFailureEvent) captor.getValue();
+        assertEquals(client.getClientId(), event.getAuditEvent().getPrincipalId());
+    }
+
+
+    @Test
     public void testSecretChangeModifyTxApprovalsDeleted() throws Exception {
         int count = 3;
         //create clients
@@ -733,6 +792,7 @@ public class ClientAdminEndpointsMockMvcTests {
                     assertEquals(AuditEventType.SecretChangeSuccess, event.getAuditEvent().getType());
                 } else {
                     assertEquals(AuditEventType.ClientApprovalsDeleted, event.getAuditEvent().getType());
+                    assertEquals(ClientApprovalsDeletedEvent.class, event.getClass());
                 }
             }
 
@@ -818,11 +878,10 @@ public class ClientAdminEndpointsMockMvcTests {
             c.setAction(c.ADD);
         }
 
-        String token = testClient.getOAuthAccessToken(
-                adminsClient.getClientId(),
-                "secret",
-                "client_credentials",
-                "clients.admin");
+        String token = testClient.getClientCredentialsOAuthAccessToken(
+            adminsClient.getClientId(),
+            "secret",
+            "clients.admin");
 
         MockHttpServletRequestBuilder modifyClientsPost = post("/oauth/clients/tx/modify")
                 .header("Authorization", "Bearer " + token)
@@ -844,11 +903,10 @@ public class ClientAdminEndpointsMockMvcTests {
             c.setAction(c.ADD);
         }
 
-        String token = testClient.getOAuthAccessToken(
-                adminsClient.getClientId(),
-                "secret",
-                "client_credentials",
-                "clients.write");
+        String token = testClient.getClientCredentialsOAuthAccessToken(
+            adminsClient.getClientId(),
+            "secret",
+            "clients.write");
 
         MockHttpServletRequestBuilder modifyClientsPost = post("/oauth/clients/tx/modify")
                 .header("Authorization", "Bearer " + token)
@@ -871,11 +929,10 @@ public class ClientAdminEndpointsMockMvcTests {
             c.setAction(c.ADD);
         }
 
-        String token = testClient.getOAuthAccessToken(
-                adminsClient.getClientId(),
-                "secret",
-                "client_credentials",
-                "clients.admin");
+        String token = testClient.getClientCredentialsOAuthAccessToken(
+            adminsClient.getClientId(),
+            "secret",
+            "clients.admin");
 
         MockHttpServletRequestBuilder modifyClientsPost = post("/oauth/clients")
                 .header("Authorization", "Bearer " + token)
@@ -897,11 +954,10 @@ public class ClientAdminEndpointsMockMvcTests {
             c.setAction(c.ADD);
         }
 
-        String token = testClient.getOAuthAccessToken(
-                adminsClient.getClientId(),
-                "secret",
-                "client_credentials",
-                "clients.read");
+        String token = testClient.getClientCredentialsOAuthAccessToken(
+            adminsClient.getClientId(),
+            "secret",
+            "clients.read");
 
         MockHttpServletRequestBuilder modifyClientsPost = post("/oauth/clients")
                 .header("Authorization", "Bearer " + token)
@@ -923,11 +979,10 @@ public class ClientAdminEndpointsMockMvcTests {
             c.setAction(c.ADD);
         }
 
-        String token = testClient.getOAuthAccessToken(
-                adminsClient.getClientId(),
-                "secret",
-                "client_credentials",
-                "clients.write");
+        String token = testClient.getClientCredentialsOAuthAccessToken(
+            adminsClient.getClientId(),
+            "secret",
+            "clients.write");
 
         MockHttpServletRequestBuilder modifyClientsPost = post("/oauth/clients")
                 .header("Authorization", "Bearer " + token)

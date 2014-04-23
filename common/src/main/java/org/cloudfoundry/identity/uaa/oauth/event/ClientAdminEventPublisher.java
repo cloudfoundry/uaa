@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -138,7 +139,7 @@ public class ClientAdminEventPublisher implements ApplicationEventPublisherAware
         }
     }
 
-    private Principal getPrincipal() {
+    private Authentication getPrincipal() {
         return SecurityContextHolder.getContext().getAuthentication();
     }
 

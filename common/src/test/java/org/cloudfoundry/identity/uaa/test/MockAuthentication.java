@@ -10,32 +10,46 @@
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-package org.cloudfoundry.identity.uaa.oauth.event;
+package org.cloudfoundry.identity.uaa.test;
 
-import java.security.Principal;
-
-import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.core.GrantedAuthority;
 
-/**
- * @author Dave Syer
- */
-abstract class AbstractClientAdminEvent extends AbstractUaaEvent {
+import java.util.Collection;
 
-    private ClientDetails client;
-
-    public AbstractClientAdminEvent(ClientDetails client, Authentication principal) {
-        super(principal);
-        this.client = client;
+public class MockAuthentication implements Authentication {
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return null;
     }
 
-    ClientDetails getClient() {
-        return client;
+    @Override
+    public Object getCredentials() {
+        return null;
     }
 
-    Principal getPrincipal() {
-        return getAuthentication();
+    @Override
+    public Object getDetails() {
+        return null;
     }
 
+    @Override
+    public Object getPrincipal() {
+        return null;
+    }
+
+    @Override
+    public boolean isAuthenticated() {
+        return false;
+    }
+
+    @Override
+    public void setAuthenticated(boolean b) throws IllegalArgumentException {
+
+    }
+
+    @Override
+    public String getName() {
+        return null;
+    }
 }

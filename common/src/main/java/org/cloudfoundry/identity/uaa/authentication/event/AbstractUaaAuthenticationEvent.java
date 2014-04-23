@@ -25,10 +25,6 @@ abstract class AbstractUaaAuthenticationEvent extends AbstractUaaEvent {
         super(authentication);
     }
 
-    Authentication getAuthentication() {
-        return (Authentication) source;
-    }
-
     protected String getOrigin(UaaAuthenticationDetails details) {
         return details == null ? "unknown" : details.toString();
     }
