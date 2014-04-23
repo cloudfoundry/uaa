@@ -60,7 +60,7 @@ public class ScimUserJsonDeserializer extends JsonDeserializer<ScimUser> {
                 } else if ("nickname".equalsIgnoreCase(fieldName)) {
                     user.setNickName(jp.readValueAs(String.class));
                 } else if ("name".equalsIgnoreCase(fieldName)) {
-                    user.setName(jp.readValueAs(ScimUser.Name.class));
+                    user.setName(jp.readValueAs(ScimName.class));
                 } else if ("locale".equalsIgnoreCase(fieldName)) {
                     user.setLocale(jp.readValueAs(String.class));
                 } else if ("emails".equalsIgnoreCase(fieldName)) {

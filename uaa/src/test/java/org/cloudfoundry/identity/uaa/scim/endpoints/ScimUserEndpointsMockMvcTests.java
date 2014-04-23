@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -20,6 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
+import org.cloudfoundry.identity.uaa.scim.ScimName;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.DefaultIntegrationTestConfig;
@@ -79,7 +80,7 @@ public class ScimUserEndpointsMockMvcTests {
         String email = "joe@"+generator.generate().toLowerCase()+".com";
         ScimUser user = new ScimUser();
         user.setUserName("JOE");
-        user.setName(new ScimUser.Name("Joe", "User"));
+        user.setName(new ScimName("Joe", "User"));
         user.addEmail(email);
 
         byte[] requestBody = new ObjectMapper().writeValueAsBytes(user);
@@ -125,7 +126,7 @@ public class ScimUserEndpointsMockMvcTests {
         user = usersRepository.createUser(user, "password");
 
         user.setUserName("ou");
-        user.setName(new ScimUser.Name("Joe", "Smith"));
+        user.setName(new ScimName("Joe", "Smith"));
 
         MockHttpServletRequestBuilder put = MockMvcRequestBuilders.put("/Users/" + user.getId())
                 .header("Authorization", "Bearer " + scimToken)

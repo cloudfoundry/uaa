@@ -29,6 +29,7 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
+import org.cloudfoundry.identity.uaa.scim.ScimName;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserGroup;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
@@ -129,7 +130,7 @@ public class ScimGroupEndpointsIntegrationTests {
     private ScimUser createUser(String username, String password) {
         ScimUser user = new ScimUser();
         user.setUserName(username);
-        user.setName(new ScimUser.Name(username, username));
+        user.setName(new ScimName(username, username));
         user.addEmail(username);
 
         ScimUser u = client.postForEntity(serverRunning.getUrl(userEndpoint), user, ScimUser.class).getBody();

@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
+import org.cloudfoundry.identity.uaa.scim.ScimName;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
@@ -42,7 +43,7 @@ import org.springframework.web.client.RestOperations;
 
 /**
  * @author Dave Syer
- * 
+ *
  */
 public class PasswordChangeEndpointIntegrationTests {
 
@@ -68,7 +69,7 @@ public class PasswordChangeEndpointIntegrationTests {
     private ResponseEntity<ScimUser> createUser(String username, String firstName, String lastName, String email) {
         ScimUser user = new ScimUser();
         user.setUserName(username);
-        user.setName(new ScimUser.Name(firstName, lastName));
+        user.setName(new ScimName(firstName, lastName));
         user.addEmail(email);
         user.setPassword("password");
         return client.postForEntity(serverRunning.getUrl(userEndpoint), user, ScimUser.class);

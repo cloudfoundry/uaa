@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -28,7 +28,7 @@ import org.cloudfoundry.identity.uaa.rest.jdbc.AbstractQueryable;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUser.Name;
+import org.cloudfoundry.identity.uaa.scim.ScimName;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
@@ -349,7 +349,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
 
     /**
      * The encoder used to hash passwords before storing them in the database.
-     * 
+     *
      * Defaults to a {@link BCryptPasswordEncoder}.
      */
     public void setPasswordEncoder(PasswordEncoder passwordEncoder) {
@@ -391,7 +391,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
             if (phoneNumber != null) {
                 user.addPhoneNumber(phoneNumber);
             }
-            Name name = new Name();
+            ScimName name = new ScimName();
             name.setGivenName(givenName);
             name.setFamilyName(familyName);
             user.setName(name);
