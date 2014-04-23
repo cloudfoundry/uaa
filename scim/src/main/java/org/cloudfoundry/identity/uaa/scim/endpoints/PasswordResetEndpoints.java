@@ -19,8 +19,8 @@ import static org.springframework.http.HttpStatus.OK;
 
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.domain.ScimUser;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;

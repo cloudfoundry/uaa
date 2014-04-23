@@ -1,14 +1,15 @@
-package org.cloudfoundry.identity.uaa.scim;
+package org.cloudfoundry.identity.uaa.scim.domain;
 
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 
-
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_DEFAULT)
-public final class ScimPhoneNumber {
+public final class ScimEmail {
     private String value;
 
     // this should probably be an enum
     private String type;
+
+    private boolean primary = false;
 
     public String getValue() {
         return value;
@@ -26,4 +27,11 @@ public final class ScimPhoneNumber {
         this.type = type;
     }
 
+    public void setPrimary(boolean primary) {
+        this.primary = primary;
+    }
+
+    public boolean isPrimary() {
+        return primary;
+    }
 }

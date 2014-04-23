@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.scim;
 
 import java.util.Arrays;
 
+import org.cloudfoundry.identity.uaa.scim.domain.ScimMeta;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.springframework.util.Assert;
 

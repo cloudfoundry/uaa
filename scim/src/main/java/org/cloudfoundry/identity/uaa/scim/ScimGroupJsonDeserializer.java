@@ -21,6 +21,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.cloudfoundry.identity.uaa.scim.domain.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.domain.ScimGroupMember;
+import org.cloudfoundry.identity.uaa.scim.domain.ScimMeta;
 import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.JsonProcessingException;
 import org.codehaus.jackson.JsonToken;

@@ -17,6 +17,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
 
+import org.cloudfoundry.identity.uaa.scim.domain.ScimGroupMember;
 import org.junit.Test;
 
 public class ScimGroupMemberTests {

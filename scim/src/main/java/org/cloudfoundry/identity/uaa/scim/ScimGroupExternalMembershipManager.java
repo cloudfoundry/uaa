@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.scim;
 
 import java.util.List;
 
+import org.cloudfoundry.identity.uaa.scim.domain.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 

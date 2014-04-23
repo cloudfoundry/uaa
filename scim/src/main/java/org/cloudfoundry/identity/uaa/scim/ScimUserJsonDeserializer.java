@@ -17,6 +17,12 @@ import java.util.Arrays;
 import java.util.HashSet;
 
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
+import org.cloudfoundry.identity.uaa.scim.domain.ScimEmail;
+import org.cloudfoundry.identity.uaa.scim.domain.ScimMeta;
+import org.cloudfoundry.identity.uaa.scim.domain.ScimName;
+import org.cloudfoundry.identity.uaa.scim.domain.ScimPhoneNumber;
+import org.cloudfoundry.identity.uaa.scim.domain.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.domain.ScimUserGroup;
 import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.JsonProcessingException;
 import org.codehaus.jackson.JsonToken;

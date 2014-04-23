@@ -1,4 +1,4 @@
-package org.cloudfoundry.identity.uaa.scim;
+package org.cloudfoundry.identity.uaa.scim.domain;
 
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 

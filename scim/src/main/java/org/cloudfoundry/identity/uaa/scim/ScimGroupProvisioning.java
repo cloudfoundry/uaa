@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.scim;
 
 import org.cloudfoundry.identity.uaa.rest.Queryable;
 import org.cloudfoundry.identity.uaa.rest.ResourceManager;
+import org.cloudfoundry.identity.uaa.scim.domain.ScimGroup;
 
 public interface ScimGroupProvisioning extends ResourceManager<ScimGroup>, Queryable<ScimGroup> {
 }

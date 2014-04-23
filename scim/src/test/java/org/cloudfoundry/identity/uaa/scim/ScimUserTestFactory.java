@@ -14,6 +14,8 @@ package org.cloudfoundry.identity.uaa.scim;
 
 import java.util.UUID;
 
+import org.cloudfoundry.identity.uaa.scim.domain.ScimUser;
+
 /**
  * @author Dave Syer
  * 
