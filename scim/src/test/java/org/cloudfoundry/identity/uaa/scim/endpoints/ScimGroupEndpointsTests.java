@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -38,6 +38,7 @@ import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserGroup;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
@@ -214,7 +215,7 @@ public class ScimGroupEndpointsTests {
         assertNotNull(user.getGroups());
         logger.debug("user's groups: " + user.getGroups() + ", expecting: " + expectedAuthorities);
         assertEquals(expectedAuthorities.size(), user.getGroups().size());
-        for (ScimUser.Group g : user.getGroups()) {
+        for (ScimUserGroup g : user.getGroups()) {
             assertTrue(expectedAuthorities.contains(g.getDisplay()));
         }
     }

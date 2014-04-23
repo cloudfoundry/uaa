@@ -35,7 +35,7 @@ import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.ScimPhoneNumber;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
+import org.cloudfoundry.identity.uaa.scim.ScimUserGroup;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
@@ -221,7 +221,7 @@ public class JdbcScimUserProvisioningTests {
     public void updateCannotModifyGroups() {
         ScimUser jo = new ScimUser(null, "josephine", "Jo", "NewUser");
         jo.addEmail("jo@blah.com");
-        jo.setGroups(Collections.singleton(new Group(null, "dash/user")));
+        jo.setGroups(Collections.singleton(new ScimUserGroup(null, "dash/user")));
 
         ScimUser joe = db.update(JOE_ID, jo);
 

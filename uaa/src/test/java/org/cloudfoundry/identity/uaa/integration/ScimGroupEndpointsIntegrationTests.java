@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -30,6 +30,7 @@ import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserGroup;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.After;
@@ -179,7 +180,7 @@ public class ScimGroupEndpointsIntegrationTests {
                                                                                                 // user
                                                                                                 // groups
                                                                                                 // configured
-        for (ScimUser.Group g : getUser(id).getGroups()) {
+        for (ScimUserGroup g : getUser(id).getGroups()) {
             assertTrue(defaultGroups.contains(g.getDisplay()) || groupNames.contains(g.getDisplay()));
         }
     }

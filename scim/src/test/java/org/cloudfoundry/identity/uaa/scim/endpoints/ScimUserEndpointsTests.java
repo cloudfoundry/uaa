@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -41,6 +41,7 @@ import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserGroup;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
@@ -78,7 +79,7 @@ import com.googlecode.flyway.core.Flyway;
 /**
  * @author Dave Syer
  * @author Luke Taylor
- * 
+ *
  */
 public class ScimUserEndpointsTests {
 
@@ -175,7 +176,7 @@ public class ScimUserEndpointsTests {
         Log logger = LogFactory.getLog(getClass());
         logger.debug("user's groups: " + user.getGroups() + ", expecting: " + expectedAuthorities);
         assertEquals(expectedAuthorities.size(), user.getGroups().size());
-        for (ScimUser.Group g : user.getGroups()) {
+        for (ScimUserGroup g : user.getGroups()) {
             assertTrue(expectedAuthorities.contains(g.getDisplay()));
         }
     }
@@ -184,7 +185,7 @@ public class ScimUserEndpointsTests {
     public void groupsIsSyncedCorrectlyOnCreate() {
         ScimUser user = new ScimUser(null, "dave", "David", "Syer");
         user.addEmail("dsyer@vmware.com");
-        user.setGroups(Arrays.asList(new ScimUser.Group(null, "test1")));
+        user.setGroups(Arrays.asList(new ScimUserGroup(null, "test1")));
         ScimUser created = endpoints.createUser(user, new MockHttpServletResponse());
         validateUserGroups(created, "uaa.user");
     }
@@ -196,7 +197,7 @@ public class ScimUserEndpointsTests {
         ScimUser created = endpoints.createUser(user, new MockHttpServletResponse());
         validateUserGroups(created, "uaa.user");
 
-        created.setGroups(Arrays.asList(new ScimUser.Group(null, "test1")));
+        created.setGroups(Arrays.asList(new ScimUserGroup(null, "test1")));
         ScimUser updated = endpoints.updateUser(created, created.getId(), "*", new MockHttpServletResponse());
         validateUserGroups(updated, "uaa.user");
     }

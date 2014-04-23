@@ -20,7 +20,6 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collections;
 
-import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Test;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
@@ -95,7 +94,7 @@ public class ScimUserTests {
         ScimUser user = new ScimUser();
         user.setId("123");
         user.setUserName("joe");
-        user.setGroups(Collections.singleton(new Group(null, "foo")));
+        user.setGroups(Collections.singleton(new ScimUserGroup(null, "foo")));
 
         String json = mapper.writeValueAsString(user);
         // System.err.println(json);

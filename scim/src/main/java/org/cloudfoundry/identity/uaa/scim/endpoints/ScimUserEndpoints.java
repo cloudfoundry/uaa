@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -40,6 +40,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimCore;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException;
@@ -76,10 +77,10 @@ import org.springframework.web.servlet.View;
  * Simple Cloud Identity Management (SCIM)
  * group. Exposes basic CRUD and query features for user accounts in a backend
  * database.
- * 
+ *
  * @author Luke Taylor
  * @author Dave Syer
- * 
+ *
  * @see <a href="http://www.simplecloud.info">SCIM specs</a>
  */
 @Controller
@@ -119,7 +120,7 @@ public class ScimUserEndpoints implements InitializingBean {
 
     /**
      * Map from exception type to Http status.
-     * 
+     *
      * @param statuses the statuses to set
      */
     public void setStatuses(Map<Class<? extends Exception>, HttpStatus> statuses) {
@@ -287,12 +288,12 @@ public class ScimUserEndpoints implements InitializingBean {
         Set<ScimGroup> directGroups = membershipManager.getGroupsWithMember(user.getId(), false);
         Set<ScimGroup> indirectGroups = membershipManager.getGroupsWithMember(user.getId(), true);
         indirectGroups.removeAll(directGroups);
-        Set<ScimUser.Group> groups = new HashSet<ScimUser.Group>();
+        Set<ScimUserGroup> groups = new HashSet<ScimUserGroup>();
         for (ScimGroup group : directGroups) {
-            groups.add(new ScimUser.Group(group.getId(), group.getDisplayName(), ScimUser.Group.Type.DIRECT));
+            groups.add(new ScimUserGroup(group.getId(), group.getDisplayName(), ScimUserGroup.Type.DIRECT));
         }
         for (ScimGroup group : indirectGroups) {
-            groups.add(new ScimUser.Group(group.getId(), group.getDisplayName(), ScimUser.Group.Type.INDIRECT));
+            groups.add(new ScimUserGroup(group.getId(), group.getDisplayName(), ScimUserGroup.Type.INDIRECT));
         }
 
         user.setGroups(groups);

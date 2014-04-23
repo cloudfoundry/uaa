@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserGroup;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -339,7 +340,7 @@ public class ScimUserEndpointsIntegrationTests {
         assertEquals(JOE, joe.getUserName());
         assertEquals(NUM_DEFAULT_GROUPS_ON_STARTUP, joe.getGroups().size());
 
-        joe.setGroups(Arrays.asList(new ScimUser.Group(UUID.randomUUID().toString(), "uaa.admin")));
+        joe.setGroups(Arrays.asList(new ScimUserGroup(UUID.randomUUID().toString(), "uaa.admin")));
 
         HttpHeaders headers = new HttpHeaders();
         headers.add("If-Match", "\"" + joe.getVersion() + "\"");
