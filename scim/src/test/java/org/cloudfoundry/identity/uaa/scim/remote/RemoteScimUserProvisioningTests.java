@@ -19,6 +19,7 @@ import java.util.List;
 
 import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.domain.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.domain.ScimUserInterface;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -115,7 +116,7 @@ public class RemoteScimUserProvisioningTests {
                                         Matchers.argThat(new HttpHeadersMatcher()), Matchers.eq(ScimUser.class),
                                         Matchers.eq("1234")))
                         .thenReturn(new ResponseEntity<ScimUser>(user, HttpStatus.OK));
-        ScimUser user = service.verifyUser("1234", 123456789);
+        ScimUserInterface user = service.verifyUser("1234", 123456789);
     }
 
     private static class HttpHeadersMatcher extends ArgumentMatcher<HttpEntity<Void>> {

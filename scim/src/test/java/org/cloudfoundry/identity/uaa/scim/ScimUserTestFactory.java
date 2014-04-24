@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.scim;
 import java.util.UUID;
 
 import org.cloudfoundry.identity.uaa.scim.domain.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.domain.ScimUserInterface;
 
 /**
  * @author Dave Syer
@@ -22,8 +23,8 @@ import org.cloudfoundry.identity.uaa.scim.domain.ScimUser;
  */
 public class ScimUserTestFactory {
 
-    public static ScimUser getScimUser(String userName, String email, String givenName, String familyName) {
-        ScimUser user = new ScimUser(UUID.randomUUID().toString(), userName, givenName, familyName);
+    public static ScimUserInterface getScimUser(String userName, String email, String givenName, String familyName) {
+        ScimUserInterface user = new ScimUser(UUID.randomUUID().toString(), userName, givenName, familyName);
         if (email != null) {
             user.addEmail(email);
         }

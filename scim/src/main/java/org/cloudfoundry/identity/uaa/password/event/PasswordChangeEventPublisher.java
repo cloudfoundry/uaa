@@ -20,7 +20,7 @@ import java.util.List;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.domain.ScimEmail;
-import org.cloudfoundry.identity.uaa.scim.domain.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.domain.ScimUserInterface;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.springframework.context.ApplicationEventPublisher;
@@ -69,7 +69,7 @@ public class PasswordChangeEventPublisher implements ApplicationEventPublisherAw
         try {
             // If the request came in for a user by id we should be able to
             // retrieve the username
-            ScimUser scimUser = dao.retrieve(userId);
+            ScimUserInterface scimUser = dao.retrieve(userId);
             Date today = new Date();
             if (scimUser != null) {
                 return new UaaUser(scimUser.getId(), scimUser.getUserName(), "N/A", getEmail(scimUser), null,
@@ -82,7 +82,7 @@ public class PasswordChangeEventPublisher implements ApplicationEventPublisherAw
         return null;
     }
 
-    private String getEmail(ScimUser scimUser) {
+    private String getEmail(ScimUserInterface scimUser) {
         List<ScimEmail> emails = scimUser.getEmails();
         if (emails == null || emails.isEmpty()) {
             return scimUser.getUserName().contains("@") ? scimUser.getUserName() : scimUser.getUserName()

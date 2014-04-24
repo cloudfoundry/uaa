@@ -27,6 +27,7 @@ import java.util.UUID;
 import org.cloudfoundry.identity.uaa.scim.domain.ScimName;
 import org.cloudfoundry.identity.uaa.scim.domain.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.domain.ScimUserGroup;
+import org.cloudfoundry.identity.uaa.scim.domain.ScimUserInterface;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -94,7 +95,7 @@ public class ScimUserEndpointsIntegrationTests {
     }
 
     private ResponseEntity<ScimUser> createUser(String username, String firstName, String lastName, String email) {
-        ScimUser user = new ScimUser();
+        ScimUserInterface user = new ScimUser();
         user.setUserName(username);
         user.setName(new ScimName(firstName, lastName));
         user.addEmail(email);
@@ -104,7 +105,7 @@ public class ScimUserEndpointsIntegrationTests {
 
     private ResponseEntity<ScimUser> createUser(String username, String firstName, String lastName,
                     String email, boolean verified) {
-        ScimUser user = new ScimUser();
+        ScimUserInterface user = new ScimUser();
         user.setUserName(username);
         user.setName(new ScimName(firstName, lastName));
         user.addEmail(email);
@@ -176,10 +177,10 @@ public class ScimUserEndpointsIntegrationTests {
         ScimUser joe2 = client.getForObject(serverRunning.getUrl(userEndpoint + "/{id}"), ScimUser.class, joe1.getId());
         assertEquals(joe1.getId(), joe2.getId());
         assertFalse(joe2.isVerified());
-        ScimUser joe3 = client.getForObject(serverRunning.getUrl(userEndpoint + "/{id}/verify"), ScimUser.class,
+        ScimUserInterface joe3 = client.getForObject(serverRunning.getUrl(userEndpoint + "/{id}/verify"), ScimUser.class,
                         joe1.getId());
         assertTrue(joe3.isVerified());
-        ScimUser joe4 = client.getForObject(serverRunning.getUrl(userEndpoint + "/{id}"), ScimUser.class, joe1.getId());
+        ScimUserInterface joe4 = client.getForObject(serverRunning.getUrl(userEndpoint + "/{id}"), ScimUser.class, joe1.getId());
         assertTrue(joe4.isVerified());
     }
 
@@ -204,7 +205,7 @@ public class ScimUserEndpointsIntegrationTests {
 
     @Test
     public void createUserWithNoEmailFails() throws Exception {
-        ScimUser user = new ScimUser();
+        ScimUserInterface user = new ScimUser();
         user.setUserName("dave");
         user.setName(new ScimName("Dave", "Syer"));
 
@@ -309,7 +310,7 @@ public class ScimUserEndpointsIntegrationTests {
         ResponseEntity<ScimUser> response = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}",
                         HttpMethod.PUT,
                         new HttpEntity<Map>(map, headers), ScimUser.class, joe.getId());
-        ScimUser joe1 = response.getBody();
+        ScimUserInterface joe1 = response.getBody();
         assertEquals(JOE + "0", joe1.getUserName());
     }
 
@@ -360,7 +361,7 @@ public class ScimUserEndpointsIntegrationTests {
     // http://localhost:8080/uaa/User
     @Test
     public void createUserTwiceFails() throws Exception {
-        ScimUser user = new ScimUser();
+        ScimUserInterface user = new ScimUser();
         user.setUserName(JOEL);
         user.setName(new ScimName("Joel", "D'sa"));
         user.addEmail("joel@blah.com");
@@ -385,7 +386,7 @@ public class ScimUserEndpointsIntegrationTests {
         String userName = JOEL;
         String userNameDifferenceCase = userName.toUpperCase();
 
-        ScimUser user = new ScimUser();
+        ScimUserInterface user = new ScimUser();
         user.setUserName(userName);
         user.setName(new ScimName("Joel", "D'sa"));
         user.addEmail("joel@blah.com");
@@ -396,7 +397,7 @@ public class ScimUserEndpointsIntegrationTests {
         Map<String, String> joel = response.getBody();
         assertEquals(JOEL, joel.get("userName"));
 
-        ScimUser userDifferentCase = new ScimUser();
+        ScimUserInterface userDifferentCase = new ScimUser();
         userDifferentCase.setUserName(userNameDifferenceCase);
         userDifferentCase.setName(new ScimName("Joel", "D'sa"));
         userDifferentCase.addEmail("joel@blah.com");

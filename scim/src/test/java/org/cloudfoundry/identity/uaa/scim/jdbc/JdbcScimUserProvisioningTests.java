@@ -36,6 +36,7 @@ import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.domain.ScimPhoneNumber;
 import org.cloudfoundry.identity.uaa.scim.domain.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.domain.ScimUserGroup;
+import org.cloudfoundry.identity.uaa.scim.domain.ScimUserInterface;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
@@ -138,9 +139,9 @@ public class JdbcScimUserProvisioningTests {
 
     @Test
     public void canCreateUser() {
-        ScimUser user = new ScimUser(null, "jo@foo.com", "Jo", "User");
+        ScimUserInterface user = new ScimUser(null, "jo@foo.com", "Jo", "User");
         user.addEmail("jo@blah.com");
-        ScimUser created = db.createUser(user, "j7hyqpassX");
+        ScimUserInterface created = db.createUser(user, "j7hyqpassX");
         assertEquals("jo@foo.com", created.getUserName());
         assertNotNull(created.getId());
         assertNotSame(user.getId(), created.getId());
@@ -152,9 +153,9 @@ public class JdbcScimUserProvisioningTests {
 
     @Test
     public void canCreateUserWithoutGivenNameAndFamilyName() {
-        ScimUser user = new ScimUser(null, "jo@foo.com", null, null);
+        ScimUserInterface user = new ScimUser(null, "jo@foo.com", null, null);
         user.addEmail("jo@blah.com");
-        ScimUser created = db.createUser(user, "j7hyqpassX");
+        ScimUserInterface created = db.createUser(user, "j7hyqpassX");
         assertEquals("jo@foo.com", created.getUserName());
         assertNotNull(created.getId());
         assertNotSame(user.getId(), created.getId());
@@ -166,18 +167,18 @@ public class JdbcScimUserProvisioningTests {
 
     @Test(expected = InvalidScimResourceException.class)
     public void cannotCreateUserWithNonAsciiUsername() {
-        ScimUser user = new ScimUser(null, "joe$eph", "Jo", "User");
+        ScimUserInterface user = new ScimUser(null, "joe$eph", "Jo", "User");
         user.addEmail("jo@blah.com");
         db.createUser(user, "j7hyqpassX");
     }
 
     @Test
     public void updateModifiesExpectedData() {
-        ScimUser jo = new ScimUser(null, "josephine", "Jo", "NewUser");
+        ScimUserInterface jo = new ScimUser(null, "josephine", "Jo", "NewUser");
         jo.addEmail("jo@blah.com");
         jo.setUserType(UaaAuthority.UAA_ADMIN.getUserType());
 
-        ScimUser joe = db.update(JOE_ID, jo);
+        ScimUserInterface joe = db.update(JOE_ID, jo);
 
         // Can change username
         assertEquals("josephine", joe.getUserName());
@@ -191,39 +192,39 @@ public class JdbcScimUserProvisioningTests {
 
     @Test
     public void updateWithEmptyPhoneListWorks() {
-        ScimUser jo = new ScimUser(null, "josephine", "Jo", "NewUser");
+        ScimUserInterface jo = new ScimUser(null, "josephine", "Jo", "NewUser");
         ScimPhoneNumber emptyNumber = new ScimPhoneNumber();
         jo.addEmail("jo@blah.com");
         jo.setPhoneNumbers(new ArrayList<ScimPhoneNumber>());
-        ScimUser joe = db.update(JOE_ID, jo);
+        ScimUserInterface joe = db.update(JOE_ID, jo);
     }
 
     @Test
     public void updateWithEmptyPhoneNumberWorks() {
-        ScimUser jo = new ScimUser(null, "josephine", "Jo", "NewUser");
+        ScimUserInterface jo = new ScimUser(null, "josephine", "Jo", "NewUser");
         ScimPhoneNumber emptyNumber = new ScimPhoneNumber();
         jo.addEmail("jo@blah.com");
         jo.setPhoneNumbers(Arrays.asList(emptyNumber));
-        ScimUser joe = db.update(JOE_ID, jo);
+        ScimUserInterface joe = db.update(JOE_ID, jo);
     }
 
     @Test
     public void updateWithWhiteSpacePhoneNumberWorks() {
-        ScimUser jo = new ScimUser(null, "josephine", "Jo", "NewUser");
+        ScimUserInterface jo = new ScimUser(null, "josephine", "Jo", "NewUser");
         ScimPhoneNumber emptyNumber = new ScimPhoneNumber();
         emptyNumber.setValue(" ");
         jo.addEmail("jo@blah.com");
         jo.setPhoneNumbers(Arrays.asList(emptyNumber));
-        ScimUser joe = db.update(JOE_ID, jo);
+        ScimUserInterface joe = db.update(JOE_ID, jo);
     }
 
     @Test
     public void updateCannotModifyGroups() {
-        ScimUser jo = new ScimUser(null, "josephine", "Jo", "NewUser");
+        ScimUserInterface jo = new ScimUser(null, "josephine", "Jo", "NewUser");
         jo.addEmail("jo@blah.com");
         jo.setGroups(Collections.singleton(new ScimUserGroup(null, "dash/user")));
 
-        ScimUser joe = db.update(JOE_ID, jo);
+        ScimUserInterface joe = db.update(JOE_ID, jo);
 
         assertEquals(JOE_ID, joe.getId());
         assertNull(joe.getGroups());
@@ -231,29 +232,29 @@ public class JdbcScimUserProvisioningTests {
 
     @Test(expected = OptimisticLockingFailureException.class)
     public void updateWithWrongVersionIsError() {
-        ScimUser jo = new ScimUser(null, "josephine", "Jo", "NewUser");
+        ScimUserInterface jo = new ScimUser(null, "josephine", "Jo", "NewUser");
         jo.addEmail("jo@blah.com");
         jo.setVersion(1);
-        ScimUser joe = db.update(JOE_ID, jo);
+        ScimUserInterface joe = db.update(JOE_ID, jo);
         assertEquals("joe", joe.getUserName());
     }
 
     @Test(expected = InvalidScimResourceException.class)
     public void updateWithBadUsernameIsError() {
-        ScimUser jo = new ScimUser(null, "jo$ephine", "Jo", "NewUser");
+        ScimUserInterface jo = new ScimUser(null, "jo$ephine", "Jo", "NewUser");
         jo.addEmail("jo@blah.com");
         jo.setVersion(1);
-        ScimUser joe = db.update(JOE_ID, jo);
+        ScimUserInterface joe = db.update(JOE_ID, jo);
         assertEquals("joe", joe.getUserName());
     }
 
     /*
      * @Test(expected = InvalidScimResourceException.class)
      * public void updateWithCapitalLetterInUsernameIsError() throws Exception {
-     * ScimUser jo = new ScimUser(null, "joSephine", "Jo", "NewUser");
+     * ScimUserInterface jo = new ScimUser(null, "joSephine", "Jo", "NewUser");
      * jo.addEmail("jo@blah.com");
      * jo.setVersion(1);
-     * ScimUser joe = db.update(JOE_ID, jo);
+     * ScimUserInterface joe = db.update(JOE_ID, jo);
      * assertEquals("joe", joe.getUserName());
      * }
      */
@@ -288,20 +289,20 @@ public class JdbcScimUserProvisioningTests {
 
     @Test
     public void canRetrieveExistingUser() {
-        ScimUser joe = db.retrieve(JOE_ID);
+        ScimUserInterface joe = db.retrieve(JOE_ID);
         assertJoe(joe);
     }
 
     @Test(expected = ScimResourceNotFoundException.class)
     public void cannotRetrieveNonexistentUser() {
-        ScimUser joe = db.retrieve("9999");
+        ScimUserInterface joe = db.retrieve("9999");
         assertJoe(joe);
     }
 
     @Test
     public void canDeactivateExistingUser() {
         String tmpUserId = createUserForDelete();
-        ScimUser deletedUser = db.delete(tmpUserId, 0);
+        ScimUserInterface deletedUser = db.delete(tmpUserId, 0);
         assertEquals(1, template.queryForList("select * from users where id=? and active=?", tmpUserId, false).size());
         assertFalse(deletedUser.isActive());
         assertEquals(1, db.query("username eq '" + tmpUserId + "' and active eq false").size());
@@ -311,7 +312,7 @@ public class JdbcScimUserProvisioningTests {
     @Test(expected = ScimResourceAlreadyExistsException.class)
     public void cannotDeactivateExistingUserAndThenCreateHimAgain() {
         String tmpUserId = createUserForDelete();
-        ScimUser deletedUser = db.delete(tmpUserId, 0);
+        ScimUserInterface deletedUser = db.delete(tmpUserId, 0);
         deletedUser.setActive(true);
         try {
             db.createUser(deletedUser, "foobarspam1234");
@@ -323,13 +324,13 @@ public class JdbcScimUserProvisioningTests {
 
     @Test(expected = ScimResourceNotFoundException.class)
     public void cannotDeactivateNonexistentUser() {
-        ScimUser joe = db.delete("9999", 0);
+        ScimUserInterface joe = db.delete("9999", 0);
         assertJoe(joe);
     }
 
     @Test(expected = OptimisticLockingFailureException.class)
     public void deactivateWithWrongVersionIsError() {
-        ScimUser joe = db.delete(JOE_ID, 1);
+        ScimUserInterface joe = db.delete(JOE_ID, 1);
         assertJoe(joe);
     }
 
@@ -347,11 +348,11 @@ public class JdbcScimUserProvisioningTests {
     public void canDeleteExistingUserAndThenCreateHimAgain() {
         String tmpUserId = createUserForDelete();
         db.setDeactivateOnDelete(false);
-        ScimUser deletedUser = db.delete(tmpUserId, 0);
+        ScimUserInterface deletedUser = db.delete(tmpUserId, 0);
         assertEquals(0, template.queryForList("select * from users where id=?", tmpUserId).size());
 
         deletedUser.setActive(true);
-        ScimUser user = db.createUser(deletedUser, "foobarspam1234");
+        ScimUserInterface user = db.createUser(deletedUser, "foobarspam1234");
         assertNotNull(user);
         assertNotNull(user.getId());
         assertNotSame(tmpUserId, user.getId());
@@ -364,7 +365,7 @@ public class JdbcScimUserProvisioningTests {
         String tmpUserIdString = createUserForDelete();
         boolean verified = template.queryForObject(verifyUserSqlFormat, Boolean.class, tmpUserIdString);
         assertFalse(verified);
-        ScimUser user = db.retrieve(tmpUserIdString);
+        ScimUserInterface user = db.retrieve(tmpUserIdString);
         assertFalse(user.isVerified());
         removeUser(tmpUserIdString);
     }
@@ -383,7 +384,7 @@ public class JdbcScimUserProvisioningTests {
     @Test
     public void testUpdatedVersionedUserVerified() {
         String tmpUserIdString = createUserForDelete();
-        ScimUser user = db.retrieve(tmpUserIdString);
+        ScimUserInterface user = db.retrieve(tmpUserIdString);
         assertFalse(user.isVerified());
         user = db.verifyUser(tmpUserIdString, user.getVersion());
         assertTrue(user.isVerified());
@@ -393,7 +394,7 @@ public class JdbcScimUserProvisioningTests {
     @Test
     public void testUserVerifiedThroughUpdate() {
         String tmpUserIdString = createUserForDelete();
-        ScimUser user = db.retrieve(tmpUserIdString);
+        ScimUserInterface user = db.retrieve(tmpUserIdString);
         assertFalse(user.isVerified());
         user.setVerified(true);
         user = db.update(tmpUserIdString, user);
@@ -405,7 +406,7 @@ public class JdbcScimUserProvisioningTests {
     public void testUserVerifiedInvalidUserId() {
         String tmpUserIdString = createUserForDelete();
         try {
-            ScimUser user = db.retrieve(tmpUserIdString);
+            ScimUserInterface user = db.retrieve(tmpUserIdString);
             assertFalse(user.isVerified());
             user = db.verifyUser("-1-1-1", -1);
             assertTrue(user.isVerified());
@@ -418,7 +419,7 @@ public class JdbcScimUserProvisioningTests {
     public void testUserUpdateInvalidUserId() {
         String tmpUserIdString = createUserForDelete();
         try {
-            ScimUser user = db.retrieve(tmpUserIdString);
+            ScimUserInterface user = db.retrieve(tmpUserIdString);
             assertFalse(user.isVerified());
             user.setVerified(true);
             user = db.update("-1-1-1", user);
@@ -432,7 +433,7 @@ public class JdbcScimUserProvisioningTests {
     public void testUpdatedIncorrectVersionUserVerified() {
         String tmpUserIdString = createUserForDelete();
         try {
-            ScimUser user = db.retrieve(tmpUserIdString);
+            ScimUserInterface user = db.retrieve(tmpUserIdString);
             assertFalse(user.isVerified());
             user = db.verifyUser(tmpUserIdString, user.getVersion() + 50);
             assertTrue(user.isVerified());
@@ -444,14 +445,14 @@ public class JdbcScimUserProvisioningTests {
     @Test(expected = ScimResourceNotFoundException.class)
     public void cannotDeleteNonexistentUser() {
         db.setDeactivateOnDelete(false);
-        ScimUser joe = db.delete("9999", 0);
+        ScimUserInterface joe = db.delete("9999", 0);
         assertJoe(joe);
     }
 
     @Test(expected = OptimisticLockingFailureException.class)
     public void deleteWithWrongVersionIsError() {
         db.setDeactivateOnDelete(false);
-        ScimUser joe = db.delete(JOE_ID, 1);
+        ScimUserInterface joe = db.delete(JOE_ID, 1);
         assertJoe(joe);
     }
 
@@ -582,7 +583,7 @@ public class JdbcScimUserProvisioningTests {
     public void cannotRetrieveUsersWithNativeSqlInjectionAttack() {
         String password = template.queryForObject("select password from users where username='joe'", String.class);
         assertNotNull(password);
-        Collection<ScimUser> users = db.query("username='joe'; select " + SQL_INJECTION_FIELDS
+        Collection<ScimUserInterface> users = db.query("username='joe'; select " + SQL_INJECTION_FIELDS
                         + " from users where username='joe'");
         assertEquals(password, users.iterator().next().getId());
     }
@@ -591,7 +592,7 @@ public class JdbcScimUserProvisioningTests {
     public void cannotRetrieveUsersWithSqlInjectionAttackOnGt() {
         String password = template.queryForObject("select password from users where username='joe'", String.class);
         assertNotNull(password);
-        Collection<ScimUser> users = db.query("username gt 'h'; select " + SQL_INJECTION_FIELDS
+        Collection<ScimUserInterface> users = db.query("username gt 'h'; select " + SQL_INJECTION_FIELDS
                         + " from users where username='joe'");
         assertEquals(password, users.iterator().next().getId());
     }
@@ -600,7 +601,7 @@ public class JdbcScimUserProvisioningTests {
     public void cannotRetrieveUsersWithSqlInjectionAttack() {
         String password = template.queryForObject("select password from users where username='joe'", String.class);
         assertNotNull(password);
-        Collection<ScimUser> users = db.query("username eq 'joe'; select " + SQL_INJECTION_FIELDS
+        Collection<ScimUserInterface> users = db.query("username eq 'joe'; select " + SQL_INJECTION_FIELDS
                         + " from users where username='joe'");
         assertEquals(password, users.iterator().next().getId());
     }
@@ -609,7 +610,7 @@ public class JdbcScimUserProvisioningTests {
     public void cannotRetrieveUsersWithAnotherSqlInjectionAttack() {
         String password = template.queryForObject("select password from users where username='joe'", String.class);
         assertNotNull(password);
-        Collection<ScimUser> users = db.query("username eq 'joe''; select id from users where id='''; select "
+        Collection<ScimUserInterface> users = db.query("username eq 'joe''; select id from users where id='''; select "
                         + SQL_INJECTION_FIELDS + " from users where username='joe'");
         assertEquals(password, users.iterator().next().getId());
     }
@@ -618,7 +619,7 @@ public class JdbcScimUserProvisioningTests {
     public void cannotRetrieveUsersWithYetAnotherSqlInjectionAttack() {
         String password = template.queryForObject("select password from users where username='joe'", String.class);
         assertNotNull(password);
-        Collection<ScimUser> users = db.query("username eq 'joe''; select " + SQL_INJECTION_FIELDS
+        Collection<ScimUserInterface> users = db.query("username eq 'joe''; select " + SQL_INJECTION_FIELDS
                         + " from users where username='joe''");
         assertEquals(password, users.iterator().next().getId());
     }
@@ -633,7 +634,7 @@ public class JdbcScimUserProvisioningTests {
         }
     }
 
-    private void assertJoe(ScimUser joe) {
+    private void assertJoe(ScimUserInterface joe) {
         assertNotNull(joe);
         assertEquals(JOE_ID, joe.getId());
         assertEquals("Joe", joe.getGivenName());

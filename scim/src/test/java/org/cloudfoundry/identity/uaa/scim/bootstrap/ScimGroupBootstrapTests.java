@@ -23,7 +23,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
-import org.cloudfoundry.identity.uaa.scim.domain.ScimGroupMember;
+import org.cloudfoundry.identity.uaa.scim.domain.ScimGroupMemberInterface;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
@@ -132,6 +132,6 @@ public class ScimGroupBootstrapTests {
         assertEquals(2, bootstrap.getGroup("org1.qa").getMembers().size());
         assertEquals(1, bootstrap.getGroup("org1.hr").getMembers().size());
         assertEquals(3, bootstrap.getGroup("org1.engg").getMembers().size());
-        assertEquals(2, mDB.getMembers(bootstrap.getGroup("org1.dev").getId(), ScimGroupMember.Role.WRITER).size());
+        assertEquals(2, mDB.getMembers(bootstrap.getGroup("org1.dev").getId(), ScimGroupMemberInterface.Role.WRITER).size());
     }
 }

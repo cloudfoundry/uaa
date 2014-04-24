@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.scim.validate;
 
 import org.cloudfoundry.identity.uaa.scim.domain.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.domain.ScimUserInterface;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.junit.Test;
 
@@ -22,7 +23,7 @@ import org.junit.Test;
 public class DefaultPasswordValidatorTests {
     DefaultPasswordValidator v = new DefaultPasswordValidator();
 
-    private ScimUser roz = new ScimUser("1234", "roz", "Roslyn", "MacRae");
+    private ScimUserInterface roz = new ScimUser("1234", "roz", "Roslyn", "MacRae");
 
     public DefaultPasswordValidatorTests() {
         roz.setNickName("Rose");

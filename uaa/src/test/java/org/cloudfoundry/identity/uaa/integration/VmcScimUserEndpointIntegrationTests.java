@@ -21,6 +21,7 @@ import java.util.Map;
 import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.domain.ScimName;
 import org.cloudfoundry.identity.uaa.scim.domain.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.domain.ScimUserInterface;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Assume;
@@ -74,7 +75,7 @@ public class VmcScimUserEndpointIntegrationTests {
 
         RestOperations client = serverRunning.getRestTemplate();
 
-        ScimUser user = new ScimUser();
+        ScimUserInterface user = new ScimUser();
         user.setUserName(JOE);
         user.setName(new ScimName("Joe", "User"));
         user.addEmail("joe@blah.com");

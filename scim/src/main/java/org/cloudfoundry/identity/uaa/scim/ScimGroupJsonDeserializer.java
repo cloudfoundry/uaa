@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -22,23 +22,29 @@ import java.util.Map;
 import java.util.Set;
 
 import org.cloudfoundry.identity.uaa.scim.domain.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.domain.ScimGroupInterface;
 import org.cloudfoundry.identity.uaa.scim.domain.ScimGroupMember;
+import org.cloudfoundry.identity.uaa.scim.domain.ScimGroupMemberInterface;
 import org.cloudfoundry.identity.uaa.scim.domain.ScimMeta;
 import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.JsonProcessingException;
 import org.codehaus.jackson.JsonToken;
 import org.codehaus.jackson.map.DeserializationContext;
 import org.codehaus.jackson.map.JsonDeserializer;
+import org.springframework.context.ApplicationContext;
+import org.springframework.web.context.support.WebApplicationContextUtils;
 
-public class ScimGroupJsonDeserializer extends JsonDeserializer<ScimGroup> {
+public class ScimGroupJsonDeserializer extends JsonDeserializer<ScimGroupInterface> {
 
     @Override
-    public ScimGroup deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException,
+    public ScimGroupInterface deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException,
                     JsonProcessingException {
+
+
         ScimGroup group = new ScimGroup();
 
-        Map<ScimGroupMember.Role, List<ScimGroupMember>> roles = new HashMap<ScimGroupMember.Role, List<ScimGroupMember>>();
-        for (ScimGroupMember.Role role : ScimGroupMember.Role.values()) {
+        Map<ScimGroupMemberInterface.Role, List<ScimGroupMember>> roles = new HashMap<ScimGroupMemberInterface.Role, List<ScimGroupMember>>();
+        for (ScimGroupMemberInterface.Role role : ScimGroupMemberInterface.Role.values()) {
             roles.put(role, new ArrayList<ScimGroupMember>());
         }
         Set<ScimGroupMember> allMembers = new HashSet<ScimGroupMember>();
@@ -58,16 +64,16 @@ public class ScimGroupJsonDeserializer extends JsonDeserializer<ScimGroup> {
                     group.setSchemas(jp.readValueAs(String[].class));
                 } else {
                     String value = fieldName.substring(0, fieldName.length() - 1);
-                    ScimGroupMember.Role role;
+                    ScimGroupMemberInterface.Role role;
                     try {
-                        role = ScimGroupMember.Role.valueOf(value.toUpperCase());
+                        role = ScimGroupMemberInterface.Role.valueOf(value.toUpperCase());
                     } catch (IllegalArgumentException ex) {
                         role = null;
                     }
                     if (role != null) {
                         ScimGroupMember[] members = jp.readValueAs(ScimGroupMember[].class);
-                        for (ScimGroupMember member : members) {
-                            member.setRoles(new ArrayList<ScimGroupMember.Role>());
+                        for (ScimGroupMemberInterface member : members) {
+                            member.setRoles(new ArrayList<ScimGroupMemberInterface.Role>());
                         }
                         roles.get(role).addAll(Arrays.asList(members));
                         allMembers.addAll(Arrays.asList(members));
@@ -76,14 +82,14 @@ public class ScimGroupJsonDeserializer extends JsonDeserializer<ScimGroup> {
             }
         }
 
-        for (ScimGroupMember member : allMembers) {
-            for (ScimGroupMember.Role role : roles.keySet()) {
+        for (ScimGroupMemberInterface member : allMembers) {
+            for (ScimGroupMemberInterface.Role role : roles.keySet()) {
                 if (roles.get(role).contains(member)) {
                     member.getRoles().add(role);
                 }
             }
         }
-        group.setMembers(new ArrayList<ScimGroupMember>(allMembers));
+        group.setMembers(new ArrayList<ScimGroupMemberInterface>(allMembers));
 
         return group;
     }

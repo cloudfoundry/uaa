@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -14,7 +14,7 @@ package org.cloudfoundry.identity.uaa.scim;
 
 import org.cloudfoundry.identity.uaa.rest.Queryable;
 import org.cloudfoundry.identity.uaa.rest.ResourceManager;
-import org.cloudfoundry.identity.uaa.scim.domain.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.domain.ScimGroupInterface;
 
-public interface ScimGroupProvisioning extends ResourceManager<ScimGroup>, Queryable<ScimGroup> {
+public interface ScimGroupProvisioning extends ResourceManager<ScimGroupInterface>, Queryable<ScimGroupInterface> {
 }

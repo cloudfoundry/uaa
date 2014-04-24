@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -23,8 +23,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
-import org.cloudfoundry.identity.uaa.scim.domain.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.domain.ScimGroupExternalMember;
+import org.cloudfoundry.identity.uaa.scim.domain.ScimGroupExternalMemberInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.ScimGroupInterface;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.util.StringUtils;
 
@@ -51,9 +51,9 @@ public class ScimExternalGroupBootstrap implements InitializingBean {
      * Specify the membership info as a list of strings, where each string takes
      * the format -
      * <group-name>|<external-group-names>
-     * 
+     *
      * external-group-names space separated list of external groups
-     * 
+     *
      * @param externalGroupMaps
      */
     public void setExternalGroupMap(Set<String> externalGroupMaps) {
@@ -64,7 +64,7 @@ public class ScimExternalGroupBootstrap implements InitializingBean {
             }
 
             String groupName = fields[0];
-            List<ScimGroup> groups = scimGroupProvisioning.query(String.format(GROUP_BY_NAME_FILTER, groupName));
+            List<ScimGroupInterface> groups = scimGroupProvisioning.query(String.format(GROUP_BY_NAME_FILTER, groupName));
 
             if (null != groups && groups.size() == 1) {
                 String groupId = groups.get(0).getId();
@@ -93,7 +93,7 @@ public class ScimExternalGroupBootstrap implements InitializingBean {
     }
 
     private void addGroupMap(String groupId, String externalGroup) {
-        ScimGroupExternalMember externalGroupMapping = externalMembershipManager.mapExternalGroup(groupId,
+        ScimGroupExternalMemberInterface externalGroupMapping = externalMembershipManager.mapExternalGroup(groupId,
                         externalGroup);
         logger.debug("adding external group mapping: " + externalGroupMapping);
     }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,7 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.domain;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.codehaus.jackson.annotate.JsonIgnore;
@@ -20,50 +19,43 @@ import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
-public class ScimGroupMember {
-
-    @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
-    public static enum Role {
-        MEMBER, READER, WRITER;
-    }
-
-    public static final List<Role> GROUP_MEMBER = Arrays.asList(Role.MEMBER);
-    public static final List<Role> GROUP_ADMIN = Arrays.asList(Role.READER, Role.WRITER);
+public class ScimGroupMember implements ScimGroupMemberInterface {
 
     @JsonProperty("value")
     private String memberId;
 
-    @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
-    public enum Type {
-        USER, GROUP
-    }
-
-    private Type type;
+    private ScimGroupMemberInterface.Type type;
 
     @JsonIgnore
-    private List<Role> roles;
+    private List<ScimGroupMemberInterface.Role> roles;
 
-    public List<Role> getRoles() {
+    @Override
+    public List<ScimGroupMemberInterface.Role> getRoles() {
         return roles;
     }
 
-    public void setRoles(List<Role> permissions) {
+    @Override
+    public void setRoles(List<ScimGroupMemberInterface.Role> permissions) {
         this.roles = permissions;
     }
 
+    @Override
     public String getMemberId() {
         return memberId;
     }
 
+    @Override
     public void setMemberId(String memberId) {
         this.memberId = memberId;
     }
 
-    public Type getType() {
+    @Override
+    public ScimGroupMemberInterface.Type getType() {
         return type;
     }
 
-    public void setType(Type type) {
+    @Override
+    public void setType(ScimGroupMemberInterface.Type type) {
         this.type = type;
     }
 
@@ -95,10 +87,10 @@ public class ScimGroupMember {
     }
 
     public ScimGroupMember(String memberId) {
-        this(memberId, Type.USER, GROUP_MEMBER);
+        this(memberId, ScimGroupMemberInterface.Type.USER, GROUP_MEMBER);
     }
 
-    public ScimGroupMember(String memberId, Type type, List<Role> roles) {
+    public ScimGroupMember(String memberId, ScimGroupMemberInterface.Type type, List<ScimGroupMemberInterface.Role> roles) {
         this.memberId = memberId;
         this.type = type;
         this.roles = roles;

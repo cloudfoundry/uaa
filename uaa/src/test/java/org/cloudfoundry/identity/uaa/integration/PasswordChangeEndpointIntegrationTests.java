@@ -21,6 +21,7 @@ import java.util.Map;
 import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.domain.ScimName;
 import org.cloudfoundry.identity.uaa.scim.domain.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.domain.ScimUserInterface;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Assume;
@@ -67,7 +68,7 @@ public class PasswordChangeEndpointIntegrationTests {
     private ScimUser joe;
 
     private ResponseEntity<ScimUser> createUser(String username, String firstName, String lastName, String email) {
-        ScimUser user = new ScimUser();
+        ScimUserInterface user = new ScimUser();
         user.setUserName(username);
         user.setName(new ScimName(firstName, lastName));
         user.addEmail(email);

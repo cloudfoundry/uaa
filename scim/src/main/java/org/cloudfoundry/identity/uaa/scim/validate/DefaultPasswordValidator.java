@@ -17,7 +17,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import org.cloudfoundry.identity.uaa.scim.domain.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.domain.ScimUserInterface;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.springframework.util.StringUtils;
 
@@ -70,7 +70,7 @@ public class DefaultPasswordValidator implements PasswordValidator {
     }
 
     @Override
-    public void validate(String password, ScimUser user) throws InvalidPasswordException {
+    public void validate(String password, ScimUserInterface user) throws InvalidPasswordException {
         List<Rule> rules;
 
         PasswordData passwordData = new PasswordData(new Password(password));

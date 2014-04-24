@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.domain.ScimName;
 import org.cloudfoundry.identity.uaa.scim.domain.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.domain.ScimUserInterface;
 import org.cloudfoundry.identity.uaa.test.DefaultIntegrationTestConfig;
 import org.cloudfoundry.identity.uaa.test.IntegrationTestContextLoader;
 import org.cloudfoundry.identity.uaa.test.TestClient;
@@ -78,7 +79,7 @@ public class ScimUserEndpointsMockMvcTests {
     @Test
     public void testCreateUser() throws Exception {
         String email = "joe@"+generator.generate().toLowerCase()+".com";
-        ScimUser user = new ScimUser();
+        ScimUserInterface user = new ScimUser();
         user.setUserName("JOE");
         user.setName(new ScimName("Joe", "User"));
         user.addEmail(email);
@@ -101,7 +102,7 @@ public class ScimUserEndpointsMockMvcTests {
     @Test
     public void testGetUser() throws Exception {
         ScimUserProvisioning usersRepository = webApplicationContext.getBean(ScimUserProvisioning.class);
-        ScimUser joel = new ScimUser(null, "jdsa", "Joel", "D'sa");
+        ScimUserInterface joel = new ScimUser(null, "jdsa", "Joel", "D'sa");
         joel.addEmail("jdsa@vmware.com");
         joel = usersRepository.createUser(joel, "password");
 
@@ -121,7 +122,7 @@ public class ScimUserEndpointsMockMvcTests {
     @Test
     public void testUpdateUser() throws Exception {
         ScimUserProvisioning usersRepository = webApplicationContext.getBean(ScimUserProvisioning.class);
-        ScimUser user = new ScimUser(null, "otheruser", "Other", "User");
+        ScimUserInterface user = new ScimUser(null, "otheruser", "Other", "User");
         user.addEmail("otheruser@vmware.com");
         user = usersRepository.createUser(user, "password");
 

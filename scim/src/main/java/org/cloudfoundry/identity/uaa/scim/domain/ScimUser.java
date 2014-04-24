@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
-import org.cloudfoundry.identity.uaa.scim.ScimCore;
 import org.cloudfoundry.identity.uaa.scim.ScimUserJsonDeserializer;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
@@ -39,7 +38,7 @@ import org.springframework.util.StringUtils;
  */
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 @JsonDeserialize(using = ScimUserJsonDeserializer.class)
-public final class ScimUser extends ScimCore {
+public final class ScimUser extends ScimCore implements ScimUserInterface {
 
     private String userName;
 
@@ -85,58 +84,76 @@ public final class ScimUser extends ScimCore {
         this.name = new ScimName(givenName, familyName);
     }
 
+    @Override
     public String getUserName() {
         return userName;
     }
 
+    @Override
     public String getPassword() {
         return password;
     }
 
+    @Override
     public void setPassword(String password) {
         this.password = password;
     }
 
+    @Override
     public void setUserName(String userName) {
         this.userName = userName;
     }
 
+    @Override
     public ScimName getName() {
         return name;
     }
 
+    @Override
     public void setName(ScimName name) {
         this.name = name;
     }
 
+    @Override
     public List<ScimEmail> getEmails() {
         return emails;
     }
 
+    @Override
     public void setEmails(List<ScimEmail> emails) {
         this.emails = emails;
     }
 
+    @Override
     public Set<Approval> getApprovals() {
         return approvals;
     }
 
+    @Override
     public void setApprovals(Set<Approval> approvals) {
         this.approvals = approvals;
     }
 
+    @Override
     public Set<ScimUserGroup> getGroups() {
         return groups;
     }
 
-    public void setGroups(Collection<ScimUserGroup> groups) {
-        this.groups = new LinkedHashSet<ScimUserGroup>(groups);
+    @Override
+    public void setGroups(Collection<? extends ScimUserGroupInterface> groups) {
+        this.groups = new LinkedHashSet<ScimUserGroup>();
+        for (ScimUserGroupInterface item : groups)
+        {
+            this.groups.add((ScimUserGroup) item);
+        }
     }
 
+    @Override
     public List<ScimPhoneNumber> getPhoneNumbers() {
         return phoneNumbers;
     }
 
+    @Override
     public void setPhoneNumbers(List<ScimPhoneNumber> phoneNumbers) {
         if (phoneNumbers!=null && phoneNumbers.size()>0) {
             ArrayList<ScimPhoneNumber> list = new ArrayList<ScimPhoneNumber>();
@@ -152,86 +169,107 @@ public final class ScimUser extends ScimCore {
         this.phoneNumbers = phoneNumbers;
     }
 
+    @Override
     public String getDisplayName() {
         return displayName;
     }
 
+    @Override
     public void setDisplayName(String displayName) {
         this.displayName = displayName;
     }
 
+    @Override
     public String getNickName() {
         return nickName;
     }
 
+    @Override
     public void setNickName(String nickName) {
         this.nickName = nickName;
     }
 
+    @Override
     public String getProfileUrl() {
         return profileUrl;
     }
 
+    @Override
     public void setProfileUrl(String profileUrl) {
         this.profileUrl = profileUrl;
     }
 
+    @Override
     public String getTitle() {
         return title;
     }
 
+    @Override
     public void setTitle(String title) {
         this.title = title;
     }
 
+    @Override
     public String getUserType() {
         return userType;
     }
 
+    @Override
     public void setUserType(String userType) {
         this.userType = userType;
     }
 
+    @Override
     public String getPreferredLanguage() {
         return preferredLanguage;
     }
 
+    @Override
     public void setPreferredLanguage(String preferredLanguage) {
         this.preferredLanguage = preferredLanguage;
     }
 
+    @Override
     public String getLocale() {
         return locale;
     }
 
+    @Override
     public void setLocale(String locale) {
         this.locale = locale;
     }
 
+    @Override
     public String getTimezone() {
         return timezone;
     }
 
+    @Override
     public void setTimezone(String timezone) {
         this.timezone = timezone;
     }
 
+    @Override
     public boolean isActive() {
         return active;
     }
 
+    @Override
     public void setActive(boolean active) {
         this.active = active;
     }
 
+    @Override
     public boolean isVerified() {
         return verified;
     }
 
+    @Override
     public void setVerified(boolean verified) {
         this.verified = verified;
     }
 
+    @Override
     @JsonIgnore
     public String getPrimaryEmail() {
         if (getEmails() == null || getEmails().isEmpty()) {
@@ -254,11 +292,13 @@ public final class ScimUser extends ScimCore {
         return primaryEmail.getValue();
     }
 
+    @Override
     @JsonIgnore
     public String getGivenName() {
         return name == null ? null : name.getGivenName();
     }
 
+    @Override
     @JsonIgnore
     public String getFamilyName() {
         return name == null ? null : name.getFamilyName();
@@ -268,6 +308,7 @@ public final class ScimUser extends ScimCore {
      * Adds a new email address, ignoring "type" and "primary" fields, which we
      * don't need yet
      */
+    @Override
     public void addEmail(String newEmail) {
         Assert.hasText(newEmail);
 
@@ -290,6 +331,7 @@ public final class ScimUser extends ScimCore {
      *
      * @param newPhoneNumber
      */
+    @Override
     public void addPhoneNumber(String newPhoneNumber) {
         Assert.hasText(newPhoneNumber);
 
@@ -311,6 +353,7 @@ public final class ScimUser extends ScimCore {
      * Creates a word list from the user data for use in password checking
      * implementations
      */
+    @Override
     public List<String> wordList() {
         List<String> words = new ArrayList<String>();
 

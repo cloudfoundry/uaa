@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.scim.domain.ScimName;
 import org.cloudfoundry.identity.uaa.scim.domain.ScimPhoneNumber;
 import org.cloudfoundry.identity.uaa.scim.domain.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.domain.ScimUserGroup;
+import org.cloudfoundry.identity.uaa.scim.domain.ScimUserInterface;
 import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.JsonProcessingException;
 import org.codehaus.jackson.JsonToken;
@@ -30,9 +31,9 @@ import org.codehaus.jackson.map.DeserializationContext;
 import org.codehaus.jackson.map.JsonDeserializer;
 import org.codehaus.jackson.map.exc.UnrecognizedPropertyException;
 
-public class ScimUserJsonDeserializer extends JsonDeserializer<ScimUser> {
+public class ScimUserJsonDeserializer extends JsonDeserializer<ScimUserInterface> {
     @Override
-    public ScimUser deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException, JsonProcessingException {
+    public ScimUserInterface deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException, JsonProcessingException {
         ScimUser user = new ScimUser();
         while (jp.nextToken() != JsonToken.END_OBJECT) {
             if (jp.getCurrentToken() == JsonToken.FIELD_NAME) {

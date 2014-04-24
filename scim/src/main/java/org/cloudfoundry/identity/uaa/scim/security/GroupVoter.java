@@ -17,6 +17,7 @@ import java.util.Collection;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.domain.ScimGroupMember;
+import org.cloudfoundry.identity.uaa.scim.domain.ScimGroupMemberInterface;
 import org.springframework.security.access.AccessDecisionVoter;
 import org.springframework.security.access.ConfigAttribute;
 import org.springframework.security.core.Authentication;
@@ -61,7 +62,7 @@ public class GroupVoter implements AccessDecisionVoter<Object> {
             if (this.supports(attribute)) {
                 String requiredAuthority = attribute.getAttribute().substring(groupPrefix.length());
                 if (membershipManager
-                                .getMembers(groupId, ScimGroupMember.Role.valueOf(requiredAuthority.toUpperCase()))
+                                .getMembers(groupId, ScimGroupMemberInterface.Role.valueOf(requiredAuthority.toUpperCase()))
                                 .contains(new ScimGroupMember(userId))) {
                     return ACCESS_GRANTED;
                 } else

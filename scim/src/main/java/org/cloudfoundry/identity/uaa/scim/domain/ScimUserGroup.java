@@ -6,22 +6,20 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
  * Used to represent the array of groups contained within the user in the JSON representation of user.
  */
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
-public final class ScimUserGroup {
+public final class ScimUserGroup implements ScimUserGroupInterface {
     String value;
 
     String display;
 
-    public static enum Type {
-        DIRECT, INDIRECT
-    };
+    ScimUserGroupInterface.Type type;
 
-    Type type;
-
-    public Type getType() {
+    @Override
+    public ScimUserGroupInterface.Type getType() {
         return type;
     }
 
-    public void setType(Type type) {
+    @Override
+    public void setType(ScimUserGroupInterface.Type type) {
         this.type = type;
     }
 
@@ -30,27 +28,31 @@ public final class ScimUserGroup {
     }
 
     public ScimUserGroup(String value, String display) {
-        this(value, display, Type.DIRECT);
+        this(value, display, ScimUserGroupInterface.Type.DIRECT);
     }
 
-    public ScimUserGroup(String value, String display, Type type) {
+    public ScimUserGroup(String value, String display, ScimUserGroupInterface.Type type) {
         this.value = value;
         this.display = display;
         this.type = type;
     }
 
+    @Override
     public String getValue() {
         return value;
     }
 
+    @Override
     public void setValue(String value) {
         this.value = value;
     }
 
+    @Override
     public String getDisplay() {
         return display;
     }
 
+    @Override
     public void setDisplay(String display) {
         this.display = display;
     }

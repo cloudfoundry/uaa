@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -25,8 +25,9 @@ import org.cloudfoundry.identity.uaa.rest.jdbc.AbstractQueryable;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
-import org.cloudfoundry.identity.uaa.scim.domain.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.domain.ScimGroupExternalMember;
+import org.cloudfoundry.identity.uaa.scim.domain.ScimGroupExternalMemberInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.ScimGroupInterface;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
@@ -37,7 +38,7 @@ import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.util.Assert;
 
-public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<ScimGroupExternalMember> implements
+public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<ScimGroupExternalMemberInterface> implements
                 ScimGroupExternalMembershipManager {
 
     private JdbcTemplate jdbcTemplate;
@@ -77,7 +78,7 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
     public static final String DELETE_EXTERNAL_GROUP_MAPPING_USING_EXTERNAL_GROUPS_SQL = String.format(
                     "delete from %s where lower(external_group)=lower(?)", EXTERNAL_GROUP_MAPPING_TABLE);
 
-    private final RowMapper<ScimGroupExternalMember> rowMapper = new ScimGroupExternalMemberRowMapper();
+    private final RowMapper<ScimGroupExternalMemberInterface> rowMapper = new ScimGroupExternalMemberRowMapper();
 
     private ScimGroupProvisioning scimGroupProvisioning;
 
@@ -89,9 +90,9 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
     }
 
     @Override
-    public ScimGroupExternalMember mapExternalGroup(final String groupId, final String externalGroup)
+    public ScimGroupExternalMemberInterface mapExternalGroup(final String groupId, final String externalGroup)
                     throws ScimResourceNotFoundException, MemberAlreadyExistsException {
-        ScimGroup group = scimGroupProvisioning.retrieve(groupId);
+        ScimGroupInterface group = scimGroupProvisioning.retrieve(groupId);
 
         if (null != group) {
             try {
@@ -120,7 +121,7 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
     }
 
     @Override
-    public List<ScimGroupExternalMember> getExternalGroupMapsByGroupId(final String groupId)
+    public List<ScimGroupExternalMemberInterface> getExternalGroupMapsByGroupId(final String groupId)
                     throws ScimResourceNotFoundException {
         return jdbcTemplate.query(GET_EXTERNAL_GROUP_MAPPINGS_SQL, new PreparedStatementSetter() {
             @Override
@@ -131,9 +132,9 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
     }
 
     @Override
-    public List<ScimGroupExternalMember> getExternalGroupMapsByGroupName(final String groupName)
+    public List<ScimGroupExternalMemberInterface> getExternalGroupMapsByGroupName(final String groupName)
                     throws ScimResourceNotFoundException {
-        final List<ScimGroup> groups = scimGroupProvisioning.query(String.format("displayName eq '%s'", groupName));
+        final List<ScimGroupInterface> groups = scimGroupProvisioning.query(String.format("displayName eq '%s'", groupName));
 
         if (null != groups && groups.size() > 0) {
             return jdbcTemplate.query(GET_EXTERNAL_GROUP_MAPPINGS_SQL, new PreparedStatementSetter() {
@@ -148,7 +149,7 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
     }
 
     @Override
-    public List<ScimGroupExternalMember> getExternalGroupMapsByExternalGroup(final String externalGroup)
+    public List<ScimGroupExternalMemberInterface> getExternalGroupMapsByExternalGroup(final String externalGroup)
                     throws ScimResourceNotFoundException {
         return jdbcTemplate.query(GET_GROUPS_BY_EXTERNAL_GROUP_MAPPING_SQL, new PreparedStatementSetter() {
             @Override
@@ -158,10 +159,10 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
         }, rowMapper);
     }
 
-    private ScimGroupExternalMember getExternalGroupMap(final String groupId, final String externalGroup)
+    private ScimGroupExternalMemberInterface getExternalGroupMap(final String groupId, final String externalGroup)
                     throws ScimResourceNotFoundException {
         try {
-            ScimGroupExternalMember u = jdbcTemplate.queryForObject(GET_GROUPS_WITH_EXTERNAL_GROUP_MAPPINGS_SQL,
+            ScimGroupExternalMemberInterface u = jdbcTemplate.queryForObject(GET_GROUPS_WITH_EXTERNAL_GROUP_MAPPINGS_SQL,
                             rowMapper, groupId, externalGroup);
             return u;
         } catch (EmptyResultDataAccessException e) {
@@ -170,9 +171,9 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
         }
     }
 
-    private static final class ScimGroupExternalMemberRowMapper implements RowMapper<ScimGroupExternalMember> {
+    private static final class ScimGroupExternalMemberRowMapper implements RowMapper<ScimGroupExternalMemberInterface> {
         @Override
-        public ScimGroupExternalMember mapRow(ResultSet rs, int rowNum) throws SQLException {
+        public ScimGroupExternalMemberInterface mapRow(ResultSet rs, int rowNum) throws SQLException {
             String groupId = rs.getString(1);
             String externalGroup = rs.getString(2);
 

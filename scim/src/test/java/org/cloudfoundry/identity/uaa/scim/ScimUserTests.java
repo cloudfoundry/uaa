@@ -23,6 +23,7 @@ import java.util.Collections;
 import org.cloudfoundry.identity.uaa.scim.domain.ScimEmail;
 import org.cloudfoundry.identity.uaa.scim.domain.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.domain.ScimUserGroup;
+import org.cloudfoundry.identity.uaa.scim.domain.ScimUserInterface;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Test;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
@@ -42,7 +43,7 @@ public class ScimUserTests {
                         "  \"userName\": \"bjensen@example.com\"\n" +
                         "}";
 
-        ScimUser user = mapper.readValue(minimal, ScimUser.class);
+        ScimUserInterface user = mapper.readValue(minimal, ScimUser.class);
         assertEquals("bjensen@example.com", user.getUserName());
         assertEquals(null, user.getPassword());
     }
@@ -54,7 +55,7 @@ public class ScimUserTests {
                         "  \"password\": \"foo\"\n" +
                         "}";
 
-        ScimUser user = mapper.readValue(minimal, ScimUser.class);
+        ScimUserInterface user = mapper.readValue(minimal, ScimUser.class);
         assertEquals("foo", user.getPassword());
     }
 
@@ -113,7 +114,7 @@ public class ScimUserTests {
                         "{\"value\": \"babs@jensen.org\",\"type\": \"home\"}" +
                         "],\n" +
                         "\"schemas\":[\"urn:scim:schemas:core:1.0\"]}";
-        ScimUser user = mapper.readValue(json, ScimUser.class);
+        ScimUserInterface user = mapper.readValue(json, ScimUser.class);
         assertEquals(3, user.getEmails().size());
         assertEquals("bjensen@example.com", user.getEmails().get(1).getValue());
         assertEquals("babs@jensen.org", user.getEmails().get(2).getValue());
@@ -130,7 +131,7 @@ public class ScimUserTests {
                         "{\"value\": \"123456\",\"display\": \"dash.admin\"}" +
                         "],\n" +
                         "\"schemas\":[\"urn:scim:schemas:core:1.0\"]}";
-        ScimUser user = mapper.readValue(json, ScimUser.class);
+        ScimUserInterface user = mapper.readValue(json, ScimUser.class);
         assertEquals(2, user.getGroups().size());
         // System.out.println(mapper.writeValueAsString(user));
     }

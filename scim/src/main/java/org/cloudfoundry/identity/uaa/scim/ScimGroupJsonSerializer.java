@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.scim.domain.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.domain.ScimGroupMember;
+import org.cloudfoundry.identity.uaa.scim.domain.ScimGroupMemberInterface;
 import org.codehaus.jackson.JsonGenerator;
 import org.codehaus.jackson.JsonProcessingException;
 import org.codehaus.jackson.map.JsonSerializer;
@@ -30,12 +30,12 @@ public class ScimGroupJsonSerializer extends JsonSerializer<ScimGroup> {
     @Override
     public void serialize(ScimGroup group, JsonGenerator jgen, SerializerProvider provider) throws IOException,
                     JsonProcessingException {
-        Map<String, List<ScimGroupMember>> roles = new HashMap<String, List<ScimGroupMember>>();
-        for (ScimGroupMember.Role authority : ScimGroupMember.Role.values()) {
+        Map<String, List<ScimGroupMemberInterface>> roles = new HashMap<String, List<ScimGroupMemberInterface>>();
+        for (ScimGroupMemberInterface.Role authority : ScimGroupMemberInterface.Role.values()) {
             String role = authority.toString().toLowerCase() + "s";
-            roles.put(role, new ArrayList<ScimGroupMember>());
+            roles.put(role, new ArrayList<ScimGroupMemberInterface>());
             if (group.getMembers() != null) {
-                for (ScimGroupMember member : group.getMembers()) {
+                for (ScimGroupMemberInterface member : group.getMembers()) {
                     if (member.getRoles().contains(authority)) {
                         roles.get(role).add(member);
                     }
@@ -49,7 +49,7 @@ public class ScimGroupJsonSerializer extends JsonSerializer<ScimGroup> {
         addNonNull(groupJson, "id", group.getId());
         addNonNull(groupJson, "displayName", group.getDisplayName());
 
-        for (Map.Entry<String, List<ScimGroupMember>> entry : roles.entrySet()) {
+        for (Map.Entry<String, List<ScimGroupMemberInterface>> entry : roles.entrySet()) {
             addNonNull(groupJson, entry.getKey(), entry.getValue());
         }
 

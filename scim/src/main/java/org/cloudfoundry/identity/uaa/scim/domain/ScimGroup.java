@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,9 +12,9 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.domain;
 
+import java.util.ArrayList;
 import java.util.List;
 
-import org.cloudfoundry.identity.uaa.scim.ScimCore;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupJsonDeserializer;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupJsonSerializer;
 import org.codehaus.jackson.map.annotate.JsonDeserialize;
@@ -22,25 +22,40 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 
 @JsonSerialize(using = ScimGroupJsonSerializer.class, include = JsonSerialize.Inclusion.NON_NULL)
 @JsonDeserialize(using = ScimGroupJsonDeserializer.class)
-public class ScimGroup extends ScimCore {
+public class ScimGroup extends ScimCore implements ScimGroupInterface {
 
     private String displayName;
     private List<ScimGroupMember> members;
 
+    @Override
     public String getDisplayName() {
         return displayName;
     }
 
+    @Override
     public void setDisplayName(String displayName) {
         this.displayName = displayName;
     }
 
-    public List<ScimGroupMember> getMembers() {
+    @Override
+    public List<? extends ScimGroupMemberInterface> getMembers() {
         return members;
     }
 
-    public void setMembers(List<ScimGroupMember> members) {
-        this.members = members;
+    @Override
+    public void setMembers(List<ScimGroupMemberInterface> members) {
+        if (members == null)
+        {
+            this.members = null;
+        }
+        else
+        {
+            this.members = new ArrayList<ScimGroupMember>();
+            for (ScimGroupMemberInterface item : members)
+            {
+                this.members.add((ScimGroupMember) item);
+            }
+        }
     }
 
     public ScimGroup() {
@@ -53,6 +68,12 @@ public class ScimGroup extends ScimCore {
     public ScimGroup(String id, String name) {
         super(id);
         this.displayName = name;
+    }
+
+    @Override
+    public ScimUserGroup getUserGroup()
+    {
+        return new ScimUserGroup(getId(), getDisplayName());
     }
 
     @Override
