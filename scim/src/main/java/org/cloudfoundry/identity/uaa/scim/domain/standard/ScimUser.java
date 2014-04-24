@@ -43,7 +43,7 @@ import org.springframework.util.StringUtils;
  */
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 @JsonDeserialize(using = ScimUserJsonDeserializer.class)
-public final class ScimUser extends ScimCore implements ScimUserInterface {
+public class ScimUser extends ScimCore implements ScimUserInterface {
 
     private String userName;
 

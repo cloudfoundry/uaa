@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.scim.domain.standard;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupInterface;
 import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupMemberInterface;
 import org.cloudfoundry.identity.uaa.scim.json.ScimGroupJsonDeserializer;
 import org.cloudfoundry.identity.uaa.scim.json.ScimGroupJsonSerializer;

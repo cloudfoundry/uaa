@@ -27,8 +27,8 @@ import org.cloudfoundry.identity.uaa.scim.dao.common.ScimGroupExternalMembership
 import org.cloudfoundry.identity.uaa.scim.dao.common.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.dao.common.ScimSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupExternalMemberInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupInterface;
 import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimGroupExternalMember;
-import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimGroupInterface;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;

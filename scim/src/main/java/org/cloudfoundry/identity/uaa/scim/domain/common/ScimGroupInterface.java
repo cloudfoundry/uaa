@@ -1,10 +1,7 @@
-package org.cloudfoundry.identity.uaa.scim.domain.standard;
+package org.cloudfoundry.identity.uaa.scim.domain.common;
 
 import java.util.List;
 
-import org.cloudfoundry.identity.uaa.scim.domain.common.ScimCoreInterface;
-import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupMemberInterface;
-import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserGroupInterface;
 import org.cloudfoundry.identity.uaa.scim.json.ScimGroupJsonDeserializer;
 import org.codehaus.jackson.map.annotate.JsonDeserialize;
 

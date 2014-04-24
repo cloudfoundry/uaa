@@ -24,9 +24,9 @@ import org.cloudfoundry.identity.uaa.authentication.manager.NewUserAuthenticated
 import org.cloudfoundry.identity.uaa.scim.dao.common.ScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.dao.common.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.dao.common.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupInterface;
 import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserInterface;
 import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimGroupInterface;
 import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;

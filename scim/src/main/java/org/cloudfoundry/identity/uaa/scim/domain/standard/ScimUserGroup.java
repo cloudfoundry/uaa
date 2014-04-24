@@ -7,7 +7,7 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
  * Used to represent the array of groups contained within the user in the JSON representation of user.
  */
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
-public final class ScimUserGroup implements ScimUserGroupInterface {
+public class ScimUserGroup implements ScimUserGroupInterface {
     String value;
 
     String display;

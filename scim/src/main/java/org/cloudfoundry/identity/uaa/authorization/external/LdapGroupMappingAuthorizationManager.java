@@ -23,7 +23,7 @@ import org.cloudfoundry.identity.uaa.authorization.ExternalGroupMappingAuthoriza
 import org.cloudfoundry.identity.uaa.scim.dao.common.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.dao.common.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupExternalMemberInterface;
-import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimGroupInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupInterface;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion;
 import org.springframework.util.StringUtils;

@@ -28,7 +28,7 @@ import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.dao.standard.JdbcScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.dao.standard.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupExternalMemberInterface;
-import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimGroupInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupInterface;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
 import org.junit.After;
