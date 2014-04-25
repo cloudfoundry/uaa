@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.Collections;
 
 import org.cloudfoundry.identity.uaa.scim.domain.common.ScimEmail;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserGroupInterface;
 import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserInterface;
 import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimUserGroup;
@@ -98,7 +99,7 @@ public class ScimUserTests {
         ScimUser user = new ScimUser();
         user.setId("123");
         user.setUserName("joe");
-        user.setGroups(Collections.singleton(new ScimUserGroup(null, "foo")));
+        user.setGroups(Collections.<ScimUserGroupInterface> singleton(new ScimUserGroup(null, "foo")));
 
         String json = mapper.writeValueAsString(user);
         // System.err.println(json);

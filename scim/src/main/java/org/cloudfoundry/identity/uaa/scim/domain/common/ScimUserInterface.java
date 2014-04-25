@@ -8,7 +8,6 @@ import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.scim.json.ScimUserJsonDeserializer;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.map.annotate.JsonDeserialize;
-import org.codehaus.jackson.map.annotate.JsonSerialize;
 
 @JsonDeserialize(using = ScimUserJsonDeserializer.class)
 public interface ScimUserInterface extends ScimCoreInterface
@@ -33,9 +32,9 @@ public interface ScimUserInterface extends ScimCoreInterface
 
     void setApprovals(Set<Approval> approvals);
 
-    Set<? extends ScimUserGroupInterface> getGroups();
+    Set<ScimUserGroupInterface> getGroups();
 
-    void setGroups(Collection<? extends ScimUserGroupInterface> groups);
+    void setGroups(Collection<ScimUserGroupInterface> groups);
 
     List<ScimPhoneNumber> getPhoneNumbers();
 

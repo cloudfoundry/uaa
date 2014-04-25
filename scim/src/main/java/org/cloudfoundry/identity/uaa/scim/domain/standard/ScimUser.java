@@ -51,7 +51,7 @@ public class ScimUser extends ScimCore implements ScimUserInterface {
 
     private List<ScimEmail> emails;
 
-    private Set<ScimUserGroup> groups;
+    private Set<ScimUserGroupInterface> groups;
 
     private Set<Approval> approvals;
 
@@ -140,13 +140,13 @@ public class ScimUser extends ScimCore implements ScimUserInterface {
     }
 
     @Override
-    public Set<ScimUserGroup> getGroups() {
+    public Set<ScimUserGroupInterface> getGroups() {
         return groups;
     }
 
     @Override
-    public void setGroups(Collection<? extends ScimUserGroupInterface> groups) {
-        this.groups = new LinkedHashSet<ScimUserGroup>();
+    public void setGroups(Collection<ScimUserGroupInterface> groups) {
+        this.groups = new LinkedHashSet<ScimUserGroupInterface>();
         for (ScimUserGroupInterface item : groups)
         {
             this.groups.add((ScimUserGroup) item);

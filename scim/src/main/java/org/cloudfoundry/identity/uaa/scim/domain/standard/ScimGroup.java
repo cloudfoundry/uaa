@@ -27,7 +27,7 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 public class ScimGroup extends ScimCore implements ScimGroupInterface {
 
     private String displayName;
-    private List<ScimGroupMember> members;
+    private List<ScimGroupMemberInterface> members;
 
     @Override
     public String getDisplayName() {
@@ -40,7 +40,7 @@ public class ScimGroup extends ScimCore implements ScimGroupInterface {
     }
 
     @Override
-    public List<? extends ScimGroupMemberInterface> getMembers() {
+    public List<ScimGroupMemberInterface> getMembers() {
         return members;
     }
 
@@ -52,7 +52,7 @@ public class ScimGroup extends ScimCore implements ScimGroupInterface {
         }
         else
         {
-            this.members = new ArrayList<ScimGroupMember>();
+            this.members = new ArrayList<ScimGroupMemberInterface>();
             for (ScimGroupMemberInterface item : members)
             {
                 this.members.add((ScimGroupMember) item);

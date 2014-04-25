@@ -189,7 +189,7 @@ public class ScimUserEndpointsTests {
     public void groupsIsSyncedCorrectlyOnCreate() {
         ScimUserInterface user = new ScimUser(null, "dave", "David", "Syer");
         user.addEmail("dsyer@vmware.com");
-        user.setGroups(Arrays.asList(new ScimUserGroup(null, "test1")));
+        user.setGroups(Arrays.<ScimUserGroupInterface>asList(new ScimUserGroup(null, "test1")));
         ScimUserInterface created = endpoints.createUser(user, new MockHttpServletResponse());
         validateUserGroups(created, "uaa.user");
     }
@@ -201,7 +201,7 @@ public class ScimUserEndpointsTests {
         ScimUserInterface created = endpoints.createUser(user, new MockHttpServletResponse());
         validateUserGroups(created, "uaa.user");
 
-        created.setGroups(Arrays.asList(new ScimUserGroup(null, "test1")));
+        created.setGroups(Arrays.<ScimUserGroupInterface>asList(new ScimUserGroup(null, "test1")));
         ScimUserInterface updated = endpoints.updateUser(created, created.getId(), "*", new MockHttpServletResponse());
         validateUserGroups(updated, "uaa.user");
     }

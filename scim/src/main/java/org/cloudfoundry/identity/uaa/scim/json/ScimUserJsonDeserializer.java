@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.scim.domain.common.ScimEmail;
 import org.cloudfoundry.identity.uaa.scim.domain.common.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.domain.common.ScimName;
 import org.cloudfoundry.identity.uaa.scim.domain.common.ScimPhoneNumber;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserGroupInterface;
 import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserInterface;
 import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimUserGroup;
@@ -73,7 +74,7 @@ public class ScimUserJsonDeserializer extends JsonDeserializer<ScimUserInterface
                 } else if ("emails".equalsIgnoreCase(fieldName)) {
                     user.setEmails(Arrays.asList(jp.readValueAs(ScimEmail[].class)));
                 } else if ("groups".equalsIgnoreCase(fieldName)) {
-                    user.setGroups(Arrays.asList(jp.readValueAs(ScimUserGroup[].class)));
+                    user.setGroups(Arrays.<ScimUserGroupInterface> asList(jp.readValueAs(ScimUserGroup[].class)));
                 } else if ("displayName".equalsIgnoreCase(fieldName)) {
                     user.setDisplayName(jp.readValueAs(String.class));
                 } else if ("active".equalsIgnoreCase(fieldName)) {

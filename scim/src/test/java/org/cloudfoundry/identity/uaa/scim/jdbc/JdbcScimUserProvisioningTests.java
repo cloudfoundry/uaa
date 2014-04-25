@@ -36,6 +36,7 @@ import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.dao.common.ScimSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.dao.standard.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.domain.common.ScimPhoneNumber;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserGroupInterface;
 import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserInterface;
 import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimUserGroup;
@@ -224,7 +225,7 @@ public class JdbcScimUserProvisioningTests {
     public void updateCannotModifyGroups() {
         ScimUserInterface jo = new ScimUser(null, "josephine", "Jo", "NewUser");
         jo.addEmail("jo@blah.com");
-        jo.setGroups(Collections.singleton(new ScimUserGroup(null, "dash/user")));
+        jo.setGroups(Collections.<ScimUserGroupInterface>singleton(new ScimUserGroup(null, "dash/user")));
 
         ScimUserInterface joe = db.update(JOE_ID, jo);
 
