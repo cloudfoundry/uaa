@@ -19,17 +19,34 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupInterface;
 import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupMemberInterface;
-import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimGroup;
 import org.codehaus.jackson.JsonGenerator;
 import org.codehaus.jackson.JsonProcessingException;
 import org.codehaus.jackson.map.JsonSerializer;
 import org.codehaus.jackson.map.SerializerProvider;
 
-public class ScimGroupJsonSerializer extends JsonSerializer<ScimGroup> {
+public class ScimGroupJsonSerializer extends JsonSerializer<ScimGroupInterface> {
     @Override
-    public void serialize(ScimGroup group, JsonGenerator jgen, SerializerProvider provider) throws IOException,
+    public void serialize(ScimGroupInterface group, JsonGenerator jgen, SerializerProvider provider) throws IOException,
                     JsonProcessingException {
+
+        Map<Object, Object> groupJson = new HashMap<Object, Object>();
+
+        addProperties(group, groupJson);
+
+        jgen.writeObject(groupJson);
+
+    }
+
+    /**
+     * Add properties from object to map for conversion into JSON.
+     *
+     *5 @param group
+     * @param groupJson
+     */
+    protected void addProperties(ScimGroupInterface group, Map<Object, Object> groupJson)
+    {
         Map<String, List<ScimGroupMemberInterface>> roles = new HashMap<String, List<ScimGroupMemberInterface>>();
         for (ScimGroupMemberInterface.Role authority : ScimGroupMemberInterface.Role.values()) {
             String role = authority.toString().toLowerCase() + "s";
@@ -43,7 +60,6 @@ public class ScimGroupJsonSerializer extends JsonSerializer<ScimGroup> {
             }
         }
 
-        Map<Object, Object> groupJson = new HashMap<Object, Object>();
         addNonNull(groupJson, "meta", group.getMeta());
         addNonNull(groupJson, "schemas", group.getSchemas());
         addNonNull(groupJson, "id", group.getId());
@@ -52,12 +68,9 @@ public class ScimGroupJsonSerializer extends JsonSerializer<ScimGroup> {
         for (Map.Entry<String, List<ScimGroupMemberInterface>> entry : roles.entrySet()) {
             addNonNull(groupJson, entry.getKey(), entry.getValue());
         }
-
-        jgen.writeObject(groupJson);
-
     }
 
-    private void addNonNull(Map<Object, Object> map, Object key, Object value) {
+    protected void addNonNull(Map<Object, Object> map, Object key, Object value) {
         if (value == null || (value instanceof Collection && ((Collection<?>) value).isEmpty())) {
             return;
         }
