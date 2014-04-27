@@ -31,8 +31,6 @@ import org.codehaus.jackson.JsonProcessingException;
 import org.codehaus.jackson.JsonToken;
 import org.codehaus.jackson.map.DeserializationContext;
 import org.codehaus.jackson.map.JsonDeserializer;
-import org.springframework.context.ApplicationContext;
-import org.springframework.web.context.support.WebApplicationContextUtils;
 
 public class ScimGroupJsonDeserializer extends JsonDeserializer<ScimGroupInterface> {
 
@@ -40,47 +38,84 @@ public class ScimGroupJsonDeserializer extends JsonDeserializer<ScimGroupInterfa
     public ScimGroupInterface deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException,
                     JsonProcessingException {
 
+        ScimGroupInterface group = createObject();
 
-        ScimGroup group = new ScimGroup();
+        Map<String, Object> context = new HashMap<String, Object>();
 
-        Map<ScimGroupMemberInterface.Role, List<ScimGroupMember>> roles = new HashMap<ScimGroupMemberInterface.Role, List<ScimGroupMember>>();
-        for (ScimGroupMemberInterface.Role role : ScimGroupMemberInterface.Role.values()) {
-            roles.put(role, new ArrayList<ScimGroupMember>());
-        }
-        Set<ScimGroupMember> allMembers = new HashSet<ScimGroupMember>();
+        startDeserialization(group, context);
 
         while (jp.nextToken() != JsonToken.END_OBJECT) {
             if (jp.getCurrentToken() == JsonToken.FIELD_NAME) {
                 String fieldName = jp.getCurrentName();
                 jp.nextToken();
-
-                if ("id".equalsIgnoreCase(fieldName)) {
-                    group.setId(jp.readValueAs(String.class));
-                } else if ("displayname".equalsIgnoreCase(fieldName)) {
-                    group.setDisplayName(jp.readValueAs(String.class));
-                } else if ("meta".equalsIgnoreCase(fieldName)) {
-                    group.setMeta(jp.readValueAs(ScimMeta.class));
-                } else if ("schemas".equalsIgnoreCase(fieldName)) {
-                    group.setSchemas(jp.readValueAs(String[].class));
-                } else {
-                    String value = fieldName.substring(0, fieldName.length() - 1);
-                    ScimGroupMemberInterface.Role role;
-                    try {
-                        role = ScimGroupMemberInterface.Role.valueOf(value.toUpperCase());
-                    } catch (IllegalArgumentException ex) {
-                        role = null;
-                    }
-                    if (role != null) {
-                        ScimGroupMember[] members = jp.readValueAs(ScimGroupMember[].class);
-                        for (ScimGroupMemberInterface member : members) {
-                            member.setRoles(new ArrayList<ScimGroupMemberInterface.Role>());
-                        }
-                        roles.get(role).addAll(Arrays.asList(members));
-                        allMembers.addAll(Arrays.asList(members));
-                    }
-                }
+                deserializeField(group, fieldName, jp, context);
             }
         }
+
+        endDeserialization(group, context);
+
+        return group;
+    }
+
+    protected ScimGroupInterface createObject()
+    {
+        return new ScimGroup();
+    }
+
+    protected void startDeserialization(ScimGroupInterface group, Map<String, Object> context)
+    {
+        Map<ScimGroupMemberInterface.Role, List<ScimGroupMember>> roles = new HashMap<ScimGroupMemberInterface.Role, List<ScimGroupMember>>();
+        for (ScimGroupMemberInterface.Role role : ScimGroupMemberInterface.Role.values()) {
+            roles.put(role, new ArrayList<ScimGroupMember>());
+        }
+        Set<ScimGroupMember> allMembers = new HashSet<ScimGroupMember>();
+        context.put("members", allMembers);
+        context.put("roles", roles);
+    }
+
+    protected void deserializeField(ScimGroupInterface group, String fieldName, JsonParser jp, Map<String, Object> context) throws JsonProcessingException, IOException
+    {
+        if ("id".equalsIgnoreCase(fieldName)) {
+            group.setId(jp.readValueAs(String.class));
+        } else if ("displayname".equalsIgnoreCase(fieldName)) {
+            group.setDisplayName(jp.readValueAs(String.class));
+        } else if ("meta".equalsIgnoreCase(fieldName)) {
+            group.setMeta(jp.readValueAs(ScimMeta.class));
+        } else if ("schemas".equalsIgnoreCase(fieldName)) {
+            group.setSchemas(jp.readValueAs(String[].class));
+        } else {
+            String value = fieldName.substring(0, fieldName.length() - 1);
+            ScimGroupMemberInterface.Role role;
+            try {
+                role = ScimGroupMemberInterface.Role.valueOf(value.toUpperCase());
+
+                ScimGroupMember[] members = jp.readValueAs(ScimGroupMember[].class);
+                for (ScimGroupMemberInterface member : members) {
+                    member.setRoles(new ArrayList<ScimGroupMemberInterface.Role>());
+                }
+
+                @SuppressWarnings("unchecked")
+                Set<ScimGroupMemberInterface> allMembers = (Set<ScimGroupMemberInterface>) context.get("members");
+
+                @SuppressWarnings("unchecked")
+                Map<ScimGroupMemberInterface.Role, List<ScimGroupMember>> roles = (Map<ScimGroupMemberInterface.Role, List<ScimGroupMember>>) context.get("roles");
+
+                roles.get(role).addAll(Arrays.asList(members));
+                allMembers.addAll(Arrays.asList(members));
+
+            } catch (IllegalArgumentException ex) {
+                role = null;
+            }
+        }
+    }
+
+    protected void endDeserialization (ScimGroupInterface group, Map<String, Object> context)
+    {
+        @SuppressWarnings("unchecked")
+        Set<ScimGroupMemberInterface> allMembers = (Set<ScimGroupMemberInterface>) context.get("members");
+
+        @SuppressWarnings("unchecked")
+        Map<ScimGroupMemberInterface.Role, List<ScimGroupMember>> roles = (Map<ScimGroupMemberInterface.Role, List<ScimGroupMember>>) context.get("roles");
 
         for (ScimGroupMemberInterface member : allMembers) {
             for (ScimGroupMemberInterface.Role role : roles.keySet()) {
@@ -90,7 +125,6 @@ public class ScimGroupJsonDeserializer extends JsonDeserializer<ScimGroupInterfa
             }
         }
         group.setMembers(new ArrayList<ScimGroupMemberInterface>(allMembers));
-
-        return group;
     }
+
 }

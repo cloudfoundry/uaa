@@ -1,8 +1,10 @@
 package org.cloudfoundry.identity.uaa.scim.domain.common;
 
-import org.codehaus.jackson.map.annotate.JsonSerialize;
+import org.cloudfoundry.identity.uaa.scim.json.ScimUserGroupJsonDeserializer;
+import org.codehaus.jackson.map.annotate.JsonDeserialize;
 
 
+@JsonDeserialize(using = ScimUserGroupJsonDeserializer.class)
 public interface ScimUserGroupInterface
 {
 
