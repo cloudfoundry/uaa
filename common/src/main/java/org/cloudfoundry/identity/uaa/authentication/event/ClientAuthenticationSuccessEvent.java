@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -10,30 +10,28 @@
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-
-package org.cloudfoundry.identity.uaa.oauth.event;
-
-import java.security.Principal;
+package org.cloudfoundry.identity.uaa.authentication.event;
 
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.provider.ClientDetails;
 
-/**
- * @author Dave Syer
- * 
- */
-public class ClientUpdateEvent extends AbstractClientAdminEvent {
+public class ClientAuthenticationSuccessEvent extends AbstractUaaAuthenticationEvent{
 
-    public ClientUpdateEvent(ClientDetails client, Authentication principal) {
-        super(client, principal);
+    private String clientId;
+
+    public ClientAuthenticationSuccessEvent(Authentication authentication) {
+        super(authentication);
+        clientId = getAuthenticationDetails().getClientId();
     }
 
     @Override
     public AuditEvent getAuditEvent() {
-        return createAuditRecord(getClient().getClientId(), AuditEventType.ClientUpdateSuccess,
-                        getOrigin(getPrincipal()));
+        return createAuditRecord(clientId, AuditEventType.ClientAuthenticationSuccess,
+            getOrigin(getAuthenticationDetails()), "Client authentication success");
     }
 
+    public String getClientId() {
+        return clientId;
+    }
 }

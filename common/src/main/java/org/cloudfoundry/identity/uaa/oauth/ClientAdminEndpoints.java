@@ -472,7 +472,11 @@ public class ClientAdminEndpoints implements InitializingBean {
             throw new NoSuchClientException("No such client: " + client);
         }
 
-        checkPasswordChangeIsAllowed(clientDetails, change.getOldSecret());
+        try {
+            checkPasswordChangeIsAllowed(clientDetails, change.getOldSecret());
+        } catch (IllegalStateException e) {
+            throw new InvalidClientDetailsException(e.getMessage());
+        }
 
         clientRegistrationService.updateClientSecret(client, change.getSecret());
 

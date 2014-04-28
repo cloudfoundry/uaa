@@ -39,8 +39,18 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
         mapper.setSerializationConfig(mapper.getSerializationConfig().withSerializationInclusion(Inclusion.NON_NULL));
     }
 
+    private Authentication authentication;
+
     protected AbstractUaaEvent(Object source) {
         super(source);
+        if (source instanceof Authentication) {
+            this.authentication = (Authentication)source;
+        }
+    }
+
+    protected AbstractUaaEvent(Object source, Authentication authentication) {
+        super(source);
+        this.authentication = authentication;
     }
 
     public void process(UaaAuditService auditor) {
@@ -53,6 +63,10 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
 
     protected AuditEvent createAuditRecord(String principalId, AuditEventType type, String origin, String data) {
         return new AuditEvent(type, principalId, origin, data, System.currentTimeMillis());
+    }
+
+    public Authentication getAuthentication() {
+        return authentication;
     }
 
     // Ideally we want to get to the point where details is never null, but this

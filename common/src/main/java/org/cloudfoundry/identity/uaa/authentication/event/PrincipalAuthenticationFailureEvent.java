@@ -37,4 +37,8 @@ public class PrincipalAuthenticationFailureEvent extends AbstractUaaPrincipalEve
                         getOrigin(getAuthenticationDetails()));
     }
 
+    public String getName() {
+        return name;
+    }
+
 }

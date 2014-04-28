@@ -10,30 +10,23 @@
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
+package org.cloudfoundry.identity.uaa.test;
 
-package org.cloudfoundry.identity.uaa.oauth.event;
+import org.springframework.context.ApplicationEvent;
+import org.springframework.context.ApplicationEventPublisher;
 
-import java.security.Principal;
+public class TestApplicationEventPublisher<T extends ApplicationEvent> extends TestApplicationEventHandler<T> implements ApplicationEventPublisher {
 
-import org.cloudfoundry.identity.uaa.audit.AuditEvent;
-import org.cloudfoundry.identity.uaa.audit.AuditEventType;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.provider.ClientDetails;
+    public static <K extends ApplicationEvent> TestApplicationEventPublisher<K> forEventClass(Class<K> eventType) {
+        return new TestApplicationEventPublisher<K>(eventType);
+    }
 
-/**
- * @author Dave Syer
- * 
- */
-public class ClientUpdateEvent extends AbstractClientAdminEvent {
-
-    public ClientUpdateEvent(ClientDetails client, Authentication principal) {
-        super(client, principal);
+    protected TestApplicationEventPublisher(Class<T> eventType) {
+        super(eventType);
     }
 
     @Override
-    public AuditEvent getAuditEvent() {
-        return createAuditRecord(getClient().getClientId(), AuditEventType.ClientUpdateSuccess,
-                        getOrigin(getPrincipal()));
+    public void publishEvent(ApplicationEvent applicationEvent) {
+        handleEvent(applicationEvent);
     }
-
 }

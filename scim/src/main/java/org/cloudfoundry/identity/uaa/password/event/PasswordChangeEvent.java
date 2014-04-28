@@ -18,6 +18,7 @@ import java.security.Principal;
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.springframework.security.core.Authentication;
 
 /**
  * @author Dave Syer
@@ -25,7 +26,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
  */
 public class PasswordChangeEvent extends AbstractPasswordChangeEvent {
 
-    public PasswordChangeEvent(String message, UaaUser user, Principal principal) {
+    public PasswordChangeEvent(String message, UaaUser user, Authentication principal) {
         super(message, user, principal);
     }
 

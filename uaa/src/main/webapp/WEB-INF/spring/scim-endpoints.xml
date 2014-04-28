@@ -35,6 +35,27 @@
         <property name="usernamePattern" value="${scim.username_pattern:[a-zA-Z0-9+\-_.@]+}" />
     </bean>
 
+    <bean id="scimEventPublisher" class="org.cloudfoundry.identity.uaa.scim.event.ScimEventPublisher"/>
+
+    <aop:config proxy-target-class="true">
+        <aop:aspect ref="scimEventPublisher">
+            <aop:after-returning method="userCreated"
+                                 pointcut="execution(* *..ScimUserProvisioning+.createUser(..)) and bean(scimUserProvisioning)" returning="user" />
+            <aop:after-returning method="userModified"
+                                 pointcut="execution(* *..ScimUserProvisioning+.update(..)) and bean(scimUserProvisioning)" returning="user" />
+            <aop:after-returning method="userVerified"
+                                 pointcut="execution(* *..ScimUserProvisioning+.verifyUser(..)) and bean(scimUserProvisioning)" returning="user" />
+            <aop:after-returning method="userDeleted"
+                                 pointcut="execution(* *..ScimUserEndpoints+.deleteUser(..)) and bean(scimUserEndpoints)" returning="user" />
+            <aop:after-returning method="groupCreated"
+                                 pointcut="execution(* *..ScimGroupEndpoints+.createGroup(..)) and bean(scimGroupEndpoints)" returning="group" />
+            <aop:after-returning method="groupModified"
+                                 pointcut="execution(* *..ScimGroupEndpoints+.updateGroup(..)) and bean(scimGroupEndpoints)" returning="group" />
+            <aop:after-returning method="groupDeleted"
+                                 pointcut="execution(* *..ScimGroupEndpoints+.deleteGroup(..)) and bean(scimGroupEndpoints)" returning="group" />
+        </aop:aspect>
+    </aop:config>
+
     <bean id="scimUserQueryConverter" class="org.cloudfoundry.identity.uaa.scim.jdbc.ScimSearchQueryConverter">
         <property name="attributeNameMapper">
             <bean class="org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper">
@@ -210,6 +231,7 @@
     <http pattern="/Users/**" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
         entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="userAccessDecisionManager"
         xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/Users/*/verify" access="scope=scim.write" method="GET" />
         <intercept-url pattern="/Users/**" access="scope=scim.read,user=self" method="GET" />
         <intercept-url pattern="/Users/*" access="scope=scim.write" method="DELETE" />
         <intercept-url pattern="/Users/*" access="scope=scim.write,user=self" method="PUT" />

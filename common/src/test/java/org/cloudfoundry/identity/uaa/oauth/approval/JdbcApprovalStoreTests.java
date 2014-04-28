@@ -23,18 +23,24 @@ import java.util.List;
 
 import javax.sql.DataSource;
 
+import org.cloudfoundry.identity.uaa.audit.event.ApprovalModifiedEvent;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.rest.jdbc.SimpleSearchQueryConverter;
+import org.cloudfoundry.identity.uaa.test.MockAuthentication;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
+import org.cloudfoundry.identity.uaa.test.TestApplicationEventPublisher;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
+import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.annotation.IfProfileValue;
 import org.springframework.test.annotation.ProfileValueSourceConfiguration;
 import org.springframework.test.context.ContextConfiguration;
@@ -56,6 +62,8 @@ public class JdbcApprovalStoreTests {
 
     private JdbcApprovalStore dao;
 
+    private TestApplicationEventPublisher<ApprovalModifiedEvent> eventPublisher;
+
     @Before
     public void createDatasource() {
 
@@ -63,6 +71,9 @@ public class JdbcApprovalStoreTests {
 
         dao = new JdbcApprovalStore(template, new JdbcPagingListFactory(template, limitSqlAdapter),
                         new SimpleSearchQueryConverter());
+
+        eventPublisher = TestApplicationEventPublisher.forEventClass(ApprovalModifiedEvent.class);
+        dao.setApplicationEventPublisher(eventPublisher);
 
         addApproval("u1", "c1", "uaa.user", 6000, APPROVED);
         addApproval("u1", "c2", "uaa.admin", 12000, DENIED);
@@ -183,4 +194,36 @@ public class JdbcApprovalStoreTests {
         assertEquals(3, remainingApprovals.size());
     }
 
+    @Test
+    public void testAddingAndUpdatingAnApprovalPublishesEvents() throws Exception {
+        UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
+
+        Approval approval = new Approval(testAccounts.getUserName(), "app", "cloud_controller.read", 1000, ApprovalStatus.APPROVED);
+
+        eventPublisher.clearEvents();
+
+        MockAuthentication authentication = new MockAuthentication();
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        dao.addApproval(approval);
+
+        Assert.assertEquals(1, eventPublisher.getEventCount());
+
+        ApprovalModifiedEvent addEvent = eventPublisher.getLatestEvent();
+        Assert.assertEquals(approval, addEvent.getSource());
+        Assert.assertEquals(authentication, addEvent.getAuthentication());
+        Assert.assertEquals("{\"scope\":\"cloud_controller.read\",\"status\":\"APPROVED\"}", addEvent.getAuditEvent().getData());
+
+        approval.setStatus(DENIED);
+
+        eventPublisher.clearEvents();
+        dao.addApproval(approval);
+
+        Assert.assertEquals(1, eventPublisher.getEventCount());
+
+        ApprovalModifiedEvent modifyEvent = eventPublisher.getLatestEvent();
+        Assert.assertEquals(approval, modifyEvent.getSource());
+        Assert.assertEquals(authentication, modifyEvent.getAuthentication());
+        Assert.assertEquals("{\"scope\":\"cloud_controller.read\",\"status\":\"DENIED\"}", addEvent.getAuditEvent().getData());
+    }
 }

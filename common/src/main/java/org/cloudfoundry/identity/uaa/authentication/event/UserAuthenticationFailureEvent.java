@@ -43,4 +43,8 @@ public class UserAuthenticationFailureEvent extends AbstractUaaAuthenticationEve
         return createAuditRecord(user.getId(), AuditEventType.UserAuthenticationFailure,
                         getOrigin(getAuthenticationDetails()), user.getUsername());
     }
+
+    public UaaUser getUser() {
+        return user;
+    }
 }

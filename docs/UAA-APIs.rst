@@ -735,14 +735,14 @@ In addition to SCIM users, UAA also supports/implements SCIM_groups_ for managin
 
 .. _SCIM_groups: http://tools.ietf.org/html/draft-ietf-scim-core-schema-00#section-8
 
-Create a Group: ``POST /Group``
+Create a Group: ``POST /Groups``
 ----------------------------------
 
 See `SCIM - Creating Resources`__
 
 __ http://www.simplecloud.info/specs/draft-scim-rest-api-01.html#create-resource
 
-* Request: ``POST /Group``
+* Request: ``POST /Groups``
 * Request Headers: Authorization header containing an OAuth2_ bearer token with::
 
         scope = scim.write
@@ -764,7 +764,7 @@ The ``displayName`` is unique in the UAA, but is allowed to change.  Each group 
 
         HTTP/1.1 201 Created
         Content-Type: application/json
-        Location: https://example.com/v1/Group/uid=123456
+        Location: https://example.com/v1/Groups/uid=123456
         ETag: "0"
 
         {
@@ -789,12 +789,12 @@ The ``displayName`` is unique in the UAA, but is allowed to change.  Each group 
 
 The members.value sub-attributes MUST refer to a valid SCIM resource id in the UAA, i.e the UUID of an existing SCIM user or group.
 
-Update a Group: ``PUT /Group/{id}``
+Update a Group: ``PUT /Groups/{id}``
 ----------------------------------------
 
 See `SCIM - Modifying with PUT <http://www.simplecloud.info/specs/draft-scim-rest-api-01.html#edit-resource-with-put>`_
 
-* Request: ``PUT /Group/{id}``
+* Request: ``PUT /Groups/{id}``
 * Request Headers: 
 
   + Authorization header containing an OAuth2_ bearer token with::
@@ -882,12 +882,12 @@ Filters: note that, per the specification, attribute values are comma separated 
         400 - Bad Request
         401 - Unauthorized
 
-Delete a Group: ``DELETE /Group/{id}``
+Delete a Group: ``DELETE /Groups/{id}``
 -----------------------------------------
 
 See `SCIM - Deleting Resources <http://www.simplecloud.info/specs/draft-scim-rest-api-01.html#delete-resource>`_.
 
-* Request: ``DELETE /Group/{id}``
+* Request: ``DELETE /Groups/{id}``
 * Request Headers: 
 
   + Authorization header containing an OAuth2_ bearer token with::

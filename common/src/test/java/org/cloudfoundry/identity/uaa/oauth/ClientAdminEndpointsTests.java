@@ -337,7 +337,7 @@ public class ClientAdminEndpointsTests {
         SecretChangeRequest change = new SecretChangeRequest();
         change.setOldSecret(detail.getClientSecret());
         change.setSecret("newpassword");
-        expected.expect(IllegalStateException.class);
+        expected.expect(InvalidClientDetailsException.class);
         expected.expectMessage("Only a client");
         endpoints.changeSecret(detail.getClientId(), change);
 
@@ -356,7 +356,7 @@ public class ClientAdminEndpointsTests {
 
         SecretChangeRequest change = new SecretChangeRequest();
         change.setSecret("newpassword");
-        expected.expect(IllegalStateException.class);
+        expected.expect(InvalidClientDetailsException.class);
         expected.expectMessage("Not permitted to change");
         endpoints.changeSecret(detail.getClientId(), change);
 
@@ -379,7 +379,7 @@ public class ClientAdminEndpointsTests {
 
         SecretChangeRequest change = new SecretChangeRequest();
         change.setSecret("newpassword");
-        expected.expect(IllegalStateException.class);
+        expected.expect(InvalidClientDetailsException.class);
         expected.expectMessage("Previous secret is required");
         endpoints.changeSecret(detail.getClientId(), change);
 
@@ -398,7 +398,7 @@ public class ClientAdminEndpointsTests {
 
         SecretChangeRequest change = new SecretChangeRequest();
         change.setSecret("newpassword");
-        expected.expect(IllegalStateException.class);
+        expected.expect(InvalidClientDetailsException.class);
         expected.expectMessage("Previous secret is required");
         endpoints.changeSecret(detail.getClientId(), change);
 

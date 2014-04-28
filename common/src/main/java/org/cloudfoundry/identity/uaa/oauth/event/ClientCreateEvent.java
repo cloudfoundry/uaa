@@ -17,6 +17,7 @@ import java.security.Principal;
 
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.ClientDetails;
 
 /**
@@ -25,7 +26,7 @@ import org.springframework.security.oauth2.provider.ClientDetails;
  */
 public class ClientCreateEvent extends AbstractClientAdminEvent {
 
-    public ClientCreateEvent(ClientDetails client, Principal principal) {
+    public ClientCreateEvent(ClientDetails client, Authentication principal) {
         super(client, principal);
     }
 
