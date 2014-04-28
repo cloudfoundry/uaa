@@ -380,6 +380,21 @@ public class AuditCheckMvcMockTests {
     }
 
     @Test
+    public void clientAuthenticationFailureClientNotFound() throws Exception {
+        ArgumentCaptor<AbstractUaaEvent> captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
+        String basicDigestHeaderValue = "Basic "
+            + new String(Base64.encodeBase64(("login2:loginsecret").getBytes()));
+        MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
+            .header("Authorization", basicDigestHeaderValue)
+            .param("grant_type", "client_credentials")
+            .param("client_id", "login")
+            .param("scope", "oauth.login");
+        mockMvc.perform(oauthTokenPost).andExpect(status().isUnauthorized());
+        verify(listener, times(1)).onApplicationEvent(captor.capture());
+        ClientAuthenticationFailureEvent event = (ClientAuthenticationFailureEvent)captor.getValue();
+        assertEquals("login", event.getClientId());
+    }
+    @Test
     public void testUserApprovalAdded() throws Exception {
         clientRegistrationService.updateClientDetails(new BaseClientDetails("login", "oauth", "oauth.approvals", "password", "oauth.login"));
 
@@ -596,7 +611,7 @@ public class AuditCheckMvcMockTests {
         assertEquals(ResetPasswordRequestEvent.class, testListener.getLatestEvent().getClass());
         ResetPasswordRequestEvent event = (ResetPasswordRequestEvent) testListener.getLatestEvent();
         assertEquals("marissa@test.org", event.getAuditEvent().getPrincipalId());
-        assertEquals(code, event.getAuditEvent().getData());
+        assertEquals(null, event.getAuditEvent().getData());
     }
 
     @Test

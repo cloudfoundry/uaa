@@ -31,7 +31,7 @@ public class ResetPasswordRequestEvent extends AbstractUaaEvent {
 
     @Override
     public AuditEvent getAuditEvent() {
-        return createAuditRecord(getSource().toString(), AuditEventType.PasswordResetRequest, getOrigin(getAuthentication()), getCode());
+        return createAuditRecord(getSource().toString(), AuditEventType.PasswordResetRequest, getOrigin(getAuthentication()), null);
     }
 
     public String getCode() {
