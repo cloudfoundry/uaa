@@ -1,5 +1,6 @@
-package org.cloudfoundry.identity.uaa.scim.domain;
+package org.cloudfoundry.identity.uaa.scim.domain.standard;
 
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserGroupInterface;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 
 /**

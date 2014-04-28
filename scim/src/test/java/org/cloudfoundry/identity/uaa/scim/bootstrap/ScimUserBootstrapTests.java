@@ -20,12 +20,12 @@ import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.rest.jdbc.DefaultLimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
-import org.cloudfoundry.identity.uaa.scim.domain.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.domain.ScimUserInterface;
+import org.cloudfoundry.identity.uaa.scim.dao.standard.JdbcScimGroupMembershipManager;
+import org.cloudfoundry.identity.uaa.scim.dao.standard.JdbcScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.scim.dao.standard.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints;
-import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
-import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
-import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.junit.After;

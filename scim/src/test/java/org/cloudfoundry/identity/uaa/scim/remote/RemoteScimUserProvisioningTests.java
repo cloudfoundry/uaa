@@ -18,8 +18,8 @@ import static org.junit.Assert.assertEquals;
 import java.util.List;
 
 import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
-import org.cloudfoundry.identity.uaa.scim.domain.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.domain.ScimUserInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimUser;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

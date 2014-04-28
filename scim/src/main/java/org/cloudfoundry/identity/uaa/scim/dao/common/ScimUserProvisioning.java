@@ -10,11 +10,11 @@
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-package org.cloudfoundry.identity.uaa.scim;
+package org.cloudfoundry.identity.uaa.scim.dao.common;
 
 import org.cloudfoundry.identity.uaa.rest.Queryable;
 import org.cloudfoundry.identity.uaa.rest.ResourceManager;
-import org.cloudfoundry.identity.uaa.scim.domain.ScimUserInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserInterface;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;

@@ -1,11 +1,11 @@
-package org.cloudfoundry.identity.uaa.scim.domain;
+package org.cloudfoundry.identity.uaa.scim.domain.common;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
-import org.cloudfoundry.identity.uaa.scim.ScimUserJsonDeserializer;
+import org.cloudfoundry.identity.uaa.scim.json.ScimUserJsonDeserializer;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.map.annotate.JsonDeserialize;
 import org.codehaus.jackson.map.annotate.JsonSerialize;

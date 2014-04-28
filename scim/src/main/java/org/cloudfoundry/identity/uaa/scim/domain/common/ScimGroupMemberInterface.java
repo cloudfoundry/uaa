@@ -1,4 +1,4 @@
-package org.cloudfoundry.identity.uaa.scim.domain;
+package org.cloudfoundry.identity.uaa.scim.domain.common;
 
 import java.util.Arrays;
 import java.util.List;

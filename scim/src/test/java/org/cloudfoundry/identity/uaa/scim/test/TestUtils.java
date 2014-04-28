@@ -19,8 +19,8 @@ import java.util.Arrays;
 
 import javax.sql.DataSource;
 
-import org.cloudfoundry.identity.uaa.scim.domain.ScimEmail;
-import org.cloudfoundry.identity.uaa.scim.domain.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimEmail;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestProfileEnvironment;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.ClassPathResource;

@@ -10,10 +10,12 @@
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-package org.cloudfoundry.identity.uaa.scim.domain;
+package org.cloudfoundry.identity.uaa.scim.domain.standard;
 
 import java.util.Arrays;
 
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimCoreInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimMeta;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.springframework.util.Assert;
 

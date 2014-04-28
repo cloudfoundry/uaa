@@ -10,7 +10,7 @@
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-package org.cloudfoundry.identity.uaa.scim.domain;
+package org.cloudfoundry.identity.uaa.scim.domain.standard;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -19,7 +19,12 @@ import java.util.List;
 import java.util.Set;
 
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
-import org.cloudfoundry.identity.uaa.scim.ScimUserJsonDeserializer;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimEmail;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimName;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimPhoneNumber;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserGroupInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserInterface;
+import org.cloudfoundry.identity.uaa.scim.json.ScimUserJsonDeserializer;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.map.annotate.JsonDeserialize;
@@ -362,11 +367,11 @@ public final class ScimUser extends ScimCore implements ScimUserInterface {
         }
 
         if (name != null) {
-            if (name.givenName != null) {
-                words.add(name.givenName);
+            if (name.getGivenName() != null) {
+                words.add(name.getGivenName());
             }
-            if (name.familyName != null) {
-                words.add(name.familyName);
+            if (name.getFamilyName() != null) {
+                words.add(name.getFamilyName());
             }
             if (nickName != null) {
                 words.add(nickName);

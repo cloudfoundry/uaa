@@ -10,13 +10,14 @@
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-package org.cloudfoundry.identity.uaa.scim.domain;
+package org.cloudfoundry.identity.uaa.scim.domain.standard;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import org.cloudfoundry.identity.uaa.scim.ScimGroupJsonDeserializer;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupJsonSerializer;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupMemberInterface;
+import org.cloudfoundry.identity.uaa.scim.json.ScimGroupJsonDeserializer;
+import org.cloudfoundry.identity.uaa.scim.json.ScimGroupJsonSerializer;
 import org.codehaus.jackson.map.annotate.JsonDeserialize;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 

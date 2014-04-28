@@ -21,10 +21,10 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
-import org.cloudfoundry.identity.uaa.scim.domain.ScimGroupExternalMemberInterface;
-import org.cloudfoundry.identity.uaa.scim.domain.ScimGroupInterface;
+import org.cloudfoundry.identity.uaa.scim.dao.common.ScimGroupExternalMembershipManager;
+import org.cloudfoundry.identity.uaa.scim.dao.common.ScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupExternalMemberInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimGroupInterface;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.util.StringUtils;
 

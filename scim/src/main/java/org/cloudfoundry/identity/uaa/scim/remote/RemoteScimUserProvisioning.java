@@ -16,9 +16,9 @@ package org.cloudfoundry.identity.uaa.scim.remote;
 import java.util.List;
 
 import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
-import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.scim.domain.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.domain.ScimUserInterface;
+import org.cloudfoundry.identity.uaa.scim.dao.common.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
@@ -30,7 +30,7 @@ import org.springframework.web.client.RestTemplate;
 
 /**
  * Remote implementation of
- * {@link org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning} using the
+ * {@link org.cloudfoundry.identity.uaa.scim.dao.common.ScimUserProvisioning} using the
  * Scim endpoints on a remote server.
  *
  * @author Dave Syer

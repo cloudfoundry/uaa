@@ -13,7 +13,7 @@
 
 package org.cloudfoundry.identity.uaa.password;
 
-import org.cloudfoundry.identity.uaa.scim.domain.ScimUserInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserInterface;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordScore;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordScoreCalculator;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;

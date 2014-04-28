@@ -17,9 +17,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
 
-import org.cloudfoundry.identity.uaa.scim.domain.ScimCoreInterface;
-import org.cloudfoundry.identity.uaa.scim.domain.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.domain.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimCoreInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimUser;
 import org.junit.Test;
 
 public class ScimCoreTests {

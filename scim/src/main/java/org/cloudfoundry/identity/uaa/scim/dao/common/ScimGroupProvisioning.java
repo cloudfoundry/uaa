@@ -10,11 +10,11 @@
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-package org.cloudfoundry.identity.uaa.scim;
+package org.cloudfoundry.identity.uaa.scim.dao.common;
 
 import org.cloudfoundry.identity.uaa.rest.Queryable;
 import org.cloudfoundry.identity.uaa.rest.ResourceManager;
-import org.cloudfoundry.identity.uaa.scim.domain.ScimGroupInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimGroupInterface;
 
 public interface ScimGroupProvisioning extends ResourceManager<ScimGroupInterface>, Queryable<ScimGroupInterface> {
 }

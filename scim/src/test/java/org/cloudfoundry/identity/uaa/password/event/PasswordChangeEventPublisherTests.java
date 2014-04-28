@@ -16,8 +16,8 @@ package org.cloudfoundry.identity.uaa.password.event;
 import java.util.Arrays;
 
 import org.cloudfoundry.identity.uaa.password.UaaPasswordTestFactory;
-import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimUserTestFactory;
+import org.cloudfoundry.identity.uaa.scim.dao.common.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.junit.After;
 import org.junit.Before;
