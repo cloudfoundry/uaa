@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -38,15 +38,20 @@ import org.cloudfoundry.identity.uaa.rest.SearchResults;
 import org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.rest.jdbc.DefaultLimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
-import org.cloudfoundry.identity.uaa.scim.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.dao.common.ScimSearchQueryConverter;
+import org.cloudfoundry.identity.uaa.scim.dao.standard.JdbcScimGroupMembershipManager;
+import org.cloudfoundry.identity.uaa.scim.dao.standard.JdbcScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.scim.dao.standard.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupMemberInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserGroupInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimGroupMember;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimUserGroup;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
-import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
-import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
-import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.scim.jdbc.ScimSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
 import org.junit.After;
@@ -78,16 +83,16 @@ import com.googlecode.flyway.core.Flyway;
 /**
  * @author Dave Syer
  * @author Luke Taylor
- * 
+ *
  */
 public class ScimUserEndpointsTests {
 
     @Rule
     public ExpectedException expected = ExpectedException.none();
 
-    private ScimUser joel;
+    private ScimUserInterface joel;
 
-    private ScimUser dale;
+    private ScimUserInterface dale;
 
     private ScimUserEndpoints endpoints;
 
@@ -167,7 +172,7 @@ public class ScimUserEndpointsTests {
         TestUtils.deleteFrom(database, "group_membership", "users", "groups", "authz_approvals");
     }
 
-    private void validateUserGroups(ScimUser user, String... gnm) {
+    private void validateUserGroups(ScimUserInterface user, String... gnm) {
         Set<String> expectedAuthorities = new HashSet<String>();
         expectedAuthorities.addAll(Arrays.asList(gnm));
         expectedAuthorities.add("uaa.user");
@@ -175,42 +180,42 @@ public class ScimUserEndpointsTests {
         Log logger = LogFactory.getLog(getClass());
         logger.debug("user's groups: " + user.getGroups() + ", expecting: " + expectedAuthorities);
         assertEquals(expectedAuthorities.size(), user.getGroups().size());
-        for (ScimUser.Group g : user.getGroups()) {
+        for (ScimUserGroupInterface g : user.getGroups()) {
             assertTrue(expectedAuthorities.contains(g.getDisplay()));
         }
     }
 
     @Test
     public void groupsIsSyncedCorrectlyOnCreate() {
-        ScimUser user = new ScimUser(null, "dave", "David", "Syer");
+        ScimUserInterface user = new ScimUser(null, "dave", "David", "Syer");
         user.addEmail("dsyer@vmware.com");
-        user.setGroups(Arrays.asList(new ScimUser.Group(null, "test1")));
-        ScimUser created = endpoints.createUser(user, new MockHttpServletResponse());
+        user.setGroups(Arrays.<ScimUserGroupInterface>asList(new ScimUserGroup(null, "test1")));
+        ScimUserInterface created = endpoints.createUser(user, new MockHttpServletResponse());
         validateUserGroups(created, "uaa.user");
     }
 
     @Test
     public void groupsIsSyncedCorrectlyOnUpdate() {
-        ScimUser user = new ScimUser(null, "dave", "David", "Syer");
+        ScimUserInterface user = new ScimUser(null, "dave", "David", "Syer");
         user.addEmail("dsyer@vmware.com");
-        ScimUser created = endpoints.createUser(user, new MockHttpServletResponse());
+        ScimUserInterface created = endpoints.createUser(user, new MockHttpServletResponse());
         validateUserGroups(created, "uaa.user");
 
-        created.setGroups(Arrays.asList(new ScimUser.Group(null, "test1")));
-        ScimUser updated = endpoints.updateUser(created, created.getId(), "*", new MockHttpServletResponse());
+        created.setGroups(Arrays.<ScimUserGroupInterface>asList(new ScimUserGroup(null, "test1")));
+        ScimUserInterface updated = endpoints.updateUser(created, created.getId(), "*", new MockHttpServletResponse());
         validateUserGroups(updated, "uaa.user");
     }
 
     @Test
     public void groupsIsSyncedCorrectlyOnGet() {
-        ScimUser user = new ScimUser(null, "dave", "David", "Syer");
+        ScimUserInterface user = new ScimUser(null, "dave", "David", "Syer");
         user.addEmail("dsyer@vmware.com");
-        ScimUser created = endpoints.createUser(user, new MockHttpServletResponse());
+        ScimUserInterface created = endpoints.createUser(user, new MockHttpServletResponse());
 
         validateUserGroups(created, "uaa.user");
 
-        ScimGroup g = new ScimGroup("test1");
-        g.setMembers(Arrays.asList(new ScimGroupMember(created.getId())));
+        ScimGroupInterface g = new ScimGroup("test1");
+        g.setMembers(Arrays.<ScimGroupMemberInterface>asList(new ScimGroupMember(created.getId())));
         g = groupEndpoints.createGroup(g, new MockHttpServletResponse());
 
         validateUserGroups(endpoints.getUser(created.getId(), new MockHttpServletResponse()), "test1");
@@ -219,11 +224,11 @@ public class ScimUserEndpointsTests {
     @Test
     public void approvalsIsSyncedCorrectlyOnCreate() {
         am.addApproval(new Approval("vidya", "c1", "s1", 6000, Approval.ApprovalStatus.APPROVED));
-        ScimUser user = new ScimUser(null, "vidya", "Vidya", "V");
+        ScimUserInterface user = new ScimUser(null, "vidya", "Vidya", "V");
         user.addEmail("vidya@vmware.com");
         user.setApprovals(Collections.singleton(new Approval("vidya", "c1", "s1", 6000,
                         Approval.ApprovalStatus.APPROVED)));
-        ScimUser created = endpoints.createUser(user, new MockHttpServletResponse());
+        ScimUserInterface created = endpoints.createUser(user, new MockHttpServletResponse());
 
         assertNotNull(created.getApprovals());
         assertEquals(1, created.getApprovals().size());
@@ -234,17 +239,17 @@ public class ScimUserEndpointsTests {
         am.addApproval(new Approval("vidya", "c1", "s1", 6000, Approval.ApprovalStatus.APPROVED));
         am.addApproval(new Approval("vidya", "c1", "s2", 6000, Approval.ApprovalStatus.DENIED));
 
-        ScimUser user = new ScimUser(null, "vidya", "Vidya", "V");
+        ScimUserInterface user = new ScimUser(null, "vidya", "Vidya", "V");
         user.addEmail("vidya@vmware.com");
         user.setApprovals(Collections.singleton(new Approval("vidya", "c1", "s1", 6000,
                         Approval.ApprovalStatus.APPROVED)));
-        ScimUser created = endpoints.createUser(user, new MockHttpServletResponse());
+        ScimUserInterface created = endpoints.createUser(user, new MockHttpServletResponse());
         assertNotNull(created.getApprovals());
         assertEquals(2, created.getApprovals().size());
 
         created.setApprovals(Collections.singleton(new Approval("vidya", "c1", "s1", 6000,
                         Approval.ApprovalStatus.APPROVED)));
-        ScimUser updated = endpoints.updateUser(created, created.getId(), "*", new MockHttpServletResponse());
+        ScimUserInterface updated = endpoints.updateUser(created, created.getId(), "*", new MockHttpServletResponse());
         assertEquals(2, updated.getApprovals().size());
     }
 
@@ -260,9 +265,9 @@ public class ScimUserEndpointsTests {
 
     @Test
     public void userGetsADefaultPassword() {
-        ScimUser user = new ScimUser(null, "dave", "David", "Syer");
+        ScimUserInterface user = new ScimUser(null, "dave", "David", "Syer");
         user.addEmail("dsyer@vmware.com");
-        ScimUser created = endpoints.createUser(user, new MockHttpServletResponse());
+        ScimUserInterface created = endpoints.createUser(user, new MockHttpServletResponse());
         assertNull("A newly created user revealed its password", created.getPassword());
         JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
         String password = jdbcTemplate.queryForObject("select password from users where id=?", String.class,
@@ -273,7 +278,7 @@ public class ScimUserEndpointsTests {
 
     @Test
     public void userWithNoEmailNotAllowed() {
-        ScimUser user = new ScimUser(null, "dave", "David", "Syer");
+        ScimUserInterface user = new ScimUser(null, "dave", "David", "Syer");
         try {
             endpoints.createUser(user, new MockHttpServletResponse());
             fail("Expected InvalidScimResourceException");
@@ -317,10 +322,10 @@ public class ScimUserEndpointsTests {
 
     @Test
     public void userCanInitializePassword() {
-        ScimUser user = new ScimUser(null, "dave", "David", "Syer");
+        ScimUserInterface user = new ScimUser(null, "dave", "David", "Syer");
         user.addEmail("dsyer@vmware.com");
         ReflectionTestUtils.setField(user, "password", "foo");
-        ScimUser created = endpoints.createUser(user, new MockHttpServletResponse());
+        ScimUserInterface created = endpoints.createUser(user, new MockHttpServletResponse());
         assertNull("A newly created user revealed its password", created.getPassword());
         JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
         String password = jdbcTemplate.queryForObject("select password from users where id=?", String.class,
@@ -330,7 +335,7 @@ public class ScimUserEndpointsTests {
 
     @Test
     public void deleteIsAllowedWithCorrectVersionInEtag() {
-        ScimUser exGuy = new ScimUser(null, "deleteme", "Expendable", "Guy");
+        ScimUserInterface exGuy = new ScimUser(null, "deleteme", "Expendable", "Guy");
         exGuy.addEmail("exguy@imonlyheretobedeleted.com");
         exGuy = dao.createUser(exGuy, "exguyspassword");
         endpoints.deleteUser(exGuy.getId(), Integer.toString(exGuy.getMeta().getVersion()),
@@ -339,7 +344,7 @@ public class ScimUserEndpointsTests {
 
     @Test
     public void deleteIsAllowedWithQuotedEtag() {
-        ScimUser exGuy = new ScimUser(null, "deleteme", "Expendable", "Guy");
+        ScimUserInterface exGuy = new ScimUser(null, "deleteme", "Expendable", "Guy");
         exGuy.addEmail("exguy@imonlyheretobedeleted.com");
         exGuy = dao.createUser(exGuy, "exguyspassword");
         endpoints.deleteUser(exGuy.getId(), "\"*", new MockHttpServletResponse());
@@ -347,7 +352,7 @@ public class ScimUserEndpointsTests {
 
     @Test(expected = OptimisticLockingFailureException.class)
     public void deleteIsNotAllowedWithWrongVersionInEtag() {
-        ScimUser exGuy = new ScimUser(null, "deleteme2", "Expendable", "Guy");
+        ScimUserInterface exGuy = new ScimUser(null, "deleteme2", "Expendable", "Guy");
         exGuy.addEmail("exguy2@imonlyheretobedeleted.com");
         exGuy = dao.createUser(exGuy, "exguyspassword");
         endpoints.deleteUser(exGuy.getId(), Integer.toString(exGuy.getMeta().getVersion() + 1),
@@ -356,7 +361,7 @@ public class ScimUserEndpointsTests {
 
     @Test
     public void deleteIsAllowedWithNullEtag() {
-        ScimUser exGuy = new ScimUser(null, "deleteme3", "Expendable", "Guy");
+        ScimUserInterface exGuy = new ScimUser(null, "deleteme3", "Expendable", "Guy");
         exGuy.addEmail("exguy3@imonlyheretobedeleted.com");
         exGuy = dao.createUser(exGuy, "exguyspassword");
         endpoints.deleteUser(exGuy.getId(), null, new MockHttpServletResponse());
@@ -364,12 +369,12 @@ public class ScimUserEndpointsTests {
 
     @Test
     public void deleteUserUpdatesGroupMembership() {
-        ScimUser exGuy = new ScimUser(null, "deleteme3", "Expendable", "Guy");
+        ScimUserInterface exGuy = new ScimUser(null, "deleteme3", "Expendable", "Guy");
         exGuy.addEmail("exguy3@imonlyheretobedeleted.com");
         exGuy = dao.createUser(exGuy, "exguyspassword");
 
-        ScimGroup g = new ScimGroup("test1");
-        g.setMembers(Arrays.asList(new ScimGroupMember(exGuy.getId())));
+        ScimGroupInterface g = new ScimGroup("test1");
+        g.setMembers(Arrays.<ScimGroupMemberInterface>asList(new ScimGroupMember(exGuy.getId())));
         g = groupEndpoints.createGroup(g, new MockHttpServletResponse());
         validateGroupMembers(g, exGuy.getId(), true);
 
@@ -377,9 +382,9 @@ public class ScimUserEndpointsTests {
         validateGroupMembers(groupEndpoints.getGroup(g.getId(), new MockHttpServletResponse()), exGuy.getId(), false);
     }
 
-    private void validateGroupMembers(ScimGroup g, String mId, boolean expected) {
+    private void validateGroupMembers(ScimGroupInterface g, String mId, boolean expected) {
         boolean isMember = false;
-        for (ScimGroupMember m : g.getMembers()) {
+        for (ScimGroupMemberInterface m : g.getMembers()) {
             if (mId.equals(m.getMemberId())) {
                 isMember = true;
                 break;
@@ -496,7 +501,7 @@ public class ScimUserEndpointsTests {
 
     @Test
     public void testCreateIncludesETagHeader() throws Exception {
-        ScimUser user = new ScimUser(null, "dave", "David", "Syer");
+        ScimUserInterface user = new ScimUser(null, "dave", "David", "Syer");
         user.addEmail("dave@vmware.com");
         MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
         endpoints.createUser(user, httpServletResponse);
@@ -505,7 +510,7 @@ public class ScimUserEndpointsTests {
 
     @Test
     public void testGetIncludesETagHeader() throws Exception {
-        ScimUser user = new ScimUser(null, "dave", "David", "Syer");
+        ScimUserInterface user = new ScimUser(null, "dave", "David", "Syer");
         user.addEmail("dave@vmware.com");
         MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
         endpoints.getUser(joel.getId(), httpServletResponse);
@@ -514,7 +519,7 @@ public class ScimUserEndpointsTests {
 
     @Test
     public void testUpdateIncludesETagHeader() throws Exception {
-        ScimUser user = new ScimUser(null, "dave", "David", "Syer");
+        ScimUserInterface user = new ScimUser(null, "dave", "David", "Syer");
         user.addEmail("dave@vmware.com");
         MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
         endpoints.updateUser(joel, joel.getId(), "*", httpServletResponse);
@@ -523,7 +528,7 @@ public class ScimUserEndpointsTests {
 
     @Test
     public void testVerifyIncludesETagHeader() throws Exception {
-        ScimUser user = new ScimUser(null, "dave", "David", "Syer");
+        ScimUserInterface user = new ScimUser(null, "dave", "David", "Syer");
         user.addEmail("dave@vmware.com");
         MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
         endpoints.verifyUser("" + joel.getId(), "*", httpServletResponse);

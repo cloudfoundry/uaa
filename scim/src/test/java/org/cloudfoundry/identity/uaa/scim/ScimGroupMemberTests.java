@@ -17,22 +17,24 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
 
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupMemberInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimGroupMember;
 import org.junit.Test;
 
 public class ScimGroupMemberTests {
 
-    private static final ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER, null);
-    private static final ScimGroupMember m2 = new ScimGroupMember("m1", ScimGroupMember.Type.USER,
-                    ScimGroupMember.GROUP_ADMIN);
-    private static final ScimGroupMember m3 = new ScimGroupMember("m1", ScimGroupMember.Type.USER,
-                    ScimGroupMember.GROUP_MEMBER);
-    private static final ScimGroupMember m4 = new ScimGroupMember("m1", ScimGroupMember.Type.GROUP,
-                    ScimGroupMember.GROUP_MEMBER);
-    private static final ScimGroupMember m5 = new ScimGroupMember("m1", ScimGroupMember.Type.GROUP,
-                    ScimGroupMember.GROUP_ADMIN);
-    private static final ScimGroupMember m6 = new ScimGroupMember("m1", ScimGroupMember.Type.GROUP, null);
-    private static final ScimGroupMember m7 = new ScimGroupMember("m2", ScimGroupMember.Type.USER,
-                    ScimGroupMember.GROUP_MEMBER);
+    private static final ScimGroupMemberInterface m1 = new ScimGroupMember("m1", ScimGroupMemberInterface.Type.USER, null);
+    private static final ScimGroupMemberInterface m2 = new ScimGroupMember("m1", ScimGroupMemberInterface.Type.USER,
+                    ScimGroupMemberInterface.GROUP_ADMIN);
+    private static final ScimGroupMemberInterface m3 = new ScimGroupMember("m1", ScimGroupMemberInterface.Type.USER,
+                    ScimGroupMemberInterface.GROUP_MEMBER);
+    private static final ScimGroupMemberInterface m4 = new ScimGroupMember("m1", ScimGroupMemberInterface.Type.GROUP,
+                    ScimGroupMemberInterface.GROUP_MEMBER);
+    private static final ScimGroupMemberInterface m5 = new ScimGroupMember("m1", ScimGroupMemberInterface.Type.GROUP,
+                    ScimGroupMemberInterface.GROUP_ADMIN);
+    private static final ScimGroupMemberInterface m6 = new ScimGroupMember("m1", ScimGroupMemberInterface.Type.GROUP, null);
+    private static final ScimGroupMemberInterface m7 = new ScimGroupMember("m2", ScimGroupMemberInterface.Type.USER,
+                    ScimGroupMemberInterface.GROUP_MEMBER);
 
     @Test
     public void testHashCode() throws Exception {

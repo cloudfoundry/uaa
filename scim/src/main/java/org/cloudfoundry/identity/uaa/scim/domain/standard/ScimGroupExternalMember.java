@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -10,12 +10,13 @@
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-package org.cloudfoundry.identity.uaa.scim;
+package org.cloudfoundry.identity.uaa.scim.domain.standard;
 
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupExternalMemberInterface;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
-public class ScimGroupExternalMember extends ScimCore {
+public class ScimGroupExternalMember extends ScimCore implements ScimGroupExternalMemberInterface {
 
     private String groupId;
 
@@ -26,18 +27,22 @@ public class ScimGroupExternalMember extends ScimCore {
         this.externalGroup = externalGroup;
     }
 
+    @Override
     public String getGroupId() {
         return groupId;
     }
 
+    @Override
     public void setGroupId(String groupId) {
         this.groupId = groupId;
     }
 
+    @Override
     public String getExternalGroup() {
         return externalGroup;
     }
 
+    @Override
     public void setExternalGroup(String externalGroup) {
         this.externalGroup = externalGroup;
     }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -24,7 +24,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimName;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserGroupInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimUserGroup;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -92,9 +96,9 @@ public class ScimUserEndpointsIntegrationTests {
     }
 
     private ResponseEntity<ScimUser> createUser(String username, String firstName, String lastName, String email) {
-        ScimUser user = new ScimUser();
+        ScimUserInterface user = new ScimUser();
         user.setUserName(username);
-        user.setName(new ScimUser.Name(firstName, lastName));
+        user.setName(new ScimName(firstName, lastName));
         user.addEmail(email);
 
         return client.postForEntity(serverRunning.getUrl(userEndpoint), user, ScimUser.class);
@@ -102,9 +106,9 @@ public class ScimUserEndpointsIntegrationTests {
 
     private ResponseEntity<ScimUser> createUser(String username, String firstName, String lastName,
                     String email, boolean verified) {
-        ScimUser user = new ScimUser();
+        ScimUserInterface user = new ScimUser();
         user.setUserName(username);
-        user.setName(new ScimUser.Name(firstName, lastName));
+        user.setName(new ScimName(firstName, lastName));
         user.addEmail(email);
         user.setVerified(verified);
 
@@ -174,10 +178,10 @@ public class ScimUserEndpointsIntegrationTests {
         ScimUser joe2 = client.getForObject(serverRunning.getUrl(userEndpoint + "/{id}"), ScimUser.class, joe1.getId());
         assertEquals(joe1.getId(), joe2.getId());
         assertFalse(joe2.isVerified());
-        ScimUser joe3 = client.getForObject(serverRunning.getUrl(userEndpoint + "/{id}/verify"), ScimUser.class,
+        ScimUserInterface joe3 = client.getForObject(serverRunning.getUrl(userEndpoint + "/{id}/verify"), ScimUser.class,
                         joe1.getId());
         assertTrue(joe3.isVerified());
-        ScimUser joe4 = client.getForObject(serverRunning.getUrl(userEndpoint + "/{id}"), ScimUser.class, joe1.getId());
+        ScimUserInterface joe4 = client.getForObject(serverRunning.getUrl(userEndpoint + "/{id}"), ScimUser.class, joe1.getId());
         assertTrue(joe4.isVerified());
     }
 
@@ -202,9 +206,9 @@ public class ScimUserEndpointsIntegrationTests {
 
     @Test
     public void createUserWithNoEmailFails() throws Exception {
-        ScimUser user = new ScimUser();
+        ScimUserInterface user = new ScimUser();
         user.setUserName("dave");
-        user.setName(new ScimUser.Name("Dave", "Syer"));
+        user.setName(new ScimName("Dave", "Syer"));
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = client.postForEntity(serverRunning.getUrl(userEndpoint), user, Map.class);
@@ -239,7 +243,7 @@ public class ScimUserEndpointsIntegrationTests {
         ScimUser joe = response.getBody();
         assertEquals(JOE, joe.getUserName());
 
-        joe.setName(new ScimUser.Name("Joe", "Bloggs"));
+        joe.setName(new ScimName("Joe", "Bloggs"));
 
         HttpHeaders headers = new HttpHeaders();
         headers.add("If-Match", "\"" + joe.getVersion() + "\"");
@@ -307,7 +311,7 @@ public class ScimUserEndpointsIntegrationTests {
         ResponseEntity<ScimUser> response = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}",
                         HttpMethod.PUT,
                         new HttpEntity<Map>(map, headers), ScimUser.class, joe.getId());
-        ScimUser joe1 = response.getBody();
+        ScimUserInterface joe1 = response.getBody();
         assertEquals(JOE + "0", joe1.getUserName());
     }
 
@@ -339,7 +343,7 @@ public class ScimUserEndpointsIntegrationTests {
         assertEquals(JOE, joe.getUserName());
         assertEquals(NUM_DEFAULT_GROUPS_ON_STARTUP, joe.getGroups().size());
 
-        joe.setGroups(Arrays.asList(new ScimUser.Group(UUID.randomUUID().toString(), "uaa.admin")));
+        joe.setGroups(Arrays.<ScimUserGroupInterface> asList(new ScimUserGroup(UUID.randomUUID().toString(), "uaa.admin")));
 
         HttpHeaders headers = new HttpHeaders();
         headers.add("If-Match", "\"" + joe.getVersion() + "\"");
@@ -358,9 +362,9 @@ public class ScimUserEndpointsIntegrationTests {
     // http://localhost:8080/uaa/User
     @Test
     public void createUserTwiceFails() throws Exception {
-        ScimUser user = new ScimUser();
+        ScimUserInterface user = new ScimUser();
         user.setUserName(JOEL);
-        user.setName(new ScimUser.Name("Joel", "D'sa"));
+        user.setName(new ScimName("Joel", "D'sa"));
         user.addEmail("joel@blah.com");
 
         @SuppressWarnings("rawtypes")
@@ -383,9 +387,9 @@ public class ScimUserEndpointsIntegrationTests {
         String userName = JOEL;
         String userNameDifferenceCase = userName.toUpperCase();
 
-        ScimUser user = new ScimUser();
+        ScimUserInterface user = new ScimUser();
         user.setUserName(userName);
-        user.setName(new ScimUser.Name("Joel", "D'sa"));
+        user.setName(new ScimName("Joel", "D'sa"));
         user.addEmail("joel@blah.com");
 
         @SuppressWarnings("rawtypes")
@@ -394,9 +398,9 @@ public class ScimUserEndpointsIntegrationTests {
         Map<String, String> joel = response.getBody();
         assertEquals(JOEL, joel.get("userName"));
 
-        ScimUser userDifferentCase = new ScimUser();
+        ScimUserInterface userDifferentCase = new ScimUser();
         userDifferentCase.setUserName(userNameDifferenceCase);
-        userDifferentCase.setName(new ScimUser.Name("Joel", "D'sa"));
+        userDifferentCase.setName(new ScimName("Joel", "D'sa"));
         userDifferentCase.addEmail("joel@blah.com");
 
         response = client.postForEntity(serverRunning.getUrl(userEndpoint), userDifferentCase, Map.class);

@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -20,10 +20,10 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authorization.ExternalGroupMappingAuthorizationManager;
-import org.cloudfoundry.identity.uaa.scim.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.scim.dao.common.ScimGroupExternalMembershipManager;
+import org.cloudfoundry.identity.uaa.scim.dao.common.ScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupExternalMemberInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupInterface;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion;
 import org.springframework.util.StringUtils;
@@ -64,7 +64,7 @@ public class LdapGroupMappingAuthorizationManager implements ExternalGroupMappin
                     externalGroups.add(incomingExternalGroupMap.get(EXTERNAL_GROUP_KEY + i));
                 }
 
-                Set<ScimGroupExternalMember> externalGroupMaps = new LinkedHashSet<ScimGroupExternalMember>();
+                Set<ScimGroupExternalMemberInterface> externalGroupMaps = new LinkedHashSet<ScimGroupExternalMemberInterface>();
                 for (String externalGroup : externalGroups) {
                     // Find UAA groups mapped to external groups
                     externalGroupMaps.addAll(externalMembershipManager
@@ -72,8 +72,8 @@ public class LdapGroupMappingAuthorizationManager implements ExternalGroupMappin
                 }
 
                 // Add matching authorities to the token
-                for (ScimGroupExternalMember externalGroupMap : externalGroupMaps) {
-                    ScimGroup scimGroup = scimGroupProvisioning.retrieve(externalGroupMap.getGroupId());
+                for (ScimGroupExternalMemberInterface externalGroupMap : externalGroupMaps) {
+                    ScimGroupInterface scimGroup = scimGroupProvisioning.retrieve(externalGroupMap.getGroupId());
                     authorityList.add(scimGroup.getDisplayName());
                 }
             }

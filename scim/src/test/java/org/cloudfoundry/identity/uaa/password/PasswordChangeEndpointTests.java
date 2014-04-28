@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -18,9 +18,10 @@ import static org.mockito.Mockito.when;
 import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.rest.jdbc.DefaultLimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.dao.standard.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
-import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
@@ -39,9 +40,9 @@ import com.googlecode.flyway.core.Flyway;
 
 public class PasswordChangeEndpointTests {
 
-    private ScimUser joel;
+    private ScimUserInterface joel;
 
-    private ScimUser dale;
+    private ScimUserInterface dale;
 
     private PasswordChangeEndpoint endpoints;
 
@@ -99,7 +100,7 @@ public class PasswordChangeEndpointTests {
         }
     }
 
-    private SecurityContextAccessor mockSecurityContext(ScimUser user) {
+    private SecurityContextAccessor mockSecurityContext(ScimUserInterface user) {
         SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
         String id = user.getId();
         when(sca.getUserId()).thenReturn(id);

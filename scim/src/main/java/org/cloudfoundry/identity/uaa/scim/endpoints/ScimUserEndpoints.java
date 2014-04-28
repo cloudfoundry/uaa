@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -36,11 +36,13 @@ import org.cloudfoundry.identity.uaa.rest.AttributeNameMapper;
 import org.cloudfoundry.identity.uaa.rest.SearchResults;
 import org.cloudfoundry.identity.uaa.rest.SearchResultsFactory;
 import org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper;
-import org.cloudfoundry.identity.uaa.scim.ScimCore;
-import org.cloudfoundry.identity.uaa.scim.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.dao.common.ScimGroupMembershipManager;
+import org.cloudfoundry.identity.uaa.scim.dao.common.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimCoreInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserGroupInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
@@ -76,10 +78,10 @@ import org.springframework.web.servlet.View;
  * Simple Cloud Identity Management (SCIM)
  * group. Exposes basic CRUD and query features for user accounts in a backend
  * database.
- * 
+ *
  * @author Luke Taylor
  * @author Dave Syer
- * 
+ *
  * @see <a href="http://www.simplecloud.info">SCIM specs</a>
  */
 @Controller
@@ -119,7 +121,7 @@ public class ScimUserEndpoints implements InitializingBean {
 
     /**
      * Map from exception type to Http status.
-     * 
+     *
      * @param statuses the statuses to set
      */
     public void setStatuses(Map<Class<? extends Exception>, HttpStatus> statuses) {
@@ -154,25 +156,25 @@ public class ScimUserEndpoints implements InitializingBean {
 
     @RequestMapping(value = "/Users/{userId}", method = RequestMethod.GET)
     @ResponseBody
-    public ScimUser getUser(@PathVariable String userId, HttpServletResponse httpServletResponse) {
-        ScimUser scimUser = syncApprovals(syncGroups(dao.retrieve(userId)));
-        addETagHeader(httpServletResponse, scimUser);
-        return scimUser;
+    public ScimUserInterface getUser(@PathVariable String userId, HttpServletResponse httpServletResponse) {
+        ScimUserInterface ScimUserInterface = syncApprovals(syncGroups(dao.retrieve(userId)));
+        addETagHeader(httpServletResponse, ScimUserInterface);
+        return ScimUserInterface;
     }
 
     @RequestMapping(value = "/Users", method = RequestMethod.POST)
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
-    public ScimUser createUser(@RequestBody ScimUser user, HttpServletResponse httpServletResponse) {
-        ScimUser scimUser = syncApprovals(syncGroups(dao.createUser(user,
+    public ScimUserInterface createUser(@RequestBody ScimUserInterface user, HttpServletResponse httpServletResponse) {
+        ScimUserInterface ScimUserInterface = syncApprovals(syncGroups(dao.createUser(user,
                         user.getPassword() == null ? generatePassword() : user.getPassword())));
-        addETagHeader(httpServletResponse, scimUser);
-        return scimUser;
+        addETagHeader(httpServletResponse, ScimUserInterface);
+        return ScimUserInterface;
     }
 
     @RequestMapping(value = "/Users/{userId}", method = RequestMethod.PUT)
     @ResponseBody
-    public ScimUser updateUser(@RequestBody ScimUser user, @PathVariable String userId,
+    public ScimUserInterface updateUser(@RequestBody ScimUserInterface user, @PathVariable String userId,
                     @RequestHeader(value = "If-Match", required = false, defaultValue = "NaN") String etag,
                     HttpServletResponse httpServletResponse) {
         if (etag.equals("NaN")) {
@@ -181,11 +183,11 @@ public class ScimUserEndpoints implements InitializingBean {
         int version = getVersion(userId, etag);
         user.setVersion(version);
         try {
-            ScimUser updated = dao.update(userId, user);
+            ScimUserInterface updated = dao.update(userId, user);
             scimUpdates.incrementAndGet();
-            ScimUser scimUser = syncApprovals(syncGroups(updated));
-            addETagHeader(httpServletResponse, scimUser);
-            return scimUser;
+            ScimUserInterface ScimUserInterface = syncApprovals(syncGroups(updated));
+            addETagHeader(httpServletResponse, ScimUserInterface);
+            return ScimUserInterface;
         } catch (OptimisticLockingFailureException e) {
             throw new ScimResourceConflictException(e.getMessage());
         }
@@ -193,11 +195,11 @@ public class ScimUserEndpoints implements InitializingBean {
 
     @RequestMapping(value = "/Users/{userId}", method = RequestMethod.DELETE)
     @ResponseBody
-    public ScimUser deleteUser(@PathVariable String userId,
+    public ScimUserInterface deleteUser(@PathVariable String userId,
                     @RequestHeader(value = "If-Match", required = false) String etag,
                     HttpServletResponse httpServletResponse) {
         int version = etag == null ? -1 : getVersion(userId, etag);
-        ScimUser user = getUser(userId, httpServletResponse);
+        ScimUserInterface user = getUser(userId, httpServletResponse);
         dao.delete(userId, version);
         membershipManager.removeMembersByMemberId(userId);
         scimDeletes.incrementAndGet();
@@ -206,11 +208,11 @@ public class ScimUserEndpoints implements InitializingBean {
 
     @RequestMapping(value = "/Users/{userId}/verify", method = RequestMethod.GET)
     @ResponseBody
-    public ScimUser verifyUser(@PathVariable String userId,
+    public ScimUserInterface verifyUser(@PathVariable String userId,
                     @RequestHeader(value = "If-Match", required = false) String etag,
                     HttpServletResponse httpServletResponse) {
         int version = etag == null ? -1 : getVersion(userId, etag);
-        ScimUser user = dao.verifyUser(userId, version);
+        ScimUserInterface user = dao.verifyUser(userId, version);
         scimUpdates.incrementAndGet();
         addETagHeader(httpServletResponse, user);
         return user;
@@ -249,11 +251,11 @@ public class ScimUserEndpoints implements InitializingBean {
             startIndex = 1;
         }
 
-        List<ScimUser> input = new ArrayList<ScimUser>();
-        List<ScimUser> result;
+        List<ScimUserInterface> input = new ArrayList<ScimUserInterface>();
+        List<ScimUserInterface> result;
         try {
             result = dao.query(filter, sortBy, sortOrder.equals("ascending"));
-            for (ScimUser user : UaaPagingUtils.subList(result, startIndex, count)) {
+            for (ScimUserInterface user : UaaPagingUtils.subList(result, startIndex, count)) {
                 syncApprovals(syncGroups(user));
                 input.add(user);
             }
@@ -263,7 +265,7 @@ public class ScimUserEndpoints implements InitializingBean {
 
         if (!StringUtils.hasLength(attributesCommaSeparated)) {
             // Return all user data
-            return new SearchResults<ScimUser>(Arrays.asList(ScimCore.SCHEMAS), input, startIndex, count, result.size());
+            return new SearchResults<ScimUserInterface>(Arrays.asList(ScimCoreInterface.SCHEMAS), input, startIndex, count, result.size());
         }
 
         AttributeNameMapper mapper = new SimpleAttributeNameMapper(Collections.<String, String> singletonMap(
@@ -271,7 +273,7 @@ public class ScimUserEndpoints implements InitializingBean {
         String[] attributes = attributesCommaSeparated.split(",");
         try {
             return SearchResultsFactory.buildSearchResultFrom(input, startIndex, count, result.size(), attributes,
-                            mapper, Arrays.asList(ScimCore.SCHEMAS));
+                            mapper, Arrays.asList(ScimCoreInterface.SCHEMAS));
         } catch (SpelParseException e) {
             throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST);
         } catch (SpelEvaluationException e) {
@@ -279,27 +281,31 @@ public class ScimUserEndpoints implements InitializingBean {
         }
     }
 
-    private ScimUser syncGroups(ScimUser user) {
+    private ScimUserInterface syncGroups(ScimUserInterface user) {
         if (user == null) {
             return user;
         }
 
-        Set<ScimGroup> directGroups = membershipManager.getGroupsWithMember(user.getId(), false);
-        Set<ScimGroup> indirectGroups = membershipManager.getGroupsWithMember(user.getId(), true);
+        Set<ScimGroupInterface> directGroups = membershipManager.getGroupsWithMember(user.getId(), false);
+        Set<ScimGroupInterface> indirectGroups = membershipManager.getGroupsWithMember(user.getId(), true);
         indirectGroups.removeAll(directGroups);
-        Set<ScimUser.Group> groups = new HashSet<ScimUser.Group>();
-        for (ScimGroup group : directGroups) {
-            groups.add(new ScimUser.Group(group.getId(), group.getDisplayName(), ScimUser.Group.Type.DIRECT));
+        Set<ScimUserGroupInterface> groups = new HashSet<ScimUserGroupInterface>();
+        for (ScimGroupInterface group : directGroups) {
+            ScimUserGroupInterface userGroup = group.getUserGroup();
+            userGroup.setType(ScimUserGroupInterface.Type.DIRECT);
+            groups.add(userGroup);
         }
-        for (ScimGroup group : indirectGroups) {
-            groups.add(new ScimUser.Group(group.getId(), group.getDisplayName(), ScimUser.Group.Type.INDIRECT));
+        for (ScimGroupInterface group : indirectGroups) {
+            ScimUserGroupInterface userGroup = group.getUserGroup();
+            userGroup.setType(ScimUserGroupInterface.Type.INDIRECT);
+            groups.add(userGroup);
         }
 
         user.setGroups(groups);
         return user;
     }
 
-    private ScimUser syncApprovals(ScimUser user) {
+    private ScimUserInterface syncApprovals(ScimUserInterface user) {
         if (user == null || approvalStore == null) {
             return user;
         }
@@ -371,7 +377,7 @@ public class ScimUserEndpoints implements InitializingBean {
         Assert.notNull(approvalStore, "ApprovalStore must be set");
     }
 
-    private void addETagHeader(HttpServletResponse httpServletResponse, ScimUser scimUser) {
-        httpServletResponse.setHeader(E_TAG, "\"" + scimUser.getVersion() + "\"");
+    private void addETagHeader(HttpServletResponse httpServletResponse, ScimUserInterface ScimUserInterface) {
+        httpServletResponse.setHeader(E_TAG, "\"" + ScimUserInterface.getVersion() + "\"");
     }
 }

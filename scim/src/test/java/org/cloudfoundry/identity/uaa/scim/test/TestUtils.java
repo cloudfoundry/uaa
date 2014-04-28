@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -19,7 +19,8 @@ import java.util.Arrays;
 
 import javax.sql.DataSource;
 
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimEmail;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestProfileEnvironment;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.ClassPathResource;
@@ -31,10 +32,10 @@ import org.springframework.util.ClassUtils;
 
 /**
  * Common methods for DB manipulation and so on.
- * 
+ *
  * @author Luke Taylor
  * @author Dave Syer
- * 
+ *
  */
 public class TestUtils {
 
@@ -86,7 +87,7 @@ public class TestUtils {
 
     public static ScimUser scimUserInstance(String email) {
         ScimUser user = new ScimUser("", email, email, email);
-        ScimUser.Email em = new ScimUser.Email();
+        ScimEmail em = new ScimEmail();
         em.setValue(email);
         user.setEmails(Arrays.asList(em));
         return user;

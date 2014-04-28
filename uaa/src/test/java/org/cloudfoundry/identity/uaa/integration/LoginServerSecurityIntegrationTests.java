@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -20,7 +20,9 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimName;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Assume;
@@ -48,7 +50,7 @@ import org.springframework.web.client.RestTemplate;
 /**
  * Integration test to verify that the Login Server authentication channel is
  * open and working.
- * 
+ *
  * @author Dave Syer
  */
 public class LoginServerSecurityIntegrationTests {
@@ -94,9 +96,9 @@ public class LoginServerSecurityIntegrationTests {
 
         RestOperations client = serverRunning.getRestTemplate();
 
-        ScimUser user = new ScimUser();
+        ScimUserInterface user = new ScimUser();
         user.setUserName(JOE);
-        user.setName(new ScimUser.Name("Joe", "User"));
+        user.setName(new ScimName("Joe", "User"));
         user.addEmail("joe@blah.com");
 
         ResponseEntity<ScimUser> newuser = client.postForEntity(serverRunning.getUrl(userEndpoint), user,

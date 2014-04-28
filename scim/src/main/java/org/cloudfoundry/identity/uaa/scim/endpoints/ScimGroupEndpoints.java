@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -27,11 +27,12 @@ import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReport;
 import org.cloudfoundry.identity.uaa.rest.SearchResults;
 import org.cloudfoundry.identity.uaa.rest.SearchResultsFactory;
-import org.cloudfoundry.identity.uaa.scim.ScimCore;
-import org.cloudfoundry.identity.uaa.scim.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.scim.dao.common.ScimGroupMembershipManager;
+import org.cloudfoundry.identity.uaa.scim.dao.common.ScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimCoreInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupMemberInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
@@ -93,24 +94,24 @@ public class ScimGroupEndpoints {
         this.membershipManager = membershipManager;
     }
 
-    private boolean isReaderMember(ScimGroup group, String userId) {
+    private boolean isReaderMember(ScimGroupInterface group, String userId) {
         if (null == userId) {
             return true;
         }
-        for (ScimGroupMember member : group.getMembers()) {
-            if (member.getMemberId().equals(userId) && member.getRoles().contains(ScimGroupMember.Role.READER)) {
+        for (ScimGroupMemberInterface member : group.getMembers()) {
+            if (member.getMemberId().equals(userId) && member.getRoles().contains(ScimGroupMemberInterface.Role.READER)) {
                 return true;
             }
         }
         return false;
     }
 
-    private List<ScimGroup> filterForCurrentUser(List<ScimGroup> input, int startIndex, int count, String userId) {
-        List<ScimGroup> response = new ArrayList<ScimGroup>();
+    private List<ScimGroupInterface> filterForCurrentUser(List<ScimGroupInterface> input, int startIndex, int count, String userId) {
+        List<ScimGroupInterface> response = new ArrayList<ScimGroupInterface>();
         int expectedResponseSize = Math.min(count, input.size());
         boolean needMore = response.size() < expectedResponseSize;
         while (needMore && startIndex <= input.size()) {
-            for (ScimGroup group : UaaPagingUtils.subList(input, startIndex, count)) {
+            for (ScimGroupInterface group : UaaPagingUtils.subList(input, startIndex, count)) {
                 group.setMembers(membershipManager.getMembers(group.getId()));
                 if (isReaderMember(group, userId)) {
                     response.add(group);
@@ -135,26 +136,26 @@ public class ScimGroupEndpoints {
                     @RequestParam(required = false, defaultValue = "1") int startIndex,
                     @RequestParam(required = false, defaultValue = "100") int count) {
 
-        List<ScimGroup> result;
+        List<ScimGroupInterface> result;
         try {
             result = dao.query(filter, sortBy, "ascending".equalsIgnoreCase(sortOrder));
         } catch (IllegalArgumentException e) {
             throw new ScimException("Invalid filter expression: [" + filter + "]", HttpStatus.BAD_REQUEST);
         }
 
-        List<ScimGroup> input = securityContextAccessor.isUser() ?
+        List<ScimGroupInterface> input = securityContextAccessor.isUser() ?
                         filterForCurrentUser(result, startIndex, count, securityContextAccessor.getUserId())
                         : filterForCurrentUser(result, startIndex, count, null);
 
         if (!StringUtils.hasLength(attributesCommaSeparated)) {
-            return new SearchResults<ScimGroup>(Arrays.asList(ScimCore.SCHEMAS), input, startIndex, count,
+            return new SearchResults<ScimGroupInterface>(Arrays.asList(ScimCoreInterface.SCHEMAS), input, startIndex, count,
                             result.size());
         }
 
         String[] attributes = attributesCommaSeparated.split(",");
         try {
             return SearchResultsFactory.buildSearchResultFrom(input, startIndex, count, result.size(), attributes,
-                            Arrays.asList(ScimCore.SCHEMAS));
+                            Arrays.asList(ScimCoreInterface.SCHEMAS));
         } catch (SpelParseException e) {
             throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST);
         } catch (SpelEvaluationException e) {
@@ -164,9 +165,9 @@ public class ScimGroupEndpoints {
 
     @RequestMapping(value = { "/Groups/{groupId}" }, method = RequestMethod.GET)
     @ResponseBody
-    public ScimGroup getGroup(@PathVariable String groupId, HttpServletResponse httpServletResponse) {
+    public ScimGroupInterface getGroup(@PathVariable String groupId, HttpServletResponse httpServletResponse) {
         logger.debug("retrieving group with id: " + groupId);
-        ScimGroup group = dao.retrieve(groupId);
+        ScimGroupInterface group = dao.retrieve(groupId);
         group.setMembers(membershipManager.getMembers(groupId));
         addETagHeader(httpServletResponse, group);
         return group;
@@ -175,10 +176,10 @@ public class ScimGroupEndpoints {
     @RequestMapping(value = { "/Groups" }, method = RequestMethod.POST)
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
-    public ScimGroup createGroup(@RequestBody ScimGroup group, HttpServletResponse httpServletResponse) {
-        ScimGroup created = dao.create(group);
+    public ScimGroupInterface createGroup(@RequestBody ScimGroupInterface group, HttpServletResponse httpServletResponse) {
+        ScimGroupInterface created = dao.create(group);
         if (group.getMembers() != null) {
-            for (ScimGroupMember member : group.getMembers()) {
+            for (ScimGroupMemberInterface member : group.getMembers()) {
                 try {
                     membershipManager.addMember(created.getId(), member);
                 } catch (ScimException ex) {
@@ -196,7 +197,7 @@ public class ScimGroupEndpoints {
 
     @RequestMapping(value = { "/Groups/{groupId}" }, method = RequestMethod.PUT)
     @ResponseBody
-    public ScimGroup updateGroup(@RequestBody ScimGroup group, @PathVariable String groupId,
+    public ScimGroupInterface updateGroup(@RequestBody ScimGroupInterface group, @PathVariable String groupId,
                     @RequestHeader(value = "If-Match", required = false) String etag,
                     HttpServletResponse httpServletResponse) {
         if (etag == null) {
@@ -206,11 +207,15 @@ public class ScimGroupEndpoints {
         int version = getVersion(groupId, etag);
         group.setVersion(version);
 
-        ScimGroup existing = getGroup(groupId, httpServletResponse);
+        ScimGroupInterface existing = getGroup(groupId, httpServletResponse);
         try {
-            ScimGroup updated = dao.update(groupId, group);
+            ScimGroupInterface updated = dao.update(groupId, group);
             if (group.getMembers() != null && group.getMembers().size() > 0) {
-                membershipManager.updateOrAddMembers(updated.getId(), group.getMembers());
+                List<ScimGroupMemberInterface> list = new ArrayList<ScimGroupMemberInterface>();
+                for (ScimGroupMemberInterface item : group.getMembers()) {
+                    list.add(item);
+                }
+                membershipManager.updateOrAddMembers(updated.getId(),list);
             } else {
                 membershipManager.removeMembersByGroupId(updated.getId());
             }
@@ -250,10 +255,10 @@ public class ScimGroupEndpoints {
 
     @RequestMapping(value = { "/Groups/{groupId}" }, method = RequestMethod.DELETE)
     @ResponseBody
-    public ScimGroup deleteGroup(@PathVariable String groupId,
+    public ScimGroupInterface deleteGroup(@PathVariable String groupId,
                     @RequestHeader(value = "If-Match", required = false, defaultValue = "*") String etag,
                     HttpServletResponse httpServletResponse) {
-        ScimGroup group = getGroup(groupId, httpServletResponse);
+        ScimGroupInterface group = getGroup(groupId, httpServletResponse);
         logger.debug("deleting group: " + group);
         try {
             membershipManager.removeMembersByGroupId(groupId);
@@ -306,7 +311,7 @@ public class ScimGroupEndpoints {
         }
     }
 
-    private void addETagHeader(HttpServletResponse httpServletResponse, ScimGroup scimGroup) {
+    private void addETagHeader(HttpServletResponse httpServletResponse, ScimGroupInterface scimGroup) {
         httpServletResponse.setHeader(E_TAG, "\"" + scimGroup.getVersion() + "\"");
     }
 }

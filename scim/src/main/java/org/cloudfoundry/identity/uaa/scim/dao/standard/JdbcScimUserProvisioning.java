@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -10,7 +10,7 @@
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-package org.cloudfoundry.identity.uaa.scim.jdbc;
+package org.cloudfoundry.identity.uaa.scim.dao.standard;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -26,10 +26,12 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.AbstractQueryable;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
-import org.cloudfoundry.identity.uaa.scim.ScimMeta;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUser.Name;
-import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.dao.common.ScimSearchQueryConverter;
+import org.cloudfoundry.identity.uaa.scim.dao.common.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimMeta;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimName;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
@@ -53,7 +55,7 @@ import org.springframework.util.Assert;
  * @author Luke Taylor
  * @author Dave Syer
  */
-public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implements ScimUserProvisioning {
+public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUserInterface> implements ScimUserProvisioning {
 
     private final Log logger = LogFactory.getLog(getClass());
 
@@ -91,7 +93,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
 
     private boolean deactivateOnDelete = true;
 
-    private final RowMapper<ScimUser> mapper = new ScimUserRowMapper();
+    private final RowMapper<ScimUserInterface> mapper = new ScimUserRowMapper();
 
     private Pattern usernamePattern = Pattern.compile("[a-zA-Z0-9+\\-_.@]+");
 
@@ -103,9 +105,9 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
     }
 
     @Override
-    public ScimUser retrieve(String id) {
+    public ScimUserInterface retrieve(String id) {
         try {
-            ScimUser u = jdbcTemplate.queryForObject(USER_BY_ID_QUERY, mapper, id);
+            ScimUserInterface u = jdbcTemplate.queryForObject(USER_BY_ID_QUERY, mapper, id);
             return u;
         } catch (EmptyResultDataAccessException e) {
             throw new ScimResourceNotFoundException("User " + id + " does not exist");
@@ -118,12 +120,12 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
     }
 
     @Override
-    public List<ScimUser> retrieveAll() {
+    public List<ScimUserInterface> retrieveAll() {
         return query("id pr", "created", true);
     }
 
     @Override
-    public List<ScimUser> query(String filter, String sortBy, boolean ascending) {
+    public List<ScimUserInterface> query(String filter, String sortBy, boolean ascending) {
         if (unquotedEq.matcher(filter).matches()) {
             throw new IllegalArgumentException("Eq argument in filter must be quoted");
         }
@@ -131,7 +133,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
     }
 
     @Override
-    public ScimUser create(final ScimUser user) {
+    public ScimUserInterface create(final ScimUserInterface user) {
         validate(user);
         logger.debug("Creating new user: " + user.getUserName());
 
@@ -170,14 +172,14 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
     }
 
     @Override
-    public ScimUser createUser(ScimUser user, final String password) throws InvalidPasswordException,
+    public ScimUserInterface createUser(ScimUserInterface user, final String password) throws InvalidPasswordException,
                     InvalidScimResourceException {
         passwordValidator.validate(password, user);
         user.setPassword(passwordEncoder.encode(password));
         return create(user);
     }
 
-    private void validate(final ScimUser user) throws InvalidScimResourceException {
+    private void validate(final ScimUserInterface user) throws InvalidScimResourceException {
         if (!usernamePattern.matcher(user.getUserName()).matches()) {
             throw new InvalidScimResourceException("Username must match pattern: " + usernamePattern.pattern());
         }
@@ -186,7 +188,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
         }
     }
 
-    private String extractPhoneNumber(final ScimUser user) {
+    private String extractPhoneNumber(final ScimUserInterface user) {
         String phoneNumber = null;
         if (user.getPhoneNumbers() != null && !user.getPhoneNumbers().isEmpty()) {
             phoneNumber = user.getPhoneNumbers().get(0).getValue();
@@ -195,7 +197,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
     }
 
     @Override
-    public ScimUser update(final String id, final ScimUser user) throws InvalidScimResourceException {
+    public ScimUserInterface update(final String id, final ScimUserInterface user) throws InvalidScimResourceException {
         validate(user);
         logger.debug("Updating user " + user.getUserName());
 
@@ -216,7 +218,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
 
             }
         });
-        ScimUser result = retrieve(id);
+        ScimUserInterface result = retrieve(id);
         if (updated == 0) {
             throw new OptimisticLockingFailureException(String.format(
                             "Attempt to update a user (%s) with wrong version: expected=%d but found=%d", id,
@@ -269,12 +271,12 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
     }
 
     @Override
-    public ScimUser delete(String id, int version) {
-        ScimUser user = retrieve(id);
+    public ScimUserInterface delete(String id, int version) {
+        ScimUserInterface user = retrieve(id);
         return deactivateOnDelete ? deactivateUser(user, version) : deleteUser(user, version);
     }
 
-    private ScimUser deactivateUser(ScimUser user, int version) {
+    private ScimUserInterface deactivateUser(ScimUserInterface user, int version) {
         logger.debug("Deactivating user: " + user.getId());
         int updated;
         if (version < 0) {
@@ -297,7 +299,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
     }
 
     @Override
-    public ScimUser verifyUser(String id, int version) throws ScimResourceNotFoundException,
+    public ScimUserInterface verifyUser(String id, int version) throws ScimResourceNotFoundException,
                     InvalidScimResourceException {
         logger.debug("Verifying user: " + id);
         int updated;
@@ -308,7 +310,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
         else {
             updated = jdbcTemplate.update(VERIFY_USER_SQL + " and version=?", true, id, version);
         }
-        ScimUser user = retrieve(id);
+        ScimUserInterface user = retrieve(id);
         if (updated == 0) {
             throw new OptimisticLockingFailureException(String.format(
                             "Attempt to update a user (%s) with wrong version: expected=%d but found=%d", user.getId(),
@@ -320,7 +322,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
         return user;
     }
 
-    private ScimUser deleteUser(ScimUser user, int version) {
+    private ScimUserInterface deleteUser(ScimUserInterface user, int version) {
         logger.debug("Deleting user: " + user.getId());
         int updated;
 
@@ -349,7 +351,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
 
     /**
      * The encoder used to hash passwords before storing them in the database.
-     * 
+     *
      * Defaults to a {@link BCryptPasswordEncoder}.
      */
     public void setPasswordEncoder(PasswordEncoder passwordEncoder) {
@@ -365,9 +367,9 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
         this.usernamePattern = Pattern.compile(usernamePattern);
     }
 
-    private static final class ScimUserRowMapper implements RowMapper<ScimUser> {
+    private static final class ScimUserRowMapper implements RowMapper<ScimUserInterface> {
         @Override
-        public ScimUser mapRow(ResultSet rs, int rowNum) throws SQLException {
+        public ScimUserInterface mapRow(ResultSet rs, int rowNum) throws SQLException {
             String id = rs.getString(1);
             int version = rs.getInt(2);
             Date created = rs.getTimestamp(3);
@@ -379,7 +381,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
             boolean active = rs.getBoolean(9);
             String phoneNumber = rs.getString(10);
             boolean verified = rs.getBoolean(11);
-            ScimUser user = new ScimUser();
+            ScimUserInterface user = new ScimUser();
             user.setId(id);
             ScimMeta meta = new ScimMeta();
             meta.setVersion(version);
@@ -391,7 +393,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
             if (phoneNumber != null) {
                 user.addPhoneNumber(phoneNumber);
             }
-            Name name = new Name();
+            ScimName name = new ScimName();
             name.setGivenName(givenName);
             name.setFamilyName(familyName);
             user.setName(name);

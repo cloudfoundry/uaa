@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -22,13 +22,15 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.scim.ScimCore;
-import org.cloudfoundry.identity.uaa.scim.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.dao.common.ScimGroupMembershipManager;
+import org.cloudfoundry.identity.uaa.scim.dao.common.ScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.scim.dao.common.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimCoreInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupMemberInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.springframework.beans.factory.InitializingBean;
@@ -67,7 +69,7 @@ public class ScimGroupBootstrap implements InitializingBean {
     /**
      * Specify the list of groups to create as a comma-separated list of
      * group-names
-     * 
+     *
      * @param groups
      */
     public void setGroups(String groups) {
@@ -80,7 +82,7 @@ public class ScimGroupBootstrap implements InitializingBean {
      * <group-name>|<comma-separated usernames of members>[|write]
      * the optional 'write' field in the end marks the users as admins of the
      * group
-     * 
+     *
      * @param membershipInfo
      */
     public void setGroupMembers(List<String> membershipInfo) {
@@ -115,15 +117,15 @@ public class ScimGroupBootstrap implements InitializingBean {
     }
 
     private void addMembers(String g) {
-        ScimGroup group = getGroup(g);
+        ScimGroupInterface group = getGroup(g);
         if (group == null) {
             addGroup(g);
         }
-        List<ScimGroupMember> members = getMembers(groupMembers.get(g), ScimGroupMember.GROUP_MEMBER);
-        members.addAll(getMembers(groupAdmins.get(g), ScimGroupMember.GROUP_ADMIN));
+        List<ScimGroupMemberInterface> members = getMembers(groupMembers.get(g), ScimGroupMemberInterface.GROUP_MEMBER);
+        members.addAll(getMembers(groupAdmins.get(g), ScimGroupMemberInterface.GROUP_ADMIN));
         logger.debug("adding members: " + members + " into group: " + g);
 
-        for (ScimGroupMember member : members) {
+        for (ScimGroupMemberInterface member : members) {
             try {
                 membershipManager.addMember(group.getId(), member);
             } catch (MemberAlreadyExistsException ex) {
@@ -132,26 +134,26 @@ public class ScimGroupBootstrap implements InitializingBean {
         }
     }
 
-    private List<ScimGroupMember> getMembers(Set<String> names, List<ScimGroupMember.Role> auth) {
+    private List<ScimGroupMemberInterface> getMembers(Set<String> names, List<ScimGroupMemberInterface.Role> auth) {
         if (names == null || names.isEmpty()) {
-            return Collections.<ScimGroupMember> emptyList();
+            return Collections.<ScimGroupMemberInterface> emptyList();
         }
 
-        List<ScimGroupMember> members = new ArrayList<ScimGroupMember>();
+        List<ScimGroupMemberInterface> members = new ArrayList<ScimGroupMemberInterface>();
         for (String name : names) {
-            ScimCore member = getScimResourceId(name);
+            ScimCoreInterface member = getScimResourceId(name);
             if (member != null) {
                 members.add(new ScimGroupMember(member.getId(),
-                                (member instanceof ScimGroup) ? ScimGroupMember.Type.GROUP : ScimGroupMember.Type.USER,
+                                (member instanceof ScimGroupInterface) ? ScimGroupMemberInterface.Type.GROUP : ScimGroupMemberInterface.Type.USER,
                                 auth));
             }
         }
         return members;
     }
 
-    private ScimCore getScimResourceId(String name) {
+    private ScimCoreInterface getScimResourceId(String name) {
 
-        ScimCore res = getUser(name);
+        ScimCoreInterface res = getUser(name);
         if (res != null) {
             return res;
         }
@@ -160,18 +162,18 @@ public class ScimGroupBootstrap implements InitializingBean {
         return getGroup(name);
     }
 
-    private ScimUser getUser(String name) {
-        List<ScimUser> user = scimUserProvisioning.query(String.format(USER_BY_NAME_FILTER, name));
+    private ScimUserInterface getUser(String name) {
+        List<ScimUserInterface> user = scimUserProvisioning.query(String.format(USER_BY_NAME_FILTER, name));
         if (user != null && !user.isEmpty()) {
             return user.get(0);
         }
         return null;
     }
 
-    ScimGroup getGroup(String name) {
-        List<ScimGroup> g = scimGroupProvisioning.query(String.format(GROUP_BY_NAME_FILTER, name));
+    ScimGroupInterface getGroup(String name) {
+        List<ScimGroupInterface> g = scimGroupProvisioning.query(String.format(GROUP_BY_NAME_FILTER, name));
         if (g != null && !g.isEmpty()) {
-            ScimGroup gr = g.get(0);
+            ScimGroupInterface gr = g.get(0);
             gr.setMembers(membershipManager.getMembers(gr.getId()));
             return gr;
         }

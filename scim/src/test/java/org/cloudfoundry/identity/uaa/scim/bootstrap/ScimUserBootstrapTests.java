@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -20,11 +20,12 @@ import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.rest.jdbc.DefaultLimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.dao.standard.JdbcScimGroupMembershipManager;
+import org.cloudfoundry.identity.uaa.scim.dao.standard.JdbcScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.scim.dao.standard.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints;
-import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
-import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
-import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.junit.After;
@@ -88,7 +89,7 @@ public class ScimUserBootstrapTests {
         UaaUser mabel = new UaaUser("mabel", "password", "mabel@blah.com", "Mabel", "User");
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe, mabel));
         bootstrap.afterPropertiesSet();
-        Collection<ScimUser> users = db.retrieveAll();
+        Collection<ScimUserInterface> users = db.retrieveAll();
         assertEquals(2, users.size());
     }
 
@@ -104,7 +105,7 @@ public class ScimUserBootstrapTests {
         assertEquals(1, users.size());
 
         String id = (String) users.iterator().next().get("id");
-        ScimUser user = userEndpoints.getUser(id, new MockHttpServletResponse());
+        ScimUserInterface user = userEndpoints.getUser(id, new MockHttpServletResponse());
         // uaa.user is always added
         assertEquals(3, user.getGroups().size());
     }
@@ -124,7 +125,7 @@ public class ScimUserBootstrapTests {
         assertEquals(1, users.size());
 
         String id = (String) users.iterator().next().get("id");
-        ScimUser user = userEndpoints.getUser(id, new MockHttpServletResponse());
+        ScimUserInterface user = userEndpoints.getUser(id, new MockHttpServletResponse());
         // uaa.user is always added
         assertEquals("Joe", user.getGivenName());
     }
@@ -145,7 +146,7 @@ public class ScimUserBootstrapTests {
         assertEquals(1, users.size());
 
         String id = (String) users.iterator().next().get("id");
-        ScimUser user = userEndpoints.getUser(id, new MockHttpServletResponse());
+        ScimUserInterface user = userEndpoints.getUser(id, new MockHttpServletResponse());
         // uaa.user is always added
         assertEquals("Joel", user.getGivenName());
     }
@@ -166,7 +167,7 @@ public class ScimUserBootstrapTests {
         assertEquals(1, users.size());
 
         String id = (String) users.iterator().next().get("id");
-        ScimUser user = userEndpoints.getUser(id, new MockHttpServletResponse());
+        ScimUserInterface user = userEndpoints.getUser(id, new MockHttpServletResponse());
         // uaa.user is always added
         assertEquals(4, user.getGroups().size());
     }
@@ -189,7 +190,7 @@ public class ScimUserBootstrapTests {
         assertEquals(1, users.size());
 
         String id = (String) users.iterator().next().get("id");
-        ScimUser user = userEndpoints.getUser(id, new MockHttpServletResponse());
+        ScimUserInterface user = userEndpoints.getUser(id, new MockHttpServletResponse());
         // uaa.user is always added
         assertEquals(2, user.getGroups().size());
     }
@@ -203,7 +204,7 @@ public class ScimUserBootstrapTests {
         bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
         bootstrap.setOverride(true);
         bootstrap.afterPropertiesSet();
-        Collection<ScimUser> users = db.retrieveAll();
+        Collection<ScimUserInterface> users = db.retrieveAll();
         assertEquals(1, users.size());
         assertEquals("Bloggs", users.iterator().next().getFamilyName());
     }
@@ -217,7 +218,7 @@ public class ScimUserBootstrapTests {
         bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
         bootstrap.setOverride(false);
         bootstrap.afterPropertiesSet();
-        Collection<ScimUser> users = db.retrieveAll();
+        Collection<ScimUserInterface> users = db.retrieveAll();
         assertEquals(1, users.size());
         assertEquals("User", users.iterator().next().getFamilyName());
     }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -17,8 +17,8 @@ import java.util.List;
 
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.dao.common.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserInterface;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.util.Assert;
@@ -29,9 +29,9 @@ import org.springframework.util.Assert;
  * intercepted method call. Using this makes the conversion transparent to
  * callers but it only makes sense where the
  * SCIM features are available (i.e. the UAA controls its own user accounts).
- * 
+ *
  * @author Dave Syer
- * 
+ *
  */
 public class UserIdInjector implements MethodInterceptor, InitializingBean {
 
@@ -96,7 +96,7 @@ public class UserIdInjector implements MethodInterceptor, InitializingBean {
         try {
             // If the request came in for a user by id we should be able to
             // retrieve the userName
-            ScimUser scimUser = scimUserProvisioning.retrieve(userName);
+            ScimUserInterface scimUser = scimUserProvisioning.retrieve(userName);
             if (scimUser != null) {
                 userName = scimUser.getUserName();
             }
@@ -108,7 +108,7 @@ public class UserIdInjector implements MethodInterceptor, InitializingBean {
 
     private String getUserId(String userName) {
         String userId = userName;
-        List<ScimUser> users = scimUserProvisioning.query("userName eq '" + userName + "'");
+        List<ScimUserInterface> users = scimUserProvisioning.query("userName eq '" + userName + "'");
         if (!users.isEmpty()) {
             // Assume the userName is unique
             userId = users.get(0).getId();

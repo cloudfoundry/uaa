@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -24,8 +24,11 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
-import org.cloudfoundry.identity.uaa.scim.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
+import org.cloudfoundry.identity.uaa.scim.dao.standard.JdbcScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupMemberInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
@@ -94,7 +97,7 @@ public class JdbcScimGroupProvisioningTests {
         assertEquals(expected, existingGroupCount);
     }
 
-    private void validateGroup(ScimGroup group, String name) {
+    private void validateGroup(ScimGroupInterface group, String name) {
         assertNotNull(group);
         assertNotNull(group.getId());
         assertNotNull(group.getDisplayName());
@@ -105,10 +108,10 @@ public class JdbcScimGroupProvisioningTests {
 
     @Test
     public void canRetrieveGroups() throws Exception {
-        List<ScimGroup> groups = dao.retrieveAll();
+        List<ScimGroupInterface> groups = dao.retrieveAll();
         logger.debug(groups);
         assertEquals(3, groups.size());
-        for (ScimGroup g : groups) {
+        for (ScimGroupInterface g : groups) {
             validateGroup(g, null);
         }
     }
@@ -160,7 +163,7 @@ public class JdbcScimGroupProvisioningTests {
 
     @Test
     public void canRetrieveGroup() throws Exception {
-        ScimGroup group = dao.retrieve("g1");
+        ScimGroupInterface group = dao.retrieve("g1");
         validateGroup(group, "uaa.user");
     }
 
@@ -171,9 +174,9 @@ public class JdbcScimGroupProvisioningTests {
 
     @Test
     public void canCreateGroup() throws Exception {
-        ScimGroup g = new ScimGroup("", "test.1");
-        ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER);
-        ScimGroupMember m2 = new ScimGroupMember("m2", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN);
+        ScimGroupInterface g = new ScimGroup("", "test.1");
+        ScimGroupMemberInterface m1 = new ScimGroupMember("m1", ScimGroupMemberInterface.Type.USER, ScimGroupMemberInterface.GROUP_MEMBER);
+        ScimGroupMemberInterface m2 = new ScimGroupMember("m2", ScimGroupMemberInterface.Type.USER, ScimGroupMemberInterface.GROUP_ADMIN);
         g.setMembers(Arrays.asList(m1, m2));
         g = dao.create(g);
         logger.debug(g);
@@ -183,12 +186,12 @@ public class JdbcScimGroupProvisioningTests {
 
     @Test
     public void canUpdateGroup() throws Exception {
-        ScimGroup g = dao.retrieve("g1");
+        ScimGroupInterface g = dao.retrieve("g1");
         logger.debug(g);
         assertEquals("uaa.user", g.getDisplayName());
 
-        ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER);
-        ScimGroupMember m2 = new ScimGroupMember("g2", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN);
+        ScimGroupMemberInterface m1 = new ScimGroupMember("m1", ScimGroupMemberInterface.Type.USER, ScimGroupMemberInterface.GROUP_MEMBER);
+        ScimGroupMemberInterface m2 = new ScimGroupMember("g2", ScimGroupMemberInterface.Type.USER, ScimGroupMemberInterface.GROUP_ADMIN);
         g.setMembers(Arrays.asList(m1, m2));
         g.setDisplayName("uaa.none");
 

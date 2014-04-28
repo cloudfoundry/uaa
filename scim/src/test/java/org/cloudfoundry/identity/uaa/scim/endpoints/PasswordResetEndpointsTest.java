@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -21,8 +21,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.dao.common.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimUser;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -52,7 +53,7 @@ public class PasswordResetEndpointsTest {
 
     @Test
     public void testCreatingAPasswordResetWhenTheEmailExists() throws Exception {
-        ScimUser user = new ScimUser("id001", "userman", null, null);
+        ScimUserInterface user = new ScimUser("id001", "userman", null, null);
         user.addEmail("user@example.com");
         Mockito.when(scimUserProvisioning.query("email eq 'user@example.com'"))
                 .thenReturn(Arrays.asList(user));
@@ -70,7 +71,7 @@ public class PasswordResetEndpointsTest {
     @Test
     public void testCreatingAPasswordResetWhenTheUserDoesNotExist() throws Exception {
         Mockito.when(scimUserProvisioning.query("email eq 'user@example.com'"))
-                .thenReturn(Arrays.<ScimUser>asList());
+                .thenReturn(Arrays.<ScimUserInterface>asList());
 
         MockHttpServletRequestBuilder post = post("/password_resets")
                 .contentType(APPLICATION_JSON)
@@ -104,7 +105,7 @@ public class PasswordResetEndpointsTest {
 
     @Test
     public void testChangingAPasswordWithAUsernameAndPassword() throws Exception {
-        ScimUser user = new ScimUser("id001", "userman", null, null);
+        ScimUserInterface user = new ScimUser("id001", "userman", null, null);
         user.addEmail("user@example.com");
         Mockito.when(scimUserProvisioning.query("userName eq 'userman'"))
                 .thenReturn(Arrays.asList(user));

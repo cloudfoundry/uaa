@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -10,16 +10,16 @@
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-package org.cloudfoundry.identity.uaa.scim;
+package org.cloudfoundry.identity.uaa.scim.domain.standard;
 
 import java.util.Arrays;
 
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimCoreInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimMeta;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.springframework.util.Assert;
 
-public abstract class ScimCore {
-
-    public static final String[] SCHEMAS = new String[] { "urn:scim:schemas:core:1.0" };
+public abstract class ScimCore implements ScimCoreInterface {
 
     private String id;
 
@@ -34,44 +34,54 @@ public abstract class ScimCore {
     protected ScimCore() {
     }
 
+    @Override
     public void setSchemas(String[] schemas) {
         Assert.isTrue(Arrays.equals(SCHEMAS, schemas), "Only schema '" + SCHEMAS[0] + "' is currently supported");
     }
 
+    @Override
     public String getId() {
         return id;
     }
 
+    @Override
     public void setId(String id) {
         this.id = id;
     }
 
+    @Override
     public String getExternalId() {
         return externalId;
     }
 
+    @Override
     public void setExternalId(String externalId) {
         this.externalId = externalId;
     }
 
+    @Override
     public ScimMeta getMeta() {
         return meta;
     }
 
+    @Override
     public void setMeta(ScimMeta meta) {
         this.meta = meta;
     }
 
+    @Override
     @JsonIgnore
     public void setVersion(int version) {
         meta.setVersion(version);
     }
 
+    @Override
     @JsonIgnore
     public int getVersion() {
         return meta.getVersion();
     }
 
+    @Override
     public String[] getSchemas() {
         return SCHEMAS;
     }

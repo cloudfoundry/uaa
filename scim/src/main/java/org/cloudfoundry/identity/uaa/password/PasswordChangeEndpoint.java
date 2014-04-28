@@ -18,7 +18,7 @@ import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReport;
 import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.message.SimpleMessage;
-import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.dao.common.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;

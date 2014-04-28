@@ -11,8 +11,10 @@ import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.oauth.event.ClientAdminEventPublisher;
 import org.cloudfoundry.identity.uaa.rest.SearchResults;
-import org.cloudfoundry.identity.uaa.scim.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupMemberInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ScimGroupEndpoints;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints;
 import org.cloudfoundry.identity.uaa.test.TestClient;
@@ -42,6 +44,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
@@ -90,8 +93,8 @@ public class ClientAdminEndpointsMockMvcTests {
         testClient = new TestClient(mockMvc);
         testAccounts = UaaTestAccounts.standard(null);
         adminToken = testClient.getOAuthAccessToken(
-                        testAccounts.getAdminClientId(), 
-                        testAccounts.getAdminClientSecret(), 
+                        testAccounts.getAdminClientId(),
+                        testAccounts.getAdminClientSecret(),
                         "client_credentials",
                         "clients.admin clients.read clients.write clients.secret");
 
@@ -112,25 +115,25 @@ public class ClientAdminEndpointsMockMvcTests {
         //add marissa to uaa.admin
         SearchResults<Map<String, Object>> uaaAdmin = (SearchResults<Map<String, Object>>) scimGroupEndpoints.listGroups("id,displayName", "displayName eq 'uaa.admin'", "displayName", "asc", 1, 1);
         String groupId = (String)uaaAdmin.getResources().iterator().next().get("id");
-        ScimGroup group = scimGroupEndpoints.getGroup(groupId, mockResponse);
-        ScimGroupMember gm = new ScimGroupMember(marissaId, ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER));
-        group.getMembers().add(gm);
+        ScimGroupInterface group = scimGroupEndpoints.getGroup(groupId, mockResponse);
+        ScimGroupMemberInterface gm = new ScimGroupMember(marissaId, ScimGroupMemberInterface.Type.USER, Arrays.asList(ScimGroupMemberInterface.Role.MEMBER));
+        ((List<ScimGroupMemberInterface>) group.getMembers()).add(gm);
         scimGroupEndpoints.updateGroup(group, groupId, String.valueOf(group.getVersion()), mockResponse);
 
         //add marissa to clients.write
         uaaAdmin = (SearchResults<Map<String, Object>>) scimGroupEndpoints.listGroups("id,displayName", "displayName eq 'clients.write'", "displayName", "asc", 1, 1);
         groupId = (String)uaaAdmin.getResources().iterator().next().get("id");
         group = scimGroupEndpoints.getGroup(groupId, mockResponse);
-        gm = new ScimGroupMember(marissaId, ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER));
-        group.getMembers().add(gm);
+        gm = new ScimGroupMember(marissaId, ScimGroupMemberInterface.Type.USER, Arrays.asList(ScimGroupMemberInterface.Role.MEMBER));
+        ((List<ScimGroupMemberInterface>) group.getMembers()).add(gm);
         scimGroupEndpoints.updateGroup(group, groupId, String.valueOf(group.getVersion()), mockResponse);
 
         //add marissa to clients.read
         uaaAdmin = (SearchResults<Map<String, Object>>) scimGroupEndpoints.listGroups("id,displayName", "displayName eq 'clients.read'", "displayName", "asc", 1, 1);
         groupId = (String)uaaAdmin.getResources().iterator().next().get("id");
         group = scimGroupEndpoints.getGroup(groupId, mockResponse);
-        gm = new ScimGroupMember(marissaId, ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER));
-        group.getMembers().add(gm);
+        gm = new ScimGroupMember(marissaId, ScimGroupMemberInterface.Type.USER, Arrays.asList(ScimGroupMemberInterface.Role.MEMBER));
+        ((List<ScimGroupMemberInterface>) group.getMembers()).add(gm);
         scimGroupEndpoints.updateGroup(group, groupId, String.valueOf(group.getVersion()), mockResponse);
 
         ClientDetails adminClient = createAdminClient(adminToken);
@@ -427,7 +430,7 @@ public class ClientAdminEndpointsMockMvcTests {
             details[i] = createBaseClient(null,null);
             details[i].setAction(ClientDetailsModification.ADD);
         }
-        
+
         String userToken = testClient.getUserOAuthAccessToken(
                 details[0].getClientId(),
                 "secret",
@@ -437,7 +440,7 @@ public class ClientAdminEndpointsMockMvcTests {
         addApprovals(userToken, details[0].getClientId());
         Approval[] approvals = getApprovals(userToken, details[0].getClientId());
         assertEquals(3, approvals.length);
-        
+
 
         String deleteId = details[5].getClientId();
         details[5].setClientId("unknown.client.id");
@@ -468,7 +471,7 @@ public class ClientAdminEndpointsMockMvcTests {
         approvals = getApprovals(userToken, details[0].getClientId());
         assertEquals(3, approvals.length);
     }
-    
+
     @Test
     public void testApprovalsAreDeleted() throws Exception {
         ClientDetails details = createClient(adminToken, new RandomValueStringGenerator().generate(), "password");
@@ -509,22 +512,22 @@ public class ClientAdminEndpointsMockMvcTests {
         assertEquals(0, approvals.length);
 
     }
-    
+
     @Test
     public void testApprovalsAreDeleted2() throws Exception {
         ClientDetails details = createClient(adminToken, new RandomValueStringGenerator().generate(), "password");
         String userToken = testClient.getUserOAuthAccessToken(
-                            details.getClientId(), 
-                            "secret", 
-                            testAccounts.getUserName(), 
-                            testAccounts.getPassword(), 
+                            details.getClientId(),
+                            "secret",
+                            testAccounts.getUserName(),
+                            testAccounts.getPassword(),
                             "oauth.approvals");
         Approval[] approvals = getApprovals(userToken, details.getClientId());
         assertEquals(0, approvals.length);
         addApprovals(userToken, details.getClientId());
         approvals = getApprovals(userToken, details.getClientId());
         assertEquals(3, approvals.length);
-        
+
         MockHttpServletRequestBuilder deleteClientsPost = delete("/oauth/clients/"+details.getClientId())
                         .header("Authorization", "Bearer " + adminToken)
                         .accept(APPLICATION_JSON);
@@ -941,7 +944,7 @@ public class ClientAdminEndpointsMockMvcTests {
 
     private Approval[] getApprovals(String token, String clientId) throws Exception {
         String filter = "clientId eq '"+clientId+"'";
-        
+
         MockHttpServletRequestBuilder get = get("/approvals")
                         .header("Authorization", "Bearer " + token)
                         .accept(APPLICATION_JSON)
@@ -957,10 +960,10 @@ public class ClientAdminEndpointsMockMvcTests {
         Date oneMinuteAgo = new Date(System.currentTimeMillis() - 60000);
         Date expiresAt = new Date(System.currentTimeMillis() + 60000);
         Approval[] approvals = new Approval[] {
-            new Approval(testAccounts.getUserName(), clientId, "cloud_controller.read", expiresAt, ApprovalStatus.APPROVED,oneMinuteAgo), 
+            new Approval(testAccounts.getUserName(), clientId, "cloud_controller.read", expiresAt, ApprovalStatus.APPROVED,oneMinuteAgo),
             new Approval(testAccounts.getUserName(), clientId, "openid", expiresAt, ApprovalStatus.APPROVED,oneMinuteAgo),
             new Approval(testAccounts.getUserName(), clientId, "password.write", expiresAt, ApprovalStatus.APPROVED,oneMinuteAgo)};
-        
+
         MockHttpServletRequestBuilder put = put("/approvals/"+clientId)
             .header("Authorization", "Bearer " + token)
             .accept(APPLICATION_JSON)
@@ -1087,7 +1090,7 @@ public class ClientAdminEndpointsMockMvcTests {
     private ClientDetails clientFromString(String client) throws Exception {
         return (ClientDetails)fromString(client, ClientDetailsModification.class);
     }
-    
+
     private Object fromString(String body, Class<?> clazz) throws Exception {
         ObjectMapper mapper = new ObjectMapper();
         return mapper.readValue(body, clazz);
@@ -1096,11 +1099,11 @@ public class ClientAdminEndpointsMockMvcTests {
     private ClientDetails[] clientArrayFromString(String clients) throws Exception {
         return (ClientDetails[])arrayFromString(clients, ClientDetailsModification[].class);
     }
-    
+
     private Object[] arrayFromString(String body, Class<?> clazz) throws Exception {
         ObjectMapper mapper = new ObjectMapper();
         return (Object[])mapper.readValue(body, clazz);
     }
-    
+
 
 }

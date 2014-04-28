@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -10,7 +10,7 @@
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-package org.cloudfoundry.identity.uaa.scim.jdbc;
+package org.cloudfoundry.identity.uaa.scim.dao.standard;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -24,9 +24,11 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.AbstractQueryable;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
-import org.cloudfoundry.identity.uaa.scim.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
-import org.cloudfoundry.identity.uaa.scim.ScimMeta;
+import org.cloudfoundry.identity.uaa.scim.dao.common.ScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.scim.dao.common.ScimSearchQueryConverter;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimMeta;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
@@ -38,7 +40,7 @@ import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.util.Assert;
 
-public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup> implements ScimGroupProvisioning {
+public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroupInterface> implements ScimGroupProvisioning {
 
     private JdbcTemplate jdbcTemplate;
 
@@ -60,7 +62,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup> impl
 
     public static final String DELETE_GROUP_SQL = String.format("delete from %s where id=?", GROUP_TABLE);
 
-    private final RowMapper<ScimGroup> rowMapper = new ScimGroupRowMapper();
+    private final RowMapper<ScimGroupInterface> rowMapper = new ScimGroupRowMapper();
 
     public JdbcScimGroupProvisioning(JdbcTemplate jdbcTemplate, JdbcPagingListFactory pagingListFactory) {
         super(jdbcTemplate, pagingListFactory, new ScimGroupRowMapper());
@@ -75,14 +77,14 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup> impl
     }
 
     @Override
-    public List<ScimGroup> retrieveAll() {
+    public List<ScimGroupInterface> retrieveAll() {
         return query("id pr", "created", true);
     }
 
     @Override
-    public ScimGroup retrieve(String id) throws ScimResourceNotFoundException {
+    public ScimGroupInterface retrieve(String id) throws ScimResourceNotFoundException {
         try {
-            ScimGroup group = jdbcTemplate.queryForObject(GET_GROUP_SQl, rowMapper, id);
+            ScimGroupInterface group = jdbcTemplate.queryForObject(GET_GROUP_SQl, rowMapper, id);
             return group;
         } catch (EmptyResultDataAccessException e) {
             throw new ScimResourceNotFoundException("Group " + id + " does not exist");
@@ -90,7 +92,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup> impl
     }
 
     @Override
-    public ScimGroup create(final ScimGroup group) throws InvalidScimResourceException {
+    public ScimGroupInterface create(final ScimGroupInterface group) throws InvalidScimResourceException {
         final String id = UUID.randomUUID().toString();
         logger.debug("creating new group with id: " + id);
         try {
@@ -112,7 +114,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup> impl
     }
 
     @Override
-    public ScimGroup update(final String id, final ScimGroup group) throws InvalidScimResourceException,
+    public ScimGroupInterface update(final String id, final ScimGroupInterface group) throws InvalidScimResourceException,
                     ScimResourceNotFoundException {
         try {
             int updated = jdbcTemplate.update(UPDATE_GROUP_SQL, new PreparedStatementSetter() {
@@ -136,8 +138,8 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup> impl
     }
 
     @Override
-    public ScimGroup delete(String id, int version) throws ScimResourceNotFoundException {
-        ScimGroup group = retrieve(id);
+    public ScimGroupInterface delete(String id, int version) throws ScimResourceNotFoundException {
+        ScimGroupInterface group = retrieve(id);
         int deleted;
         if (version > 0) {
             deleted = jdbcTemplate.update(DELETE_GROUP_SQL + " and version=?;", id, version);
@@ -150,17 +152,17 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup> impl
         return group;
     }
 
-    private static final class ScimGroupRowMapper implements RowMapper<ScimGroup> {
+    private static final class ScimGroupRowMapper implements RowMapper<ScimGroupInterface> {
 
         @Override
-        public ScimGroup mapRow(ResultSet rs, int rowNum) throws SQLException {
+        public ScimGroupInterface mapRow(ResultSet rs, int rowNum) throws SQLException {
             String id = rs.getString(1);
             String name = rs.getString(2);
             Date created = rs.getTimestamp(3);
             Date modified = rs.getTimestamp(4);
             int version = rs.getInt(5);
 
-            ScimGroup group = new ScimGroup(id, name);
+            ScimGroupInterface group = new ScimGroup(id, name);
             ScimMeta meta = new ScimMeta(created, modified, version);
             group.setMeta(meta);
             return group;

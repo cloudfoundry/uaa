@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -27,9 +27,14 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
-import org.cloudfoundry.identity.uaa.scim.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupMemberInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimName;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserGroupInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimGroupMember;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.After;
@@ -57,7 +62,7 @@ import org.springframework.web.client.RestOperations;
 @OAuth2ContextConfiguration(OAuth2ContextConfiguration.ClientCredentials.class)
 public class ScimGroupEndpointsIntegrationTests {
 
-    private ScimGroupMember DALE, JOEL, VIDYA;
+    private ScimGroupMemberInterface DALE, JOEL, VIDYA;
 
     private final String DELETE_ME = "deleteme_" + new RandomValueStringGenerator().generate().toLowerCase();
 
@@ -126,9 +131,9 @@ public class ScimGroupEndpointsIntegrationTests {
     }
 
     private ScimUser createUser(String username, String password) {
-        ScimUser user = new ScimUser();
+        ScimUserInterface user = new ScimUser();
         user.setUserName(username);
-        user.setName(new ScimUser.Name(username, username));
+        user.setName(new ScimName(username, username));
         user.addEmail(username);
 
         ScimUser u = client.postForEntity(serverRunning.getUrl(userEndpoint), user, ScimUser.class).getBody();
@@ -142,9 +147,9 @@ public class ScimGroupEndpointsIntegrationTests {
         return u;
     }
 
-    private ScimGroup createGroup(String name, ScimGroupMember... members) {
-        ScimGroup g = new ScimGroup(name);
-        List<ScimGroupMember> m = members != null ? Arrays.asList(members) : Collections.<ScimGroupMember> emptyList();
+    private ScimGroupInterface createGroup(String name, ScimGroupMemberInterface... members) {
+        ScimGroupInterface g = new ScimGroup(name);
+        List<ScimGroupMemberInterface> m = members != null ? Arrays.asList(members) : Collections.<ScimGroupMemberInterface> emptyList();
         g.setMembers(m);
         ScimGroup g1 = client.postForEntity(serverRunning.getUrl(groupEndpoint), g, ScimGroup.class).getBody();
         assertEquals(name, g1.getDisplayName());
@@ -153,18 +158,18 @@ public class ScimGroupEndpointsIntegrationTests {
         return g1;
     }
 
-    private ScimGroup updateGroup(String id, String name, ScimGroupMember... members) {
+    private ScimGroupInterface updateGroup(String id, String name, ScimGroupMemberInterface... members) {
         HttpHeaders headers = new HttpHeaders();
         headers.add("If-Match", "*");
-        ScimGroup g = new ScimGroup(name);
-        List<ScimGroupMember> m = members != null ? Arrays.asList(members) : Collections.<ScimGroupMember> emptyList();
+        ScimGroupInterface g = new ScimGroup(name);
+        List<ScimGroupMemberInterface> m = members != null ? Arrays.asList(members) : Collections.<ScimGroupMemberInterface> emptyList();
         g.setMembers(m);
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> r = client.exchange(serverRunning.getUrl(groupEndpoint + "/{id}"), HttpMethod.PUT,
-                        new HttpEntity<ScimGroup>(g, headers), Map.class, id);
+                        new HttpEntity<ScimGroupInterface>(g, headers), Map.class, id);
         logger.warn(r.getBody());
-        ScimGroup g1 = client.exchange(serverRunning.getUrl(groupEndpoint + "/{id}"), HttpMethod.PUT,
-                        new HttpEntity<ScimGroup>(g, headers), ScimGroup.class, id).getBody();
+        ScimGroupInterface g1 = client.exchange(serverRunning.getUrl(groupEndpoint + "/{id}"), HttpMethod.PUT,
+                        new HttpEntity<ScimGroupInterface>(g, headers), ScimGroup.class, id).getBody();
         assertEquals(name, g1.getDisplayName());
         assertEquals(m.size(), g1.getMembers().size());
         return g1;
@@ -179,12 +184,12 @@ public class ScimGroupEndpointsIntegrationTests {
                                                                                                 // user
                                                                                                 // groups
                                                                                                 // configured
-        for (ScimUser.Group g : getUser(id).getGroups()) {
+        for (ScimUserGroupInterface g : getUser(id).getGroups()) {
             assertTrue(defaultGroups.contains(g.getDisplay()) || groupNames.contains(g.getDisplay()));
         }
     }
 
-    private ScimUser getUser(String id) {
+    private ScimUserInterface getUser(String id) {
         return client.getForEntity(serverRunning.getUrl(userEndpoint + "/{id}"), ScimUser.class, id).getBody();
     }
 
@@ -208,17 +213,17 @@ public class ScimGroupEndpointsIntegrationTests {
 
     @Test
     public void createGroupSucceeds() throws Exception {
-        ScimGroup g1 = createGroup(CFID);
+        ScimGroupInterface g1 = createGroup(CFID);
         // Check we can GET the group
-        ScimGroup g2 = client.getForObject(serverRunning.getUrl(groupEndpoint + "/{id}"), ScimGroup.class, g1.getId());
+        ScimGroupInterface g2 = client.getForObject(serverRunning.getUrl(groupEndpoint + "/{id}"), ScimGroup.class, g1.getId());
         assertEquals(g1, g2);
     }
 
     @Test
     public void createGroupWithMembersSucceeds() {
-        ScimGroup g1 = createGroup(CFID, JOEL, DALE, VIDYA);
+        ScimGroupInterface g1 = createGroup(CFID, JOEL, DALE, VIDYA);
         // Check we can GET the group
-        ScimGroup g2 = client.getForObject(serverRunning.getUrl(groupEndpoint + "/{id}"), ScimGroup.class, g1.getId());
+        ScimGroupInterface g2 = client.getForObject(serverRunning.getUrl(groupEndpoint + "/{id}"), ScimGroup.class, g1.getId());
         assertEquals(g1, g2);
         assertEquals(3, g2.getMembers().size());
         assertTrue(g2.getMembers().contains(JOEL));
@@ -233,7 +238,7 @@ public class ScimGroupEndpointsIntegrationTests {
 
     @Test
     public void createGroupWithInvalidMembersFailsCorrectly() {
-        ScimGroup g = new ScimGroup(CFID);
+        ScimGroupInterface g = new ScimGroup(CFID);
         ScimGroupMember m2 = new ScimGroupMember("wrongid");
         g.setMembers(Arrays.asList(VIDYA, m2));
 
@@ -256,12 +261,12 @@ public class ScimGroupEndpointsIntegrationTests {
 
     @Test
     public void createGroupWithMemberGroupSucceeds() {
-        ScimGroup g1 = createGroup(CFID, VIDYA);
-        ScimGroupMember m2 = new ScimGroupMember(g1.getId(), ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER);
-        ScimGroup g2 = createGroup(CF_DEV, m2);
+        ScimGroupInterface g1 = createGroup(CFID, VIDYA);
+        ScimGroupMemberInterface m2 = new ScimGroupMember(g1.getId(), ScimGroupMemberInterface.Type.GROUP, ScimGroupMemberInterface.GROUP_MEMBER);
+        ScimGroupInterface g2 = createGroup(CF_DEV, m2);
 
         // Check we can GET the group
-        ScimGroup g3 = client.getForObject(serverRunning.getUrl(groupEndpoint + "/{id}"), ScimGroup.class, g2.getId());
+        ScimGroupInterface g3 = client.getForObject(serverRunning.getUrl(groupEndpoint + "/{id}"), ScimGroup.class, g2.getId());
         assertEquals(g2, g3);
         assertEquals(1, g3.getMembers().size());
         assertTrue(g3.getMembers().contains(m2));
@@ -272,7 +277,7 @@ public class ScimGroupEndpointsIntegrationTests {
 
     @Test
     public void createExistingGroupFailsCorrectly() {
-        ScimGroup g1 = createGroup(CFID);
+        ScimGroupInterface g1 = createGroup(CFID);
         @SuppressWarnings("unchecked")
         Map<String, String> g2 = client.postForEntity(serverRunning.getUrl(groupEndpoint), g1, Map.class).getBody();
         assertTrue(g2.containsKey("error"));
@@ -281,7 +286,7 @@ public class ScimGroupEndpointsIntegrationTests {
 
     @Test
     public void deleteGroupUpdatesUser() {
-        ScimGroup g1 = createGroup(DELETE_ME, DALE, VIDYA);
+        ScimGroupInterface g1 = createGroup(DELETE_ME, DALE, VIDYA);
         validateUserGroups(DALE.getMemberId(), DELETE_ME);
         validateUserGroups(VIDYA.getMemberId(), DELETE_ME);
 
@@ -309,29 +314,29 @@ public class ScimGroupEndpointsIntegrationTests {
 
     @Test
     public void deleteMemberGroupUpdatesGroup() {
-        ScimGroup g1 = createGroup(CFID, VIDYA);
-        ScimGroupMember m2 = new ScimGroupMember(g1.getId(), ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER);
-        ScimGroup g2 = createGroup(CF_DEV, DALE, m2);
+        ScimGroupInterface g1 = createGroup(CFID, VIDYA);
+        ScimGroupMemberInterface m2 = new ScimGroupMember(g1.getId(), ScimGroupMemberInterface.Type.GROUP, ScimGroupMemberInterface.GROUP_MEMBER);
+        ScimGroupInterface g2 = createGroup(CF_DEV, DALE, m2);
         assertTrue(g2.getMembers().contains(m2));
         validateUserGroups(VIDYA.getMemberId(), CFID, CF_DEV);
 
         deleteResource(groupEndpoint, g1.getId());
 
         // check that parent group is updated
-        ScimGroup g3 = client.getForObject(serverRunning.getUrl(groupEndpoint + "/{id}"), ScimGroup.class, g2.getId());
+        ScimGroupInterface g3 = client.getForObject(serverRunning.getUrl(groupEndpoint + "/{id}"), ScimGroup.class, g2.getId());
         assertEquals(1, g3.getMembers().size());
         assertFalse(g3.getMembers().contains(m2));
     }
 
     @Test
     public void testDeleteMemberUserUpdatesGroups() {
-        ScimGroupMember toDelete = new ScimGroupMember(createUser(DELETE_ME, "pwd").getId());
-        ScimGroup g1 = createGroup(CFID, JOEL, DALE, toDelete);
-        ScimGroup g2 = createGroup(CF_MGR, DALE, toDelete);
+        ScimGroupMemberInterface toDelete = new ScimGroupMember(createUser(DELETE_ME, "pwd").getId());
+        ScimGroupInterface g1 = createGroup(CFID, JOEL, DALE, toDelete);
+        ScimGroupInterface g2 = createGroup(CF_MGR, DALE, toDelete);
         deleteResource(userEndpoint, toDelete.getMemberId());
 
         // check that membership has been updated
-        ScimGroup g3 = client.getForObject(serverRunning.getUrl(groupEndpoint + "/{id}"), ScimGroup.class, g1.getId());
+        ScimGroupInterface g3 = client.getForObject(serverRunning.getUrl(groupEndpoint + "/{id}"), ScimGroup.class, g1.getId());
         assertEquals(2, g3.getMembers().size());
         assertFalse(g3.getMembers().contains(toDelete));
 
@@ -342,17 +347,17 @@ public class ScimGroupEndpointsIntegrationTests {
 
     @Test
     public void testUpdateGroupUpdatesMemberUsers() {
-        ScimGroup g1 = createGroup(CFID, JOEL, VIDYA);
-        ScimGroup g2 = createGroup(CF_MGR, DALE);
-        ScimGroupMember m1 = new ScimGroupMember(g1.getId(), ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER);
-        ScimGroupMember m2 = new ScimGroupMember(g2.getId(), ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER);
-        ScimGroup g3 = createGroup(CF_DEV, m1, m2);
+        ScimGroupInterface g1 = createGroup(CFID, JOEL, VIDYA);
+        ScimGroupInterface g2 = createGroup(CF_MGR, DALE);
+        ScimGroupMember m1 = new ScimGroupMember(g1.getId(), ScimGroupMemberInterface.Type.GROUP, ScimGroupMemberInterface.GROUP_MEMBER);
+        ScimGroupMemberInterface m2 = new ScimGroupMember(g2.getId(), ScimGroupMemberInterface.Type.GROUP, ScimGroupMemberInterface.GROUP_MEMBER);
+        ScimGroupInterface g3 = createGroup(CF_DEV, m1, m2);
 
         validateUserGroups(JOEL.getMemberId(), CFID, CF_DEV);
         validateUserGroups(VIDYA.getMemberId(), CFID, CF_DEV);
         validateUserGroups(DALE.getMemberId(), CF_MGR, CF_DEV);
 
-        ScimGroup g4 = updateGroup(g3.getId(), "new_name", m1);
+        ScimGroupInterface g4 = updateGroup(g3.getId(), "new_name", m1);
 
         // check that we did not create a new group, but only updated the
         // existing one

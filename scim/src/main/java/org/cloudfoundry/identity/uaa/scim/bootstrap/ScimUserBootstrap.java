@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -21,12 +21,14 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.manager.NewUserAuthenticatedEvent;
-import org.cloudfoundry.identity.uaa.scim.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.dao.common.ScimGroupMembershipManager;
+import org.cloudfoundry.identity.uaa.scim.dao.common.ScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.scim.dao.common.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimGroupMember;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -39,7 +41,7 @@ import org.springframework.util.StringUtils;
 /**
  * Convenience class for provisioning user accounts from {@link UaaUser}
  * instances.
- * 
+ *
  * @author Luke Taylor
  * @author Dave Syer
  */
@@ -59,7 +61,7 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
 
     /**
      * Flag to indicate that user accounts can be updated as well as created.
-     * 
+     *
      * @param override the override flag to set (default false)
      */
     public void setOverride(boolean override) {
@@ -87,11 +89,11 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
 
     /**
      * Add a user account from the properties provided.
-     * 
+     *
      * @param user a UaaUser
      */
     private void addUser(UaaUser user) {
-        List<ScimUser> users = scimUserProvisioning.query("userName eq '" + user.getUsername() + "'");
+        List<ScimUserInterface> users = scimUserProvisioning.query("userName eq '" + user.getUsername() + "'");
 
         if (users.isEmpty()) {
             createNewUser(user);
@@ -105,17 +107,17 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
         }
     }
 
-    private void updateUser(ScimUser existingUser, UaaUser updatedUser) {
+    private void updateUser(ScimUserInterface existingUser, UaaUser updatedUser) {
         String id = existingUser.getId();
         logger.debug("Updating user account: " + updatedUser + " with SCIM Id: " + id);
         logger.debug("Removing existing group memberships ...");
-        Set<ScimGroup> existingGroups = membershipManager.getGroupsWithMember(id, true);
+        Set<ScimGroupInterface> existingGroups = membershipManager.getGroupsWithMember(id, true);
 
-        for (ScimGroup g : existingGroups) {
+        for (ScimGroupInterface g : existingGroups) {
             removeFromGroup(id, g.getDisplayName());
         }
 
-        final ScimUser newScimUser = convertToScimUser(updatedUser);
+        final ScimUserInterface newScimUser = convertToScimUser(updatedUser);
         newScimUser.setVersion(existingUser.getVersion());
         scimUserProvisioning.update(id, newScimUser);
         Collection<String> newGroups = convertToGroups(updatedUser.getAuthorities());
@@ -126,7 +128,7 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
 
     private void createNewUser(UaaUser user) {
         logger.debug("Registering new user account: " + user);
-        ScimUser newScimUser = scimUserProvisioning.createUser(convertToScimUser(user), user.getPassword());
+        ScimUserInterface newScimUser = scimUserProvisioning.createUser(convertToScimUser(user), user.getPassword());
         addGroups(newScimUser.getId(), convertToGroups(user.getAuthorities()));
     }
 
@@ -146,8 +148,8 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
             return;
         }
         logger.debug("Adding to group: " + gName);
-        List<ScimGroup> g = scimGroupProvisioning.query(String.format("displayName eq '%s'", gName));
-        ScimGroup group;
+        List<ScimGroupInterface> g = scimGroupProvisioning.query(String.format("displayName eq '%s'", gName));
+        ScimGroupInterface group;
         if (g == null || g.isEmpty()) {
             group = new ScimGroup(gName);
             group = scimGroupProvisioning.create(group);
@@ -167,8 +169,8 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
             return;
         }
         logger.debug("Removing membership of group: " + gName);
-        List<ScimGroup> g = scimGroupProvisioning.query(String.format("displayName eq '%s'", gName));
-        ScimGroup group;
+        List<ScimGroupInterface> g = scimGroupProvisioning.query(String.format("displayName eq '%s'", gName));
+        ScimGroupInterface group;
         if (g == null || g.isEmpty()) {
             return;
         }
@@ -185,8 +187,8 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
     /**
      * Convert UaaUser to SCIM data.
      */
-    private ScimUser convertToScimUser(UaaUser user) {
-        ScimUser scim = new ScimUser(user.getId(), user.getUsername(), user.getGivenName(), user.getFamilyName());
+    private ScimUserInterface convertToScimUser(UaaUser user) {
+        ScimUserInterface scim = new ScimUser(user.getId(), user.getUsername(), user.getGivenName(), user.getFamilyName());
         scim.addEmail(user.getEmail());
         return scim;
     }

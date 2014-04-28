@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -17,19 +17,19 @@ import static org.springframework.http.HttpStatus.CREATED;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.OK;
 
+import java.sql.Timestamp;
+import java.util.List;
+
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.dao.common.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserInterface;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-
-import java.sql.Timestamp;
-import java.util.List;
 
 @Controller
 public class PasswordResetEndpoints {
@@ -45,11 +45,11 @@ public class PasswordResetEndpoints {
 
     @RequestMapping(value = "/password_resets", method = RequestMethod.POST)
     public ResponseEntity<String> resetPassword(@RequestBody String email) {
-        List<ScimUser> results = scimUserProvisioning.query("email eq '" + email + "'");
+        List<ScimUserInterface> results = scimUserProvisioning.query("email eq '" + email + "'");
         if (results.isEmpty()) {
             return new ResponseEntity<String>(BAD_REQUEST);
         }
-        ScimUser scimUser = results.get(0);
+        ScimUserInterface scimUser = results.get(0);
         String code = expiringCodeStore.generateCode(scimUser.getId(), new Timestamp(System.currentTimeMillis() + PASSWORD_RESET_LIFETIME)).getCode();
         return new ResponseEntity<String>(code, CREATED);
     }
@@ -76,12 +76,12 @@ public class PasswordResetEndpoints {
     }
 
     private ResponseEntity<String> changePasswordUsernamePasswordAuthenticated(PasswordChange passwordChange) {
-        List<ScimUser> results = scimUserProvisioning.query("userName eq '" + passwordChange.getUsername() + "'");
+        List<ScimUserInterface> results = scimUserProvisioning.query("userName eq '" + passwordChange.getUsername() + "'");
         if (results.isEmpty()) {
             return new ResponseEntity<String>(BAD_REQUEST);
         }
         String oldPassword = passwordChange.getCurrentPassword();
-        ScimUser user = results.get(0);
+        ScimUserInterface user = results.get(0);
         if (!scimUserProvisioning.changePassword(user.getId(), oldPassword, passwordChange.getNewPassword())) {
             return new ResponseEntity<String>(INTERNAL_SERVER_ERROR);
         }
@@ -97,7 +97,7 @@ public class PasswordResetEndpoints {
         if (!scimUserProvisioning.changePassword(userId, null, passwordChange.getNewPassword())) {
             return new ResponseEntity<String>(INTERNAL_SERVER_ERROR);
         }
-        ScimUser user = scimUserProvisioning.retrieve(userId);
+        ScimUserInterface user = scimUserProvisioning.retrieve(userId);
         return new ResponseEntity<String>(user.getUserName(), OK);
     }
 

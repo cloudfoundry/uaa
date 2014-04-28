@@ -20,6 +20,7 @@ import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.rest.jdbc.SearchQueryConverter.ProcessedFilter;
+import org.cloudfoundry.identity.uaa.scim.dao.common.ScimSearchQueryConverter;
 import org.junit.Test;
 
 public class ScimSearchQueryConverterTests {

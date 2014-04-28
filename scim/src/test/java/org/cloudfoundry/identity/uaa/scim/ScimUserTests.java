@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -20,7 +20,11 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collections;
 
-import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimEmail;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserGroupInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimUserGroup;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Test;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
@@ -40,7 +44,7 @@ public class ScimUserTests {
                         "  \"userName\": \"bjensen@example.com\"\n" +
                         "}";
 
-        ScimUser user = mapper.readValue(minimal, ScimUser.class);
+        ScimUserInterface user = mapper.readValue(minimal, ScimUser.class);
         assertEquals("bjensen@example.com", user.getUserName());
         assertEquals(null, user.getPassword());
     }
@@ -52,7 +56,7 @@ public class ScimUserTests {
                         "  \"password\": \"foo\"\n" +
                         "}";
 
-        ScimUser user = mapper.readValue(minimal, ScimUser.class);
+        ScimUserInterface user = mapper.readValue(minimal, ScimUser.class);
         assertEquals("foo", user.getPassword());
     }
 
@@ -95,7 +99,7 @@ public class ScimUserTests {
         ScimUser user = new ScimUser();
         user.setId("123");
         user.setUserName("joe");
-        user.setGroups(Collections.singleton(new Group(null, "foo")));
+        user.setGroups(Collections.<ScimUserGroupInterface> singleton(new ScimUserGroup(null, "foo")));
 
         String json = mapper.writeValueAsString(user);
         // System.err.println(json);
@@ -111,7 +115,7 @@ public class ScimUserTests {
                         "{\"value\": \"babs@jensen.org\",\"type\": \"home\"}" +
                         "],\n" +
                         "\"schemas\":[\"urn:scim:schemas:core:1.0\"]}";
-        ScimUser user = mapper.readValue(json, ScimUser.class);
+        ScimUserInterface user = mapper.readValue(json, ScimUser.class);
         assertEquals(3, user.getEmails().size());
         assertEquals("bjensen@example.com", user.getEmails().get(1).getValue());
         assertEquals("babs@jensen.org", user.getEmails().get(2).getValue());
@@ -128,7 +132,7 @@ public class ScimUserTests {
                         "{\"value\": \"123456\",\"display\": \"dash.admin\"}" +
                         "],\n" +
                         "\"schemas\":[\"urn:scim:schemas:core:1.0\"]}";
-        ScimUser user = mapper.readValue(json, ScimUser.class);
+        ScimUserInterface user = mapper.readValue(json, ScimUser.class);
         assertEquals(2, user.getGroups().size());
         // System.out.println(mapper.writeValueAsString(user));
     }
@@ -157,7 +161,7 @@ public class ScimUserTests {
         ScimUser user = new ScimUser();
         user.setId("123");
         user.setUserName("joe");
-        ScimUser.Email email = new ScimUser.Email();
+        ScimEmail email = new ScimEmail();
         email.setValue("foo@bar.com");
         user.setEmails(Arrays.asList(email));
         StandardEvaluationContext context = new StandardEvaluationContext(user);

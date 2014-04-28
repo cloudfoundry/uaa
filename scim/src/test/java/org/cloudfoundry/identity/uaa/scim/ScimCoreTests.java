@@ -17,16 +17,19 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
 
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimCoreInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimUser;
 import org.junit.Test;
 
 public class ScimCoreTests {
 
     @Test
     public void testEquals() {
-        ScimCore c1 = new ScimUser("c1", "c1", null, null);
-        ScimCore c2 = new ScimGroup("c1", null);
-        ScimCore c3 = new ScimUser();
-        ScimCore c4 = new ScimGroup();
+        ScimCoreInterface c1 = new ScimUser("c1", "c1", null, null);
+        ScimCoreInterface c2 = new ScimGroup("c1", null);
+        ScimCoreInterface c3 = new ScimUser();
+        ScimCoreInterface c4 = new ScimGroup();
 
         assertEquals(c1, c2);
         assertNotSame(c1, c3);

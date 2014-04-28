@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -10,7 +10,7 @@
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-package org.cloudfoundry.identity.uaa.scim.jdbc;
+package org.cloudfoundry.identity.uaa.scim.dao.standard;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -25,11 +25,13 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.scim.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
-import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.dao.common.ScimGroupMembershipManager;
+import org.cloudfoundry.identity.uaa.scim.dao.common.ScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.scim.dao.common.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupMemberInterface;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
@@ -82,17 +84,17 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
     public static final String DELETE_MEMBER_IN_GROUPS_SQL = String.format("delete from %s where member_id=?",
                     MEMBERSHIP_TABLE);
 
-    private final RowMapper<ScimGroupMember> rowMapper = new ScimGroupMemberRowMapper();
+    private final RowMapper<ScimGroupMemberInterface> rowMapper = new ScimGroupMemberRowMapper();
 
     private ScimUserProvisioning userProvisioning;
 
     private ScimGroupProvisioning groupProvisioning;
 
-    private Set<ScimGroup> defaultUserGroups = new HashSet<ScimGroup>();
+    private Set<ScimGroupInterface> defaultUserGroups = new HashSet<ScimGroupInterface>();
 
     public void setDefaultUserGroups(Set<String> groupNames) {
         for (String name : groupNames) {
-            List<ScimGroup> g = groupProvisioning.query(String.format("displayName co '%s'", name));
+            List<ScimGroupInterface> g = groupProvisioning.query(String.format("displayName co '%s'", name));
             if (!g.isEmpty()) {
                 defaultUserGroups.add(g.get(0));
             } else { // default group must exist, hence if not already present,
@@ -116,12 +118,12 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
     }
 
     @Override
-    public ScimGroupMember addMember(final String groupId, final ScimGroupMember member)
+    public ScimGroupMemberInterface addMember(final String groupId, final ScimGroupMemberInterface member)
                     throws ScimResourceNotFoundException, MemberAlreadyExistsException {
         // first validate the supplied groupId, memberId
         validateRequest(groupId, member);
         final String authorities = getGroupAuthorities(member);
-        final String type = (member.getType() == null ? ScimGroupMember.Type.USER : member.getType()).toString();
+        final String type = (member.getType() == null ? ScimGroupMemberInterface.Type.USER : member.getType()).toString();
         try {
             jdbcTemplate.update(ADD_MEMBER_SQL, new PreparedStatementSetter() {
                 @Override
@@ -140,7 +142,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
     }
 
     @Override
-    public List<ScimGroupMember> getMembers(final String groupId) throws ScimResourceNotFoundException {
+    public List<ScimGroupMemberInterface> getMembers(final String groupId) throws ScimResourceNotFoundException {
         return jdbcTemplate.query(GET_MEMBERS_SQL, new PreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement ps) throws SQLException {
@@ -150,17 +152,17 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
     }
 
     @Override
-    public Set<ScimGroup> getGroupsWithMember(final String memberId, boolean transitive)
+    public Set<ScimGroupInterface> getGroupsWithMember(final String memberId, boolean transitive)
                     throws ScimResourceNotFoundException {
-        List<ScimGroup> results = new ArrayList<ScimGroup>();
+        List<ScimGroupInterface> results = new ArrayList<ScimGroupInterface>();
         getGroupsWithMember(results, memberId, transitive);
         if (isUser(memberId)) {
             results.addAll(defaultUserGroups);
         }
-        return new HashSet<ScimGroup>(results);
+        return new HashSet<ScimGroupInterface>(results);
     }
 
-    private void getGroupsWithMember(List<ScimGroup> results, final String memberId, boolean transitive) {
+    private void getGroupsWithMember(List<ScimGroupInterface> results, final String memberId, boolean transitive) {
         if (results == null) {
             return;
         }
@@ -177,7 +179,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
         }
 
         for (String groupId : groupIds) {
-            ScimGroup group;
+            ScimGroupInterface group;
             try {
                 group = groupProvisioning.retrieve(groupId);
             } catch (ScimResourceNotFoundException ex) {
@@ -196,10 +198,10 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
     }
 
     @Override
-    public List<ScimGroupMember> getMembers(final String groupId, final ScimGroupMember.Role permission)
+    public List<ScimGroupMemberInterface> getMembers(final String groupId, final ScimGroupMemberInterface.Role permission)
                     throws ScimResourceNotFoundException {
         logger.debug("getting members of type: " + permission + " from group: " + groupId);
-        List<ScimGroupMember> members = new ArrayList<ScimGroupMember>();
+        List<ScimGroupMemberInterface> members = new ArrayList<ScimGroupMemberInterface>();
         members.addAll(jdbcTemplate.query(GET_MEMBERS_WITH_AUTHORITY_SQL, new PreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement ps) throws SQLException {
@@ -212,10 +214,10 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
     }
 
     @Override
-    public ScimGroupMember getMemberById(String groupId, String memberId) throws ScimResourceNotFoundException,
+    public ScimGroupMemberInterface getMemberById(String groupId, String memberId) throws ScimResourceNotFoundException,
                     MemberNotFoundException {
         try {
-            ScimGroupMember u = jdbcTemplate.queryForObject(GET_MEMBER_SQl, rowMapper, groupId, memberId);
+            ScimGroupMemberInterface u = jdbcTemplate.queryForObject(GET_MEMBER_SQl, rowMapper, groupId, memberId);
             return u;
         } catch (EmptyResultDataAccessException e) {
             throw new MemberNotFoundException("Member " + memberId + " does not exist in group " + groupId);
@@ -223,7 +225,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
     }
 
     @Override
-    public ScimGroupMember updateMember(final String groupId, final ScimGroupMember member)
+    public ScimGroupMemberInterface updateMember(final String groupId, final ScimGroupMemberInterface member)
                     throws ScimResourceNotFoundException, MemberNotFoundException {
         validateRequest(groupId, member);
         final String authorities = getGroupAuthorities(member);
@@ -244,29 +246,29 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
     }
 
     @Override
-    public List<ScimGroupMember> updateOrAddMembers(String groupId, List<ScimGroupMember> members)
+    public List<ScimGroupMemberInterface> updateOrAddMembers(String groupId, List<ScimGroupMemberInterface> members)
                     throws ScimResourceNotFoundException {
-        List<ScimGroupMember> currentMembers = getMembers(groupId);
+        List<ScimGroupMemberInterface> currentMembers = getMembers(groupId);
         logger.debug("current-members: " + currentMembers + ", in request: " + members);
 
-        List<ScimGroupMember> currentMembersToRemove = new ArrayList<ScimGroupMember>(currentMembers);
+        List<ScimGroupMemberInterface> currentMembersToRemove = new ArrayList<ScimGroupMemberInterface>(currentMembers);
         currentMembersToRemove.removeAll(members);
         logger.debug("removing members: " + currentMembersToRemove);
-        for (ScimGroupMember member : currentMembersToRemove) {
+        for (ScimGroupMemberInterface member : currentMembersToRemove) {
             removeMemberById(groupId, member.getMemberId());
         }
 
-        List<ScimGroupMember> newMembersToAdd = new ArrayList<ScimGroupMember>(members);
+        List<ScimGroupMemberInterface> newMembersToAdd = new ArrayList<ScimGroupMemberInterface>(members);
         newMembersToAdd.removeAll(currentMembers);
         logger.debug("adding new members: " + newMembersToAdd);
-        for (ScimGroupMember member : newMembersToAdd) {
+        for (ScimGroupMemberInterface member : newMembersToAdd) {
             addMember(groupId, member);
         }
 
-        List<ScimGroupMember> membersToUpdate = new ArrayList<ScimGroupMember>(members);
+        List<ScimGroupMemberInterface> membersToUpdate = new ArrayList<ScimGroupMemberInterface>(members);
         membersToUpdate.retainAll(currentMembers);
         logger.debug("updating members: " + membersToUpdate);
-        for (ScimGroupMember member : membersToUpdate) {
+        for (ScimGroupMemberInterface member : membersToUpdate) {
             updateMember(groupId, member);
         }
 
@@ -274,9 +276,9 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
     }
 
     @Override
-    public ScimGroupMember removeMemberById(final String groupId, final String memberId)
+    public ScimGroupMemberInterface removeMemberById(final String groupId, final String memberId)
                     throws ScimResourceNotFoundException, MemberNotFoundException {
-        ScimGroupMember member = getMemberById(groupId, memberId);
+        ScimGroupMemberInterface member = getMemberById(groupId, memberId);
         int deleted = jdbcTemplate.update(DELETE_MEMBER_SQL, new PreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement ps) throws SQLException {
@@ -292,8 +294,8 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
     }
 
     @Override
-    public List<ScimGroupMember> removeMembersByGroupId(final String groupId) throws ScimResourceNotFoundException {
-        List<ScimGroupMember> members = getMembers(groupId);
+    public List<ScimGroupMemberInterface> removeMembersByGroupId(final String groupId) throws ScimResourceNotFoundException {
+        List<ScimGroupMemberInterface> members = getMembers(groupId);
         logger.debug("removing " + members + " members from group: " + groupId);
 
         int deleted = jdbcTemplate.update(DELETE_MEMBERS_IN_GROUP_SQL, new PreparedStatementSetter() {
@@ -311,8 +313,8 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
     }
 
     @Override
-    public Set<ScimGroup> removeMembersByMemberId(final String memberId) throws ScimResourceNotFoundException {
-        Set<ScimGroup> groups = getGroupsWithMember(memberId, false);
+    public Set<ScimGroupInterface> removeMembersByMemberId(final String memberId) throws ScimResourceNotFoundException {
+        Set<ScimGroupInterface> groups = getGroupsWithMember(memberId, false);
         logger.debug("removing " + memberId + " from groups: " + groups);
 
         int deleted = jdbcTemplate.update(DELETE_MEMBER_IN_GROUPS_SQL, new PreparedStatementSetter() {
@@ -339,7 +341,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
         }
     }
 
-    private void validateRequest(String groupId, ScimGroupMember member) {
+    private void validateRequest(String groupId, ScimGroupMemberInterface member) {
         if (!StringUtils.hasText(groupId) || !StringUtils.hasText(member.getMemberId())) {
             throw new InvalidScimResourceException("group-id, member-id and member-type must be non-empty");
         }
@@ -353,33 +355,33 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
         groupProvisioning.retrieve(groupId); // this will throw a ScimException
                                              // if the group does not exist
         // this will throw a ScimException if the group or user does not exist
-        if (member.getType() == ScimGroupMember.Type.GROUP) {
+        if (member.getType() == ScimGroupMemberInterface.Type.GROUP) {
             groupProvisioning.retrieve(member.getMemberId());
         } else {
             userProvisioning.retrieve(member.getMemberId());
         }
     }
 
-    private String getGroupAuthorities(ScimGroupMember member) {
+    private String getGroupAuthorities(ScimGroupMemberInterface member) {
         if (member.getRoles() != null && !member.getRoles().isEmpty()) {
             return StringUtils.collectionToCommaDelimitedString(member.getRoles());
         } else {
-            return StringUtils.collectionToCommaDelimitedString(ScimGroupMember.GROUP_MEMBER);
+            return StringUtils.collectionToCommaDelimitedString(ScimGroupMemberInterface.GROUP_MEMBER);
         }
     }
 
-    private static final class ScimGroupMemberRowMapper implements RowMapper<ScimGroupMember> {
+    private static final class ScimGroupMemberRowMapper implements RowMapper<ScimGroupMemberInterface> {
         @Override
         public ScimGroupMember mapRow(ResultSet rs, int rowNum) throws SQLException {
             String memberId = rs.getString(2);
             String memberType = rs.getString(3);
             String authorities = rs.getString(4);
 
-            return new ScimGroupMember(memberId, ScimGroupMember.Type.valueOf(memberType), getAuthorities(authorities));
+            return new ScimGroupMember(memberId, ScimGroupMemberInterface.Type.valueOf(memberType), getAuthorities(authorities));
         }
 
-        private List<ScimGroupMember.Role> getAuthorities(String authorities) {
-            List<ScimGroupMember.Role> result = new ArrayList<ScimGroupMember.Role>();
+        private List<ScimGroupMemberInterface.Role> getAuthorities(String authorities) {
+            List<ScimGroupMemberInterface.Role> result = new ArrayList<ScimGroupMemberInterface.Role>();
             for (String a : authorities.split(",")) {
                 // for temporary backwards compatibility
                 if ("read".equalsIgnoreCase(a)) {
@@ -388,7 +390,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
                     a = "writer";
                 }
 
-                result.add(ScimGroupMember.Role.valueOf(a.toUpperCase()));
+                result.add(ScimGroupMemberInterface.Role.valueOf(a.toUpperCase()));
             }
             return result;
         }
