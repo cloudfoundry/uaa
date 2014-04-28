@@ -1,6 +1,9 @@
 <link href="https://raw.github.com/clownfart/Markdown-CSS/master/markdown.css" rel="stylesheet"></link>
 # CloudFoundry User Account and Authentication (UAA) Server
 
+[![Build Status](https://travis-ci.org/cloudfoundry/uaa.svg?branch=develop)](https://travis-ci.org/cloudfoundry/uaa)
+[![Coverage Status](https://coveralls.io/repos/cloudfoundry/uaa/badge.png?branch=develop)](https://coveralls.io/r/cloudfoundry/uaa?branch=develop)
+
 The UAA is the identity management service for Cloud Foundry.  It's
 primary role is as an OAuth2 provider, issuing tokens for client
 applications to use when they act on behalf of Cloud Foundry users.
