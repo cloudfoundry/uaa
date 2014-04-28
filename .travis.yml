@@ -33,6 +33,8 @@ script:
   - mvn -Dtest=org.cloudfoundry.identity.uaa.integration.* -DfailIfNoTests=false test --quiet
   - ./.run-script.sh stop
   - mvn -Dspring.profiles.active=$TESTENV test --quiet
+after_success:
+  - mvn clean cobertura:cobertura coveralls:cobertura
 after_failure:
   - cat $CATALINA_OUT
 after_script:
