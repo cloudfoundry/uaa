@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.cloudfoundry.identity.uaa.scim.domain.common.ScimName;
+import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserGroupInterface;
 import org.cloudfoundry.identity.uaa.scim.domain.common.ScimUserInterface;
 import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.domain.standard.ScimUserGroup;
@@ -342,7 +343,7 @@ public class ScimUserEndpointsIntegrationTests {
         assertEquals(JOE, joe.getUserName());
         assertEquals(NUM_DEFAULT_GROUPS_ON_STARTUP, joe.getGroups().size());
 
-        joe.setGroups(Arrays.asList(new ScimUserGroup(UUID.randomUUID().toString(), "uaa.admin")));
+        joe.setGroups(Arrays.<ScimUserGroupInterface> asList(new ScimUserGroup(UUID.randomUUID().toString(), "uaa.admin")));
 
         HttpHeaders headers = new HttpHeaders();
         headers.add("If-Match", "\"" + joe.getVersion() + "\"");
