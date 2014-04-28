@@ -13,106 +13,102 @@ The User Account and Authentication Service (UAA):
 * Manages user accounts
 * Manages client application registrations
 
-Each audit event must at a minimum contain
+Each audit event contains
 
   * Client Address - the client IP or if not attainable, the IP of the last proxy
   * Date/Time of the event
   * Principal - if authenticated
-  * Client ID
+  * Client ID - if available
+  * Data identifying the event
 
-  * Authorization type (basic,token)
-  * Path - the request path
-  * Result Status Code
-
-Events
+Authentication and Password Events
 ==============================================================
 
-UserAuthenticationSuccessEvent - when user logs in
-UserAuthenticationFailureEvent/PrincipalAuthenticationFailureEvent - invalid user password
-UserNotFoundEvent/PrincipalAuthenticationFailureEvent - invalid user id
-PasswordChangeEvent - password successfully changed for a user
-PasswordChangeFailureEvent - password failed to change for a user
-ClientAuthenticationSuccessEvent - client authentication
-ClientAuthenticationFailureEvent - client authentication
+* UserAuthenticationSuccessEvent
+  Happens: When a user is successfully authenticated
+  Data Recorded: User ID and Username
+
+* UserAuthenticationFailureEvent
+  Happens: When a user authentication fails, user exists
+  Data Recorded: Username
+  Notes: Followed by a PrincipalAuthenticationFailureEvent
+
+* UserNotFoundEvent
+  Happens: When a user authentication fails, user does not exists
+  Data Recorded: Username
+  Notes: Followed by a PrincipalAuthenticationFailureEvent
+
+* PasswordChangeEvent
+  Happens: When a user password is changed through /Users/{user_id}/password
+  Data Recorded: User ID
+
+* PasswordChangeFailureEvent
+  Happens: When a user password change is attempted through /Users/{user_id}/password
+  Data Recorded: User ID
+
+* ClientAuthenticationSuccessEvent
+  Happens: When a client is successfully authenticated
+  Data Recorded: Client ID
+
+* ClientAuthenticationFailureEvent
+  Happens: When a client authentication fails (client may or may not exist)
+  Data Recorded: Client ID
+
+* PrincipalNotFoundEvent
+  Happens: currently not used
+  Data Recorded:
+
+* ResetPasswordRequestEvent
+  Happens: When a user requests to reset his/her password
+  Data Recorded: Email used
+
+Scim Administration Events
+==============================================================
+
+* UserModifiedEvent
+  Happens: When a user is created, modified, verified or deleted
+  Data Recorded: User ID, Username
+
+* ApprovalModifiedEvent
+  Happens: When approvals are added, modified or deleted for a user
+  Data Recorded: Username, Scope and Approval Status
+
+* GroupModifiedEvent
+  Happens: When a group is created, updated (members added/removed) or deleted
+  Data Recorded: Group ID, Group Name, Members
+
+Token Events
+==============================================================
+
+* TokenIssuedEvent
+  Happens: When a token is created
+  Data Recorded: Principal ID (client or user ID), scopes
 
 
+Client Administration Events
+==============================================================
 
-Urls to denote for auditing
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/oauth/authorize
- grant_type
- scope
- result
+* ClientCreateEvent
+  Happens: When a client is created
+  Data Recorded: Client ID
 
-/oauth/authorize?user_oauth_approval=true
- grant_type
- scope
- result
- approvals
+* ClientUpdateEvent
+  Happens: When a client is updated
+  Data Recorded: Client ID
 
-GET /oauth/authorize/confirm_access
+* SecretFailureEvent
+  Happens: When a client secret fails to change
+  Data Recorded: Client ID
 
-/oauth/token
- credentials or code
- result - access token?
+* SecretChangeEvent
+  Happens: When a client secret is changed
+  Data Recorded: Client ID
 
-/check_token
+* ClientApprovalsDeletedEvent
+  Happens: When all approvals for a client are deleted
+  Data Recorded: Client ID
 
-/check_id
-
-/userinfo
-
-POST /Users
-  Create User Event
-
-PUT /Users/{userid}
-  Update User Event
-
-PUT /Users/{id}/password
-  Password Change Event
-
-GET /Users/{id}/verify
-  User verified event
-
-GET /Users
-  Query User Event - query
-
-DELETE /Users/{id}
-  Delete user event
-
-GET /ids/Users
-
-POST /Group
-  Create group event
-
-PUT /Group/{id}
-  Update group event
-
-GET /Groups
-  Query groups event
-
-DELETE /Group/{id}
-  Delete group event
-
-DELETE /oauth/users/{username}/tokens/{jti}
-  Delete tokens event
-
-DELETE /oauth/clients/{client_id}/tokens/{jti}
-  Delete tokens event
-
-GET /token_key
-  Retrieve Token Key event
-
-POST /oauth/clients/{client_id}
-PUT /oauth/clients/{client_id}
-DELETE /oauth/clients/{client_id}
-PUT /oauth/clients/{client_id}/secret
-POST /oauth/clients/tx
-PUT /oauth/clients/tx
-POST /oauth/clients/tx/modify
-POST /oauth/clients/tx/secret
-POST /oauth/clients/tx/delete
-
-POST /login.do
-GET /logout.do
+* ClientDeleteEvent
+  Happens: When a client is deleted
+  Data Recorded: Client ID
 
