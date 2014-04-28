@@ -64,11 +64,11 @@ public class ScimGroupJsonDeserializer extends JsonDeserializer<ScimGroupInterfa
 
     protected void startDeserialization(ScimGroupInterface group, Map<String, Object> context)
     {
-        Map<ScimGroupMemberInterface.Role, List<ScimGroupMember>> roles = new HashMap<ScimGroupMemberInterface.Role, List<ScimGroupMember>>();
+        Map<ScimGroupMemberInterface.Role, List<ScimGroupMemberInterface>> roles = new HashMap<ScimGroupMemberInterface.Role, List<ScimGroupMemberInterface>>();
         for (ScimGroupMemberInterface.Role role : ScimGroupMemberInterface.Role.values()) {
-            roles.put(role, new ArrayList<ScimGroupMember>());
+            roles.put(role, new ArrayList<ScimGroupMemberInterface>());
         }
-        Set<ScimGroupMember> allMembers = new HashSet<ScimGroupMember>();
+        Set<ScimGroupMemberInterface> allMembers = new HashSet<ScimGroupMemberInterface>();
         context.put("members", allMembers);
         context.put("roles", roles);
     }
@@ -89,7 +89,9 @@ public class ScimGroupJsonDeserializer extends JsonDeserializer<ScimGroupInterfa
             try {
                 role = ScimGroupMemberInterface.Role.valueOf(value.toUpperCase());
 
-                ScimGroupMember[] members = jp.readValueAs(ScimGroupMember[].class);
+                @SuppressWarnings("unchecked")
+                Class<ScimGroupMemberInterface[]> memberClass = (Class<ScimGroupMemberInterface[]>) getScimGroupMemberArrayedClass();
+                ScimGroupMemberInterface[] members = jp.readValueAs(memberClass);
                 for (ScimGroupMemberInterface member : members) {
                     member.setRoles(new ArrayList<ScimGroupMemberInterface.Role>());
                 }
@@ -98,7 +100,7 @@ public class ScimGroupJsonDeserializer extends JsonDeserializer<ScimGroupInterfa
                 Set<ScimGroupMemberInterface> allMembers = (Set<ScimGroupMemberInterface>) context.get("members");
 
                 @SuppressWarnings("unchecked")
-                Map<ScimGroupMemberInterface.Role, List<ScimGroupMember>> roles = (Map<ScimGroupMemberInterface.Role, List<ScimGroupMember>>) context.get("roles");
+                Map<ScimGroupMemberInterface.Role, List<ScimGroupMemberInterface>> roles = (Map<ScimGroupMemberInterface.Role, List<ScimGroupMemberInterface>>) context.get("roles");
 
                 roles.get(role).addAll(Arrays.asList(members));
                 allMembers.addAll(Arrays.asList(members));
@@ -115,7 +117,7 @@ public class ScimGroupJsonDeserializer extends JsonDeserializer<ScimGroupInterfa
         Set<ScimGroupMemberInterface> allMembers = (Set<ScimGroupMemberInterface>) context.get("members");
 
         @SuppressWarnings("unchecked")
-        Map<ScimGroupMemberInterface.Role, List<ScimGroupMember>> roles = (Map<ScimGroupMemberInterface.Role, List<ScimGroupMember>>) context.get("roles");
+        Map<ScimGroupMemberInterface.Role, List<ScimGroupMemberInterface>> roles = (Map<ScimGroupMemberInterface.Role, List<ScimGroupMemberInterface>>) context.get("roles");
 
         for (ScimGroupMemberInterface member : allMembers) {
             for (ScimGroupMemberInterface.Role role : roles.keySet()) {
@@ -125,6 +127,11 @@ public class ScimGroupJsonDeserializer extends JsonDeserializer<ScimGroupInterfa
             }
         }
         group.setMembers(new ArrayList<ScimGroupMemberInterface>(allMembers));
+    }
+
+    protected Class<?> getScimGroupMemberArrayedClass()
+    {
+        return ScimGroupMember[].class;
     }
 
 }

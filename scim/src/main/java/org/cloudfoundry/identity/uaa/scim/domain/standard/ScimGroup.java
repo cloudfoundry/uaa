@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupInterface;
 import org.cloudfoundry.identity.uaa.scim.domain.common.ScimGroupMemberInterface;
 import org.cloudfoundry.identity.uaa.scim.json.ScimGroupJsonDeserializer;
 import org.cloudfoundry.identity.uaa.scim.json.ScimGroupJsonSerializer;
+import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.map.annotate.JsonDeserialize;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 
@@ -72,6 +73,10 @@ public class ScimGroup extends ScimCore implements ScimGroupInterface {
         this.displayName = name;
     }
 
+    /**
+     * Used when constructing group membership list within a user
+     */
+    @JsonIgnore
     @Override
     public ScimUserGroup getUserGroup()
     {

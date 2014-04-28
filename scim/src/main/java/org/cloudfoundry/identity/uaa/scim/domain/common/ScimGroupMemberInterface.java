@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 
+@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public interface ScimGroupMemberInterface
 {
     @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
