@@ -40,7 +40,7 @@ object Config {
     target
   }
 
-  def baseUrl = (sys.env.get("VCAP_BVT_TARGET") orElse yetiTarget) map (_.replace("ccng.", ""))
+  def baseUrl = (sys.env.get("VCAP_BVT_TARGET") orElse yetiTarget) map (_.replace("cc.", ""))
 
   private def prependHttp(url: String) = if (url.startsWith("http")) url else "http://" + url
 
