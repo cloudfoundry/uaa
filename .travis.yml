@@ -3,10 +3,11 @@ env:
   global:
     - CATALINA_PID=/tmp/tomcat.pid
     - CATALINA_OUT=/tmp/tomcat.log
+    - secure: "Rsrhick057QbQzg33Oa6MFxeyPK8jlDnT5J6w/uXD9wyEJfYZEsLdxv+uiq4EpxSBEQYxw3q9ULcwMuUJAkdQWrAFJhbzjKPYZ2OroTjUMNVpt0sExT6xm16HSu4E4RcXKuO4O2k58bDSPUSAhlVc8PJR/ACRULzDyTDAC2wML4="
   matrix:
+    - TESTENV=
     - TESTENV=mysql,default
     - TESTENV=postgresql,default
-    - TESTENV=
 services:
   - mysql
   - postgresql
@@ -19,7 +20,7 @@ before_install:
   - psql -c "create user root with superuser password 'changeme';" --dbname=uaa -U postgres
   - mysql -e 'drop database if exists uaa;'
   - mysql -e 'create database uaa;'
-  - mysql -e "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('changeme');" 
+  - mysql -e "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('changeme');"
   - mysql -e "SET PASSWORD FOR 'root'@'127.0.0.1' = PASSWORD('changeme');"
 install: 
   - mvn -U clean --quiet -DskipTests=true
@@ -28,15 +29,41 @@ install:
   - mvn -Dwar.exploded.dir=`pwd`/target/tomcat/webapps/uaa --quiet -pl uaa war:exploded
   - mvn -Dwar.exploded.dir=`pwd`/target/tomcat/webapps/api --quiet -pl samples/api war:exploded
   - mvn -Dwar.exploded.dir=`pwd`/target/tomcat/webapps/app --quiet -pl samples/app war:exploded
-script: 
+script:
   - ./.run-script.sh start
   - mvn -Dtest=org.cloudfoundry.identity.uaa.integration.* -DfailIfNoTests=false test --quiet
   - ./.run-script.sh stop
   - mvn -Dspring.profiles.active=$TESTENV test --quiet
 after_success:
   - mvn clean cobertura:cobertura coveralls:cobertura
+  - openssl aes-256-cbc -k "$SETTINGS_XML_KEY" -in settings.xml.enc -d -a -out $HOME/.m2/settings.xml
+  - python travis_after_all.py
+  - export $(cat .to_export_back)
+  - |
+      if [ "$BUILD_LEADER" = "YES" ]; then
+        if [ "$BUILD_AGGREGATE_STATUS" = "others_succeeded" ]; then
+          echo "All Succeded!"
+          if [ "$TRAVIS_BRANCH" = "develop" ]; then
+            echo "PUBLISHING..."
+            mvn deploy -DskipTests
+          fi
+        else
+          echo "Some Failed"
+        fi
+      fi
 after_failure:
+  - python travis_after_all.py
+  - export $(cat .to_export_back)
+  - |
+      if [ "$BUILD_LEADER" = "YES" ]; then
+        if [ "$BUILD_AGGREGATE_STATUS" = "others_failed" ]; then
+          echo "All Failed"
+        else
+          echo "Some Failed"
+        fi
+      fi
   - cat $CATALINA_OUT
 after_script:
   - rm -rf tomcat
   - rm -f tomcat.tar.gz
+  - echo leader=$BUILD_LEADER status=$BUILD_AGGREGATE_STATUS
