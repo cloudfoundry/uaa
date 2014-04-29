@@ -3,6 +3,7 @@ env:
   global:
     - CATALINA_PID=/tmp/tomcat.pid
     - CATALINA_OUT=/tmp/tomcat.log
+    - secure: "Rsrhick057QbQzg33Oa6MFxeyPK8jlDnT5J6w/uXD9wyEJfYZEsLdxv+uiq4EpxSBEQYxw3q9ULcwMuUJAkdQWrAFJhbzjKPYZ2OroTjUMNVpt0sExT6xm16HSu4E4RcXKuO4O2k58bDSPUSAhlVc8PJR/ACRULzDyTDAC2wML4="
   matrix:
     - TESTENV=mysql,default
     - TESTENV=postgresql,default
@@ -34,6 +35,7 @@ script:
   - ./.run-script.sh stop
   - mvn -Dspring.profiles.active=$TESTENV test --quiet
 after_success:
+  - openssl aes-256-cbc -k "$SETTINGS_XML_KEY" -in settings.xml.enc -d -a -out $HOME/.m2/settings.xml
   - mvn clean cobertura:cobertura coveralls:cobertura
 after_failure:
   - cat $CATALINA_OUT
