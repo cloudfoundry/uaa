@@ -14,10 +14,12 @@
 -->
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
     xmlns:oauth="http://www.springframework.org/schema/security/oauth2" xmlns:util="http://www.springframework.org/schema/util"
+    xmlns:aop="http://www.springframework.org/schema/aop"
     xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-1.0.xsd
 		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.2.xsd
-		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
-		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.2.xsd">
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.0.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.0.xsd">
 
     <oauth:authorization-server client-details-service-ref="jdbcClientDetailsService"
         token-services-ref="tokenServices" user-approval-handler-ref="userManagedApprovalHandler"
@@ -103,6 +105,18 @@
             <password-encoder ref="bcryptPasswordEncoder" />
         </authentication-provider>
     </authentication-manager>
+
+    <bean id="clientAuthenticationPublisher" class="org.cloudfoundry.identity.uaa.oauth.client.ClientAuthenticationPublisher"/>
+
+    <aop:config proxy-target-class="true">
+        <aop:aspect ref="clientAuthenticationPublisher">
+            <aop:after-returning method="clientAuthenticationSuccess"
+                                 pointcut="execution(* *..ProviderManager+.authenticate(..)) and bean(clientAuthenticationManager)" returning="authentication" />
+            <aop:after-throwing method="clientAuthenticationFailure"
+                                pointcut="execution(* *..ProviderManager+.authenticate(..)) and args(authentication) and bean(clientAuthenticationManager)"
+                                throwing="ex" />
+        </aop:aspect>
+    </aop:config>
 
     <bean id="clientDetailsUserService" class="org.springframework.security.oauth2.provider.client.ClientDetailsUserDetailsService">
         <constructor-arg ref="jdbcClientDetailsService" />

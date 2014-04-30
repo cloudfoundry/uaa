@@ -242,7 +242,7 @@ public class ScimGroupEndpoints {
      * @RequestMapping(value = { "/Group/{groupId}", "/Groups/{groupId}" },
      * method = RequestMethod.PATCH)
      * @ResponseBody
-     * public ScimGroup updateGroup(@RequestBody ScimGroup group, @PathVariable
+     * public ScimGroup updateGroup(@RequeudstBody ScimGroup group, @PathVariable
      * String groupId,
      * @RequestHeader(value = "If-Match", required = false) String etag) {
      * }

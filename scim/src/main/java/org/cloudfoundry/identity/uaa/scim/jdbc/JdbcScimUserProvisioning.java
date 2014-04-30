@@ -229,7 +229,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
     }
 
     @Override
-    public boolean changePassword(final String id, String oldPassword, final String newPassword)
+    public void changePassword(final String id, String oldPassword, final String newPassword)
                     throws ScimResourceNotFoundException {
         if (oldPassword != null) {
             checkPasswordMatches(id, oldPassword);
@@ -250,7 +250,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
         if (updated != 1) {
             throw new ScimResourceConstraintFailedException("User " + id + " duplicated");
         }
-        return true;
     }
 
     // Checks the existing password for a user

@@ -24,19 +24,25 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.audit.event.ApprovalModifiedEvent;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.SearchQueryConverter;
 import org.cloudfoundry.identity.uaa.rest.jdbc.SearchQueryConverter.ProcessedFilter;
+import org.springframework.context.ApplicationEvent;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.Assert;
 
-public class JdbcApprovalStore implements ApprovalStore {
+public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublisherAware {
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -66,6 +72,7 @@ public class JdbcApprovalStore implements ApprovalStore {
     private static final String EXPIRE_AUTHZ_SQL = String.format("update %s set expiresAt = :expiry", TABLE_NAME);
 
     private boolean handleRevocationsAsExpiry = false;
+    private ApplicationEventPublisher applicationEventPublisher;
 
     public JdbcApprovalStore(JdbcTemplate jdbcTemplate, JdbcPagingListFactory pagingListFactory,
                     SearchQueryConverter queryConverter) {
@@ -118,6 +125,8 @@ public class JdbcApprovalStore implements ApprovalStore {
                 }
             });
         }
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        publish(new ApprovalModifiedEvent(approval, authentication));
         return true;
     }
 
@@ -188,6 +197,17 @@ public class JdbcApprovalStore implements ApprovalStore {
     @Override
     public List<Approval> getApprovals(String userName, String clientId) {
         return getApprovals(String.format("userName eq '%s' and clientId eq '%s'", userName, clientId));
+    }
+
+    @Override
+    public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
+        this.applicationEventPublisher = applicationEventPublisher;
+    }
+
+    public void publish(ApplicationEvent event) {
+        if (applicationEventPublisher != null) {
+            applicationEventPublisher.publishEvent(event);
+        }
     }
 
     private static class AuthorizationRowMapper implements RowMapper<Approval> {

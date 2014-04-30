@@ -17,6 +17,7 @@ import java.security.Principal;
 
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.ClientDetails;
 
 /**
@@ -27,11 +28,11 @@ public class SecretFailureEvent extends AbstractClientAdminEvent {
 
     private String message;
 
-    public SecretFailureEvent(String message, Principal principal) {
+    public SecretFailureEvent(String message, Authentication principal) {
         this(message, null, principal);
     }
 
-    public SecretFailureEvent(String message, ClientDetails client, Principal principal) {
+    public SecretFailureEvent(String message, ClientDetails client, Authentication principal) {
         super(client, principal);
         this.message = message;
     }

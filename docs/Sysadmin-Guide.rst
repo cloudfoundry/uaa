@@ -268,7 +268,7 @@ for example if you ssh into the login server:
     bosh ssh login 0
     sudo tcpdump 'tcp port 80 and host uaa.cf116.dev.las01.vcsops.com' -i any -A
 
-uaac and vmc can take a --trace option which shows each online interaction.
+uaac and cf can take a --trace option which shows each online interaction.
 
 "uaa target" your uaa if you haven't already.
 
@@ -283,11 +283,11 @@ for a client to retrieve a symmetric key.
 Live data viewing and manipulation
 ==================================
 
-vmc and uaac each need a target. vmc points to a cloud controller and uaac to a uaa instance.
+cf and uaac each need a target. cf points to a cloud controller and uaac to a uaa instance.
 
 ::
 
-    vmc target api.cf116.dev.las01.vcsops.com
+    cf target api.cf116.dev.las01.vcsops.com
     uaac target uaa.cf116.dev.las01.vcsops.com # dev deployment
     uaac target uaa.cfpartners.cloudfoundry.com # production
     uaac target localhost:8080/uaa # local dev
@@ -327,11 +327,11 @@ add scim.write to its authorities list, delete and get the token again.
 Manage Users
 ------------
 
-The vmc client can be used for user registrations:
+The cf client can be used for user registrations:
 
 ::
 
-    vmc add-user --email sre@vmware.com # prompts for new password
+    cf create-user sre@vmware.com mypassword
     uaac users # examine all users
     uaac user ids # look up user ids -- only works outside production
 
@@ -370,47 +370,6 @@ Create new clients:
 
     uaac client add media_server --scope openid,scim.read,scim.write --authorized_grant_types client_credentials --authorities oauth.login
 
-Run vcap yeti tests with a deployment
--------------------------------------
-
-Put in .bash\_profile or another script you source:
-
-::
-
-    export VCAP_BVT_TARGET=api.cf116.dev.las01.vcsops.com
-    export VCAP_BVT_USER=sre@vmware.com
-    export VCAP_BVT_USER_PASSWD=an_admin_pw
-
-Make sre@vmware.com an admin if you want to do parallel yeti tests
-
-::
-
-    uaac user update sre@vmware.com --authorities "cloud_controller.admin"
-
-Manually deploy an app
-
-::
-
-    vmc login
-    vmc create-org org1
-    vmc login
-    vmc create-space space1
-    vmc login # select space1
-    vmc push # in an app dir
-
-Execute the yeti suite with retries in case of timeouts
-
-::
-
-    vmc target api.cf116.dev.las01.vcsops.com
-    vmc login # sre@vmware.com
-    vmc add-user --email admin@vmware.com
-    git clone https://github.com/cloudfoundry/vcap-yeti.git
-    cd vcap-yeti
-    git checkout
-    ./update
-    bundle exec rake full rerun_failure # admin@vmware.com test
-
 UAA Signing
 -----------
 
@@ -428,7 +387,7 @@ if access is denied, use client credentials that allow access to the symmetric k
 
 ::
 
-    vmc signing key -c admin -s adminsecret
+    uaac signing key -c admin -s adminsecret
 
 Additional Resources
 ====================

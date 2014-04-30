@@ -76,13 +76,13 @@ public class PasswordChangeEventPublisherTests {
         Mockito.when(scimUserProvisioning.retrieve("foo")).thenReturn(
                         ScimUserTestFactory.getScimUser("joe", "joe@test.org", "Joe", "Schmo"));
         subject.passwordFailure("foo", new RuntimeException("planned"));
-        Mockito.verify(publisher).publishEvent(Matchers.isA(PasswordFailureEvent.class));
+        Mockito.verify(publisher).publishEvent(Matchers.isA(PasswordChangeFailureEvent.class));
     }
 
     @Test
     public void testPasswordFailureNoUser() {
         Mockito.when(scimUserProvisioning.retrieve("foo")).thenThrow(new ScimResourceNotFoundException("Not found"));
         subject.passwordFailure("foo", new RuntimeException("planned"));
-        Mockito.verify(publisher).publishEvent(Matchers.any(PasswordFailureEvent.class));
+        Mockito.verify(publisher).publishEvent(Matchers.any(PasswordChangeFailureEvent.class));
     }
 }
