@@ -25,90 +25,90 @@ Authentication and Password Events
 ==============================================================
 
 * UserAuthenticationSuccessEvent
-  Happens: When a user is successfully authenticated
-  Data Recorded: User ID and Username
+    - Happens: When a user is successfully authenticated
+    - Data Recorded: User ID and Username
 
 * UserAuthenticationFailureEvent
-  Happens: When a user authentication fails, user exists
-  Data Recorded: Username
-  Notes: Followed by a PrincipalAuthenticationFailureEvent
+    - Happens: When a user authentication fails, user exists
+    - Data Recorded: Username
+    - Notes: Followed by a PrincipalAuthenticationFailureEvent
 
 * UserNotFoundEvent
-  Happens: When a user authentication fails, user does not exists
-  Data Recorded: Username
-  Notes: Followed by a PrincipalAuthenticationFailureEvent
+    - Happens: When a user authentication fails, user does not exists
+    - Data Recorded: Username
+    - Notes: Followed by a PrincipalAuthenticationFailureEvent
 
 * PasswordChangeEvent
-  Happens: When a user password is changed through /Users/{user_id}/password
-  Data Recorded: User ID
+    - Happens: When a user password is changed through /Users/{user_id}/password
+    - Data Recorded: User ID
 
 * PasswordChangeFailureEvent
-  Happens: When a user password change is attempted through /Users/{user_id}/password
-  Data Recorded: User ID
+    - Happens: When a user password change is attempted through /Users/{user_id}/password
+    - Data Recorded: User ID
 
 * ClientAuthenticationSuccessEvent
-  Happens: When a client is successfully authenticated
-  Data Recorded: Client ID
+    - Happens: When a client is successfully authenticated
+    - Data Recorded: Client ID
 
 * ClientAuthenticationFailureEvent
-  Happens: When a client authentication fails (client may or may not exist)
-  Data Recorded: Client ID
+    - Happens: When a client authentication fails (client may or may not exist)
+    - Data Recorded: Client ID
 
 * PrincipalNotFoundEvent
-  Happens: currently not used
-  Data Recorded:
+    - Happens: currently not used
+    - Data Recorded:
 
 * ResetPasswordRequestEvent
-  Happens: When a user requests to reset his/her password
-  Data Recorded: Email used
+    - Happens: When a user requests to reset his/her password
+    - Data Recorded: Email used
 
 Scim Administration Events
 ==============================================================
 
 * UserModifiedEvent
-  Happens: When a user is created, modified, verified or deleted
-  Data Recorded: User ID, Username
+    - Happens: When a user is created, modified, verified or deleted
+    - Data Recorded: User ID, Username
 
 * ApprovalModifiedEvent
-  Happens: When approvals are added, modified or deleted for a user
-  Data Recorded: Username, Scope and Approval Status
+    - Happens: When approvals are added, modified or deleted for a user
+    - Data Recorded: Username, Scope and Approval Status
 
 * GroupModifiedEvent
-  Happens: When a group is created, updated (members added/removed) or deleted
-  Data Recorded: Group ID, Group Name, Members
+    - Happens: When a group is created, updated (members added/removed) or deleted
+    - Data Recorded: Group ID, Group Name, Members
 
 Token Events
 ==============================================================
 
 * TokenIssuedEvent
-  Happens: When a token is created
-  Data Recorded: Principal ID (client or user ID), scopes
+    - Happens: When a token is created
+    - Data Recorded: Principal ID (client or user ID), scopes
 
 
 Client Administration Events
 ==============================================================
 
 * ClientCreateEvent
-  Happens: When a client is created
-  Data Recorded: Client ID
+    - Happens: When a client is created
+    - Data Recorded: Client ID
 
 * ClientUpdateEvent
-  Happens: When a client is updated
-  Data Recorded: Client ID
+    - Happens: When a client is updated
+    - Data Recorded: Client ID
 
 * SecretFailureEvent
-  Happens: When a client secret fails to change
-  Data Recorded: Client ID
+    - Happens: When a client secret fails to change
+    - Data Recorded: Client ID
 
 * SecretChangeEvent
-  Happens: When a client secret is changed
-  Data Recorded: Client ID
+    - Happens: When a client secret is changed
+    - Data Recorded: Client ID
 
 * ClientApprovalsDeletedEvent
-  Happens: When all approvals for a client are deleted
-  Data Recorded: Client ID
+    - Happens: When all approvals for a client are deleted
+    - Data Recorded: Client ID
 
 * ClientDeleteEvent
-  Happens: When a client is deleted
-  Data Recorded: Client ID
+    - Happens: When a client is deleted
+    - Data Recorded: Client ID
 
