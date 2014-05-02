@@ -12,18 +12,9 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.params.ClientPNames;
-import org.apache.http.client.params.CookiePolicy;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.cloudfoundry.identity.uaa.test.TestProfileEnvironment;
 import org.cloudfoundry.identity.uaa.test.UrlHelper;
@@ -46,11 +37,17 @@ import org.springframework.security.oauth2.client.test.RestTemplateHolder;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.ResponseErrorHandler;
-import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriTemplate;
 import org.springframework.web.util.UriUtils;
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.Socket;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * <p>
@@ -110,8 +107,9 @@ public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper 
     }
 
     private ServerRunning() {
-        this.environment = TestProfileEnvironment.getEnvironment();
-        this.integrationTest = environment.getProperty("uaa.integration.test", Boolean.class, false);
+        environment = TestProfileEnvironment.getEnvironment();
+        integrationTest = environment.getProperty("uaa.integration.test", Boolean.class, false);
+        client = getRestTemplate();
         setPort(environment.getProperty("uaa.port", Integer.class, DEFAULT_PORT));
         setRootPath(environment.getProperty("uaa.path", DEFAULT_ROOT_PATH));
         setHostName(environment.getProperty("uaa.host", DEFAULT_HOST));
@@ -122,10 +120,6 @@ public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper 
      */
     public void setPort(int port) {
         this.port = port;
-        if (!serverOnline.containsKey(port)) {
-            serverOnline.put(port, true);
-        }
-        client = getRestTemplate();
     }
 
     /**
@@ -153,43 +147,31 @@ public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper 
     }
 
     @Override
-    public Statement apply(final Statement base, final FrameworkMethod method, final Object target) {
+    public Statement apply(Statement statement, FrameworkMethod frameworkMethod, Object o) {
+        Assume.assumeTrue("Test ignored as the server cannot be reached at " + hostName + ":" + port,
+                integrationTest || getStatus());
+        return statement;
+    }
 
-        // Check at the beginning, so this can be used as a static field
-        if (!integrationTest) {
-            Assume.assumeTrue(serverOnline.get(port));
+    private synchronized Boolean getStatus() {
+        Boolean available = serverOnline.get(port);
+        if (available == null) {
+            available = connectionAvailable();
+            serverOnline.put(port, available);
         }
+        return available;
+    }
 
-        RestTemplate client = new RestTemplate();
-        boolean online = false;
-        try {
-            client.getForEntity(new UriTemplate(getUrl("/login")).toString(), String.class);
-            online = true;
-            logger.debug("Basic connectivity test passed");
-        } catch (RestClientException e) {
-            logger.warn(String.format("Basic connectivity test failed for hostName=%s, port=%d: %s", hostName, port, e));
-            if (!integrationTest) {
-                logger.warn("Tests will not be run");
-                Assume.assumeNoException(e);
-            } else {
-                logger.error(String.format("\n\n*** Integration tests will fail as 'uaa.integration.test' " +
-                                "is set to 'true' and uaa host '%s' is down ***\n", hostName));
-            }
-        } finally {
-            if (!online) {
-                serverOnline.put(port, false);
-            }
+    private boolean connectionAvailable() {
+        logger.info("Testing connectivity for " + hostName + ":" + port);
+        try (Socket socket = new Socket(hostName, port)) {
+            logger.info("Connectivity test succeeded for " + hostName + ":" + port);
+            return true;
+
+        } catch (IOException e) {
+            logger.warn("Connectivity test failed for " + hostName + ":" + port, e);
+            return false;
         }
-
-        return new Statement() {
-
-            @Override
-            public void evaluate() throws Throwable {
-                base.evaluate();
-            }
-
-        };
-
     }
 
     @Override

@@ -13,7 +13,7 @@
 
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import static org.junit.internal.matchers.StringContains.containsString;
+import static org.hamcrest.CoreMatchers.containsString;
 
 import java.util.Collection;
 
