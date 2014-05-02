@@ -215,21 +215,11 @@ public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper 
         return getBaseUrl() + path;
     }
 
-    public ResponseEntity<String> postForString(String path, MultiValueMap<String, String> formData) {
-        return postForString(path, formData, new HttpHeaders());
-    }
-
     public ResponseEntity<String> postForString(String path, MultiValueMap<String, String> formData, HttpHeaders headers) {
         if (headers.getContentType() == null) {
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         }
-        return client.exchange(getUrl(path), HttpMethod.POST, new HttpEntity<MultiValueMap<String, String>>(formData,
-                        headers), String.class);
-    }
-
-    @SuppressWarnings("rawtypes")
-    public ResponseEntity<Map> postForMap(String path, MultiValueMap<String, String> formData) {
-        return postForMap(path, formData, new HttpHeaders());
+        return client.exchange(getUrl(path), HttpMethod.POST, new HttpEntity<>(formData, headers), String.class);
     }
 
     @SuppressWarnings("rawtypes")
@@ -237,8 +227,7 @@ public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper 
         if (headers.getContentType() == null) {
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         }
-        return client.exchange(getUrl(path), HttpMethod.POST, new HttpEntity<MultiValueMap<String, String>>(formData,
-                        headers), Map.class);
+        return client.exchange(getUrl(path), HttpMethod.POST, new HttpEntity<>(formData, headers), Map.class);
     }
 
     public ResponseEntity<String> getForString(String path) {
@@ -246,7 +235,7 @@ public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper 
     }
 
     public <T> ResponseEntity<T> getForObject(String path, Class<T> type, final HttpHeaders headers) {
-        return client.exchange(getUrl(path), HttpMethod.GET, new HttpEntity<Void>((Void) null, headers), type);
+        return client.exchange(getUrl(path), HttpMethod.GET, new HttpEntity<>(null, headers), type);
     }
 
     public <T> ResponseEntity<T> getForObject(String path, Class<T> type) {
@@ -254,12 +243,12 @@ public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper 
     }
 
     public ResponseEntity<String> getForString(String path, final HttpHeaders headers) {
-        HttpEntity<Void> request = new HttpEntity<Void>(null, headers);
+        HttpEntity<Void> request = new HttpEntity<>(null, headers);
         return client.exchange(getUrl(path), HttpMethod.GET, request, String.class);
     }
 
     public ResponseEntity<Void> getForResponse(String path, final HttpHeaders headers, Object... uriVariables) {
-        HttpEntity<Void> request = new HttpEntity<Void>(null, headers);
+        HttpEntity<Void> request = new HttpEntity<>(null, headers);
         return client.exchange(getUrl(path), HttpMethod.GET, request, Void.class, uriVariables);
     }
 
@@ -268,7 +257,7 @@ public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper 
         actualHeaders.putAll(headers);
         actualHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-        return client.exchange(getUrl(path), HttpMethod.POST, new HttpEntity<MultiValueMap<String, String>>(params,
+        return client.exchange(getUrl(path), HttpMethod.POST, new HttpEntity<>(params,
                         actualHeaders), Void.class);
     }
 
@@ -341,7 +330,7 @@ public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper 
 
         private final String url;
 
-        private MultiValueMap<String, String> params = new LinkedMultiValueMap<String, String>();
+        private MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
 
         public UriBuilder(String url) {
             this.url = url;
