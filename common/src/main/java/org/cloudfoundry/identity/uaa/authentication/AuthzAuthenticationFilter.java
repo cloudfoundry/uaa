@@ -48,7 +48,7 @@ import org.springframework.util.Assert;
 /**
  * Filter which processes authentication submitted through the
  * <code>/authorize</code> endpoint.
- * 
+ *
  * Checks the submitted information for a parameter named "credentials" (or
  * specified via the {@link #setParameterNames(List) parameter name}), in JSON
  * format.
@@ -59,7 +59,7 @@ import org.springframework.util.Assert;
  * context and allows the request to continue.
  * <p>
  * If the parameter is not present, the filter will have no effect.
- * 
+ *
  * See <a
  * href="https://github.com/cloudfoundry/uaa/blob/master/docs/UAA-APIs.md">UUA
  * API Docs</a>
@@ -80,7 +80,7 @@ public class AuthzAuthenticationFilter implements Filter {
 
     /**
      * The filter fails on requests that don't have one of these HTTP methods.
-     * 
+     *
      * @param methods the methods to set (defaults to POST)
      */
     public void setMethods(Set<String> methods) {
@@ -103,7 +103,7 @@ public class AuthzAuthenticationFilter implements Filter {
      * passed as credentials to the authentication manager. A request that
      * doesn't have any of the specified parameters
      * is ignored.
-     * 
+     *
      * @param parameterNames the parameter names to set (default empty)
      */
     public void setParameterNames(List<String> parameterNames) {
@@ -117,7 +117,7 @@ public class AuthzAuthenticationFilter implements Filter {
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException,
-                    ServletException {
+        ServletException {
 
         HttpServletRequest req = (HttpServletRequest) request;
         HttpServletResponse res = (HttpServletResponse) response;
@@ -136,7 +136,7 @@ public class AuthzAuthenticationFilter implements Filter {
                     throw new BadCredentialsException("Credentials must be sent by (one of methods): " + methods);
                 }
                 Authentication result = authenticationManager.authenticate(new AuthzAuthenticationRequest(loginInfo,
-                                new UaaAuthenticationDetails(req)));
+                    new UaaAuthenticationDetails(req)));
                 SecurityContextHolder.getContext().setAuthentication(result);
             }
         } catch (AuthenticationException e) {
@@ -191,8 +191,8 @@ public class AuthzAuthenticationFilter implements Filter {
                 if (value.startsWith("{")) {
                     try {
                         Map<String, String> jsonCredentials = mapper.readValue(value,
-                                        new TypeReference<Map<String, String>>() {
-                                        });
+                            new TypeReference<Map<String, String>>() {
+                            });
                         credentials.putAll(jsonCredentials);
                     } catch (IOException e) {
                         logger.warn("Unknown format of value for request param: " + paramName + ". Ignoring.");

@@ -31,6 +31,7 @@
         <oauth:password authentication-manager-ref="compositeAuthenticationManager" />
     </oauth:authorization-server>
 
+    <!--/oauth/token with Authorization: Bearer -->
     <http name="tokenEndpointSecurityForAuthServers" create-session="stateless" authentication-manager-ref="clientAuthenticationManager"
         request-matcher-ref="oauthBearerTokenMatcher" entry-point-ref="oauthAuthenticationEntryPoint" xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
@@ -53,6 +54,7 @@
         </property>
     </bean>
 
+    <!--/oauth/token with any match -->
     <http name="tokenEndpointSecurity" create-session="stateless" authentication-manager-ref="clientAuthenticationManager"
         pattern="/oauth/token/**" entry-point-ref="basicAuthenticationEntryPoint" xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
@@ -62,7 +64,9 @@
         <access-denied-handler ref="oauthAccessDeniedHandler" />
     </http>
 
-    <!-- Version of the /authorize endpoint for stateless clients such as VMC -->
+    <!-- Version of the /authorize endpoint for stateless clients such as VMC
+         /oauth/authorize response_type=token&source=credentials
+    -->
     <http name="statelessAuthzEndpointSecurity" request-matcher-ref="oauthAuthorizeRequestMatcher" create-session="stateless"
         entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="authzAuthenticationMgr"
         xmlns="http://www.springframework.org/schema/security">
@@ -92,11 +96,6 @@
 
     <bean id="tokenEndpointAuthenticationFilter" class="org.springframework.security.oauth2.provider.endpoint.TokenEndpointAuthenticationFilter">
         <constructor-arg ref="authzAuthenticationMgr" />
-        <property name="authenticationDetailsSource" ref="authenticationDetailsSource" />
-    </bean>
-
-    <bean id="tokenEndpointAuthenticationFilter2" class="org.springframework.security.oauth2.provider.endpoint.TokenEndpointAuthenticationFilter">
-        <constructor-arg ref="loginAuthenticationMgr" />
         <property name="authenticationDetailsSource" ref="authenticationDetailsSource" />
     </bean>
 
@@ -151,7 +150,9 @@
         </property>
     </bean>
 
-    <!-- For backwards compatibility to the old way of posting credentials to /authorize endpoint -->
+    <!-- For backwards compatibility to the old way of posting credentials to /authorize endpoint
+         /oauth/authorize response_type=token&credentials={
+    -->
     <http name="oldAuthzEndpointSecurity" request-matcher-ref="oauthAuthorizeRequestMatcherOld" create-session="stateless"
         entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="authzAuthenticationMgr"
         xmlns="http://www.springframework.org/schema/security">

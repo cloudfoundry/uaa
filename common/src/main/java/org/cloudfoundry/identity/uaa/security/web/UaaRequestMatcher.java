@@ -23,6 +23,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.beans.factory.BeanNameAware;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.web.util.RequestMatcher;
@@ -39,7 +40,7 @@ import org.springframework.util.Assert;
  * header when deciding whether to match the request. There is no parsing of
  * priorities in the header.
  */
-public final class UaaRequestMatcher implements RequestMatcher {
+public final class UaaRequestMatcher implements RequestMatcher, BeanNameAware {
 
     private static final Log logger = LogFactory.getLog(UaaRequestMatcher.class);
 
@@ -52,6 +53,8 @@ public final class UaaRequestMatcher implements RequestMatcher {
     private Map<String, String> parameters = new HashMap<String, String>();
 
     private Map<String, List<String>> expectedHeaders = new HashMap<String, List<String>>();
+
+    private String name;
 
     public UaaRequestMatcher(String path) {
         Assert.hasText(path);
@@ -100,7 +103,7 @@ public final class UaaRequestMatcher implements RequestMatcher {
         if (logger.isDebugEnabled()) {
             message = request.getRequestURI() + "'; '" + request.getContextPath() + path + "' with parameters="
                             + parameters + " and headers " + expectedHeaders;
-            logger.debug("Checking match of request : '" + message);
+            logger.debug("["+name+"] Checking match of request : '" + message);
         }
 
         if (!request.getRequestURI().startsWith(request.getContextPath() + path)) {
@@ -131,7 +134,7 @@ public final class UaaRequestMatcher implements RequestMatcher {
         }
 
         if (logger.isDebugEnabled()) {
-            logger.debug("Matched request " + message);
+            logger.debug("["+name+"]Matched request " + message);
         }
         return true;
     }
@@ -210,7 +213,7 @@ public final class UaaRequestMatcher implements RequestMatcher {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("UAAPath ['").append(path).append("'");
+        sb.append("UAAPath("+name+") ['").append(path).append("'");
 
         if (accepts != null) {
             sb.append(", ").append(accepts);
@@ -227,5 +230,10 @@ public final class UaaRequestMatcher implements RequestMatcher {
             expectedValues.addAll(headers.get(headerName));
             expectedHeaders.put(headerName, expectedValues);
         }
+    }
+
+    @Override
+    public void setBeanName(String name) {
+        this.name=name;
     }
 }
