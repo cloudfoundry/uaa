@@ -16,9 +16,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.Map;
 
+import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
@@ -230,12 +232,123 @@ public class LoginServerSecurityIntegrationTests {
         assertNotNull("There should be an error: " + results, results.containsKey("error"));
     }
 
+    @Test
+    @OAuth2ContextConfiguration(LoginClient.class)
+    public void testLoginServerVmcPasswordToken() throws Exception {
+        ImplicitResourceDetails resource = testAccounts.getDefaultImplicitResource();
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Accept",MediaType.APPLICATION_JSON_VALUE);
+        //headers.add("Authorization", getAuthorizationEncodedValue(resource.getClientId(), ""));
+        params.set("client_id", resource.getClientId());
+        params.set("client_secret","");
+        params.set("source","login");
+        params.set("add_new", "false");
+        params.set("grant_type", "password");
+        String redirect = resource.getPreEstablishedRedirectUri();
+        if (redirect != null) {
+            params.set("redirect_uri", redirect);
+        }
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAccessTokenUri(), params, headers);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        Map results = response.getBody();
+        assertTrue("There should be a token: " + results, results.containsKey("access_token"));
+        assertTrue("There should be a refresh: " + results, results.containsKey("refresh_token"));
+    }
+
+    @Test
+    @OAuth2ContextConfiguration(LoginClient.class)
+    public void testLoginServerWithoutBearerToken() throws Exception {
+        ImplicitResourceDetails resource = testAccounts.getDefaultImplicitResource();
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Accept",MediaType.APPLICATION_JSON_VALUE);
+        headers.add("Authorization", getAuthorizationEncodedValue(resource.getClientId(), ""));
+        params.set("client_id", resource.getClientId());
+        params.set("client_secret","");
+        params.set("source","login");
+        params.set("add_new", "false");
+        params.set("grant_type", "password");
+        String redirect = resource.getPreEstablishedRedirectUri();
+        if (redirect != null) {
+            params.set("redirect_uri", redirect);
+        }
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAccessTokenUri(), params, headers);
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+    }
+
+    @Test
+    @OAuth2ContextConfiguration(LoginClient.class)
+    public void testLoginServerVmcInvalidClientPasswordToken() throws Exception {
+        ImplicitResourceDetails resource = testAccounts.getDefaultImplicitResource();
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Accept",MediaType.APPLICATION_JSON_VALUE);
+        headers.add("Authorization", getAuthorizationEncodedValue(resource.getClientId(), ""));
+        params.set("client_id", resource.getClientId());
+        params.set("client_secret","bogus");
+        params.set("source","login");
+        params.set("add_new", "false");
+        params.set("grant_type", "password");
+        
+        String redirect = resource.getPreEstablishedRedirectUri();
+        if (redirect != null) {
+            params.set("redirect_uri", redirect);
+        }
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAccessTokenUri(), params, headers);
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+    }
+
+    @Test
+    @OAuth2ContextConfiguration(AppClient.class)
+    public void testLoginServerVmcInvalidClientToken() throws Exception {
+        ImplicitResourceDetails resource = testAccounts.getDefaultImplicitResource();
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Accept",MediaType.APPLICATION_JSON_VALUE);
+        params.set("client_id", resource.getClientId());
+        params.set("client_secret","bogus");
+        params.set("source","login");
+        params.set("add_new", "false");
+        params.set("grant_type", "password");
+
+        String redirect = resource.getPreEstablishedRedirectUri();
+        if (redirect != null) {
+            params.set("redirect_uri", redirect);
+        }
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAccessTokenUri(), params, headers);
+        HttpStatus statusCode = response.getStatusCode();
+        
+        assertTrue("Status code should be 401 or 403.", statusCode==HttpStatus.FORBIDDEN || statusCode==HttpStatus.UNAUTHORIZED);
+    }
+
+    private String getAuthorizationEncodedValue(String username, String password) {
+        String auth = username + ":" + password;
+        byte[] encodedAuth = Base64.encodeBase64(auth.getBytes(Charset.forName("US-ASCII")));
+        String authHeader = "Basic " + new String( encodedAuth );
+        return authHeader;
+    }
+        
+
     private static class LoginClient extends ClientCredentialsResourceDetails {
         @SuppressWarnings("unused")
         public LoginClient(Object target) {
             LoginServerSecurityIntegrationTests test = (LoginServerSecurityIntegrationTests) target;
             ClientCredentialsResourceDetails resource = test.testAccounts.getClientCredentialsResource(
                             "oauth.clients.login", "login", "loginsecret");
+            setClientId(resource.getClientId());
+            setClientSecret(resource.getClientSecret());
+            setId(getClientId());
+            setAccessTokenUri(test.serverRunning.getAccessTokenUri());
+        }
+    }
+
+    private static class AppClient extends ClientCredentialsResourceDetails {
+        @SuppressWarnings("unused")
+        public AppClient(Object target) {
+            LoginServerSecurityIntegrationTests test = (LoginServerSecurityIntegrationTests) target;
+            ClientCredentialsResourceDetails resource = test.testAccounts.getClientCredentialsResource(
+                "oauth.clients.login", "app", "appclientsecret");
             setClientId(resource.getClientId());
             setClientSecret(resource.getClientSecret());
             setId(getClientId());
