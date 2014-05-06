@@ -259,6 +259,7 @@ public class AccessController {
     private String getRedirectUri(ClientDetails client, AuthorizationRequest clientAuth) {
         String result = null;
         if (clientAuth.getRedirectUri() != null) {
+            //TODO - SHOULD WE ALLOW THIS??
             result = clientAuth.getRedirectUri();
         }
         if (client.getRegisteredRedirectUri() != null && !client.getRegisteredRedirectUri().isEmpty() && result == null) {
