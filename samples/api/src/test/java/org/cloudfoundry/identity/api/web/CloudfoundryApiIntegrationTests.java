@@ -14,10 +14,12 @@ package org.cloudfoundry.identity.api.web;
 
 import static org.junit.Assert.assertNotNull;
 
+import java.net.URL;
 import java.util.Date;
 
+import org.cloudfoundry.client.lib.CloudCredentials;
 import org.cloudfoundry.client.lib.CloudFoundryClient;
-import org.cloudfoundry.client.lib.CloudInfo;
+import org.cloudfoundry.client.lib.domain.CloudInfo;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Assume;
@@ -77,10 +79,11 @@ public class CloudfoundryApiIntegrationTests {
 
         // System.err.println(accessToken);
         // The client doesn't know how to use an OAuth bearer token
-        CloudFoundryClient client = new CloudFoundryClient("Bearer " + accessToken.getValue(),
-                        testAccounts.getCloudControllerUrl());
+        CloudFoundryClient client = new CloudFoundryClient(
+                new CloudCredentials(accessToken),
+                new URL("http", "localhost", 8080, "api")
+        );
         CloudInfo info = client.getCloudInfo();
         assertNotNull("Wrong cloud info: " + info.getDescription(), info.getUser());
     }
-
 }

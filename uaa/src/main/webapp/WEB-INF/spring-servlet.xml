@@ -166,4 +166,8 @@
 
     <bean id="healthzEndpoint" class="org.cloudfoundry.identity.uaa.web.HealthzEndpoint" />
 
+    <beans profile="coverage">
+        <bean id="coverageController" class="org.cloudfoundry.identity.uaa.coverage.CoverageController" />
+    </beans>
+
 </beans>

@@ -5,9 +5,9 @@ env:
     - CATALINA_OUT=/tmp/tomcat.log
     - secure: "Rsrhick057QbQzg33Oa6MFxeyPK8jlDnT5J6w/uXD9wyEJfYZEsLdxv+uiq4EpxSBEQYxw3q9ULcwMuUJAkdQWrAFJhbzjKPYZ2OroTjUMNVpt0sExT6xm16HSu4E4RcXKuO4O2k58bDSPUSAhlVc8PJR/ACRULzDyTDAC2wML4="
   matrix:
-    - TESTENV=
-    - TESTENV=mysql,default
-    - TESTENV=postgresql,default
+    - TESTENV=default,coverage
+    - TESTENV=mysql,default,coverage
+    - TESTENV=postgresql,default,coverage
 services:
   - mysql
   - postgresql
@@ -22,20 +22,22 @@ before_install:
   - mysql -e 'create database uaa;'
   - mysql -e "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('changeme');"
   - mysql -e "SET PASSWORD FOR 'root'@'127.0.0.1' = PASSWORD('changeme');"
-install: 
-  - mvn -U clean --quiet -DskipTests=true
-  - mvn -U install --quiet -DskipTests=true
+install:
+  - mvn install -DskipTests -P coverage --quiet
   - mkdir -p target/tomcat && tar zxf tomcat.tar.gz -C target/tomcat --strip-components 1 && rm -rf target/tomcat/webapps/*
-  - mvn -Dwar.exploded.dir=`pwd`/target/tomcat/webapps/uaa --quiet -pl uaa war:exploded
   - mvn -Dwar.exploded.dir=`pwd`/target/tomcat/webapps/api --quiet -pl samples/api war:exploded
   - mvn -Dwar.exploded.dir=`pwd`/target/tomcat/webapps/app --quiet -pl samples/app war:exploded
+  - $TRAVIS_BUILD_DIR/.cobertura-instrument.sh
+  - mvn -Dwar.exploded.dir=`pwd`/target/tomcat/webapps/uaa --quiet -pl uaa war:exploded -P coverage
 script:
   - ./.run-script.sh start
-  - mvn -Dtest=org.cloudfoundry.identity.uaa.integration.* -DfailIfNoTests=false test --quiet
+  - mvn -Dtest=org.cloudfoundry.identity.uaa.integration.* -DfailIfNoTests=false test -P coverage --quiet
+  - curl -v -X POST http://localhost:8080/uaa/healthz/coverage/flush
   - ./.run-script.sh stop
-  - mvn -Dspring.profiles.active=$TESTENV test --quiet
+  - mvn -Dspring.profiles.active=$TESTENV test -P coverage --quiet
 after_success:
-  - mvn clean cobertura:cobertura coveralls:cobertura
+  - $TRAVIS_BUILD_DIR/.cobertura-report.sh
+  - mvn coveralls:cobertura
   - openssl aes-256-cbc -k "$SETTINGS_XML_KEY" -in settings.xml.enc -d -a -out $HOME/.m2/settings.xml
   - python travis_after_all.py
   - export $(cat .to_export_back)
