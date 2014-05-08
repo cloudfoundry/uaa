@@ -25,13 +25,10 @@
 
     <http request-matcher-ref="loginAuthorizeRequestMatcher" create-session="never" entry-point-ref="oauthAuthenticationEntryPoint"
         authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
-        <!--
-            we should be way more stringent with security here
-            <intercept-url pattern="/**" access="scope=oauth.login" />
-            and add to the element access-decision-manager-ref="accessDecisionManager"
-        -->
         <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
         <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
+        <!-- scope authentication filter configured with a scope authentication manager -->
+        <custom-filter ref="oauthLoginScopeAuthenticatingFilter" after="PRE_AUTH_FILTER"/>
         <custom-filter ref="loginAuthenticationFilter" position="FORM_LOGIN_FILTER" />
         <anonymous enabled="false" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
@@ -49,7 +46,6 @@
 
     <http request-matcher-ref="loginTokenRequestMatcher" create-session="never" entry-point-ref="oauthAuthenticationEntryPoint"
           authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
-          <!--access-decision-manager-ref="oauthLoginDecisionManager"> -->
         <!--
           This represents a /oauth/token requests that gets passed through
           from the login server. It assumes that the User has been authenticated
@@ -64,6 +60,8 @@
              What we need is scope=oauth.login
          -->
         <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
+        <!-- scope authentication filter configured with a scope authentication manager -->
+        <custom-filter ref="oauthLoginScopeAuthenticatingFilter" after="PRE_AUTH_FILTER"/>
         <!-- filter to validate the client_id and client_secret -->
         <custom-filter ref="loginClientParameterAuthenticationFilter" position="FORM_LOGIN_FILTER" />
         <!-- The loginServerTokenEndpointAuthenticationFilter validates the user or creates one-->
@@ -72,16 +70,16 @@
         <access-denied-handler ref="oauthAccessDeniedHandler" />
     </http>
 
-    <bean id="oauthLoginDecisionManager" class="org.springframework.security.access.vote.UnanimousBased">
-        <constructor-arg>
+    <bean id="oauthLoginScopeAuthenticatingFilter" class="org.cloudfoundry.identity.uaa.authentication.manager.ScopeAuthenticationFilter">
+        <property name="authenticationManager" ref="oauthLoginAuthManager"/>
+    </bean>
+
+    <bean id="oauthLoginAuthManager" class="org.cloudfoundry.identity.uaa.authentication.manager.ScopeAuthenticationManager">
+        <property name="requiredScopes">
             <list>
-                <bean class="org.springframework.security.oauth2.provider.vote.ScopeVoter">
-                    <property name="scopePrefix" value="scope=" />
-                </bean>
-                <bean class="org.springframework.security.access.vote.RoleVoter" />
-                <bean class="org.springframework.security.access.vote.AuthenticatedVoter" />
+                <value type="java.lang.String">oauth.login</value>
             </list>
-        </constructor-arg>
+        </property>
     </bean>
 
     <bean id="loginTokenRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
