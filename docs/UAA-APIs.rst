@@ -86,14 +86,14 @@ Browser Requests Code: ``GET /oauth/authorize``
 
 *Sample uaac command for this flow*
 
-* uaac -t token authcode get -c app -s appclientsecret
+* ``uaac -t token authcode get -c app -s appclientsecret``
 
 *Sample curl commands for this flow*
 
-* curl -v http://localhost:8080/uaa/oauth/authorize -d "response_type=code&client_id=app&scope=password.write&redirect_uri=http%3A%2F%2Fwww.example.com%2Fcallback" --cookie cookies.txt --cookie-jar cookies.txt
-* curl -v http://localhost:8080/uaa/login.do -d "username=marissa&password=koala" --cookie cookies.txt --cookie-jar cookies.txt
-* curl -v http://localhost:8080/uaa/oauth/authorize --cookie cookies.txt --cookie-jar cookies.txt
-* curl -v http://localhost:8080/uaa/oauth/authorize -d "scope.0=scope.password.write&user_oauth_approval=true" --cookie cookies.txt --cookie-jar cookies.txt
+* ``curl -v http://localhost:8080/uaa/oauth/authorize -d "response_type=code&client_id=app&scope=password.write&redirect_uri=http%3A%2F%2Fwww.example.com%2Fcallback" --cookie cookies.txt --cookie-jar cookies.txt``
+* ``curl -v http://localhost:8080/uaa/login.do -d "username=marissa&password=koala" --cookie cookies.txt --cookie-jar cookies.txt``
+* ``curl -v http://localhost:8080/uaa/oauth/authorize --cookie cookies.txt --cookie-jar cookies.txt``
+* ``curl -v http://localhost:8080/uaa/oauth/authorize -d "scope.0=scope.password.write&user_oauth_approval=true" --cookie cookies.txt --cookie-jar cookies.txt``
 
 Non-Browser Requests Code: ``GET /oauth/authorize``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
