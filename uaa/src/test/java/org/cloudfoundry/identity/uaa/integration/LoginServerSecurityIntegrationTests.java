@@ -283,7 +283,6 @@ public class LoginServerSecurityIntegrationTests {
         ImplicitResourceDetails resource = testAccounts.getDefaultImplicitResource();
         HttpHeaders headers = new HttpHeaders();
         headers.add("Accept",MediaType.APPLICATION_JSON_VALUE);
-        headers.add("Authorization", getAuthorizationEncodedValue(resource.getClientId(), ""));
         params.set("client_id", resource.getClientId());
         params.set("client_secret","bogus");
         params.set("source","login");
@@ -296,7 +295,8 @@ public class LoginServerSecurityIntegrationTests {
         }
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAccessTokenUri(), params, headers);
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        HttpStatus statusCode = response.getStatusCode();
+        assertTrue("Status code should be 401 or 403.", statusCode==HttpStatus.FORBIDDEN || statusCode==HttpStatus.UNAUTHORIZED);
     }
 
     @Test
