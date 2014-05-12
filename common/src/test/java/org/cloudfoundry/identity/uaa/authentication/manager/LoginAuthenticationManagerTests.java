@@ -18,16 +18,19 @@ import static org.junit.Assert.assertNull;
 
 import java.util.Arrays;
 
+import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.test.TestApplicationEventPublisher;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserTestFactory;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -49,9 +52,12 @@ public class LoginAuthenticationManagerTests {
 
     private OAuth2Authentication oauth2Authentication;
 
+    private TestApplicationEventPublisher<UserAuthenticationSuccessEvent> publisher;
+
     @Before
     public void init() {
-        manager.setApplicationEventPublisher(Mockito.mock(ApplicationEventPublisher.class));
+        publisher = TestApplicationEventPublisher.forEventClass(UserAuthenticationSuccessEvent.class);
+        manager.setApplicationEventPublisher(publisher);
         manager.setUserDatabase(userDatabase);
         oauth2Authentication = new OAuth2Authentication(new DefaultAuthorizationRequest("client", Arrays.asList("read",
                         "write")), null);
@@ -136,4 +142,32 @@ public class LoginAuthenticationManagerTests {
         assertEquals(user.getId(), ((UaaPrincipal) authentication.getPrincipal()).getId());
     }
 
+    @Test
+    public void testAuthenticateWithStrangeNameAndMissingEmail() {
+        String username1 = "a@";
+        AuthzAuthenticationRequest req1 = UaaAuthenticationTestFactory.getAuthenticationRequest(username1, true);
+        UaaUser u1 = manager.getUser(req1, req1.getInfo());
+        assertEquals(username1, u1.getUsername());
+
+        String username2 = "@a";
+        AuthzAuthenticationRequest req2 = UaaAuthenticationTestFactory.getAuthenticationRequest(username2, true);
+        UaaUser u2 = manager.getUser(req2, req2.getInfo());
+        assertEquals(username2, u2.getUsername());
+
+        String username3 = "a@b@c";
+        AuthzAuthenticationRequest req3 = UaaAuthenticationTestFactory.getAuthenticationRequest(username3, true);
+        UaaUser u3 = manager.getUser(req3, req3.getInfo());
+        assertEquals(username3, u3.getUsername());
+    }
+
+    @Test
+    public void testSuccessfulAuthenticationPublishesEvent() throws Exception {
+        UaaUser user = UaaUserTestFactory.getUser("FOO", "foo", "fo@test.org", "Foo", "Bar");
+        Mockito.when(userDatabase.retrieveUserByName("foo")).thenReturn(user);
+        AuthzAuthenticationRequest authenticationRequest = UaaAuthenticationTestFactory.getAuthenticationRequest("foo");
+        manager.authenticate(authenticationRequest);
+
+        Assert.assertEquals(1, publisher.getEventCount());
+        Assert.assertEquals("foo", publisher.getLatestEvent().getUser().getUsername());
+    }
 }

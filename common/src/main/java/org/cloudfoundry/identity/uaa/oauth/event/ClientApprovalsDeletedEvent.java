@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.oauth.event;
 
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.ClientDetails;
 
 import java.security.Principal;
@@ -25,7 +26,7 @@ import java.security.Principal;
  */
 public class ClientApprovalsDeletedEvent extends AbstractClientAdminEvent {
 
-    public ClientApprovalsDeletedEvent(ClientDetails client, Principal principal) {
+    public ClientApprovalsDeletedEvent(ClientDetails client, Authentication principal) {
         super(client, principal);
     }
 

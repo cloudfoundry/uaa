@@ -23,9 +23,11 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.test.MockAuthentication;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -86,8 +88,6 @@ public class PasswordResetEndpointsTest {
         Mockito.when(expiringCodeStore.retrieveCode("secret_code"))
                 .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis()), "eyedee"));
 
-        Mockito.when(scimUserProvisioning.changePassword("eyedee", null, "new_secret")).thenReturn(true);
-
         ScimUser scimUser = new ScimUser("eyedee", "userman", "User", "Man");
         scimUser.addEmail("user@example.com");
         Mockito.when(scimUserProvisioning.retrieve("eyedee")).thenReturn(scimUser);
@@ -97,8 +97,45 @@ public class PasswordResetEndpointsTest {
                 .content("{\"code\":\"secret_code\",\"new_password\":\"new_secret\"}")
                 .accept(APPLICATION_JSON);
 
+        SecurityContextHolder.getContext().setAuthentication(new MockAuthentication());
+
         mockMvc.perform(post)
                 .andExpect(status().isOk())
                 .andExpect(content().string("userman"));
+
+        Mockito.verify(scimUserProvisioning).changePassword("eyedee", null, "new_secret");
     }
+
+    @Test
+    public void testChangingAPasswordWithAUsernameAndPassword() throws Exception {
+        ScimUser user = new ScimUser("id001", "userman", null, null);
+        user.addEmail("user@example.com");
+        Mockito.when(scimUserProvisioning.query("userName eq 'userman'"))
+                .thenReturn(Arrays.asList(user));
+
+        MockHttpServletRequestBuilder post = post("/password_change")
+                .contentType(APPLICATION_JSON)
+                .content("{\"username\":\"userman\",\"current_password\":\"secret\",\"new_password\":\"new_secret\"}")
+                .accept(APPLICATION_JSON);
+
+        SecurityContextHolder.getContext().setAuthentication(new MockAuthentication());
+
+        mockMvc.perform(post)
+                .andExpect(status().isOk())
+                .andExpect(content().string("userman"));
+
+        Mockito.verify(scimUserProvisioning).changePassword("id001", "secret", "new_secret");
+    }
+
+    @Test
+    public void testChangingAPasswordWithABadRequest() throws Exception {
+        MockHttpServletRequestBuilder post = post("/password_change")
+                .contentType(APPLICATION_JSON)
+                .content("{\"code\":\"emailed_code\",\"username\":\"userman\",\"current_password\":\"secret\",\"new_password\":\"new_secret\"}")
+                .accept(APPLICATION_JSON);
+
+        mockMvc.perform(post)
+                .andExpect(status().isBadRequest());
+    }
+
 }

@@ -26,6 +26,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.message.SimpleMessage;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
@@ -71,6 +73,10 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
+import javax.servlet.http.HttpServletRequest;
 
 /**
  * Controller for listing and manipulating OAuth2 clients.
@@ -149,7 +155,7 @@ public class ClientAdminEndpoints implements InitializingBean {
         this.clientDetailsService = clientDetailsService;
     }
 
-    void setSecurityContextAccessor(SecurityContextAccessor securityContextAccessor) {
+    public void setSecurityContextAccessor(SecurityContextAccessor securityContextAccessor) {
         this.securityContextAccessor = securityContextAccessor;
     }
 
@@ -325,16 +331,18 @@ public class ClientAdminEndpoints implements InitializingBean {
                 result[i] = new ClientDetailsModification(clientDetailsService.retrieve(details[i].getClientId()));
             } else if (ClientDetailsModification.DELETE.equals(details[i].getAction())) {
                 result[i] = new ClientDetailsModification(clientDetailsService.retrieve(details[i].getClientId()));
-                clientRegistrationService.removeClientDetails(details[i].getClientId());
-                clientDeletes.incrementAndGet();
+                doProcessDeletes(new ClientDetails[]{result[i]});
+                result[i].setApprovalsDeleted(true);
             } else if (ClientDetailsModification.UPDATE.equals(details[i].getAction())) {
                 result[i] = updateClientNotSecret(details[i]);
             } else if (ClientDetailsModification.UPDATE_SECRET.equals(details[i].getAction())) {
-                updateClientSecret(details[i]);
+                boolean approvalsDeleted = updateClientSecret(details[i]);
                 result[i] = updateClientNotSecret(details[i]);
+                result[i].setApprovalsDeleted(approvalsDeleted);
             } else if (ClientDetailsModification.SECRET.equals(details[i].getAction())) {
-                updateClientSecret(details[i]);
+                boolean approvalsDeleted = updateClientSecret(details[i]);
                 result[i] = details[i];
+                result[i].setApprovalsDeleted(approvalsDeleted);
             } else {
                 throw new InvalidClientDetailsException("Invalid action.");
             }
@@ -352,13 +360,14 @@ public class ClientAdminEndpoints implements InitializingBean {
         return result;
     }
 
-    private void updateClientSecret(ClientDetailsModification detail) {
+    private boolean updateClientSecret(ClientDetailsModification detail) {
         boolean deleteApprovals = !(authenticateClient(detail.getClientId(), detail.getClientSecret()));
         if (deleteApprovals) {
             clientRegistrationService.updateClientSecret(detail.getClientId(), detail.getClientSecret());
             deleteApprovals(detail.getClientId());
             detail.setApprovalsDeleted(true);
         }
+        return deleteApprovals;
     }
 
 
@@ -391,14 +400,16 @@ public class ClientAdminEndpoints implements InitializingBean {
 
 
     protected ClientDetails[] doProcessDeletes(ClientDetails[] details) {
+        ClientDetailsModification[] result = new ClientDetailsModification[details.length];
         for (int i=0; i<details.length; i++) {
             String clientId = details[i].getClientId();
             clientRegistrationService.removeClientDetails(clientId);
             deleteApprovals(clientId);
             clientDeletes.incrementAndGet();
-            details[i] = removeSecret(details[i]);
+            result[i] = removeSecret(details[i]);
+            result[i].setApprovalsDeleted(true);
         }
-        return details;
+        return result;
     }
 
     private void deleteApprovals(String clientId) {
@@ -461,7 +472,11 @@ public class ClientAdminEndpoints implements InitializingBean {
             throw new NoSuchClientException("No such client: " + client);
         }
 
-        checkPasswordChangeIsAllowed(clientDetails, change.getOldSecret());
+        try {
+            checkPasswordChangeIsAllowed(clientDetails, change.getOldSecret());
+        } catch (IllegalStateException e) {
+            throw new InvalidClientDetailsException(e.getMessage());
+        }
 
         clientRegistrationService.updateClientSecret(client, change.getSecret());
 
@@ -678,9 +693,21 @@ public class ClientAdminEndpoints implements InitializingBean {
     private boolean authenticateClient(String clientId, String clientSecret) {
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(clientId,clientSecret);
         try {
+            HttpServletRequest curRequest =
+                ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
+            if (curRequest != null) {
+                authentication.setDetails(new UaaAuthenticationDetails(curRequest, clientId));
+            }
+        }catch (IllegalStateException x) {
+            //ignore - means no thread bound request found
+        }
+        try {
             Authentication auth = authenticationManager.authenticate(authentication);
             return auth.isAuthenticated();
         } catch (AuthenticationException e) {
+            return false;
+        } catch (Exception e) {
+            logger.debug("Unable to authenticate/validate "+clientId, e);
             return false;
         }
     }

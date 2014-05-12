@@ -12,15 +12,14 @@
     subcomponent's license, as noted in the LICENSE file.
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>org.cloudfoundry.identity</groupId>
         <artifactId>cloudfoundry-identity-parent</artifactId>
-        <version>1.6.0</version>
+        <version>1.6.4</version>
         <relativePath>..</relativePath>
     </parent>
 
@@ -43,12 +42,6 @@
     </properties>
 
     <profiles>
-        <profile>
-            <id>devuaa</id>
-            <properties>
-                <CLOUD_FOUNDRY_CONFIG_PATH>${project.basedir}/src/test/resources/test/profiles/devuaa</CLOUD_FOUNDRY_CONFIG_PATH>
-            </properties>
-        </profile>
         <profile>
             <id>vcap</id>
             <properties>
@@ -143,7 +136,7 @@
             <plugin>
                 <groupId>pl.project13.maven</groupId>
                 <artifactId>git-commit-id-plugin</artifactId>
-                <version>2.1.9</version>
+                <version>${git-commit-id-plugin.version}</version>
                 <executions>
                     <execution>
                         <goals>
@@ -165,7 +158,9 @@
             <plugins>
                 <plugin>
                     <!--skip deploy by default (snapshots are expensive) -->
+                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-deploy-plugin</artifactId>
+                    <version>${maven-deploy-plugin.version}</version>
                     <configuration>
                         <skip>false</skip>
                     </configuration>
@@ -173,6 +168,7 @@
                 <plugin>
                     <groupId>org.apache.tomcat.maven</groupId>
                     <artifactId>tomcat7-maven-plugin</artifactId>
+                    <version>${tomcat7-maven-plugin.version}</version>
                     <configuration>
                         <path>${uaa.path}</path>
                         <systemProperties>
@@ -183,7 +179,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
-                    <version>2.11</version>
+                    <version>${maven-surefire-plugin.version}</version>
                     <configuration>
                         <skip>${skipTests}</skip>
                         <includes>
@@ -201,7 +197,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-install-plugin</artifactId>
-                    <version>2.3.1</version>
+                    <version>${maven-install-plugin.version}</version>
                     <executions>
                         <execution>
                             <id />
@@ -373,7 +369,7 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.8.2</version>
+            <version>4.11</version>
             <scope>test</scope>
         </dependency>
 
@@ -399,7 +395,6 @@
         <dependency>
             <groupId>org.mariadb.jdbc</groupId>
             <artifactId>mariadb-java-client</artifactId>
-            <version>1.1.3</version>
         </dependency>
 
         <!-- <dependency>
@@ -408,6 +403,14 @@
             <version>11.2.0.3</version>
             <scope>runtime</scope>
             </dependency> -->
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>cloudfoundry-identity-common</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
 
         <dependency>
             <groupId>org.mockito</groupId>

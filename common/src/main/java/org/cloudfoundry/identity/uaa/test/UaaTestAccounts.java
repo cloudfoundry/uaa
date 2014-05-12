@@ -285,9 +285,4 @@ public class UaaTestAccounts implements TestAccounts {
         result.setPreEstablishedRedirectUri(redirectUri);
         return result;
     }
-
-    public String getCloudControllerUrl() {
-        return environment.getProperty("uaa.test.cloud_controller.url", "http://localhost:8080/api");
-    }
-
 }

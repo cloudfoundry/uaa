@@ -69,7 +69,7 @@ Browser Requests Code: ``GET /oauth/authorize``
   * ``response_type=code``
   * ``client_id=www``
   * ``scope=read write password``
-  * ``redirect_uri`` is optional because it can be pre-registered
+  * ``redirect_uri`` is optional if a redirect_uri has already been pre-registered for the client www
 
 * Request Header:
 
@@ -83,6 +83,17 @@ Browser Requests Code: ``GET /oauth/authorize``
 * Response Codes::
 
         302 - Found
+
+*Sample uaac command for this flow*
+
+* ``uaac -t token authcode get -c app -s appclientsecret``
+
+*Sample curl commands for this flow*
+
+* ``curl -v http://localhost:8080/uaa/oauth/authorize -d "response_type=code&client_id=app&scope=password.write&redirect_uri=http%3A%2F%2Fwww.example.com%2Fcallback" --cookie cookies.txt --cookie-jar cookies.txt``
+* ``curl -v http://localhost:8080/uaa/login.do -d "username=marissa&password=koala" --cookie cookies.txt --cookie-jar cookies.txt``
+* ``curl -v http://localhost:8080/uaa/oauth/authorize --cookie cookies.txt --cookie-jar cookies.txt``
+* ``curl -v http://localhost:8080/uaa/oauth/authorize -d "scope.0=scope.password.write&user_oauth_approval=true" --cookie cookies.txt --cookie-jar cookies.txt``
 
 Non-Browser Requests Code: ``GET /oauth/authorize``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -735,14 +746,14 @@ In addition to SCIM users, UAA also supports/implements SCIM_groups_ for managin
 
 .. _SCIM_groups: http://tools.ietf.org/html/draft-ietf-scim-core-schema-00#section-8
 
-Create a Group: ``POST /Group``
+Create a Group: ``POST /Groups``
 ----------------------------------
 
 See `SCIM - Creating Resources`__
 
 __ http://www.simplecloud.info/specs/draft-scim-rest-api-01.html#create-resource
 
-* Request: ``POST /Group``
+* Request: ``POST /Groups``
 * Request Headers: Authorization header containing an OAuth2_ bearer token with::
 
         scope = scim.write
@@ -764,7 +775,7 @@ The ``displayName`` is unique in the UAA, but is allowed to change.  Each group 
 
         HTTP/1.1 201 Created
         Content-Type: application/json
-        Location: https://example.com/v1/Group/uid=123456
+        Location: https://example.com/v1/Groups/uid=123456
         ETag: "0"
 
         {
@@ -789,12 +800,12 @@ The ``displayName`` is unique in the UAA, but is allowed to change.  Each group 
 
 The members.value sub-attributes MUST refer to a valid SCIM resource id in the UAA, i.e the UUID of an existing SCIM user or group.
 
-Update a Group: ``PUT /Group/{id}``
+Update a Group: ``PUT /Groups/{id}``
 ----------------------------------------
 
 See `SCIM - Modifying with PUT <http://www.simplecloud.info/specs/draft-scim-rest-api-01.html#edit-resource-with-put>`_
 
-* Request: ``PUT /Group/{id}``
+* Request: ``PUT /Groups/{id}``
 * Request Headers: 
 
   + Authorization header containing an OAuth2_ bearer token with::
@@ -882,12 +893,12 @@ Filters: note that, per the specification, attribute values are comma separated 
         400 - Bad Request
         401 - Unauthorized
 
-Delete a Group: ``DELETE /Group/{id}``
+Delete a Group: ``DELETE /Groups/{id}``
 -----------------------------------------
 
 See `SCIM - Deleting Resources <http://www.simplecloud.info/specs/draft-scim-rest-api-01.html#delete-resource>`_.
 
-* Request: ``DELETE /Group/{id}``
+* Request: ``DELETE /Groups/{id}``
 * Request Headers: 
 
   + Authorization header containing an OAuth2_ bearer token with::
@@ -911,63 +922,6 @@ Access Token Administration APIs
 =================================
 
 OAuth2 protected resources which deal with listing and revoking access tokens.  To revoke a token with ``DELETE`` clients need to provide a ``jti`` (token identifier, not the token value) which can be obtained from the token list via the corresponding ``GET``.  This is to prevent token values from being logged in the server (``DELETE`` does not have a body).
-
-List Tokens for User: ``GET /oauth/users/{username}/tokens``
--------------------------------------------------------------
-
-* Request: ``GET /oauth/users/{username}/tokens``
-* Request body: *empty*
-* Response body: a list of access tokens, *example* ::
-
-        HTTP/1.1 200 OK
-        Content-Type: text/plain
-
-        [
-          {
-            "access_token": "FYSDKJHfgdUydsFJSHDFKAJHDSF",
-            "jti": "fkjhsdfgksafhdjg",
-            "expires_in": 1234,
-            "client_id": "vmc"
-          }
-        ]
-
-Revoke Token by User: ``DELETE /oauth/users/{username}/tokens/{jti}``
-----------------------------------------------------------------------------
-
-* Request: ``DELETE /oauth/users/{username}/tokens/{jti}``
-* Request body: *empty*
-* Response code: ``200 OK``
-* Response body: a status message (hash)
-
-List Tokens for Client: ``GET /oauth/clients/{client_id}/tokens``
----------------------------------------------------------------------
-
-* Request: ``GET /oauth/clients/{client_id}/tokens``
-* Request body: *empty*
-* Response body: a list of access tokens, *example* ::
-
-        HTTP/1.1 200 OK
-        Content-Type: text/plain
-
-        [
-          {
-            "access_token": "KJHDGFKDHSJFUYTGUYGHBKAJHDSF",
-            "jti": "fkjhsdfgksafhdjg",
-            "expires_in": 1234,
-            "client_id": "www"
-          }
-        ]
-
-Revoke Token by Client: ``DELETE /oauth/clients/{client_id}/tokens/{jti}``
---------------------------------------------------------------------------------
-
-* Request: ``DELETE /oauth/clients/{client_id}/tokens/{jti}``
-* Request body: *empty*
-* Reponse code: ``200`` OK
-* Response body: a status message (hash) ::
-
-        HTTP/1.1 200 OK
-        { "status": "ok" }
 
 Get the Token Signing Key: ``GET /token_key``
 -----------------------------------------------
@@ -1197,7 +1151,7 @@ N.B. the secret will not be changed, even if it is included in the
 request body (use the secret change endpoint instead).
 
 Register, update or delete Multiple Clients: ``POST /oauth/clients/tx/modify``
--------------------------------------------------------
+------------------------------------------------------------------------------
 
 ==============  ===============================================
 Request         ``POST /oauth/clients/tx/modify``
@@ -1282,7 +1236,7 @@ Example::
 
 
 Delete Multiple Clients: ``POST /oauth/clients/tx/delete``
--------------------------------------------------------
+----------------------------------------------------------
 
 ==============  ===============================================
 Request         ``POST /oauth/clients/tx/delete``

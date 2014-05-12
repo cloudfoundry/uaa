@@ -14,10 +14,10 @@
 -->
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
     xmlns:oauth="http://www.springframework.org/schema/security/oauth2" xmlns:aop="http://www.springframework.org/schema/aop"
-    xsi:schemaLocation="http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.2.xsd
+    xsi:schemaLocation="http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.0.xsd
 		http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2.xsd
 		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.2.xsd
-		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.2.xsd">
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
 
     <http name="clientSecretSecurity" pattern="/oauth/clients/*/secret" create-session="stateless"
         authentication-manager-ref="emptyAuthenticationManager" entry-point-ref="oauthAuthenticationEntryPoint"
@@ -27,15 +27,22 @@
         <access-denied-handler ref="oauthAccessDeniedHandler" />
     </http>
 
-    <http name="clientAdminSecurity" pattern="/oauth/clients/**" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"
+    <http name="clientTxAdminSecurity" pattern="/oauth/clients/tx/**" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"
         use-expressions="true" authentication-manager-ref="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/tx/**" access="#oauth2.hasScope('clients.admin')" method="DELETE" />
-        <intercept-url pattern="/tx/**" access="#oauth2.hasScope('clients.admin')" method="POST" />
-        <intercept-url pattern="/tx/**" access="#oauth2.hasScope('clients.admin')" method="PUT" />
-        <intercept-url pattern="/**" access="#oauth2.hasScope('clients.write')" method="DELETE" />
-        <intercept-url pattern="/**" access="#oauth2.hasScope('clients.write')" method="POST" />
-        <intercept-url pattern="/**" access="#oauth2.hasScope('clients.write')" method="PUT" />
-        <intercept-url pattern="/**" access="#oauth2.hasScope('clients.read')" method="GET" />
+        <intercept-url pattern="/**" access="#oauth2.hasScope('clients.admin')" method="DELETE" />
+        <intercept-url pattern="/**" access="#oauth2.hasScope('clients.admin')" method="POST" />
+        <intercept-url pattern="/**" access="#oauth2.hasScope('clients.admin')" method="PUT" />
+        <custom-filter ref="clientResourceAuthenticationFilter" before="PRE_AUTH_FILTER" />
+        <access-denied-handler ref="oauthAccessDeniedHandler" />
+        <expression-handler ref="oauthWebExpressionHandler" />
+    </http>
+
+    <http name="clientAdminSecurity" pattern="/oauth/clients/**" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"
+          use-expressions="true" authentication-manager-ref="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/**" access="#oauth2.hasAnyScope('clients.write','clients.admin')" method="DELETE" />
+        <intercept-url pattern="/**" access="#oauth2.hasAnyScope('clients.write','clients.admin')" method="POST" />
+        <intercept-url pattern="/**" access="#oauth2.hasAnyScope('clients.write','clients.admin')" method="PUT" />
+        <intercept-url pattern="/**" access="#oauth2.hasAnyScope('clients.read','clients.admin')" method="GET" />
         <custom-filter ref="clientResourceAuthenticationFilter" before="PRE_AUTH_FILTER" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
         <expression-handler ref="oauthWebExpressionHandler" />
@@ -85,7 +92,7 @@
             <aop:after-returning method="createTx"
                 pointcut="execution(* *..ClientAdminEndpoints+.createClientDetailsTx(..)) and bean(clientAdminEndpoints)" returning="clients" />
             <aop:after-returning method="updateTx"
-                pointcut="execution(* *..ClientAdminEndpoints+.updateClientDetails(..)) and bean(clientAdminEndpoints)" returning="clients" />
+                pointcut="execution(* *..ClientAdminEndpoints+.updateClientDetailsTx(..)) and bean(clientAdminEndpoints)" returning="clients" />
             <aop:after-returning method="deleteTx"
                 pointcut="execution(* *..ClientAdminEndpoints+.removeClientDetailsTx(..)) and bean(clientAdminEndpoints)" returning="clients" />
             <aop:after-returning method="modifyTx"

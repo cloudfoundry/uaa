@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.oauth.event;
 import java.security.Principal;
 
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.ClientDetails;
 
 /**
@@ -22,13 +23,11 @@ import org.springframework.security.oauth2.provider.ClientDetails;
  */
 abstract class AbstractClientAdminEvent extends AbstractUaaEvent {
 
-    private Principal principal;
     private ClientDetails client;
 
-    public AbstractClientAdminEvent(ClientDetails client, Principal principal) {
+    public AbstractClientAdminEvent(ClientDetails client, Authentication principal) {
         super(principal);
         this.client = client;
-        this.principal = principal;
     }
 
     ClientDetails getClient() {
@@ -36,7 +35,7 @@ abstract class AbstractClientAdminEvent extends AbstractUaaEvent {
     }
 
     Principal getPrincipal() {
-        return principal;
+        return getAuthentication();
     }
 
 }

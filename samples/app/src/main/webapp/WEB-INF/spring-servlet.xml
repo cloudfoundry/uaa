@@ -10,9 +10,9 @@
        xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
 	   xmlns:sec="http://www.springframework.org/schema/security"
 	xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-1.0.xsd
-		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-3.2.xsd
+		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.0.xsd
 		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.2.xsd
-		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.2.xsd">
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
 
 	<sec:http pattern="/logout" security="none" />
 	<sec:http pattern="/login_error.jsp" security="none" />
@@ -127,9 +127,6 @@
 		<property name="locations">
 			<list>
 				<value>classpath:/application.properties</value>
-				<value>classpath:/#{T(java.lang.System).getenv('VCAP_APPLICATION')!=null
-					?'application-devuaa.properties':'empty.properties'}
-				</value>
 				<value>classpath:/application-${UAA_PROFILE}.properties</value>
 			</list>
 		</property>

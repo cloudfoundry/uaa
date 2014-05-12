@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -25,6 +26,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.web.FilterChainProxy;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
@@ -37,6 +39,7 @@ import org.springframework.web.context.WebApplicationContext;
 @RunWith(SpringJUnit4ClassRunner.class)
 @WebAppConfiguration
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class, loader = IntegrationTestContextLoader.class)
+@DirtiesContext(classMode = AFTER_EACH_TEST_METHOD)
 public class PasswordResetEndpointsIntegrationTest {
 
     @Autowired
@@ -55,7 +58,7 @@ public class PasswordResetEndpointsIntegrationTest {
                 .build();
 
         TestClient testClient = new TestClient(mockMvc);
-        loginToken = testClient.getOAuthAccessToken("login", "loginsecret", "client_credentials", "oauth.login");
+        loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "oauth.login");
     }
 
     @Test
@@ -78,6 +81,19 @@ public class PasswordResetEndpointsIntegrationTest {
                 .header("Authorization", "Bearer " + loginToken)
                 .contentType(APPLICATION_JSON)
                 .content("{\"code\":\"" + code + "\",\"new_password\":\"new_secret\"}")
+                .accept(APPLICATION_JSON);
+
+        mockMvc.perform(post)
+                .andExpect(status().isOk())
+                .andExpect(content().string("marissa"));
+    }
+
+    @Test
+    public void testAPasswordChange() throws Exception {
+        MockHttpServletRequestBuilder post = post("/password_change")
+                .header("Authorization", "Bearer " + loginToken)
+                .contentType(APPLICATION_JSON)
+                .content("{\"username\":\"marissa\",\"current_password\":\"koala\",\"new_password\":\"new_secret\"}")
                 .accept(APPLICATION_JSON);
 
         mockMvc.perform(post)

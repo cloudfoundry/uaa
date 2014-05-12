@@ -73,9 +73,7 @@ public class PasswordChangeEndpoint {
     @ResponseBody
     public SimpleMessage changePassword(@PathVariable String userId, @RequestBody PasswordChangeRequest change) {
         checkPasswordChangeIsAllowed(userId, change.getOldPassword());
-        if (!dao.changePassword(userId, change.getOldPassword(), change.getPassword())) {
-            throw new InvalidPasswordException("Password not changed for user: " + userId);
-        }
+        dao.changePassword(userId, change.getOldPassword(), change.getPassword());
         return new SimpleMessage("ok", "password updated");
     }
 

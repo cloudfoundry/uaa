@@ -20,8 +20,8 @@
     <version>1.0.0-SNAPSHOT</version>
 
     <properties>
-        <maven.compiler.source>1.6</maven.compiler.source>
-        <maven.compiler.target>1.6</maven.compiler.target>
+        <maven.compiler.source>1.7</maven.compiler.source>
+        <maven.compiler.target>1.7</maven.compiler.target>
         <scala.version>2.9.2</scala.version>
         <encoding>UTF-8</encoding>
 
@@ -125,9 +125,9 @@
                     <artifactId>maven-scala-plugin</artifactId>
                     <version>${maven-scala-plugin.version}</version>
                 </plugin>
-                <!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven 
-                    build itself. -->
                 <plugin>
+                    <!-- This configuration is used to store Eclipse m2e settings only.
+                         It is not a real plugin and has no influence on the Maven build itself. -->
                     <groupId>org.eclipse.m2e</groupId>
                     <artifactId>lifecycle-mapping</artifactId>
                     <version>1.0.0</version>

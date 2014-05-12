@@ -44,6 +44,7 @@ import java.util.UUID;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
@@ -55,18 +56,23 @@ import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.jwt.Jwt;
 import org.springframework.security.jwt.JwtHelper;
+import org.springframework.security.oauth2.client.resource.OAuth2AccessDeniedException;
 import org.springframework.security.oauth2.common.DefaultExpiringOAuth2RefreshToken;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.DefaultOAuth2RefreshToken;
 import org.springframework.security.oauth2.common.ExpiringOAuth2RefreshToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2RefreshToken;
+import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
 import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
@@ -74,7 +80,9 @@ import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.ClientRegistrationException;
 import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
+import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
@@ -89,7 +97,7 @@ import org.springframework.util.StringUtils;
  * 
  */
 public class UaaTokenServices implements AuthorizationServerTokenServices, ResourceServerTokenServices,
-                InitializingBean {
+                InitializingBean, ApplicationEventPublisherAware {
 
     private int refreshTokenValiditySeconds = 60 * 60 * 24 * 30; // default 30
                                                                  // days.
@@ -111,6 +119,13 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private Set<String> defaultUserAuthorities = new HashSet<String>();
 
     private ApprovalStore approvalStore = null;
+
+    private ApplicationEventPublisher applicationEventPublisher;
+
+    @Override
+    public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
+        this.applicationEventPublisher = applicationEventPublisher;
+    }
 
     @Override
     public OAuth2AccessToken refreshAccessToken(String refreshTokenValue, AuthorizationRequest request)
@@ -282,6 +297,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // This setter copies the value and returns. Don't change.
         accessToken = accessToken.setValue(token);
 
+        publish(new TokenIssuedEvent(accessToken, SecurityContextHolder.getContext().getAuthentication()));
+
         return accessToken;
     }
 
@@ -380,7 +397,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                         refreshToken != null ? refreshToken.getValue() : null, additionalAuthorizationAttributes);
 
         return accessToken;
-
     }
 
     /**
@@ -514,6 +530,20 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         this.userDatabase = userDatabase;
     }
 
+    private void validateClient(String clientId) throws AuthenticationException {
+        if (clientId!=null) {
+            try {
+                clientDetailsService.loadClientByClientId(clientId);
+            } catch (NoSuchClientException x) {
+                throw new OAuth2AccessDeniedException("Invalid client:"+clientId);
+            } catch (ClientRegistrationException x) {
+                throw new OAuth2AccessDeniedException("Invalid client:"+clientId);
+            } catch (InvalidClientException x) {
+                throw new OAuth2AccessDeniedException("Invalid client:"+clientId);
+            }
+        }
+    }
+
     @Override
     public OAuth2Authentication loadAuthentication(String accessToken) throws AuthenticationException {
         Map<String, Object> claims = getClaimsForToken(accessToken);
@@ -524,6 +554,11 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             throw new InvalidTokenException("Invalid access token (expired): " + accessToken + " expired at "
                             + new Date(expiration * 1000l));
         }
+
+        // Check client ID is valid
+        validateClient((String) claims.get(CLIENT_ID));
+        validateClient((String)claims.get(CID));
+
 
         @SuppressWarnings("unchecked")
         ArrayList<String> scopes = (ArrayList<String>) claims.get(SCOPE);
@@ -696,6 +731,12 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     public void setApprovalStore(ApprovalStore approvalStore) {
         this.approvalStore = approvalStore;
+    }
+
+    private void publish(TokenIssuedEvent event) {
+        if (applicationEventPublisher != null) {
+            applicationEventPublisher.publishEvent(event);
+        }
     }
 
 }

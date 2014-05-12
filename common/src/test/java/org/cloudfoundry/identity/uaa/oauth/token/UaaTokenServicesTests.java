@@ -26,20 +26,28 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.cloudfoundry.identity.uaa.audit.AuditEvent;
+import org.cloudfoundry.identity.uaa.audit.AuditEventType;
+import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.oauth.approval.InMemoryApprovalStore;
+import org.cloudfoundry.identity.uaa.test.MockAuthentication;
+import org.cloudfoundry.identity.uaa.test.TestApplicationEventPublisher;
 import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
+import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.jwt.Jwt;
 import org.springframework.security.jwt.JwtHelper;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
@@ -57,6 +65,7 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
  */
 public class UaaTokenServicesTests {
 
+    private TestApplicationEventPublisher<TokenIssuedEvent> publisher;
     private UaaTokenServices tokenServices = new UaaTokenServices();
 
     private SignerProvider signerProvider = new SignerProvider();
@@ -76,8 +85,10 @@ public class UaaTokenServicesTests {
     private InMemoryClientDetailsService clientDetailsService = new InMemoryClientDetailsService();
 
     private ApprovalStore approvalStore = new InMemoryApprovalStore();
+    private MockAuthentication mockAuthentication;
 
     public UaaTokenServicesTests() {
+        publisher = TestApplicationEventPublisher.forEventClass(TokenIssuedEvent.class);
         clientDetailsService.setClientDetailsStore(Collections
                         .singletonMap("client", new BaseClientDetails("client", "scim, clients", "read, write",
                                         "authorization_code, password, implicit, client_credentials", "update")));
@@ -87,7 +98,13 @@ public class UaaTokenServicesTests {
         tokenServices.setSignerProvider(signerProvider);
         tokenServices.setUserDatabase(userDatabase);
         tokenServices.setApprovalStore(approvalStore);
+        tokenServices.setApplicationEventPublisher(publisher);
+    }
 
+    @Before
+    public void setUp() throws Exception {
+        mockAuthentication = new MockAuthentication();
+        SecurityContextHolder.getContext().setAuthentication(mockAuthentication);
     }
 
     @Test
@@ -127,6 +144,16 @@ public class UaaTokenServicesTests {
         assertTrue(((Integer) claims.get("exp")) > 0);
         assertTrue(((Integer) claims.get("exp")) - ((Integer) claims.get("iat")) == 60 * 60 * 12);
         assertNull(accessToken.getRefreshToken());
+
+        Assert.assertEquals(1, publisher.getEventCount());
+
+        TokenIssuedEvent event = publisher.getLatestEvent();
+        Assert.assertEquals(accessToken, event.getSource());
+        Assert.assertEquals(mockAuthentication, event.getAuthentication());
+        AuditEvent auditEvent = event.getAuditEvent();
+        Assert.assertEquals("client", auditEvent.getPrincipalId());
+        Assert.assertEquals("[\"read\",\"write\"]", auditEvent.getData());
+        Assert.assertEquals(AuditEventType.TokenIssuedEvent, auditEvent.getType());
     }
 
     @Test
@@ -569,6 +596,14 @@ public class UaaTokenServicesTests {
             assertTrue(((Integer) refreshTokenClaims.get("exp")) > 0);
             assertTrue(((Integer) refreshTokenClaims.get("exp")) - ((Integer) refreshTokenClaims.get("iat")) > 0);
         }
+
+        TokenIssuedEvent event = publisher.getLatestEvent();
+        Assert.assertEquals(accessToken, event.getSource());
+        Assert.assertEquals(mockAuthentication, event.getAuthentication());
+        AuditEvent auditEvent = event.getAuditEvent();
+        Assert.assertEquals("12345", auditEvent.getPrincipalId());
+        Assert.assertEquals("[\"read\",\"write\"]", auditEvent.getData());
+        Assert.assertEquals(AuditEventType.TokenIssuedEvent, auditEvent.getType());
 
         return accessToken;
     }
