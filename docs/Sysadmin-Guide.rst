@@ -99,8 +99,6 @@ Run Servers (using the UAA version <X> from above):
 
     cd login-server && mvn tomcat:run -P integration 
 
-You can add -Didentity.version=<X> if you need to match a specific UAA build.
-
 or to just run the UAA: 
 
 ::
