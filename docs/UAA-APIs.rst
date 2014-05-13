@@ -90,9 +90,9 @@ Browser Requests Code: ``GET /oauth/authorize``
 
 *Sample curl commands for this flow*
 
-* ``curl -v http://localhost:8080/uaa/oauth/authorize -d "response_type=code&client_id=app&scope=password.write&redirect_uri=http%3A%2F%2Fwww.example.com%2Fcallback" --cookie cookies.txt --cookie-jar cookies.txt``
+* ``curl -v "http://localhost:8080/uaa/oauth/authorize?response_type=code&client_id=app&scope=password.write&redirect_uri=http%3A%2F%2Fwww.example.com%2Fcallback" --cookie cookies.txt --cookie-jar cookies.txt``
 * ``curl -v http://localhost:8080/uaa/login.do -d "username=marissa&password=koala" --cookie cookies.txt --cookie-jar cookies.txt``
-* ``curl -v http://localhost:8080/uaa/oauth/authorize --cookie cookies.txt --cookie-jar cookies.txt``
+* ``curl -v "http://localhost:8080/uaa/oauth/authorize?response_type=code&client_id=app&scope=password.write&redirect_uri=http%3A%2F%2Fwww.example.com%2Fcallback" --cookie cookies.txt --cookie-jar cookies.txt``
 * ``curl -v http://localhost:8080/uaa/oauth/authorize -d "scope.0=scope.password.write&user_oauth_approval=true" --cookie cookies.txt --cookie-jar cookies.txt``
 
 Non-Browser Requests Code: ``GET /oauth/authorize``
@@ -124,6 +124,13 @@ and explicitly approve the grant::
 The most useful information for constructing a user approval page is
 the list of requested scopes, the client id and the requested redirect
 URI.
+
+*Sample curl commands for this flow*
+
+* ``curl -v -H "Accept:application/json" "http://localhost:8080/uaa/oauth/authorize?response_type=code&client_id=app&scope=password.write&redirect_uri=http%3A%2F%2Fwww.example.com%2Fcallback" --cookie cookies.txt --cookie-jar cookies.txt``
+* ``curl -v -H "Accept:application/json" http://localhost:8080/uaa/login.do -d "username=marissa&password=koala" --cookie cookies.txt --cookie-jar cookies.txt``
+* ``curl -v -H "Accept:application/json" "http://localhost:8080/uaa/oauth/authorize?response_type=code&client_id=app&scope=password.write&redirect_uri=http%3A%2F%2Fwww.example.com%2Fcallback" --cookie cookies.txt --cookie-jar cookies.txt``
+* ``curl -v -H "Accept:application/json" http://localhost:8080/uaa/oauth/authorize -d "scope.0=scope.password.write&user_oauth_approval=true" --cookie cookies.txt --cookie-jar cookies.txt``
 
 Client Obtains Token: ``POST /oauth/token``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
