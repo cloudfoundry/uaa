@@ -147,6 +147,6 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
         if (familyName == null) {
             familyName = email.split("@")[1];
         }
-        return new UaaUser(name, generator.generate(), email, givenName, familyName);
+        return new UaaUser(name, "" /*zero length password for login server */, email, givenName, familyName);
     }
 }
