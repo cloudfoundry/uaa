@@ -4,6 +4,7 @@ cd `dirname $0`/..
 
 if [ "$#" -ne 1 ]; then
     echo "Usage: $(basename $0) uaa_release_version"
+    exit
 fi
 
 echo Creating UAA release $1
