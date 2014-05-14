@@ -47,7 +47,7 @@ after_success:
           echo "All Succeded!"
           if [ "$TRAVIS_BRANCH" = "develop" ]; then
             echo "PUBLISHING..."
-            mvn deploy -DskipTests
+            mvn clean deploy -DskipTests
           fi
         else
           echo "Some Failed"
