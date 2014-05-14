@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.cloudfoundry.identity</groupId>
         <artifactId>cloudfoundry-identity-parent</artifactId>
-        <version>1.6.5</version>
+        <version>1.6.6-SNAPSHOT</version>
         <relativePath>..</relativePath>
     </parent>
 
