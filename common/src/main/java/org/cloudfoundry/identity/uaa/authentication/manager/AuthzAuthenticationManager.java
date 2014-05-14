@@ -82,13 +82,18 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
         }
 
         UaaUser user;
+        boolean passwordMatches = false;
         try {
             user = userDatabase.retrieveUserByName(req.getName().toLowerCase(Locale.US));
+            if (user!=null) {
+                passwordMatches =
+                    ((CharSequence)req.getCredentials()).length()==0 ? //zero length passwords are automatically a fail.
+                        false :
+                        encoder.matches((CharSequence) req.getCredentials(), user.getPassword());
+            }
         } catch (UsernameNotFoundException e) {
             user = dummyUser;
         }
-
-        final boolean passwordMatches = encoder.matches((CharSequence) req.getCredentials(), user.getPassword());
 
         if (!accountLoginPolicy.isAllowed(user, req)) {
             logger.warn("Login policy rejected authentication for " + user.getUsername() + ", " + user.getId()
@@ -107,7 +112,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
             return success;
         }
 
-        if (user == dummyUser) {
+        if (user == dummyUser || user == null) {
             logger.debug("No user named '" + req.getName() + "' was found");
             publish(new UserNotFoundEvent(req));
         } else {
