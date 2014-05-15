@@ -48,15 +48,15 @@ public class RemoteAuthenticationEndpointTests {
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = authenticate(testAccounts.getUserName(), testAccounts.getPassword());
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("marissa", response.getBody().get("username"));
+        assertEquals(testAccounts.getUserName(), response.getBody().get("username"));
     }
 
     @Test
     public void remoteAuthenticationFailsWithIncorrectCredentials() throws Exception {
         @SuppressWarnings("rawtypes")
-        ResponseEntity<Map> response = authenticate("marissa", "wrong");
+        ResponseEntity<Map> response = authenticate(testAccounts.getUserName(), "wrong");
         assertFalse(HttpStatus.OK == response.getStatusCode());
-        assertFalse("marissa".equals(response.getBody().get("username")));
+        assertFalse(testAccounts.getUserName().equals(response.getBody().get("username")));
     }
 
     @SuppressWarnings("rawtypes")

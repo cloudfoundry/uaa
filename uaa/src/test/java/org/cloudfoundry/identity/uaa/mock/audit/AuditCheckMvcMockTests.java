@@ -416,7 +416,7 @@ public class AuditCheckMvcMockTests {
         Assert.assertEquals(1, testListener.getEventCount());
 
         ApprovalModifiedEvent approvalModifiedEvent = (ApprovalModifiedEvent) testListener.getLatestEvent();
-        Assert.assertEquals("marissa", approvalModifiedEvent.getAuthentication().getName());
+        Assert.assertEquals(testAccounts.getUserName(), approvalModifiedEvent.getAuthentication().getName());
     }
 
     @Test

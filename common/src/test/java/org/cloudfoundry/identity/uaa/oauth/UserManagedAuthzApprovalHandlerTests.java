@@ -36,6 +36,7 @@ import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.rest.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
+import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -59,6 +60,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class UserManagedAuthzApprovalHandlerTests {
 
     private final UserManagedAuthzApprovalHandler handler = new UserManagedAuthzApprovalHandler();
+    private UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
 
     @Autowired
     private DataSource dataSource;
@@ -97,7 +99,7 @@ public class UserManagedAuthzApprovalHandlerTests {
         request.setApproved(true);
         // The request is approved but does not request any scopes. The user has
         // also not approved any scopes. Approved.
-        assertTrue(handler.isApproved(request, new TestAuthentication("marissa", true)));
+        assertTrue(handler.isApproved(request, new TestAuthentication(testAccounts.getUserName(), true)));
     }
 
     @Test
@@ -108,7 +110,7 @@ public class UserManagedAuthzApprovalHandlerTests {
         // The request needs user approval for scopes. The user has also not
         // approved any scopes prior to this request.
         // Not approved.
-        assertFalse(handler.isApproved(request, new TestAuthentication("marissa", true)));
+        assertFalse(handler.isApproved(request, new TestAuthentication(testAccounts.getUserName(), true)));
     }
 
     @Test
@@ -119,14 +121,14 @@ public class UserManagedAuthzApprovalHandlerTests {
         // The request needs user approval for scopes. The user has also not
         // approved any scopes prior to this request.
         // Not approved.
-        assertFalse(handler.isApproved(request, new TestAuthentication("marissa", true)));
+        assertFalse(handler.isApproved(request, new TestAuthentication(testAccounts.getUserName(), true)));
     }
 
     @Test
     public void testNoRequestedScopesButSomeApprovedScopes() {
         DefaultAuthorizationRequest request = new DefaultAuthorizationRequest("foo", new HashSet<String>());
         request.setApproved(false);
-        TestAuthentication userAuthentication = new TestAuthentication("marissa", true);
+        TestAuthentication userAuthentication = new TestAuthentication(testAccounts.getUserName(), true);
 
         long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
         Date nextWeek = new Date(theFuture);
@@ -137,7 +139,7 @@ public class UserManagedAuthzApprovalHandlerTests {
                         nextWeek, DENIED));
 
         // The request is approved because the user has not requested any scopes
-        assertTrue(handler.isApproved(request, new TestAuthentication("marissa", true)));
+        assertTrue(handler.isApproved(request, new TestAuthentication(testAccounts.getUserName(), true)));
         assertEquals(0, request.getScope().size());
     }
 
@@ -146,7 +148,7 @@ public class UserManagedAuthzApprovalHandlerTests {
         DefaultAuthorizationRequest request = new DefaultAuthorizationRequest("foo", new HashSet<String>(
                         Arrays.asList("openid")));
         request.setApproved(false);
-        TestAuthentication userAuthentication = new TestAuthentication("marissa", true);
+        TestAuthentication userAuthentication = new TestAuthentication(testAccounts.getUserName(), true);
 
         long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
         Date nextWeek = new Date(theFuture);
@@ -158,7 +160,7 @@ public class UserManagedAuthzApprovalHandlerTests {
 
         // The request is not approved because the user has not yet approved the
         // scopes requested
-        assertFalse(handler.isApproved(request, new TestAuthentication("marissa", true)));
+        assertFalse(handler.isApproved(request, new TestAuthentication(testAccounts.getUserName(), true)));
     }
 
     @Test
@@ -166,7 +168,7 @@ public class UserManagedAuthzApprovalHandlerTests {
         DefaultAuthorizationRequest request = new DefaultAuthorizationRequest("foo", new HashSet<String>(Arrays.asList(
                         "openid", "cloud_controller.read")));
         request.setApproved(false);
-        TestAuthentication userAuthentication = new TestAuthentication("marissa", true);
+        TestAuthentication userAuthentication = new TestAuthentication(testAccounts.getUserName(), true);
 
         long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
         Date nextWeek = new Date(theFuture);
@@ -178,7 +180,7 @@ public class UserManagedAuthzApprovalHandlerTests {
 
         // The request is not approved because the user has not yet approved all
         // the scopes requested
-        assertFalse(handler.isApproved(request, new TestAuthentication("marissa", true)));
+        assertFalse(handler.isApproved(request, new TestAuthentication(testAccounts.getUserName(), true)));
     }
 
     @Test
@@ -186,7 +188,7 @@ public class UserManagedAuthzApprovalHandlerTests {
         DefaultAuthorizationRequest request = new DefaultAuthorizationRequest("foo", new HashSet<String>(Arrays.asList(
                         "openid", "cloud_controller.read")));
         request.setApproved(false);
-        TestAuthentication userAuthentication = new TestAuthentication("marissa", true);
+        TestAuthentication userAuthentication = new TestAuthentication(testAccounts.getUserName(), true);
 
         long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
         Date nextWeek = new Date(theFuture);
@@ -198,7 +200,7 @@ public class UserManagedAuthzApprovalHandlerTests {
                         nextWeek, DENIED));
         approvalStore.addApproval(new Approval(userAuthentication.getPrincipal(), "foo", "openid", nextWeek, DENIED));
 
-        assertTrue(handler.isApproved(request, new TestAuthentication("marissa", true)));
+        assertTrue(handler.isApproved(request, new TestAuthentication(testAccounts.getUserName(), true)));
         assertEquals(new HashSet<String>(Arrays.asList(new String[] { "cloud_controller.read", "openid" })),
                         request.getScope());
     }
@@ -208,7 +210,7 @@ public class UserManagedAuthzApprovalHandlerTests {
         DefaultAuthorizationRequest request = new DefaultAuthorizationRequest("foo", new HashSet<String>(Arrays.asList(
                         "openid", "cloud_controller.read", "cloud_controller.write")));
         request.setApproved(false);
-        TestAuthentication userAuthentication = new TestAuthentication("marissa", true);
+        TestAuthentication userAuthentication = new TestAuthentication(testAccounts.getUserName(), true);
 
         long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
         Date nextWeek = new Date(theFuture);
@@ -220,7 +222,7 @@ public class UserManagedAuthzApprovalHandlerTests {
 
         // The request is not approved because the user has not yet approved all
         // the scopes requested
-        assertFalse(handler.isApproved(request, new TestAuthentication("marissa", true)));
+        assertFalse(handler.isApproved(request, new TestAuthentication(testAccounts.getUserName(), true)));
     }
 
     @Test
@@ -228,7 +230,7 @@ public class UserManagedAuthzApprovalHandlerTests {
         DefaultAuthorizationRequest request = new DefaultAuthorizationRequest("foo", new HashSet<String>(Arrays.asList(
                         "openid", "cloud_controller.read", "cloud_controller.write")));
         request.setApproved(false);
-        TestAuthentication userAuthentication = new TestAuthentication("marissa", true);
+        TestAuthentication userAuthentication = new TestAuthentication(testAccounts.getUserName(), true);
 
         long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
         Date nextWeek = new Date(theFuture);
@@ -241,7 +243,7 @@ public class UserManagedAuthzApprovalHandlerTests {
 
         // The request is approved because the user has approved all the scopes
         // requested
-        assertTrue(handler.isApproved(request, new TestAuthentication("marissa", true)));
+        assertTrue(handler.isApproved(request, new TestAuthentication(testAccounts.getUserName(), true)));
         assertEquals(new HashSet<String>(Arrays.asList(new String[] { "openid", "cloud_controller.read",
                         "cloud_controller.write" })), request.getScope());
     }
@@ -251,7 +253,7 @@ public class UserManagedAuthzApprovalHandlerTests {
         DefaultAuthorizationRequest request = new DefaultAuthorizationRequest("foo", new HashSet<String>(Arrays.asList(
                         "openid", "cloud_controller.read", "cloud_controller.write")));
         request.setApproved(false);
-        TestAuthentication userAuthentication = new TestAuthentication("marissa", true);
+        TestAuthentication userAuthentication = new TestAuthentication(testAccounts.getUserName(), true);
 
         long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
         Date nextWeek = new Date(theFuture);
@@ -264,7 +266,7 @@ public class UserManagedAuthzApprovalHandlerTests {
 
         // The request is approved because the user has acted on all requested
         // scopes
-        assertTrue(handler.isApproved(request, new TestAuthentication("marissa", true)));
+        assertTrue(handler.isApproved(request, new TestAuthentication(testAccounts.getUserName(), true)));
         assertEquals(new HashSet<String>(Arrays.asList(new String[] { "openid", "cloud_controller.read" })),
                         request.getScope());
     }
@@ -274,7 +276,7 @@ public class UserManagedAuthzApprovalHandlerTests {
         DefaultAuthorizationRequest request = new DefaultAuthorizationRequest("foo", new HashSet<String>(Arrays.asList(
                         "openid", "cloud_controller.read", "cloud_controller.write")));
         request.setApproved(false);
-        TestAuthentication userAuthentication = new TestAuthentication("marissa", true);
+        TestAuthentication userAuthentication = new TestAuthentication(testAccounts.getUserName(), true);
 
         long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
         Date nextWeek = new Date(theFuture);
@@ -294,7 +296,7 @@ public class UserManagedAuthzApprovalHandlerTests {
 
         // The request is not approved because the user has denied some of the
         // scopes requested
-        assertTrue(handler.isApproved(request, new TestAuthentication("marissa", true)));
+        assertTrue(handler.isApproved(request, new TestAuthentication(testAccounts.getUserName(), true)));
         assertEquals(new HashSet<String>(Arrays.asList(new String[] { "openid", "cloud_controller.read",
                         "cloud_controller.write" })), request.getScope());
     }
@@ -304,7 +306,7 @@ public class UserManagedAuthzApprovalHandlerTests {
         DefaultAuthorizationRequest request = new DefaultAuthorizationRequest("foo", new HashSet<String>(
                         Arrays.asList("openid")));
         request.setApproved(false);
-        TestAuthentication userAuthentication = new TestAuthentication("marissa", true);
+        TestAuthentication userAuthentication = new TestAuthentication(testAccounts.getUserName(), true);
 
         long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
         Date nextWeek = new Date(theFuture);
@@ -317,7 +319,7 @@ public class UserManagedAuthzApprovalHandlerTests {
 
         // The request is approved because the user has approved all the scopes
         // requested
-        assertTrue(handler.isApproved(request, new TestAuthentication("marissa", true)));
+        assertTrue(handler.isApproved(request, new TestAuthentication(testAccounts.getUserName(), true)));
         assertEquals(new HashSet<String>(Arrays.asList(new String[] { "openid" })), request.getScope());
     }
 
