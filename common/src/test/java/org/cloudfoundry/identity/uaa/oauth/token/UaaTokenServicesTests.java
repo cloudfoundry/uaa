@@ -80,7 +80,7 @@ public class UaaTokenServicesTests {
                     Collections.singletonMap("jdsa", new UaaUser("12345", "jdsa", "password", "jdsa@vmware.com",
                                     UaaAuthority.USER_AUTHORITIES, null, null, new Date(
                                                     System.currentTimeMillis() - 15000), new Date(
-                                                    System.currentTimeMillis() - 15000)))));
+                                                    System.currentTimeMillis() - 15000), "origin", "externalId"))));
 
     private InMemoryClientDetailsService clientDetailsService = new InMemoryClientDetailsService();
 
@@ -1101,7 +1101,7 @@ public class UaaTokenServicesTests {
         assertEquals(UaaAuthority.USER_AUTHORITIES, loadedAuthentication.getAuthorities());
         assertEquals("jdsa", loadedAuthentication.getName());
         UaaPrincipal uaaPrincipal = new UaaPrincipal(new UaaUser("12345", "jdsa", "password", "jdsa@vmware.com",
-                        UaaAuthority.USER_AUTHORITIES, null, null, null, null));
+                        UaaAuthority.USER_AUTHORITIES, null, null, null, null, null, null));
         assertEquals(uaaPrincipal, loadedAuthentication.getPrincipal());
         assertNull(loadedAuthentication.getDetails());
 

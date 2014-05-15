@@ -145,7 +145,8 @@ public class PasswordResetEndpoints implements ApplicationEventPublisherAware {
         Date today = new Date();
         return new UaaUser(scimUser.getId(), scimUser.getUserName(), "N/A", scimUser.getPrimaryEmail(), null,
             scimUser.getGivenName(),
-            scimUser.getFamilyName(), today, today);
+            scimUser.getFamilyName(), today, today,
+            scimUser.getOrigin(), scimUser.getExternalId());
     }
 
     public static class PasswordChange {

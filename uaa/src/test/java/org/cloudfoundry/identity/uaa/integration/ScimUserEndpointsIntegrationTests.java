@@ -211,7 +211,6 @@ public class ScimUserEndpointsIntegrationTests {
         @SuppressWarnings("unchecked")
         Map<String, String> error = response.getBody();
 
-        System.err.println(error);
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals("invalid_scim_resource", error.get("error"));
 
@@ -373,7 +372,6 @@ public class ScimUserEndpointsIntegrationTests {
         @SuppressWarnings("unchecked")
         Map<String, String> error = response.getBody();
 
-        // System.err.println(error);
         assertEquals("scim_resource_already_exists", error.get("error"));
 
     }
@@ -403,7 +401,6 @@ public class ScimUserEndpointsIntegrationTests {
         @SuppressWarnings("unchecked")
         Map<String, String> error = response.getBody();
 
-        // System.err.println(error);
         assertEquals("scim_resource_already_exists", error.get("error"));
 
     }
@@ -417,7 +414,6 @@ public class ScimUserEndpointsIntegrationTests {
         ResponseEntity<Map> response = deleteUser("9999", 0);
         @SuppressWarnings("unchecked")
         Map<String, String> error = response.getBody();
-        // System.err.println(error);
         assertEquals("scim_resource_not_found", error.get("error"));
         assertEquals("User 9999 does not exist", error.get("message"));
 
@@ -500,7 +496,6 @@ public class ScimUserEndpointsIntegrationTests {
         ResponseEntity<Map> response = serverRunning.getForObject(usersEndpoint + "?startIndex=2&count=3", Map.class);
         @SuppressWarnings("unchecked")
         Map<String, Object> results = response.getBody();
-        System.err.println(results);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
         assertEquals(new Integer(2), results.get("startIndex"));
@@ -513,7 +508,6 @@ public class ScimUserEndpointsIntegrationTests {
                         .getForObject(usersEndpoint + "?startIndex=0&count=3000", Map.class);
         @SuppressWarnings("unchecked")
         Map<String, Object> results = response.getBody();
-        System.err.println(results);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
         assertEquals(new Integer(1), results.get("startIndex"));

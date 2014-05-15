@@ -155,7 +155,7 @@ public class YamlProcessor {
                     }
                 }
 
-                logger.info("Loaded " + count + " document" + (count > 1 ? "s" : "") + " from YAML resource: "
+                logger.debug("Loaded " + count + " document" + (count > 1 ? "s" : "") + " from YAML resource: "
                                 + resource);
 
                 if (resolutionMethod == ResolutionMethod.FIRST_FOUND && found) {

@@ -19,9 +19,15 @@ import org.springframework.test.context.ContextConfigurationAttributes;
 import org.springframework.test.context.MergedContextConfiguration;
 import org.springframework.test.context.SmartContextLoader;
 import org.springframework.test.context.web.WebMergedContextConfiguration;
+import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public class IntegrationTestContextLoader implements SmartContextLoader {
+
+    public static final String PROFILE_KEY = "spring.profiles.active";
 
     @Override
     public void processContextConfiguration(ContextConfigurationAttributes configAttributes) {

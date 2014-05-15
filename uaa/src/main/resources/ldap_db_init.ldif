@@ -1,0 +1,37 @@
+# Load modules for database type
+dn: cn=module,cn=config
+objectclass: olcModuleList
+cn: module
+olcModuleLoad: back_bdb.la
+
+# Create directory database
+dn: olcDatabase=bdb,cn=config
+objectClass: olcDatabaseConfig
+objectClass: olcBdbConfig
+olcDatabase: bdb
+# Domain name (e.g. home.local)
+olcSuffix: dc=test,dc=com
+# Location on system where database is stored
+olcDbDirectory: /var/lib/ldap
+# Manager of the database
+olcRootDN: cn=admin,dc=test,dc=com
+olcRootPW: {SSHA}XerHS1s6xgIHpLrR9hCvelH7grepkqiv
+# Indices in database to speed up searches
+olcDbIndex: uid pres,eq
+olcDbIndex: cn,sn,mail pres,eq,approx,sub
+olcDbIndex: objectClass eq
+# Allow users to change their own password
+# Allow anonymous to authenticate against the password
+# Allow admin to change any password
+olcAccess: to attrs=userPassword
+  by self write
+  by anonymous auth
+  by dn.base="cn=admin,dc=test,dc=com" write
+  by dn.base="cn=admin,ou=Users,dc=test,dc=com" read
+  by * none
+# Allow users to change their own record
+# Allow anyone to read directory
+olcAccess: to *
+  by self write
+  by dn.base="cn=admin,dc=test,dc=com" write
+  by * read

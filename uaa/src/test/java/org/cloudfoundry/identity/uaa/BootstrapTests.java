@@ -12,15 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
-import java.io.IOException;
-
-import javax.servlet.RequestDispatcher;
-import javax.sql.DataSource;
-
+import org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager;
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.oauth.ClientAdminBootstrap;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
@@ -30,6 +22,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.xml.ResourceEntityResolver;
 import org.springframework.beans.factory.xml.XmlBeanDefinitionReader;
@@ -40,10 +33,19 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockRequestDispatcher;
 import org.springframework.mock.web.MockServletConfig;
 import org.springframework.mock.web.MockServletContext;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.AbstractRefreshableWebApplicationContext;
+
+import javax.servlet.RequestDispatcher;
+import javax.sql.DataSource;
+import java.io.IOException;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author Dave Syer
@@ -95,6 +97,18 @@ public class BootstrapTests {
                                         .toString());
         ScimUserProvisioning users = context.getBean(ScimUserProvisioning.class);
         assertTrue(users.retrieveAll().size() > 0);
+    }
+
+    @Test
+    public void testLdapProfile() throws Exception {
+        context = getServletContext("ldap,default", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        AuthenticationManager authenticationManager = null;
+        try {
+            authenticationManager = context.getBean("authzAuthenticationMgr", AuthenticationManager.class);
+        } catch (NoSuchBeanDefinitionException e) {
+        }
+        assertNotNull(authenticationManager);
+        assertEquals(ChainedAuthenticationManager.class, authenticationManager.getClass());
     }
 
     private ConfigurableApplicationContext getServletContext(String... resources) {

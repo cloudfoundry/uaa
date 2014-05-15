@@ -70,7 +70,7 @@ public class PasswordChangeEventPublisher implements ApplicationEventPublisherAw
             if (scimUser != null) {
                 return new UaaUser(scimUser.getId(), scimUser.getUserName(), "N/A", getEmail(scimUser), null,
                                 scimUser.getGivenName(),
-                                scimUser.getFamilyName(), today, today);
+                                scimUser.getFamilyName(), today, today, scimUser.getOrigin(), scimUser.getExternalId());
             }
         } catch (ScimResourceNotFoundException e) {
             // ignore

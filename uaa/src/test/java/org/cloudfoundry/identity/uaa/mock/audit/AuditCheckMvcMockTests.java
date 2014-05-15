@@ -27,6 +27,7 @@ import org.cloudfoundry.identity.uaa.authentication.event.PrincipalAuthenticatio
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserNotFoundEvent;
+import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.password.event.PasswordChangeEvent;
 import org.cloudfoundry.identity.uaa.password.event.PasswordChangeFailureEvent;
@@ -51,6 +52,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
@@ -71,6 +73,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -82,24 +85,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@WebAppConfiguration
-@ContextConfiguration(classes = DefaultIntegrationTestConfig.class, loader = IntegrationTestContextLoader.class)
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 public class AuditCheckMvcMockTests {
 
-    @Autowired
     AnnotationConfigWebApplicationContext webApplicationContext;
-
-    @Autowired
-    FilterChainProxy filterChainProxy;
-
-    @Autowired
-    Flyway flyway;
-
-    @Autowired
     ClientRegistrationService clientRegistrationService;
-
     private ApplicationListener<AbstractUaaEvent> listener;
     private MockMvc mockMvc;
     private TestClient testClient;
@@ -108,12 +97,20 @@ public class AuditCheckMvcMockTests {
 
     @Before
     public void setUp() throws Exception {
+        webApplicationContext = new AnnotationConfigWebApplicationContext();
+        webApplicationContext.setServletContext(new MockServletContext());
+        webApplicationContext.register(DefaultIntegrationTestConfig.class);
+        new YamlServletProfileInitializer().initialize(webApplicationContext);
+        webApplicationContext.refresh();
+        webApplicationContext.registerShutdownHook();
+        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
+        clientRegistrationService = (ClientRegistrationService)webApplicationContext.getBean("clientRegistrationService");
         listener = mock(new DefaultApplicationListener<AbstractUaaEvent>() {}.getClass());
         webApplicationContext.addApplicationListener(listener);
         testListener = TestApplicationEventListener.forEventClass(AbstractUaaEvent.class);
         webApplicationContext.addApplicationListener(testListener);
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
-                .addFilter(filterChainProxy)
+                .addFilter(springSecurityFilterChain)
                 .build();
 
         testClient = new TestClient(mockMvc);
@@ -122,7 +119,9 @@ public class AuditCheckMvcMockTests {
 
     @After
     public void tearDown() throws Exception{
+        Flyway flyway = webApplicationContext.getBean(Flyway.class);
         flyway.clean();
+        webApplicationContext.destroy();
     }
 
     @Test
@@ -173,7 +172,7 @@ public class AuditCheckMvcMockTests {
                 .andExpect(header().string("Location", "/login?error=true"));
 
         ArgumentCaptor<AbstractUaaEvent> captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);
-        verify(listener, times(2)).onApplicationEvent(captor.capture());
+        verify(listener, atLeast(2)).onApplicationEvent(captor.capture());
 
         UserAuthenticationFailureEvent event1 = (UserAuthenticationFailureEvent)captor.getAllValues().get(0);
         PrincipalAuthenticationFailureEvent event2 = (PrincipalAuthenticationFailureEvent)captor.getAllValues().get(1);
@@ -192,7 +191,7 @@ public class AuditCheckMvcMockTests {
             .andExpect(content().string("{\"error\":\"authentication failed\"}"));
 
         ArgumentCaptor<AbstractUaaEvent> captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);
-        verify(listener, times(2)).onApplicationEvent(captor.capture());
+        verify(listener, atLeast(2)).onApplicationEvent(captor.capture());
 
         UserAuthenticationFailureEvent event1 = (UserAuthenticationFailureEvent)captor.getAllValues().get(0);
         PrincipalAuthenticationFailureEvent event2 = (PrincipalAuthenticationFailureEvent)captor.getAllValues().get(1);
@@ -214,7 +213,7 @@ public class AuditCheckMvcMockTests {
                 .andExpect(header().string("Location", "/login?error=true"));
 
         ArgumentCaptor<AbstractUaaEvent> captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);
-        verify(listener, times(2)).onApplicationEvent(captor.capture());
+        verify(listener, atLeast(2)).onApplicationEvent(captor.capture());
         UserNotFoundEvent event1 = (UserNotFoundEvent)captor.getAllValues().get(0);
         PrincipalAuthenticationFailureEvent event2 = (PrincipalAuthenticationFailureEvent)captor.getAllValues().get(1);
         assertEquals(username, ((Authentication)event1.getSource()).getName());

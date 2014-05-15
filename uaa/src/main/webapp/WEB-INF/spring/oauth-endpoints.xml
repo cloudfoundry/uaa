@@ -256,7 +256,7 @@
         </property>
     </bean>
 
-    <bean id="authzAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager">
+    <bean id="abstractAuthzAuthenticationMgr" abstract="true" class="org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager">
         <constructor-arg ref="userDatabase" />
         <property name="accountLoginPolicy">
             <bean class="org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy">
@@ -266,5 +266,10 @@
             </bean>
         </property>
     </bean>
+
+    <bean id="uaaAuthenticationMgr" parent="abstractAuthzAuthenticationMgr"/>
+
+    <bean id="authzAuthenticationMgr" parent="abstractAuthzAuthenticationMgr"/>
+
 
 </beans>
