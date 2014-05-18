@@ -14,6 +14,6 @@ UAA_CLASSPATH=`mvn -pl uaa dependency:build-classpath -P coverage | grep -v "\["
 
 set -x
 
-java -cp $COMMON_CLASSPATH net.sourceforge.cobertura.instrument.Main common/target/classes --ignore CoverageController
-java -cp $SCIM_CLASSPATH net.sourceforge.cobertura.instrument.Main scim/target/classes
-java -cp $UAA_CLASSPATH net.sourceforge.cobertura.instrument.Main uaa/target/classes
+java -cp common/target/classes:$COMMON_CLASSPATH net.sourceforge.cobertura.instrument.Main common/target/classes --ignore CoverageController
+java -cp common/target/classes:scim/target/classes:$SCIM_CLASSPATH net.sourceforge.cobertura.instrument.Main scim/target/classes
+java -cp common/target/classes:scim/target/classes:uaa/target/classes:$UAA_CLASSPATH net.sourceforge.cobertura.instrument.Main uaa/target/classes
