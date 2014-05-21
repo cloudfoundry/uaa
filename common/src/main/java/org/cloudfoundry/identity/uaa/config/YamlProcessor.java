@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.config;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
@@ -156,14 +157,18 @@ public class YamlProcessor {
                 }
 
                 logger.debug("Loaded " + count + " document" + (count > 1 ? "s" : "") + " from YAML resource: "
-                                + resource);
+                    + resource);
 
                 if (resolutionMethod == ResolutionMethod.FIRST_FOUND && found) {
                     // No need to load any more resources
                     break;
                 }
             } catch (IOException e) {
-                if (resolutionMethod == ResolutionMethod.FIRST_FOUND
+                if (e instanceof FileNotFoundException && e.getMessage().contains("${APPLICATION_CONFIG_FILE}") &&
+                    (resolutionMethod == ResolutionMethod.FIRST_FOUND
+                        || resolutionMethod == ResolutionMethod.OVERRIDE_AND_IGNORE)) {
+                    logger.debug("Could not load map from " + resource + ": " + e.getMessage());
+                } else if (resolutionMethod == ResolutionMethod.FIRST_FOUND
                                 || resolutionMethod == ResolutionMethod.OVERRIDE_AND_IGNORE) {
                     logger.warn("Could not load map from " + resource + ": " + e.getMessage());
                 }
