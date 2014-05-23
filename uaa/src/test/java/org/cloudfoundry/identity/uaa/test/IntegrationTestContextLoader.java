@@ -14,20 +14,21 @@ package org.cloudfoundry.identity.uaa.test;
 
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
 import org.springframework.context.ApplicationContext;
+import org.springframework.core.io.DefaultResourceLoader;
+import org.springframework.core.io.FileSystemResourceLoader;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.test.context.ContextConfigurationAttributes;
 import org.springframework.test.context.MergedContextConfiguration;
 import org.springframework.test.context.SmartContextLoader;
 import org.springframework.test.context.web.WebMergedContextConfiguration;
-import org.springframework.util.StringUtils;
+import org.springframework.util.Assert;
+import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
 
-import java.util.HashSet;
-import java.util.Set;
+import javax.servlet.ServletContext;
 
 public class IntegrationTestContextLoader implements SmartContextLoader {
-
-    public static final String PROFILE_KEY = "spring.profiles.active";
 
     @Override
     public void processContextConfiguration(ContextConfigurationAttributes configAttributes) {
@@ -41,6 +42,7 @@ public class IntegrationTestContextLoader implements SmartContextLoader {
                     "Cannot load WebApplicationContext from non-web merged context configuration %s. "
                             + "Consider annotating your test class with @WebAppConfiguration.", mergedConfig));
         }
+        WebMergedContextConfiguration webMergedConfig = (WebMergedContextConfiguration) mergedConfig;
 
         AnnotationConfigWebApplicationContext context = new AnnotationConfigWebApplicationContext();
 
@@ -48,6 +50,7 @@ public class IntegrationTestContextLoader implements SmartContextLoader {
         if (parent != null) {
             context.setParent(parent);
         }
+        configureWebResources(context, webMergedConfig);
         context.setServletContext(new MockServletContext());
         context.setConfigLocations(mergedConfig.getLocations());
         context.register(mergedConfig.getClasses());
@@ -55,6 +58,38 @@ public class IntegrationTestContextLoader implements SmartContextLoader {
         context.refresh();
         context.registerShutdownHook();
         return context;
+    }
+
+    protected void configureWebResources(AnnotationConfigWebApplicationContext context,
+                                         WebMergedContextConfiguration webMergedConfig) {
+
+        ApplicationContext parent = context.getParent();
+
+        // if the WAC has no parent or the parent is not a WAC, set the WAC as
+        // the Root WAC:
+        if (parent == null || (!(parent instanceof WebApplicationContext))) {
+            String resourceBasePath = webMergedConfig.getResourceBasePath();
+            ResourceLoader resourceLoader = resourceBasePath.startsWith(ResourceLoader.CLASSPATH_URL_PREFIX) ? new DefaultResourceLoader()
+                    : new FileSystemResourceLoader();
+
+            ServletContext servletContext = new MockServletContext(resourceBasePath, resourceLoader);
+            servletContext.setAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE, context);
+            context.setServletContext(servletContext);
+        }
+        else {
+            ServletContext servletContext = null;
+
+            // find the Root WAC
+            while (parent != null) {
+                if (parent instanceof WebApplicationContext && !(parent.getParent() instanceof WebApplicationContext)) {
+                    servletContext = ((WebApplicationContext) parent).getServletContext();
+                    break;
+                }
+                parent = parent.getParent();
+            }
+            Assert.state(servletContext != null, "Failed to find Root WebApplicationContext in the context hierarchy");
+            context.setServletContext(servletContext);
+        }
     }
 
     @Override
