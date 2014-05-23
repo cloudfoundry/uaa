@@ -166,8 +166,53 @@
 
     <bean id="healthzEndpoint" class="org.cloudfoundry.identity.uaa.web.HealthzEndpoint" />
 
+    <beans profile="ldap">
+        <import resource="spring/ldap-integration.xml"/>
+
+        <bean id="authzAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager">
+            <property name="delegates">
+                <list>
+                    <bean class="org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager$AuthenticationManagerConfiguration">
+                        <property name="authenticationManager" ref="uaaAuthenticationMgr"/>
+                        <property name="stopIf" value="org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException"/>
+                    </bean>
+                    <bean class="org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager$AuthenticationManagerConfiguration">
+                        <property name="required" value="ifPreviousFalse"/>
+                        <property name="authenticationManager" ref="ldapAuthenticationManager"/>
+                    </bean>
+                    <bean class="org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager$AuthenticationManagerConfiguration">
+                        <property name="required" value="ifPreviousTrue"/>
+                        <property name="authenticationManager" ref="ldapLoginAuthenticationMgr"/>
+                    </bean>
+                </list>
+            </property>
+        </bean>
+    </beans>
+
+    <beans profile="keystone">
+        <import resource="spring/keystone-integration.xml"/>
+
+        <bean id="authzAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager">
+            <property name="delegates">
+                <list>
+                    <bean class="org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager$AuthenticationManagerConfiguration">
+                        <property name="authenticationManager" ref="uaaAuthenticationMgr"/>
+                        <property name="stopIf" value="org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException"/>
+                    </bean>
+                    <bean class="org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager$AuthenticationManagerConfiguration">
+                        <property name="required" value="ifPreviousFalse"/>
+                        <property name="authenticationManager" ref="keystoneAuthenticationManager"/>
+                    </bean>
+                    <bean class="org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager$AuthenticationManagerConfiguration">
+                        <property name="required" value="ifPreviousTrue"/>
+                        <property name="authenticationManager" ref="keystoneLoginAuthenticationMgr"/>
+                    </bean>
+                </list>
+            </property>
+        </bean>
+    </beans>
+
     <beans profile="coverage">
         <bean id="coverageController" class="org.cloudfoundry.identity.uaa.coverage.CoverageController" />
     </beans>
-
 </beans>

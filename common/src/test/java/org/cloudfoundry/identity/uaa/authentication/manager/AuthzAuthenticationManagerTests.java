@@ -28,6 +28,7 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -113,7 +114,7 @@ public class AuthzAuthenticationManagerTests {
         verify(publisher).publishEvent(isA(UserAuthenticationFailureEvent.class));
     }
 
-    @Test(expected = BadCredentialsException.class)
+    @Test(expected = AuthenticationPolicyRejectionException.class)
     public void authenticationIsDeniedIfRejectedByLoginPolicy() throws Exception {
         when(db.retrieveUserByName("auser")).thenReturn(user);
         AccountLoginPolicy lp = mock(AccountLoginPolicy.class);

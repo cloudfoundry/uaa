@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.test;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.apache.commons.codec.binary.Base64;
@@ -42,7 +43,7 @@ public class TestClient {
                         .param("grant_type", "client_credentials")
                         .param("client_id", username)
                         .param("scope", scope);
-        MvcResult result = mockMvc.perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
+        MvcResult result = mockMvc.perform(oauthTokenPost).andDo(print()).andExpect(status().isOk()).andReturn();
         OAuthToken oauthToken = objectMapper.readValue(result.getResponse().getContentAsByteArray(), OAuthToken.class);
         return oauthToken.accessToken;
     }

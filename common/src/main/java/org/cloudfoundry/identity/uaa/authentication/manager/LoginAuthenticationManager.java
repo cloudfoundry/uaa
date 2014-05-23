@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
+import java.util.Date;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
@@ -21,6 +22,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.springframework.context.ApplicationEvent;
@@ -147,6 +149,18 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
         if (familyName == null) {
             familyName = email.split("@")[1];
         }
-        return new UaaUser(name, "" /*zero length password for login server */, email, givenName, familyName);
+        return new UaaUser(
+            "NaN",
+            name,
+            "" /*zero length password for login server */,
+            email,
+            UaaAuthority.USER_AUTHORITIES,
+            givenName,
+            familyName,
+            new Date(),
+            new Date(),
+            "login-server",
+            name);
+
     }
 }

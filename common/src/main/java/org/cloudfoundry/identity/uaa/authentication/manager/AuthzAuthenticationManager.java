@@ -19,6 +19,7 @@ import java.util.UUID;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -98,7 +99,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
         if (!accountLoginPolicy.isAllowed(user, req)) {
             logger.warn("Login policy rejected authentication for " + user.getUsername() + ", " + user.getId()
                             + ". Ignoring login request.");
-            BadCredentialsException e = new BadCredentialsException("Login policy rejected authentication");
+            AuthenticationPolicyRejectionException e = new AuthenticationPolicyRejectionException("Login policy rejected authentication");
             publish(new AuthenticationFailureLockedEvent(req, e));
             throw e;
         }
