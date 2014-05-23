@@ -43,7 +43,10 @@ public class TestClient {
                         .param("grant_type", "client_credentials")
                         .param("client_id", username)
                         .param("scope", scope);
-        MvcResult result = mockMvc.perform(oauthTokenPost).andDo(print()).andExpect(status().isOk()).andReturn();
+        MvcResult result = mockMvc.perform(oauthTokenPost)
+            //.andDo(print())
+            .andExpect(status().isOk())
+            .andReturn();
         OAuthToken oauthToken = objectMapper.readValue(result.getResponse().getContentAsByteArray(), OAuthToken.class);
         return oauthToken.accessToken;
     }

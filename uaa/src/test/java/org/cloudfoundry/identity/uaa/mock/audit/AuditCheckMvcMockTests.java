@@ -15,7 +15,10 @@ package org.cloudfoundry.identity.uaa.mock.audit;
 import com.googlecode.flyway.core.Flyway;
 import junit.framework.Assert;
 import org.apache.commons.codec.binary.Base64;
+import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
+import org.cloudfoundry.identity.uaa.audit.JdbcAuditService;
+import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.audit.event.ApprovalModifiedEvent;
 import org.cloudfoundry.identity.uaa.audit.event.GroupModifiedEvent;
@@ -38,7 +41,6 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpoints;
 import org.cloudfoundry.identity.uaa.scim.event.ScimEventPublisher;
 import org.cloudfoundry.identity.uaa.test.DefaultIntegrationTestConfig;
-import org.cloudfoundry.identity.uaa.test.IntegrationTestContextLoader;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
@@ -46,9 +48,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.http.MediaType;
@@ -57,17 +57,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
 import org.springframework.security.web.FilterChainProxy;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
 import scala.actors.threadpool.Arrays;
-
 
 import java.util.List;
 
@@ -197,6 +192,33 @@ public class AuditCheckMvcMockTests {
         PrincipalAuthenticationFailureEvent event2 = (PrincipalAuthenticationFailureEvent)captor.getAllValues().get(1);
         assertEquals(testAccounts.getUserName(), event1.getUser().getUsername());
         assertEquals(testAccounts.getUserName(), event2.getName());
+    }
+
+    @Test
+    public void findAuditHistory() throws Exception {
+        String adminToken = testClient.getClientCredentialsOAuthAccessToken(
+            testAccounts.getAdminClientId(),
+            testAccounts.getAdminClientSecret(),
+            "uaa.admin,scim.write");
+
+        ScimUser jacob = createUser(adminToken, "jacob", "Jacob", "Gyllenhammer", "jacob@gyllenhammer.non");
+        String jacobId = jacob.getId();
+
+        MockHttpServletRequestBuilder loginPost = post("/authenticate")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .param("username", jacob.getUserName())
+            .param("password", "notvalid");
+        int attempts = 8;
+        UaaAuditService auditService = webApplicationContext.getBean(JdbcAuditService.class);
+        for (int i=0; i<attempts; i++) {
+            mockMvc.perform(loginPost)
+                .andExpect(status().isUnauthorized())
+                .andExpect(content().string("{\"error\":\"authentication failed\"}"));
+        }
+
+        //after we reach our max attempts, 5, the system stops logging them until the period is over
+        List<AuditEvent> events = auditService.find(jacobId, System.currentTimeMillis()-10000);
+        assertEquals(5, events.size());
     }
 
     @Test
