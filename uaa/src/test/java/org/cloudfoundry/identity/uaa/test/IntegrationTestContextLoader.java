@@ -17,6 +17,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.FileSystemResourceLoader;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.mock.web.MockServletConfig;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.test.context.ContextConfigurationAttributes;
 import org.springframework.test.context.MergedContextConfiguration;
@@ -51,13 +52,22 @@ public class IntegrationTestContextLoader implements SmartContextLoader {
             context.setParent(parent);
         }
         configureWebResources(context, webMergedConfig);
-        context.setServletContext(new MockServletContext());
+        context.getEnvironment().setActiveProfiles(mergedConfig.getActiveProfiles());
+        MockServletContext servletContext = new MockServletContext();
+        MockServletConfig servletConfig = new MockServletConfig(servletContext);
+        servletConfig.addInitParameter("environmentConfigDefaults", environmentConfigDefaults());
+        context.setServletContext(servletContext);
+        context.setServletConfig(servletConfig);
         context.setConfigLocations(mergedConfig.getLocations());
         context.register(mergedConfig.getClasses());
         new YamlServletProfileInitializer().initialize(context);
         context.refresh();
         context.registerShutdownHook();
         return context;
+    }
+
+    protected String environmentConfigDefaults() {
+        return "uaa.yml";
     }
 
     protected void configureWebResources(AnnotationConfigWebApplicationContext context,
