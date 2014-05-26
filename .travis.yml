@@ -11,6 +11,7 @@ env:
     - TESTENV=ldap,default,coverage
     - TESTENV=keystone,default,coverage
 cache:
+  apt: true
   directories:
   - $HOME/.m2
 services:
