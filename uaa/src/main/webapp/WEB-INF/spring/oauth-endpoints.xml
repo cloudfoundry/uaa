@@ -227,8 +227,12 @@
         <property name="accountLoginPolicy">
             <bean class="org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy">
                 <constructor-arg ref="jdbcAuditService" />
-                <property name="lockoutAfterFailures" value="5" />
-                <property name="lockoutPeriodSeconds" value="300" />
+                <property name="lockoutAfterFailures"
+                  value="#{@applicationProperties.containsKey('oauth.endpoint.lockoutAfterFailures')?@config['oauth']['endpoint']['lockoutAfterFailures']:'5'}" />
+                <property name="countFailuresWithin"
+                  value="#{@applicationProperties.containsKey('oauth.endpoint.countFailuresWithinSeconds')?@config['oauth']['endpoint']['countFailuresWithinSeconds']:'3600'}" />
+                <property name="lockoutPeriodSeconds"
+                  value="#{@applicationProperties.containsKey('oauth.endpoint.lockoutPeriodSeconds')?@config['oauth']['endpoint']['lockoutPeriodSeconds']:'300'}" />
             </bean>
         </property>
         <property name="origin" value="uaa"/>
