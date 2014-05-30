@@ -70,7 +70,7 @@ public class UserInfoEndpoint implements InitializingBean {
     }
 
     protected Map<String, String> getResponse(UaaPrincipal principal) {
-        UaaUser user = userDatabase.retrieveUserByName(principal.getName());
+        UaaUser user = userDatabase.retrieveUserById(principal.getId());
         Map<String, String> response = new LinkedHashMap<String, String>() {
             @Override
             public String put(String key, String value) {

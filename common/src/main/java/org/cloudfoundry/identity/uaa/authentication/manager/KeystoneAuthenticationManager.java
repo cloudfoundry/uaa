@@ -51,7 +51,6 @@ public class KeystoneAuthenticationManager extends RestAuthenticationManager {
 
     @Override
     protected KeystoneAuthenticationRequest getParameters(String username, String password) {
-        // {"auth":{"tenantName": "", "passwordCredentials": {"username": "marissa","password": "koala"}}}
         if (getRemoteUrl()!=null && getRemoteUrl().indexOf("/v2.0")>0) {
             return new KeystoneV2AuthenticationRequest("", username, password);
         } else if (getRemoteUrl()!=null && getRemoteUrl().indexOf("/v3")>0) {
@@ -66,8 +65,6 @@ public class KeystoneAuthenticationManager extends RestAuthenticationManager {
     public static interface KeystoneAuthenticationRequest {
     }
 
-    // {"auth":{"tenantName": "", "passwordCredentials": {"username": "marissa",
-    // "password": "koala"}}}
     public static class KeystoneV2AuthenticationRequest implements KeystoneAuthenticationRequest{
         private KeystoneAuthentication auth;
 

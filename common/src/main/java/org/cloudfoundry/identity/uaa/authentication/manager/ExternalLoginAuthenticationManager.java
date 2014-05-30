@@ -30,11 +30,12 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.ldap.userdetails.LdapUserDetails;
 
 import java.util.Collections;
 import java.util.Date;
@@ -74,30 +75,33 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
 
     @Override
     public Authentication authenticate(Authentication request) throws AuthenticationException {
-
-        if (!(request.getPrincipal() instanceof UserDetails)) {
-            logger.debug(this.getClass().getName() + "["+name+"] cannot process request of type: " + request.getClass().getName());
-            return null;
+        UserDetails req;
+        if (request.getPrincipal() instanceof UserDetails) {
+            req = (UserDetails)request.getPrincipal();
+        } else if (request instanceof UsernamePasswordAuthenticationToken) {
+            String username = request.getPrincipal().toString();
+            String password = request.getCredentials()!=null ? request.getCredentials().toString() : "";
+            req = new User( username, password, true, true, true, true, UaaAuthority.USER_AUTHORITIES);
         } else if (request.getPrincipal() == null) {
             logger.debug(this.getClass().getName() + "["+name+"] cannot process null principal");
             return null;
+        } else {
+            logger.debug(this.getClass().getName() + "["+name+"] cannot process request of type: " + request.getClass().getName());
+            return null;
         }
-
-        UserDetails req = (UserDetails) request.getPrincipal();
-//        logger.debug("Processing authentication request for " + req.getDn());
 
         boolean addNewAccounts = true;
         UaaUser user = null;
         try {
-            user = userDatabase.retrieveUserByName(req.getUsername());
+            user = userDatabase.retrieveUserByName(req.getUsername(), getOrigin());
         } catch (UsernameNotFoundException e) {
         }
         if (addNewAccounts && user==null) {
             // Register new users automatically
-            user = getUser((LdapUserDetails)request.getPrincipal(), Collections.<String, String>emptyMap());
+            user = getUser(req, Collections.<String, String>emptyMap());
             publish(new NewUserAuthenticatedEvent(user));
             try {
-                user = userDatabase.retrieveUserByName(user.getUsername());
+                user = userDatabase.retrieveUserByName(user.getUsername(), getOrigin());
             } catch (UsernameNotFoundException ex) {
                 throw new BadCredentialsException("Bad credentials");
             }

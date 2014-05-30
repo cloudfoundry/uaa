@@ -24,6 +24,7 @@ import org.cloudfoundry.identity.uaa.audit.event.ApprovalModifiedEvent;
 import org.cloudfoundry.identity.uaa.audit.event.GroupModifiedEvent;
 import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.audit.event.UserModifiedEvent;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.event.ClientAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.ClientAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.PrincipalAuthenticationFailureEvent;
@@ -31,6 +32,7 @@ import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFail
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserNotFoundEvent;
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
+import org.cloudfoundry.identity.uaa.oauth.Claims;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.password.event.PasswordChangeEvent;
 import org.cloudfoundry.identity.uaa.password.event.PasswordChangeFailureEvent;
@@ -45,6 +47,7 @@ import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.type.TypeReference;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -54,6 +57,8 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.jwt.Jwt;
+import org.springframework.security.jwt.JwtHelper;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
 import org.springframework.security.web.FilterChainProxy;
@@ -65,6 +70,7 @@ import org.springframework.web.context.support.AnnotationConfigWebApplicationCon
 import scala.actors.threadpool.Arrays;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -420,8 +426,7 @@ public class AuditCheckMvcMockTests {
         clientRegistrationService.updateClientDetails(new BaseClientDetails("login", "oauth", "oauth.approvals", "password", "oauth.login"));
 
         String marissaToken = testClient.getUserOAuthAccessToken("login", "loginsecret", testAccounts.getUserName(), testAccounts.getPassword(), "oauth.approvals");
-
-        Approval[] approvals = {new Approval(testAccounts.getUserName(), "app", "cloud_controller.read", 1000, Approval.ApprovalStatus.APPROVED)};
+        Approval[] approvals = {new Approval(null, "app", "cloud_controller.read", 1000, Approval.ApprovalStatus.APPROVED)};
 
         MockHttpServletRequestBuilder approvalsPut = put("/approvals")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
@@ -485,7 +490,7 @@ public class AuditCheckMvcMockTests {
             .contentType(MediaType.APPLICATION_JSON)
             .header("Authorization", "Bearer " + loginToken)
             .param("source", "login")
-            .param("add_new", "true")
+            .param(UaaAuthenticationDetails.ADD_NEW, "true")
             .param("username", "jacob")
             .param("name", "Jacob Gyllenhammer")
             .param("email", "jacob@gyllenhammer.non")
@@ -763,4 +768,5 @@ public class AuditCheckMvcMockTests {
         public void onApplicationEvent(T event) {
         }
     }
+
 }

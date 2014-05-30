@@ -30,6 +30,7 @@ import java.util.UUID;
 
 import javax.sql.DataSource;
 
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
@@ -148,7 +149,36 @@ public class JdbcScimUserProvisioningTests {
         assertEquals(user.getUserName(), map.get("userName"));
         assertEquals(user.getUserType(), map.get(UaaAuthority.UAA_USER.getUserType()));
         assertNull(created.getGroups());
+        assertEquals(Origin.UAA, created.getOrigin());
     }
+
+    @Test
+    public void validateOriginAndExternalIDDuringCreateAndUpdate() {
+        String origin = "test";
+        String externalId = "testId";
+        ScimUser user = new ScimUser(null, "jo@foo.com", "Jo", "User");
+        user.setOrigin(origin);
+        user.setExternalId(externalId);
+        user.addEmail("jo@blah.com");
+        ScimUser created = db.createUser(user, "j7hyqpassX");
+        assertEquals("jo@foo.com", created.getUserName());
+        assertNotNull(created.getId());
+        assertNotSame(user.getId(), created.getId());
+        Map<String, Object> map = template.queryForMap("select * from users where id=?", created.getId());
+        assertEquals(user.getUserName(), map.get("userName"));
+        assertEquals(user.getUserType(), map.get(UaaAuthority.UAA_USER.getUserType()));
+        assertNull(created.getGroups());
+        assertEquals(origin, created.getOrigin());
+        assertEquals(externalId, created.getExternalId());
+        String origin2 = "test2";
+        String externalId2 = "testId2";
+        created.setOrigin(origin2);
+        created.setExternalId(externalId2);
+        ScimUser updated = db.update(created.getId(), created);
+        assertEquals(origin2, updated.getOrigin());
+        assertEquals(externalId2, updated.getExternalId());
+    }
+
 
     @Test
     public void canCreateUserWithoutGivenNameAndFamilyName() {
@@ -254,7 +284,7 @@ public class JdbcScimUserProvisioningTests {
      * jo.addEmail("jo@blah.com");
      * jo.setVersion(1);
      * ScimUser joe = db.update(JOE_ID, jo);
-     * assertEquals("joe", joe.getUserName());
+     * assertEquals("joe", joe.getUserId());
      * }
      */
     @Test

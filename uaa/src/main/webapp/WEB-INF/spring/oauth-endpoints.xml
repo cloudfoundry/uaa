@@ -265,11 +265,11 @@
                 <property name="lockoutPeriodSeconds" value="300" />
             </bean>
         </property>
+        <property name="origin" value="uaa"/>
     </bean>
 
     <bean id="uaaAuthenticationMgr" parent="abstractAuthzAuthenticationMgr"/>
 
     <bean id="authzAuthenticationMgr" parent="abstractAuthzAuthenticationMgr"/>
-
 
 </beans>

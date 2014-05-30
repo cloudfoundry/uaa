@@ -56,6 +56,12 @@ public class UaaUser {
                         new Date(), null, null);
     }
 
+    public UaaUser(String username, String password, String email, String givenName, String familyName, String origin) {
+        this("NaN", username, password, email, UaaAuthority.USER_AUTHORITIES, givenName, familyName, new Date(),
+            new Date(), origin, null);
+    }
+
+
     public UaaUser(String id, String username, String password, String email,
                     List<? extends GrantedAuthority> authorities,
                     String givenName, String familyName, Date created, Date modified,
@@ -100,6 +106,10 @@ public class UaaUser {
     public String getFamilyName() {
         return familyName;
     }
+
+    public String getOrigin() { return origin; }
+
+    public String getExternalId() { return externalId; }
 
     public List<? extends GrantedAuthority> getAuthorities() {
         return authorities;

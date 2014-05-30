@@ -101,7 +101,7 @@ public class UserIdConversionEndpoints implements InitializingBean {
         filter = filter.trim();
 
         checkFilter(filter);
-        return scimUserEndpoints.findUsers("id,userName", filter, "userName", sortOrder, startIndex, count);
+        return scimUserEndpoints.findUsers("id,userName,origin", filter, "userName", sortOrder, startIndex, count);
     }
 
     @ExceptionHandler

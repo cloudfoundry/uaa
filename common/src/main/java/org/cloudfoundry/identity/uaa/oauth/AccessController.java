@@ -27,6 +27,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
@@ -125,7 +126,7 @@ public class AccessController {
 
             List<Approval> filteredApprovals = new ArrayList<Approval>();
             // Remove auto approved scopes
-            List<Approval> approvals = approvalStore.getApprovals(principal.getName(), clientAuthRequest.getClientId());
+            List<Approval> approvals = approvalStore.getApprovals(Origin.getUserId((Authentication)principal), clientAuthRequest.getClientId());
             for (Approval approval : approvals) {
                 if (!(autoApprovedScopes.contains(approval.getScope()))) {
                     filteredApprovals.add(approval);

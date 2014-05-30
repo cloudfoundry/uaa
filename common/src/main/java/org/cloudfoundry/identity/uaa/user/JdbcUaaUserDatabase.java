@@ -37,10 +37,13 @@ import org.springframework.util.StringUtils;
  */
 public class JdbcUaaUserDatabase implements UaaUserDatabase {
 
-    public static final String USER_FIELDS = "id,username,password,email,givenName,familyName,created,lastModified, authorities ";
+    public static final String USER_FIELDS = "id,username,password,email,givenName,familyName,created,lastModified,authorities,origin,external_id ";
 
     public static final String DEFAULT_USER_BY_USERNAME_QUERY = "select " + USER_FIELDS + "from users "
-                    + "where lower(username) = ? and active=?";
+                    + "where lower(username) = ? and active=? and origin=?";
+
+    public static final String DEFAULT_USER_BY_ID_QUERY = "select " + USER_FIELDS + "from users "
+        + "where id = ? and active=?";
 
     private String userAuthoritiesQuery = null;
 
@@ -70,11 +73,20 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     }
 
     @Override
-    public UaaUser retrieveUserByName(String username) throws UsernameNotFoundException {
+    public UaaUser retrieveUserByName(String username, String origin) throws UsernameNotFoundException {
         try {
-            return jdbcTemplate.queryForObject(userByUserNameQuery, mapper, username.toLowerCase(Locale.US), true);
+            return jdbcTemplate.queryForObject(userByUserNameQuery, mapper, username.toLowerCase(Locale.US), true, origin);
         } catch (EmptyResultDataAccessException e) {
             throw new UsernameNotFoundException(username);
+        }
+    }
+
+    @Override
+    public UaaUser retrieveUserById(String id) throws UsernameNotFoundException {
+        try {
+            return jdbcTemplate.queryForObject(DEFAULT_USER_BY_ID_QUERY, mapper, id, true);
+        } catch (EmptyResultDataAccessException e) {
+            throw new UsernameNotFoundException(id);
         }
     }
 
@@ -85,13 +97,13 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
             if (userAuthoritiesQuery == null) {
                 return new UaaUser(id, rs.getString(2), rs.getString(3), rs.getString(4),
                                 getDefaultAuthorities(rs.getString(9)), rs.getString(5), rs.getString(6),
-                                rs.getTimestamp(7), rs.getTimestamp(8), null, null);
+                                rs.getTimestamp(7), rs.getTimestamp(8), rs.getString(10), rs.getString(11));
             } else {
                 List<GrantedAuthority> authorities = AuthorityUtils
                                 .commaSeparatedStringToAuthorityList(getAuthorities(id));
                 return new UaaUser(id, rs.getString(2), rs.getString(3), rs.getString(4),
                                 authorities, rs.getString(5), rs.getString(6),
-                                rs.getTimestamp(7), rs.getTimestamp(8), null, null);
+                                rs.getTimestamp(7), rs.getTimestamp(8), rs.getString(10), rs.getString(11));
             }
         }
 

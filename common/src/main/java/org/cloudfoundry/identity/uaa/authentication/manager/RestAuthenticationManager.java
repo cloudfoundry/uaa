@@ -61,6 +61,10 @@ public class RestAuthenticationManager implements AuthenticationManager {
 
     private String remoteUrl = DEFAULT_LOGIN_URL;
 
+    private boolean nullPassword = false;
+
+
+
     /**
      * @param remoteUrl the login url to set
      */
@@ -110,7 +114,7 @@ public class RestAuthenticationManager implements AuthenticationManager {
         if (response.getStatusCode() == HttpStatus.OK || response.getStatusCode() == HttpStatus.CREATED) {
             if (evaluateResponse(authentication,response)) {
                 logger.info("Successful authentication request for " + authentication.getName());
-                return new UsernamePasswordAuthenticationToken(username, null, UaaAuthority.USER_AUTHORITIES);
+                return new UsernamePasswordAuthenticationToken(username, nullPassword?null:"", UaaAuthority.USER_AUTHORITIES);
             }
         } else if (response.getStatusCode() == HttpStatus.UNAUTHORIZED) {
             logger.info("Failed authentication request");
@@ -145,5 +149,13 @@ public class RestAuthenticationManager implements AuthenticationManager {
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
         return headers;
+    }
+
+    public boolean isNullPassword() {
+        return nullPassword;
+    }
+
+    public void setNullPassword(boolean nullPassword) {
+        this.nullPassword = nullPassword;
     }
 }

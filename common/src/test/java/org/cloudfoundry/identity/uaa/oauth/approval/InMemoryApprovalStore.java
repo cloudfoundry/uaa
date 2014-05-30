@@ -55,7 +55,7 @@ public class InMemoryApprovalStore implements ApprovalStore {
         ArrayList<Approval> returnList = new ArrayList<Approval>();
 
         for (Approval a : store) {
-            if (a.getUserName().equals(userName) && a.getClientId().equals(clientId)) {
+            if (a.getUserId().equals(userName) && a.getClientId().equals(clientId)) {
                 returnList.add(a);
             }
         }

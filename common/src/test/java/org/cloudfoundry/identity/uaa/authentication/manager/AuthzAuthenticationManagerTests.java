@@ -23,6 +23,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -30,11 +32,13 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserNotFoundEvent;
+import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.junit.Before;
@@ -44,6 +48,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 /**
  * @author Luke Taylor
@@ -54,22 +59,34 @@ public class AuthzAuthenticationManagerTests {
     private ApplicationEventPublisher publisher;
     // "password"
     private static final String PASSWORD = "$2a$10$HoWPAUn9zqmmb0b.2TBZWe6cjQcxyo8TDwTX.5G46PBL347N3/0zO";
-    private UaaUser user = new UaaUser("auser", PASSWORD, "auser@blah.com", "A", "User");
+    private UaaUser user = null;
     private BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
     private UaaUser loginServerUser = null;
     private String loginServerUserName="loginServerUser".toLowerCase();
 
     @Before
     public void setUp() throws Exception {
+        user = new UaaUser(
+            new RandomValueStringGenerator().generate(),
+            "auser",
+            PASSWORD,
+            "auser@blah.com",
+            UaaAuthority.USER_AUTHORITIES,
+            "A", "User",
+            new Date(),
+            new Date(),
+            Origin.UAA,
+            null);
         db = mock(UaaUserDatabase.class);
         publisher = mock(ApplicationEventPublisher.class);
         mgr = new AuthzAuthenticationManager(db, encoder);
         mgr.setApplicationEventPublisher(publisher);
+        mgr.setOrigin(Origin.UAA);
     }
 
     @Test
     public void successfulAuthentication() throws Exception {
-        when(db.retrieveUserByName("auser")).thenReturn(user);
+        when(db.retrieveUserByName("auser", Origin.UAA)).thenReturn(user);
         Authentication result = mgr.authenticate(createAuthRequest("auser", "password"));
         assertNotNull(result);
         assertEquals("auser", result.getName());
@@ -79,20 +96,20 @@ public class AuthzAuthenticationManagerTests {
     @Test(expected = BadCredentialsException.class)
     public void unsuccessfulLoginServerUserAuthentication() throws Exception {
         loginServerUser = new UaaUser(loginServerUserName,encoder.encode(""), "loginserveruser@blah.com", "Login", "User");
-        when(db.retrieveUserByName(loginServerUserName)).thenReturn(loginServerUser);
+        when(db.retrieveUserByName(loginServerUserName,Origin.UAA)).thenReturn(null);
         mgr.authenticate(createAuthRequest(loginServerUserName, ""));
     }
 
     @Test(expected = BadCredentialsException.class)
     public void unsuccessfulLoginServerUserWithPasswordAuthentication() throws Exception {
         loginServerUser = new UaaUser(loginServerUserName,encoder.encode(""), "loginserveruser@blah.com", "Login", "User");
-        when(db.retrieveUserByName(loginServerUserName)).thenReturn(loginServerUser);
+        when(db.retrieveUserByName(loginServerUserName,Origin.UAA)).thenReturn(null);
         mgr.authenticate(createAuthRequest(loginServerUserName, "dadas"));
     }
 
     @Test
     public void successfulAuthenticationReturnsTokenAndPublishesEvent() throws Exception {
-        when(db.retrieveUserByName("auser")).thenReturn(user);
+        when(db.retrieveUserByName("auser",Origin.UAA)).thenReturn(user);
         Authentication result = mgr.authenticate(createAuthRequest("auser", "password"));
 
         assertNotNull(result);
@@ -104,7 +121,7 @@ public class AuthzAuthenticationManagerTests {
 
     @Test
     public void invalidPasswordPublishesAuthenticationFailureEvent() {
-        when(db.retrieveUserByName("auser")).thenReturn(user);
+        when(db.retrieveUserByName("auser",Origin.UAA)).thenReturn(user);
         try {
             mgr.authenticate(createAuthRequest("auser", "wrongpassword"));
             fail();
@@ -116,7 +133,7 @@ public class AuthzAuthenticationManagerTests {
 
     @Test(expected = AuthenticationPolicyRejectionException.class)
     public void authenticationIsDeniedIfRejectedByLoginPolicy() throws Exception {
-        when(db.retrieveUserByName("auser")).thenReturn(user);
+        when(db.retrieveUserByName("auser", Origin.UAA)).thenReturn(user);
         AccountLoginPolicy lp = mock(AccountLoginPolicy.class);
         when(lp.isAllowed(any(UaaUser.class), any(Authentication.class))).thenReturn(false);
         mgr.setAccountLoginPolicy(lp);
@@ -125,7 +142,7 @@ public class AuthzAuthenticationManagerTests {
 
     @Test
     public void missingUserPublishesNotFoundEvent() {
-        when(db.retrieveUserByName(eq("aguess"))).thenThrow(new UsernameNotFoundException("mocked"));
+        when(db.retrieveUserByName(eq("aguess"),eq(Origin.UAA))).thenThrow(new UsernameNotFoundException("mocked"));
         try {
             mgr.authenticate(createAuthRequest("aguess", "password"));
             fail();
@@ -134,6 +151,24 @@ public class AuthzAuthenticationManagerTests {
 
         verify(publisher).publishEvent(isA(UserNotFoundEvent.class));
     }
+
+    @Test
+    public void successfulVerifyOriginAuthentication1() throws Exception {
+        mgr.setOrigin("test");
+        user = user.modifySource("test",null);
+        when(db.retrieveUserByName("auser","test")).thenReturn(user);
+        Authentication result = mgr.authenticate(createAuthRequest("auser", "password"));
+        assertNotNull(result);
+        assertEquals("auser", result.getName());
+        assertEquals("auser", ((UaaPrincipal) result.getPrincipal()).getName());
+    }
+
+    @Test(expected = BadCredentialsException.class)
+    public void originAuthenticationFail() throws Exception {
+        when(db.retrieveUserByName("auser","origin")).thenReturn(user);
+        mgr.authenticate(createAuthRequest("auser", "password"));
+    }
+
 
     AuthzAuthenticationRequest createAuthRequest(String username, String password) {
         Map<String, String> userdata = new HashMap<String, String>();

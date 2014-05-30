@@ -15,11 +15,14 @@ package org.cloudfoundry.identity.uaa.integration;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.util.LinkedMaskingMultiValueMap;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.http.HttpEntity;
@@ -58,6 +61,43 @@ public class RemoteAuthenticationEndpointTests {
         assertFalse(HttpStatus.OK == response.getStatusCode());
         assertFalse(testAccounts.getUserName().equals(response.getBody().get("username")));
     }
+
+    @Test
+    public void validateLdapOrKeystoneOrigin() throws Exception {
+        String profiles = System.getProperty("spring.profiles.active");
+        if (profiles!=null && profiles.contains("ldap")) {
+            validateOrigin("marissa3","ldap3","ldap");
+        } else if (profiles!=null && profiles.contains("keystone")) {
+            validateOrigin("marissa2", "keystone", "keystone");
+        }
+    }
+
+    public void validateOrigin(String username, String password, String origin) throws Exception {
+        ResponseEntity<Map> authResp = authenticate(username,password);
+        assertEquals(HttpStatus.OK, authResp.getStatusCode());
+
+        ResponseEntity<Map> response = serverRunning.getForObject("/Users" + "?attributes=id,userName,origin", Map.class);
+        Map<String, Object> results = response.getBody();
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
+        List<Map> list = (List) results.get("resources");
+        boolean found = false;
+        for (int i=0; i<list.size(); i++) {
+            Map user = list.get(i);
+            assertTrue(user.containsKey("id"));
+            assertTrue(user.containsKey("userName"));
+            assertTrue(user.containsKey("origin"));
+            assertFalse(user.containsKey("name"));
+            assertFalse(user.containsKey("emails"));
+            if ("ldap3".equals(user.get("userName"))) {
+                found = true;
+                assertEquals(origin, user.get("origin"));
+            }
+        }
+        assertTrue(found);
+    }
+
+
 
     @SuppressWarnings("rawtypes")
     ResponseEntity<Map> authenticate(String username, String password) {
