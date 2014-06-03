@@ -409,10 +409,29 @@ public class ScimUserEndpointsTests {
     }
 
     @Test
+    public void testFindWhenStartGreaterThanTotal() {
+        SearchResults<?> results = endpoints.findUsers("id", "id pr", null, "ascending", 3, 100);
+        assertEquals(2, results.getTotalResults());
+        assertEquals(0, results.getResources().size());
+    }
+
+    @Test
     public void testFindAllNames() {
         SearchResults<?> results = endpoints.findUsers("userName", "id pr", null, "ascending", 1, 100);
         Collection<Object> values = getSetFromMaps(results.getResources(), "userName");
         assertTrue(values.contains("olds"));
+    }
+
+    @Test
+    public void testFindAllNamesWithStartIndex() {
+        SearchResults<?> results = endpoints.findUsers("name", "id pr", null, "ascending", 1, 100);
+        assertEquals(2, results.getResources().size());
+
+        results = endpoints.findUsers("name", "id pr", null, "ascending", 2, 100);
+        assertEquals(1, results.getResources().size());
+
+        results = endpoints.findUsers("name", "id pr", null, "ascending", 3, 100);
+        assertEquals(0, results.getResources().size());
     }
 
     @Test
