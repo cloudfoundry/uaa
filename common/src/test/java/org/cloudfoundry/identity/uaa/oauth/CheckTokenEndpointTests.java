@@ -58,10 +58,13 @@ public class CheckTokenEndpointTests {
 
     private ApprovalStore approvalStore = new InMemoryApprovalStore();
 
+    private String userId = "12345";
+    private String userName = "olds";
+
     public CheckTokenEndpointTests() {
         authentication = new OAuth2Authentication(new DefaultAuthorizationRequest("client",
                         Collections.singleton("read")),
-                        UaaAuthenticationTestFactory.getAuthentication("12345", "olds", "olds@vmware.com"));
+                        UaaAuthenticationTestFactory.getAuthentication(userId, userName, "olds@vmware.com"));
 
         SignerProvider signerProvider = new SignerProvider();
         signerProvider.setSigningKey("abc");
@@ -70,13 +73,13 @@ public class CheckTokenEndpointTests {
         endpoint.setTokenServices(tokenServices);
         Date oneSecondAgo = new Date(System.currentTimeMillis() - 1000);
         Date thirtySecondsAhead = new Date(System.currentTimeMillis() + 30000);
-        UaaUserDatabase userDatabase = new MockUaaUserDatabase("12345", "olds", "olds@vmware.com", null, null,
+        UaaUserDatabase userDatabase = new MockUaaUserDatabase(userId, userName, "olds@vmware.com", null, null,
                         oneSecondAgo, oneSecondAgo);
         tokenServices.setUserDatabase(userDatabase);
 
-        approvalStore.addApproval(new Approval("olds", "client", "read", thirtySecondsAhead, ApprovalStatus.APPROVED,
+        approvalStore.addApproval(new Approval(userId, "client", "read", thirtySecondsAhead, ApprovalStatus.APPROVED,
                         oneSecondAgo));
-        approvalStore.addApproval(new Approval("olds", "client", "write", thirtySecondsAhead, ApprovalStatus.APPROVED,
+        approvalStore.addApproval(new Approval(userId, "client", "write", thirtySecondsAhead, ApprovalStatus.APPROVED,
                         oneSecondAgo));
         tokenServices.setApprovalStore(approvalStore);
 
@@ -145,7 +148,7 @@ public class CheckTokenEndpointTests {
     @Test(expected = InvalidTokenException.class)
     public void testUpdatedApprovals() {
         Date thirtySecondsAhead = new Date(System.currentTimeMillis() + 30000);
-        approvalStore.addApproval(new Approval("olds", "client", "read", thirtySecondsAhead, ApprovalStatus.APPROVED,
+        approvalStore.addApproval(new Approval(userId, "client", "read", thirtySecondsAhead, ApprovalStatus.APPROVED,
                         new Date()));
         Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
         assertEquals(null, result.get("client_authorities"));
@@ -155,10 +158,10 @@ public class CheckTokenEndpointTests {
     public void testDeniedApprovals() {
         Date oneSecondAgo = new Date(System.currentTimeMillis() - 1000);
         Date thirtySecondsAhead = new Date(System.currentTimeMillis() + 30000);
-        approvalStore.revokeApproval(new Approval("olds", "client", "read", thirtySecondsAhead,
+        approvalStore.revokeApproval(new Approval(userId, "client", "read", thirtySecondsAhead,
                         ApprovalStatus.APPROVED,
                         oneSecondAgo));
-        approvalStore.addApproval(new Approval("olds", "client", "read", thirtySecondsAhead, ApprovalStatus.DENIED,
+        approvalStore.addApproval(new Approval(userId, "client", "read", thirtySecondsAhead, ApprovalStatus.DENIED,
                         oneSecondAgo));
         Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
         assertEquals(null, result.get("client_authorities"));
@@ -166,9 +169,9 @@ public class CheckTokenEndpointTests {
 
     @Test(expected = InvalidTokenException.class)
     public void testExpiredApprovals() {
-        approvalStore.revokeApproval(new Approval("olds", "client", "read", new Date(), ApprovalStatus.APPROVED,
+        approvalStore.revokeApproval(new Approval(userId, "client", "read", new Date(), ApprovalStatus.APPROVED,
                         new Date()));
-        approvalStore.addApproval(new Approval("olds", "client", "read", new Date(), ApprovalStatus.APPROVED,
+        approvalStore.addApproval(new Approval(userId, "client", "read", new Date(), ApprovalStatus.APPROVED,
                         new Date()));
         Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
         assertEquals(null, result.get("client_authorities"));

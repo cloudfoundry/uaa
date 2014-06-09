@@ -218,7 +218,6 @@ public class ScimUserEndpointsTests {
 
     @Test
     public void approvalsIsSyncedCorrectlyOnCreate() {
-        am.addApproval(new Approval("vidya", "c1", "s1", 6000, Approval.ApprovalStatus.APPROVED));
         ScimUser user = new ScimUser(null, "vidya", "Vidya", "V");
         user.addEmail("vidya@vmware.com");
         user.setApprovals(Collections.singleton(new Approval("vidya", "c1", "s1", 6000,
@@ -231,16 +230,15 @@ public class ScimUserEndpointsTests {
 
     @Test
     public void approvalsIsSyncedCorrectlyOnUpdate() {
-        am.addApproval(new Approval("vidya", "c1", "s1", 6000, Approval.ApprovalStatus.APPROVED));
-        am.addApproval(new Approval("vidya", "c1", "s2", 6000, Approval.ApprovalStatus.DENIED));
+
 
         ScimUser user = new ScimUser(null, "vidya", "Vidya", "V");
         user.addEmail("vidya@vmware.com");
         user.setApprovals(Collections.singleton(new Approval("vidya", "c1", "s1", 6000,
                         Approval.ApprovalStatus.APPROVED)));
         ScimUser created = endpoints.createUser(user, new MockHttpServletResponse());
-        assertNotNull(created.getApprovals());
-        assertEquals(2, created.getApprovals().size());
+        am.addApproval(new Approval(created.getId(), "c1", "s1", 6000, Approval.ApprovalStatus.APPROVED));
+        am.addApproval(new Approval(created.getId(), "c1", "s2", 6000, Approval.ApprovalStatus.DENIED));
 
         created.setApprovals(Collections.singleton(new Approval("vidya", "c1", "s1", 6000,
                         Approval.ApprovalStatus.APPROVED)));
@@ -252,8 +250,8 @@ public class ScimUserEndpointsTests {
     public void approvalsIsSyncedCorrectlyOnGet() {
         assertEquals(0, endpoints.getUser(joel.getId(), new MockHttpServletResponse()).getApprovals().size());
 
-        am.addApproval(new Approval(joel.getUserName(), "c1", "s1", 6000, Approval.ApprovalStatus.APPROVED));
-        am.addApproval(new Approval(joel.getUserName(), "c1", "s2", 6000, Approval.ApprovalStatus.DENIED));
+        am.addApproval(new Approval(joel.getId(), "c1", "s1", 6000, Approval.ApprovalStatus.APPROVED));
+        am.addApproval(new Approval(joel.getId(), "c1", "s2", 6000, Approval.ApprovalStatus.DENIED));
 
         assertEquals(2, endpoints.getUser(joel.getId(), new MockHttpServletResponse()).getApprovals().size());
     }

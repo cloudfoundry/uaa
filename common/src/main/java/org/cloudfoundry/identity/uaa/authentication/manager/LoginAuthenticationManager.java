@@ -18,6 +18,7 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -39,6 +40,7 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 
 public class LoginAuthenticationManager implements AuthenticationManager, ApplicationEventPublisherAware {
+
 
     private final Log logger = LogFactory.getLog(getClass());
 
@@ -86,20 +88,23 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
                                 Boolean.parseBoolean(authdetails.getExtendedAuthorizationInfo().get(
                                                 UaaAuthenticationDetails.ADD_NEW));
                 try {
-                    user = userDatabase.retrieveUserByName(user.getUsername());
+                    user = userDatabase.retrieveUserByName(user.getUsername(), Origin.LOGIN_SERVER);
                 } catch (UsernameNotFoundException e) {
                     // Not necessarily fatal
                     if (addNewAccounts) {
                         // Register new users automatically
                         publish(new NewUserAuthenticatedEvent(user));
                         try {
-                            user = userDatabase.retrieveUserByName(user.getUsername());
+                            user = userDatabase.retrieveUserByName(user.getUsername(), Origin.LOGIN_SERVER);
                         } catch (UsernameNotFoundException ex) {
                             throw new BadCredentialsException("Bad credentials");
                         }
-                    }
-                    else {
-                        throw new BadCredentialsException("Bad credentials");
+                    } else  {
+                        //if add_new=false then we assume its a UAA user
+                        user = getUaaUser(user.getUsername());
+                        if (user==null) {
+                            throw new BadCredentialsException("Bad credentials");
+                        }
                     }
                 }
                 Authentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(),
@@ -111,7 +116,14 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
 
         logger.debug("Did not locate login credentials");
         return null;
+    }
 
+    protected UaaUser getUaaUser(String username) {
+        try {
+            return userDatabase.retrieveUserByName(username, Origin.UAA);
+        } catch (UsernameNotFoundException ex) {
+        }
+        return null;
     }
 
     protected void publish(ApplicationEvent event) {
@@ -159,7 +171,7 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
             familyName,
             new Date(),
             new Date(),
-            "login-server",
+            Origin.LOGIN_SERVER,
             name);
 
     }

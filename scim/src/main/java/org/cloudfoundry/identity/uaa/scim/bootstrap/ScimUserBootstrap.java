@@ -188,6 +188,8 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
     private ScimUser convertToScimUser(UaaUser user) {
         ScimUser scim = new ScimUser(user.getId(), user.getUsername(), user.getGivenName(), user.getFamilyName());
         scim.addEmail(user.getEmail());
+        scim.setOrigin(user.getOrigin());
+        scim.setExternalId(user.getExternalId());
         return scim;
     }
 

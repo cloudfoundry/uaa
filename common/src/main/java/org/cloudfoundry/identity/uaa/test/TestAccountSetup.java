@@ -27,6 +27,7 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.junit.rules.TestWatchman;
 import org.junit.runners.model.FrameworkMethod;
@@ -164,7 +165,7 @@ public class TestAccountSetup extends TestWatchman {
 
         if (this.user == null) {
 
-            UaaUser user = testAccounts.getUser();
+            UaaUser user = testAccounts.getUserWithRandomID();
             @SuppressWarnings("rawtypes")
             ResponseEntity<Map> results = client.getForEntity(serverRunning.getUserUri() + "?filter=userName eq '"
                             + user.getUsername() + "'", Map.class);
@@ -213,7 +214,7 @@ public class TestAccountSetup extends TestWatchman {
         @SuppressWarnings("unchecked")
         Collection<Map<String, String>> groups = (Collection<Map<String, String>>) map.get("groups");
         return new UaaUser(id, userName, "<N/A>", email, extractAuthorities(groups), givenName, familyName, new Date(),
-                        new Date(), "origin", "externalId");
+                        new Date(), Origin.UAA, "externalId");
     }
 
     private List<? extends GrantedAuthority> extractAuthorities(Collection<Map<String, String>> groups) {

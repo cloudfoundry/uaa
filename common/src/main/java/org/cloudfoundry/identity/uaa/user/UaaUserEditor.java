@@ -16,6 +16,7 @@ import java.beans.PropertyEditorSupport;
 import java.util.Arrays;
 import java.util.List;
 
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.springframework.security.core.authority.AuthorityUtils;
 
 public class UaaUserEditor extends PropertyEditorSupport {
@@ -33,7 +34,7 @@ public class UaaUserEditor extends PropertyEditorSupport {
         }
 
         String username = values[0], password = values[1];
-        String email = username, firstName = null, lastName = null;
+        String email = username, firstName = null, lastName = null, origin = Origin.UAA;
         String authorities = null;
         if (values.length > 2) {
             switch (values.length) {
@@ -51,12 +52,19 @@ public class UaaUserEditor extends PropertyEditorSupport {
                     firstName = values[3];
                     lastName = values[4];
                     break;
+                case 7:
+                    email = values[2];
+                    firstName = values[3];
+                    lastName = values[4];
+                    authorities = values[5];
+                    origin = values[6];
+                    break;
                 default:
                     throw new IllegalArgumentException("Supported formats: " + SUPPORTED_FORMATS);
             }
         }
 
-        UaaUser user = new UaaUser(username, password, email, firstName, lastName);
+        UaaUser user = new UaaUser(username, password, email, firstName, lastName, origin);
         if (authorities != null) {
             user = user.authorities(AuthorityUtils.commaSeparatedStringToAuthorityList(authorities));
         }

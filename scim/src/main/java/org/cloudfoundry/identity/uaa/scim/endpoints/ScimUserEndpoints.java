@@ -85,7 +85,7 @@ import org.springframework.web.servlet.View;
 @Controller
 @ManagedResource
 public class ScimUserEndpoints implements InitializingBean {
-    private static final String USER_APPROVALS_FILTER_TEMPLATE = "userName eq '%s'";
+    private static final String USER_APPROVALS_FILTER_TEMPLATE = "user_id eq '%s'";
     public static final String E_TAG = "ETag";
 
     private ScimUserProvisioning dao;
@@ -164,8 +164,14 @@ public class ScimUserEndpoints implements InitializingBean {
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     public ScimUser createUser(@RequestBody ScimUser user, HttpServletResponse httpServletResponse) {
-        ScimUser scimUser = syncApprovals(syncGroups(dao.createUser(user,
-                        user.getPassword() == null ? generatePassword() : user.getPassword())));
+        ScimUser scimUser = dao.createUser(user, user.getPassword() == null ? generatePassword() : user.getPassword());
+        if (user.getApprovals()!=null) {
+            for (Approval approval : user.getApprovals()) {
+                approval.setUserId(scimUser.getId());
+                approvalStore.addApproval(approval);
+            }
+        }
+        scimUser = syncApprovals(syncGroups(scimUser));
         addETagHeader(httpServletResponse, scimUser);
         return scimUser;
     }
@@ -303,8 +309,8 @@ public class ScimUserEndpoints implements InitializingBean {
         if (user == null || approvalStore == null) {
             return user;
         }
-        Set<Approval> approvals = new HashSet<Approval>(approvalStore.getApprovals(String.format(
-                        USER_APPROVALS_FILTER_TEMPLATE, user.getUserName())));
+        Set<Approval> approvals = new HashSet<Approval>(
+            approvalStore.getApprovals(String.format(USER_APPROVALS_FILTER_TEMPLATE, user.getId())));
         Set<Approval> active = new HashSet<Approval>(approvals);
         for (Approval approval : approvals) {
             if (!approval.isCurrentlyActive()) {

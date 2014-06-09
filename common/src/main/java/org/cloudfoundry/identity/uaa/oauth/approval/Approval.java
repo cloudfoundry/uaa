@@ -24,7 +24,7 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class Approval {
 
-    private String userName;
+    private String userId;
 
     private String clientId;
 
@@ -45,12 +45,12 @@ public class Approval {
 
     private Date lastUpdatedAt;
 
-    public String getUserName() {
-        return userName;
+    public String getUserId() {
+        return userId;
     }
 
     public void setUserId(String userId) {
-        this.userName = userId == null ? "" : userId;
+        this.userId = userId == null ? "" : userId;
     }
 
     public String getClientId() {
@@ -112,7 +112,7 @@ public class Approval {
 
     public Approval(String userId, String clientId, String scope, Date expiresAt, ApprovalStatus status,
                     Date lastUpdatedAt) {
-        this.userName = userId;
+        this.userId = userId;
         this.clientId = clientId;
         this.scope = scope;
         this.expiresAt = expiresAt;
@@ -127,7 +127,7 @@ public class Approval {
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + userName.hashCode();
+        result = prime * result + userId.hashCode();
         result = prime * result + clientId.hashCode();
         result = prime * result + scope.hashCode();
         result = prime * result + status.hashCode();
@@ -140,13 +140,13 @@ public class Approval {
             return false;
         }
         Approval other = (Approval) o;
-        return userName.equals(other.userName) && clientId.equals(other.clientId) && scope.equals(other.scope)
+        return userId.equals(other.userId) && clientId.equals(other.clientId) && scope.equals(other.scope)
                         && status == other.status;
     }
 
     @Override
     public String toString() {
-        return String.format("[%s, %s, %s, %s, %s, %s]", userName, scope, clientId, expiresAt, status.toString(),
+        return String.format("[%s, %s, %s, %s, %s, %s]", userId, scope, clientId, expiresAt, status.toString(),
                         lastUpdatedAt);
     }
 

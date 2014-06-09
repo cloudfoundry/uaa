@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.oauth.approval;
 import static org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus.APPROVED;
 import static org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus.DENIED;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -55,7 +56,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
                 "test,oracle" })
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class ApprovalsAdminEndpointsTests {
-    private UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
+    private UaaTestAccounts testAccounts = null;
     
     @Autowired
     private DataSource dataSource;
@@ -67,7 +68,7 @@ public class ApprovalsAdminEndpointsTests {
 
     private JdbcApprovalStore dao;
 
-    private UaaUserDatabase userDao = new MockUaaUserDatabase("FOO", testAccounts.getUserName(), "marissa@test.com", "Marissa", "Bloggs");
+    private UaaUserDatabase userDao = null;
 
     private UaaUser marissa;
 
@@ -75,9 +76,12 @@ public class ApprovalsAdminEndpointsTests {
 
     @Before
     public void createDatasource() {
-
+        testAccounts = UaaTestAccounts.standard(null);
+        String userId = testAccounts.getUserWithRandomID().getId();
+        userDao = new MockUaaUserDatabase(userId, testAccounts.getUserName(), "marissa@test.com", "Marissa", "Bloggs");
         template = new JdbcTemplate(dataSource);
-        marissa = userDao.retrieveUserByName(testAccounts.getUserName());
+        marissa = userDao.retrieveUserById(userId);
+        assertNotNull(marissa);
 
         dao = new JdbcApprovalStore(template, new JdbcPagingListFactory(template, limitSqlAdapter),
                         new SimpleSearchQueryConverter());
@@ -92,16 +96,17 @@ public class ApprovalsAdminEndpointsTests {
                         .singletonMap("c1", details));
         endpoints.setClientDetailsService(clientDetailsService);
 
-        endpoints.setSecurityContextAccessor(mockSecurityContextAccessor(marissa.getUsername()));
+        endpoints.setSecurityContextAccessor(mockSecurityContextAccessor(marissa.getUsername(), marissa.getId()));
     }
 
     private void addApproval(String userName, String clientId, String scope, int expiresIn, ApprovalStatus status) {
         dao.addApproval(new Approval(userName, clientId, scope, expiresIn, status));
     }
 
-    private SecurityContextAccessor mockSecurityContextAccessor(String userName) {
+    private SecurityContextAccessor mockSecurityContextAccessor(String userName, String id) {
         SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
         when(sca.getUserName()).thenReturn(userName);
+        when(sca.getUserId()).thenReturn(id);
         when(sca.isUser()).thenReturn(true);
         return sca;
     }
@@ -116,99 +121,99 @@ public class ApprovalsAdminEndpointsTests {
 
     @Test
     public void canGetApprovals() {
-        addApproval(testAccounts.getUserName(), "c1", "uaa.user", 6000, APPROVED);
-        addApproval(testAccounts.getUserName(), "c1", "uaa.admin", 12000, DENIED);
-        addApproval(testAccounts.getUserName(), "c1", "openid", 6000, APPROVED);
+        addApproval(marissa.getId(), "c1", "uaa.user", 6000, APPROVED);
+        addApproval(marissa.getId(), "c1", "uaa.admin", 12000, DENIED);
+        addApproval(marissa.getId(), "c1", "openid", 6000, APPROVED);
 
-        assertEquals(3, endpoints.getApprovals("userName pr", 1, 100).size());
-        assertEquals(2, endpoints.getApprovals("userName pr", 1, 2).size());
+        assertEquals(3, endpoints.getApprovals("user_id pr", 1, 100).size());
+        assertEquals(2, endpoints.getApprovals("user_id pr", 1, 2).size());
     }
 
     @Test
     public void canGetApprovalsWithAutoApproveTrue() {
         // Only get scopes that need approval
-        addApproval(testAccounts.getUserName(), "c1", "uaa.user", 6000, APPROVED);
-        addApproval(testAccounts.getUserName(), "c1", "uaa.admin", 12000, DENIED);
-        addApproval(testAccounts.getUserName(), "c1", "openid", 6000, APPROVED);
+        addApproval(marissa.getId(), "c1", "uaa.user", 6000, APPROVED);
+        addApproval(marissa.getId(), "c1", "uaa.admin", 12000, DENIED);
+        addApproval(marissa.getId(), "c1", "openid", 6000, APPROVED);
 
-        assertEquals(3, endpoints.getApprovals("userName eq 'marissa'", 1, 100).size());
+        assertEquals(3, endpoints.getApprovals("user_id eq '"+marissa.getId()+"'", 1, 100).size());
 
-        addApproval(testAccounts.getUserName(), "c1", "read", 12000, DENIED);
-        addApproval(testAccounts.getUserName(), "c1", "write", 6000, APPROVED);
+        addApproval(marissa.getId(), "c1", "read", 12000, DENIED);
+        addApproval(marissa.getId(), "c1", "write", 6000, APPROVED);
 
-        assertEquals(3, endpoints.getApprovals("userName eq 'marissa'", 1, 100).size());
+        assertEquals(3, endpoints.getApprovals("user_id eq '"+marissa.getId()+"'", 1, 100).size());
     }
 
     @Test
     public void canUpdateApprovals() {
-        addApproval(testAccounts.getUserName(), "c1", "uaa.user", 6000, APPROVED);
-        addApproval(testAccounts.getUserName(), "c1", "uaa.admin", 12000, DENIED);
-        addApproval(testAccounts.getUserName(), "c1", "openid", 6000, APPROVED);
+        addApproval(marissa.getId(), "c1", "uaa.user", 6000, APPROVED);
+        addApproval(marissa.getId(), "c1", "uaa.admin", 12000, DENIED);
+        addApproval(marissa.getId(), "c1", "openid", 6000, APPROVED);
 
-        Approval[] app = new Approval[] { new Approval(testAccounts.getUserName(), "c1", "uaa.user", 2000, APPROVED),
-                        new Approval(testAccounts.getUserName(), "c1", "dash.user", 2000, APPROVED),
-                        new Approval(testAccounts.getUserName(), "c1", "openid", 2000, DENIED),
-                        new Approval(testAccounts.getUserName(), "c1", "cloud_controller.read", 2000, APPROVED) };
+        Approval[] app = new Approval[] { new Approval(marissa.getId(), "c1", "uaa.user", 2000, APPROVED),
+                        new Approval(marissa.getId(), "c1", "dash.user", 2000, APPROVED),
+                        new Approval(marissa.getId(), "c1", "openid", 2000, DENIED),
+                        new Approval(marissa.getId(), "c1", "cloud_controller.read", 2000, APPROVED) };
         List<Approval> response = endpoints.updateApprovals(app);
         assertEquals(4, response.size());
-        assertTrue(response.contains(new Approval(testAccounts.getUserName(), "c1", "uaa.user", 2000, APPROVED)));
-        assertTrue(response.contains(new Approval(testAccounts.getUserName(), "c1", "dash.user", 2000, APPROVED)));
-        assertTrue(response.contains(new Approval(testAccounts.getUserName(), "c1", "openid", 2000, DENIED)));
-        assertTrue(response.contains(new Approval(testAccounts.getUserName(), "c1", "cloud_controller.read", 2000, APPROVED)));
+        assertTrue(response.contains(new Approval(marissa.getId(), "c1", "uaa.user", 2000, APPROVED)));
+        assertTrue(response.contains(new Approval(marissa.getId(), "c1", "dash.user", 2000, APPROVED)));
+        assertTrue(response.contains(new Approval(marissa.getId(), "c1", "openid", 2000, DENIED)));
+        assertTrue(response.contains(new Approval(marissa.getId(), "c1", "cloud_controller.read", 2000, APPROVED)));
 
-        List<Approval> updatedApprovals = endpoints.getApprovals("userName eq 'marissa'", 1, 100);
+        List<Approval> updatedApprovals = endpoints.getApprovals("user_id eq '"+marissa.getId()+"'", 1, 100);
         assertEquals(4, updatedApprovals.size());
-        assertTrue(updatedApprovals.contains(new Approval(testAccounts.getUserName(), "c1", "dash.user", 2000, APPROVED)));
-        assertTrue(updatedApprovals.contains(new Approval(testAccounts.getUserName(), "c1", "openid", 2000, DENIED)));
-        assertTrue(updatedApprovals.contains(new Approval(testAccounts.getUserName(), "c1", "cloud_controller.read", 2000, APPROVED)));
-        assertTrue(updatedApprovals.contains(new Approval(testAccounts.getUserName(), "c1", "uaa.user", 2000, APPROVED)));
+        assertTrue(updatedApprovals.contains(new Approval(marissa.getId(), "c1", "dash.user", 2000, APPROVED)));
+        assertTrue(updatedApprovals.contains(new Approval(marissa.getId(), "c1", "openid", 2000, DENIED)));
+        assertTrue(updatedApprovals.contains(new Approval(marissa.getId(), "c1", "cloud_controller.read", 2000, APPROVED)));
+        assertTrue(updatedApprovals.contains(new Approval(marissa.getId(), "c1", "uaa.user", 2000, APPROVED)));
     }
 
     public void attemptingToCreateDuplicateApprovalsExtendsValidity() {
-        addApproval(testAccounts.getUserName(), "c1", "uaa.user", 6000, APPROVED);
-        addApproval(testAccounts.getUserName(), "c1", "uaa.admin", 12000, DENIED);
-        addApproval(testAccounts.getUserName(), "c1", "openid", 6000, APPROVED);
+        addApproval(marissa.getId(), "c1", "uaa.user", 6000, APPROVED);
+        addApproval(marissa.getId(), "c1", "uaa.admin", 12000, DENIED);
+        addApproval(marissa.getId(), "c1", "openid", 6000, APPROVED);
 
-        addApproval(testAccounts.getUserName(), "c1", "openid", 10000, APPROVED);
+        addApproval(marissa.getId(), "c1", "openid", 10000, APPROVED);
 
-        List<Approval> updatedApprovals = endpoints.getApprovals("userName eq 'marissa'", 1, 100);
+        List<Approval> updatedApprovals = endpoints.getApprovals("user_id eq '"+marissa.getId()+"'", 1, 100);
         assertEquals(3, updatedApprovals.size());
-        assertTrue(updatedApprovals.contains(new Approval(testAccounts.getUserName(), "c1", "uaa.user", 6000, APPROVED)));
-        assertTrue(updatedApprovals.contains(new Approval(testAccounts.getUserName(), "c1", "uaa.admin", 12000, DENIED)));
-        assertTrue(updatedApprovals.contains(new Approval(testAccounts.getUserName(), "c1", "openid", 10000, APPROVED)));
+        assertTrue(updatedApprovals.contains(new Approval(marissa.getId(), "c1", "uaa.user", 6000, APPROVED)));
+        assertTrue(updatedApprovals.contains(new Approval(marissa.getId(), "c1", "uaa.admin", 12000, DENIED)));
+        assertTrue(updatedApprovals.contains(new Approval(marissa.getId(), "c1", "openid", 10000, APPROVED)));
     }
 
     public void attemptingToCreateAnApprovalWithADifferentStatusUpdatesApproval() {
-        addApproval(testAccounts.getUserName(), "c1", "uaa.user", 6000, APPROVED);
-        addApproval(testAccounts.getUserName(), "c1", "uaa.admin", 12000, DENIED);
-        addApproval(testAccounts.getUserName(), "c1", "openid", 6000, APPROVED);
+        addApproval(marissa.getId(), "c1", "uaa.user", 6000, APPROVED);
+        addApproval(marissa.getId(), "c1", "uaa.admin", 12000, DENIED);
+        addApproval(marissa.getId(), "c1", "openid", 6000, APPROVED);
 
-        addApproval(testAccounts.getUserName(), "c1", "openid", 18000, DENIED);
+        addApproval(marissa.getId(), "c1", "openid", 18000, DENIED);
 
-        List<Approval> updatedApprovals = endpoints.getApprovals("userName eq 'marissa'", 1, 100);
+        List<Approval> updatedApprovals = endpoints.getApprovals("user_id eq '"+marissa.getId()+"'", 1, 100);
         assertEquals(4, updatedApprovals.size());
-        assertTrue(updatedApprovals.contains(new Approval(testAccounts.getUserName(), "c1", "uaa.user", 6000, APPROVED)));
-        assertTrue(updatedApprovals.contains(new Approval(testAccounts.getUserName(), "c1", "uaa.admin", 12000, DENIED)));
-        assertTrue(updatedApprovals.contains(new Approval(testAccounts.getUserName(), "c1", "openid", 18000, DENIED)));
+        assertTrue(updatedApprovals.contains(new Approval(marissa.getId(), "c1", "uaa.user", 6000, APPROVED)));
+        assertTrue(updatedApprovals.contains(new Approval(marissa.getId(), "c1", "uaa.admin", 12000, DENIED)));
+        assertTrue(updatedApprovals.contains(new Approval(marissa.getId(), "c1", "openid", 18000, DENIED)));
     }
 
     @Test(expected = UaaException.class)
     public void userCannotUpdateApprovalsForAnotherUser() {
-        addApproval(testAccounts.getUserName(), "c1", "uaa.user", 6000, APPROVED);
-        addApproval(testAccounts.getUserName(), "c1", "uaa.admin", 12000, DENIED);
-        addApproval(testAccounts.getUserName(), "c1", "openid", 6000, APPROVED);
-        endpoints.setSecurityContextAccessor(mockSecurityContextAccessor("vidya"));
-        endpoints.updateApprovals(new Approval[] { new Approval(testAccounts.getUserName(), "c1", "uaa.user", 2000, APPROVED) });
+        addApproval(marissa.getId(), "c1", "uaa.user", 6000, APPROVED);
+        addApproval(marissa.getId(), "c1", "uaa.admin", 12000, DENIED);
+        addApproval(marissa.getId(), "c1", "openid", 6000, APPROVED);
+        endpoints.setSecurityContextAccessor(mockSecurityContextAccessor("vidya", "123456"));
+        endpoints.updateApprovals(new Approval[] { new Approval(marissa.getId(), "c1", "uaa.user", 2000, APPROVED) });
     }
 
     @Test
     public void canRevokeApprovals() {
-        addApproval(testAccounts.getUserName(), "c1", "uaa.user", 6000, APPROVED);
-        addApproval(testAccounts.getUserName(), "c1", "uaa.admin", 12000, DENIED);
-        addApproval(testAccounts.getUserName(), "c1", "openid", 6000, APPROVED);
+        addApproval(marissa.getId(), "c1", "uaa.user", 6000, APPROVED);
+        addApproval(marissa.getId(), "c1", "uaa.admin", 12000, DENIED);
+        addApproval(marissa.getId(), "c1", "openid", 6000, APPROVED);
 
-        assertEquals(3, endpoints.getApprovals("userName pr", 1, 100).size());
+        assertEquals(3, endpoints.getApprovals("user_id pr", 1, 100).size());
         assertEquals("ok", endpoints.revokeApprovals("c1").getStatus());
-        assertEquals(0, endpoints.getApprovals("userName pr", 1, 100).size());
+        assertEquals(0, endpoints.getApprovals("user_id pr", 1, 100).size());
     }
 }

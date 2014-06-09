@@ -34,6 +34,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
@@ -56,13 +57,13 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
 
     private static final String TABLE_NAME = "authz_approvals";
 
-    private static final String FIELDS = "userName,clientId,scope,expiresAt,status,lastModifiedAt";
+    private static final String FIELDS = "user_id,client_id,scope,expiresAt,status,lastModifiedAt";
 
     private static final String ADD_AUTHZ_SQL = String.format("insert into %s ( %s ) values (?,?,?,?,?,?)", TABLE_NAME,
                     FIELDS);
 
     private static final String REFRESH_AUTHZ_SQL = String
-                    .format("update %s set lastModifiedAt=?, expiresAt=?, status=? where userName=? and clientId=? and scope=?",
+                    .format("update %s set lastModifiedAt=?, expiresAt=?, status=? where user_id=? and client_Id=? and scope=?",
                                     TABLE_NAME);
 
     private static final String GET_AUTHZ_SQL = String.format("select %s from %s", FIELDS, TABLE_NAME);
@@ -95,7 +96,7 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
                 ps.setTimestamp(1, new Timestamp(approval.getLastUpdatedAt().getTime()));
                 ps.setTimestamp(2, new Timestamp(approval.getExpiresAt().getTime()));
                 ps.setString(3, (approval.getStatus() == null ? APPROVED : approval.getStatus()).toString());
-                ps.setString(4, approval.getUserName());
+                ps.setString(4, approval.getUserId());
                 ps.setString(5, approval.getClientId());
                 ps.setString(6, approval.getScope());
             }
@@ -113,10 +114,10 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
             refreshApproval(approval); // try to refresh the approval
         } catch (DataIntegrityViolationException ex) { // could not find the
                                                        // approval. add it.
-            jdbcTemplate.update(ADD_AUTHZ_SQL, new PreparedStatementSetter() {
+            int count = jdbcTemplate.update(ADD_AUTHZ_SQL, new PreparedStatementSetter() {
                 @Override
                 public void setValues(PreparedStatement ps) throws SQLException {
-                    ps.setString(1, approval.getUserName());
+                    ps.setString(1, approval.getUserId());
                     ps.setString(2, approval.getClientId());
                     ps.setString(3, approval.getScope());
                     ps.setTimestamp(4, new Timestamp(approval.getExpiresAt().getTime()));
@@ -124,6 +125,7 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
                     ps.setTimestamp(6, new Timestamp(approval.getLastUpdatedAt().getTime()));
                 }
             });
+            if (count==0) throw new EmptyResultDataAccessException("Approval add failed", 1);
         }
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         publish(new ApprovalModifiedEvent(approval, authentication));
@@ -132,7 +134,7 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
 
     @Override
     public boolean revokeApproval(Approval approval) {
-        return revokeApprovals(String.format("userName eq '%s' and clientId eq '%s' and scope eq '%s'"));
+        return revokeApprovals(String.format("userId eq '%s' and clientId eq '%s' and scope eq '%s'"));
     }
 
     @Override
@@ -195,8 +197,8 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
     }
 
     @Override
-    public List<Approval> getApprovals(String userName, String clientId) {
-        return getApprovals(String.format("userName eq '%s' and clientId eq '%s'", userName, clientId));
+    public List<Approval> getApprovals(String userId, String clientId) {
+        return getApprovals(String.format("user_id eq '%s' and client_id eq '%s'", userId, clientId));
     }
 
     @Override

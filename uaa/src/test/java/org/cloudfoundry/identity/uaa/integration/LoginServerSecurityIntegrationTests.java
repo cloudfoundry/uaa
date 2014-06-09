@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.apache.commons.codec.binary.Base64;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
@@ -196,7 +197,7 @@ public class LoginServerSecurityIntegrationTests {
 
         params.set("client_id", resource.getClientId());
         params.set("username", "bogus1");
-        params.set("add_new", "true");
+        params.set(UaaAuthenticationDetails.ADD_NEW, "true");
         String redirect = resource.getPreEstablishedRedirectUri();
         if (redirect != null) {
             params.set("redirect_uri", redirect);
@@ -219,7 +220,7 @@ public class LoginServerSecurityIntegrationTests {
 
         params.set("client_id", resource.getClientId());
         params.set("username", "bogus2");
-        params.set("add_new", "false");
+        params.set(UaaAuthenticationDetails.ADD_NEW, "false");
         String redirect = resource.getPreEstablishedRedirectUri();
         if (redirect != null) {
             params.set("redirect_uri", redirect);
@@ -238,11 +239,10 @@ public class LoginServerSecurityIntegrationTests {
         ImplicitResourceDetails resource = testAccounts.getDefaultImplicitResource();
         HttpHeaders headers = new HttpHeaders();
         headers.add("Accept",MediaType.APPLICATION_JSON_VALUE);
-        //headers.add("Authorization", getAuthorizationEncodedValue(resource.getClientId(), ""));
         params.set("client_id", resource.getClientId());
         params.set("client_secret","");
         params.set("source","login");
-        params.set("add_new", "false");
+        params.set(UaaAuthenticationDetails.ADD_NEW, "false");
         params.set("grant_type", "password");
         String redirect = resource.getPreEstablishedRedirectUri();
         if (redirect != null) {
@@ -266,7 +266,7 @@ public class LoginServerSecurityIntegrationTests {
         params.set("client_id", resource.getClientId());
         params.set("client_secret","");
         params.set("source","login");
-        params.set("add_new", "false");
+        params.set(UaaAuthenticationDetails.ADD_NEW, "false");
         params.set("grant_type", "password");
         String redirect = resource.getPreEstablishedRedirectUri();
         if (redirect != null) {
@@ -286,7 +286,7 @@ public class LoginServerSecurityIntegrationTests {
         params.set("client_id", resource.getClientId());
         params.set("client_secret","bogus");
         params.set("source","login");
-        params.set("add_new", "false");
+        params.set(UaaAuthenticationDetails.ADD_NEW, "false");
         params.set("grant_type", "password");
         
         String redirect = resource.getPreEstablishedRedirectUri();
@@ -308,7 +308,7 @@ public class LoginServerSecurityIntegrationTests {
         params.set("client_id", resource.getClientId());
         params.set("client_secret","bogus");
         params.set("source","login");
-        params.set("add_new", "false");
+        params.set(UaaAuthenticationDetails.ADD_NEW, "false");
         params.set("grant_type", "password");
 
         String redirect = resource.getPreEstablishedRedirectUri();

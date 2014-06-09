@@ -36,11 +36,17 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.security.oauth2.client.test.OAuth2ContextConfiguration;
 import org.springframework.security.oauth2.client.test.OAuth2ContextSetup;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.DefaultResponseErrorHandler;
 import org.springframework.web.client.RestOperations;
+import org.springframework.web.client.RestTemplate;
 
 /**
  * @author Luke Taylor
@@ -88,7 +94,7 @@ public class ScimUserEndpointsIntegrationTests {
         HttpHeaders headers = new HttpHeaders();
         headers.add("If-Match", "\"" + version + "\"");
         return client.exchange(serverRunning.getUrl(userEndpoint + "/{id}"), HttpMethod.DELETE, new HttpEntity<Void>(
-                        headers), Map.class, id);
+            headers), Map.class, id);
     }
 
     private ResponseEntity<ScimUser> createUser(String username, String firstName, String lastName, String email) {
@@ -189,10 +195,10 @@ public class ScimUserEndpointsIntegrationTests {
     public void verifyUserNotFound() throws Exception {
         HttpHeaders headers = new HttpHeaders();
         ResponseEntity<Map> response = client.exchange(serverRunning.getUrl(userEndpoint + "/{id}/verify"),
-                        HttpMethod.GET,
-                        new HttpEntity<Void>(headers),
-                        Map.class,
-                        "this-user-id-doesnt-exist");
+            HttpMethod.GET,
+            new HttpEntity<Void>(headers),
+            Map.class,
+            "this-user-id-doesnt-exist");
 
         @SuppressWarnings("unchecked")
         Map<String, String> error = response.getBody();
@@ -283,10 +289,10 @@ public class ScimUserEndpointsIntegrationTests {
                         Map.class));
         map.put("nottheusername", JOE + "0");
         ResponseEntity<Map> response = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}", HttpMethod.PUT,
-                        new HttpEntity<Map>(map, headers), Map.class, joe.getId());
+            new HttpEntity<Map>(map, headers), Map.class, joe.getId());
         Map<String, Object> joe1 = response.getBody();
         assertTrue("Wrong message: " + joe1, ((String) joe1.get("message")).toLowerCase()
-                        .contains("unrecognized field"));
+            .contains("unrecognized field"));
 
     }
 
@@ -304,8 +310,8 @@ public class ScimUserEndpointsIntegrationTests {
         map.put("username", JOE + "0");
         map.remove("userName");
         ResponseEntity<ScimUser> response = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}",
-                        HttpMethod.PUT,
-                        new HttpEntity<Map>(map, headers), ScimUser.class, joe.getId());
+            HttpMethod.PUT,
+            new HttpEntity<Map>(map, headers), ScimUser.class, joe.getId());
         ScimUser joe1 = response.getBody();
         assertEquals(JOE + "0", joe1.getUserName());
     }
@@ -428,7 +434,7 @@ public class ScimUserEndpointsIntegrationTests {
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = client.exchange(serverRunning.getUrl(userEndpoint + "/{id}"), HttpMethod.DELETE,
-                        new HttpEntity<Void>((Void) null), Map.class, deleteMe.getId());
+            new HttpEntity<Void>((Void) null), Map.class, deleteMe.getId());
         assertEquals(HttpStatus.OK, response.getStatusCode());
     }
 
@@ -436,7 +442,7 @@ public class ScimUserEndpointsIntegrationTests {
     public void getReturnsNotFoundForNonExistentUser() throws Exception {
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = client.exchange(serverRunning.getUrl(userEndpoint + "/{id}"), HttpMethod.GET,
-                        new HttpEntity<Void>((Void) null), Map.class, "9999");
+            new HttpEntity<Void>((Void) null), Map.class, "9999");
         @SuppressWarnings("unchecked")
         Map<String, String> error = response.getBody();
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
@@ -511,6 +517,67 @@ public class ScimUserEndpointsIntegrationTests {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
         assertEquals(new Integer(1), results.get("startIndex"));
+    }
+
+    @Test
+    public void validateLdapOrKeystoneOrigin() throws Exception {
+        String profiles = System.getProperty("spring.profiles.active");
+        if (profiles!=null && profiles.contains("ldap")) {
+            validateOrigin("marissa3","ldap3","ldap");
+        } else if (profiles!=null && profiles.contains("keystone")) {
+            validateOrigin("marissa2", "keystone", "keystone");
+        }
+    }
+
+    public void validateOrigin(String username, String password, String origin) throws Exception {
+        ResponseEntity<Map> authResp = authenticate(username,password);
+        assertEquals(HttpStatus.OK, authResp.getStatusCode());
+
+        ResponseEntity<Map> response = serverRunning.getForObject(usersEndpoint + "?attributes=id,userName,origin", Map.class);
+        Map<String, Object> results = response.getBody();
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
+        List<Map> list = (List) results.get("resources");
+        boolean found = false;
+        for (int i=0; i<list.size(); i++) {
+            Map user = list.get(i);
+            assertTrue(user.containsKey("id"));
+            assertTrue(user.containsKey("userName"));
+            assertTrue(user.containsKey("origin"));
+            assertFalse(user.containsKey("name"));
+            assertFalse(user.containsKey("emails"));
+            if (username.equals(user.get("userName"))) {
+                found = true;
+                assertEquals(origin, user.get("origin"));
+            }
+        }
+        assertTrue(found);
+    }
+
+
+
+    @SuppressWarnings("rawtypes")
+    ResponseEntity<Map> authenticate(String username, String password) {
+        RestTemplate restTemplate = new RestTemplate();
+        // The default java.net client doesn't allow you to handle 4xx responses
+        restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
+        restTemplate.setErrorHandler(new DefaultResponseErrorHandler() {
+            @Override
+            protected boolean hasError(HttpStatus statusCode) {
+                return statusCode.series() == HttpStatus.Series.SERVER_ERROR;
+            }
+        });
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+
+        MultiValueMap<String, Object> parameters = new LinkedMultiValueMap<String, Object>();
+        parameters.set("username", username);
+        parameters.set("password", password);
+
+        ResponseEntity<Map> result = restTemplate.exchange(serverRunning.getUrl("/authenticate"),
+            HttpMethod.POST, new HttpEntity<MultiValueMap<String, Object>>(parameters, headers), Map.class);
+        return result;
     }
 
 }

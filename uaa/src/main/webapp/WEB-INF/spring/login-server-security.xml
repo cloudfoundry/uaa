@@ -50,7 +50,7 @@
           This represents a /oauth/token requests that gets passed through
           from the login server. It assumes that the User has been authenticated
           It requires that:
-           - username parameter exists
+           - userid parameter exists
            - client_id and client_secret are present
            - Bearer token belongs to login server (oauth.login) validated as resource="oauth"
         -->
