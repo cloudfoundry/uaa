@@ -81,6 +81,12 @@
     <dependencies>
 
         <dependency>
+            <groupId>com.unboundid.product.scim</groupId>
+            <artifactId>scim-sdk</artifactId>
+            <version>1.6.0</version>
+        </dependency>
+
+        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>cloudfoundry-identity-common</artifactId>
             <version>${project.version}</version>
