@@ -18,7 +18,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -653,14 +652,9 @@ public class JdbcScimUserProvisioningTests {
         assertEquals(password, users.iterator().next().getId());
     }
 
-    @Test
+    @Test(expected = IllegalArgumentException.class)
     public void filterEqWithoutQuotesIsRejected() {
-        try {
-            db.query("username eq joe");
-            fail();
-        } catch (Exception e) {
-            assertTrue(e.getMessage().startsWith("Eq argument in filter"));
-        }
+        db.query("username eq joe");
     }
 
     private void assertJoe(ScimUser joe) {
