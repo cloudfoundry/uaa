@@ -82,6 +82,7 @@ import com.googlecode.flyway.core.Flyway;
  */
 public class ScimUserEndpointsTests {
 
+    public static final String JDSA_VMWARE_COM = "jd'sa@vmware.com";
     @Rule
     public ExpectedException expected = ExpectedException.none();
 
@@ -136,7 +137,7 @@ public class ScimUserEndpointsTests {
         endpoints.setScimGroupMembershipManager(mm);
         groupEndpoints = new ScimGroupEndpoints(gdao, mm);
         joel = new ScimUser(null, "jdsa", "Joel", "D'sa");
-        joel.addEmail("jdsa@vmware.com");
+        joel.addEmail(JDSA_VMWARE_COM);
         dale = new ScimUser(null, "olds", "Dale", "Olds");
         dale.addEmail("olds@vmware.com");
         joel = dao.createUser(joel, "password");
@@ -433,6 +434,15 @@ public class ScimUserEndpointsTests {
     @Test
     public void testFindIdsByUserName() {
         SearchResults<?> results = endpoints.findUsers("id", "userName eq \"jdsa\"", null, "ascending", 1, 100);
+        assertEquals(1, results.getTotalResults());
+        assertEquals(1, results.getSchemas().size()); // System.err.println(results.getValues());
+        assertEquals(joel.getId(), ((Map<String, Object>) results.getResources().iterator().next()).get("id"));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testFindIdsByEmailApostrophe() {
+        SearchResults<?> results = endpoints.findUsers("id", "emails.value eq \""+JDSA_VMWARE_COM+"\"", null, "ascending", 1, 100);
         assertEquals(1, results.getTotalResults());
         assertEquals(1, results.getSchemas().size()); // System.err.println(results.getValues());
         assertEquals(joel.getId(), ((Map<String, Object>) results.getResources().iterator().next()).get("id"));
