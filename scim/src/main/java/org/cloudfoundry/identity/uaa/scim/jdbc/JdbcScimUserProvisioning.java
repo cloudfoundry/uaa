@@ -82,9 +82,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
 
     public static final String ALL_usetre = "select " + USER_FIELDS + " from users";
 
-    static final Pattern unquotedEq = Pattern.compile("(id|username|email|givenName|familyName) eq [^'^\"].*",
-                    Pattern.CASE_INSENSITIVE);
-
     protected final JdbcTemplate jdbcTemplate;
 
     private PasswordValidator passwordValidator = new DefaultPasswordValidator();
@@ -126,9 +123,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
 
     @Override
     public List<ScimUser> query(String filter, String sortBy, boolean ascending) {
-        if (unquotedEq.matcher(filter).matches()) {
-            throw new IllegalArgumentException("Eq argument in filter must be quoted");
-        }
         return super.query(filter, sortBy, ascending);
     }
 
