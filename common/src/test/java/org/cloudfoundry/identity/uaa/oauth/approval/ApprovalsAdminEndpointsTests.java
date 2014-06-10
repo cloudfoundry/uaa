@@ -136,12 +136,12 @@ public class ApprovalsAdminEndpointsTests {
         addApproval(marissa.getId(), "c1", "uaa.admin", 12000, DENIED);
         addApproval(marissa.getId(), "c1", "openid", 6000, APPROVED);
 
-        assertEquals(3, endpoints.getApprovals("user_id eq '"+marissa.getId()+"'", 1, 100).size());
+        assertEquals(3, endpoints.getApprovals("user_id eq \""+marissa.getId()+"\"", 1, 100).size());
 
         addApproval(marissa.getId(), "c1", "read", 12000, DENIED);
         addApproval(marissa.getId(), "c1", "write", 6000, APPROVED);
 
-        assertEquals(3, endpoints.getApprovals("user_id eq '"+marissa.getId()+"'", 1, 100).size());
+        assertEquals(3, endpoints.getApprovals("user_id eq \""+marissa.getId()+"\"", 1, 100).size());
     }
 
     @Test
@@ -161,7 +161,7 @@ public class ApprovalsAdminEndpointsTests {
         assertTrue(response.contains(new Approval(marissa.getId(), "c1", "openid", 2000, DENIED)));
         assertTrue(response.contains(new Approval(marissa.getId(), "c1", "cloud_controller.read", 2000, APPROVED)));
 
-        List<Approval> updatedApprovals = endpoints.getApprovals("user_id eq '"+marissa.getId()+"'", 1, 100);
+        List<Approval> updatedApprovals = endpoints.getApprovals("user_id eq \""+marissa.getId()+"\"", 1, 100);
         assertEquals(4, updatedApprovals.size());
         assertTrue(updatedApprovals.contains(new Approval(marissa.getId(), "c1", "dash.user", 2000, APPROVED)));
         assertTrue(updatedApprovals.contains(new Approval(marissa.getId(), "c1", "openid", 2000, DENIED)));
@@ -176,7 +176,7 @@ public class ApprovalsAdminEndpointsTests {
 
         addApproval(marissa.getId(), "c1", "openid", 10000, APPROVED);
 
-        List<Approval> updatedApprovals = endpoints.getApprovals("user_id eq '"+marissa.getId()+"'", 1, 100);
+        List<Approval> updatedApprovals = endpoints.getApprovals("user_id eq \""+marissa.getId()+"\"", 1, 100);
         assertEquals(3, updatedApprovals.size());
         assertTrue(updatedApprovals.contains(new Approval(marissa.getId(), "c1", "uaa.user", 6000, APPROVED)));
         assertTrue(updatedApprovals.contains(new Approval(marissa.getId(), "c1", "uaa.admin", 12000, DENIED)));
@@ -190,7 +190,7 @@ public class ApprovalsAdminEndpointsTests {
 
         addApproval(marissa.getId(), "c1", "openid", 18000, DENIED);
 
-        List<Approval> updatedApprovals = endpoints.getApprovals("user_id eq '"+marissa.getId()+"'", 1, 100);
+        List<Approval> updatedApprovals = endpoints.getApprovals("user_id eq \""+marissa.getId()+"\"", 1, 100);
         assertEquals(4, updatedApprovals.size());
         assertTrue(updatedApprovals.contains(new Approval(marissa.getId(), "c1", "uaa.user", 6000, APPROVED)));
         assertTrue(updatedApprovals.contains(new Approval(marissa.getId(), "c1", "uaa.admin", 12000, DENIED)));

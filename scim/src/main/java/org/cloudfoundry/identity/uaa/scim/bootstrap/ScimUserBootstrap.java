@@ -91,7 +91,7 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
      * @param user a UaaUser
      */
     private void addUser(UaaUser user) {
-        List<ScimUser> users = scimUserProvisioning.query("userName eq '" + user.getUsername() + "'");
+        List<ScimUser> users = scimUserProvisioning.query("userName eq \"" + user.getUsername() + "\"");
 
         if (users.isEmpty()) {
             createNewUser(user);
@@ -146,7 +146,7 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
             return;
         }
         logger.debug("Adding to group: " + gName);
-        List<ScimGroup> g = scimGroupProvisioning.query(String.format("displayName eq '%s'", gName));
+        List<ScimGroup> g = scimGroupProvisioning.query(String.format("displayName eq \"%s\"", gName));
         ScimGroup group;
         if (g == null || g.isEmpty()) {
             group = new ScimGroup(gName);
@@ -167,7 +167,7 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
             return;
         }
         logger.debug("Removing membership of group: " + gName);
-        List<ScimGroup> g = scimGroupProvisioning.query(String.format("displayName eq '%s'", gName));
+        List<ScimGroup> g = scimGroupProvisioning.query(String.format("displayName eq \"%s\"", gName));
         ScimGroup group;
         if (g == null || g.isEmpty()) {
             return;

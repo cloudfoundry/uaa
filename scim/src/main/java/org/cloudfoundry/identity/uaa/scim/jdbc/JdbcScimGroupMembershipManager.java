@@ -92,7 +92,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 
     public void setDefaultUserGroups(Set<String> groupNames) {
         for (String name : groupNames) {
-            List<ScimGroup> g = groupProvisioning.query(String.format("displayName co '%s'", name));
+            List<ScimGroup> g = groupProvisioning.query(String.format("displayName co \"%s\"", name));
             if (!g.isEmpty()) {
                 defaultUserGroups.add(g.get(0));
             } else { // default group must exist, hence if not already present,

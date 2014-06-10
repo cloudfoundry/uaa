@@ -87,7 +87,7 @@ public class JdbcScimClientDetailsServiceTests {
     @Test
     public void testQueryEquals() throws Exception {
         assertEquals(4, service.retrieveAll().size());
-        assertEquals(2, service.query("authorized_grant_types eq 'client_credentials'").size());
+        assertEquals(2, service.query("authorized_grant_types eq \"client_credentials\"").size());
     }
 
     @Test

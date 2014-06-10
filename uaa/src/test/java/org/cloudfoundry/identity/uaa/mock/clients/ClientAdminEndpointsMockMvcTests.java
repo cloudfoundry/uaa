@@ -121,11 +121,11 @@ public class ClientAdminEndpointsMockMvcTests {
         HttpServletResponse mockResponse = mock(HttpServletResponse.class);
 
 
-        SearchResults<Map<String, Object>> marissa = (SearchResults<Map<String, Object>>)scimUserEndpoints.findUsers("id,userName", "userName eq '" + testUser.getUsername() + "'", "userName", "asc", 0, 1);
+        SearchResults<Map<String, Object>> marissa = (SearchResults<Map<String, Object>>)scimUserEndpoints.findUsers("id,userName", "userName eq \"" + testUser.getUsername() + "\"", "userName", "asc", 0, 1);
         String marissaId = (String)marissa.getResources().iterator().next().get("id");
 
         //add marissa to uaa.admin
-        SearchResults<Map<String, Object>> uaaAdmin = (SearchResults<Map<String, Object>>) scimGroupEndpoints.listGroups("id,displayName", "displayName eq 'uaa.admin'", "displayName", "asc", 1, 1);
+        SearchResults<Map<String, Object>> uaaAdmin = (SearchResults<Map<String, Object>>) scimGroupEndpoints.listGroups("id,displayName", "displayName eq \"uaa.admin\"", "displayName", "asc", 1, 1);
         String groupId = (String)uaaAdmin.getResources().iterator().next().get("id");
         ScimGroup group = scimGroupEndpoints.getGroup(groupId, mockResponse);
         ScimGroupMember gm = new ScimGroupMember(marissaId, ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER));
@@ -133,7 +133,7 @@ public class ClientAdminEndpointsMockMvcTests {
         scimGroupEndpoints.updateGroup(group, groupId, String.valueOf(group.getVersion()), mockResponse);
 
         //add marissa to clients.write
-        uaaAdmin = (SearchResults<Map<String, Object>>) scimGroupEndpoints.listGroups("id,displayName", "displayName eq 'clients.write'", "displayName", "asc", 1, 1);
+        uaaAdmin = (SearchResults<Map<String, Object>>) scimGroupEndpoints.listGroups("id,displayName", "displayName eq \"clients.write\"", "displayName", "asc", 1, 1);
         groupId = (String)uaaAdmin.getResources().iterator().next().get("id");
         group = scimGroupEndpoints.getGroup(groupId, mockResponse);
         gm = new ScimGroupMember(marissaId, ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER));
@@ -141,7 +141,7 @@ public class ClientAdminEndpointsMockMvcTests {
         scimGroupEndpoints.updateGroup(group, groupId, String.valueOf(group.getVersion()), mockResponse);
 
         //add marissa to clients.read
-        uaaAdmin = (SearchResults<Map<String, Object>>) scimGroupEndpoints.listGroups("id,displayName", "displayName eq 'clients.read'", "displayName", "asc", 1, 1);
+        uaaAdmin = (SearchResults<Map<String, Object>>) scimGroupEndpoints.listGroups("id,displayName", "displayName eq \"clients.read\"", "displayName", "asc", 1, 1);
         groupId = (String)uaaAdmin.getResources().iterator().next().get("id");
         group = scimGroupEndpoints.getGroup(groupId, mockResponse);
         gm = new ScimGroupMember(marissaId, ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER));
@@ -1004,7 +1004,7 @@ public class ClientAdminEndpointsMockMvcTests {
 
 
     private Approval[] getApprovals(String token, String clientId) throws Exception {
-        String filter = "client_id eq '"+clientId+"'";
+        String filter = "client_id eq \""+clientId+"\"";
         
         MockHttpServletRequestBuilder get = get("/approvals")
                         .header("Authorization", "Bearer " + token)

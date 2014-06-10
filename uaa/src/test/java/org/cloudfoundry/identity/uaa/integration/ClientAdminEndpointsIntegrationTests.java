@@ -516,7 +516,7 @@ public class ClientAdminEndpointsIntegrationTests {
     }
 
     private Approval[] getApprovals(String token, String clientId) throws Exception {
-        String filter = "client_id eq '"+clientId+"'";
+        String filter = "client_id eq \""+clientId+"\"";
         HttpHeaders headers = getAuthenticatedHeaders(token);
 
         ResponseEntity<Approval[]> approvals =

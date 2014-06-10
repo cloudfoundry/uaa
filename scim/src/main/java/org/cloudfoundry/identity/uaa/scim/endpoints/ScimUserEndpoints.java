@@ -85,7 +85,7 @@ import org.springframework.web.servlet.View;
 @Controller
 @ManagedResource
 public class ScimUserEndpoints implements InitializingBean {
-    private static final String USER_APPROVALS_FILTER_TEMPLATE = "user_id eq '%s'";
+    private static final String USER_APPROVALS_FILTER_TEMPLATE = "user_id eq \"%s\"";
     public static final String E_TAG = "ETag";
 
     private ScimUserProvisioning dao;

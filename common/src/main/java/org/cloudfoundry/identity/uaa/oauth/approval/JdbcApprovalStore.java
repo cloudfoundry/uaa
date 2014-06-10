@@ -134,7 +134,7 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
 
     @Override
     public boolean revokeApproval(Approval approval) {
-        return revokeApprovals(String.format("userId eq '%s' and clientId eq '%s' and scope eq '%s'"));
+        return revokeApprovals(String.format("user_id eq \"%s\" and client_id eq \"%s\" and scope eq \"%s\""));
     }
 
     @Override
@@ -198,7 +198,7 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
 
     @Override
     public List<Approval> getApprovals(String userId, String clientId) {
-        return getApprovals(String.format("user_id eq '%s' and client_id eq '%s'", userId, clientId));
+        return getApprovals(String.format("user_id eq \"%s\" and client_id eq \"%s\"", userId, clientId));
     }
 
     @Override

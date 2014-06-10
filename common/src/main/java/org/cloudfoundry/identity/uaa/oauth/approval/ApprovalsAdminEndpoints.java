@@ -63,9 +63,9 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 
     private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
 
-    private static final String USER_FILTER_TEMPLATE = "user_id eq '%s'";
+    private static final String USER_FILTER_TEMPLATE = "user_id eq \"%s\"";
 
-    private static final String USER_AND_CLIENT_FILTER_TEMPLATE = "user_id eq '%s' and client_id eq '%s'";
+    private static final String USER_AND_CLIENT_FILTER_TEMPLATE = "user_id eq \"%s\" and client_id eq \"%s\"";
 
     public void setStatuses(Map<Class<? extends Exception>, HttpStatus> statuses) {
         this.statuses = statuses;

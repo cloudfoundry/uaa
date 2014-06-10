@@ -185,7 +185,7 @@ public class ScimGroupEndpointsTests {
     }
 
     private void deleteGroup(String name) {
-        for (ScimGroup g : dao.query("displayName eq '" + name + "'")) {
+        for (ScimGroup g : dao.query("displayName eq \"" + name + "\"")) {
             dao.delete(g.getId(), g.getVersion());
             mm.removeMembersByGroupId(g.getId());
         }
@@ -253,13 +253,13 @@ public class ScimGroupEndpointsTests {
 
     @Test
     public void testListGroupsWithNameEqFilter() {
-        validateSearchResults(endpoints.listGroups("id,displayName", "displayName eq 'uaa.user'", "created",
+        validateSearchResults(endpoints.listGroups("id,displayName", "displayName eq \"uaa.user\"", "created",
                         "ascending", 1, 100), 1);
     }
 
     @Test
     public void testListGroupsWithNameCoFilter() {
-        validateSearchResults(endpoints.listGroups("id,displayName", "displayName co 'admin'", "created", "ascending",
+        validateSearchResults(endpoints.listGroups("id,displayName", "displayName co \"admin\"", "created", "ascending",
                         1, 100), 1);
     }
 
@@ -267,19 +267,19 @@ public class ScimGroupEndpointsTests {
     public void testListGroupsWithInvalidFilterFails() {
         expectedEx.expect(ScimException.class);
         expectedEx.expectMessage("Invalid filter expression");
-        endpoints.listGroups("id,displayName", "displayName cr 'admin'", "created", "ascending", 1, 100);
+        endpoints.listGroups("id,displayName", "displayName cr \"admin\"", "created", "ascending", 1, 100);
     }
 
     @Test
     public void testListGroupsWithInvalidAttributesFails() {
         expectedEx.expect(ScimException.class);
         expectedEx.expectMessage("Invalid attributes");
-        endpoints.listGroups("id,display", "displayName co 'admin'", "created", "ascending", 1, 100);
+        endpoints.listGroups("id,display", "displayName co \"admin\"", "created", "ascending", 1, 100);
     }
 
     @Test
     public void testListGroupsWithNullAttributes() {
-        validateSearchResults(endpoints.listGroups(null, "displayName co 'admin'", "created", "ascending", 1, 100), 1);
+        validateSearchResults(endpoints.listGroups(null, "displayName co \"admin\"", "created", "ascending", 1, 100), 1);
     }
 
     @Test
@@ -327,7 +327,7 @@ public class ScimGroupEndpointsTests {
             endpoints.createGroup(g, new MockHttpServletResponse());
             fail("must have thrown exception");
         } catch (ScimResourceAlreadyExistsException ex) {
-            validateSearchResults(endpoints.listGroups("id", "displayName eq 'clients.read'", "id", "ASC", 1, 100), 1);
+            validateSearchResults(endpoints.listGroups("id", "displayName eq \"clients.read\"", "id", "ASC", 1, 100), 1);
         }
 
         deleteGroup("clients.read");
@@ -344,7 +344,7 @@ public class ScimGroupEndpointsTests {
             fail("must have thrown exception");
         } catch (InvalidScimResourceException ex) {
             // ensure that the group was not created
-            validateSearchResults(endpoints.listGroups("id", "displayName eq 'clients.read'", "id", "ASC", 1, 100), 0);
+            validateSearchResults(endpoints.listGroups("id", "displayName eq \"clients.read\"", "id", "ASC", 1, 100), 0);
         }
     }
 
@@ -381,8 +381,8 @@ public class ScimGroupEndpointsTests {
             endpoints.updateGroup(g1, g1.getId(), "*", new MockHttpServletResponse());
             fail("must have thrown exception");
         } catch (InvalidScimResourceException ex) {
-            validateSearchResults(endpoints.listGroups("id", "displayName eq 'clients.write'", "id", "ASC", 1, 100), 1);
-            validateSearchResults(endpoints.listGroups("id", "displayName eq 'clients.read'", "id", "ASC", 1, 100), 1);
+            validateSearchResults(endpoints.listGroups("id", "displayName eq \"clients.write\"", "id", "ASC", 1, 100), 1);
+            validateSearchResults(endpoints.listGroups("id", "displayName eq \"clients.read\"", "id", "ASC", 1, 100), 1);
         }
 
         deleteGroup("clients.read");
@@ -406,7 +406,7 @@ public class ScimGroupEndpointsTests {
             // ensure that displayName was not updated
             g1 = endpoints.getGroup(g1.getId(), new MockHttpServletResponse());
             validateGroup(g1, "clients.read", 0);
-            validateSearchResults(endpoints.listGroups("id", "displayName eq 'clients.write'", "id", "ASC", 1, 100), 0);
+            validateSearchResults(endpoints.listGroups("id", "displayName eq \"clients.write\"", "id", "ASC", 1, 100), 0);
         }
 
         deleteGroup("clients.read");
@@ -424,8 +424,8 @@ public class ScimGroupEndpointsTests {
             endpoints.updateGroup(g1, g1.getId(), "version", new MockHttpServletResponse());
         } catch (ScimException ex) {
             assertTrue("Wrong exception message", ex.getMessage().contains("Invalid version"));
-            validateSearchResults(endpoints.listGroups("id", "displayName eq 'clients.write'", "id", "ASC", 1, 100), 0);
-            validateSearchResults(endpoints.listGroups("id", "displayName eq 'clients.read'", "id", "ASC", 1, 100), 1);
+            validateSearchResults(endpoints.listGroups("id", "displayName eq \"clients.write\"", "id", "ASC", 1, 100), 0);
+            validateSearchResults(endpoints.listGroups("id", "displayName eq \"clients.read\"", "id", "ASC", 1, 100), 1);
         }
 
         deleteGroup("clients.read");
@@ -443,8 +443,8 @@ public class ScimGroupEndpointsTests {
             endpoints.updateGroup(g1, g1.getId(), null, new MockHttpServletResponse());
         } catch (ScimException ex) {
             assertTrue("Wrong exception message", ex.getMessage().contains("Missing If-Match"));
-            validateSearchResults(endpoints.listGroups("id", "displayName eq 'clients.write'", "id", "ASC", 1, 100), 0);
-            validateSearchResults(endpoints.listGroups("id", "displayName eq 'clients.read'", "id", "ASC", 1, 100), 1);
+            validateSearchResults(endpoints.listGroups("id", "displayName eq \"clients.write\"", "id", "ASC", 1, 100), 0);
+            validateSearchResults(endpoints.listGroups("id", "displayName eq \"clients.read\"", "id", "ASC", 1, 100), 1);
         }
 
         deleteGroup("clients.read");
@@ -460,8 +460,8 @@ public class ScimGroupEndpointsTests {
 
         endpoints.updateGroup(g1, g1.getId(), "\"*", new MockHttpServletResponse());
         endpoints.updateGroup(g1, g1.getId(), "*\"", new MockHttpServletResponse());
-        validateSearchResults(endpoints.listGroups("id", "displayName eq 'clients.write'", "id", "ASC", 1, 100), 1);
-        validateSearchResults(endpoints.listGroups("id", "displayName eq 'clients.read'", "id", "ASC", 1, 100), 0);
+        validateSearchResults(endpoints.listGroups("id", "displayName eq \"clients.write\"", "id", "ASC", 1, 100), 1);
+        validateSearchResults(endpoints.listGroups("id", "displayName eq \"clients.read\"", "id", "ASC", 1, 100), 0);
 
         deleteGroup("clients.write");
     }
@@ -477,8 +477,8 @@ public class ScimGroupEndpointsTests {
         try {
             endpoints.updateGroup(g1, g1.getId(), String.valueOf(g1.getVersion() + 23), new MockHttpServletResponse());
         } catch (ScimException ex) {
-            validateSearchResults(endpoints.listGroups("id", "displayName eq 'clients.write'", "id", "ASC", 1, 100), 0);
-            validateSearchResults(endpoints.listGroups("id", "displayName eq 'clients.read'", "id", "ASC", 1, 100), 1);
+            validateSearchResults(endpoints.listGroups("id", "displayName eq \"clients.write\"", "id", "ASC", 1, 100), 0);
+            validateSearchResults(endpoints.listGroups("id", "displayName eq \"clients.read\"", "id", "ASC", 1, 100), 1);
         }
 
         deleteGroup("clients.read");
@@ -524,7 +524,7 @@ public class ScimGroupEndpointsTests {
         try {
             endpoints.deleteGroup(g.getId(), String.valueOf(g.getVersion() + 3), new MockHttpServletResponse());
         } catch (ScimException ex) {
-            validateSearchResults(endpoints.listGroups("id", "displayName eq 'clients.read'", "id", "ASC", 1, 100), 1);
+            validateSearchResults(endpoints.listGroups("id", "displayName eq \"clients.read\"", "id", "ASC", 1, 100), 1);
         }
 
         deleteGroup("clients.read");
