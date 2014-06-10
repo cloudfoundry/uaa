@@ -84,6 +84,12 @@
             <groupId>com.unboundid.product.scim</groupId>
             <artifactId>scim-sdk</artifactId>
             <version>1.6.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.mortbay.jetty</groupId>
+                    <artifactId>servlet-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
