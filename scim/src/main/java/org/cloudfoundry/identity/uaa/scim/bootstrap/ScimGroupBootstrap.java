@@ -48,9 +48,9 @@ public class ScimGroupBootstrap implements InitializingBean {
 
     private final ScimUserProvisioning scimUserProvisioning;
 
-    private static final String USER_BY_NAME_FILTER = "username eq '%s'";
+    private static final String USER_BY_NAME_FILTER = "username eq \"%s\"";
 
-    private static final String GROUP_BY_NAME_FILTER = "displayName eq '%s'";
+    private static final String GROUP_BY_NAME_FILTER = "displayName eq \"%s\"";
 
     private final Log logger = LogFactory.getLog(getClass());
 

@@ -63,7 +63,7 @@ public class UserIdConversionEndpointsTests {
     public void testBadFieldInFilter() {
         expected.expect(ScimException.class);
         expected.expectMessage(containsString("Invalid filter"));
-        endpoints.findUsers("emails.value eq 'foo@bar.org'", "ascending", 0, 100);
+        endpoints.findUsers("emails.value eq \"foo@bar.org\"", "ascending", 0, 100);
     }
 
     @Test

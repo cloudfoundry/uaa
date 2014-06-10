@@ -36,7 +36,7 @@ public class ScimExternalGroupBootstrap implements InitializingBean {
 
     private final ScimGroupExternalMembershipManager externalMembershipManager;
 
-    private static final String GROUP_BY_NAME_FILTER = "displayName eq '%s'";
+    private static final String GROUP_BY_NAME_FILTER = "displayName eq \"%s\"";
 
     private final Log logger = LogFactory.getLog(getClass());
 

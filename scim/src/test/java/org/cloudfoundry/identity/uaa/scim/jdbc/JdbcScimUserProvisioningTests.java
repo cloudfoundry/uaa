@@ -334,7 +334,7 @@ public class JdbcScimUserProvisioningTests {
         ScimUser deletedUser = db.delete(tmpUserId, 0);
         assertEquals(1, template.queryForList("select * from users where id=? and active=?", tmpUserId, false).size());
         assertFalse(deletedUser.isActive());
-        assertEquals(1, db.query("username eq '" + tmpUserId + "' and active eq false").size());
+        assertEquals(1, db.query("username eq \"" + tmpUserId + "\" and active eq false").size());
         removeUser(tmpUserId);
     }
 
@@ -369,7 +369,7 @@ public class JdbcScimUserProvisioningTests {
         db.setDeactivateOnDelete(false);
         db.delete(tmpUserId, 0);
         assertEquals(0, template.queryForList("select * from users where id=?", tmpUserId).size());
-        assertEquals(0, db.query("username eq '" + tmpUserId + "'").size());
+        assertEquals(0, db.query("username eq \"" + tmpUserId + "\"").size());
     }
 
     @Test
@@ -385,7 +385,7 @@ public class JdbcScimUserProvisioningTests {
         assertNotNull(user);
         assertNotNull(user.getId());
         assertNotSame(tmpUserId, user.getId());
-        assertEquals(1, db.query("username eq '" + tmpUserId + "'").size());
+        assertEquals(1, db.query("username eq \"" + tmpUserId + "\"").size());
         removeUser(user.getId());
     }
 
@@ -497,7 +497,7 @@ public class JdbcScimUserProvisioningTests {
 
     @Test
     public void canRetrieveUsersWithFilterEquals() {
-        assertEquals(1, db.query("username eq 'joe'").size());
+        assertEquals(1, db.query("username eq \"joe\"").size());
     }
 
     @Test
@@ -508,59 +508,59 @@ public class JdbcScimUserProvisioningTests {
     @Test
     public void canRetrieveUsersWithFilterKeyCaseSensitivity() {
         // This actually depends on the RDBMS.
-        assertEquals(1, db.query("USERNAME eq 'joe'").size());
+        assertEquals(1, db.query("USERNAME eq \"joe\"").size());
     }
 
     @Test
     public void canRetrieveUsersWithFilterOperatorCaseSensitivity() {
         // This actually depends on the RDBMS.
-        assertEquals(1, db.query("username EQ 'joe'").size());
+        assertEquals(1, db.query("username EQ \"joe\"").size());
     }
 
     @Test
     public void canRetrieveUsersWithFilterValueCaseSensitivity() {
         // This actually depends on the RDBMS.
-        assertEquals(1, db.query("username eq 'Joe'").size());
+        assertEquals(1, db.query("username eq \"Joe\"").size());
     }
 
     @Test
     public void canRetrieveUsersWithFilterContains() {
-        assertEquals(2 + existingUserCount, db.query("username co 'e'").size());
+        assertEquals(2 + existingUserCount, db.query("username co \"e\"").size());
     }
 
     @Test
     public void canRetrieveUsersWithFilterStartsWith() {
-        assertEquals(1 + existingUserCount, db.query("username sw 'joe'").size());
+        assertEquals(1 + existingUserCount, db.query("username sw \"joe\"").size());
     }
 
     @Test
     public void canRetrieveUsersWithFilterGreater() {
-        assertEquals(1 + existingUserCount, db.query("username gt 'joe'").size());
+        assertEquals(1 + existingUserCount, db.query("username gt \"joe\"").size());
     }
 
     @Test
     public void canRetrieveUsersWithEmailFilter() {
-        assertEquals(1, db.query("emails.value sw 'joe'").size());
+        assertEquals(1, db.query("emails.value sw \"joe\"").size());
     }
 
     @Test
     public void canRetrieveUsersWithGroupsFilter() {
-        assertEquals(2, db.query("groups.display co 'uaa.user'").size());
+        assertEquals(2, db.query("groups.display co \"uaa.user\"").size());
     }
 
     @Test
     public void canRetrieveUsersWithPhoneNumberFilter() {
-        assertEquals(1, db.query("phoneNumbers.value sw '+1-222'").size());
+        assertEquals(1, db.query("phoneNumbers.value sw \"+1-222\"").size());
     }
 
     @Test
     public void canRetrieveUsersWithMetaVersionFilter() {
-        assertEquals(1, db.query("userName eq 'joe' and meta.version eq 0").size());
+        assertEquals(1, db.query("userName eq \"joe\" and meta.version eq 0").size());
     }
 
     @Test
     public void canRetrieveUsersWithMetaDateFilter() {
-        assertEquals(2 + existingUserCount, db.query("meta.created gt '1970-01-01T00:00:00.000Z'").size());
+        assertEquals(2 + existingUserCount, db.query("meta.created gt \"1970-01-01T00:00:00.000Z\"").size());
     }
 
     @Test
@@ -580,39 +580,39 @@ public class JdbcScimUserProvisioningTests {
 
     @Test
     public void canRetrieveUsersWithFilterBooleanAnd() {
-        assertEquals(2 + existingUserCount, db.query("username pr and emails.value co '.com'").size());
+        assertEquals(2 + existingUserCount, db.query("username pr and emails.value co \".com\"").size());
     }
 
     @Test
     public void canRetrieveUsersWithFilterBooleanOr() {
-        assertEquals(2 + existingUserCount, db.query("username eq 'joe' or emails.value co '.com'").size());
+        assertEquals(2 + existingUserCount, db.query("username eq \"joe\" or emails.value co \".com\"").size());
     }
 
     @Test
     public void canRetrieveUsersWithFilterBooleanOrMatchesSecond() {
-        assertEquals(1, db.query("username eq 'foo' or username eq 'joe'").size());
+        assertEquals(1, db.query("username eq \"foo\" or username eq \"joe\"").size());
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void cannotRetrieveUsersWithIllegalFilterField() {
-        assertEquals(2, db.query("emails.type eq 'bar'").size());
+        assertEquals(2, db.query("emails.type eq \"bar\"").size());
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void cannotRetrieveUsersWithIllegalPhoneNumberFilterField() {
-        assertEquals(2, db.query("phoneNumbers.type eq 'bar'").size());
+        assertEquals(2, db.query("phoneNumbers.type eq \"bar\"").size());
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void cannotRetrieveUsersWithIllegalFilterQuotes() {
-        assertEquals(2, db.query("username eq 'bar").size());
+        assertEquals(2, db.query("username eq \"bar").size());
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void cannotRetrieveUsersWithNativeSqlInjectionAttack() {
         String password = template.queryForObject("select password from users where username='joe'", String.class);
         assertNotNull(password);
-        Collection<ScimUser> users = db.query("username='joe'; select " + SQL_INJECTION_FIELDS
+        Collection<ScimUser> users = db.query("username=\"joe\"; select " + SQL_INJECTION_FIELDS
                         + " from users where username='joe'");
         assertEquals(password, users.iterator().next().getId());
     }
@@ -621,7 +621,7 @@ public class JdbcScimUserProvisioningTests {
     public void cannotRetrieveUsersWithSqlInjectionAttackOnGt() {
         String password = template.queryForObject("select password from users where username='joe'", String.class);
         assertNotNull(password);
-        Collection<ScimUser> users = db.query("username gt 'h'; select " + SQL_INJECTION_FIELDS
+        Collection<ScimUser> users = db.query("username gt \"h\"; select " + SQL_INJECTION_FIELDS
                         + " from users where username='joe'");
         assertEquals(password, users.iterator().next().getId());
     }
@@ -630,7 +630,7 @@ public class JdbcScimUserProvisioningTests {
     public void cannotRetrieveUsersWithSqlInjectionAttack() {
         String password = template.queryForObject("select password from users where username='joe'", String.class);
         assertNotNull(password);
-        Collection<ScimUser> users = db.query("username eq 'joe'; select " + SQL_INJECTION_FIELDS
+        Collection<ScimUser> users = db.query("username eq \"joe\"; select " + SQL_INJECTION_FIELDS
                         + " from users where username='joe'");
         assertEquals(password, users.iterator().next().getId());
     }
@@ -639,7 +639,7 @@ public class JdbcScimUserProvisioningTests {
     public void cannotRetrieveUsersWithAnotherSqlInjectionAttack() {
         String password = template.queryForObject("select password from users where username='joe'", String.class);
         assertNotNull(password);
-        Collection<ScimUser> users = db.query("username eq 'joe''; select id from users where id='''; select "
+        Collection<ScimUser> users = db.query("username eq \"joe\"\"; select id from users where id='''; select "
                         + SQL_INJECTION_FIELDS + " from users where username='joe'");
         assertEquals(password, users.iterator().next().getId());
     }
@@ -648,7 +648,7 @@ public class JdbcScimUserProvisioningTests {
     public void cannotRetrieveUsersWithYetAnotherSqlInjectionAttack() {
         String password = template.queryForObject("select password from users where username='joe'", String.class);
         assertNotNull(password);
-        Collection<ScimUser> users = db.query("username eq 'joe''; select " + SQL_INJECTION_FIELDS
+        Collection<ScimUser> users = db.query("username eq \"joe\"'; select " + SQL_INJECTION_FIELDS
                         + " from users where username='joe''");
         assertEquals(password, users.iterator().next().getId());
     }

@@ -64,7 +64,7 @@ public class PasswordResetEndpoints implements ApplicationEventPublisherAware {
 
     @RequestMapping(value = "/password_resets", method = RequestMethod.POST)
     public ResponseEntity<String> resetPassword(@RequestBody String email) {
-        List<ScimUser> results = scimUserProvisioning.query("email eq '" + email + "'");
+        List<ScimUser> results = scimUserProvisioning.query("email eq \"" + email + "\"");
         if (results.isEmpty()) {
             return new ResponseEntity<String>(BAD_REQUEST);
         }
@@ -96,7 +96,7 @@ public class PasswordResetEndpoints implements ApplicationEventPublisherAware {
     }
 
     private ResponseEntity<String> changePasswordUsernamePasswordAuthenticated(PasswordChange passwordChange) {
-        List<ScimUser> results = scimUserProvisioning.query("userName eq '" + passwordChange.getUsername() + "'");
+        List<ScimUser> results = scimUserProvisioning.query("userName eq \"" + passwordChange.getUsername() + "\"");
         if (results.isEmpty()) {
             return new ResponseEntity<String>(BAD_REQUEST);
         }

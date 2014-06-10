@@ -249,7 +249,7 @@ public class ScimGroupEndpointsIntegrationTests {
         // check that the group was not created
         @SuppressWarnings("unchecked")
         Map<String, String> g2 = client.getForObject(
-                        serverRunning.getUrl(groupEndpoint + "?filter=displayName eq '{name}'"), Map.class, CFID);
+                        serverRunning.getUrl(groupEndpoint + "?filter=displayName eq \"{name}\""), Map.class, CFID);
         assertTrue(g2.containsKey("totalResults"));
         assertEquals(0, g2.get("totalResults"));
     }
@@ -290,7 +290,7 @@ public class ScimGroupEndpointsIntegrationTests {
         // check that the group does not exist anymore
         @SuppressWarnings("unchecked")
         Map<String, Object> g2 = client.getForObject(
-                        serverRunning.getUrl(groupEndpoint + "?filter=displayName eq '{name}'"), Map.class, DELETE_ME);
+                        serverRunning.getUrl(groupEndpoint + "?filter=displayName eq \"{name}\""), Map.class, DELETE_ME);
         assertTrue(g2.containsKey("totalResults"));
         assertEquals(0, g2.get("totalResults"));
 

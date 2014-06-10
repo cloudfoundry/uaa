@@ -108,7 +108,7 @@ public class VmcUserIdTranslationEndpointIntegrationTests {
     @Test
     public void findUsersWithExplicitFilterSucceeds() throws Exception {
         @SuppressWarnings("rawtypes")
-        ResponseEntity<Map> response = serverRunning.getForObject(idsEndpoint + "?filter=userName eq '" + JOE + "'",
+        ResponseEntity<Map> response = serverRunning.getForObject(idsEndpoint + "?filter=userName eq \"" + JOE + "\"",
                         Map.class);
         @SuppressWarnings("unchecked")
         Map<String, Object> results = response.getBody();
@@ -119,7 +119,7 @@ public class VmcUserIdTranslationEndpointIntegrationTests {
     @Test
     public void findUsersExplicitEmailFails() throws Exception {
         @SuppressWarnings("rawtypes")
-        ResponseEntity<Map> response = serverRunning.getForObject(idsEndpoint + "?filter=emails.value sw 'joe'",
+        ResponseEntity<Map> response = serverRunning.getForObject(idsEndpoint + "?filter=emails.value sw \"joe\"",
                         Map.class);
         @SuppressWarnings("unchecked")
         Map<String, Object> results = response.getBody();
@@ -140,7 +140,7 @@ public class VmcUserIdTranslationEndpointIntegrationTests {
     @Test
     public void findUsersExplicitGroupFails() throws Exception {
         @SuppressWarnings("rawtypes")
-        ResponseEntity<Map> response = serverRunning.getForObject(idsEndpoint + "?filter=groups.display co 'foo'",
+        ResponseEntity<Map> response = serverRunning.getForObject(idsEndpoint + "?filter=groups.display co \"foo\"",
                         Map.class);
         @SuppressWarnings("unchecked")
         Map<String, Object> results = response.getBody();

@@ -138,9 +138,9 @@ public class JdbcApprovalStoreTests {
 
     @Test
     public void canRevokeApprovals() {
-        assertEquals(2, dao.getApprovals("user_id eq 'u1'").size());
-        assertTrue(dao.revokeApprovals("user_id eq 'u1'"));
-        assertEquals(0, dao.getApprovals("user_id eq 'u1'").size());
+        assertEquals(2, dao.getApprovals("user_id eq \"u1\"").size());
+        assertTrue(dao.revokeApprovals("user_id eq \"u1\""));
+        assertEquals(0, dao.getApprovals("user_id eq \"u1\"").size());
     }
 
     @Test

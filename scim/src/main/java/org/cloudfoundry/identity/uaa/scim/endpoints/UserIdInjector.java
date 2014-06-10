@@ -108,7 +108,7 @@ public class UserIdInjector implements MethodInterceptor, InitializingBean {
 
     private String getUserId(String userName) {
         String userId = userName;
-        List<ScimUser> users = scimUserProvisioning.query("userName eq '" + userName + "'");
+        List<ScimUser> users = scimUserProvisioning.query("userName eq \"" + userName + "\"");
         if (!users.isEmpty()) {
             // Assume the userName is unique
             userId = users.get(0).getId();
