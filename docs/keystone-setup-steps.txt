@@ -1,0 +1,58 @@
+# Docs mainly taken from:
+# http://docs.openstack.org/developer/keystone/installing.html
+# http://docs.openstack.org/developer/keystone/setup.html
+
+sudo apt-get install git python-pip curl
+sudo apt-get install python-dev libevent-dev
+sudo apt-get install python-dev libxml2-dev libxslt1-dev libsasl2-dev libsqlite3-dev libssl-dev libldap2-dev libffi-dev
+
+mkdir /opt/stack
+cd /opt/stack
+git clone http://github.com/openstack/keystone.git
+cd keystone
+sudo pip install -r requirements.txt
+sudo pip install -r test-requirements.txt
+sudo pip install --upgrade python-keystoneclient
+
+cp -R /opt/stack/keystone/etc/* /etc/keystone/
+cd /opt/stack/keystone/bin
+# run the service
+./keystone-all & under 
+# init the databases
+./keystone-manage db_sync
+# create signing certs (only needed if using PKI based tokens (default for V3)
+./keystone-manage pki_setup
+
+
+# Use the keystoneclient (can only send V2 commands) to setup keystone
+# Note, that only the keystone client program uses ENV vars
+export OS_SERVICE_ENDPOINT=http://localhost:35357/v2.0
+export OS_SERVICE_TOKEN=ADMIN
+# (NOTE: the ADMIN token string is specified in /etc/keystone/keystone.conf file)
+
+# create V3 service and endpoints
+keystone service-create --name=keystoneV3 --type=identity --description="Keystone Identity Service V3"
+# replace the service id
+keystone endpoint-create --service_id=13ce6d95c7df4fdf80f2b55dda15e1d9 --publicurl=http://localhost:5000/v3 --internalurl=http://localhost:5000/v3 --adminurl=http://localhost:35357/v3
+
+# create a few sample users, projects, and roles
+keystone user-create --name admin --pass secret
+keystone role-create --name admin
+keystone tenant-create --name admin
+keystone user-role-add --role admin --user admin --tenant admin
+keystone user-create --name bob --pass secret
+keystone role-create --name non-admin
+keystone tenant-create --name demo
+keystone user-role-add --role non-admin --user bob --tenant demo
+keystone user-role-add --role non-admin --user admin --tenant demo
+
+# unset the env. variables you created (if you want)
+unset OS_SERVICE_TOKEN
+unset OS_SERVICE_ENDPOINT
+
+# check to see if v3 is up and responding
+curl http://localhost:5000/v3
+{"version": {"status": "stable", "updated": "2013-03-06T00:00:00Z", "media-types": [{"base": "application/json", "type": "application/vnd.openstack.identity-v3+json"}, {"base": "application/xml", "type": "application/vnd.openstack.identity-v3+xml"}], "id": "v3.0", "links": [{"href": "http://localhost:5000/v3/", "rel": "self"}]}}
+
+# try authenticating with non-admin username and password 
+curl -X POST -H "Content-Type: application/json" -d '{"auth":{"identity":{"methods":["password"],"password":{"user":{"domain":{"name":"Default"},"name":"bob","password":"secret"}}}}}' -D - http://localhost:5000/v3/auth/tokens
