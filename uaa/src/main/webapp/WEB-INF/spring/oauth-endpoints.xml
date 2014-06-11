@@ -82,6 +82,8 @@
         <property name="parameterNames">
             <list>
                 <value>username</value>
+                <value>origin</value>
+                <value>user_id</value>
             </list>
         </property>
     </bean>

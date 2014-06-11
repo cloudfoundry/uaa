@@ -165,7 +165,7 @@ public class AuthzAuthenticationManagerTests {
 
     @Test(expected = BadCredentialsException.class)
     public void originAuthenticationFail() throws Exception {
-        when(db.retrieveUserByName("auser","origin")).thenReturn(user);
+        when(db.retrieveUserByName("auser","anything")).thenReturn(user);
         mgr.authenticate(createAuthRequest("auser", "password"));
     }
 

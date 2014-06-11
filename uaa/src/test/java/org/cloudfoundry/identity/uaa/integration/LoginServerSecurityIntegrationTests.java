@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.integration;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.nio.charset.Charset;
@@ -21,6 +22,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.apache.commons.codec.binary.Base64;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -45,6 +47,7 @@ import org.springframework.security.oauth2.client.token.grant.implicit.ImplicitR
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
@@ -82,7 +85,9 @@ public class LoginServerSecurityIntegrationTests {
         params.set("source", "login");
         params.set("redirect_uri", "http://none");
         params.set("response_type", "token");
-        params.set("username", joe.getUserName());
+        if (joe!=null) {
+            params.set("username", joe.getUserName());
+        }
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
     }
@@ -127,9 +132,55 @@ public class LoginServerSecurityIntegrationTests {
 
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
+    public void testAuthenticateReturnsUserID() throws Exception {
+        params.set("username", JOE);
+        params.set("password", "password");
+        ResponseEntity<Map> response = serverRunning.postForMap("/authenticate", params, headers);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(JOE, response.getBody().get("username"));
+        assertEquals(Origin.UAA, response.getBody().get(Origin.ORIGIN));
+        assertTrue(StringUtils.hasText((String)response.getBody().get("user_id")));
+    }
+
+    @Test
+    @OAuth2ContextConfiguration(LoginClient.class)
+    public void testAuthenticateMarissaReturnsUserID() throws Exception {
+        params.set("username", testAccounts.getUserName());
+        params.set("password", testAccounts.getPassword());
+        ResponseEntity<Map> response = serverRunning.postForMap("/authenticate", params, headers);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("marissa", response.getBody().get("username"));
+        assertEquals(Origin.UAA, response.getBody().get(Origin.ORIGIN));
+        assertTrue(StringUtils.hasText((String)response.getBody().get("user_id")));
+    }
+
+    @Test
+    @OAuth2ContextConfiguration(LoginClient.class)
+    public void testAuthenticateMarissaFails() throws Exception {
+        params.set("username", testAccounts.getUserName());
+        params.set("password", "");
+        ResponseEntity<Map> response = serverRunning.postForMap("/authenticate", params, headers);
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+    }
+
+    @Test
+    public void testAuthenticateDoesNotReturnsUserID() throws Exception {
+        params.set("username", testAccounts.getUserName());
+        params.set("password", testAccounts.getPassword());
+        ResponseEntity<Map> response = serverRunning.postForMap("/authenticate", params, headers);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("marissa", response.getBody().get("username"));
+        assertNull(response.getBody().get(Origin.ORIGIN));
+        assertNull(response.getBody().get("user_id"));
+    }
+
+    @Test
+    @OAuth2ContextConfiguration(LoginClient.class)
     public void testLoginServerCanAuthenticateUserForVmc() throws Exception {
         ImplicitResourceDetails resource = testAccounts.getDefaultImplicitResource();
         params.set("client_id", resource.getClientId());
+        params.set(Origin.ORIGIN, joe.getOrigin());
+        params.set(UaaAuthenticationDetails.ADD_NEW, "false");
         String redirect = resource.getPreEstablishedRedirectUri();
         if (redirect != null) {
             params.set("redirect_uri", redirect);
@@ -146,6 +197,8 @@ public class LoginServerSecurityIntegrationTests {
     public void testLoginServerCanAuthenticateUserForAuthorizationCode() throws Exception {
         params.set("client_id", testAccounts.getDefaultAuthorizationCodeResource().getClientId());
         params.set("response_type", "code");
+        params.set(Origin.ORIGIN, joe.getOrigin());
+        params.set(UaaAuthenticationDetails.ADD_NEW, "false");
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAuthorizationUri(), params, headers);
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -154,6 +207,22 @@ public class LoginServerSecurityIntegrationTests {
         // The approval page messaging response
         assertNotNull("There should be scopes: " + results, results.get("scopes"));
     }
+    @Test
+    @OAuth2ContextConfiguration(LoginClient.class)
+    public void testLoginServerCanAuthenticateUserWithIDForAuthorizationCode() throws Exception {
+        params.set("client_id", testAccounts.getDefaultAuthorizationCodeResource().getClientId());
+        params.set("response_type", "code");
+        params.set("user_id", joe.getId());
+        params.set(UaaAuthenticationDetails.ADD_NEW, "false");
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAuthorizationUri(), params, headers);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> results = response.getBody();
+        // The approval page messaging response
+        assertNotNull("There should be scopes: " + results, results.get("scopes"));
+    }
+
 
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
@@ -242,6 +311,7 @@ public class LoginServerSecurityIntegrationTests {
         params.set("client_id", resource.getClientId());
         params.set("client_secret","");
         params.set("source","login");
+        params.set(Origin.ORIGIN, joe.getOrigin());
         params.set(UaaAuthenticationDetails.ADD_NEW, "false");
         params.set("grant_type", "password");
         String redirect = resource.getPreEstablishedRedirectUri();
@@ -335,7 +405,7 @@ public class LoginServerSecurityIntegrationTests {
         public LoginClient(Object target) {
             LoginServerSecurityIntegrationTests test = (LoginServerSecurityIntegrationTests) target;
             ClientCredentialsResourceDetails resource = test.testAccounts.getClientCredentialsResource(
-                            "oauth.clients.login", "login", "loginsecret");
+                            new String[] {"oauth.login"}, "login", "loginsecret");
             setClientId(resource.getClientId());
             setClientSecret(resource.getClientSecret());
             setId(getClientId());
@@ -347,8 +417,7 @@ public class LoginServerSecurityIntegrationTests {
         @SuppressWarnings("unused")
         public AppClient(Object target) {
             LoginServerSecurityIntegrationTests test = (LoginServerSecurityIntegrationTests) target;
-            ClientCredentialsResourceDetails resource = test.testAccounts.getClientCredentialsResource(
-                "oauth.clients.login", "app", "appclientsecret");
+            ClientCredentialsResourceDetails resource = test.testAccounts.getClientCredentialsResource("app", "appclientsecret");
             setClientId(resource.getClientId());
             setClientSecret(resource.getClientSecret());
             setId(getClientId());

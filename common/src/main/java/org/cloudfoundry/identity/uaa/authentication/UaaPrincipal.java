@@ -39,6 +39,14 @@ public class UaaPrincipal implements Principal, Serializable {
         this.externalId = user.getExternalId();
     }
 
+    public UaaPrincipal(String id, String username, String email, String origin, String externalId) {
+        this.id = id;
+        this.name = username;
+        this.email = email;
+        this.origin = origin;
+        this.externalId = externalId;
+    }
+
     public String getId() {
         return id;
     }
