@@ -12,6 +12,7 @@ import java.lang.reflect.Method;
  */
 public class Origin {
 
+    public static final String ORIGIN = "origin";
     public static final String UAA = "uaa";
     public static final String LOGIN_SERVER = "login-server";
     public static final String LDAP = "ldap";

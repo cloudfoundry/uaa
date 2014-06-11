@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.LinkedMaskingMultiValueMap;
 import org.junit.Rule;
@@ -86,12 +87,12 @@ public class RemoteAuthenticationEndpointTests {
             Map user = list.get(i);
             assertTrue(user.containsKey("id"));
             assertTrue(user.containsKey("userName"));
-            assertTrue(user.containsKey("origin"));
+            assertTrue(user.containsKey(Origin.ORIGIN));
             assertFalse(user.containsKey("name"));
             assertFalse(user.containsKey("emails"));
             if ("ldap3".equals(user.get("userName"))) {
                 found = true;
-                assertEquals(origin, user.get("origin"));
+                assertEquals(origin, user.get(Origin.ORIGIN));
             }
         }
         assertTrue(found);

@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.JsonProcessingException;
@@ -73,7 +74,7 @@ public class ScimUserJsonDeserializer extends JsonDeserializer<ScimUser> {
                     user.setActive(jp.readValueAs(Boolean.class));
                 } else if ("verified".equalsIgnoreCase(fieldName)) {
                     user.setVerified(jp.readValueAs(Boolean.class));
-                } else if ("origin".equalsIgnoreCase(fieldName)) {
+                } else if (Origin.ORIGIN.equalsIgnoreCase(fieldName)) {
                     user.setOrigin(jp.readValueAs(String.class));
                 } else if ("externalId".equalsIgnoreCase(fieldName)) {
                     user.setExternalId(jp.readValueAs(String.class));

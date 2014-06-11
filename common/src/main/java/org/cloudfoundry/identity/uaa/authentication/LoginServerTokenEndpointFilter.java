@@ -53,6 +53,8 @@ public class LoginServerTokenEndpointFilter extends TokenEndpointAuthenticationF
             Map<String,String> loginInfo = new HashMap<>();
             loginInfo.put("username", request.getParameter("username"));
             loginInfo.put("password", request.getParameter("password"));
+            loginInfo.put(Origin.ORIGIN, request.getParameter(Origin.ORIGIN));
+            loginInfo.put("user_id", request.getParameter("user_id"));
             Authentication result = new AuthzAuthenticationRequest(loginInfo,new UaaAuthenticationDetails(request));
             return result;
         }

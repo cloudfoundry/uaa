@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
@@ -543,12 +544,12 @@ public class ScimUserEndpointsIntegrationTests {
             Map user = list.get(i);
             assertTrue(user.containsKey("id"));
             assertTrue(user.containsKey("userName"));
-            assertTrue(user.containsKey("origin"));
+            assertTrue(user.containsKey(Origin.ORIGIN));
             assertFalse(user.containsKey("name"));
             assertFalse(user.containsKey("emails"));
             if (username.equals(user.get("userName"))) {
                 found = true;
-                assertEquals(origin, user.get("origin"));
+                assertEquals(origin, user.get(Origin.ORIGIN));
             }
         }
         assertTrue(found);

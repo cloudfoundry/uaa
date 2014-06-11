@@ -12,9 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
-import java.util.Date;
-import java.util.Map;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
@@ -38,9 +35,13 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.util.StringUtils;
+
+import java.util.Date;
+import java.util.Map;
 
 public class LoginAuthenticationManager implements AuthenticationManager, ApplicationEventPublisherAware {
-
+    public static final String NotANumber = "NaN";
 
     private final Log logger = LogFactory.getLog(getClass());
 
@@ -88,23 +89,24 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
                                 Boolean.parseBoolean(authdetails.getExtendedAuthorizationInfo().get(
                                                 UaaAuthenticationDetails.ADD_NEW));
                 try {
-                    user = userDatabase.retrieveUserByName(user.getUsername(), Origin.LOGIN_SERVER);
+                    if (NotANumber.equals(user.getId())) {
+                        user = userDatabase.retrieveUserByName(user.getUsername(), user.getOrigin());
+                    } else {
+                        user = userDatabase.retrieveUserById(user.getId());
+                    }
                 } catch (UsernameNotFoundException e) {
                     // Not necessarily fatal
                     if (addNewAccounts) {
                         // Register new users automatically
                         publish(new NewUserAuthenticatedEvent(user));
                         try {
-                            user = userDatabase.retrieveUserByName(user.getUsername(), Origin.LOGIN_SERVER);
+                            user = userDatabase.retrieveUserByName(user.getUsername(), user.getOrigin());
                         } catch (UsernameNotFoundException ex) {
                             throw new BadCredentialsException("Bad credentials");
                         }
                     } else  {
-                        //if add_new=false then we assume its a UAA user
-                        user = getUaaUser(user.getUsername());
-                        if (user==null) {
-                            throw new BadCredentialsException("Bad credentials");
-                        }
+                        //if add_new=false then this is a bad user ID
+                        throw new BadCredentialsException("Bad Credentials");
                     }
                 }
                 Authentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(),
@@ -118,14 +120,6 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
         return null;
     }
 
-    protected UaaUser getUaaUser(String username) {
-        try {
-            return userDatabase.retrieveUserByName(username, Origin.UAA);
-        } catch (UsernameNotFoundException ex) {
-        }
-        return null;
-    }
-
     protected void publish(ApplicationEvent event) {
         if (eventPublisher != null) {
             eventPublisher.publishEvent(event);
@@ -135,6 +129,9 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
     protected UaaUser getUser(AuthzAuthenticationRequest req, Map<String, String> info) {
         String name = req.getName();
         String email = info.get("email");
+        String userId = info.get("user_id")!=null?info.get("user_id"):NotANumber;
+        String origin = info.get(Origin.ORIGIN)!=null?info.get(Origin.ORIGIN):Origin.LOGIN_SERVER;
+
         if (name == null && email != null) {
             name = email;
         }
@@ -162,7 +159,7 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
             familyName = email.split("@")[1];
         }
         return new UaaUser(
-            "NaN",
+            userId,
             name,
             "" /*zero length password for login server */,
             email,
@@ -171,7 +168,7 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
             familyName,
             new Date(),
             new Date(),
-            Origin.LOGIN_SERVER,
+            origin,
             name);
 
     }

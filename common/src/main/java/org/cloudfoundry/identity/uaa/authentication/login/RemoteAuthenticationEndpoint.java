@@ -20,7 +20,9 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +30,9 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -64,6 +69,7 @@ public class RemoteAuthenticationEndpoint {
         try {
             Authentication a = authenticationManager.authenticate(token);
             responseBody.put("username", a.getName());
+            processAdditionalInformation(responseBody, a);
             status = HttpStatus.OK;
         } catch (AuthenticationException e) {
             responseBody.put("error", "authentication failed");
@@ -74,5 +80,35 @@ public class RemoteAuthenticationEndpoint {
         }
 
         return new ResponseEntity<Map<String, String>>(responseBody, status);
+    }
+
+    private void processAdditionalInformation(Map<String, String> responseBody, Authentication a) {
+        if (hasClientOauth2Authentication()) {
+            UaaPrincipal principal = getPrincipal(a);
+            if (principal!=null) {
+                responseBody.put(Origin.ORIGIN, principal.getOrigin());
+                responseBody.put("user_id", principal.getId());
+            }
+        }
+    }
+
+    protected UaaPrincipal getPrincipal(Authentication a) {
+        if (a.getPrincipal() instanceof UaaPrincipal) {
+            return (UaaPrincipal)a.getPrincipal();
+        } else {
+            return null;
+        }
+    }
+
+    protected boolean hasClientOauth2Authentication() {
+        SecurityContext context = SecurityContextHolder.getContext();
+
+        if (context.getAuthentication() instanceof OAuth2Authentication) {
+            OAuth2Authentication authentication = (OAuth2Authentication) context.getAuthentication();
+            if (authentication.isClientOnly()) {
+                return true;
+            }
+        }
+        return false;
     }
 }
