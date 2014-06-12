@@ -13,7 +13,7 @@ env:
 cache:
   apt: true
   directories:
-  - $HOME/.m2
+  - $HOME/.m2/repository
 services:
   - mysql
   - postgresql
