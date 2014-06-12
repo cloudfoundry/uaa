@@ -93,6 +93,14 @@
                     <groupId>commons-logging</groupId>
                     <artifactId>commons-logging</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.apache.httpcomponents</groupId>
+                    <artifactId>httpclient</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.wink</groupId>
+                    <artifactId>wink-client-apache-httpclient</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
 
