@@ -90,15 +90,20 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
             return null;
         }
 
-        UaaUser user = null;
+        UaaUser user = getUser(req, getExtendedAuthorizationInfo(request));
+        boolean addnew = false;
         try {
-            UaaUser temp = getUser(req, getExtendedAuthorizationInfo(request));
-            user = userDatabase.retrieveUserByName(temp.getUsername(), getOrigin());
+            UaaUser temp = userDatabase.retrieveUserByName(user.getUsername(), getOrigin());
+            if (temp!=null) {
+                user = temp;
+            } else {
+                addnew = true;
+            }
         } catch (UsernameNotFoundException e) {
+            addnew = true;
         }
-        if (user==null) {
+        if (addnew) {
             // Register new users automatically
-            user = getUser(req, getExtendedAuthorizationInfo(request));
             publish(new NewUserAuthenticatedEvent(user));
             try {
                 user = userDatabase.retrieveUserByName(user.getUsername(), getOrigin());
@@ -106,6 +111,7 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
                 throw new BadCredentialsException("Bad credentials");
             }
         }
+
         UaaAuthenticationDetails uaaAuthenticationDetails = null;
         if (request.getDetails() instanceof UaaAuthenticationDetails) {
             uaaAuthenticationDetails = (UaaAuthenticationDetails)request.getDetails();
