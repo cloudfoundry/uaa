@@ -12,8 +12,8 @@ rm -f ${BUILD_DIR}/uaa/README.md
 rm -f ${BUILD_DIR}/uaa/NOTICE
 rm -f ${BUILD_DIR}/uaa/.run-script.sh
 rm -f ${BUILD_DIR}/uaa/.travis.yml
-rm -f ${BUILD_DIR}/uaa/.cobertura-instrument.sh
-rm -f ${BUILD_DIR}/uaa/.cobertura-report.sh
+rm -f ${BUILD_DIR}/uaa/scripts/cobertura/cobertura-instrument.sh
+rm -f ${BUILD_DIR}/uaa/scripts/cobertura/cobertura-report.sh
 rm -f ${BUILD_DIR}/uaa/.gitignore
 rm -f ${BUILD_DIR}/uaa/.gitreview
 rm -f ${BUILD_DIR}/uaa/cloudfoundry*.iml
