@@ -37,18 +37,18 @@ install:
   - mkdir -p target/tomcat && tar zxf tomcat.tar.gz -C target/tomcat --strip-components 1 && rm -rf target/tomcat/webapps/*
   - mvn -Dwar.exploded.dir=`pwd`/target/tomcat/webapps/api --quiet -pl samples/api war:exploded
   - mvn -Dwar.exploded.dir=`pwd`/target/tomcat/webapps/app --quiet -pl samples/app war:exploded
-  - $TRAVIS_BUILD_DIR/.cobertura-instrument.sh
+  - $TRAVIS_BUILD_DIR/scripts/cobertura/cobertura-instrument.sh
   - mvn -Dwar.exploded.dir=`pwd`/target/tomcat/webapps/uaa --quiet -pl uaa war:exploded -P coverage
 script:
-  - ./.run-script.sh start
+  - ./scripts/travis/run-script.sh start
   - mvn -Dtest=org.cloudfoundry.identity.uaa.integration.* -DfailIfNoTests=false test -P coverage --quiet
   - curl -v -X POST http://localhost:8080/uaa/healthz/coverage/flush
-  - ./.run-script.sh stop
+  - ./scripts/travis/run-script.sh stop
   - mvn -Dspring.profiles.active=$TESTENV test -P coverage --quiet
 after_success:
-  - $TRAVIS_BUILD_DIR/.cobertura-report.sh
+  - $TRAVIS_BUILD_DIR/scripts/cobertura/cobertura-report.sh
   - mvn coveralls:cobertura
-  - openssl aes-256-cbc -k "$SETTINGS_XML_KEY" -in settings.xml.enc -d -a -out $HOME/.m2/settings.xml
+  - openssl aes-256-cbc -k "$SETTINGS_XML_KEY" -in scripts/travis/settings.xml.enc -d -a -out $HOME/.m2/settings.xml
   - python travis_after_all.py
   - export $(cat .to_export_back)
   - |
@@ -64,7 +64,7 @@ after_success:
         fi
       fi
 after_failure:
-  - python travis_after_all.py
+  - python scripts/travis/travis_after_all.py
   - export $(cat .to_export_back)
   - |
       if [ "$BUILD_LEADER" = "YES" ]; then

@@ -31,7 +31,7 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
             return user.modifySource(getOrigin(), ((LdapUserDetails)details).getDn());
         } else {
             logger.warn("Unable to get DN from user. Not an LDAP user:"+details+" of class:"+details.getClass());
-            return user;
+            return user.modifySource(getOrigin(), user.getExternalId());
         }
     }
 }
