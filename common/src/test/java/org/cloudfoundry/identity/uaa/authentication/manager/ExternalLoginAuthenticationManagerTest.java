@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
@@ -16,6 +17,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.ldap.userdetails.LdapUserDetails;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -120,6 +124,115 @@ public class ExternalLoginAuthenticationManagerTest  {
         assertEquals(userName,uaaAuthentication.getPrincipal().getName());
         assertEquals(origin,uaaAuthentication.getPrincipal().getOrigin());
         assertEquals(userId, uaaAuthentication.getPrincipal().getId());
+    }
+
+    @Test
+    public void testAuthenticateWithAuthDetails() throws Exception {
+        Map<String,String> extendedInfo = new HashMap<>();
+        extendedInfo.put(UaaAuthenticationDetails.ADD_NEW,"false");
+
+        UaaAuthenticationDetails uaaAuthenticationDetails = mock(UaaAuthenticationDetails.class);
+        when(uaaAuthenticationDetails.getOrigin()).thenReturn(origin);
+        when(uaaAuthenticationDetails.getClientId()).thenReturn(null);
+        when(uaaAuthenticationDetails.getSessionId()).thenReturn(new RandomValueStringGenerator().generate());
+        when(uaaAuthenticationDetails.getExtendedAuthorizationInfo()).thenReturn(extendedInfo);
+        when(inputAuth.getDetails()).thenReturn(uaaAuthenticationDetails);
+
+        Authentication result = manager.authenticate(inputAuth);
+        assertNotNull(result);
+        assertEquals(UaaAuthentication.class, result.getClass());
+        UaaAuthentication uaaAuthentication = (UaaAuthentication)result;
+        assertEquals(userName,uaaAuthentication.getPrincipal().getName());
+        assertEquals(origin,uaaAuthentication.getPrincipal().getOrigin());
+        assertEquals(userId, uaaAuthentication.getPrincipal().getId());
+    }
+
+    @Test
+    public void testNoUsernameOnlyEmail() throws Exception {
+        Map<String,String> extendedInfo = new HashMap<>();
+        extendedInfo.put(UaaAuthenticationDetails.ADD_NEW,"false");
+        String email = "joe@test.org";
+        extendedInfo.put("email", email);
+
+        UaaAuthenticationDetails uaaAuthenticationDetails = mock(UaaAuthenticationDetails.class);
+        when(uaaAuthenticationDetails.getOrigin()).thenReturn(origin);
+        when(uaaAuthenticationDetails.getClientId()).thenReturn(null);
+        when(uaaAuthenticationDetails.getSessionId()).thenReturn(new RandomValueStringGenerator().generate());
+        when(uaaAuthenticationDetails.getExtendedAuthorizationInfo()).thenReturn(extendedInfo);
+        when(inputAuth.getDetails()).thenReturn(uaaAuthenticationDetails);
+        when(uaaUserDatabase.retrieveUserByName(eq(email), eq(origin)))
+            .thenReturn(null)
+            .thenReturn(user);
+        when(user.getUsername()).thenReturn(email);
+        when(userDetails.getUsername()).thenReturn(null);
+        Authentication result = manager.authenticate(inputAuth);
+        assertNotNull(result);
+        assertEquals(UaaAuthentication.class, result.getClass());
+        UaaAuthentication uaaAuthentication = (UaaAuthentication)result;
+        assertEquals(email,uaaAuthentication.getPrincipal().getName());
+        assertEquals(origin, uaaAuthentication.getPrincipal().getOrigin());
+        assertEquals(userId, uaaAuthentication.getPrincipal().getId());
+    }
+
+    @Test(expected = BadCredentialsException.class)
+    public void testNoUsernameNoEmail() throws Exception {
+        Map<String,String> extendedInfo = new HashMap<>();
+        extendedInfo.put(UaaAuthenticationDetails.ADD_NEW,"false");
+
+        UaaAuthenticationDetails uaaAuthenticationDetails = mock(UaaAuthenticationDetails.class);
+        when(uaaAuthenticationDetails.getOrigin()).thenReturn(origin);
+        when(uaaAuthenticationDetails.getClientId()).thenReturn(null);
+        when(uaaAuthenticationDetails.getSessionId()).thenReturn(new RandomValueStringGenerator().generate());
+        when(uaaAuthenticationDetails.getExtendedAuthorizationInfo()).thenReturn(extendedInfo);
+        when(inputAuth.getDetails()).thenReturn(uaaAuthenticationDetails);
+        when(uaaUserDatabase.retrieveUserByName(anyString(), eq(origin))).thenReturn(null);
+        when(userDetails.getUsername()).thenReturn(null);
+        manager.authenticate(inputAuth);
+    }
+
+    @Test
+    public void testAmpersandInName() throws Exception {
+        String name = "filip@hanik";
+        when(userDetails.getUsername()).thenReturn(name);
+        when(user.getUsername()).thenReturn(name);
+        when(uaaUserDatabase.retrieveUserByName(eq(name),eq(origin)))
+            .thenReturn(null)
+            .thenReturn(user);
+
+        Authentication result = manager.authenticate(inputAuth);
+        assertNotNull(result);
+        assertEquals(UaaAuthentication.class, result.getClass());
+        UaaAuthentication uaaAuthentication = (UaaAuthentication)result;
+        assertEquals(name,uaaAuthentication.getPrincipal().getName());
+        assertEquals(origin, uaaAuthentication.getPrincipal().getOrigin());
+        assertEquals(userId, uaaAuthentication.getPrincipal().getId());
+    }
+
+    @Test
+    public void testAmpersandInEndOfName() throws Exception {
+        String name = "filip@hanik@";
+        String actual = name.replaceAll("@","") +  "@user.from."+origin+".cf";
+        when(userDetails.getUsername()).thenReturn(name);
+        when(user.getUsername()).thenReturn(name);
+        when(uaaUserDatabase.retrieveUserByName(eq(name),eq(origin)))
+            .thenReturn(null)
+            .thenReturn(user);
+
+        Authentication result = manager.authenticate(inputAuth);
+        assertNotNull(result);
+        assertEquals(UaaAuthentication.class, result.getClass());
+        UaaAuthentication uaaAuthentication = (UaaAuthentication)result;
+        assertEquals(name,uaaAuthentication.getPrincipal().getName());
+        assertEquals(origin, uaaAuthentication.getPrincipal().getOrigin());
+        assertEquals(userId, uaaAuthentication.getPrincipal().getId());
+
+        userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
+        verify(applicationEventPublisher,times(2)).publishEvent(userArgumentCaptor.capture());
+        assertEquals(2,userArgumentCaptor.getAllValues().size());
+        NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent)userArgumentCaptor.getAllValues().get(0);
+        assertEquals(origin, event.getUser().getOrigin());
+        assertEquals(actual, event.getUser().getEmail());
+
     }
 
     @Test(expected = BadCredentialsException.class)

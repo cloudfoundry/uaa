@@ -92,12 +92,13 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
 
         UaaUser user = null;
         try {
-            user = userDatabase.retrieveUserByName(req.getUsername(), getOrigin());
+            UaaUser temp = getUser(req, getExtendedAuthorizationInfo(request));
+            user = userDatabase.retrieveUserByName(temp.getUsername(), getOrigin());
         } catch (UsernameNotFoundException e) {
         }
         if (user==null) {
             // Register new users automatically
-            user = getUser(req, Collections.<String, String>emptyMap());
+            user = getUser(req, getExtendedAuthorizationInfo(request));
             publish(new NewUserAuthenticatedEvent(user));
             try {
                 user = userDatabase.retrieveUserByName(user.getUsername(), getOrigin());
@@ -114,6 +115,18 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
         Authentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(), uaaAuthenticationDetails);
         publish(new UserAuthenticationSuccessEvent(user, success));
         return success;
+    }
+
+    protected Map<String,String> getExtendedAuthorizationInfo(Authentication auth) {
+        Object details = auth.getDetails();
+        if (details!=null && details instanceof UaaAuthenticationDetails) {
+            UaaAuthenticationDetails uaaAuthenticationDetails = (UaaAuthenticationDetails)details;
+            Map<String, String> result = uaaAuthenticationDetails.getExtendedAuthorizationInfo();
+            if (result!=null) {
+                return result;
+            }
+        }
+        return Collections.emptyMap();
     }
 
     protected void publish(ApplicationEvent event) {
@@ -136,10 +149,10 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
                 if (name.split("@").length == 2 && !name.startsWith("@") && !name.endsWith("@")) {
                     email = name;
                 } else {
-                    email = name.replaceAll("@", "") + "@user.from.ldap.cf";
+                    email = name.replaceAll("@", "") + "@user.from."+getOrigin()+".cf";
                 }
             } else {
-                email = name + "@unknown.org";
+                email = name + "@user.from."+getOrigin()+".cf";
             }
         }
         String givenName = info.get("given_name");
@@ -152,7 +165,7 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
         }
         return new UaaUser(
             "NaN", 
-            details.getUsername(), 
+            name,
             "" /*zero length password for login server */, 
             email,
             UaaAuthority.USER_AUTHORITIES,
