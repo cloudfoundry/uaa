@@ -12,15 +12,15 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
-import java.util.Map;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.springframework.context.ApplicationEvent;
@@ -35,8 +35,13 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.util.StringUtils;
+
+import java.util.Date;
+import java.util.Map;
 
 public class LoginAuthenticationManager implements AuthenticationManager, ApplicationEventPublisherAware {
+    public static final String NotANumber = "NaN";
 
     private final Log logger = LogFactory.getLog(getClass());
 
@@ -84,20 +89,24 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
                                 Boolean.parseBoolean(authdetails.getExtendedAuthorizationInfo().get(
                                                 UaaAuthenticationDetails.ADD_NEW));
                 try {
-                    user = userDatabase.retrieveUserByName(user.getUsername());
+                    if (NotANumber.equals(user.getId())) {
+                        user = userDatabase.retrieveUserByName(user.getUsername(), user.getOrigin());
+                    } else {
+                        user = userDatabase.retrieveUserById(user.getId());
+                    }
                 } catch (UsernameNotFoundException e) {
                     // Not necessarily fatal
                     if (addNewAccounts) {
                         // Register new users automatically
                         publish(new NewUserAuthenticatedEvent(user));
                         try {
-                            user = userDatabase.retrieveUserByName(user.getUsername());
+                            user = userDatabase.retrieveUserByName(user.getUsername(), user.getOrigin());
                         } catch (UsernameNotFoundException ex) {
                             throw new BadCredentialsException("Bad credentials");
                         }
-                    }
-                    else {
-                        throw new BadCredentialsException("Bad credentials");
+                    } else  {
+                        //if add_new=false then this is a bad user ID
+                        throw new BadCredentialsException("Bad Credentials");
                     }
                 }
                 Authentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(),
@@ -109,7 +118,6 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
 
         logger.debug("Did not locate login credentials");
         return null;
-
     }
 
     protected void publish(ApplicationEvent event) {
@@ -121,6 +129,9 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
     protected UaaUser getUser(AuthzAuthenticationRequest req, Map<String, String> info) {
         String name = req.getName();
         String email = info.get("email");
+        String userId = info.get("user_id")!=null?info.get("user_id"):NotANumber;
+        String origin = info.get(Origin.ORIGIN)!=null?info.get(Origin.ORIGIN):Origin.LOGIN_SERVER;
+
         if (name == null && email != null) {
             name = email;
         }
@@ -147,6 +158,18 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
         if (familyName == null) {
             familyName = email.split("@")[1];
         }
-        return new UaaUser(name, "" /*zero length password for login server */, email, givenName, familyName);
+        return new UaaUser(
+            userId,
+            name,
+            "" /*zero length password for login server */,
+            email,
+            UaaAuthority.USER_AUTHORITIES,
+            givenName,
+            familyName,
+            new Date(),
+            new Date(),
+            origin,
+            name);
+
     }
 }

@@ -15,12 +15,14 @@ package org.cloudfoundry.identity.uaa.user;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Test;
 
 public class UaaUserEditorTests {
-
-    private static String unm = "marissa";
-    private static String pwd = "koala";
+    private static UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
+    
+    private static String unm = testAccounts.getUserName();
+    private static String pwd = testAccounts.getPassword();
     private static String email = "marissa@test.org";
     private static String fnm = "Marissa";
     private static String lnm = "Bloggs";

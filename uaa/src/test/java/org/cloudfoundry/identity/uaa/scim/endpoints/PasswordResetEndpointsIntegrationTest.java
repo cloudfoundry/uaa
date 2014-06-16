@@ -21,6 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.cloudfoundry.identity.uaa.test.DefaultIntegrationTestConfig;
 import org.cloudfoundry.identity.uaa.test.IntegrationTestContextLoader;
 import org.cloudfoundry.identity.uaa.test.TestClient;
+import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,6 +51,8 @@ public class PasswordResetEndpointsIntegrationTest {
 
     private MockMvc mockMvc;
     private String loginToken;
+    
+    private UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
 
     @Before
     public void setUp() throws Exception {
@@ -85,7 +88,7 @@ public class PasswordResetEndpointsIntegrationTest {
 
         mockMvc.perform(post)
                 .andExpect(status().isOk())
-                .andExpect(content().string("marissa"));
+                .andExpect(content().string(testAccounts.getUserName()));
     }
 
     @Test
@@ -93,11 +96,11 @@ public class PasswordResetEndpointsIntegrationTest {
         MockHttpServletRequestBuilder post = post("/password_change")
                 .header("Authorization", "Bearer " + loginToken)
                 .contentType(APPLICATION_JSON)
-                .content("{\"username\":\"marissa\",\"current_password\":\"koala\",\"new_password\":\"new_secret\"}")
+                .content("{\"username\":\""+testAccounts.getUserName()+"\",\"current_password\":\""+testAccounts.getPassword()+"\",\"new_password\":\"new_secret\"}")
                 .accept(APPLICATION_JSON);
 
         mockMvc.perform(post)
                 .andExpect(status().isOk())
-                .andExpect(content().string("marissa"));
+                .andExpect(content().string(testAccounts.getUserName()));
     }
 }

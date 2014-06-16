@@ -25,6 +25,7 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
@@ -122,11 +123,11 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 
                 for (String requestedScope : requestedScopes) {
                     if (approvedScopes.contains(requestedScope)) {
-                        approvalStore.addApproval(new Approval(userAuthentication.getName(), authorizationRequest
+                        approvalStore.addApproval(new Approval(getUserId(userAuthentication), authorizationRequest
                                         .getClientId(), requestedScope, expiry, APPROVED));
                     }
                     else {
-                        approvalStore.addApproval(new Approval(userAuthentication.getName(), authorizationRequest
+                        approvalStore.addApproval(new Approval(getUserId(userAuthentication), authorizationRequest
                                         .getClientId(), requestedScope, expiry, DENIED));
                     }
                 }
@@ -137,7 +138,7 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 
                 for (String requestedScope : requestedScopes) {
                     if (!autoApprovedScopes.contains(requestedScope)) {
-                        approvalStore.addApproval(new Approval(userAuthentication.getName(), authorizationRequest
+                        approvalStore.addApproval(new Approval(getUserId(userAuthentication), authorizationRequest
                                         .getClientId(), requestedScope, expiry, DENIED));
                     }
                 }
@@ -150,7 +151,7 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
         }
         else {
             // Find the stored approvals for that user and client
-            List<Approval> userApprovals = approvalStore.getApprovals(userAuthentication.getName(),
+            List<Approval> userApprovals = approvalStore.getApprovals(getUserId(userAuthentication),
                             authorizationRequest.getClientId());
 
             // Look at the scopes and see if they have expired
@@ -183,6 +184,10 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
         }
 
         return false;
+    }
+
+    protected String getUserId(Authentication authentication) {
+        return Origin.getUserId(authentication);
     }
 
     private Date computeExpiry() {

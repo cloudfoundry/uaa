@@ -15,18 +15,24 @@ package org.cloudfoundry.identity.uaa.mock.audit;
 import com.googlecode.flyway.core.Flyway;
 import junit.framework.Assert;
 import org.apache.commons.codec.binary.Base64;
+import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
+import org.cloudfoundry.identity.uaa.audit.JdbcAuditService;
+import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.audit.event.ApprovalModifiedEvent;
 import org.cloudfoundry.identity.uaa.audit.event.GroupModifiedEvent;
 import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.audit.event.UserModifiedEvent;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.event.ClientAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.ClientAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.PrincipalAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserNotFoundEvent;
+import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
+import org.cloudfoundry.identity.uaa.oauth.Claims;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.password.event.PasswordChangeEvent;
 import org.cloudfoundry.identity.uaa.password.event.PasswordChangeFailureEvent;
@@ -37,28 +43,25 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpoints;
 import org.cloudfoundry.identity.uaa.scim.event.ScimEventPublisher;
 import org.cloudfoundry.identity.uaa.test.DefaultIntegrationTestConfig;
-import org.cloudfoundry.identity.uaa.test.IntegrationTestContextLoader;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.type.TypeReference;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.jwt.Jwt;
+import org.springframework.security.jwt.JwtHelper;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
 import org.springframework.security.web.FilterChainProxy;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -66,11 +69,12 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
 import scala.actors.threadpool.Arrays;
 
-
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -82,24 +86,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@WebAppConfiguration
-@ContextConfiguration(classes = DefaultIntegrationTestConfig.class, loader = IntegrationTestContextLoader.class)
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 public class AuditCheckMvcMockTests {
 
-    @Autowired
     AnnotationConfigWebApplicationContext webApplicationContext;
-
-    @Autowired
-    FilterChainProxy filterChainProxy;
-
-    @Autowired
-    Flyway flyway;
-
-    @Autowired
     ClientRegistrationService clientRegistrationService;
-
     private ApplicationListener<AbstractUaaEvent> listener;
     private MockMvc mockMvc;
     private TestClient testClient;
@@ -108,12 +98,20 @@ public class AuditCheckMvcMockTests {
 
     @Before
     public void setUp() throws Exception {
+        webApplicationContext = new AnnotationConfigWebApplicationContext();
+        webApplicationContext.setServletContext(new MockServletContext());
+        webApplicationContext.register(DefaultIntegrationTestConfig.class);
+        new YamlServletProfileInitializer().initialize(webApplicationContext);
+        webApplicationContext.refresh();
+        webApplicationContext.registerShutdownHook();
+        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
+        clientRegistrationService = (ClientRegistrationService)webApplicationContext.getBean("clientRegistrationService");
         listener = mock(new DefaultApplicationListener<AbstractUaaEvent>() {}.getClass());
         webApplicationContext.addApplicationListener(listener);
         testListener = TestApplicationEventListener.forEventClass(AbstractUaaEvent.class);
         webApplicationContext.addApplicationListener(testListener);
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
-                .addFilter(filterChainProxy)
+                .addFilter(springSecurityFilterChain)
                 .build();
 
         testClient = new TestClient(mockMvc);
@@ -122,7 +120,9 @@ public class AuditCheckMvcMockTests {
 
     @After
     public void tearDown() throws Exception{
+        Flyway flyway = webApplicationContext.getBean(Flyway.class);
         flyway.clean();
+        webApplicationContext.destroy();
     }
 
     @Test
@@ -173,7 +173,7 @@ public class AuditCheckMvcMockTests {
                 .andExpect(header().string("Location", "/login?error=true"));
 
         ArgumentCaptor<AbstractUaaEvent> captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);
-        verify(listener, times(2)).onApplicationEvent(captor.capture());
+        verify(listener, atLeast(2)).onApplicationEvent(captor.capture());
 
         UserAuthenticationFailureEvent event1 = (UserAuthenticationFailureEvent)captor.getAllValues().get(0);
         PrincipalAuthenticationFailureEvent event2 = (PrincipalAuthenticationFailureEvent)captor.getAllValues().get(1);
@@ -192,12 +192,39 @@ public class AuditCheckMvcMockTests {
             .andExpect(content().string("{\"error\":\"authentication failed\"}"));
 
         ArgumentCaptor<AbstractUaaEvent> captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);
-        verify(listener, times(2)).onApplicationEvent(captor.capture());
+        verify(listener, atLeast(2)).onApplicationEvent(captor.capture());
 
         UserAuthenticationFailureEvent event1 = (UserAuthenticationFailureEvent)captor.getAllValues().get(0);
         PrincipalAuthenticationFailureEvent event2 = (PrincipalAuthenticationFailureEvent)captor.getAllValues().get(1);
         assertEquals(testAccounts.getUserName(), event1.getUser().getUsername());
         assertEquals(testAccounts.getUserName(), event2.getName());
+    }
+
+    @Test
+    public void findAuditHistory() throws Exception {
+        String adminToken = testClient.getClientCredentialsOAuthAccessToken(
+            testAccounts.getAdminClientId(),
+            testAccounts.getAdminClientSecret(),
+            "uaa.admin,scim.write");
+
+        ScimUser jacob = createUser(adminToken, "jacob", "Jacob", "Gyllenhammer", "jacob@gyllenhammer.non");
+        String jacobId = jacob.getId();
+
+        MockHttpServletRequestBuilder loginPost = post("/authenticate")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .param("username", jacob.getUserName())
+            .param("password", "notvalid");
+        int attempts = 8;
+        UaaAuditService auditService = webApplicationContext.getBean(JdbcAuditService.class);
+        for (int i=0; i<attempts; i++) {
+            mockMvc.perform(loginPost)
+                .andExpect(status().isUnauthorized())
+                .andExpect(content().string("{\"error\":\"authentication failed\"}"));
+        }
+
+        //after we reach our max attempts, 5, the system stops logging them until the period is over
+        List<AuditEvent> events = auditService.find(jacobId, System.currentTimeMillis()-10000);
+        assertEquals(5, events.size());
     }
 
     @Test
@@ -214,7 +241,7 @@ public class AuditCheckMvcMockTests {
                 .andExpect(header().string("Location", "/login?error=true"));
 
         ArgumentCaptor<AbstractUaaEvent> captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);
-        verify(listener, times(2)).onApplicationEvent(captor.capture());
+        verify(listener, atLeast(2)).onApplicationEvent(captor.capture());
         UserNotFoundEvent event1 = (UserNotFoundEvent)captor.getAllValues().get(0);
         PrincipalAuthenticationFailureEvent event2 = (PrincipalAuthenticationFailureEvent)captor.getAllValues().get(1);
         assertEquals(username, ((Authentication)event1.getSource()).getName());
@@ -399,8 +426,7 @@ public class AuditCheckMvcMockTests {
         clientRegistrationService.updateClientDetails(new BaseClientDetails("login", "oauth", "oauth.approvals", "password", "oauth.login"));
 
         String marissaToken = testClient.getUserOAuthAccessToken("login", "loginsecret", testAccounts.getUserName(), testAccounts.getPassword(), "oauth.approvals");
-
-        Approval[] approvals = {new Approval(testAccounts.getUserName(), "app", "cloud_controller.read", 1000, Approval.ApprovalStatus.APPROVED)};
+        Approval[] approvals = {new Approval(null, "app", "cloud_controller.read", 1000, Approval.ApprovalStatus.APPROVED)};
 
         MockHttpServletRequestBuilder approvalsPut = put("/approvals")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
@@ -416,7 +442,7 @@ public class AuditCheckMvcMockTests {
         Assert.assertEquals(1, testListener.getEventCount());
 
         ApprovalModifiedEvent approvalModifiedEvent = (ApprovalModifiedEvent) testListener.getLatestEvent();
-        Assert.assertEquals("marissa", approvalModifiedEvent.getAuthentication().getName());
+        Assert.assertEquals(testAccounts.getUserName(), approvalModifiedEvent.getAuthentication().getName());
     }
 
     @Test
@@ -464,7 +490,7 @@ public class AuditCheckMvcMockTests {
             .contentType(MediaType.APPLICATION_JSON)
             .header("Authorization", "Bearer " + loginToken)
             .param("source", "login")
-            .param("add_new", "true")
+            .param(UaaAuthenticationDetails.ADD_NEW, "true")
             .param("username", "jacob")
             .param("name", "Jacob Gyllenhammer")
             .param("email", "jacob@gyllenhammer.non")
@@ -742,4 +768,5 @@ public class AuditCheckMvcMockTests {
         public void onApplicationEvent(T event) {
         }
     }
+
 }

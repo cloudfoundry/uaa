@@ -70,8 +70,8 @@ public class RemoteScimUserProvisioningTests {
 
     @Test
     public void testFilterUsers() {
-        service.query("name eq 'foo'");
-        Mockito.verify(restTemplate).getForObject("http://base/Users?filter={filter}", List.class, "name eq 'foo'");
+        service.query("name eq \"foo\"");
+        Mockito.verify(restTemplate).getForObject("http://base/Users?filter={filter}", List.class, "name eq \"foo\"");
     }
 
     @Test

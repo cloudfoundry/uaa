@@ -12,6 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.user;
 
+import org.cloudfoundry.identity.uaa.authentication.Origin;
+
 import java.util.Date;
 
 /**
@@ -22,12 +24,12 @@ public class UaaUserTestFactory {
 
     public static UaaUser getUser(String id, String name, String email, String givenName, String familyName) {
         return new UaaUser(id, name, "", email, UaaAuthority.USER_AUTHORITIES, givenName, familyName, new Date(),
-                        new Date());
+                        new Date(), Origin.UAA, "externalId");
     }
 
     public static UaaUser getAdminUser(String id, String name, String email, String givenName, String familyName) {
         return new UaaUser(id, name, "", email, UaaAuthority.ADMIN_AUTHORITIES, givenName, familyName, new Date(),
-                        new Date());
+                        new Date(), Origin.UAA, "externalId");
     }
 
 }

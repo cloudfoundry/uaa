@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.cloudfoundry.identity</groupId>
         <artifactId>cloudfoundry-identity-samples</artifactId>
-        <version>1.6.5</version>
+        <version>1.7.0</version>
         <relativePath>..</relativePath>
     </parent>
 
@@ -292,6 +292,7 @@
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
+            <version>4.3.3</version>
             <scope>test</scope>
         </dependency>
 

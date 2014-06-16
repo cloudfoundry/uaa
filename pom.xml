@@ -19,7 +19,7 @@
     <name>CloudFoundry Identity - Parent</name>
     <description>The UAA is the Identity Management Solution for Cloud Foundry</description>
     <packaging>pom</packaging>
-    <version>1.6.5</version>
+    <version>1.7.0</version>
     <url>http://github.com/cloudfoundry/uaa</url>
     <modules>
         <module>common</module>
@@ -32,6 +32,8 @@
         <spring.security.version>3.2.3.RELEASE</spring.security.version>
         <spring.security.oauth.version>1.0.5.RELEASE</spring.security.oauth.version>
         <spring.security.jwt.version>1.0.1.RELEASE</spring.security.jwt.version>
+        <spring.ldap.version>1.3.2.RELEASE</spring.ldap.version>
+        <apacheds.api.ldap.model.version>1.0.0-M22</apacheds.api.ldap.model.version>
         <aspectj.version>1.6.9</aspectj.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -355,17 +357,6 @@
                         <groupId>org.bouncycastle</groupId>
                         <artifactId>bcprov-jdk15</artifactId>
                     </exclusion>
-                    <exclusion>
-                        <groupId>commons-logging</groupId>
-                        <artifactId>commons-logging</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.httpcomponents</groupId>
-                <artifactId>httpclient</artifactId>
-                <version>4.3.3</version>
-                <exclusions>
                     <exclusion>
                         <groupId>commons-logging</groupId>
                         <artifactId>commons-logging</artifactId>

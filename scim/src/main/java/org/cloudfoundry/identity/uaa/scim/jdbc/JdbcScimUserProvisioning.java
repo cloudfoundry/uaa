@@ -24,6 +24,7 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.rest.jdbc.AbstractQueryable;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
@@ -48,6 +49,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
 
 /**
  * @author Luke Taylor
@@ -57,12 +59,12 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
 
     private final Log logger = LogFactory.getLog(getClass());
 
-    public static final String USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName,active,phoneNumber,verified";
+    public static final String USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName,active,phoneNumber,verified,origin,external_id ";
 
     public static final String CREATE_USER_SQL = "insert into users (" + USER_FIELDS
-                    + ",password) values (?,?,?,?,?,?,?,?,?,?,?,?)";
+                    + ",password) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
-    public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, userName=?, email=?, givenName=?, familyName=?, active=?, phoneNumber=?, verified=? where id=? and version=?";
+    public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, userName=?, email=?, givenName=?, familyName=?, active=?, phoneNumber=?, verified=?, origin=?, external_id=? where id=? and version=?";
 
     public static final String DEACTIVATE_USER_SQL = "update users set active=? where id=?";
 
@@ -79,9 +81,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
     public static final String USER_BY_ID_QUERY = "select " + USER_FIELDS + " from users " + "where id=?";
 
     public static final String ALL_usetre = "select " + USER_FIELDS + " from users";
-
-    static final Pattern unquotedEq = Pattern.compile("(id|username|email|givenName|familyName) eq [^'^\"].*",
-                    Pattern.CASE_INSENSITIVE);
 
     protected final JdbcTemplate jdbcTemplate;
 
@@ -124,9 +123,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
 
     @Override
     public List<ScimUser> query(String filter, String sortBy, boolean ascending) {
-        if (unquotedEq.matcher(filter).matches()) {
-            throw new IllegalArgumentException("Eq argument in filter must be quoted");
-        }
         return super.query(filter, sortBy, ascending);
     }
 
@@ -158,7 +154,10 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
                     String phoneNumber = extractPhoneNumber(user);
                     ps.setString(10, phoneNumber);
                     ps.setBoolean(11, user.isVerified());
-                    ps.setString(12, user.getPassword());
+                    ps.setString(12, StringUtils.hasText(user.getOrigin())?user.getOrigin(): Origin.UAA);
+                    ps.setString(13, StringUtils.hasText(user.getExternalId())?user.getExternalId():null);
+                    ps.setString(14, user.getPassword());
+
                 }
 
             });
@@ -202,18 +201,20 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
         int updated = jdbcTemplate.update(UPDATE_USER_SQL, new PreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement ps) throws SQLException {
-                ps.setInt(1, user.getVersion() + 1);
-                ps.setTimestamp(2, new Timestamp(new Date().getTime()));
-                ps.setString(3, user.getUserName());
-                ps.setString(4, user.getPrimaryEmail());
-                ps.setString(5, user.getName().getGivenName());
-                ps.setString(6, user.getName().getFamilyName());
-                ps.setBoolean(7, user.isActive());
-                ps.setString(8, extractPhoneNumber(user));
-                ps.setBoolean(9, user.isVerified());
-                ps.setString(10, id);
-                ps.setInt(11, user.getVersion());
-
+                int pos = 1;
+                ps.setInt(pos++, user.getVersion() + 1);
+                ps.setTimestamp(pos++, new Timestamp(new Date().getTime()));
+                ps.setString(pos++, user.getUserName());
+                ps.setString(pos++, user.getPrimaryEmail());
+                ps.setString(pos++, user.getName().getGivenName());
+                ps.setString(pos++, user.getName().getFamilyName());
+                ps.setBoolean(pos++, user.isActive());
+                ps.setString(pos++, extractPhoneNumber(user));
+                ps.setBoolean(pos++, user.isVerified());
+                ps.setString(pos++, StringUtils.hasText(user.getOrigin())?user.getOrigin():Origin.UAA);
+                ps.setString(pos++, StringUtils.hasText(user.getExternalId())?user.getExternalId():null);
+                ps.setString(pos++, id);
+                ps.setInt(pos++, user.getVersion());
             }
         });
         ScimUser result = retrieve(id);
@@ -378,6 +379,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
             boolean active = rs.getBoolean(9);
             String phoneNumber = rs.getString(10);
             boolean verified = rs.getBoolean(11);
+            String origin = rs.getString(12);
+            String externalId = rs.getString(13);
             ScimUser user = new ScimUser();
             user.setId(id);
             ScimMeta meta = new ScimMeta();
@@ -396,6 +399,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
             user.setName(name);
             user.setActive(active);
             user.setVerified(verified);
+            user.setOrigin(origin);
+            user.setExternalId(externalId);
             return user;
         }
     }

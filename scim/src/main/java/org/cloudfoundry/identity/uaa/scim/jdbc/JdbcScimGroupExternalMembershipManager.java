@@ -133,7 +133,7 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
     @Override
     public List<ScimGroupExternalMember> getExternalGroupMapsByGroupName(final String groupName)
                     throws ScimResourceNotFoundException {
-        final List<ScimGroup> groups = scimGroupProvisioning.query(String.format("displayName eq '%s'", groupName));
+        final List<ScimGroup> groups = scimGroupProvisioning.query(String.format("displayName eq \"%s\"", groupName));
 
         if (null != groups && groups.size() > 0) {
             return jdbcTemplate.query(GET_EXTERNAL_GROUP_MAPPINGS_SQL, new PreparedStatementSetter() {

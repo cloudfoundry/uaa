@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ /*******************************************************************************
+  ~      Cloud Foundry
+  ~      Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+  ~
+  ~      This product is licensed to you under the Apache License, Version 2.0 (the "License").
+  ~      You may not use this product except in compliance with the License.
+  ~
+  ~      This product includes a number of subcomponents with
+  ~      separate copyright notices and license terms. Your use of these
+  ~      subcomponents is subject to the terms and conditions of the
+  ~      subcomponent's license, as noted in the LICENSE file.
+  ~ ********************************************************************************/
+  -->
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <bean id="keystoneAuthenticationManager" class="org.cloudfoundry.identity.uaa.authentication.manager.KeystoneAuthenticationManager">
+        <property name="remoteUrl" value="${keystone.authentication.url:http://localhost:5000/v3/auth/tokens}"/>
+    </bean>
+
+    <bean id="keystoneLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.ExternalLoginAuthenticationManager">
+        <property name="userDatabase" ref="userDatabase" />
+        <property name="origin" value="keystone"/>
+    </bean>
+
+</beans>

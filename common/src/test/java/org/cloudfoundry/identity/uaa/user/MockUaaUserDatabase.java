@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.user;
 
 import java.util.Date;
 
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 /**
@@ -24,22 +25,41 @@ public class MockUaaUserDatabase implements UaaUserDatabase {
 
     public MockUaaUserDatabase(String id, String name, String email, String givenName, String familyName) {
         user = new UaaUser(id, name, "", email, UaaAuthority.USER_AUTHORITIES, givenName, familyName,
-                        new Date(), new Date());
+                        new Date(), new Date(), Origin.UAA, "externalId");
     }
 
     public MockUaaUserDatabase(String id, String name, String email, String givenName, String familyName,
                     Date createdAt, Date updatedAt) {
         user = new UaaUser(id, name, "", email, UaaAuthority.USER_AUTHORITIES, givenName, familyName,
-                        createdAt, updatedAt);
+                        createdAt, updatedAt, Origin.UAA, "externalId");
     }
 
     @Override
-    public UaaUser retrieveUserByName(String username) throws UsernameNotFoundException {
-        if (user.getUsername().equals(username)) {
+    public UaaUser retrieveUserByName(String username, String origin) throws UsernameNotFoundException {
+        if (user.getUsername().equals(username) && user.getOrigin().equals(origin)) {
             return user;
         }
         else {
             throw new UsernameNotFoundException(username);
+        }
+    }
+
+    @Override
+    public UaaUser retrieveUserById(String id) throws UsernameNotFoundException {
+        if (user.getId().equals(id)) {
+            return user;
+        }
+        else {
+            throw new UsernameNotFoundException(id);
+        }
+    }
+
+    public UaaUser updateUser(String userId, UaaUser user) throws UsernameNotFoundException {
+        if (user.getId().equals(userId)) {
+            this.user = user;
+            return user;
+        } else {
+            throw new UsernameNotFoundException(userId);
         }
     }
 }

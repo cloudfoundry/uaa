@@ -21,6 +21,26 @@
     <oauth:resource-server id="oauthResourceAuthenticationFilter" token-services-ref="tokenServices"
         resource-id="oauth" entry-point-ref="oauthAuthenticationEntryPoint" />
 
+    <http request-matcher-ref="loginAuthenticateRequestMatcher" create-session="never" entry-point-ref="oauthAuthenticationEntryPoint"
+          authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+        <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
+        <!-- scope authentication filter configured with a scope authentication manager -->
+        <custom-filter ref="oauthLoginScopeAuthenticatingFilter" after="PRE_AUTH_FILTER"/>
+        <anonymous enabled="false" />
+        <access-denied-handler ref="oauthAccessDeniedHandler" />
+    </http>
+
+    <bean id="loginAuthenticateRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
+        <constructor-arg value="/authenticate" />
+        <property name="accept" value="application/json" />
+        <property name="headers">
+            <map>
+                <entry key="Authorization" value="Bearer " />
+            </map>
+        </property>
+    </bean>
+
     <sec:http pattern="/authenticate/**" security="none" />
 
     <http request-matcher-ref="loginAuthorizeRequestMatcher" create-session="never" entry-point-ref="oauthAuthenticationEntryPoint"
@@ -50,7 +70,7 @@
           This represents a /oauth/token requests that gets passed through
           from the login server. It assumes that the User has been authenticated
           It requires that:
-           - username parameter exists
+           - userid parameter exists
            - client_id and client_secret are present
            - Bearer token belongs to login server (oauth.login) validated as resource="oauth"
         -->
@@ -137,6 +157,8 @@
             <list>
                 <value>login</value>
                 <value>username</value>
+                <value>user_id</value>
+                <value>origin</value>
                 <value>given_name</value>
                 <value>family_name</value>
                 <value>email</value>

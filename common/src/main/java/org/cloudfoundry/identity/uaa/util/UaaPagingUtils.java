@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.util;
 
+import java.util.Collections;
 import java.util.List;
 
 public class UaaPagingUtils {
@@ -31,6 +32,9 @@ public class UaaPagingUtils {
         int toIndex = fromIndex + count;
         if (toIndex >= input.size()) {
             toIndex = input.size();
+        }
+        if (fromIndex >= toIndex) {
+            return Collections.emptyList();
         }
         return input.subList(fromIndex, toIndex);
     }

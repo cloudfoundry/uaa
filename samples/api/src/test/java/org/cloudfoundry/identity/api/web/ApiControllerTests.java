@@ -18,6 +18,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.HashMap;
 
+import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Test;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -32,6 +33,7 @@ import org.springframework.web.servlet.View;
 public class ApiControllerTests {
 
     private ApiController controller = new ApiController();
+    UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
 
     @Test
     public void testNoUser() throws Exception {
@@ -48,11 +50,11 @@ public class ApiControllerTests {
     public void testWithUser() throws Exception {
         controller.setInfo(new ClassPathResource("info.tmpl"));
         HashMap<String, Object> model = new HashMap<String, Object>();
-        View view = controller.info(model, new UsernamePasswordAuthenticationToken("marissa", "<NONE>"));
+        View view = controller.info(model, new UsernamePasswordAuthenticationToken(testAccounts.getUserName(), "<NONE>"));
         MockHttpServletResponse response = new MockHttpServletResponse();
         view.render(model, new MockHttpServletRequest(), response);
         String content = response.getContentAsString();
-        assertTrue("Wrong content: " + content, content.contains("\n  \"user\": \"marissa\""));
+        assertTrue("Wrong content: " + content, content.contains("\n  \"user\": \""+testAccounts.getUserName()+"\""));
     }
 
 }

@@ -86,7 +86,7 @@ public class LdapGroupMappingAuthorizationManagerTests {
     }
 
     private String getGroupId(String groupName) {
-        return gDB.query(String.format("displayName eq '%s'", groupName)).get(0).getId();
+        return gDB.query(String.format("displayName eq \"%s\"", groupName)).get(0).getId();
     }
 
     @Test

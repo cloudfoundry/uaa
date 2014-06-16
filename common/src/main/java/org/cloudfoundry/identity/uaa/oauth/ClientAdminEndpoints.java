@@ -414,7 +414,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 
     private void deleteApprovals(String clientId) {
         if (approvalStore!=null) {
-            approvalStore.revokeApprovals(String.format("clientId eq '%s'", clientId));
+            approvalStore.revokeApprovals(String.format("client_id eq \"%s\"", clientId));
         } else {
             throw new UnsupportedOperationException("No approval store configured on "+getClass().getName());
         }

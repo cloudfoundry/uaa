@@ -45,16 +45,27 @@ public class UaaUser {
 
     private final Date modified;
 
+    private final String origin;
+
+    private final String externalId;
+
     private final List<? extends GrantedAuthority> authorities;
 
     public UaaUser(String username, String password, String email, String givenName, String familyName) {
         this("NaN", username, password, email, UaaAuthority.USER_AUTHORITIES, givenName, familyName, new Date(),
-                        new Date());
+                        new Date(), null, null);
     }
+
+    public UaaUser(String username, String password, String email, String givenName, String familyName, String origin) {
+        this("NaN", username, password, email, UaaAuthority.USER_AUTHORITIES, givenName, familyName, new Date(),
+            new Date(), origin, null);
+    }
+
 
     public UaaUser(String id, String username, String password, String email,
                     List<? extends GrantedAuthority> authorities,
-                    String givenName, String familyName, Date created, Date modified) {
+                    String givenName, String familyName, Date created, Date modified,
+                    String origin, String externalId) {
         Assert.hasText(username, "Username cannot be empty");
         Assert.hasText(id, "Id cannot be null");
         Assert.hasText(email, "Email is required");
@@ -68,6 +79,8 @@ public class UaaUser {
         this.created = created;
         this.modified = modified;
         this.authorities = authorities;
+        this.origin = origin;
+        this.externalId = externalId;
     }
 
     public String getId() {
@@ -94,6 +107,10 @@ public class UaaUser {
         return familyName;
     }
 
+    public String getOrigin() { return origin; }
+
+    public String getExternalId() { return externalId; }
+
     public List<? extends GrantedAuthority> getAuthorities() {
         return authorities;
     }
@@ -102,7 +119,7 @@ public class UaaUser {
         if (!"NaN".equals(this.id)) {
             throw new IllegalStateException("Id already set");
         }
-        return new UaaUser(id, username, password, email, authorities, givenName, familyName, created, modified);
+        return new UaaUser(id, username, password, email, authorities, givenName, familyName, created, modified, origin, externalId);
     }
 
     public UaaUser authorities(Collection<? extends GrantedAuthority> authorities) {
@@ -114,7 +131,7 @@ public class UaaUser {
         if (!values.contains(UaaAuthority.UAA_USER)) {
             values.add(UaaAuthority.UAA_USER);
         }
-        UaaUser user = new UaaUser(id, username, password, email, values, givenName, familyName, created, modified);
+        UaaUser user = new UaaUser(id, username, password, email, values, givenName, familyName, created, modified, origin, externalId);
         return user;
     }
 
@@ -128,4 +145,7 @@ public class UaaUser {
         return modified;
     }
 
+    public UaaUser modifySource(String origin, String externalId) {
+        return new UaaUser(id, username, password, email, authorities, givenName, familyName, created, modified, origin, externalId);
+    }
 }

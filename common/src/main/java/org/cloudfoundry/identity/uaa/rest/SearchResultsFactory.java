@@ -39,7 +39,7 @@ public class SearchResultsFactory {
         Map<String, Expression> expressions = buildExpressions(attributes, mapper);
         StandardEvaluationContext context = new StandardEvaluationContext();
         Collection<Map<String, Object>> results = new ArrayList<Map<String, Object>>();
-        for (T object : UaaPagingUtils.subList(input, startIndex, count)) {
+        for (T object : input) {
             Map<String, Object> map = new LinkedHashMap<String, Object>();
             for (String attribute : expressions.keySet()) {
                 map.put(attribute, expressions.get(attribute).getValue(context, object));

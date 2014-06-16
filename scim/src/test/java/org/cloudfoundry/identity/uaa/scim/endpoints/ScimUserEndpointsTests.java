@@ -82,6 +82,7 @@ import com.googlecode.flyway.core.Flyway;
  */
 public class ScimUserEndpointsTests {
 
+    public static final String JDSA_VMWARE_COM = "jd'sa@vmware.com";
     @Rule
     public ExpectedException expected = ExpectedException.none();
 
@@ -136,7 +137,7 @@ public class ScimUserEndpointsTests {
         endpoints.setScimGroupMembershipManager(mm);
         groupEndpoints = new ScimGroupEndpoints(gdao, mm);
         joel = new ScimUser(null, "jdsa", "Joel", "D'sa");
-        joel.addEmail("jdsa@vmware.com");
+        joel.addEmail(JDSA_VMWARE_COM);
         dale = new ScimUser(null, "olds", "Dale", "Olds");
         dale.addEmail("olds@vmware.com");
         joel = dao.createUser(joel, "password");
@@ -218,7 +219,6 @@ public class ScimUserEndpointsTests {
 
     @Test
     public void approvalsIsSyncedCorrectlyOnCreate() {
-        am.addApproval(new Approval("vidya", "c1", "s1", 6000, Approval.ApprovalStatus.APPROVED));
         ScimUser user = new ScimUser(null, "vidya", "Vidya", "V");
         user.addEmail("vidya@vmware.com");
         user.setApprovals(Collections.singleton(new Approval("vidya", "c1", "s1", 6000,
@@ -231,16 +231,15 @@ public class ScimUserEndpointsTests {
 
     @Test
     public void approvalsIsSyncedCorrectlyOnUpdate() {
-        am.addApproval(new Approval("vidya", "c1", "s1", 6000, Approval.ApprovalStatus.APPROVED));
-        am.addApproval(new Approval("vidya", "c1", "s2", 6000, Approval.ApprovalStatus.DENIED));
+
 
         ScimUser user = new ScimUser(null, "vidya", "Vidya", "V");
         user.addEmail("vidya@vmware.com");
         user.setApprovals(Collections.singleton(new Approval("vidya", "c1", "s1", 6000,
                         Approval.ApprovalStatus.APPROVED)));
         ScimUser created = endpoints.createUser(user, new MockHttpServletResponse());
-        assertNotNull(created.getApprovals());
-        assertEquals(2, created.getApprovals().size());
+        am.addApproval(new Approval(created.getId(), "c1", "s1", 6000, Approval.ApprovalStatus.APPROVED));
+        am.addApproval(new Approval(created.getId(), "c1", "s2", 6000, Approval.ApprovalStatus.DENIED));
 
         created.setApprovals(Collections.singleton(new Approval("vidya", "c1", "s1", 6000,
                         Approval.ApprovalStatus.APPROVED)));
@@ -252,8 +251,8 @@ public class ScimUserEndpointsTests {
     public void approvalsIsSyncedCorrectlyOnGet() {
         assertEquals(0, endpoints.getUser(joel.getId(), new MockHttpServletResponse()).getApprovals().size());
 
-        am.addApproval(new Approval(joel.getUserName(), "c1", "s1", 6000, Approval.ApprovalStatus.APPROVED));
-        am.addApproval(new Approval(joel.getUserName(), "c1", "s2", 6000, Approval.ApprovalStatus.DENIED));
+        am.addApproval(new Approval(joel.getId(), "c1", "s1", 6000, Approval.ApprovalStatus.APPROVED));
+        am.addApproval(new Approval(joel.getId(), "c1", "s2", 6000, Approval.ApprovalStatus.DENIED));
 
         assertEquals(2, endpoints.getUser(joel.getId(), new MockHttpServletResponse()).getApprovals().size());
     }
@@ -410,10 +409,29 @@ public class ScimUserEndpointsTests {
     }
 
     @Test
+    public void testFindWhenStartGreaterThanTotal() {
+        SearchResults<?> results = endpoints.findUsers("id", "id pr", null, "ascending", 3, 100);
+        assertEquals(2, results.getTotalResults());
+        assertEquals(0, results.getResources().size());
+    }
+
+    @Test
     public void testFindAllNames() {
         SearchResults<?> results = endpoints.findUsers("userName", "id pr", null, "ascending", 1, 100);
         Collection<Object> values = getSetFromMaps(results.getResources(), "userName");
         assertTrue(values.contains("olds"));
+    }
+
+    @Test
+    public void testFindAllNamesWithStartIndex() {
+        SearchResults<?> results = endpoints.findUsers("name", "id pr", null, "ascending", 1, 100);
+        assertEquals(2, results.getResources().size());
+
+        results = endpoints.findUsers("name", "id pr", null, "ascending", 2, 100);
+        assertEquals(1, results.getResources().size());
+
+        results = endpoints.findUsers("name", "id pr", null, "ascending", 3, 100);
+        assertEquals(0, results.getResources().size());
     }
 
     @Test
@@ -434,7 +452,16 @@ public class ScimUserEndpointsTests {
     @SuppressWarnings("unchecked")
     @Test
     public void testFindIdsByUserName() {
-        SearchResults<?> results = endpoints.findUsers("id", "userName eq 'jdsa'", null, "ascending", 1, 100);
+        SearchResults<?> results = endpoints.findUsers("id", "userName eq \"jdsa\"", null, "ascending", 1, 100);
+        assertEquals(1, results.getTotalResults());
+        assertEquals(1, results.getSchemas().size()); // System.err.println(results.getValues());
+        assertEquals(joel.getId(), ((Map<String, Object>) results.getResources().iterator().next()).get("id"));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testFindIdsByEmailApostrophe() {
+        SearchResults<?> results = endpoints.findUsers("id", "emails.value eq \""+JDSA_VMWARE_COM+"\"", null, "ascending", 1, 100);
         assertEquals(1, results.getTotalResults());
         assertEquals(1, results.getSchemas().size()); // System.err.println(results.getValues());
         assertEquals(joel.getId(), ((Map<String, Object>) results.getResources().iterator().next()).get("id"));
@@ -442,7 +469,7 @@ public class ScimUserEndpointsTests {
 
     @Test
     public void testFindIdsByUserNameContains() {
-        SearchResults<?> results = endpoints.findUsers("id", "userName co 'd'", null, "ascending", 1, 100);
+        SearchResults<?> results = endpoints.findUsers("id", "userName co \"d\"", null, "ascending", 1, 100);
         assertEquals(2, results.getTotalResults());
         assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
                         .contains(joel.getId()));
@@ -457,7 +484,7 @@ public class ScimUserEndpointsTests {
 
     @Test
     public void testFindIdsByUserNameStartWith() {
-        SearchResults<?> results = endpoints.findUsers("id", "userName sw 'j'", null, "ascending", 1, 100);
+        SearchResults<?> results = endpoints.findUsers("id", "userName sw \"j\"", null, "ascending", 1, 100);
         assertEquals(1, results.getTotalResults());
         assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
                         .contains(joel.getId()));
@@ -465,7 +492,7 @@ public class ScimUserEndpointsTests {
 
     @Test
     public void testFindIdsByEmailContains() {
-        SearchResults<?> results = endpoints.findUsers("id", "emails.value sw 'j'", null, "ascending", 1, 100);
+        SearchResults<?> results = endpoints.findUsers("id", "emails.value sw \"j\"", null, "ascending", 1, 100);
         assertEquals(1, results.getTotalResults());
         assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
                         .contains(joel.getId()));
@@ -473,13 +500,13 @@ public class ScimUserEndpointsTests {
 
     @Test
     public void testFindIdsByEmailContainsWithEmptyResult() {
-        SearchResults<?> results = endpoints.findUsers("id", "emails.value sw 'z'", null, "ascending", 1, 100);
+        SearchResults<?> results = endpoints.findUsers("id", "emails.value sw \"z\"", null, "ascending", 1, 100);
         assertEquals(0, results.getTotalResults());
     }
 
     @Test
     public void testFindIdsWithBooleanExpression() {
-        SearchResults<?> results = endpoints.findUsers("id", "userName co 'd' and id pr", null, "ascending", 1, 100);
+        SearchResults<?> results = endpoints.findUsers("id", "userName co \"d\" and id pr", null, "ascending", 1, 100);
         assertEquals(2, results.getTotalResults());
         assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
                         .contains(joel.getId()));
@@ -488,7 +515,7 @@ public class ScimUserEndpointsTests {
     @Test
     public void testFindIdsWithBooleanExpressionIvolvingEmails() {
         SearchResults<?> results = endpoints.findUsers("id",
-                        "userName co 'd' and emails.value co 'vmware'", null, "ascending", 1, 100);
+                        "userName co \"d\" and emails.value co \"vmware\"", null, "ascending", 1, 100);
         assertEquals(2, results.getTotalResults());
         assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
                         .contains(joel.getId()));

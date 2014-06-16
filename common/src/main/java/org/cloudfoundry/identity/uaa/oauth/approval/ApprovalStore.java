@@ -24,5 +24,5 @@ public interface ApprovalStore {
 
     public List<Approval> getApprovals(String filter);
 
-    public List<Approval> getApprovals(String userName, String clientId);
+    public List<Approval> getApprovals(String userId, String clientId);
 }

@@ -13,6 +13,7 @@ elif [ "$1" = "stop" ]; then
 fi
 
 echo "spring_profiles: $TESTENV" > target/tomcat/webapps/uaa/WEB-INF/classes/uaa.yml
+rm -f $CATALINA_OUT
 target/tomcat/bin/startup.sh
 
 SLEEP_TIME=120

@@ -63,9 +63,9 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 
     private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
 
-    private static final String USER_FILTER_TEMPLATE = "userName eq '%s'";
+    private static final String USER_FILTER_TEMPLATE = "user_id eq \"%s\"";
 
-    private static final String USER_AND_CLIENT_FILTER_TEMPLATE = "userName eq '%s' and clientId eq '%s'";
+    private static final String USER_AND_CLIENT_FILTER_TEMPLATE = "user_id eq \"%s\" and client_id eq \"%s\"";
 
     public void setStatuses(Map<Class<? extends Exception>, HttpStatus> statuses) {
         this.statuses = statuses;
@@ -89,13 +89,13 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 
     @RequestMapping(value = "/approvals", method = RequestMethod.GET)
     @ResponseBody
-    public List<Approval> getApprovals(@RequestParam(required = false, defaultValue = "userName pr") String filter,
+    public List<Approval> getApprovals(@RequestParam(required = false, defaultValue = "user_id pr") String filter,
                     @RequestParam(required = false, defaultValue = "1") int startIndex,
                     @RequestParam(required = false, defaultValue = "100") int count) {
-        String username = getCurrentUsername();
-        logger.debug("Fetching all approvals for user: " + username);
+        String userId = getCurrentUserId();
+        logger.debug("Fetching all approvals for user: " + userId);
         List<Approval> input = approvalStore.getApprovals(
-                        String.format("%s and " + USER_FILTER_TEMPLATE, filter, username));
+                        String.format("%s and " + USER_FILTER_TEMPLATE, filter, userId));
         List<Approval> approvals = UaaPagingUtils.subList(input, startIndex, count);
 
         // Find the clients for these approvals
@@ -136,55 +136,59 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
         return filteredApprovals;
     }
 
-    private String getCurrentUsername() {
+    private String getCurrentUserId() {
         if (!securityContextAccessor.isUser()) {
             throw new AccessDeniedException("Approvals can only be managed by a user");
         }
-        return securityContextAccessor.getUserName();
+        return securityContextAccessor.getUserId();
     }
 
     @RequestMapping(value = "/approvals", method = RequestMethod.PUT)
     @ResponseBody
     public List<Approval> updateApprovals(@RequestBody Approval[] approvals) {
-        String username = getCurrentUsername();
-        logger.debug("Updating approvals for user: " + username);
-        approvalStore.revokeApprovals(String.format(USER_FILTER_TEMPLATE, username));
+        String currentUserId = getCurrentUserId();
+        logger.debug("Updating approvals for user: " + currentUserId);
+        approvalStore.revokeApprovals(String.format(USER_FILTER_TEMPLATE, currentUserId));
         for (Approval approval : approvals) {
-            if (!isValidUser(approval.getUserName())) {
-                logger.warn(String.format("%s attemting to update approvals for %s", username, approval.getUserName()));
-                throw new UaaException("unauthorized_operation", "Cannot update approvals for another user",
+            if (approval.getUserId() !=null &&  !isValidUser(approval.getUserId())) {
+                logger.warn(String.format("Error[2] %s attemting to update approvals for %s", currentUserId, approval.getUserId()));
+                throw new UaaException("unauthorized_operation", "Cannot update approvals for another user. Set user_id to null to update for existing user.",
                                 HttpStatus.UNAUTHORIZED.value());
+            } else {
+                approval.setUserId(currentUserId);
             }
             approval.setLastUpdatedAt(new Date());
             approvalStore.addApproval(approval);
         }
-        return approvalStore.getApprovals(String.format(USER_FILTER_TEMPLATE, username));
+        return approvalStore.getApprovals(String.format(USER_FILTER_TEMPLATE, currentUserId));
     }
 
     @RequestMapping(value = "/approvals/{clientId}", method = RequestMethod.PUT)
     @ResponseBody
     public List<Approval> updateClientApprovals(@PathVariable String clientId, @RequestBody Approval[] approvals) {
-        String username = getCurrentUsername();
-        logger.debug("Updating approvals for user: " + username);
-        approvalStore.revokeApprovals(String.format(USER_AND_CLIENT_FILTER_TEMPLATE, username, clientId));
+        String currentUserId = getCurrentUserId();
+        logger.debug("Updating approvals for user: " + currentUserId);
+        approvalStore.revokeApprovals(String.format(USER_AND_CLIENT_FILTER_TEMPLATE, currentUserId, clientId));
         for (Approval approval : approvals) {
-            if (!isValidUser(approval.getUserName())) {
-                logger.warn(String.format("%s attemting to update approvals for %s", username, approval.getUserName()));
-                throw new UaaException("unauthorized_operation", "Cannot update approvals for another user",
+            if (approval.getUserId() !=null &&  !isValidUser(approval.getUserId())) {
+                logger.warn(String.format("Error[1] %s attemting to update approvals for %s.", currentUserId, approval.getUserId()));
+                throw new UaaException("unauthorized_operation", "Cannot update approvals for another user. Set user_id to null to update for existing user.",
                         HttpStatus.UNAUTHORIZED.value());
+            } else {
+                approval.setUserId(currentUserId);
             }
             approval.setLastUpdatedAt(new Date());
             approvalStore.addApproval(approval);
         }
-        return approvalStore.getApprovals(String.format(USER_AND_CLIENT_FILTER_TEMPLATE, username, clientId));
+        return approvalStore.getApprovals(String.format(USER_AND_CLIENT_FILTER_TEMPLATE, currentUserId, clientId));
     }
 
-    private boolean isValidUser(String username) {
-        if (username == null || !username.equals(getCurrentUsername())) {
+    private boolean isValidUser(String userId) {
+        if (userId == null || !userId.equals(getCurrentUserId())) {
             return false;
         }
         try {
-            userDatabase.retrieveUserByName(username);
+            userDatabase.retrieveUserById(userId);
             return true;
         } catch (UsernameNotFoundException e) {
             return false;
@@ -194,7 +198,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
     @RequestMapping(value = "/approvals", method = RequestMethod.DELETE)
     @ResponseBody
     public SimpleMessage revokeApprovals(@RequestParam(required = true) String clientId) {
-        String username = getCurrentUsername();
+        String username = getCurrentUserId();
         logger.debug("Revoking all existing approvals for user: " + username + " and client " + clientId);
         approvalStore.revokeApprovals(String.format(USER_AND_CLIENT_FILTER_TEMPLATE, username, clientId));
         return new SimpleMessage("ok", "Approvals of user " + username + " and client " + clientId + " revoked");

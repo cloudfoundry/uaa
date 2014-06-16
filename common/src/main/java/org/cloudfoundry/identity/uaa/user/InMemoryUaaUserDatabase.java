@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.user;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -26,28 +27,43 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 public class InMemoryUaaUserDatabase implements UaaUserDatabase {
 
     private final Map<String, UaaUser> users;
+    private final Map<String, UaaUser> ids;
 
     public InMemoryUaaUserDatabase(Map<String, UaaUser> users) {
-        this.users = users;
+        this.users = new HashMap<>();
+        this.ids = new HashMap<>();
+        for (Map.Entry<String,UaaUser> entry : users.entrySet()) {
+            this.ids.put(entry.getValue().getId(), entry.getValue());
+            this.users.put(entry.getKey()+"-"+entry.getValue().getOrigin(), entry.getValue());
+        }
     }
 
     @Override
-    public UaaUser retrieveUserByName(String username) throws UsernameNotFoundException {
+    public UaaUser retrieveUserByName(String username, String origin) throws UsernameNotFoundException {
 
-        UaaUser u = users.get(username);
+        UaaUser u = users.get(username+"-"+origin);
         if (u == null) {
             throw new UsernameNotFoundException("User " + username + " not found");
         }
         return u;
-
     }
 
-    public void updateUser(String username, UaaUser user) throws UsernameNotFoundException {
-
-        if (!users.containsKey(username)) {
-            throw new UsernameNotFoundException("User " + username + " not found");
+    @Override
+    public UaaUser retrieveUserById(String id) throws UsernameNotFoundException {
+        UaaUser u = ids.get(id);
+        if (u == null) {
+            throw new UsernameNotFoundException("User ID:" + id + " not found");
         }
-        users.put(username, user);
+        return u;
+    }
+
+    public UaaUser updateUser(String userId, UaaUser user) throws UsernameNotFoundException {
+
+        if (!ids.containsKey(userId)) {
+            throw new UsernameNotFoundException("User " + userId + " not found");
+        }
+        ids.put(userId, user);
+        return user;
     }
 
 }

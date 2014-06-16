@@ -293,6 +293,10 @@ public final class ScimUser extends ScimCore {
 
     private boolean verified = false;
 
+    private String origin = "";
+
+    private String externalId = "";
+
     @JsonProperty
     private String password;
 
@@ -450,6 +454,22 @@ public final class ScimUser extends ScimCore {
 
     public void setVerified(boolean verified) {
         this.verified = verified;
+    }
+
+    public String getOrigin() {
+        return origin;
+    }
+
+    public void setOrigin(String origin) {
+        this.origin = origin;
+    }
+
+    public String getExternalId() {
+        return externalId;
+    }
+
+    public void setExternalId(String externalId) {
+        this.externalId = externalId;
     }
 
     @JsonIgnore

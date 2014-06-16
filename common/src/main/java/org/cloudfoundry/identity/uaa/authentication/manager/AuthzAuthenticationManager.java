@@ -13,12 +13,15 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import java.security.SecureRandom;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -54,6 +57,8 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
     private final UaaUserDatabase userDatabase;
     private ApplicationEventPublisher eventPublisher;
     private AccountLoginPolicy accountLoginPolicy = new PermitAllAccountLoginPolicy();
+
+    private String origin;
     /**
      * Dummy user allows the authentication process for non-existent and locked
      * out users to be as close to
@@ -83,28 +88,25 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
 
         UaaUser user;
         boolean passwordMatches = false;
-        try {
-            user = userDatabase.retrieveUserByName(req.getName().toLowerCase(Locale.US));
-            if (user!=null) {
-                passwordMatches =
-                    ((CharSequence)req.getCredentials()).length()==0 ? //zero length passwords are automatically a fail.
-                        false :
-                        encoder.matches((CharSequence) req.getCredentials(), user.getPassword());
-            }
-        } catch (UsernameNotFoundException e) {
+        user = getUaaUser(req);
+        if (user!=null) {
+            passwordMatches =
+                ((CharSequence) req.getCredentials()).length() != 0 && encoder.matches((CharSequence) req.getCredentials(), user.getPassword());
+        } else {
             user = dummyUser;
         }
 
         if (!accountLoginPolicy.isAllowed(user, req)) {
             logger.warn("Login policy rejected authentication for " + user.getUsername() + ", " + user.getId()
                             + ". Ignoring login request.");
-            BadCredentialsException e = new BadCredentialsException("Login policy rejected authentication");
+            AuthenticationPolicyRejectionException e = new AuthenticationPolicyRejectionException("Login policy rejected authentication");
             publish(new AuthenticationFailureLockedEvent(req, e));
             throw e;
         }
 
         if (passwordMatches) {
-            logger.debug("Password successfully matched");
+            logger.debug("Password successfully matched for userId["+user.getUsername()+"]:"+user.getId());
+
             Authentication success = new UaaAuthentication(new UaaPrincipal(user),
                             user.getAuthorities(), (UaaAuthenticationDetails) req.getDetails());
             publish(new UserAuthenticationSuccessEvent(user, success));
@@ -113,7 +115,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
         }
 
         if (user == dummyUser || user == null) {
-            logger.debug("No user named '" + req.getName() + "' was found");
+            logger.debug("No user named '" + req.getName() + "' was found for origin:"+ origin);
             publish(new UserNotFoundEvent(req));
         } else {
             logger.debug("Password did not match for user " + req.getName());
@@ -122,6 +124,17 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
         BadCredentialsException e = new BadCredentialsException("Bad credentials");
         publish(new AuthenticationFailureBadCredentialsEvent(req, e));
         throw e;
+    }
+
+    private UaaUser getUaaUser(Authentication req) {
+        try {
+            UaaUser user = userDatabase.retrieveUserByName(req.getName().toLowerCase(Locale.US), getOrigin());
+            if (user!=null) {
+                return user;
+            }
+        } catch (UsernameNotFoundException e) {
+        }
+        return null;
     }
 
     private void publish(ApplicationEvent event) {
@@ -159,5 +172,13 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
                 throw new IllegalStateException();
             }
         };
+    }
+
+    public String getOrigin() {
+        return origin;
+    }
+
+    public void setOrigin(String origin) {
+        this.origin = origin;
     }
 }

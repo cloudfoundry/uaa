@@ -12,24 +12,12 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth.token;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.Map;
-
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.oauth.Claims;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
@@ -37,7 +25,6 @@ import org.cloudfoundry.identity.uaa.oauth.approval.InMemoryApprovalStore;
 import org.cloudfoundry.identity.uaa.test.MockAuthentication;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventPublisher;
 import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
-import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
@@ -58,6 +45,21 @@ import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
 import org.springframework.security.oauth2.provider.InMemoryClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import static org.cloudfoundry.identity.uaa.user.UaaAuthority.USER_AUTHORITIES;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 /**
  * 
  * @author Joel D'sa
@@ -72,15 +74,20 @@ public class UaaTokenServicesTests {
 
     private ObjectMapper mapper = new ObjectMapper();
 
+    private String userId = "12345";
+    private UaaUser defaultUser =
+        new UaaUser(userId, "jdsa", "password", "jdsa@vmware.com",
+            USER_AUTHORITIES, null, null, new Date(
+            System.currentTimeMillis() - 15000), new Date(
+            System.currentTimeMillis() - 15000), Origin.UAA, "externalId");
     // Need to create a user with a modified time slightly in the past because
     // the token IAT is in seconds and the token
     // expiry
     // skew will not be long enough
     private InMemoryUaaUserDatabase userDatabase = new InMemoryUaaUserDatabase(new HashMap<String, UaaUser>(
-                    Collections.singletonMap("jdsa", new UaaUser("12345", "jdsa", "password", "jdsa@vmware.com",
-                                    UaaAuthority.USER_AUTHORITIES, null, null, new Date(
-                                                    System.currentTimeMillis() - 15000), new Date(
-                                                    System.currentTimeMillis() - 15000)))));
+                    Collections.singletonMap("jdsa", defaultUser)));
+
+    private Authentication defaultUserAuthentication = new UsernamePasswordAuthenticationToken(new UaaPrincipal(defaultUser), "n/a", null);
 
     private InMemoryClientDetailsService clientDetailsService = new InMemoryClientDetailsService();
 
@@ -93,7 +100,7 @@ public class UaaTokenServicesTests {
                         .singletonMap("client", new BaseClientDetails("client", "scim, clients", "read, write",
                                         "authorization_code, password, implicit, client_credentials", "update")));
         tokenServices.setClientDetailsService(clientDetailsService);
-        tokenServices.setDefaultUserAuthorities(AuthorityUtils.authorityListToSet(UaaAuthority.USER_AUTHORITIES));
+        tokenServices.setDefaultUserAuthorities(AuthorityUtils.authorityListToSet(USER_AUTHORITIES));
         tokenServices.setIssuer("http://localhost:8080/uaa");
         tokenServices.setSignerProvider(signerProvider);
         tokenServices.setUserDatabase(userDatabase);
@@ -131,18 +138,18 @@ public class UaaTokenServicesTests {
             throw new IllegalStateException("Cannot read token claims", e);
         }
 
-        assertEquals(claims.get("iss"), "http://localhost:8080/uaa/oauth/token");
-        assertEquals(claims.get("client_id"), "client");
-        assertNull("user_id should be null for a client token", claims.get("user_id"));
-        assertEquals(claims.get("sub"), "client");
-        assertNull("user_id should be null for a client token", claims.get("user_name"));
-        assertEquals(claims.get("cid"), "client");
-        assertEquals(claims.get("scope"), Arrays.asList(new String[] { "read", "write" }));
-        assertEquals(claims.get("aud"), Arrays.asList(new String[] { "scim", "clients" }));
-        assertTrue(((String) claims.get("jti")).length() > 0);
-        assertTrue(((Integer) claims.get("iat")) > 0);
-        assertTrue(((Integer) claims.get("exp")) > 0);
-        assertTrue(((Integer) claims.get("exp")) - ((Integer) claims.get("iat")) == 60 * 60 * 12);
+        assertEquals(claims.get(Claims.ISS), "http://localhost:8080/uaa/oauth/token");
+        assertEquals(claims.get(Claims.CLIENT_ID), "client");
+        assertNull("user_id should be null for a client token", claims.get(Claims.USER_ID));
+        assertEquals(claims.get(Claims.SUB), "client");
+        assertNull("user_name should be null for a client token", claims.get(Claims.USER_NAME));
+        assertEquals(claims.get(Claims.CID), "client");
+        assertEquals(claims.get(Claims.SCOPE), Arrays.asList(new String[] { "read", "write" }));
+        assertEquals(claims.get(Claims.AUD), Arrays.asList(new String[] { "scim", "clients" }));
+        assertTrue(((String) claims.get(Claims.JTI)).length() > 0);
+        assertTrue(((Integer) claims.get(Claims.IAT)) > 0);
+        assertTrue(((Integer) claims.get(Claims.EXP)) > 0);
+        assertTrue(((Integer) claims.get(Claims.EXP)) - ((Integer) claims.get(Claims.IAT)) == 60 * 60 * 12);
         assertNull(accessToken.getRefreshToken());
 
         Assert.assertEquals(1, publisher.getEventCount());
@@ -165,8 +172,7 @@ public class UaaTokenServicesTests {
                         authorizationRequest.getAuthorizationParameters());
         azParameters.put("grant_type", "authorization_code");
         authorizationRequest.setAuthorizationParameters(azParameters);
-        Authentication userAuthentication = new UsernamePasswordAuthenticationToken(new UaaPrincipal(new UaaUser(
-                        "jdsa", "password", "jdsa@vmware.com", null, null)), "n/a", null);
+        Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         testCreateAccessTokenForAUser(authentication, false);
@@ -181,8 +187,7 @@ public class UaaTokenServicesTests {
                         authorizationRequest.getAuthorizationParameters());
         azParameters.put("grant_type", "password");
         authorizationRequest.setAuthorizationParameters(azParameters);
-        Authentication userAuthentication = new UsernamePasswordAuthenticationToken(new UaaPrincipal(new UaaUser(
-                        "jdsa", "password", "jdsa@vmware.com", null, null)), "n/a", null);
+        Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         testCreateAccessTokenForAUser(authentication, false);
@@ -196,9 +201,9 @@ public class UaaTokenServicesTests {
         Calendar updatedAt = Calendar.getInstance();
         updatedAt.add(Calendar.MILLISECOND, -1000);
 
-        approvalStore.addApproval(new Approval("jdsa", "client", "read", expiresAt.getTime(), ApprovalStatus.APPROVED,
+        approvalStore.addApproval(new Approval(userId, "client", "read", expiresAt.getTime(), ApprovalStatus.APPROVED,
                         updatedAt.getTime()));
-        approvalStore.addApproval(new Approval("jdsa", "client", "write", expiresAt.getTime(), ApprovalStatus.APPROVED,
+        approvalStore.addApproval(new Approval(userId, "client", "write", expiresAt.getTime(), ApprovalStatus.APPROVED,
                         updatedAt.getTime()));
 
         DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
@@ -208,8 +213,7 @@ public class UaaTokenServicesTests {
                         authorizationRequest.getAuthorizationParameters());
         azParameters.put("grant_type", "authorization_code");
         authorizationRequest.setAuthorizationParameters(azParameters);
-        Authentication userAuthentication = new UsernamePasswordAuthenticationToken(new UaaPrincipal(new UaaUser(
-                        "jdsa", "password", "jdsa@vmware.com", null, null)), "n/a", null);
+        Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
@@ -237,18 +241,18 @@ public class UaaTokenServicesTests {
             throw new IllegalStateException("Cannot read token claims", e);
         }
 
-        assertEquals(claims.get("iss"), "http://localhost:8080/uaa/oauth/token");
-        assertEquals(claims.get("client_id"), "client");
-        assertEquals(claims.get("user_id"), "12345");
-        assertEquals(claims.get("sub"), "12345");
-        assertEquals(claims.get("user_name"), "jdsa");
-        assertEquals(claims.get("cid"), "client");
-        assertEquals(claims.get("scope"), Arrays.asList(new String[] { "read", "write" }));
-        assertEquals(claims.get("aud"), Arrays.asList(new String[] { "scim", "clients" }));
-        assertTrue(((String) claims.get("jti")).length() > 0);
-        assertTrue(((Integer) claims.get("iat")) > 0);
-        assertTrue(((Integer) claims.get("exp")) > 0);
-        assertTrue(((Integer) claims.get("exp")) - ((Integer) claims.get("iat")) == 60 * 60 * 12);
+        assertEquals(claims.get(Claims.ISS), "http://localhost:8080/uaa/oauth/token");
+        assertEquals(claims.get(Claims.CLIENT_ID), "client");
+        assertEquals(claims.get(Claims.USER_ID), "12345");
+        assertEquals(claims.get(Claims.SUB), "12345");
+        assertEquals(claims.get(Claims.USER_NAME), "jdsa");
+        assertEquals(claims.get(Claims.CID), "client");
+        assertEquals(claims.get(Claims.SCOPE), Arrays.asList(new String[] { "read", "write" }));
+        assertEquals(claims.get(Claims.AUD), Arrays.asList(new String[] { "scim", "clients" }));
+        assertTrue(((String) claims.get(Claims.JTI)).length() > 0);
+        assertTrue(((Integer) claims.get(Claims.IAT)) > 0);
+        assertTrue(((Integer) claims.get(Claims.EXP)) > 0);
+        assertTrue(((Integer) claims.get(Claims.EXP)) - ((Integer) claims.get(Claims.IAT)) == 60 * 60 * 12);
         assertNotNull(accessToken.getRefreshToken());
     }
 
@@ -268,8 +272,7 @@ public class UaaTokenServicesTests {
                         authorizationRequest.getAuthorizationParameters());
         azParameters.put("grant_type", "authorization_code");
         authorizationRequest.setAuthorizationParameters(azParameters);
-        Authentication userAuthentication = new UsernamePasswordAuthenticationToken(new UaaPrincipal(new UaaUser(
-                        "jdsa", "password", "jdsa@vmware.com", null, null)), "n/a", null);
+        Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
@@ -297,18 +300,18 @@ public class UaaTokenServicesTests {
             throw new IllegalStateException("Cannot read token claims", e);
         }
 
-        assertEquals(claims.get("iss"), "http://localhost:8080/uaa/oauth/token");
-        assertEquals(claims.get("client_id"), "client");
-        assertEquals(claims.get("user_id"), "12345");
-        assertEquals(claims.get("sub"), "12345");
-        assertEquals(claims.get("user_name"), "jdsa");
-        assertEquals(claims.get("cid"), "client");
-        assertEquals(claims.get("scope"), Arrays.asList(new String[] { "read", "write" }));
-        assertEquals(claims.get("aud"), Arrays.asList(new String[] { "scim", "clients" }));
-        assertTrue(((String) claims.get("jti")).length() > 0);
-        assertTrue(((Integer) claims.get("iat")) > 0);
-        assertTrue(((Integer) claims.get("exp")) > 0);
-        assertTrue(((Integer) claims.get("exp")) - ((Integer) claims.get("iat")) == 60 * 60 * 12);
+        assertEquals(claims.get(Claims.ISS), "http://localhost:8080/uaa/oauth/token");
+        assertEquals(claims.get(Claims.CLIENT_ID), "client");
+        assertEquals(claims.get(Claims.USER_ID), "12345");
+        assertEquals(claims.get(Claims.SUB), "12345");
+        assertEquals(claims.get(Claims.USER_NAME), "jdsa");
+        assertEquals(claims.get(Claims.CID), "client");
+        assertEquals(claims.get(Claims.SCOPE), Arrays.asList(new String[] { "read", "write" }));
+        assertEquals(claims.get(Claims.AUD), Arrays.asList(new String[] { "scim", "clients" }));
+        assertTrue(((String) claims.get(Claims.JTI)).length() > 0);
+        assertTrue(((Integer) claims.get(Claims.IAT)) > 0);
+        assertTrue(((Integer) claims.get(Claims.EXP)) > 0);
+        assertTrue(((Integer) claims.get(Claims.EXP)) - ((Integer) claims.get(Claims.IAT)) == 60 * 60 * 12);
         assertNotNull(accessToken.getRefreshToken());
     }
 
@@ -328,8 +331,7 @@ public class UaaTokenServicesTests {
                         authorizationRequest.getAuthorizationParameters());
         azParameters.put("grant_type", "authorization_code");
         authorizationRequest.setAuthorizationParameters(azParameters);
-        Authentication userAuthentication = new UsernamePasswordAuthenticationToken(new UaaPrincipal(new UaaUser(
-                        "jdsa", "password", "jdsa@vmware.com", null, null)), "n/a", null);
+        Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
@@ -357,18 +359,18 @@ public class UaaTokenServicesTests {
             throw new IllegalStateException("Cannot read token claims", e);
         }
 
-        assertEquals(claims.get("iss"), "http://localhost:8080/uaa/oauth/token");
-        assertEquals(claims.get("client_id"), "client");
-        assertEquals(claims.get("user_id"), "12345");
-        assertEquals(claims.get("sub"), "12345");
-        assertEquals(claims.get("user_name"), "jdsa");
-        assertEquals(claims.get("cid"), "client");
-        assertEquals(claims.get("scope"), Arrays.asList(new String[] { "read" }));
-        assertEquals(claims.get("aud"), Arrays.asList(new String[] { "scim", "clients" }));
-        assertTrue(((String) claims.get("jti")).length() > 0);
-        assertTrue(((Integer) claims.get("iat")) > 0);
-        assertTrue(((Integer) claims.get("exp")) > 0);
-        assertTrue(((Integer) claims.get("exp")) - ((Integer) claims.get("iat")) == 60 * 60 * 12);
+        assertEquals(claims.get(Claims.ISS), "http://localhost:8080/uaa/oauth/token");
+        assertEquals(claims.get(Claims.CLIENT_ID), "client");
+        assertEquals(claims.get(Claims.USER_ID), "12345");
+        assertEquals(claims.get(Claims.SUB), "12345");
+        assertEquals(claims.get(Claims.USER_NAME), "jdsa");
+        assertEquals(claims.get(Claims.CID), "client");
+        assertEquals(claims.get(Claims.SCOPE), Arrays.asList(new String[] { "read" }));
+        assertEquals(claims.get(Claims.AUD), Arrays.asList(new String[] { "scim", "clients" }));
+        assertTrue(((String) claims.get(Claims.JTI)).length() > 0);
+        assertTrue(((Integer) claims.get(Claims.IAT)) > 0);
+        assertTrue(((Integer) claims.get(Claims.EXP)) > 0);
+        assertTrue(((Integer) claims.get(Claims.EXP)) - ((Integer) claims.get(Claims.IAT)) == 60 * 60 * 12);
         assertNotNull(accessToken.getRefreshToken());
     }
 
@@ -385,7 +387,7 @@ public class UaaTokenServicesTests {
         Calendar updatedAt = Calendar.getInstance();
         updatedAt.add(Calendar.MILLISECOND, -1000);
 
-        approvalStore.addApproval(new Approval("jdsa", "client", "write", expiresAt.getTime(), ApprovalStatus.APPROVED,
+        approvalStore.addApproval(new Approval(userId, "client", "write", expiresAt.getTime(), ApprovalStatus.APPROVED,
                         updatedAt.getTime()));
 
         DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
@@ -395,8 +397,7 @@ public class UaaTokenServicesTests {
                         authorizationRequest.getAuthorizationParameters());
         azParameters.put("grant_type", "authorization_code");
         authorizationRequest.setAuthorizationParameters(azParameters);
-        Authentication userAuthentication = new UsernamePasswordAuthenticationToken(new UaaPrincipal(new UaaUser(
-                        "jdsa", "password", "jdsa@vmware.com", null, null)), "n/a", null);
+        Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
@@ -424,18 +425,18 @@ public class UaaTokenServicesTests {
             throw new IllegalStateException("Cannot read token claims", e);
         }
 
-        assertEquals(claims.get("iss"), "http://localhost:8080/uaa/oauth/token");
-        assertEquals(claims.get("client_id"), "client");
-        assertEquals(claims.get("user_id"), "12345");
-        assertEquals(claims.get("sub"), "12345");
-        assertEquals(claims.get("user_name"), "jdsa");
-        assertEquals(claims.get("cid"), "client");
-        assertEquals(claims.get("scope"), Arrays.asList(new String[] { "read", "write" }));
-        assertEquals(claims.get("aud"), Arrays.asList(new String[] { "scim", "clients" }));
-        assertTrue(((String) claims.get("jti")).length() > 0);
-        assertTrue(((Integer) claims.get("iat")) > 0);
-        assertTrue(((Integer) claims.get("exp")) > 0);
-        assertTrue(((Integer) claims.get("exp")) - ((Integer) claims.get("iat")) == 60 * 60 * 12);
+        assertEquals(claims.get(Claims.ISS), "http://localhost:8080/uaa/oauth/token");
+        assertEquals(claims.get(Claims.CLIENT_ID), "client");
+        assertEquals(claims.get(Claims.USER_ID), "12345");
+        assertEquals(claims.get(Claims.SUB), "12345");
+        assertEquals(claims.get(Claims.USER_NAME), "jdsa");
+        assertEquals(claims.get(Claims.CID), "client");
+        assertEquals(claims.get(Claims.SCOPE), Arrays.asList(new String[] { "read", "write" }));
+        assertEquals(claims.get(Claims.AUD), Arrays.asList(new String[] { "scim", "clients" }));
+        assertTrue(((String) claims.get(Claims.JTI)).length() > 0);
+        assertTrue(((Integer) claims.get(Claims.IAT)) > 0);
+        assertTrue(((Integer) claims.get(Claims.EXP)) > 0);
+        assertTrue(((Integer) claims.get(Claims.EXP)) - ((Integer) claims.get(Claims.IAT)) == 60 * 60 * 12);
         assertNotNull(accessToken.getRefreshToken());
     }
 
@@ -452,7 +453,7 @@ public class UaaTokenServicesTests {
         Calendar updatedAt = Calendar.getInstance();
         updatedAt.add(Calendar.MILLISECOND, -1000);
 
-        approvalStore.addApproval(new Approval("jdsa", "client", "write", expiresAt.getTime(), ApprovalStatus.APPROVED,
+        approvalStore.addApproval(new Approval(userId, "client", "write", expiresAt.getTime(), ApprovalStatus.APPROVED,
                         updatedAt.getTime()));
 
         DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
@@ -462,8 +463,7 @@ public class UaaTokenServicesTests {
                         authorizationRequest.getAuthorizationParameters());
         azParameters.put("grant_type", "authorization_code");
         authorizationRequest.setAuthorizationParameters(azParameters);
-        Authentication userAuthentication = new UsernamePasswordAuthenticationToken(new UaaPrincipal(new UaaUser(
-                        "jdsa", "password", "jdsa@vmware.com", null, null)), "n/a", null);
+        Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
@@ -494,9 +494,9 @@ public class UaaTokenServicesTests {
         Calendar updatedAt = Calendar.getInstance();
         updatedAt.add(Calendar.MILLISECOND, -1000);
 
-        approvalStore.addApproval(new Approval("jdsa", "client", "read", expiresAt.getTime(), ApprovalStatus.APPROVED,
+        approvalStore.addApproval(new Approval(userId, "client", "read", expiresAt.getTime(), ApprovalStatus.APPROVED,
                         updatedAt.getTime()));
-        approvalStore.addApproval(new Approval("jdsa", "client", "write", expiresAt.getTime(), ApprovalStatus.DENIED,
+        approvalStore.addApproval(new Approval(userId, "client", "write", expiresAt.getTime(), ApprovalStatus.DENIED,
                         updatedAt.getTime()));
 
         DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
@@ -506,8 +506,7 @@ public class UaaTokenServicesTests {
                         authorizationRequest.getAuthorizationParameters());
         azParameters.put("grant_type", "authorization_code");
         authorizationRequest.setAuthorizationParameters(azParameters);
-        Authentication userAuthentication = new UsernamePasswordAuthenticationToken(new UaaPrincipal(new UaaUser(
-                        "jdsa", "password", "jdsa@vmware.com", null, null)), "n/a", null);
+        Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
@@ -535,8 +534,7 @@ public class UaaTokenServicesTests {
                         authorizationRequest.getAuthorizationParameters());
         azParameters.put("grant_type", "implicit");
         authorizationRequest.setAuthorizationParameters(azParameters);
-        Authentication userAuthentication = new UsernamePasswordAuthenticationToken(new UaaPrincipal(new UaaUser(
-                        "jdsa", "password", "jdsa@vmware.com", null, null)), "n/a", null);
+        Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         testCreateAccessTokenForAUser(authentication, true);
@@ -554,19 +552,19 @@ public class UaaTokenServicesTests {
             throw new IllegalStateException("Cannot read token claims", e);
         }
 
-        assertEquals(claims.get("iss"), "http://localhost:8080/uaa/oauth/token");
-        assertEquals(claims.get("client_id"), "client");
-        assertNotNull(claims.get("user_id"));
-        assertNotNull(claims.get("sub"));
-        assertEquals(claims.get("user_name"), "jdsa");
-        assertEquals(claims.get("email"), "jdsa@vmware.com");
-        assertEquals(claims.get("cid"), "client");
-        assertEquals(claims.get("scope"), Arrays.asList(new String[] { "read", "write" }));
-        assertEquals(claims.get("aud"), Arrays.asList(new String[] { "scim", "clients" }));
-        assertTrue(((String) claims.get("jti")).length() > 0);
-        assertTrue(((Integer) claims.get("iat")) > 0);
-        assertTrue(((Integer) claims.get("exp")) > 0);
-        assertTrue(((Integer) claims.get("exp")) - ((Integer) claims.get("iat")) > 0);
+        assertEquals(claims.get(Claims.ISS), "http://localhost:8080/uaa/oauth/token");
+        assertEquals(claims.get(Claims.CLIENT_ID), "client");
+        assertNotNull(claims.get(Claims.USER_ID));
+        assertNotNull(claims.get(Claims.SUB));
+        assertEquals(claims.get(Claims.USER_NAME), "jdsa");
+        assertEquals(claims.get(Claims.EMAIL), "jdsa@vmware.com");
+        assertEquals(claims.get(Claims.CID), "client");
+        assertEquals(claims.get(Claims.SCOPE), Arrays.asList(new String[] { "read", "write" }));
+        assertEquals(claims.get(Claims.AUD), Arrays.asList(new String[] { "scim", "clients" }));
+        assertTrue(((String) claims.get(Claims.JTI)).length() > 0);
+        assertTrue(((Integer) claims.get(Claims.IAT)) > 0);
+        assertTrue(((Integer) claims.get(Claims.EXP)) > 0);
+        assertTrue(((Integer) claims.get(Claims.EXP)) - ((Integer) claims.get(Claims.IAT)) > 0);
         if (noRefreshToken) {
             assertNull(accessToken.getRefreshToken());
         }
@@ -585,16 +583,16 @@ public class UaaTokenServicesTests {
                 throw new IllegalStateException("Cannot read token claims", e);
             }
 
-            assertEquals(refreshTokenClaims.get("iss"), "http://localhost:8080/uaa/oauth/token");
-            assertNotNull(refreshTokenClaims.get("user_name"));
-            assertNotNull(refreshTokenClaims.get("sub"));
-            assertEquals(refreshTokenClaims.get("cid"), "client");
-            assertEquals(refreshTokenClaims.get("scope"), Arrays.asList(new String[] { "read", "write" }));
-            assertEquals(refreshTokenClaims.get("aud"), Arrays.asList(new String[] { "read", "write" }));
-            assertTrue(((String) refreshTokenClaims.get("jti")).length() > 0);
-            assertTrue(((Integer) refreshTokenClaims.get("iat")) > 0);
-            assertTrue(((Integer) refreshTokenClaims.get("exp")) > 0);
-            assertTrue(((Integer) refreshTokenClaims.get("exp")) - ((Integer) refreshTokenClaims.get("iat")) > 0);
+            assertEquals(refreshTokenClaims.get(Claims.ISS), "http://localhost:8080/uaa/oauth/token");
+            assertNotNull(refreshTokenClaims.get(Claims.USER_NAME));
+            assertNotNull(refreshTokenClaims.get(Claims.SUB));
+            assertEquals(refreshTokenClaims.get(Claims.CID), "client");
+            assertEquals(refreshTokenClaims.get(Claims.SCOPE), Arrays.asList(new String[] { "read", "write" }));
+            assertEquals(refreshTokenClaims.get(Claims.AUD), Arrays.asList(new String[] { "read", "write" }));
+            assertTrue(((String) refreshTokenClaims.get(Claims.JTI)).length() > 0);
+            assertTrue(((Integer) refreshTokenClaims.get(Claims.IAT)) > 0);
+            assertTrue(((Integer) refreshTokenClaims.get(Claims.EXP)) > 0);
+            assertTrue(((Integer) refreshTokenClaims.get(Claims.EXP)) - ((Integer) refreshTokenClaims.get(Claims.IAT)) > 0);
         }
 
         TokenIssuedEvent event = publisher.getLatestEvent();
@@ -616,9 +614,9 @@ public class UaaTokenServicesTests {
         Calendar updatedAt = Calendar.getInstance();
         updatedAt.add(Calendar.MILLISECOND, -1000);
 
-        approvalStore.addApproval(new Approval("jdsa", "client", "read", expiresAt.getTime(), ApprovalStatus.APPROVED,
+        approvalStore.addApproval(new Approval(userId, "client", "read", expiresAt.getTime(), ApprovalStatus.APPROVED,
                         updatedAt.getTime()));
-        approvalStore.addApproval(new Approval("jdsa", "client", "write", expiresAt.getTime(), ApprovalStatus.APPROVED,
+        approvalStore.addApproval(new Approval(userId, "client", "write", expiresAt.getTime(), ApprovalStatus.APPROVED,
                         updatedAt.getTime()));
 
         // First Request
@@ -629,8 +627,7 @@ public class UaaTokenServicesTests {
                         authorizationRequest.getAuthorizationParameters());
         azParameters.put("grant_type", "authorization_code");
         authorizationRequest.setAuthorizationParameters(azParameters);
-        Authentication userAuthentication = new UsernamePasswordAuthenticationToken(new UaaPrincipal(new UaaUser(
-                        "jdsa", "password", "jdsa@vmware.com", null, null)), "n/a", null);
+        Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
@@ -644,7 +641,7 @@ public class UaaTokenServicesTests {
             throw new IllegalStateException("Cannot read token claims", e);
         }
 
-        assertEquals(claims.get("scope"), Arrays.asList(new String[] { "read", "write" }));
+        assertEquals(claims.get(Claims.SCOPE), Arrays.asList(new String[] { "read", "write" }));
         assertNotNull(accessToken.getRefreshToken());
 
         Jwt refreshTokenJwt = JwtHelper.decodeAndVerify(accessToken.getRefreshToken().getValue(),
@@ -659,8 +656,8 @@ public class UaaTokenServicesTests {
             throw new IllegalStateException("Cannot read token claims", e);
         }
 
-        assertEquals(refreshTokenClaims.get("scope"), Arrays.asList(new String[] { "read", "write" }));
-        assertEquals(refreshTokenClaims.get("aud"), Arrays.asList(new String[] { "read", "write" }));
+        assertEquals(refreshTokenClaims.get(Claims.SCOPE), Arrays.asList(new String[] { "read", "write" }));
+        assertEquals(refreshTokenClaims.get(Claims.AUD), Arrays.asList(new String[] { "read", "write" }));
 
         // Second request with reduced scopes
         DefaultAuthorizationRequest reducedScopeAuthorizationRequest = new DefaultAuthorizationRequest("client",
@@ -688,7 +685,7 @@ public class UaaTokenServicesTests {
             throw new IllegalStateException("Cannot read token claims", e);
         }
 
-        assertEquals(reducedClaims.get("scope"), Arrays.asList(new String[] { "read" }));
+        assertEquals(reducedClaims.get(Claims.SCOPE), Arrays.asList(new String[] { "read" }));
         assertEquals(reducedScopeAccessToken.getRefreshToken(), accessToken.getRefreshToken());
     }
 
@@ -697,9 +694,9 @@ public class UaaTokenServicesTests {
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, 3000);
 
-        approvalStore.addApproval(new Approval("jdsa", "client", "read", expiresAt.getTime(), ApprovalStatus.APPROVED,
+        approvalStore.addApproval(new Approval(userId, "client", "read", expiresAt.getTime(), ApprovalStatus.APPROVED,
                         new Date()));
-        approvalStore.addApproval(new Approval("jdsa", "client", "write", expiresAt.getTime(), ApprovalStatus.APPROVED,
+        approvalStore.addApproval(new Approval(userId, "client", "write", expiresAt.getTime(), ApprovalStatus.APPROVED,
                         new Date()));
         // First Request
         DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
@@ -709,8 +706,7 @@ public class UaaTokenServicesTests {
                         authorizationRequest.getAuthorizationParameters());
         azParameters.put("grant_type", "authorization_code");
         authorizationRequest.setAuthorizationParameters(azParameters);
-        Authentication userAuthentication = new UsernamePasswordAuthenticationToken(new UaaPrincipal(new UaaUser(
-                        "jdsa", "password", "jdsa@vmware.com", null, null)), "n/a", null);
+        Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
@@ -724,7 +720,7 @@ public class UaaTokenServicesTests {
             throw new IllegalStateException("Cannot read token claims", e);
         }
 
-        assertEquals(claims.get("scope"), Arrays.asList(new String[] { "read", "write" }));
+        assertEquals(claims.get(Claims.SCOPE), Arrays.asList(new String[] { "read", "write" }));
         assertNotNull(accessToken.getRefreshToken());
 
         Jwt refreshTokenJwt = JwtHelper.decodeAndVerify(accessToken.getRefreshToken().getValue(),
@@ -739,8 +735,8 @@ public class UaaTokenServicesTests {
             throw new IllegalStateException("Cannot read token claims", e);
         }
 
-        assertEquals(refreshTokenClaims.get("scope"), Arrays.asList(new String[] { "read", "write" }));
-        assertEquals(refreshTokenClaims.get("aud"), Arrays.asList(new String[] { "read", "write" }));
+        assertEquals(refreshTokenClaims.get(Claims.SCOPE), Arrays.asList(new String[] { "read", "write" }));
+        assertEquals(refreshTokenClaims.get(Claims.AUD), Arrays.asList(new String[] { "read", "write" }));
 
         // Second request with expanded scopes
         DefaultAuthorizationRequest expandedScopeAuthorizationRequest = new DefaultAuthorizationRequest("client",
@@ -773,8 +769,7 @@ public class UaaTokenServicesTests {
                         authorizationRequest.getAuthorizationParameters());
         azParameters.put("grant_type", "authorization_code");
         authorizationRequest.setAuthorizationParameters(azParameters);
-        Authentication userAuthentication = new UsernamePasswordAuthenticationToken(new UaaPrincipal(new UaaUser(
-                        "jdsa", "password", "jdsa@vmware.com", null, null)), "n/a", null);
+        Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
@@ -788,9 +783,9 @@ public class UaaTokenServicesTests {
             throw new IllegalStateException("Cannot read token claims", e);
         }
 
-        assertTrue(((Integer) claims.get("iat")) > 0);
-        assertTrue(((Integer) claims.get("exp")) > 0);
-        assertTrue(((Integer) claims.get("exp")) - ((Integer) claims.get("iat")) == 3600);
+        assertTrue(((Integer) claims.get(Claims.IAT)) > 0);
+        assertTrue(((Integer) claims.get(Claims.EXP)) > 0);
+        assertTrue(((Integer) claims.get(Claims.EXP)) - ((Integer) claims.get(Claims.IAT)) == 3600);
         assertNotNull(accessToken.getRefreshToken());
 
         Jwt refreshTokenJwt = JwtHelper.decodeAndVerify(accessToken.getRefreshToken().getValue(),
@@ -805,9 +800,9 @@ public class UaaTokenServicesTests {
             throw new IllegalStateException("Cannot read token claims", e);
         }
 
-        assertTrue(((Integer) refreshTokenClaims.get("iat")) > 0);
-        assertTrue(((Integer) refreshTokenClaims.get("exp")) > 0);
-        assertTrue(((Integer) refreshTokenClaims.get("exp")) - ((Integer) refreshTokenClaims.get("iat")) == 36000);
+        assertTrue(((Integer) refreshTokenClaims.get(Claims.IAT)) > 0);
+        assertTrue(((Integer) refreshTokenClaims.get(Claims.EXP)) > 0);
+        assertTrue(((Integer) refreshTokenClaims.get(Claims.EXP)) - ((Integer) refreshTokenClaims.get(Claims.IAT)) == 36000);
     }
 
     @Test(expected = InvalidTokenException.class)
@@ -815,9 +810,9 @@ public class UaaTokenServicesTests {
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, 3000);
 
-        approvalStore.addApproval(new Approval("jdsa", "client", "read", expiresAt.getTime(), ApprovalStatus.APPROVED,
+        approvalStore.addApproval(new Approval(userId, "client", "read", expiresAt.getTime(), ApprovalStatus.APPROVED,
                         new Date()));
-        approvalStore.addApproval(new Approval("jdsa", "client", "write", expiresAt.getTime(), ApprovalStatus.APPROVED,
+        approvalStore.addApproval(new Approval(userId, "client", "write", expiresAt.getTime(), ApprovalStatus.APPROVED,
                         new Date()));
         DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
                         Arrays.asList(new String[] { "read", "write" }));
@@ -826,15 +821,14 @@ public class UaaTokenServicesTests {
                         authorizationRequest.getAuthorizationParameters());
         azParameters.put("grant_type", "authorization_code");
         authorizationRequest.setAuthorizationParameters(azParameters);
-        Authentication userAuthentication = new UsernamePasswordAuthenticationToken(new UaaPrincipal(new UaaUser(
-                        "jdsa", "password", "jdsa@vmware.com", null, null)), "n/a", null);
+        Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
 
-        UaaUser user = userDatabase.retrieveUserByName("jdsa");
+        UaaUser user = userDatabase.retrieveUserByName("jdsa", Origin.UAA);
         UaaUser newUser = new UaaUser(user.getUsername(), "blah", user.getEmail(), null, null);
-        userDatabase.updateUser("jdsa", newUser);
+        userDatabase.updateUser(userId, newUser);
 
         DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest("client",
                         Arrays.asList(new String[] { "read", "write" }));
@@ -853,9 +847,9 @@ public class UaaTokenServicesTests {
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, 3000);
 
-        approvalStore.addApproval(new Approval("jdsa", "client", "read", expiresAt.getTime(), ApprovalStatus.APPROVED,
+        approvalStore.addApproval(new Approval(userId, "client", "read", expiresAt.getTime(), ApprovalStatus.APPROVED,
                         new Date()));
-        approvalStore.addApproval(new Approval("jdsa", "client", "write", expiresAt.getTime(), ApprovalStatus.APPROVED,
+        approvalStore.addApproval(new Approval(userId, "client", "write", expiresAt.getTime(), ApprovalStatus.APPROVED,
                         new Date()));
 
         BaseClientDetails clientDetails = new BaseClientDetails("client", "scim. clients", "read, write",
@@ -872,8 +866,7 @@ public class UaaTokenServicesTests {
                         authorizationRequest.getAuthorizationParameters());
         azParameters.put("grant_type", "authorization_code");
         authorizationRequest.setAuthorizationParameters(azParameters);
-        Authentication userAuthentication = new UsernamePasswordAuthenticationToken(new UaaPrincipal(new UaaUser(
-                        "jdsa", "password", "jdsa@vmware.com", null, null)), "n/a", null);
+        Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
@@ -892,15 +885,12 @@ public class UaaTokenServicesTests {
 
     @Test(expected = InvalidTokenException.class)
     public void testRefreshTokenAfterApprovalsChanged() {
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
+        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",Arrays.asList(new String[] { "read", "write" }));
         authorizationRequest.setResourceIds(new HashSet<String>(Arrays.asList(new String[] { "scim", "clients" })));
-        Map<String, String> azParameters = new HashMap<String, String>(
-                        authorizationRequest.getAuthorizationParameters());
+        Map<String, String> azParameters = new HashMap<String, String>(authorizationRequest.getAuthorizationParameters());
         azParameters.put("grant_type", "authorization_code");
         authorizationRequest.setAuthorizationParameters(azParameters);
-        Authentication userAuthentication = new UsernamePasswordAuthenticationToken(new UaaPrincipal(new UaaUser(
-                        "jdsa", "password", "jdsa@vmware.com", null, null)), "n/a", null);
+        Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
@@ -908,9 +898,9 @@ public class UaaTokenServicesTests {
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, 3000);
 
-        approvalStore.addApproval(new Approval("jdsa", "client", "read", expiresAt.getTime(), ApprovalStatus.APPROVED,
+        approvalStore.addApproval(new Approval(userId, "client", "read", expiresAt.getTime(), ApprovalStatus.APPROVED,
                         new Date()));
-        approvalStore.addApproval(new Approval("jdsa", "client", "write", expiresAt.getTime(), ApprovalStatus.APPROVED,
+        approvalStore.addApproval(new Approval(userId, "client", "write", expiresAt.getTime(), ApprovalStatus.APPROVED,
                         new Date()));
 
         DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest("client",
@@ -930,9 +920,9 @@ public class UaaTokenServicesTests {
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, -3000);
 
-        approvalStore.addApproval(new Approval("jdsa", "client", "read", expiresAt.getTime(), ApprovalStatus.APPROVED,
+        approvalStore.addApproval(new Approval(userId, "client", "read", expiresAt.getTime(), ApprovalStatus.APPROVED,
                         new Date()));
-        approvalStore.addApproval(new Approval("jdsa", "client", "write", expiresAt.getTime(), ApprovalStatus.APPROVED,
+        approvalStore.addApproval(new Approval(userId, "client", "write", expiresAt.getTime(), ApprovalStatus.APPROVED,
                         new Date()));
 
         DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
@@ -942,8 +932,7 @@ public class UaaTokenServicesTests {
                         authorizationRequest.getAuthorizationParameters());
         azParameters.put("grant_type", "authorization_code");
         authorizationRequest.setAuthorizationParameters(azParameters);
-        Authentication userAuthentication = new UsernamePasswordAuthenticationToken(new UaaPrincipal(new UaaUser(
-                        "jdsa", "password", "jdsa@vmware.com", null, null)), "n/a", null);
+        Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
@@ -965,9 +954,9 @@ public class UaaTokenServicesTests {
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, -3000);
 
-        approvalStore.addApproval(new Approval("jdsa", "client", "read", expiresAt.getTime(), ApprovalStatus.DENIED,
+        approvalStore.addApproval(new Approval(userId, "client", "read", expiresAt.getTime(), ApprovalStatus.DENIED,
                         new Date()));
-        approvalStore.addApproval(new Approval("jdsa", "client", "write", expiresAt.getTime(), ApprovalStatus.APPROVED,
+        approvalStore.addApproval(new Approval(userId, "client", "write", expiresAt.getTime(), ApprovalStatus.APPROVED,
                         new Date()));
 
         DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
@@ -977,8 +966,7 @@ public class UaaTokenServicesTests {
                         authorizationRequest.getAuthorizationParameters());
         azParameters.put("grant_type", "authorization_code");
         authorizationRequest.setAuthorizationParameters(azParameters);
-        Authentication userAuthentication = new UsernamePasswordAuthenticationToken(new UaaPrincipal(new UaaUser(
-                        "jdsa", "password", "jdsa@vmware.com", null, null)), "n/a", null);
+        Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
@@ -1000,7 +988,7 @@ public class UaaTokenServicesTests {
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, -3000);
 
-        approvalStore.addApproval(new Approval("jdsa", "client", "read", expiresAt.getTime(), ApprovalStatus.DENIED,
+        approvalStore.addApproval(new Approval(userId, "client", "read", expiresAt.getTime(), ApprovalStatus.DENIED,
                         new Date()));
 
         DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
@@ -1010,8 +998,7 @@ public class UaaTokenServicesTests {
                         authorizationRequest.getAuthorizationParameters());
         azParameters.put("grant_type", "authorization_code");
         authorizationRequest.setAuthorizationParameters(azParameters);
-        Authentication userAuthentication = new UsernamePasswordAuthenticationToken(new UaaPrincipal(new UaaUser(
-                        "jdsa", "password", "jdsa@vmware.com", null, null)), "n/a", null);
+        Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
@@ -1037,8 +1024,7 @@ public class UaaTokenServicesTests {
                         authorizationRequest.getAuthorizationParameters());
         azParameters.put("grant_type", "authorization_code");
         authorizationRequest.setAuthorizationParameters(azParameters);
-        Authentication userAuthentication = new UsernamePasswordAuthenticationToken(new UaaPrincipal(new UaaUser(
-                        "jdsa", "password", "jdsa@vmware.com", null, null)), "n/a", null);
+        Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
@@ -1057,24 +1043,22 @@ public class UaaTokenServicesTests {
 
     @Test
     public void testReadAccessToken() {
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
+        DefaultAuthorizationRequest authorizationRequest =
+            new DefaultAuthorizationRequest("client",Arrays.asList(new String[] { "read", "write" }));
         authorizationRequest.setResourceIds(new HashSet<String>(Arrays.asList(new String[] { "scim", "clients" })));
-        Map<String, String> azParameters = new HashMap<String, String>(
-                        authorizationRequest.getAuthorizationParameters());
+        Map<String, String> azParameters = new HashMap<String, String>(authorizationRequest.getAuthorizationParameters());
         azParameters.put("grant_type", "authorization_code");
         authorizationRequest.setAuthorizationParameters(azParameters);
-        Authentication userAuthentication = new UsernamePasswordAuthenticationToken(new UaaPrincipal(new UaaUser(
-                        "jdsa", "password", "jdsa@vmware.com", null, null)), "n/a", null);
+        Authentication userAuthentication = defaultUserAuthentication;
 
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, 3000);
         Calendar updatedAt = Calendar.getInstance();
         updatedAt.add(Calendar.MILLISECOND, -1000);
 
-        approvalStore.addApproval(new Approval("jdsa", "client", "read", expiresAt.getTime(), ApprovalStatus.APPROVED,
+        approvalStore.addApproval(new Approval(userId, "client", "read", expiresAt.getTime(), ApprovalStatus.APPROVED,
                         updatedAt.getTime()));
-        approvalStore.addApproval(new Approval("jdsa", "client", "write", expiresAt.getTime(), ApprovalStatus.APPROVED,
+        approvalStore.addApproval(new Approval(userId, "client", "write", expiresAt.getTime(), ApprovalStatus.APPROVED,
                         updatedAt.getTime()));
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
@@ -1091,17 +1075,15 @@ public class UaaTokenServicesTests {
                         authorizationRequest.getAuthorizationParameters());
         azParameters.put("grant_type", "authorization_code");
         authorizationRequest.setAuthorizationParameters(azParameters);
-        Authentication userAuthentication = new UsernamePasswordAuthenticationToken(new UaaPrincipal(new UaaUser(
-                        "jdsa", "password", "jdsa@vmware.com", null, null)), "n/a", null);
+        Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
         OAuth2Authentication loadedAuthentication = tokenServices.loadAuthentication(accessToken.getValue());
 
-        assertEquals(UaaAuthority.USER_AUTHORITIES, loadedAuthentication.getAuthorities());
+        assertEquals(USER_AUTHORITIES, loadedAuthentication.getAuthorities());
         assertEquals("jdsa", loadedAuthentication.getName());
-        UaaPrincipal uaaPrincipal = new UaaPrincipal(new UaaUser("12345", "jdsa", "password", "jdsa@vmware.com",
-                        UaaAuthority.USER_AUTHORITIES, null, null, null, null));
+        UaaPrincipal uaaPrincipal = (UaaPrincipal)defaultUserAuthentication.getPrincipal();
         assertEquals(uaaPrincipal, loadedAuthentication.getPrincipal());
         assertNull(loadedAuthentication.getDetails());
 
@@ -1150,8 +1132,7 @@ public class UaaTokenServicesTests {
                         authorizationRequest.getAuthorizationParameters());
         azParameters.put("grant_type", "authorization_code");
         authorizationRequest.setAuthorizationParameters(azParameters);
-        Authentication userAuthentication = new UsernamePasswordAuthenticationToken(new UaaPrincipal(new UaaUser(
-                        "jdsa", "password", "jdsa@vmware.com", null, null)), "n/a", null);
+        Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
@@ -1170,8 +1151,7 @@ public class UaaTokenServicesTests {
         azParameters.put("authorities",
                         "{\"az_attr\":{\"external_group\":\"domain\\\\group1\", \"external_id\":\"abcd1234\"}}");
         authorizationRequest.setAuthorizationParameters(azParameters);
-        Authentication userAuthentication = new UsernamePasswordAuthenticationToken(new UaaPrincipal(new UaaUser(
-                        "jdsa", "password", "jdsa@vmware.com", null, null)), "n/a", null);
+        Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         OAuth2AccessToken token = testCreateAccessTokenForAUser(authentication, false);

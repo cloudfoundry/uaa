@@ -30,7 +30,7 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 public class UaaAuthenticationTestFactory {
 
     public static UaaPrincipal getPrincipal(String id, String name, String email) {
-        return new UaaPrincipal(new MockUaaUserDatabase(id, name, email, name, "unknown").retrieveUserByName(name));
+        return new UaaPrincipal(new MockUaaUserDatabase(id, name, email, name, "familyName").retrieveUserById(id));
     }
 
     public static UaaAuthentication getAuthentication(String id, String name, String email) {

@@ -21,7 +21,6 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.security.core.Authentication;
 
 import java.io.IOException;
-import java.security.Principal;
 
 public class ApprovalModifiedEvent extends AbstractUaaEvent {
     private final Log logger = LogFactory.getLog(getClass());
@@ -42,7 +41,7 @@ public class ApprovalModifiedEvent extends AbstractUaaEvent {
     @Override
     public AuditEvent getAuditEvent() {
         Approval source = getSource();
-        return createAuditRecord(source.getUserName(), AuditEventType.ApprovalModifiedEvent, getOrigin(getAuthentication()), getData(source));
+        return createAuditRecord(source.getUserId(), AuditEventType.ApprovalModifiedEvent, getOrigin(getAuthentication()), getData(source));
     }
 
     private String getData(Approval source) {

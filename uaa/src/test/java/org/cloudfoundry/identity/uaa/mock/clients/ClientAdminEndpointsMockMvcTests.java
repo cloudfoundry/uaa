@@ -4,6 +4,7 @@ import com.googlecode.flyway.core.Flyway;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
+import org.cloudfoundry.identity.uaa.oauth.Claims;
 import org.cloudfoundry.identity.uaa.oauth.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.oauth.SecretChangeRequest;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
@@ -23,7 +24,9 @@ import org.cloudfoundry.identity.uaa.scim.endpoints.ScimGroupEndpoints;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.type.TypeReference;
 import org.hamcrest.Matcher;
 import org.junit.After;
 import org.junit.Before;
@@ -32,6 +35,9 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockServletContext;
+import org.springframework.security.jwt.Jwt;
+import org.springframework.security.jwt.JwtHelper;
+import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -72,12 +78,13 @@ public class ClientAdminEndpointsMockMvcTests {
     private MockMvc mockMvc;
     private String adminToken = null;
     private TestClient testClient = null;
-    private UaaTestAccounts testAccounts = null;
     private String adminUserToken = null;
     private ScimUserEndpoints scimUserEndpoints = null;
     private ScimGroupEndpoints scimGroupEndpoints = null;
     private ApplicationEventPublisher applicationEventPublisher = null;
     private ArgumentCaptor<AbstractUaaEvent> captor = null;
+    private UaaUser testUser;
+    private String testPassword;
 
     @Before
     public void setUp() throws Exception {
@@ -95,7 +102,9 @@ public class ClientAdminEndpointsMockMvcTests {
         scimGroupEndpoints = webApplicationContext.getBean(ScimGroupEndpoints.class);
 
         testClient = new TestClient(mockMvc);
-        testAccounts = UaaTestAccounts.standard(null);
+        UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
+        testUser = testAccounts.getUserWithRandomID();
+        testPassword = testAccounts.getPassword();
         adminToken = testClient.getClientCredentialsOAuthAccessToken(
             testAccounts.getAdminClientId(),
             testAccounts.getAdminClientSecret(),
@@ -112,11 +121,11 @@ public class ClientAdminEndpointsMockMvcTests {
         HttpServletResponse mockResponse = mock(HttpServletResponse.class);
 
 
-        SearchResults<Map<String, Object>> marissa = (SearchResults<Map<String, Object>>)scimUserEndpoints.findUsers("id,userName", "userName eq '" + testAccounts.getUserName() + "'", "userName", "asc", 0, 1);
+        SearchResults<Map<String, Object>> marissa = (SearchResults<Map<String, Object>>)scimUserEndpoints.findUsers("id,userName", "userName eq \"" + testUser.getUsername() + "\"", "userName", "asc", 0, 1);
         String marissaId = (String)marissa.getResources().iterator().next().get("id");
 
         //add marissa to uaa.admin
-        SearchResults<Map<String, Object>> uaaAdmin = (SearchResults<Map<String, Object>>) scimGroupEndpoints.listGroups("id,displayName", "displayName eq 'uaa.admin'", "displayName", "asc", 1, 1);
+        SearchResults<Map<String, Object>> uaaAdmin = (SearchResults<Map<String, Object>>) scimGroupEndpoints.listGroups("id,displayName", "displayName eq \"uaa.admin\"", "displayName", "asc", 1, 1);
         String groupId = (String)uaaAdmin.getResources().iterator().next().get("id");
         ScimGroup group = scimGroupEndpoints.getGroup(groupId, mockResponse);
         ScimGroupMember gm = new ScimGroupMember(marissaId, ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER));
@@ -124,7 +133,7 @@ public class ClientAdminEndpointsMockMvcTests {
         scimGroupEndpoints.updateGroup(group, groupId, String.valueOf(group.getVersion()), mockResponse);
 
         //add marissa to clients.write
-        uaaAdmin = (SearchResults<Map<String, Object>>) scimGroupEndpoints.listGroups("id,displayName", "displayName eq 'clients.write'", "displayName", "asc", 1, 1);
+        uaaAdmin = (SearchResults<Map<String, Object>>) scimGroupEndpoints.listGroups("id,displayName", "displayName eq \"clients.write\"", "displayName", "asc", 1, 1);
         groupId = (String)uaaAdmin.getResources().iterator().next().get("id");
         group = scimGroupEndpoints.getGroup(groupId, mockResponse);
         gm = new ScimGroupMember(marissaId, ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER));
@@ -132,7 +141,7 @@ public class ClientAdminEndpointsMockMvcTests {
         scimGroupEndpoints.updateGroup(group, groupId, String.valueOf(group.getVersion()), mockResponse);
 
         //add marissa to clients.read
-        uaaAdmin = (SearchResults<Map<String, Object>>) scimGroupEndpoints.listGroups("id,displayName", "displayName eq 'clients.read'", "displayName", "asc", 1, 1);
+        uaaAdmin = (SearchResults<Map<String, Object>>) scimGroupEndpoints.listGroups("id,displayName", "displayName eq \"clients.read\"", "displayName", "asc", 1, 1);
         groupId = (String)uaaAdmin.getResources().iterator().next().get("id");
         group = scimGroupEndpoints.getGroup(groupId, mockResponse);
         gm = new ScimGroupMember(marissaId, ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER));
@@ -143,8 +152,8 @@ public class ClientAdminEndpointsMockMvcTests {
 
         adminUserToken = testClient.getUserOAuthAccessToken(adminClient.getClientId(),
                                                             "secret",
-                                                            testAccounts.getUserName(),
-                                                            testAccounts.getPassword(),
+                                                            testUser.getUsername(),
+                                                            testPassword,
                                                             "uaa.admin,clients.read,clients.write");
     }
 
@@ -443,8 +452,8 @@ public class ClientAdminEndpointsMockMvcTests {
         String userToken = testClient.getUserOAuthAccessToken(
                 details[0].getClientId(),
                 "secret",
-                testAccounts.getUserName(),
-                testAccounts.getPassword(),
+                testUser.getUsername(),
+                testPassword,
                 "oauth.approvals");
         addApprovals(userToken, details[0].getClientId());
         Approval[] approvals = getApprovals(userToken, details[0].getClientId());
@@ -487,8 +496,8 @@ public class ClientAdminEndpointsMockMvcTests {
         String userToken = testClient.getUserOAuthAccessToken(
                 details.getClientId(),
                 "secret",
-                testAccounts.getUserName(),
-                testAccounts.getPassword(),
+                testUser.getUsername(),
+                testPassword,
                 "oauth.approvals");
         Approval[] approvals = getApprovals(userToken, details.getClientId());
         assertEquals(0, approvals.length);
@@ -513,8 +522,8 @@ public class ClientAdminEndpointsMockMvcTests {
         String loginToken = testClient.getUserOAuthAccessToken(
                 approvalsClient.getClientId(),
                 "secret",
-                testAccounts.getUserName(),
-                testAccounts.getPassword(),
+                testUser.getUsername(),
+                testPassword,
                 "oauth.approvals");
 
         approvals = getApprovals(loginToken, details.getClientId());
@@ -527,9 +536,9 @@ public class ClientAdminEndpointsMockMvcTests {
         ClientDetails details = createClient(adminToken, new RandomValueStringGenerator().generate(), "password");
         String userToken = testClient.getUserOAuthAccessToken(
                             details.getClientId(), 
-                            "secret", 
-                            testAccounts.getUserName(), 
-                            testAccounts.getPassword(), 
+                            "secret",
+                            testUser.getUsername(),
+                            testPassword,
                             "oauth.approvals");
         Approval[] approvals = getApprovals(userToken, details.getClientId());
         assertEquals(0, approvals.length);
@@ -547,8 +556,8 @@ public class ClientAdminEndpointsMockMvcTests {
         String loginToken = testClient.getUserOAuthAccessToken(
                 approvalsClient.getClientId(),
                 "secret",
-                testAccounts.getUserName(),
-                testAccounts.getPassword(),
+                testUser.getUsername(),
+                testPassword,
                 "oauth.approvals");
 
         approvals = getApprovals(loginToken, details.getClientId());
@@ -562,8 +571,8 @@ public class ClientAdminEndpointsMockMvcTests {
         String userToken = testClient.getUserOAuthAccessToken(
             details.getClientId(),
             "secret",
-            testAccounts.getUserName(),
-            testAccounts.getPassword(),
+            testUser.getUsername(),
+            testPassword,
             "oauth.approvals");
         Approval[] approvals = getApprovals(userToken, details.getClientId());
         assertEquals(0, approvals.length);
@@ -586,8 +595,8 @@ public class ClientAdminEndpointsMockMvcTests {
         String loginToken = testClient.getUserOAuthAccessToken(
                 approvalsClient.getClientId(),
                 "secret",
-                testAccounts.getUserName(),
-                testAccounts.getPassword(),
+                testUser.getUsername(),
+                testPassword,
                 "oauth.approvals");
         approvals = getApprovals(loginToken, details.getClientId());
         assertEquals(0, approvals.length);
@@ -614,8 +623,8 @@ public class ClientAdminEndpointsMockMvcTests {
             String userToken = testClient.getUserOAuthAccessToken(
                     c.getClientId(),
                     "secret",
-                    testAccounts.getUserName(),
-                    testAccounts.getPassword(),
+                    testUser.getUsername(),
+                    testPassword,
                     "oauth.approvals");
             addApprovals(userToken, c.getClientId());
         }
@@ -625,8 +634,8 @@ public class ClientAdminEndpointsMockMvcTests {
             String userToken = testClient.getUserOAuthAccessToken(
                     c.getClientId(),
                     "secret",
-                    testAccounts.getUserName(),
-                    testAccounts.getPassword(),
+                    testUser.getUsername(),
+                    testPassword,
                     "oauth.approvals");
             assertEquals(3, getApprovals(userToken,c.getClientId()).length);
         }
@@ -656,8 +665,8 @@ public class ClientAdminEndpointsMockMvcTests {
             String loginToken = testClient.getUserOAuthAccessToken(
                     approvalsClient.getClientId(),
                     "secret",
-                    testAccounts.getUserName(),
-                    testAccounts.getPassword(),
+                    testUser.getUsername(),
+                    testPassword,
                     "oauth.approvals");
             assertEquals(3, getApprovals(loginToken,c.getClientId()).length);
             assertFalse(c.isApprovalsDeleted());
@@ -735,8 +744,8 @@ public class ClientAdminEndpointsMockMvcTests {
             String userToken = testClient.getUserOAuthAccessToken(
                     c.getClientId(),
                     "secret",
-                    testAccounts.getUserName(),
-                    testAccounts.getPassword(),
+                    testUser.getUsername(),
+                    testPassword,
                     "oauth.approvals");
             addApprovals(userToken, c.getClientId());
         }
@@ -746,8 +755,8 @@ public class ClientAdminEndpointsMockMvcTests {
             String userToken = testClient.getUserOAuthAccessToken(
                     c.getClientId(),
                     "secret",
-                    testAccounts.getUserName(),
-                    testAccounts.getPassword(),
+                    testUser.getUsername(),
+                    testPassword,
                     "oauth.approvals");
             assertEquals(3, getApprovals(userToken,c.getClientId()).length);
         }
@@ -771,8 +780,8 @@ public class ClientAdminEndpointsMockMvcTests {
             String userToken = testClient.getUserOAuthAccessToken(
                     c.getClientId(),
                     "secret2",
-                    testAccounts.getUserName(),
-                    testAccounts.getPassword(),
+                    testUser.getUsername(),
+                    testPassword,
                     "oauth.approvals");
             assertEquals(0, getApprovals(userToken,c.getClientId()).length);
             assertTrue(c.isApprovalsDeleted());
@@ -822,8 +831,8 @@ public class ClientAdminEndpointsMockMvcTests {
             String userToken = testClient.getUserOAuthAccessToken(
                     c.getClientId(),
                     "secret",
-                    testAccounts.getUserName(),
-                    testAccounts.getPassword(),
+                    testUser.getUsername(),
+                    testPassword,
                     "oauth.approvals");
             addApprovals(userToken, c.getClientId());
         }
@@ -833,8 +842,8 @@ public class ClientAdminEndpointsMockMvcTests {
             String userToken = testClient.getUserOAuthAccessToken(
                     c.getClientId(),
                     "secret",
-                    testAccounts.getUserName(),
-                    testAccounts.getPassword(),
+                    testUser.getUsername(),
+                    testPassword,
                     "oauth.approvals");
             assertEquals(3, getApprovals(userToken,c.getClientId()).length);
         }
@@ -860,8 +869,8 @@ public class ClientAdminEndpointsMockMvcTests {
             String userToken = testClient.getUserOAuthAccessToken(
                     c.getClientId(),
                     "secret",
-                    testAccounts.getUserName(),
-                    testAccounts.getPassword(),
+                    testUser.getUsername(),
+                    testPassword,
                     "oauth.approvals");
             assertEquals(3, getApprovals(userToken,c.getClientId()).length);
         }
@@ -995,7 +1004,7 @@ public class ClientAdminEndpointsMockMvcTests {
 
 
     private Approval[] getApprovals(String token, String clientId) throws Exception {
-        String filter = "clientId eq '"+clientId+"'";
+        String filter = "client_id eq \""+clientId+"\"";
         
         MockHttpServletRequestBuilder get = get("/approvals")
                         .header("Authorization", "Bearer " + token)
@@ -1012,9 +1021,9 @@ public class ClientAdminEndpointsMockMvcTests {
         Date oneMinuteAgo = new Date(System.currentTimeMillis() - 60000);
         Date expiresAt = new Date(System.currentTimeMillis() + 60000);
         Approval[] approvals = new Approval[] {
-            new Approval(testAccounts.getUserName(), clientId, "cloud_controller.read", expiresAt, ApprovalStatus.APPROVED,oneMinuteAgo), 
-            new Approval(testAccounts.getUserName(), clientId, "openid", expiresAt, ApprovalStatus.APPROVED,oneMinuteAgo),
-            new Approval(testAccounts.getUserName(), clientId, "password.write", expiresAt, ApprovalStatus.APPROVED,oneMinuteAgo)};
+            new Approval(null, clientId, "cloud_controller.read", expiresAt, ApprovalStatus.APPROVED,oneMinuteAgo),
+            new Approval(null, clientId, "openid", expiresAt, ApprovalStatus.APPROVED,oneMinuteAgo),
+            new Approval(null, clientId, "password.write", expiresAt, ApprovalStatus.APPROVED,oneMinuteAgo)};
         
         MockHttpServletRequestBuilder put = put("/approvals/"+clientId)
             .header("Authorization", "Bearer " + token)

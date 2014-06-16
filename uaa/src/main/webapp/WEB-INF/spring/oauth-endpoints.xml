@@ -82,6 +82,8 @@
         <property name="parameterNames">
             <list>
                 <value>username</value>
+                <value>origin</value>
+                <value>user_id</value>
             </list>
         </property>
     </bean>
@@ -256,7 +258,7 @@
         </property>
     </bean>
 
-    <bean id="authzAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager">
+    <bean id="abstractAuthzAuthenticationMgr" abstract="true" class="org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager">
         <constructor-arg ref="userDatabase" />
         <property name="accountLoginPolicy">
             <bean class="org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy">
@@ -265,6 +267,11 @@
                 <property name="lockoutPeriodSeconds" value="300" />
             </bean>
         </property>
+        <property name="origin" value="uaa"/>
     </bean>
+
+    <bean id="uaaAuthenticationMgr" parent="abstractAuthzAuthenticationMgr"/>
+
+    <bean id="authzAuthenticationMgr" parent="abstractAuthzAuthenticationMgr"/>
 
 </beans>
