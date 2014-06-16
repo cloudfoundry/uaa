@@ -24,6 +24,7 @@ import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.http.HttpHeaders;
@@ -55,6 +56,7 @@ public class CloudfoundryApiIntegrationTests {
     }
 
     @Test
+    @Ignore
     public void testClientAccessesProtectedResource() throws Exception {
         OAuth2AccessToken accessToken = context.getAccessToken();
         // add an approval for the scope requested
