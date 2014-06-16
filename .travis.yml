@@ -49,7 +49,7 @@ after_success:
   - $TRAVIS_BUILD_DIR/scripts/cobertura/cobertura-report.sh
   - mvn coveralls:cobertura
   - openssl aes-256-cbc -k "$SETTINGS_XML_KEY" -in scripts/travis/settings.xml.enc -d -a -out $HOME/.m2/settings.xml
-  - python travis_after_all.py
+  - python scripts/travis/travis_after_all.py
   - export $(cat .to_export_back)
   - |
       if [ "$BUILD_LEADER" = "YES" ]; then
