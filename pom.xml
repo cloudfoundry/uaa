@@ -19,7 +19,7 @@
     <name>CloudFoundry Identity - Parent</name>
     <description>The UAA is the Identity Management Solution for Cloud Foundry</description>
     <packaging>pom</packaging>
-    <version>1.7.0-SNAPSHOT</version>
+    <version>1.7.0</version>
     <url>http://github.com/cloudfoundry/uaa</url>
     <modules>
         <module>common</module>
