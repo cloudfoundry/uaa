@@ -90,13 +90,12 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
             return null;
         }
 
-        boolean addNewAccounts = true;
         UaaUser user = null;
         try {
             user = userDatabase.retrieveUserByName(req.getUsername(), getOrigin());
         } catch (UsernameNotFoundException e) {
         }
-        if (addNewAccounts && user==null) {
+        if (user==null) {
             // Register new users automatically
             user = getUser(req, Collections.<String, String>emptyMap());
             publish(new NewUserAuthenticatedEvent(user));
@@ -105,8 +104,6 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
             } catch (UsernameNotFoundException ex) {
                 throw new BadCredentialsException("Bad credentials");
             }
-        } else if (user==null) {
-            throw new BadCredentialsException("Bad credentials");
         }
         UaaAuthenticationDetails uaaAuthenticationDetails = null;
         if (request.getDetails() instanceof UaaAuthenticationDetails) {
