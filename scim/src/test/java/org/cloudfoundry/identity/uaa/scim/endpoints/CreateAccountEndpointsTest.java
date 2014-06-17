@@ -33,6 +33,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class CreateAccountEndpointsTest {
@@ -60,7 +61,8 @@ public class CreateAccountEndpointsTest {
                 .accept(APPLICATION_JSON);
 
         mockMvc.perform(post)
-                .andExpect(status().isCreated());
+                .andExpect(status().isCreated())
+                .andExpect(content().string("user@example.com"));
 
         ArgumentCaptor<ScimUser> scimUserCaptor = ArgumentCaptor.forClass(ScimUser.class);
         Mockito.verify(scimUserProvisioning).createUser(scimUserCaptor.capture(), eq("secret"));

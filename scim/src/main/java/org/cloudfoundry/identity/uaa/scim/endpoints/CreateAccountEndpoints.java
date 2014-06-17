@@ -60,7 +60,7 @@ public class CreateAccountEndpoints implements ApplicationEventPublisherAware {
             try {
                 String email = expiringCode.getData();
                 scimUserProvisioning.createUser(newScimUser(email), accountCreation.getPassword());
-                responseEntity = new ResponseEntity<>(CREATED);
+                responseEntity = new ResponseEntity<>(email, CREATED);
             } catch (ScimResourceAlreadyExistsException e) {
                 responseEntity = new ResponseEntity<>(CONFLICT);
             }
