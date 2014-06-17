@@ -20,6 +20,7 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.manager.NewUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
@@ -90,8 +91,10 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
      * 
      * @param user a UaaUser
      */
-    private void addUser(UaaUser user) {
-        List<ScimUser> users = scimUserProvisioning.query("userName eq \"" + user.getUsername() + "\"");
+    protected void addUser(UaaUser user) {
+        List<ScimUser> users = scimUserProvisioning.query("userName eq \"" + user.getUsername() + "\""+
+            " and origin eq \""+
+            (user.getOrigin()==null? Origin.UAA : user.getOrigin())+"\"");
 
         if (users.isEmpty()) {
             createNewUser(user);

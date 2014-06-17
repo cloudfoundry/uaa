@@ -21,7 +21,9 @@
     <bean id="contextSource" class="org.springframework.security.ldap.DefaultSpringSecurityContextSource">
         <constructor-arg value="${ldap.base.url:ldap://localhost:389/dc=test,dc=com}" />
         <property name="userDn" value="${ldap.base.userDn:cn=admin,ou=Users,dc=test,dc=com}" />
-        <property name="password" value="${ldap.base.password:password}" />
+        <property name="password" value="${ldap.base.password:adminsecret}" />
+        <property name="baseEnvironmentProperties" ref="ldapProperties"/>
+        <property name="pooled" ref="ldapPooled"/>
     </bean>
 
     <bean id="ldapAuthProvider" class="org.springframework.security.ldap.authentication.LdapAuthenticationProvider">
@@ -37,15 +39,8 @@
                 </property>
             </bean>
         </constructor-arg>
-        <constructor-arg>
-            <bean class="org.springframework.security.ldap.authentication.NullLdapAuthoritiesPopulator" />
-        </constructor-arg>
-        <property name="authoritiesMapper">
-            <bean class="org.springframework.security.core.authority.mapping.SimpleAuthorityMapper">
-                <property name="defaultAuthority" value="ROLE_USER" />
-            </bean>
-        </property>
-
+        <constructor-arg ref="ldapAuthoritiesPopulator"/>
+        <property name="authoritiesMapper" ref="ldapAuthoritiesMapper"/>
     </bean>
 
     <bean id="testLdapProfile" class="java.lang.String">

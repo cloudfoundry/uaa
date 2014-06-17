@@ -6,11 +6,8 @@ objectClass: domain
 
 dn: ou=Users,dc=test,dc=com
 changetype: add
-objectClass: top
-objectClass: dcObject
 objectClass: organizationalUnit
-dc: Users
-
+ou: Users
 
 dn: cn=admin,ou=Users,dc=test,dc=com
 changetype: add
@@ -55,3 +52,34 @@ userPassword: ldap3
 uid: 20f459e0-e30b-4d1f-998c-3ded7f769db4
 mail: marissa3@test.com
 sn: Marissa3
+
+###############################################################################
+#        BEGIN GROUP TO SCOPE MAPPING
+###############################################################################
+#scopes as groups mapping - this is the search base
+dn: ou=scopes,dc=test,dc=com
+changetype: add
+objectClass: organizationalUnit
+ou: scopes
+
+#This groups contains scopes as comma separated list in the description attribute
+dn: cn=admins,ou=scopes,dc=test,dc=com
+changetype: add
+objectClass: groupOfNames
+objectClass: top
+cn: admins
+description: uaa.admin,cloud_controller.read
+member: cn=admin,ou=Users,dc=test,dc=com
+member: cn=marissa3,ou=Users,dc=test,dc=com
+
+#This groups contains scope as the cn attribute
+dn: cn=uaa.admin,ou=scopes,dc=test,dc=com
+changetype: add
+objectClass: groupOfNames
+objectClass: top
+cn: uaa.admin
+member: cn=admin,ou=Users,dc=test,dc=com
+member: cn=marissa3,ou=Users,dc=test,dc=com
+###############################################################################
+#        END GROUP TO SCOPE MAPPING
+###############################################################################

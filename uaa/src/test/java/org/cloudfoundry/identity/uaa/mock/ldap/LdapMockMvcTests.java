@@ -14,11 +14,15 @@ package org.cloudfoundry.identity.uaa.mock.ldap;
 
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
-import org.cloudfoundry.identity.uaa.test.LdapIntegrationTestConfig;
+import org.cloudfoundry.identity.uaa.test.DefaultIntegrationTestConfig;
 import org.cloudfoundry.identity.uaa.test.TestClient;
+import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -26,6 +30,12 @@ import org.junit.runners.Parameterized.Parameters;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockServletContext;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.ldap.server.ApacheDSContainer;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -33,11 +43,15 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+import static org.hamcrest.collection.IsArrayContainingInAnyOrder.arrayContainingInAnyOrder;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 import static org.springframework.http.MediaType.TEXT_HTML_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -49,13 +63,40 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @RunWith(Parameterized.class)
 public class LdapMockMvcTests {
 
-
     @Parameters
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
-            {"ldap-simple-bind.xml"}, {"ldap-search-and-bind.xml"},{"ldap-search-and-compare.xml"}
+            {"ldap-simple-bind.xml", "ldap-groups-null.xml"},
+            {"ldap-simple-bind.xml", "ldap-groups-as-scopes.xml"},
+            {"ldap-search-and-bind.xml", "ldap-groups-null.xml"},
+            {"ldap-search-and-bind.xml", "ldap-groups-as-scopes.xml"},
+            {"ldap-search-and-compare.xml", "ldap-groups-null.xml"},
+            {"ldap-search-and-compare.xml", "ldap-groups-as-scopes.xml"}
         });
     }
+
+    private static ApacheDSContainer apacheDS;
+    private static File tmpDir;
+    @BeforeClass
+    public static void startApacheDS() throws Exception {
+        tmpDir = new File(System.getProperty("java.io.tmpdir")+"/apacheds/"+new RandomValueStringGenerator().generate());
+        tmpDir.deleteOnExit();
+        System.out.println(tmpDir);
+        System.setProperty("ldap.base.url","ldap://localhost:33389");
+        apacheDS = new ApacheDSContainer("dc=test,dc=com","classpath:ldap_init.ldif");
+        apacheDS.setWorkingDirectory(tmpDir);
+        apacheDS.setPort(33389);
+        apacheDS.afterPropertiesSet();
+        apacheDS.start();
+    }
+
+    @AfterClass
+    public static void stopApacheDS() {
+        apacheDS.stop();
+
+    }
+
+
 
     AnnotationConfigWebApplicationContext webApplicationContext;
 
@@ -64,17 +105,20 @@ public class LdapMockMvcTests {
     JdbcTemplate jdbcTemplate;
 
     private String ldapProfile;
+    private String ldapGroup;
 
-    public LdapMockMvcTests(String ldapProfile) {
+    public LdapMockMvcTests(String ldapProfile, String ldapGroup) {
+        this.ldapGroup = ldapGroup;
         this.ldapProfile = ldapProfile;
     }
 
     @Before
     public void setUp() throws Exception {
         System.setProperty("ldap.profile.file", "ldap/"+ldapProfile);
+        System.setProperty("ldap.profile.groups.file", "ldap/"+ldapGroup);
         webApplicationContext = new AnnotationConfigWebApplicationContext();
         webApplicationContext.setServletContext(new MockServletContext());
-        webApplicationContext.register(LdapIntegrationTestConfig.class);
+        webApplicationContext.register(DefaultIntegrationTestConfig.class);
         new YamlServletProfileInitializer().initialize(webApplicationContext);
         webApplicationContext.refresh();
         webApplicationContext.registerShutdownHook();
@@ -199,4 +243,33 @@ public class LdapMockMvcTests {
         assertEquals("ldap", origin);
     }
 
+    @Test
+    public void testLdapScopes() throws Exception {
+        Assume.assumeTrue(ldapGroup.equals("ldap-groups-as-scopes.xml"));
+        AuthenticationManager manager = (AuthenticationManager)webApplicationContext.getBean("ldapAuthenticationManager");
+        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("marissa3","ldap3");
+        Authentication auth = manager.authenticate(token);
+        assertNotNull(auth);
+        GrantedAuthority[] list = new GrantedAuthority[]{
+            UaaAuthority.authority("uaa.admin"),
+            UaaAuthority.authority("cloud_controller.read")
+        };
+        assertThat(list, arrayContainingInAnyOrder(auth.getAuthorities().toArray(new GrantedAuthority[0])));
+    }
+
+    @Test
+    @Ignore
+    public void testNestedLdapScopes() throws Exception {
+        Assume.assumeTrue(ldapGroup.equals("ldap-groups-as-scopes.xml"));
+        AuthenticationManager manager = (AuthenticationManager)webApplicationContext.getBean("ldapAuthenticationManager");
+        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("admin","adminsecret");
+        Authentication auth = manager.authenticate(token);
+        assertNotNull(auth);
+        GrantedAuthority[] list = new GrantedAuthority[] {
+                UaaAuthority.authority("uaa.user"),
+                UaaAuthority.authority("cloud_controller.read"),
+                UaaAuthority.authority("uaa.admin"),
+            };
+        assertThat(list, arrayContainingInAnyOrder(auth.getAuthorities().toArray(new GrantedAuthority[0])));
+    }
 }
