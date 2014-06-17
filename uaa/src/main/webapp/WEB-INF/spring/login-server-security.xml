@@ -193,8 +193,13 @@
     </bean>
 
     <bean id="passwordResetEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpoints">
-        <constructor-arg ref="scimUserProvisioning"/>
-        <constructor-arg ref="codeStore"/>
+        <constructor-arg index="0" ref="scimUserProvisioning"/>
+        <constructor-arg index="1" ref="codeStore"/>
+    </bean>
+
+    <bean id="createAccountEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.CreateAccountEndpoints">
+        <constructor-arg index="0" ref="scimUserProvisioning"/>
+        <constructor-arg index="1" ref="codeStore"/>
     </bean>
 
     <http create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="emptyAuthenticationManager"
@@ -207,6 +212,14 @@
 
     <http create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="emptyAuthenticationManager"
         access-decision-manager-ref="accessDecisionManager" pattern="/password_*" xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/**" access="scope=oauth.login" />
+        <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
+        <anonymous enabled="false" />
+        <access-denied-handler ref="oauthAccessDeniedHandler" />
+    </http>
+
+    <http create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="emptyAuthenticationManager"
+        access-decision-manager-ref="accessDecisionManager" pattern="/create_account" xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="scope=oauth.login" />
         <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
         <anonymous enabled="false" />
