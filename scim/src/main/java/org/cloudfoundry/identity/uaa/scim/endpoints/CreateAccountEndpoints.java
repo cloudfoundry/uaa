@@ -35,7 +35,7 @@ import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.CREATED;
 
 @Controller
-public class CreateAccountEndpoints implements ApplicationEventPublisherAware {
+public class CreateAccountEndpoints {
 
     private final ScimUserProvisioning scimUserProvisioning;
     private final ExpiringCodeStore expiringCodeStore;
@@ -44,11 +44,6 @@ public class CreateAccountEndpoints implements ApplicationEventPublisherAware {
     public CreateAccountEndpoints(ScimUserProvisioning scimUserProvisioning, ExpiringCodeStore expiringCodeStore) {
         this.scimUserProvisioning = scimUserProvisioning;
         this.expiringCodeStore = expiringCodeStore;
-    }
-
-    @Override
-    public void setApplicationEventPublisher(ApplicationEventPublisher publisher) {
-        this.publisher = publisher;
     }
 
     @RequestMapping(value = "/create_account", method = RequestMethod.POST)
@@ -103,12 +98,6 @@ public class CreateAccountEndpoints implements ApplicationEventPublisherAware {
 
         public void setPassword(String password) {
             this.password = password;
-        }
-    }
-
-    protected void publish(ApplicationEvent event) {
-        if (publisher!=null) {
-            publisher.publishEvent(event);
         }
     }
 }
