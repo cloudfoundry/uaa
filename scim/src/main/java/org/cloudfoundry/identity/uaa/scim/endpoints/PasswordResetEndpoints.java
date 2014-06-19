@@ -19,6 +19,7 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.password.event.PasswordChangeEvent;
@@ -65,7 +66,7 @@ public class PasswordResetEndpoints implements ApplicationEventPublisherAware {
 
     @RequestMapping(value = "/password_resets", method = RequestMethod.POST)
     public ResponseEntity<String> resetPassword(@RequestBody String email) {
-        List<ScimUser> results = scimUserProvisioning.query("email eq \"" + email + "\" and origin eq \"uaa\"");
+        List<ScimUser> results = scimUserProvisioning.query("email eq \"" + email + "\" and origin eq \"" + Origin.UAA + "\"");
         if (results.isEmpty()) {
             return new ResponseEntity<>(BAD_REQUEST);
         }

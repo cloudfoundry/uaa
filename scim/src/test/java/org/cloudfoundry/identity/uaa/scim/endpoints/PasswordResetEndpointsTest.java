@@ -19,6 +19,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -56,7 +57,7 @@ public class PasswordResetEndpointsTest {
     public void testCreatingAPasswordResetWhenTheEmailExists() throws Exception {
         ScimUser user = new ScimUser("id001", "userman", null, null);
         user.addEmail("user@example.com");
-        Mockito.when(scimUserProvisioning.query("email eq \"user@example.com\" and origin eq \"uaa\""))
+        Mockito.when(scimUserProvisioning.query("email eq \"user@example.com\" and origin eq \"" + Origin.UAA + "\""))
                 .thenReturn(Arrays.asList(user));
 
         MockHttpServletRequestBuilder post = post("/password_resets")
@@ -71,7 +72,7 @@ public class PasswordResetEndpointsTest {
 
     @Test
     public void testCreatingAPasswordResetWhenTheUserDoesNotExist() throws Exception {
-        Mockito.when(scimUserProvisioning.query("email eq \"user@example.com\" and origin eq \"uaa\""))
+        Mockito.when(scimUserProvisioning.query("email eq \"user@example.com\" and origin eq \"" + Origin.UAA + "\""))
                 .thenReturn(Arrays.<ScimUser>asList());
 
         MockHttpServletRequestBuilder post = post("/password_resets")
