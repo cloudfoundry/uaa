@@ -27,15 +27,15 @@ class UaaSmokeSimulation extends Simulation {
       .exec(logout)
   }
 
-  val vmcLogins = scenario("CF Logins")
+  val cfLogins = scenario("CF Logins")
     .during(Duration) {
       feed(UsernamePasswordFeeder())
-//        .exec(vmcLoginBadPassword())
-        .exec(vmcLogin())
-        .exec(vmcLogin())
-//        .exec(vmcLoginBadUsername())
-        .exec(vmcLogin())
-        .exec(vmcLogin(username="shaun1", password="password"))
+//        .exec(cfLoginBadPassword())
+        .exec(cfLogin())
+        .exec(cfLogin())
+//        .exec(cfLoginBadUsername())
+        .exec(cfLogin())
+        .exec(cfLogin(username="shaun1", password="password"))
         .pause(0, 2)
   }
 
@@ -85,7 +85,7 @@ class UaaSmokeSimulation extends Simulation {
        , scimWorkout.users(3).ramp(10).protocolConfig(uaaHttpConfig)
        , authzCodeLogin.users(5).ramp(10).protocolConfig(loginHttpConfig)
        , passwordScores.users(1).ramp(10).protocolConfig(uaaHttpConfig)
-       , vmcLogins.users(10).ramp(1).protocolConfig(uaaHttpConfig)
+       , cfLogins.users(10).ramp(1).protocolConfig(uaaHttpConfig)
     )
 
 }

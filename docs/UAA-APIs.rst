@@ -40,7 +40,7 @@ Authentication and Delegated Authorization APIs
 
 This section deals with machine interactions, not with browsers, although some of them may have browsable content for authenticated users.  All machine requests have accept headers indicating JSON (or a derived media type perhaps).
 
-The ``/userinfo``, ``/check_id``, and ``/token`` endpoints are specified in the `OpenID Connect`_ and OAuth2_ standards and should be used by web applications on a cloud foundry instance such as micro, www, support, but will not be used by flows from vmc.
+The ``/userinfo``, ``/check_id``, and ``/token`` endpoints are specified in the `OpenID Connect`_ and OAuth2_ standards and should be used by web applications on a cloud foundry instance such as micro, www, support, but will not be used by flows from cf.
 
 A Note on OAuth Scope
 -----------------------
@@ -159,7 +159,7 @@ Implicit Grant with Credentials: ``POST /oauth/authorize``
 
 An OAuth2_ defined endpoint to provide various tokens and authorization codes.
 
-For the ``vmc`` flows, we use the OAuth2 Implicit grant type (to avoid a second round trip to ``/token`` and so vmc does not need to securely store a client secret or user refresh tokens). The authentication method for the user is undefined by OAuth2 but a POST to this endpoint is acceptable, although a GET must also be supported (see `OAuth2 section 3.1`_).
+For the ``cf`` flows, we use the OAuth2 Implicit grant type (to avoid a second round trip to ``/token`` and so cf does not need to securely store a client secret or user refresh tokens). The authentication method for the user is undefined by OAuth2 but a POST to this endpoint is acceptable, although a GET must also be supported (see `OAuth2 section 3.1`_).
 
 .. _OAuth2 section 3.1: http://tools.ietf.org/id/draft-ietf-oauth-v2-26.html#rfc.section.3.1
 
@@ -173,9 +173,9 @@ All requests to this endpoint MUST be over SSL.
 * Request query component: some parameters specified by the spec, appended to the query component using the "application/x-www-form-urlencoded" format,
 
   * ``response_type=token``
-  * ``client_id=vmc``
+  * ``client_id=cf``
   * ``scope=read write``
-  * ``redirect_uri`` - optional because it can be pre-registered, but a dummy is still needed where vmc is concerned (it doesn't redirect) and must be pre-registered, see `Client Registration Administration APIs`_.
+  * ``redirect_uri`` - optional because it can be pre-registered, but a dummy is still needed where cf is concerned (it doesn't redirect) and must be pre-registered, see `Client Registration Administration APIs`_.
 
 * Request body: contains the required information in JSON as returned from the `login information API`_, e.g. username/password for internal authentication, or for LDAP, and others as needed for other authentication types. For example::
 
@@ -203,7 +203,7 @@ This works similarly to the previous section, but does not require the credentia
 Trusted Authentication from Login Server
 ----------------------------------------
 
-In addition to the normal authentication of the ``/oauth/authorize`` endpoint described above (cookie-based for browser app and special case for ``vmc``) the UAA offers a special channel whereby a trusted client app can authenticate itself and then use the ``/oauth/authorize`` endpoint by providing minimal information about the user account (but not the password).  This channel is provided so that authentication can be abstracted into a separate "Login" server.  The default client id for the trusted app is ``login``, and this client is registered in the default profile (but not in any other)::
+In addition to the normal authentication of the ``/oauth/authorize`` endpoint described above (cookie-based for browser app and special case for ``cf``) the UAA offers a special channel whereby a trusted client app can authenticate itself and then use the ``/oauth/authorize`` endpoint by providing minimal information about the user account (but not the password).  This channel is provided so that authentication can be abstracted into a separate "Login" server.  The default client id for the trusted app is ``login``, and this client is registered in the default profile (but not in any other)::
 
     id: login,
     secret: loginsecret,
@@ -321,7 +321,7 @@ This endpoint mirrors the OpenID Connect ``/check_id`` endpoint, so not very RES
             "exp":138943173,
             "user_id":"41750ae1-b2d0-4304-b1fe-7bdc24256387",
             "user_name":"marissa",
-            "client_id":"vmc"
+            "client_id":"cf"
         }
 
 Notes:
@@ -412,7 +412,7 @@ Response    ``{"user_id":"olds","email":"olds@vmare.com"}``
 Login Information API: ``GET /login``
 ---------------------------------------
 
-An endpoint which returns login information, e.g prompts for authorization codes or one-time passwords. This allows vmc to determine what login information it should collect from the user.
+An endpoint which returns login information, e.g prompts for authorization codes or one-time passwords. This allows cf to determine what login information it should collect from the user.
 
 This call will be unauthenticated.
 
@@ -712,7 +712,7 @@ Deleting accounts is handled in the back end logically using the `active` flag, 
 Converting UserIds to Names
 ---------------------------
 
-There is a SCIM-like endpoint for converting usernames to names, with the same filter and attribute syntax as ``/Users``. It must be supplied with a ``filter`` parameter.  It is a special purpose endpoint for use as a user id/name translation api, and is should be disabled in production sites by setting ``scim.userids_enabled=false`` in the UAA configuration. It will be used by vmc so it has to be quite restricted in function (i.e. it's not a general purpose groups or users endpoint). Otherwise the API is the same as /Users.
+There is a SCIM-like endpoint for converting usernames to names, with the same filter and attribute syntax as ``/Users``. It must be supplied with a ``filter`` parameter.  It is a special purpose endpoint for use as a user id/name translation api, and is should be disabled in production sites by setting ``scim.userids_enabled=false`` in the UAA configuration. It will be used by cf so it has to be quite restricted in function (i.e. it's not a general purpose groups or users endpoint). Otherwise the API is the same as /Users.
 
 * Request: ``GET /ids/Users``
 * Response Body: list of users matching the filter

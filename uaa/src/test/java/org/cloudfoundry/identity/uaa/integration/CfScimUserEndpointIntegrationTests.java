@@ -15,13 +15,11 @@ package org.cloudfoundry.identity.uaa.integration;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Assume;
@@ -39,19 +37,18 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.web.client.RestOperations;
 
 /**
- * Integration test to verify that the userid translation use cases are
- * supported adequately for vmc.
+ * Integration test to verify that the trusted client use cases are supported
+ * adequately for cf.
  * 
  * @author Luke Taylor
+ * @author Dave Syer
  */
 @OAuth2ContextConfiguration(OAuth2ContextConfiguration.Implicit.class)
-public class VmcUserIdTranslationEndpointIntegrationTests {
+public class CfScimUserEndpointIntegrationTests {
 
     private final String JOE = "joe" + new RandomValueStringGenerator().generate().toLowerCase();
 
-    private final String userEndpoint = "/Users";
-
-    private final String idsEndpoint = "/ids/Users";
+    private final String usersEndpoint = "/Users";
 
     private ScimUser joe;
 
@@ -80,9 +77,8 @@ public class VmcUserIdTranslationEndpointIntegrationTests {
         user.setUserName(JOE);
         user.setName(new ScimUser.Name("Joe", "User"));
         user.addEmail("joe@blah.com");
-        user.setGroups(Arrays.asList(new Group(null, "uaa.user"), new Group(null, "orgs.foo")));
 
-        ResponseEntity<ScimUser> newuser = client.postForEntity(serverRunning.getUrl(userEndpoint), user,
+        ResponseEntity<ScimUser> newuser = client.postForEntity(serverRunning.getUrl(usersEndpoint), user,
                         ScimUser.class);
 
         joe = newuser.getBody();
@@ -93,58 +89,74 @@ public class VmcUserIdTranslationEndpointIntegrationTests {
 
         HttpHeaders headers = new HttpHeaders();
         ResponseEntity<Void> result = client
-                        .exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password",
+                        .exchange(serverRunning.getUrl(usersEndpoint) + "/{id}/password",
                                         HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers),
                                         Void.class, joe.getId());
         assertEquals(HttpStatus.OK, result.getStatusCode());
 
-        // The implicit grant for vmc requires extra parameters in the
+        // The implicit grant for cf requires extra parameters in the
         // authorization request
         context.setParameters(Collections.singletonMap("credentials",
                         testAccounts.getJsonCredentials(joe.getUserName(), "password")));
 
     }
 
-    @Test
-    public void findUsersWithExplicitFilterSucceeds() throws Exception {
-        @SuppressWarnings("rawtypes")
-        ResponseEntity<Map> response = serverRunning.getForObject(idsEndpoint + "?filter=userName eq \"" + JOE + "\"",
-                        Map.class);
-        @SuppressWarnings("unchecked")
-        Map<String, Object> results = response.getBody();
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(1, results.get("totalResults"));
+    @SuppressWarnings("rawtypes")
+    private ResponseEntity<Map> deleteUser(RestOperations client, String id, int version) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("If-Match", "\"" + version + "\"");
+        return client.exchange(serverRunning.getUrl(usersEndpoint + "/{id}"), HttpMethod.DELETE, new HttpEntity<Void>(
+                        headers), Map.class, id);
     }
 
     @Test
-    public void findUsersExplicitEmailFails() throws Exception {
-        @SuppressWarnings("rawtypes")
-        ResponseEntity<Map> response = serverRunning.getForObject(idsEndpoint + "?filter=emails.value sw \"joe\"",
-                        Map.class);
-        @SuppressWarnings("unchecked")
-        Map<String, Object> results = response.getBody();
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertNotNull("There should be an error", results.get("error"));
+    public void changePasswordSucceeds() throws Exception {
+
+        PasswordChangeRequest change = new PasswordChangeRequest();
+        change.setOldPassword("password");
+        change.setPassword("newpassword");
+
+        HttpHeaders headers = new HttpHeaders();
+        RestOperations client = serverRunning.getRestTemplate();
+        ResponseEntity<Void> result = client
+                        .exchange(serverRunning.getUrl(usersEndpoint) + "/{id}/password",
+                                        HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers),
+                                        Void.class, joe.getId());
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+
     }
 
     @Test
-    public void findUsersExplicitPresentFails() throws Exception {
-        @SuppressWarnings("rawtypes")
-        ResponseEntity<Map> response = serverRunning.getForObject(idsEndpoint + "?filter=pr userType", Map.class);
-        @SuppressWarnings("unchecked")
-        Map<String, Object> results = response.getBody();
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertNotNull("There should be an error", results.get("error"));
+    public void userInfoSucceeds() throws Exception {
+
+        HttpHeaders headers = new HttpHeaders();
+        RestOperations client = serverRunning.getRestTemplate();
+        ResponseEntity<Void> result = client.exchange(serverRunning.getUrl("/userinfo"), HttpMethod.GET,
+                        new HttpEntity<Void>(null, headers), Void.class, joe.getId());
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+
     }
 
     @Test
-    public void findUsersExplicitGroupFails() throws Exception {
+    public void deleteUserFails() throws Exception {
+        RestOperations client = serverRunning.getRestTemplate();
         @SuppressWarnings("rawtypes")
-        ResponseEntity<Map> response = serverRunning.getForObject(idsEndpoint + "?filter=groups.display co \"foo\"",
-                        Map.class);
+        ResponseEntity<Map> response = deleteUser(client, joe.getId(), joe.getVersion());
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        @SuppressWarnings("unchecked")
+        Map<String, String> error = response.getBody();
+        // System.err.println(error);
+        assertEquals("access_denied", error.get("error"));
+    }
+
+    @Test
+    public void findUsersFails() throws Exception {
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> response = serverRunning.getForObject(usersEndpoint, Map.class);
         @SuppressWarnings("unchecked")
         Map<String, Object> results = response.getBody();
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
         assertNotNull("There should be an error", results.get("error"));
     }
+
 }

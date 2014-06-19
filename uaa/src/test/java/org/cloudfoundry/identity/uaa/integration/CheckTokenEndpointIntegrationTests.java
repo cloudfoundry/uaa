@@ -185,7 +185,7 @@ public class CheckTokenEndpointIntegrationTests {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
         formData.add("token", "FOO");
         HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Basic " + new String(Base64.encode("vmc:".getBytes("UTF-8"))));
+        headers.set("Authorization", "Basic " + new String(Base64.encode("cf:".getBytes("UTF-8"))));
         headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
 
         @SuppressWarnings("rawtypes")

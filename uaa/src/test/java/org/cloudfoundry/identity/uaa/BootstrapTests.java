@@ -92,7 +92,7 @@ public class BootstrapTests {
         context = getServletContext("file:./src/main/webapp/WEB-INF/spring-servlet.xml",
                         "classpath:/test/config/test-override.xml");
         assertEquals("/tmp/uaa/logs", context.getBean("foo", String.class));
-        assertEquals("[vmc, my, support]",
+        assertEquals("[cf, my, support]",
                         ReflectionTestUtils.getField(context.getBean(ClientAdminBootstrap.class), "autoApproveClients")
                                         .toString());
         ScimUserProvisioning users = context.getBean(ScimUserProvisioning.class);

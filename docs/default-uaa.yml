@@ -38,7 +38,7 @@ oauth:
   client:
     override: true
     autoapprove:
-      - vmc
+      - cf
   clients:
 # example only (default is empty except in default profile)
     login:

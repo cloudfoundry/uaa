@@ -167,7 +167,7 @@ Securing Developer Access to the Foundry Platform
 
 How identity services would be applied to the cloud foundry itself.
 
-Need support for non-browser native apps such as vmc. Options:
+Need support for non-browser native apps such as cf. Options:
 
 * like the mobile app flow‚ pop up browser and redirect
 * if no redirect possible, oauth2 supports a flow where an access code can be obtained and typed in

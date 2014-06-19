@@ -161,7 +161,7 @@ client registrations can be configured in `uaa.yml` and in some
 well-known situations clients this will happen.  In particular, the
 `dev_setup` environment and the CF.com deployment job both start up
 with additional client registrations that are needed by the basic
-Cloud Foundry use cases (`vmc` and `cloud_controller`).  If the `vcap`
+Cloud Foundry use cases (`cf` and `cloud_controller`).  If the `vcap`
 Spring profile is active in the integration tests, no additional
 accounts will be created.
 
@@ -192,8 +192,8 @@ The default Spring profile initializes 3 clients in addition to the
 `admin` client, e.g. if the server is started from the command line
 after a fresh clone from github for demo purposes:
 
-    vmc:
-      id: vmc
+    cf:
+      id: cf
       authorized-grant-types: implicit
       scope: cloud_controller.read,cloud_controller.write,openid,password.write
       authorities: uaa.none
@@ -218,13 +218,13 @@ client) are initialized:
       id: cloud_controller
       secret: ...
       resource-ids: none
-    vmc:
-      id: vmc
+    cf:
+      id: cf
       authorized-grant-types: implicit
       scope: cloud_controller.read,cloud_controller.write,openid,password.write
       authorities: uaa.none
       resource-ids: none
-      redirect-uri: http://uaa.cloudfoundry.com/redirect/vmc
+      redirect-uri: http://uaa.cloudfoundry.com/redirect/cf
 
 The cloud controller secret is generated during the setup.  The same
 clients are initialized in CF.com, but the secret is different.
@@ -232,13 +232,13 @@ Additional clients can be added during start up using `uaa.yml`, e.g.
 
     oauth:
       clients:
-        vmc:
+        cf:
           authorized-grant-types: implicit
           scope: cloud_controller.read,cloud_controller.write,password.write,openid
           authorities: uaa.none
-          id: vmc
+          id: cf
           resource-ids: none
-          redirect-uri: http://uaa.cloudfoundry.com/redirect/vmc
+          redirect-uri: http://uaa.cloudfoundry.com/redirect/cf
 
 ## Token Scope Rules
 
@@ -403,7 +403,7 @@ or password grant flow) provides the following access:
 The UAA uses HTTP Basic authentication for these resources, so they
 are no OAuth2 protected resources, but to simplify the security data
 client registrations are used, so only registered clients can access
-them.  The caller must have a secret (so `vmc` and other implicit
+them.  The caller must have a secret (so `cf` and other implicit
 grant clients need not apply).
 
 * Obtain access token at `/oauth/token`

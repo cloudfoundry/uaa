@@ -16,8 +16,8 @@ require 'sinatra'
 require './auth.rb'
 
 get '/' do
-  host = ENV['VMC_APP_HOST']
-  port = ENV['VMC_APP_PORT']
+  host = ENV['CF_APP_HOST']
+  port = ENV['CF_APP_PORT']
   %({"message" : "XXXXX Hello from Ruby!", "host": "#{host}", "port": "#{port}"}\n)
 end
 

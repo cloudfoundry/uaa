@@ -36,7 +36,7 @@ import org.springframework.util.MultiValueMap;
  * @author Dave Syer
  * 
  */
-public class VmcAuthenticationTests {
+public class CfAuthenticationTests {
 
     @Rule
     public ServerRunning serverRunning = ServerRunning.isRunning();

@@ -60,7 +60,7 @@ public class JdbcScimClientDetailsServiceTests {
         service = new JdbcQueryableClientDetailsService(delegate, jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate,
                         limitSqlAdapter));
 
-        addClient("vmc", "secret", "cc", "cc.read,cc.write",
+        addClient("cf", "secret", "cc", "cc.read,cc.write",
                         "implicit", "myRedirectUri", "cc.read,cc.write", 100, 200);
         addClient("scimadmin", "secret", "uaa,scim", "uaa.admin,scim.read,scim.write",
                         "client_credentials", "myRedirectUri", "scim.read,scim.write", 100, 200);

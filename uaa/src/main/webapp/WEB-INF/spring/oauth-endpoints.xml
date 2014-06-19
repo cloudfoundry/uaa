@@ -64,7 +64,7 @@
         <access-denied-handler ref="oauthAccessDeniedHandler" />
     </http>
 
-    <!-- Version of the /authorize endpoint for stateless clients such as VMC
+    <!-- Version of the /authorize endpoint for stateless clients such as cf
          /oauth/authorize response_type=token&source=credentials
     -->
     <http name="statelessAuthzEndpointSecurity" request-matcher-ref="oauthAuthorizeRequestMatcher" create-session="stateless"

@@ -134,21 +134,21 @@ object OAuthComponents {
         .check(status.is(200), jsonToken.saveAs("access_token"))
 
   /**
-   * Single vmc login action with a specific username/password
+   * Single cf login action with a specific username/password
    */
-  def vmcLogin(username: String = "${username}", password: String = "${password}"): ActionBuilder =
-    vmcAction("CF login", username, password)
+  def cfLogin(username: String = "${username}", password: String = "${password}"): ActionBuilder =
+    cfAction("CF login", username, password)
       .check(status is 200, jsonToken.saveAs("access_token"))
 
-  def vmcLoginBadPassword(username: String = "${username}"): ActionBuilder =
-    vmcAction("CF failed login - bad password", username, "pXssword")
+  def cfLoginBadPassword(username: String = "${username}"): ActionBuilder =
+    cfAction("CF failed login - bad password", username, "pXssword")
       .check(status is 401)
 
-  def vmcLoginBadUsername(): ActionBuilder =
-    vmcAction("CF failed login - no user", "idontexist", "password")
+  def cfLoginBadUsername(): ActionBuilder =
+    cfAction("CF failed login - no user", "idontexist", "password")
       .check(status is 401)
 
-  private def vmcAction(name: String, username: String, password: String) =
+  private def cfAction(name: String, username: String, password: String) =
     http(name)
       .post("/oauth/token")
       .param("username", username)
