@@ -16,9 +16,12 @@
 
 <beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="
+       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+       http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.0.xsd">
     <bean id="ldapAuthoritiesPopulator"
-          class="org.springframework.security.ldap.userdetails.DefaultLdapAuthoritiesPopulator">
+          class="org.cloudfoundry.identity.uaa.ldap.extension.NestedLdapAuthoritiesPopulator">
         <constructor-arg ref="contextSource"/>
         <constructor-arg value="${ldap.group.searchBase:ou=scopes,dc=test,dc=com}"/>
         <property name="groupRoleAttribute" value="${ldap.group.groupRoleAttribute:description}"/>
@@ -27,6 +30,13 @@
         <property name="convertToUpperCase" value="false"/>
         <!-- http://stackoverflow.com/questions/5163597/is-there-a-spring-security-defaultldapauthoritiespopulator-implementation-that-s -->
         <property name="groupSearchFilter" value="${ldap.group.groupSearchFilter:member={0}}"/>
+        <property name="maxSearchDepth" value="${ldap.group.maxSearchDepth:1}"/>
+        <property name="attributeNames">
+            <util:set>
+                <value>cn</value>
+            </util:set>
+        </property>
+
     </bean>
 
     <bean id="ldapAuthoritiesMapper" class="org.cloudfoundry.identity.uaa.ldap.CommaSeparatedScopesMapper"/>

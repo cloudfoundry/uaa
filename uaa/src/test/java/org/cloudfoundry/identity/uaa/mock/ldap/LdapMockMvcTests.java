@@ -21,7 +21,6 @@ import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -115,6 +114,8 @@ public class LdapMockMvcTests {
     public void setUp() throws Exception {
         System.setProperty("ldap.profile.file", "ldap/"+ldapProfile);
         System.setProperty("ldap.profile.groups.file", "ldap/"+ldapGroup);
+        System.setProperty("ldap.group.maxSearchDepth", "10");
+
         webApplicationContext = new AnnotationConfigWebApplicationContext();
         webApplicationContext.setServletContext(new MockServletContext());
         webApplicationContext.register(DefaultIntegrationTestConfig.class);
@@ -281,17 +282,16 @@ public class LdapMockMvcTests {
 
 
     @Test
-    @Ignore
     public void testNestedLdapScopes() throws Exception {
         Assume.assumeTrue(ldapGroup.equals("ldap-groups-as-scopes.xml"));
         AuthenticationManager manager = (AuthenticationManager)webApplicationContext.getBean("ldapAuthenticationManager");
-        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("admin","adminsecret");
+        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("marissa4","ldap4");
         Authentication auth = manager.authenticate(token);
         assertNotNull(auth);
         String[] list = new String[] {
-                "uaa.user",
-                "cloud_controller.read",
-                "uaa.admin",
+                "test.read",
+                "test.write",
+                "test.everything",
             };
         assertThat(list, arrayContainingInAnyOrder(getAuthorities(auth.getAuthorities())));
     }

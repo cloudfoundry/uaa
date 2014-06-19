@@ -14,6 +14,7 @@
  */
 package org.cloudfoundry.identity.uaa.ldap;
 
+import org.cloudfoundry.identity.uaa.ldap.extension.LdapAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.mapping.GrantedAuthoritiesMapper;
@@ -28,8 +29,10 @@ public class CommaSeparatedScopesMapper implements GrantedAuthoritiesMapper {
     public Collection<? extends GrantedAuthority> mapAuthorities(Collection<? extends GrantedAuthority> authorities) {
         ArrayList<GrantedAuthority> result = new ArrayList<>();
         for (GrantedAuthority authority : authorities) {
+            LdapAuthority ldapAuthority = (LdapAuthority)authority;
             for (String scope : StringUtils.commaDelimitedListToSet(authority.getAuthority())) {
-                result.add(UaaAuthority.authority(scope));
+                LdapAuthority a = new LdapAuthority(scope, ldapAuthority.getDn(), ldapAuthority.getAttributes());
+                result.add(a);
             }
         }
         return result;

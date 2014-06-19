@@ -13,13 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.security.ldap.userdetails;
+package org.cloudfoundry.identity.uaa.ldap.extension;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.ldap.core.ContextSource;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.ldap.SpringSecurityLdapTemplate;
 import org.springframework.util.StringUtils;
 
 import java.util.Arrays;
