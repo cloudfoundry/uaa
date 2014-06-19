@@ -31,7 +31,7 @@ before_install:
 install:
   - if [ "$TESTENV" = "ldap,default,coverage" ]; then ./scripts/ldap/configure-manifest.sh; fi
   - if [ "$TESTENV" = "keystone,default,coverage" ]; then ./scripts/keystone/configure-manifest.sh; fi
-  - mvn package -DskipTests -P coverage --quiet
+  - mvn install -DskipTests -P coverage --quiet
   - mkdir -p target/tomcat && tar zxf tomcat.tar.gz -C target/tomcat --strip-components 1 && rm -rf target/tomcat/webapps/*
   - mvn -Dwar.exploded.dir=`pwd`/target/tomcat/webapps/api --quiet -pl samples/api war:exploded
   - mvn -Dwar.exploded.dir=`pwd`/target/tomcat/webapps/app --quiet -pl samples/app war:exploded
