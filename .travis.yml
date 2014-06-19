@@ -3,6 +3,7 @@ env:
   global:
     - CATALINA_PID=/tmp/tomcat.pid
     - CATALINA_OUT=/tmp/tomcat.log
+  secure: "QSurpsJrLI2gu1NzPtN09FlL8IUpyX6mIeP3r5PTB0WkAWe6MT5VUyxThKrZ2NtDeV0qTSN+yyvnyTBf5kJGSnXuB5XMJzYgHVY1YnXbuLEK0pvwQGBl9kqKomG/hDDBgIyH5LWk0Z41Zz1fIKlBlSlbsz/97CwfcPo+bnttBLA="
   matrix:
     - TESTENV=default,coverage
     - TESTENV=mysql,default,coverage
@@ -54,8 +55,7 @@ after_success:
         if [ "$BUILD_AGGREGATE_STATUS" = "others_succeeded" ]; then
           echo "All Succeeded!"
           if [ "$TRAVIS_BRANCH" = "develop" ]; then
-            git tag "travis-success-$TRAVIS_BUILD_NUMBER"
-            git push origin "travis-success-$TRAVIS_BUILD_NUMBER"
+            curl https://api.github.com/repos/cloudfoundry/uaa/git/refs -H "Content-Type:application/json" -H "Authorization: token $GH_TOKEN" -d "{\"ref\":\"refs/tags/travis-success-$TRAVIS_BUILD_NUMBER\",\"sha\":\"$TRAVIS_COMMIT\"}"
           fi
         else
           echo "Some Failed"
