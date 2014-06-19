@@ -56,7 +56,7 @@ public class PasswordResetEndpointsTest {
     public void testCreatingAPasswordResetWhenTheEmailExists() throws Exception {
         ScimUser user = new ScimUser("id001", "userman", null, null);
         user.addEmail("user@example.com");
-        Mockito.when(scimUserProvisioning.query("email eq \"user@example.com\""))
+        Mockito.when(scimUserProvisioning.query("email eq \"user@example.com\" and origin eq \"uaa\""))
                 .thenReturn(Arrays.asList(user));
 
         MockHttpServletRequestBuilder post = post("/password_resets")
@@ -71,7 +71,7 @@ public class PasswordResetEndpointsTest {
 
     @Test
     public void testCreatingAPasswordResetWhenTheUserDoesNotExist() throws Exception {
-        Mockito.when(scimUserProvisioning.query("email eq \"user@example.com\""))
+        Mockito.when(scimUserProvisioning.query("email eq \"user@example.com\" and origin eq \"uaa\""))
                 .thenReturn(Arrays.<ScimUser>asList());
 
         MockHttpServletRequestBuilder post = post("/password_resets")
