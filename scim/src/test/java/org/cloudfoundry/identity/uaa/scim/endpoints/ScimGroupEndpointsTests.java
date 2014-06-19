@@ -129,7 +129,7 @@ public class ScimGroupEndpointsTests {
         dao = new JdbcScimGroupProvisioning(template, pagingListFactory);
         udao = new JdbcScimUserProvisioning(template, pagingListFactory);
         udao.setPasswordValidator(new NullPasswordValidator());
-        mm = new JdbcScimGroupMembershipManager(template);
+        mm = new JdbcScimGroupMembershipManager(template, pagingListFactory);
         mm.setScimGroupProvisioning(dao);
         mm.setScimUserProvisioning(udao);
         mm.setDefaultUserGroups(Collections.singleton("uaa.user"));

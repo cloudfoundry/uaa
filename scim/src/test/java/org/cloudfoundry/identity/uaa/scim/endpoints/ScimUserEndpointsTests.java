@@ -129,7 +129,7 @@ public class ScimUserEndpointsTests {
         dao.setQueryConverter(filterConverter);
         endpoints = new ScimUserEndpoints();
         endpoints.setScimUserProvisioning(dao);
-        mm = new JdbcScimGroupMembershipManager(jdbcTemplate);
+        mm = new JdbcScimGroupMembershipManager(jdbcTemplate, pagingListFactory);
         mm.setScimUserProvisioning(dao);
         JdbcScimGroupProvisioning gdao = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
         mm.setScimGroupProvisioning(gdao);

@@ -73,7 +73,7 @@ public class ScimGroupBootstrapTests {
         gDB = new JdbcScimGroupProvisioning(template, pagingListFactory);
         uDB = new JdbcScimUserProvisioning(template, pagingListFactory);
         uDB.setPasswordValidator(new NullPasswordValidator());
-        mDB = new JdbcScimGroupMembershipManager(template);
+        mDB = new JdbcScimGroupMembershipManager(template, pagingListFactory);
         mDB.setScimGroupProvisioning(gDB);
         mDB.setScimUserProvisioning(uDB);
 

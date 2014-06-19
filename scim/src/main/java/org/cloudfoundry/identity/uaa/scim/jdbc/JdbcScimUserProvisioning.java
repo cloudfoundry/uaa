@@ -117,6 +117,11 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
     }
 
     @Override
+    protected String getTableName() {
+        return "users";
+    }
+
+    @Override
     public List<ScimUser> retrieveAll() {
         return query("id pr", "created", true);
     }

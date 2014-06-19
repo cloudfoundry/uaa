@@ -15,11 +15,12 @@ package org.cloudfoundry.identity.uaa.scim;
 import java.util.List;
 import java.util.Set;
 
+import org.cloudfoundry.identity.uaa.rest.Queryable;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 
-public interface ScimGroupMembershipManager {
+public interface ScimGroupMembershipManager extends Queryable<ScimGroupMember> {
 
     /**
      * Add a member to a group

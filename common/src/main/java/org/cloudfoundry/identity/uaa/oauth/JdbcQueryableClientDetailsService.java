@@ -42,8 +42,9 @@ public class JdbcQueryableClientDetailsService extends AbstractQueryable<ClientD
 
     private static final String CLIENT_FIELDS = "client_secret, " + CLIENT_FIELDS_FOR_UPDATE;
 
+    public static final String CLIENT_DETAILS_TABLE = "oauth_client_details";
     private static final String BASE_FIND_STATEMENT = "select client_id, " + CLIENT_FIELDS
-                    + " from oauth_client_details";
+        + " from " + CLIENT_DETAILS_TABLE;
 
     public JdbcQueryableClientDetailsService(JdbcClientDetailsService delegate, JdbcTemplate jdbcTemplate,
                     JdbcPagingListFactory pagingListFactory) {
@@ -54,6 +55,10 @@ public class JdbcQueryableClientDetailsService extends AbstractQueryable<ClientD
     @Override
     protected String getBaseSqlQuery() {
         return BASE_FIND_STATEMENT;
+    }
+    @Override
+    protected String getTableName() {
+        return CLIENT_DETAILS_TABLE;
     }
 
     @Override

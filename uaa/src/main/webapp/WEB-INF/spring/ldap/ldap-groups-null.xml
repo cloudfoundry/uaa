@@ -21,7 +21,6 @@
           class="org.springframework.security.ldap.authentication.NullLdapAuthoritiesPopulator"/>
 
     <bean id="ldapAuthoritiesMapper" class="org.springframework.security.core.authority.mapping.SimpleAuthorityMapper">
-        <property name="defaultAuthority" value="ROLE_USER" />
     </bean>
 
 </beans>

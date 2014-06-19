@@ -89,6 +89,11 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
     }
 
     @Override
+    protected String getTableName() {
+        return EXTERNAL_GROUP_MAPPING_TABLE;
+    }
+
+    @Override
     public ScimGroupExternalMember mapExternalGroup(final String groupId, final String externalGroup)
                     throws ScimResourceNotFoundException, MemberAlreadyExistsException {
         ScimGroup group = scimGroupProvisioning.retrieve(groupId);

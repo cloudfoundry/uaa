@@ -13,23 +13,26 @@
 
 package org.cloudfoundry.identity.uaa.rest.jdbc;
 
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.unboundid.scim.sdk.SCIMException;
+import com.unboundid.scim.sdk.SCIMFilter;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.rest.AttributeNameMapper;
 import org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper;
 import org.springframework.util.StringUtils;
 
 public class SimpleSearchQueryConverter implements SearchQueryConverter {
 
-    static final Pattern equalsPattern = Pattern.compile("(.*?)([a-z0-9_]*) eq '(.*?)'([\\s]*.*)",
-                    Pattern.CASE_INSENSITIVE);
-
-    static final Pattern existsPattern = Pattern.compile(" pr([\\s]*)", Pattern.CASE_INSENSITIVE);
-
+    private static Log logger = LogFactory.getLog(SimpleSearchQueryConverter.class);
     private AttributeNameMapper mapper = new SimpleAttributeNameMapper(Collections.<String, String> emptyMap());
 
     public void setAttributeNameMapper(AttributeNameMapper mapper) {
@@ -48,41 +51,100 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
         return new ProcessedFilter(where, values);
     }
 
-    private String getWhereClause(String filter, String sortBy, boolean ascending, Map<String, Object> values,
-                    AttributeNameMapper mapper) {
+    private String getWhereClause(String filter, String sortBy, boolean ascending, Map<String, Object> values, AttributeNameMapper mapper) {
 
-        // Single quotes for literals
-        String where = filter.replaceAll("\"", "'");
-
-        if (sortBy != null) {
-            // Need to add "asc" or "desc" explicitly to ensure that the pattern
-            // splitting below works
-            where = where + " order by " + sortBy + (ascending ? " asc" : " desc");
+        try {
+            SCIMFilter scimFilter = SCIMFilter.parse(filter);
+            String whereClause = createFilter(scimFilter, values, mapper);
+            if (sortBy != null) {
+                sortBy = mapper.mapToInternal(sortBy);
+                // Need to add "asc" or "desc" explicitly to ensure that the pattern
+                // splitting below works
+                whereClause += " ORDER BY " + sortBy + (ascending ? " ASC" : " DESC");
+            }
+            return whereClause;
+        } catch (SCIMException e) {
+            logger.debug("Unable to parse " + filter, e);
+            throw new IllegalArgumentException("Invalid SCIM Filter:"+filter+" Message:"+e.getMessage());
         }
-
-        where = mapper.mapToInternal(where);
-
-        where = makeCaseInsensitive(where, equalsPattern, "%slower(%s) = :?%s", "%s", values);
-        where = existsPattern.matcher(where).replaceAll(" is not null$1");
-        // This will catch equality of number literals
-        where = where.replaceAll(" == ", " = ");
-
-        return where;
     }
 
-    private String makeCaseInsensitive(String where, Pattern pattern, String template, String valueTemplate,
-                    Map<String, Object> values) {
-        String output = where;
-        Matcher matcher = pattern.matcher(output);
-        int count = values.size();
-        while (matcher.matches()) {
-            values.put("value" + count, String.format(valueTemplate, matcher.group(3).toLowerCase()));
-            String query = template.replace("?", "value" + count);
-            output = matcher.replaceFirst(String.format(query, matcher.group(1), matcher.group(2), matcher.group(4)));
-            matcher = pattern.matcher(output);
-            count++;
+    private String createFilter(SCIMFilter filter, Map<String,Object> values, AttributeNameMapper mapper) {
+        switch (filter.getFilterType()) {
+            case AND:
+                return "(" + createFilter(filter.getFilterComponents().get(0), values, mapper) + " AND " + createFilter(filter.getFilterComponents().get(1), values, mapper) + ")";
+            case OR:
+                return "(" + createFilter(filter.getFilterComponents().get(0), values, mapper) + " OR " + createFilter(filter.getFilterComponents().get(1), values, mapper) + ")";
+            case EQUALITY:
+                return comparisonClause(filter, "=", values, "", "");
+            case CONTAINS:
+                return comparisonClause(filter, "LIKE", values, "%", "%");
+            case STARTS_WITH:
+                return comparisonClause(filter, "LIKE", values, "", "%");
+            case PRESENCE:
+                return getAttributeName(filter, mapper) + " IS NOT NULL";
+            case GREATER_THAN:
+                return comparisonClause(filter, ">", values, "", "");
+            case GREATER_OR_EQUAL:
+                return comparisonClause(filter, ">=", values, "", "");
+            case LESS_THAN:
+                return comparisonClause(filter, "<", values, "", "");
+            case LESS_OR_EQUAL:
+                return comparisonClause(filter, "<=", values, "", "");
         }
-        return output;
+        return null;
     }
+
+    protected String comparisonClause(SCIMFilter filter, String comparator, Map<String, Object> values, String valuePrefix, String valueSuffix) {
+        String pName = getParamName(filter, values);
+        String paramName = ":"+pName;
+        if (filter.getFilterValue() == null) {
+            return getAttributeName(filter, mapper) + " IS NULL";
+        } else if (filter.isQuoteFilterValue()) {
+            Object value = getStringOrDate(filter.getFilterValue());
+            if (value instanceof String) {
+                //TODO - why lower?
+                values.put(pName, valuePrefix+value+valueSuffix);
+                return "LOWER(" + getAttributeName(filter, mapper) + ") "+comparator+" LOWER(" + paramName+")";
+            } else {
+                values.put(pName, value);
+                return getAttributeName(filter, mapper) + " "+comparator+" " + paramName;
+            }
+
+
+        } else {
+            try {
+                values.put(pName, Double.parseDouble(filter.getFilterValue()));
+            } catch (NumberFormatException x) {
+                values.put(pName, filter.getFilterValue());
+            }
+            return getAttributeName(filter, mapper) + " "+comparator+" " + paramName;
+        }
+    }
+
+    protected String getAttributeName(SCIMFilter filter, AttributeNameMapper mapper) {
+        String name = filter.getFilterAttribute().getAttributeName();
+        String subName = filter.getFilterAttribute().getSubAttributeName();
+        if (StringUtils.hasText(subName)) {
+            name = name + "." + subName;
+        }
+        name = mapper.mapToInternal(name);
+        return name.replace("meta.", "");
+    }
+
+    protected String getParamName(SCIMFilter filter, Map<String, Object> values) {
+        return "__value_" + values.size();
+    }
+
+    protected Object getStringOrDate(String s) {
+        try {
+            DateFormat TIMESTAMP_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+            return TIMESTAMP_FORMAT.parse(s);
+        } catch (ParseException x) {
+            return s;
+        }
+    }
+
+
 
 }

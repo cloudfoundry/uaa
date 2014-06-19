@@ -21,6 +21,7 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.NewUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
@@ -141,10 +142,27 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
 
     @Override
     public void onApplicationEvent(NewUserAuthenticatedEvent event) {
-        addUser(event.getUser());
+        if (event instanceof ExternalGroupAuthorizationEvent) {
+            ExternalGroupAuthorizationEvent exEvent = (ExternalGroupAuthorizationEvent)event;
+            //delete previous membership relation ships
+            String origin = exEvent.getUser().getOrigin();
+            if (!Origin.UAA.equals(origin)) {//only delete non UAA relationships
+                membershipManager.delete("member_id eq \""+event.getUser().getId()+"\" and origin eq \""+origin+"\"");
+            }
+            for (GrantedAuthority authority : exEvent.getExternalAuthorities()) {
+                addToGroup(exEvent.getUser().getId(), authority.getAuthority(), exEvent.getUser().getOrigin());
+            }
+        } else {
+            addUser(event.getUser());
+        }
+
     }
 
     private void addToGroup(String scimUserId, String gName) {
+        addToGroup(scimUserId,gName,Origin.UAA);
+    }
+
+    private void addToGroup(String scimUserId, String gName, String origin) {
         if (!StringUtils.hasText(gName)) {
             return;
         }

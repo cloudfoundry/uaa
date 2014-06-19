@@ -16,7 +16,6 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.test.DefaultIntegrationTestConfig;
 import org.cloudfoundry.identity.uaa.test.TestClient;
-import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assume;
@@ -250,12 +249,36 @@ public class LdapMockMvcTests {
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("marissa3","ldap3");
         Authentication auth = manager.authenticate(token);
         assertNotNull(auth);
-        GrantedAuthority[] list = new GrantedAuthority[]{
-            UaaAuthority.authority("uaa.admin"),
-            UaaAuthority.authority("cloud_controller.read")
+        String[] list = new String[]{
+            "uaa.admin",
+            "cloud_controller.read"
         };
-        assertThat(list, arrayContainingInAnyOrder(auth.getAuthorities().toArray(new GrantedAuthority[0])));
+        assertThat(list, arrayContainingInAnyOrder(getAuthorities(auth.getAuthorities())));
     }
+
+    @Test
+    public void testLdapScopesFromChainedAuth() throws Exception {
+        Assume.assumeTrue(ldapGroup.equals("ldap-groups-as-scopes.xml"));
+        AuthenticationManager manager = (AuthenticationManager)webApplicationContext.getBean("authzAuthenticationMgr");
+        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("marissa3","ldap3");
+        Authentication auth = manager.authenticate(token);
+        assertNotNull(auth);
+        String[] list = new String[]{
+            "uaa.admin",
+            "password.write",
+            "scim.userids",
+            "approvals.me",
+            "cloud_controller.write",
+            "scim.me",
+            "cloud_controller_service_permissions.read",
+            "openid",
+            "oauth.approvals",
+            "uaa.user",
+            "cloud_controller.read"
+        };
+        assertThat(list, arrayContainingInAnyOrder(getAuthorities(auth.getAuthorities())));
+    }
+
 
     @Test
     @Ignore
@@ -265,11 +288,23 @@ public class LdapMockMvcTests {
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("admin","adminsecret");
         Authentication auth = manager.authenticate(token);
         assertNotNull(auth);
-        GrantedAuthority[] list = new GrantedAuthority[] {
-                UaaAuthority.authority("uaa.user"),
-                UaaAuthority.authority("cloud_controller.read"),
-                UaaAuthority.authority("uaa.admin"),
+        String[] list = new String[] {
+                "uaa.user",
+                "cloud_controller.read",
+                "uaa.admin",
             };
-        assertThat(list, arrayContainingInAnyOrder(auth.getAuthorities().toArray(new GrantedAuthority[0])));
+        assertThat(list, arrayContainingInAnyOrder(getAuthorities(auth.getAuthorities())));
+    }
+
+
+    public String[] getAuthorities(Collection<? extends GrantedAuthority> authorities) {
+        String[] result = new String[authorities!=null?authorities.size():0];
+        if (result.length>0) {
+            int index=0;
+            for (GrantedAuthority a : authorities) {
+                result[index++] = a.getAuthority();
+            }
+        }
+        return result;
     }
 }
