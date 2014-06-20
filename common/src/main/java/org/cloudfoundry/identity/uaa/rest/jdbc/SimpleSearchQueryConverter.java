@@ -65,7 +65,7 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
     private String getWhereClause(String filter, String sortBy, boolean ascending, Map<String, Object> values, AttributeNameMapper mapper, String paramPrefix) {
 
         try {
-            SCIMFilter scimFilter = SCIMFilter.parse(filter);
+            SCIMFilter scimFilter = scimFilter(filter);
             String whereClause = createFilter(scimFilter, values, mapper, paramPrefix);
             if (sortBy != null) {
                 sortBy = mapper.mapToInternal(sortBy);
@@ -78,6 +78,18 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
             logger.debug("Unable to parse " + filter, e);
             throw new IllegalArgumentException("Invalid SCIM Filter:"+filter+" Message:"+e.getMessage());
         }
+    }
+
+    private SCIMFilter scimFilter(String filter) throws SCIMException {
+        SCIMFilter scimFilter;
+        try {
+            scimFilter = SCIMFilter.parse(filter);
+        } catch (SCIMException e) {
+            logger.debug("Attempting legacy scim filter conversion for [" + filter + "]", e);
+            filter = filter.replaceAll("'","\"");
+            scimFilter = SCIMFilter.parse(filter);
+        }
+        return scimFilter;
     }
 
     private String createFilter(SCIMFilter filter, Map<String,Object> values, AttributeNameMapper mapper, String paramPrefix) {

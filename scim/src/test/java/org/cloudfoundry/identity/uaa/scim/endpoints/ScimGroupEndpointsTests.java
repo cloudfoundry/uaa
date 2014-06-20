@@ -291,6 +291,37 @@ public class ScimGroupEndpointsTests {
     }
 
     @Test
+    public void legacyTestListGroupsWithNameEqFilter() {
+        validateSearchResults(endpoints.listGroups("id,displayName", "displayName eq 'uaa.user'", "created",
+                "ascending", 1, 100), 1);
+    }
+
+    @Test
+    public void legacyTestListGroupsWithNameCoFilter() {
+        validateSearchResults(endpoints.listGroups("id,displayName", "displayName co 'admin'", "created", "ascending",
+                1, 100), 1);
+    }
+
+    @Test
+    public void legacyTestListGroupsWithInvalidFilterFails() {
+        expectedEx.expect(ScimException.class);
+        expectedEx.expectMessage("Invalid filter expression");
+        endpoints.listGroups("id,displayName", "displayName cr 'admin'", "created", "ascending", 1, 100);
+    }
+
+    @Test
+    public void legacyTestListGroupsWithInvalidAttributesFails() {
+        expectedEx.expect(ScimException.class);
+        expectedEx.expectMessage("Invalid attributes");
+        endpoints.listGroups("id,display", "displayName co 'admin'", "created", "ascending", 1, 100);
+    }
+
+    @Test
+    public void legacyTestListGroupsWithNullAttributes() {
+        validateSearchResults(endpoints.listGroups(null, "displayName co 'admin'", "created", "ascending", 1, 100), 1);
+    }
+
+    @Test
     public void testGetGroup() throws Exception {
         MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
         ScimGroup g = endpoints.getGroup(groupIds.get(groupIds.size() - 1), httpServletResponse);
