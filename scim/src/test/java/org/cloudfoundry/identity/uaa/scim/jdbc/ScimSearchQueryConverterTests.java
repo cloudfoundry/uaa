@@ -56,6 +56,7 @@ public class ScimSearchQueryConverterTests {
         validate(filterProcessor.convert("displayName pr", "displayName", false),"displayName IS NOT NULL ORDER BY displayName DESC", 0);
         validate(filterProcessor.convert("username pr and emails.value co \".com\"", null, false),"(username IS NOT NULL AND LOWER(email) LIKE LOWER(:__value_0))", 1);
         validate(filterProcessor.convert("username eq \"joe\" or emails.value co \".com\"", null, false),"(LOWER(username) = LOWER(:__value_0) OR LOWER(email) LIKE LOWER(:__value_1))", 2);
+        validate(filterProcessor.convert("active eq true", null, false),"active = :__value_0", 1, Boolean.class);
     }
 
     @Test
@@ -92,6 +93,11 @@ public class ScimSearchQueryConverterTests {
         validate(filterProcessor.convert("username eq 'joe' or emails.value co '.com'", null, false), "(LOWER(username) = LOWER(:__value_0) OR LOWER(email) LIKE LOWER(:__value_1))", 2);
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void testIllegalUnquotedValueInFilter() throws Exception {
+        filterProcessor.convert("username eq joe", null, false);
+    }
+
     @Test
     public void canConvertLegacyWithReplacePatterns() {
         Map<String, String> replaceWith = new HashMap<>();
@@ -106,10 +112,17 @@ public class ScimSearchQueryConverterTests {
         validate(filterProcessor.convert("username pr", "emails.value", true), "username IS NOT NULL ORDER BY email ASC", 0);
     }
 
-    private void validate(ProcessedFilter filter, String expectedSql, int expectedParamCount) {
+    private void validate(ProcessedFilter filter, String expectedSql, int expectedParamCount, Class... types) {
         assertNotNull(filter);
         expectedSql = expectedSql.replaceAll("__value_", filter.getParamPrefix());
         assertEquals(expectedSql, filter.getSql());
         assertEquals(expectedParamCount, filter.getParams().size());
+
+        int count = 0;
+        for (Class type : types) {
+            String param = filter.getParamPrefix()+String.valueOf(count++);
+            Object value = filter.getParams().get(param);
+            assertEquals(type, value.getClass());
+        }
     }
 }
