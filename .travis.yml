@@ -1,4 +1,7 @@
 language: java
+branches:
+  except:
+    - /^travis-success-.*$/
 env:
   global:
     - secure: "Ubdyw9qc/AVX61ZTehLm90NG5q+qCIPljY5nYNmmkjvNKRIpx1bYIDjFflfXbSKn+opqBdpo5qQJwLQwO1xCvWfDsAO9YlriiqIZQuYXynAqe0hCqKkMn7OqTDR+rZuA+jl7t7LVwWhwbQ4+IiAC44d6CKIa1WPhmgy5dHxBKac="
