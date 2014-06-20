@@ -1,9 +1,9 @@
 language: java
 env:
   global:
-    - secure: "Ubdyw9qc/AVX61ZTehLm90NG5q+qCIPljY5nYNmmkjvNKRIpx1bYIDjFflfXbSKn+opqBdpo5qQJwLQwO1xCvWfDsAO9YlriiqIZQuYXynAqe0hCqKkMn7OqTDR+rZuA+jl7t7LVwWhwbQ4+IiAC44d6CKIa1WPhmgy5dHxBKac="
     - CATALINA_PID=/tmp/tomcat.pid
     - CATALINA_OUT=/tmp/tomcat.log
+    - secure: "Rsrhick057QbQzg33Oa6MFxeyPK8jlDnT5J6w/uXD9wyEJfYZEsLdxv+uiq4EpxSBEQYxw3q9ULcwMuUJAkdQWrAFJhbzjKPYZ2OroTjUMNVpt0sExT6xm16HSu4E4RcXKuO4O2k58bDSPUSAhlVc8PJR/ACRULzDyTDAC2wML4="
   matrix:
     - TESTENV=default,coverage
     - TESTENV=mysql,default,coverage
