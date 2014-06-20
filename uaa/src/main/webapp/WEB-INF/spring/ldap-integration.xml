@@ -16,20 +16,41 @@
        xmlns:security="http://www.springframework.org/schema/security"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xmlns:sec="http://www.springframework.org/schema/security"
+       xmlns:util="http://www.springframework.org/schema/util"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
-              http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.2.xsd">
+              http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.2.xsd
+              http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+
+
+    <bean id="ldapPooled" class="java.lang.Boolean">
+        <constructor-arg value="false"/>
+    </bean>
+    <util:map id="ldapProperties">
+        <entry key="com.sun.jndi.ldap.connect.pool" value-ref="ldapPooled" />
+    </util:map>
+
+    <bean id="ldapGroupMappingAuthorizationManager" class="org.cloudfoundry.identity.uaa.authorization.external.LdapGroupMappingAuthorizationManager">
+        <property name="externalMembershipManager" ref="externalGroupMembershipManager" />
+        <property name="scimGroupProvisioning" ref="scimGroupProvisioning" />
+    </bean>
 
 
     <import resource="${ldap.profile.file:ldap/ldap-simple-bind.xml}" />
+    <import resource="${ldap.profile.groups.file:ldap/ldap-groups-null.xml}" />
 
     <security:authentication-manager id="ldapAuthenticationManager">
         <sec:authentication-provider ref="ldapAuthProvider"/>
     </security:authentication-manager>
 
+    <bean id="autoAddAuthorities" class="java.lang.Boolean">
+        <constructor-arg value="${ldap.group.autoAdd:true}"/>
+    </bean>
+
 
     <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">
         <property name="userDatabase" ref="userDatabase" />
         <property name="origin" value="ldap"/>
+        <property name="autoAddAuthorities" ref="autoAddAuthorities"/>
     </bean>
 
 </beans>

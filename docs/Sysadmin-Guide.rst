@@ -187,7 +187,7 @@ not a reasonable need to ever deny them.
    oauth:
       client:
          autoapprove:
-            - vmc
+            - cf
             - support-signon
 
 Individual client settings in uaa.yml go in sections under “clients”
@@ -296,7 +296,7 @@ your context after authenticating.
 ::
 
     uaac token client get admin # default pass adminsecret
-    uaac token client get vmc
+    uaac token client get cf
     uaac token client get dashboard # get dashboard context
 
 Learn about your context
@@ -393,7 +393,7 @@ Additional Resources
 UAA documentation in docs/
 
 #. UAA-APIs.rst: API document, kept updated
-#. UAA-CC-ACM-VMC-Interactions.rst: flows for operations between parts
+#. UAA-CC-ACM-CF-Interactions.rst: flows for operations between parts
 #. UAA-Overview.rst: comparisons with oauth2
 #. UAA-Security.md: accounts, bootstrapping, scopes for access control
 #. UAA\_presentation.pdf: Overview presentation, outline for internal developers

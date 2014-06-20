@@ -20,4 +20,6 @@ public interface Queryable<T> {
 
     List<T> query(String filter, String sortBy, boolean ascending);
 
+    int delete(String filter);
+
 }

@@ -30,6 +30,7 @@ import javax.sql.DataSource;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -77,7 +78,7 @@ public class JdbcScimGroupMembershipManagerTests {
 
     private static final String addGroupSqlFormat = "insert into groups (id, displayName) values ('%s','%s')";
 
-    private static final String addMemberSqlFormat = "insert into group_membership (group_id, member_id, member_type, authorities) values ('%s', '%s', '%s', '%s')";
+    private static final String addMemberSqlFormat = "insert into group_membership (group_id, member_id, member_type, authorities, origin) values ('%s', '%s', '%s', '%s', '%s')";
 
     @Before
     public void createDatasource() {
@@ -89,7 +90,7 @@ public class JdbcScimGroupMembershipManagerTests {
         udao.setPasswordValidator(new NullPasswordValidator());
         gdao = new JdbcScimGroupProvisioning(template, pagingListFactory);
 
-        dao = new JdbcScimGroupMembershipManager(template);
+        dao = new JdbcScimGroupMembershipManager(template, pagingListFactory);
         dao.setScimGroupProvisioning(gdao);
         dao.setScimUserProvisioning(udao);
         dao.setDefaultUserGroups(Collections.singleton("uaa.user"));
@@ -105,7 +106,10 @@ public class JdbcScimGroupMembershipManagerTests {
     }
 
     private void addMember(String gId, String mId, String mType, String authorities) {
-        template.execute(String.format(addMemberSqlFormat, gId, mId, mType, authorities));
+        addMember(gId,mId,mType,authorities,Origin.UAA);
+    }
+    private void addMember(String gId, String mId, String mType, String authorities, String origin) {
+        template.execute(String.format(addMemberSqlFormat, gId, mId, mType, authorities, origin));
     }
 
     private void addGroup(String id, String name) {
@@ -155,11 +159,48 @@ public class JdbcScimGroupMembershipManagerTests {
     }
 
     @Test
+    public void canDeleteWithFilter1() throws Exception {
+        addMembers();
+        validateCount(4);
+        dao.delete("origin eq \""+ Origin.UAA +"\"");
+        validateCount(0);
+    }
+
+    @Test
+    public void canDeleteWithFilter2() throws Exception {
+        addMembers();
+        validateCount(4);
+        dao.delete("origin eq \""+ Origin.ORIGIN +"\"");
+        validateCount(4);
+    }
+
+    @Test
+    public void canDeleteWithFilter3() throws Exception {
+        addMembers();
+        validateCount(4);
+        dao.delete("member_id eq \"m3\" and origin eq \""+ Origin.UAA +"\"");
+        validateCount(2);
+    }
+
+    @Test
+    public void canDeleteWithFilter4() throws Exception {
+        addMembers();
+        validateCount(4);
+        dao.delete("member_id sw \"m\" and origin eq \""+ Origin.UAA +"\"");
+        validateCount(1);
+    }
+
+    @Test
+    public void canDeleteWithFilter5() throws Exception {
+        addMembers();
+        validateCount(4);
+        dao.delete("member_id sw \"m\" and origin eq \""+ Origin.LDAP +"\"");
+        validateCount(4);
+    }
+
+    @Test
     public void canGetGroupsForMember() {
-        addMember("g1", "m3", "USER", "READER");
-        addMember("g1", "g2", "GROUP", "READER");
-        addMember("g3", "m2", "USER", "READER,WRITER");
-        addMember("g2", "m3", "USER", "READER");
+        addMembers();
 
         Set<ScimGroup> groups = dao.getGroupsWithMember("g2", false);
         assertNotNull(groups);
@@ -168,6 +209,13 @@ public class JdbcScimGroupMembershipManagerTests {
         groups = dao.getGroupsWithMember("m3", true);
         assertNotNull(groups);
         assertEquals(3, groups.size());
+    }
+
+    private void addMembers() {
+        addMember("g1", "m3", "USER", "READER");
+        addMember("g1", "g2", "GROUP", "READER");
+        addMember("g3", "m2", "USER", "READER,WRITER");
+        addMember("g2", "m3", "USER", "READER");
     }
 
     @Test

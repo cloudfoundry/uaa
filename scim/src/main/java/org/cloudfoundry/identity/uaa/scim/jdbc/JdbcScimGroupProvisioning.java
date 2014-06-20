@@ -60,6 +60,8 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup> impl
 
     public static final String DELETE_GROUP_SQL = String.format("delete from %s where id=?", GROUP_TABLE);
 
+    public static final String DELETE_GROUP_SQL_FILTER = String.format("delete from %s ", GROUP_TABLE);
+
     private final RowMapper<ScimGroup> rowMapper = new ScimGroupRowMapper();
 
     public JdbcScimGroupProvisioning(JdbcTemplate jdbcTemplate, JdbcPagingListFactory pagingListFactory) {
@@ -73,6 +75,11 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup> impl
     protected String getBaseSqlQuery() {
         return GET_GROUPS_SQL;
     }
+    @Override
+    protected String getTableName() {
+        return GROUP_TABLE;
+    }
+
 
     @Override
     public List<ScimGroup> retrieveAll() {

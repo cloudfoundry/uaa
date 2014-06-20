@@ -40,8 +40,8 @@ public class UaaConfigurationTests {
                         "issuer.uri: http://foo.com\n" +
                         "oauth:\n" +
                         "  clients:\n" +
-                        "    vmc:\n" +
-                        "      id: vmc\n" +
+                        "    cf:\n" +
+                        "      id: cf\n" +
                         "      authorized-grant-types: implicit\n");
     }
 
@@ -50,11 +50,11 @@ public class UaaConfigurationTests {
         createValidator(
         "oauth:\n" +
                         "  clients:\n" +
-                        "    vmc:\n" +
-                        "      id: vmc\n" +
+                        "    cf:\n" +
+                        "      id: cf\n" +
                         "      autoapprove: true\n" +
                         "      authorized-grant-types: implicit\n");
-        assertTrue(validator.getObject().oauth.clients.containsKey("vmc"));
+        assertTrue(validator.getObject().oauth.clients.containsKey("cf"));
     }
 
     @Test(expected = ConstraintViolationException.class)

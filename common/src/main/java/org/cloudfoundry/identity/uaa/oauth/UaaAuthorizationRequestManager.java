@@ -56,8 +56,6 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
 
     private Collection<String> defaultScopes = new HashSet<String>();
 
-    private ExternalGroupMappingAuthorizationManager externalGroupMappingAuthorizationManager = null;
-
     public UaaAuthorizationRequestManager(ClientDetailsService clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
     }
@@ -118,8 +116,6 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
      * connect values), in which case the separator is ignored</li>
      * </ul>
      * 
-     * @see org.springframework.security.oauth2.provider.AuthorizationRequestFactory#createAuthorizationRequest(java.util.Map,
-     *      java.lang.String, java.lang.String, java.util.Set)
      */
     @Override
     public AuthorizationRequest createAuthorizationRequest(Map<String, String> authorizationParameters) {
@@ -179,10 +175,7 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
     }
 
     private Set<String> findScopesFromAuthorities(String authorities) {
-        if (null == externalGroupMappingAuthorizationManager) {
-            return new HashSet<String>();
-        }
-        return externalGroupMappingAuthorizationManager.findScopesFromAuthorities(authorities);
+        return new HashSet<String>();
     }
 
     /**
@@ -269,11 +262,6 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
             }
         }
         return resourceIds.isEmpty() ? clientDetails.getResourceIds() : resourceIds;
-    }
-
-    public void setExternalGroupMappingAuthorizationManager(
-                    ExternalGroupMappingAuthorizationManager externalGroupMappingAuthorizationManager) {
-        this.externalGroupMappingAuthorizationManager = externalGroupMappingAuthorizationManager;
     }
 
 }

@@ -80,9 +80,9 @@ public class ClientAdminEndpointsIntegrationTests {
     @Test
     public void testGetClient() throws Exception {
         HttpHeaders headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read"));
-        ResponseEntity<String> result = serverRunning.getForString("/oauth/clients/vmc", headers);
+        ResponseEntity<String> result = serverRunning.getForString("/oauth/clients/cf", headers);
         assertEquals(HttpStatus.OK, result.getStatusCode());
-        assertTrue(result.getBody().contains("vmc"));
+        assertTrue(result.getBody().contains("cf"));
     }
 
     @Test
@@ -91,7 +91,7 @@ public class ClientAdminEndpointsIntegrationTests {
         ResponseEntity<String> result = serverRunning.getForString("/oauth/clients", headers);
         assertEquals(HttpStatus.OK, result.getStatusCode());
         // System.err.println(result.getBody());
-        assertTrue(result.getBody().contains("\"client_id\":\"vmc\""));
+        assertTrue(result.getBody().contains("\"client_id\":\"cf\""));
         assertFalse(result.getBody().contains("secret\":"));
     }
 

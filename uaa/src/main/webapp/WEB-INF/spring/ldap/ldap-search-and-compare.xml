@@ -15,13 +15,15 @@
   -->
 
 <beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ldap="http://www.springframework.org/schema/ldap"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd http://www.springframework.org/schema/ldap http://www.springframework.org/schema/ldap/spring-ldap.xsd">
 
     <bean id="contextSource" class="org.springframework.security.ldap.DefaultSpringSecurityContextSource">
-        <constructor-arg value="${ldap.base.url:ldap://localhost:389/}" />
+        <constructor-arg value="${ldap.base.url:ldap://localhost:389/dc=test,dc=com}" />
         <property name="userDn" value="${ldap.base.userDn:cn=admin,ou=Users,dc=test,dc=com}" />
-        <property name="password" value="${ldap.base.password:password}" />
+        <property name="password" value="${ldap.base.password:adminsecret}" />
+        <property name="baseEnvironmentProperties" ref="ldapProperties"/>
+        <property name="pooled" ref="ldapPooled"/>
     </bean>
 
     <bean id="ldapAuthProvider" class="org.springframework.security.ldap.authentication.LdapAuthenticationProvider">
@@ -44,15 +46,8 @@
                 <property name="localCompare" value="${ldap.base.localPasswordCompare:true}" />
             </bean>
         </constructor-arg>
-        <constructor-arg>
-            <bean class="org.springframework.security.ldap.authentication.NullLdapAuthoritiesPopulator" />
-        </constructor-arg>
-        <property name="authoritiesMapper">
-            <bean class="org.springframework.security.core.authority.mapping.SimpleAuthorityMapper">
-                <property name="defaultAuthority" value="ROLE_USER" />
-            </bean>
-        </property>
-
+        <constructor-arg ref="ldapAuthoritiesPopulator"/>
+        <property name="authoritiesMapper" ref="ldapAuthoritiesMapper"/>
     </bean>
 
     <bean id="testLdapProfile" class="java.lang.String">

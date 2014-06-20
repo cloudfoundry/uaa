@@ -123,7 +123,7 @@ public class LoginServerSecurityIntegrationTests {
                                         Void.class, joe.getId());
         assertEquals(HttpStatus.OK, result.getStatusCode());
 
-        // The implicit grant for vmc requires extra parameters in the
+        // The implicit grant for cf requires extra parameters in the
         // authorization request
         context.setParameters(Collections.singletonMap("credentials",
                         testAccounts.getJsonCredentials(joe.getUserName(), "password")));
@@ -176,7 +176,7 @@ public class LoginServerSecurityIntegrationTests {
 
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
-    public void testLoginServerCanAuthenticateUserForVmc() throws Exception {
+    public void testLoginServerCanAuthenticateUserForCf() throws Exception {
         ImplicitResourceDetails resource = testAccounts.getDefaultImplicitResource();
         params.set("client_id", resource.getClientId());
         params.set(Origin.ORIGIN, joe.getOrigin());
@@ -304,7 +304,7 @@ public class LoginServerSecurityIntegrationTests {
 
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
-    public void testLoginServerVmcPasswordToken() throws Exception {
+    public void testLoginServerCfPasswordToken() throws Exception {
         ImplicitResourceDetails resource = testAccounts.getDefaultImplicitResource();
         HttpHeaders headers = new HttpHeaders();
         headers.add("Accept",MediaType.APPLICATION_JSON_VALUE);
@@ -349,7 +349,7 @@ public class LoginServerSecurityIntegrationTests {
 
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
-    public void testLoginServerVmcInvalidClientPasswordToken() throws Exception {
+    public void testLoginServerCfInvalidClientPasswordToken() throws Exception {
         ImplicitResourceDetails resource = testAccounts.getDefaultImplicitResource();
         HttpHeaders headers = new HttpHeaders();
         headers.add("Accept",MediaType.APPLICATION_JSON_VALUE);
@@ -371,7 +371,7 @@ public class LoginServerSecurityIntegrationTests {
 
     @Test
     @OAuth2ContextConfiguration(AppClient.class)
-    public void testLoginServerVmcInvalidClientToken() throws Exception {
+    public void testLoginServerCfInvalidClientToken() throws Exception {
         ImplicitResourceDetails resource = testAccounts.getDefaultImplicitResource();
         HttpHeaders headers = new HttpHeaders();
         headers.add("Accept",MediaType.APPLICATION_JSON_VALUE);

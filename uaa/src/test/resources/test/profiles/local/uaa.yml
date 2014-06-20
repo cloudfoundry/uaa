@@ -18,13 +18,13 @@ cloud_controller:
 
 oauth:
   clients:
-    vmc:    
-      id: vmc
+    cf:
+      id: cf
       authorized-grant-types: implicit
       scope: cloud_controller.read,cloud_controller.write,openid,password.write
       authorities: uaa.none
       resource-ids: none
-      redirect-uri: https://uaa.cloudfoundry.com/redirect/vmc
+      redirect-uri: https://uaa.cloudfoundry.com/redirect/cf
     cloud_controller:    
       id: cloud_controller
       secret: cloudcontrollersecret

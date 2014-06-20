@@ -5,7 +5,7 @@ logging:
 oauth:
   client:
     autoapprove:
-      - vmc
+      - cf
       - my
       - support
 scim:

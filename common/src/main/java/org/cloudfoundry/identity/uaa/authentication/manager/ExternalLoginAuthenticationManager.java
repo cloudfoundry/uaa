@@ -72,6 +72,7 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
     public void setUserDatabase(UaaUserDatabase userDatabase) {
         this.userDatabase = userDatabase;
     }
+    public UaaUserDatabase getUserDatabase() { return this.userDatabase; }
 
     @Override
     public Authentication authenticate(Authentication request) throws AuthenticationException {
@@ -90,24 +91,30 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
             return null;
         }
 
-        boolean addNewAccounts = true;
-        UaaUser user = null;
+        UaaUser user = getUser(req, getExtendedAuthorizationInfo(request));
+        boolean addnew = false;
         try {
-            user = userDatabase.retrieveUserByName(req.getUsername(), getOrigin());
+            UaaUser temp = userDatabase.retrieveUserByName(user.getUsername(), getOrigin());
+            if (temp!=null) {
+                user = temp;
+            } else {
+                addnew = true;
+            }
         } catch (UsernameNotFoundException e) {
+            addnew = true;
         }
-        if (addNewAccounts && user==null) {
+        if (addnew) {
             // Register new users automatically
-            user = getUser(req, Collections.<String, String>emptyMap());
             publish(new NewUserAuthenticatedEvent(user));
             try {
                 user = userDatabase.retrieveUserByName(user.getUsername(), getOrigin());
             } catch (UsernameNotFoundException ex) {
                 throw new BadCredentialsException("Bad credentials");
             }
-        } else if (user==null) {
-            throw new BadCredentialsException("Bad credentials");
         }
+        //user is authenticated and exists in UAA
+        user = userAuthenticated(request, user);
+
         UaaAuthenticationDetails uaaAuthenticationDetails = null;
         if (request.getDetails() instanceof UaaAuthenticationDetails) {
             uaaAuthenticationDetails = (UaaAuthenticationDetails)request.getDetails();
@@ -119,10 +126,26 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
         return success;
     }
 
+    protected Map<String,String> getExtendedAuthorizationInfo(Authentication auth) {
+        Object details = auth.getDetails();
+        if (details!=null && details instanceof UaaAuthenticationDetails) {
+            UaaAuthenticationDetails uaaAuthenticationDetails = (UaaAuthenticationDetails)details;
+            Map<String, String> result = uaaAuthenticationDetails.getExtendedAuthorizationInfo();
+            if (result!=null) {
+                return result;
+            }
+        }
+        return Collections.emptyMap();
+    }
+
     protected void publish(ApplicationEvent event) {
         if (eventPublisher != null) {
             eventPublisher.publishEvent(event);
         }
+    }
+
+    protected UaaUser userAuthenticated(Authentication request, UaaUser user) {
+        return user;
     }
 
     protected UaaUser getUser(UserDetails details, Map<String, String> info) {
@@ -139,10 +162,10 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
                 if (name.split("@").length == 2 && !name.startsWith("@") && !name.endsWith("@")) {
                     email = name;
                 } else {
-                    email = name.replaceAll("@", "") + "@user.from.ldap.cf";
+                    email = name.replaceAll("@", "") + "@user.from."+getOrigin()+".cf";
                 }
             } else {
-                email = name + "@unknown.org";
+                email = name + "@user.from."+getOrigin()+".cf";
             }
         }
         String givenName = info.get("given_name");
@@ -155,7 +178,7 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
         }
         return new UaaUser(
             "NaN", 
-            details.getUsername(), 
+            name,
             "" /*zero length password for login server */, 
             email,
             UaaAuthority.USER_AUTHORITIES,

@@ -19,7 +19,7 @@
     <name>CloudFoundry Identity - Parent</name>
     <description>The UAA is the Identity Management Solution for Cloud Foundry</description>
     <packaging>pom</packaging>
-    <version>1.7.0</version>
+    <version>1.7.1</version>
     <url>http://github.com/cloudfoundry/uaa</url>
     <modules>
         <module>common</module>
@@ -29,7 +29,7 @@
     </modules>
     <properties>
         <spring.version>4.0.3.RELEASE</spring.version>
-        <spring.security.version>3.2.3.RELEASE</spring.security.version>
+        <spring.security.version>3.2.4.RELEASE</spring.security.version>
         <spring.security.oauth.version>1.0.5.RELEASE</spring.security.oauth.version>
         <spring.security.jwt.version>1.0.1.RELEASE</spring.security.jwt.version>
         <spring.ldap.version>1.3.2.RELEASE</spring.ldap.version>
@@ -239,6 +239,18 @@
         </plugins>
         <pluginManagement>
             <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>${maven-jar-plugin.version}</version>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>test-jar</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-antrun-plugin</artifactId>

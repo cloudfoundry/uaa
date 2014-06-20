@@ -12,10 +12,12 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authorization;
 
+import org.springframework.security.core.GrantedAuthority;
+
 import java.util.Set;
 
 public interface ExternalGroupMappingAuthorizationManager {
 
-    public Set<String> findScopesFromAuthorities(String authorities);
+    public Set<? extends GrantedAuthority> findScopesFromAuthorities(Set<? extends GrantedAuthority> authorities);
 
 }

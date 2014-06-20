@@ -129,7 +129,7 @@ public class ScimUserEndpointsTests {
         dao.setQueryConverter(filterConverter);
         endpoints = new ScimUserEndpoints();
         endpoints.setScimUserProvisioning(dao);
-        mm = new JdbcScimGroupMembershipManager(jdbcTemplate);
+        mm = new JdbcScimGroupMembershipManager(jdbcTemplate, pagingListFactory);
         mm.setScimUserProvisioning(dao);
         JdbcScimGroupProvisioning gdao = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
         mm.setScimGroupProvisioning(gdao);
@@ -476,13 +476,6 @@ public class ScimUserEndpointsTests {
     }
 
     @Test
-    @Ignore
-    public void testFindIdsByNameExists() {
-        SearchResults<?> results = endpoints.findUsers("id", "name pr", null, "ascending", 1, 100);
-        assertEquals(2, results.getTotalResults());
-    }
-
-    @Test
     public void testFindIdsByUserNameStartWith() {
         SearchResults<?> results = endpoints.findUsers("id", "userName sw \"j\"", null, "ascending", 1, 100);
         assertEquals(1, results.getTotalResults());
@@ -555,6 +548,62 @@ public class ScimUserEndpointsTests {
         MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
         endpoints.verifyUser("" + joel.getId(), "*", httpServletResponse);
         assertEquals("\"0\"", httpServletResponse.getHeader("ETag"));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void legacyTestFindIdsByUserName() {
+        SearchResults<?> results = endpoints.findUsers("id", "userName eq 'jdsa'", null, "ascending", 1, 100);
+        assertEquals(1, results.getTotalResults());
+        assertEquals(1, results.getSchemas().size()); // System.err.println(results.getValues());
+        assertEquals(joel.getId(), ((Map<String, Object>) results.getResources().iterator().next()).get("id"));
+    }
+
+    @Test
+    public void legacyTestFindIdsByUserNameContains() {
+        SearchResults<?> results = endpoints.findUsers("id", "userName co 'd'", null, "ascending", 1, 100);
+        assertEquals(2, results.getTotalResults());
+        assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
+                .contains(joel.getId()));
+    }
+
+    @Test
+    public void legacyTestFindIdsByUserNameStartWith() {
+        SearchResults<?> results = endpoints.findUsers("id", "userName sw 'j'", null, "ascending", 1, 100);
+        assertEquals(1, results.getTotalResults());
+        assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
+                .contains(joel.getId()));
+    }
+
+    @Test
+    public void legacyTestFindIdsByEmailContains() {
+        SearchResults<?> results = endpoints.findUsers("id", "emails.value sw 'j'", null, "ascending", 1, 100);
+        assertEquals(1, results.getTotalResults());
+        assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
+                .contains(joel.getId()));
+    }
+
+    @Test
+    public void legacyTestFindIdsByEmailContainsWithEmptyResult() {
+        SearchResults<?> results = endpoints.findUsers("id", "emails.value sw 'z'", null, "ascending", 1, 100);
+        assertEquals(0, results.getTotalResults());
+    }
+
+    @Test
+    public void legacyTestFindIdsWithBooleanExpression() {
+        SearchResults<?> results = endpoints.findUsers("id", "userName co 'd' and id pr", null, "ascending", 1, 100);
+        assertEquals(2, results.getTotalResults());
+        assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
+                .contains(joel.getId()));
+    }
+
+    @Test
+    public void legacyTestFindIdsWithBooleanExpressionIvolvingEmails() {
+        SearchResults<?> results = endpoints.findUsers("id",
+                "userName co 'd' and emails.value co 'vmware'", null, "ascending", 1, 100);
+        assertEquals(2, results.getTotalResults());
+        assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
+                .contains(joel.getId()));
     }
 
     @SuppressWarnings("unchecked")

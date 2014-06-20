@@ -1,6 +1,6 @@
 #!/bin/bash
 
-
+cd `dirname $0`/../..
 
 if [ "$1" = "restart" ]; then
   target/tomcat/bin/shutdown.sh -force

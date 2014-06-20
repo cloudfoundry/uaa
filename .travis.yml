@@ -1,9 +1,12 @@
 language: java
+branches:
+  except:
+    - /^travis-success-.*$/
 env:
   global:
+    - secure: "Ubdyw9qc/AVX61ZTehLm90NG5q+qCIPljY5nYNmmkjvNKRIpx1bYIDjFflfXbSKn+opqBdpo5qQJwLQwO1xCvWfDsAO9YlriiqIZQuYXynAqe0hCqKkMn7OqTDR+rZuA+jl7t7LVwWhwbQ4+IiAC44d6CKIa1WPhmgy5dHxBKac="
     - CATALINA_PID=/tmp/tomcat.pid
     - CATALINA_OUT=/tmp/tomcat.log
-    - secure: "Rsrhick057QbQzg33Oa6MFxeyPK8jlDnT5J6w/uXD9wyEJfYZEsLdxv+uiq4EpxSBEQYxw3q9ULcwMuUJAkdQWrAFJhbzjKPYZ2OroTjUMNVpt0sExT6xm16HSu4E4RcXKuO4O2k58bDSPUSAhlVc8PJR/ACRULzDyTDAC2wML4="
   matrix:
     - TESTENV=default,coverage
     - TESTENV=mysql,default,coverage
@@ -12,8 +15,6 @@ env:
     - TESTENV=keystone,default,coverage
 cache:
   apt: true
-  directories:
-  - $HOME/.m2/repository
 services:
   - mysql
   - postgresql
@@ -33,38 +34,36 @@ before_install:
 install:
   - if [ "$TESTENV" = "ldap,default,coverage" ]; then ./scripts/ldap/configure-manifest.sh; fi
   - if [ "$TESTENV" = "keystone,default,coverage" ]; then ./scripts/keystone/configure-manifest.sh; fi
-  - mvn -U install -DskipTests -P coverage --quiet
+  - mvn install -DskipTests -P coverage --quiet
   - mkdir -p target/tomcat && tar zxf tomcat.tar.gz -C target/tomcat --strip-components 1 && rm -rf target/tomcat/webapps/*
   - mvn -Dwar.exploded.dir=`pwd`/target/tomcat/webapps/api --quiet -pl samples/api war:exploded
   - mvn -Dwar.exploded.dir=`pwd`/target/tomcat/webapps/app --quiet -pl samples/app war:exploded
-  - $TRAVIS_BUILD_DIR/.cobertura-instrument.sh
+  - $TRAVIS_BUILD_DIR/scripts/cobertura/cobertura-instrument.sh
   - mvn -Dwar.exploded.dir=`pwd`/target/tomcat/webapps/uaa --quiet -pl uaa war:exploded -P coverage
 script:
-  - ./.run-script.sh start
+  - ./scripts/travis/run-script.sh start
   - mvn -Dtest=org.cloudfoundry.identity.uaa.integration.* -DfailIfNoTests=false test -P coverage --quiet
   - curl -v -X POST http://localhost:8080/uaa/healthz/coverage/flush
-  - ./.run-script.sh stop
+  - ./scripts/travis/run-script.sh stop
   - mvn -Dspring.profiles.active=$TESTENV test -P coverage --quiet
 after_success:
-  - $TRAVIS_BUILD_DIR/.cobertura-report.sh
+  - $TRAVIS_BUILD_DIR/scripts/cobertura/cobertura-report.sh
   - mvn coveralls:cobertura
-  - openssl aes-256-cbc -k "$SETTINGS_XML_KEY" -in settings.xml.enc -d -a -out $HOME/.m2/settings.xml
-  - python travis_after_all.py
+  - python scripts/travis/travis_after_all.py
   - export $(cat .to_export_back)
   - |
       if [ "$BUILD_LEADER" = "YES" ]; then
         if [ "$BUILD_AGGREGATE_STATUS" = "others_succeeded" ]; then
-          echo "All Succeded!"
+          echo "All Succeeded!"
           if [ "$TRAVIS_BRANCH" = "develop" ]; then
-            echo "PUBLISHING..."
-            mvn clean deploy -DskipTests
+            curl https://api.github.com/repos/cloudfoundry/uaa/git/refs -H "Content-Type:application/json" -H "Authorization: token $GH_TOKEN" -d "{\"ref\":\"refs/tags/travis-success-$TRAVIS_BUILD_NUMBER\",\"sha\":\"$TRAVIS_COMMIT\"}"
           fi
         else
           echo "Some Failed"
         fi
       fi
 after_failure:
-  - python travis_after_all.py
+  - python scripts/travis/travis_after_all.py
   - export $(cat .to_export_back)
   - |
       if [ "$BUILD_LEADER" = "YES" ]; then
@@ -76,6 +75,4 @@ after_failure:
       fi
   - cat $CATALINA_OUT
 after_script:
-  - rm -rf tomcat
-  - rm -f tomcat.tar.gz
   - echo leader=$BUILD_LEADER status=$BUILD_AGGREGATE_STATUS

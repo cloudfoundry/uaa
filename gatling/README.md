@@ -57,7 +57,7 @@ consists of a sequence of "scenarios", each of which is configured something lik
 
     vmcUserLogins.configure users 100 ramp 10 protocolConfig uaaHttpConfig
 
-This means run the `vmcUserLogins` scenario with 100 test clients and ramp up to full capacity within 10 seconds.
+This means run the `cfUserLogins` scenario with 100 test clients and ramp up to full capacity within 10 seconds.
 
 If you are having problems, you can enable client-side logging by editing the logback configuration file
 `src/main/resources/logback.xml`.

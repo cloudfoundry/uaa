@@ -36,7 +36,7 @@
         <property name="defaultOverride" value="${oauth.client.override:true}" />
         <property name="clients" value="#{@config['oauth']==null ? null : @config['oauth']['clients']}" />
         <property name="autoApproveClients"
-            value="#{@applicationProperties.containsKey('oauth.client.autoapprove')?@config['oauth']['client']['autoapprove']:'vmc'}" />
+            value="#{@applicationProperties.containsKey('oauth.client.autoapprove')?@config['oauth']['client']['autoapprove']:'cf'}" />
     </bean>
 
     <beans profile="cloud">
@@ -62,9 +62,9 @@
                             <entry key="secret" value="adminsecret" />
                         </map>
                     </entry>
-                    <entry key="vmc">
+                    <entry key="cf">
                         <map>
-                            <entry key="id" value="vmc" />
+                            <entry key="id" value="cf" />
                             <entry key="authorized-grant-types" value="implicit,password,refresh_token" />
                             <entry key="scope"
                                 value="cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,cloud_controller.admin,scim.read,scim.write" />

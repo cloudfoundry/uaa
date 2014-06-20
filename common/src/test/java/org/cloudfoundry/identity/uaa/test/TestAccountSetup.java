@@ -103,8 +103,8 @@ public class TestAccountSetup extends TestWatchman {
             if (!appClientExists(client)) {
                 createAppClient(client);
             }
-            if (!vmcClientExists(client)) {
-                createVmcClient(client);
+            if (!cfClientExists(client)) {
+                createCfClient(client);
             }
             initialized = true;
         }
@@ -113,11 +113,11 @@ public class TestAccountSetup extends TestWatchman {
         initializeUserAccount(client);
     }
 
-    private void createVmcClient(RestOperations client) {
-        BaseClientDetails clientDetails = new BaseClientDetails("vmc", "cloud_controller,openid,password",
+    private void createCfClient(RestOperations client) {
+        BaseClientDetails clientDetails = new BaseClientDetails("cf", "cloud_controller,openid,password",
                         "openid,cloud_controller.read,cloud_controller_service_permissions.read,password.write,scim.userids", "implicit", "uaa.none",
-                        "https://uaa.cloudfoundry.com/redirect/vmc");
-        createClient(client, testAccounts.getClientDetails("oauth.clients.vmc", clientDetails));
+                        "https://uaa.cloudfoundry.com/redirect/cf");
+        createClient(client, testAccounts.getClientDetails("oauth.clients.cf", clientDetails));
     }
 
     private void createScimClient(RestOperations client) {
@@ -147,8 +147,8 @@ public class TestAccountSetup extends TestWatchman {
         return response != null && response.getStatusCode() == HttpStatus.OK;
     }
 
-    private boolean vmcClientExists(RestOperations client) {
-        return clientExists(client, testAccounts.getImplicitResource("oauth.clients.vmc", "vmc", null));
+    private boolean cfClientExists(RestOperations client) {
+        return clientExists(client, testAccounts.getImplicitResource("oauth.clients.cf", "cf", null));
     }
 
     private boolean scimClientExists(RestOperations client) {

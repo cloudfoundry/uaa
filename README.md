@@ -94,7 +94,7 @@ token grant on stdout, e.g.
       aud: scim tokens openid cloud_controller password
       jti: ea2fac72-3f51-4c8f-a7a6-5ffc117af542
       user_id: ba14fea0-9d87-4f0c-b59e-32aaa8eb1434
-      client_id: vmc
+      client_id: cf
 
 ### Demo of command line usage on run.pivotal.io
 

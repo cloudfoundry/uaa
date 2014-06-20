@@ -15,9 +15,11 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CREATED;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.password.event.PasswordChangeEvent;
@@ -64,9 +66,9 @@ public class PasswordResetEndpoints implements ApplicationEventPublisherAware {
 
     @RequestMapping(value = "/password_resets", method = RequestMethod.POST)
     public ResponseEntity<String> resetPassword(@RequestBody String email) {
-        List<ScimUser> results = scimUserProvisioning.query("email eq \"" + email + "\"");
+        List<ScimUser> results = scimUserProvisioning.query("email eq \"" + email + "\" and origin eq \"" + Origin.UAA + "\"");
         if (results.isEmpty()) {
-            return new ResponseEntity<String>(BAD_REQUEST);
+            return new ResponseEntity<>(BAD_REQUEST);
         }
         ScimUser scimUser = results.get(0);
         String code = expiringCodeStore.generateCode(scimUser.getId(), new Timestamp(System.currentTimeMillis() + PASSWORD_RESET_LIFETIME)).getCode();
@@ -82,7 +84,7 @@ public class PasswordResetEndpoints implements ApplicationEventPublisherAware {
         } else if (isUsernamePasswordAuthenticatedChange(passwordChange)) {
             responseEntity = changePasswordUsernamePasswordAuthenticated(passwordChange);
         } else {
-            responseEntity = new ResponseEntity<String>(BAD_REQUEST);
+            responseEntity = new ResponseEntity<>(BAD_REQUEST);
         }
         return responseEntity;
     }
@@ -98,7 +100,7 @@ public class PasswordResetEndpoints implements ApplicationEventPublisherAware {
     private ResponseEntity<String> changePasswordUsernamePasswordAuthenticated(PasswordChange passwordChange) {
         List<ScimUser> results = scimUserProvisioning.query("userName eq \"" + passwordChange.getUsername() + "\"");
         if (results.isEmpty()) {
-            return new ResponseEntity<String>(BAD_REQUEST);
+            return new ResponseEntity<>(BAD_REQUEST);
         }
         String oldPassword = passwordChange.getCurrentPassword();
         ScimUser user = results.get(0);
@@ -108,20 +110,20 @@ public class PasswordResetEndpoints implements ApplicationEventPublisherAware {
             return new ResponseEntity<String>(user.getUserName(), OK);
         } catch (BadCredentialsException x) {
             publish(new PasswordChangeFailureEvent(x.getMessage(), getUaaUser(user), SecurityContextHolder.getContext().getAuthentication()));
-            return new ResponseEntity<String>(UNAUTHORIZED);
+            return new ResponseEntity<>(UNAUTHORIZED);
         } catch (ScimResourceNotFoundException x) {
             publish(new PasswordChangeFailureEvent(x.getMessage(), getUaaUser(user), SecurityContextHolder.getContext().getAuthentication()));
-            return new ResponseEntity<String>(HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(NOT_FOUND);
         } catch (Exception x) {
             publish(new PasswordChangeFailureEvent(x.getMessage(), getUaaUser(user), SecurityContextHolder.getContext().getAuthentication()));
-            return new ResponseEntity<String>(INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(INTERNAL_SERVER_ERROR);
         }
     }
 
     private ResponseEntity<String> changePasswordCodeAuthenticated(PasswordChange passwordChange) {
         ExpiringCode expiringCode = expiringCodeStore.retrieveCode(passwordChange.getCode());
         if (expiringCode == null) {
-            return new ResponseEntity<String>(BAD_REQUEST);
+            return new ResponseEntity<>(BAD_REQUEST);
         }
         String userId = expiringCode.getData();
         ScimUser user = scimUserProvisioning.retrieve(userId);
@@ -131,13 +133,13 @@ public class PasswordResetEndpoints implements ApplicationEventPublisherAware {
             return new ResponseEntity<String>(user.getUserName(), OK);
         } catch (BadCredentialsException x) {
             publish(new PasswordChangeFailureEvent(x.getMessage(), getUaaUser(user), SecurityContextHolder.getContext().getAuthentication()));
-            return new ResponseEntity<String>(UNAUTHORIZED);
+            return new ResponseEntity<>(UNAUTHORIZED);
         } catch (ScimResourceNotFoundException x) {
             publish(new PasswordChangeFailureEvent(x.getMessage(), getUaaUser(user), SecurityContextHolder.getContext().getAuthentication()));
-            return new ResponseEntity<String>(HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(NOT_FOUND);
         } catch (Exception x) {
             publish(new PasswordChangeFailureEvent(x.getMessage(), getUaaUser(user), SecurityContextHolder.getContext().getAuthentication()));
-            return new ResponseEntity<String>(INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(INTERNAL_SERVER_ERROR);
         }
     }
 

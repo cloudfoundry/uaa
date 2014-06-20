@@ -129,7 +129,7 @@ public class ScimGroupEndpointsTests {
         dao = new JdbcScimGroupProvisioning(template, pagingListFactory);
         udao = new JdbcScimUserProvisioning(template, pagingListFactory);
         udao.setPasswordValidator(new NullPasswordValidator());
-        mm = new JdbcScimGroupMembershipManager(template);
+        mm = new JdbcScimGroupMembershipManager(template, pagingListFactory);
         mm.setScimGroupProvisioning(dao);
         mm.setScimUserProvisioning(udao);
         mm.setDefaultUserGroups(Collections.singleton("uaa.user"));
@@ -288,6 +288,37 @@ public class ScimGroupEndpointsTests {
         expectedEx.expectMessage("Invalid filter expression");
         endpoints.listGroups("id,display", "displayName='something'; select " + SQL_INJECTION_FIELDS
                         + " from groups where displayName='something'", "created", "ascending", 1, 100);
+    }
+
+    @Test
+    public void legacyTestListGroupsWithNameEqFilter() {
+        validateSearchResults(endpoints.listGroups("id,displayName", "displayName eq 'uaa.user'", "created",
+                "ascending", 1, 100), 1);
+    }
+
+    @Test
+    public void legacyTestListGroupsWithNameCoFilter() {
+        validateSearchResults(endpoints.listGroups("id,displayName", "displayName co 'admin'", "created", "ascending",
+                1, 100), 1);
+    }
+
+    @Test
+    public void legacyTestListGroupsWithInvalidFilterFails() {
+        expectedEx.expect(ScimException.class);
+        expectedEx.expectMessage("Invalid filter expression");
+        endpoints.listGroups("id,displayName", "displayName cr 'admin'", "created", "ascending", 1, 100);
+    }
+
+    @Test
+    public void legacyTestListGroupsWithInvalidAttributesFails() {
+        expectedEx.expect(ScimException.class);
+        expectedEx.expectMessage("Invalid attributes");
+        endpoints.listGroups("id,display", "displayName co 'admin'", "created", "ascending", 1, 100);
+    }
+
+    @Test
+    public void legacyTestListGroupsWithNullAttributes() {
+        validateSearchResults(endpoints.listGroups(null, "displayName co 'admin'", "created", "ascending", 1, 100), 1);
     }
 
     @Test

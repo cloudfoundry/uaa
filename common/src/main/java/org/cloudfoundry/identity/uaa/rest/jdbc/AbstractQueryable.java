@@ -62,6 +62,19 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
         return pageSize;
     }
 
+    public int delete(String filter) {
+        SearchQueryConverter.ProcessedFilter where = queryConverter.convert(filter, null, false);
+        logger.debug("Filtering groups with SQL: " + where);
+        try {
+            String completeSql = "DELETE FROM "+getTableName() + " WHERE " + where.getSql();
+            logger.debug("delete sql: " + completeSql + ", params: " + where.getParams());
+            return jdbcTemplate.update(completeSql, where.getParams());
+        } catch (DataAccessException e) {
+            logger.debug("Filter '" + filter + "' generated invalid SQL", e);
+            throw new IllegalArgumentException("Invalid delete filter: " + filter);
+        }
+    }
+
     @Override
     public List<T> query(String filter) {
         return query(filter, null, true);
@@ -89,5 +102,6 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
     }
 
     protected abstract String getBaseSqlQuery();
+    protected abstract String getTableName();
 
 }
