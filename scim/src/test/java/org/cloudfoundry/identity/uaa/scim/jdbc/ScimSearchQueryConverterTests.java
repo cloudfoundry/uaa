@@ -79,6 +79,7 @@ public class ScimSearchQueryConverterTests {
 
     private void validate(ProcessedFilter filter, String expectedSql, int expectedParamCount) {
         assertNotNull(filter);
+        expectedSql = expectedSql.replaceAll("__value_", filter.getParamPrefix());
         assertEquals(expectedSql, filter.getSql());
         assertEquals(expectedParamCount, filter.getParams().size());
     }

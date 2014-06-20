@@ -24,6 +24,7 @@ import java.util.Map;
 
 public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationManager {
 
+    private boolean autoAddAuthorities = false;
 
     @Override
     protected UaaUser getUser(UserDetails details, Map<String, String> info) {
@@ -38,8 +39,22 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
 
     @Override
     protected UaaUser userAuthenticated(Authentication request, UaaUser user) {
-        ExternalGroupAuthorizationEvent event = new ExternalGroupAuthorizationEvent(user,request.getAuthorities());
-        publish(event);
-        return getUserDatabase().retrieveUserById(user.getId());
+        if (isAutoAddAuthorities()) {
+            ExternalGroupAuthorizationEvent event = new ExternalGroupAuthorizationEvent(user, request.getAuthorities());
+            publish(event);
+            return getUserDatabase().retrieveUserById(user.getId());
+        } else {
+            return super.userAuthenticated(request, user);
+        }
     }
+
+    public boolean isAutoAddAuthorities() {
+        return autoAddAuthorities;
+    }
+
+    public void setAutoAddAuthorities(boolean autoAddAuthorities) {
+        this.autoAddAuthorities = autoAddAuthorities;
+    }
+
+
 }

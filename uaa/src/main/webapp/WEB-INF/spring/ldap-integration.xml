@@ -29,6 +29,12 @@
         <entry key="com.sun.jndi.ldap.connect.pool" value-ref="ldapPooled" />
     </util:map>
 
+    <bean id="ldapGroupMappingAuthorizationManager" class="org.cloudfoundry.identity.uaa.authorization.external.LdapGroupMappingAuthorizationManager">
+        <property name="externalMembershipManager" ref="externalGroupMembershipManager" />
+        <property name="scimGroupProvisioning" ref="scimGroupProvisioning" />
+    </bean>
+
+
     <import resource="${ldap.profile.file:ldap/ldap-simple-bind.xml}" />
     <import resource="${ldap.profile.groups.file:ldap/ldap-groups-null.xml}" />
 
@@ -36,10 +42,15 @@
         <sec:authentication-provider ref="ldapAuthProvider"/>
     </security:authentication-manager>
 
+    <bean id="autoAddAuthorities" class="java.lang.Boolean">
+        <constructor-arg value="${ldap.group.autoAdd:true}"/>
+    </bean>
+
 
     <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">
         <property name="userDatabase" ref="userDatabase" />
         <property name="origin" value="ldap"/>
+        <property name="autoAddAuthorities" ref="autoAddAuthorities"/>
     </bean>
 
 </beans>

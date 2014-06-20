@@ -64,6 +64,28 @@ uid: 20f459e0-e30b-4d1f-998c-3ded7f769db4
 mail: marissa4@test.com
 sn: Marissa4
 
+dn: cn=marissa5,ou=Users,dc=test,dc=com
+changetype: add
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: marissa5
+userPassword: ldap5
+uid: 20f459e0-e30b-4d1f-998c-3ded7f769db5
+mail: marissa5@test.com
+sn: Marissa5
+
+dn: cn=marissa6,ou=Users,dc=test,dc=com
+changetype: add
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: marissa6
+userPassword: ldap6
+uid: 20f459e0-e30b-4d1f-998c-3ded7f769db6
+mail: marissa6@test.com
+sn: Marissa6
+
 ###############################################################################
 #        BEGIN GROUP TO SCOPE MAPPING
 ###############################################################################
@@ -100,6 +122,7 @@ objectClass: top
 cn: operators
 description: test.read
 member: cn=operators,ou=scopes,dc=test,dc=com
+member: cn=marissa6,ou=Users,dc=test,dc=com
 
 dn: cn=operators,ou=scopes,dc=test,dc=com
 changetype: add
@@ -108,6 +131,7 @@ objectClass: top
 cn: operators
 description: test.write
 member: cn=superusers,ou=scopes,dc=test,dc=com
+member: cn=marissa5,ou=Users,dc=test,dc=com
 
 dn: cn=superusers,ou=scopes,dc=test,dc=com
 changetype: add

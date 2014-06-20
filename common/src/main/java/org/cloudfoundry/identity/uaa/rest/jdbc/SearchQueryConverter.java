@@ -22,6 +22,16 @@ public interface SearchQueryConverter {
         private final String sql;
         private final Map<String, Object> params;
 
+        public String getParamPrefix() {
+            return paramPrefix;
+        }
+
+        public void setParamPrefix(String paramPrefix) {
+            this.paramPrefix = paramPrefix;
+        }
+
+        private String paramPrefix;
+
         public String getSql() {
             return sql;
         }

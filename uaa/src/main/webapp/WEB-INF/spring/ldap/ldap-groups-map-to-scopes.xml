@@ -20,6 +20,8 @@
 
     <import resource="ldap-groups-populator.xml"/>
 
-    <bean id="ldapAuthoritiesMapper" class="org.cloudfoundry.identity.uaa.ldap.CommaSeparatedScopesMapper"/>
+    <bean id="ldapAuthoritiesMapper" class="org.cloudfoundry.identity.uaa.ldap.LdapGroupToScopesMapper">
+        <property name="groupMapper" ref="ldapGroupMappingAuthorizationManager"/>
+    </bean>
 
 </beans>

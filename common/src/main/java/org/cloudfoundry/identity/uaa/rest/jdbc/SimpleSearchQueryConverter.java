@@ -19,8 +19,6 @@ import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import com.unboundid.scim.sdk.SCIMException;
 import com.unboundid.scim.sdk.SCIMFilter;
@@ -28,6 +26,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.rest.AttributeNameMapper;
 import org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.StringUtils;
 
 public class SimpleSearchQueryConverter implements SearchQueryConverter {
@@ -46,16 +45,28 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
 
     @Override
     public ProcessedFilter convert(String filter, String sortBy, boolean ascending, AttributeNameMapper mapper) {
+        String paramPrefix = generateParameterPrefix(filter);
         Map<String, Object> values = new HashMap<String, Object>();
-        String where = StringUtils.hasText(filter) ? getWhereClause(filter, sortBy, ascending, values, mapper) : null;
-        return new ProcessedFilter(where, values);
+        String where = StringUtils.hasText(filter) ? getWhereClause(filter, sortBy, ascending, values, mapper, paramPrefix) : null;
+        ProcessedFilter pf = new ProcessedFilter(where, values);
+        pf.setParamPrefix(paramPrefix);
+        return pf;
     }
 
-    private String getWhereClause(String filter, String sortBy, boolean ascending, Map<String, Object> values, AttributeNameMapper mapper) {
+    protected String generateParameterPrefix(String filter) {
+        while (true) {
+            String s = new RandomValueStringGenerator().generate().toLowerCase();
+            if (!filter.contains(s)) {
+                return "__"+s+"_";
+            }
+        }
+    }
+
+    private String getWhereClause(String filter, String sortBy, boolean ascending, Map<String, Object> values, AttributeNameMapper mapper, String paramPrefix) {
 
         try {
             SCIMFilter scimFilter = SCIMFilter.parse(filter);
-            String whereClause = createFilter(scimFilter, values, mapper);
+            String whereClause = createFilter(scimFilter, values, mapper, paramPrefix);
             if (sortBy != null) {
                 sortBy = mapper.mapToInternal(sortBy);
                 // Need to add "asc" or "desc" explicitly to ensure that the pattern
@@ -69,34 +80,34 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
         }
     }
 
-    private String createFilter(SCIMFilter filter, Map<String,Object> values, AttributeNameMapper mapper) {
+    private String createFilter(SCIMFilter filter, Map<String,Object> values, AttributeNameMapper mapper, String paramPrefix) {
         switch (filter.getFilterType()) {
             case AND:
-                return "(" + createFilter(filter.getFilterComponents().get(0), values, mapper) + " AND " + createFilter(filter.getFilterComponents().get(1), values, mapper) + ")";
+                return "(" + createFilter(filter.getFilterComponents().get(0), values, mapper, paramPrefix) + " AND " + createFilter(filter.getFilterComponents().get(1), values, mapper, paramPrefix) + ")";
             case OR:
-                return "(" + createFilter(filter.getFilterComponents().get(0), values, mapper) + " OR " + createFilter(filter.getFilterComponents().get(1), values, mapper) + ")";
+                return "(" + createFilter(filter.getFilterComponents().get(0), values, mapper, paramPrefix) + " OR " + createFilter(filter.getFilterComponents().get(1), values, mapper, paramPrefix) + ")";
             case EQUALITY:
-                return comparisonClause(filter, "=", values, "", "");
+                return comparisonClause(filter, "=", values, "", "", paramPrefix);
             case CONTAINS:
-                return comparisonClause(filter, "LIKE", values, "%", "%");
+                return comparisonClause(filter, "LIKE", values, "%", "%", paramPrefix);
             case STARTS_WITH:
-                return comparisonClause(filter, "LIKE", values, "", "%");
+                return comparisonClause(filter, "LIKE", values, "", "%", paramPrefix);
             case PRESENCE:
                 return getAttributeName(filter, mapper) + " IS NOT NULL";
             case GREATER_THAN:
-                return comparisonClause(filter, ">", values, "", "");
+                return comparisonClause(filter, ">", values, "", "", paramPrefix);
             case GREATER_OR_EQUAL:
-                return comparisonClause(filter, ">=", values, "", "");
+                return comparisonClause(filter, ">=", values, "", "", paramPrefix);
             case LESS_THAN:
-                return comparisonClause(filter, "<", values, "", "");
+                return comparisonClause(filter, "<", values, "", "", paramPrefix);
             case LESS_OR_EQUAL:
-                return comparisonClause(filter, "<=", values, "", "");
+                return comparisonClause(filter, "<=", values, "", "", paramPrefix);
         }
         return null;
     }
 
-    protected String comparisonClause(SCIMFilter filter, String comparator, Map<String, Object> values, String valuePrefix, String valueSuffix) {
-        String pName = getParamName(filter, values);
+    protected String comparisonClause(SCIMFilter filter, String comparator, Map<String, Object> values, String valuePrefix, String valueSuffix, String paramPrefix) {
+        String pName = getParamName(filter, values, paramPrefix);
         String paramName = ":"+pName;
         if (filter.getFilterValue() == null) {
             return getAttributeName(filter, mapper) + " IS NULL";
@@ -132,8 +143,8 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
         return name.replace("meta.", "");
     }
 
-    protected String getParamName(SCIMFilter filter, Map<String, Object> values) {
-        return "__value_" + values.size();
+    protected String getParamName(SCIMFilter filter, Map<String, Object> values, String paramPrefix) {
+        return paramPrefix+values.size();
     }
 
     protected Object getStringOrDate(String s) {

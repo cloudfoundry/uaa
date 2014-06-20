@@ -46,7 +46,15 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
 
     public static final String EXTERNAL_GROUP_MAPPING_FIELDS = "group_id,external_group,added";
 
+    public static final String JOIN_EXTERNAL_GROUP_MAPPING_FIELDS = "gm.group_id,gm.external_group,gm.added,g.displayName";
+
     public static final String EXTERNAL_GROUP_MAPPING_TABLE = "external_group_mapping";
+
+    public static final String GROUP_TABLE = "groups";
+
+    public static final String JOIN_GROUP_TABLE = String.format("%s g, %s gm",GROUP_TABLE, EXTERNAL_GROUP_MAPPING_TABLE);
+
+    public static final String JOIN_WHERE_ID = "g.id = gm.group_id";
 
     public static final String ADD_EXTERNAL_GROUP_MAPPING_SQL = String.format("insert into %s ( %s ) values (?,?,?)",
                     EXTERNAL_GROUP_MAPPING_TABLE, EXTERNAL_GROUP_MAPPING_FIELDS);
@@ -54,22 +62,24 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
     public static final String UPDATE_EXTERNAL_GROUP_MAPPING_SQL = String.format(
                     "update %s set external_group=? where group_id=?", EXTERNAL_GROUP_MAPPING_TABLE);
 
-    public static final String GET_EXTERNAL_GROUP_MAP_SQL = String.format("select %s from %s",
-                    EXTERNAL_GROUP_MAPPING_FIELDS, EXTERNAL_GROUP_MAPPING_TABLE);
+    public static final String GET_EXTERNAL_GROUP_MAP_SQL =
+        String.format("select %s from %s where %s",
+            JOIN_EXTERNAL_GROUP_MAPPING_FIELDS, JOIN_GROUP_TABLE, JOIN_WHERE_ID);
 
-    public static final String GET_EXTERNAL_GROUP_MAPPINGS_SQL = String.format("select %s from %s where group_id=?",
-                    EXTERNAL_GROUP_MAPPING_FIELDS, EXTERNAL_GROUP_MAPPING_TABLE);
+    public static final String GET_EXTERNAL_GROUP_MAPPINGS_SQL =
+        String.format("select %s from %s where gm.group_id=? and %s",
+            JOIN_EXTERNAL_GROUP_MAPPING_FIELDS, JOIN_GROUP_TABLE, JOIN_WHERE_ID);
 
-    public static final String GET_GROUPS_BY_EXTERNAL_GROUP_MAPPING_SQL = String.format(
-                    "select %s from %s where lower(external_group)=lower(?)", EXTERNAL_GROUP_MAPPING_FIELDS,
-                    EXTERNAL_GROUP_MAPPING_TABLE);
+    public static final String GET_GROUPS_BY_EXTERNAL_GROUP_MAPPING_SQL = String.format("select %s from %s where %s and lower(external_group)=lower(?)",
+            JOIN_EXTERNAL_GROUP_MAPPING_FIELDS, JOIN_GROUP_TABLE, JOIN_WHERE_ID);
 
-    public static final String GET_GROUPS_WITH_EXTERNAL_GROUP_MAPPINGS_SQL = String.format(
-                    "select %s from %s where group_id=? and lower(external_group) like lower(?)",
-                    EXTERNAL_GROUP_MAPPING_FIELDS, EXTERNAL_GROUP_MAPPING_TABLE);
+    public static final String GET_GROUPS_WITH_EXTERNAL_GROUP_MAPPINGS_SQL =
+        String.format("select %s from %s where g.id=? and %s and lower(external_group) like lower(?)",
+            JOIN_EXTERNAL_GROUP_MAPPING_FIELDS, JOIN_GROUP_TABLE, JOIN_WHERE_ID);
 
-    public static final String DELETE_EXTERNAL_GROUP_MAPPING_SQL = String.format(
-                    "delete from %s where group_id=? and lower(external_group)=lower(?)", EXTERNAL_GROUP_MAPPING_TABLE);
+    public static final String DELETE_EXTERNAL_GROUP_MAPPING_SQL =
+        String.format("delete from %s where group_id=? and lower(external_group)=lower(?)",
+            EXTERNAL_GROUP_MAPPING_TABLE);
 
     public static final String DELETE_EXTERNAL_GROUP_MAPPINGS_USING_GROUP_SQL = String.format(
                     "delete from %s where group_id=?", EXTERNAL_GROUP_MAPPING_TABLE);
@@ -180,8 +190,12 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
         public ScimGroupExternalMember mapRow(ResultSet rs, int rowNum) throws SQLException {
             String groupId = rs.getString(1);
             String externalGroup = rs.getString(2);
+            Timestamp added = rs.getTimestamp(3);
+            String displayName = rs.getString(4);
 
-            return new ScimGroupExternalMember(groupId, externalGroup);
+            ScimGroupExternalMember result = new ScimGroupExternalMember(groupId, externalGroup);
+            result.setDisplayName(displayName);
+            return result;
         }
     }
 

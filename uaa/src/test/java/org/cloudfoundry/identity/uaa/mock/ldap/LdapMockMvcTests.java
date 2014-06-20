@@ -13,13 +13,21 @@
 package org.cloudfoundry.identity.uaa.mock.ldap;
 
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager;
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
+import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
+import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
+import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
+import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimExternalGroupBootstrap;
+import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.test.DefaultIntegrationTestConfig;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assume;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -44,7 +52,9 @@ import org.springframework.web.context.support.AnnotationConfigWebApplicationCon
 import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static org.hamcrest.collection.IsArrayContainingInAnyOrder.arrayContainingInAnyOrder;
 import static org.junit.Assert.assertEquals;
@@ -66,10 +76,13 @@ public class LdapMockMvcTests {
         return Arrays.asList(new Object[][]{
             {"ldap-simple-bind.xml", "ldap-groups-null.xml"},
             {"ldap-simple-bind.xml", "ldap-groups-as-scopes.xml"},
+            {"ldap-simple-bind.xml", "ldap-groups-map-to-scopes.xml"},
             {"ldap-search-and-bind.xml", "ldap-groups-null.xml"},
             {"ldap-search-and-bind.xml", "ldap-groups-as-scopes.xml"},
+            {"ldap-search-and-bind.xml", "ldap-groups-map-to-scopes.xml"},
             {"ldap-search-and-compare.xml", "ldap-groups-null.xml"},
-            {"ldap-search-and-compare.xml", "ldap-groups-as-scopes.xml"}
+            {"ldap-search-and-compare.xml", "ldap-groups-as-scopes.xml"},
+            {"ldap-search-and-compare.xml", "ldap-groups-map-to-scopes.xml"}
         });
     }
 
@@ -101,6 +114,9 @@ public class LdapMockMvcTests {
     MockMvc mockMvc;
     TestClient testClient;
     JdbcTemplate jdbcTemplate;
+    JdbcScimGroupProvisioning gDB;
+    ScimGroupExternalMembershipManager eDB;
+    ScimExternalGroupBootstrap bootstrap;
 
     private String ldapProfile;
     private String ldapGroup;
@@ -110,7 +126,6 @@ public class LdapMockMvcTests {
         this.ldapProfile = ldapProfile;
     }
 
-    @Before
     public void setUp() throws Exception {
         System.setProperty("ldap.profile.file", "ldap/"+ldapProfile);
         System.setProperty("ldap.profile.groups.file", "ldap/"+ldapGroup);
@@ -132,23 +147,40 @@ public class LdapMockMvcTests {
                 .build();
         testClient = new TestClient(mockMvc);
         jdbcTemplate = webApplicationContext.getBean(JdbcTemplate.class);
+        LimitSqlAdapter limitSqlAdapter = webApplicationContext.getBean(LimitSqlAdapter.class);
+        JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter);
+        gDB = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
+        eDB = new JdbcScimGroupExternalMembershipManager(jdbcTemplate, pagingListFactory);
+        ((JdbcScimGroupExternalMembershipManager) eDB).setScimGroupProvisioning(gDB);
+
+        try {
+            gDB.create(new ScimGroup("internal.read"));
+            gDB.create(new ScimGroup("internal.write"));
+            gDB.create(new ScimGroup("internal.everything"));
+        }catch (ScimResourceAlreadyExistsException x) {
+        }
+
+        bootstrap = new ScimExternalGroupBootstrap(gDB, eDB);
     }
 
     @After
     public void tearDown() throws Exception {
         System.clearProperty("ldap.profile.file");
-        webApplicationContext.destroy();
+        if (webApplicationContext!=null) {
+            webApplicationContext.destroy();
+        }
     }
 
     @Test
-    public void printProfileType() {
+    public void printProfileType() throws Exception {
+        setUp();
         assertEquals(ldapProfile, webApplicationContext.getBean("testLdapProfile"));
     }
 
     @Test
     public void testLogin() throws Exception {
 
-
+        setUp();
         mockMvc.perform(get("/login"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("login"))
@@ -169,6 +201,7 @@ public class LdapMockMvcTests {
 
     @Test
     public void testAuthenticate() throws Exception {
+        setUp();
         String username = "marissa3";
         String password = "ldap3";
 
@@ -187,6 +220,7 @@ public class LdapMockMvcTests {
 
     @Test
     public void testAuthenticateFailure() throws Exception {
+        setUp();
         String username = "marissa3";
         String password = "ldapsadadasas";
 
@@ -203,6 +237,7 @@ public class LdapMockMvcTests {
 
     @Test
     public void validateOriginForNonLdapUser() throws Exception {
+        setUp();
         String username = "marissa";
         String password = "koala";
 
@@ -224,6 +259,7 @@ public class LdapMockMvcTests {
 
     @Test
     public void validateOriginForLdapUser() throws Exception {
+        setUp();
         String username = "marissa3";
         String password = "ldap3";
 
@@ -246,6 +282,7 @@ public class LdapMockMvcTests {
     @Test
     public void testLdapScopes() throws Exception {
         Assume.assumeTrue(ldapGroup.equals("ldap-groups-as-scopes.xml"));
+        setUp();
         AuthenticationManager manager = (AuthenticationManager)webApplicationContext.getBean("ldapAuthenticationManager");
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("marissa3","ldap3");
         Authentication auth = manager.authenticate(token);
@@ -260,6 +297,7 @@ public class LdapMockMvcTests {
     @Test
     public void testLdapScopesFromChainedAuth() throws Exception {
         Assume.assumeTrue(ldapGroup.equals("ldap-groups-as-scopes.xml"));
+        setUp();
         AuthenticationManager manager = (AuthenticationManager)webApplicationContext.getBean("authzAuthenticationMgr");
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("marissa3","ldap3");
         Authentication auth = manager.authenticate(token);
@@ -284,6 +322,7 @@ public class LdapMockMvcTests {
     @Test
     public void testNestedLdapScopes() throws Exception {
         Assume.assumeTrue(ldapGroup.equals("ldap-groups-as-scopes.xml"));
+        setUp();
         AuthenticationManager manager = (AuthenticationManager)webApplicationContext.getBean("ldapAuthenticationManager");
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("marissa4","ldap4");
         Authentication auth = manager.authenticate(token);
@@ -295,6 +334,111 @@ public class LdapMockMvcTests {
             };
         assertThat(list, arrayContainingInAnyOrder(getAuthorities(auth.getAuthorities())));
     }
+
+    public void doTestNestedLdapGroupsMappedToScopes(String username, String password, String[] expected) throws Exception {
+        Assume.assumeTrue(ldapGroup.equals("ldap-groups-map-to-scopes.xml"));
+        setUp();
+        Set<String> externalGroupSet = new HashSet<String>();
+        externalGroupSet.add("internal.everything|cn=superusers,ou=scopes,dc=test,dc=com");
+        externalGroupSet.add("internal.write|cn=operators,ou=scopes,dc=test,dc=com");
+        externalGroupSet.add("internal.read|cn=developers,ou=scopes,dc=test,dc=com");
+        bootstrap.setExternalGroupMap(externalGroupSet);
+        bootstrap.afterPropertiesSet();
+
+        AuthenticationManager manager = (AuthenticationManager)webApplicationContext.getBean("ldapAuthenticationManager");
+        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username,password);
+        Authentication auth = manager.authenticate(token);
+        assertNotNull(auth);
+        String[] list = expected;
+        assertThat(list, arrayContainingInAnyOrder(getAuthorities(auth.getAuthorities())));
+
+    }
+
+    @Test
+    public void testNestedLdapGroupsMappedToScopes() throws Exception {
+        String[] list = new String[] {
+            "internal.read",
+            "internal.write",
+            "internal.everything",
+        };
+        doTestNestedLdapGroupsMappedToScopes("marissa4","ldap4",list);
+    }
+
+    @Test
+    public void testNestedLdapGroupsMappedToScopes2() throws Exception {
+        String[] list = new String[] {
+            "internal.read",
+            "internal.write",
+        };
+        doTestNestedLdapGroupsMappedToScopes("marissa5","ldap5",list);
+    }
+
+    @Test
+    public void testNestedLdapGroupsMappedToScopes3() throws Exception {
+        String[] list = new String[] {
+            "internal.read",
+        };
+        doTestNestedLdapGroupsMappedToScopes("marissa6","ldap6",list);
+    }
+
+    @Test
+    public void testNestedLdapGroupsMappedToScopesWithDefaultScopes() throws Exception {
+
+        String username = "marissa4";
+        String password = "ldap4";
+        String[] list = new String[] {
+            "internal.read",
+            "internal.write",
+            "internal.everything",
+        };
+        doTestNestedLdapGroupsMappedToScopesWithDefaultScopes(username,password,list);
+    }
+
+    @Test
+    public void testNestedLdapGroupsMappedToScopesWithDefaultScopes2() throws Exception {
+
+        String username = "marissa5";
+        String password = "ldap5";
+        String[] list = new String[] {
+            "internal.read",
+            "internal.write",
+        };
+        doTestNestedLdapGroupsMappedToScopesWithDefaultScopes(username,password,list);
+    }
+
+    @Test
+    public void testNestedLdapGroupsMappedToScopesWithDefaultScopes3() throws Exception {
+
+        String username = "marissa6";
+        String password = "ldap6";
+        String[] list = new String[] {
+            "internal.read",
+        };
+        doTestNestedLdapGroupsMappedToScopesWithDefaultScopes(username,password,list);
+    }
+
+    public void doTestNestedLdapGroupsMappedToScopesWithDefaultScopes(String username, String password, String[] expected) throws Exception {
+        Assume.assumeTrue(ldapGroup.equals("ldap-groups-map-to-scopes.xml"));
+        setUp();
+        Set<String> externalGroupSet = new HashSet<>();
+        externalGroupSet.add("internal.everything|cn=superusers,ou=scopes,dc=test,dc=com");
+        externalGroupSet.add("internal.write|cn=operators,ou=scopes,dc=test,dc=com");
+        externalGroupSet.add("internal.read|cn=developers,ou=scopes,dc=test,dc=com");
+        bootstrap.setExternalGroupMap(externalGroupSet);
+        bootstrap.afterPropertiesSet();
+
+        AuthenticationManager manager = webApplicationContext.getBean(ChainedAuthenticationManager.class);
+        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username,password);
+        Authentication auth = manager.authenticate(token);
+        assertNotNull(auth);
+        Set<String> defaultAuthorities = (Set<String>)webApplicationContext.getBean("defaultUserAuthorities");
+        String[] list = expected;
+        defaultAuthorities.addAll(Arrays.asList(list));
+        list = defaultAuthorities.toArray(new String[0]);
+        assertThat(list, arrayContainingInAnyOrder(getAuthorities(auth.getAuthorities())));
+    }
+
+
 
 
     public String[] getAuthorities(Collection<? extends GrantedAuthority> authorities) {
