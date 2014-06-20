@@ -10,17 +10,28 @@
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-package org.cloudfoundry.identity.uaa.authorization;
 
+package org.cloudfoundry.identity.uaa.authentication.manager;
+
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.springframework.context.ApplicationEvent;
 import org.springframework.security.core.GrantedAuthority;
 
-import java.util.Set;
+import java.util.Collection;
 
-public class DoNothingExternalAuthorizationManager implements ExternalGroupMappingAuthorizationManager {
+public class ExternalGroupAuthorizationEvent extends NewUserAuthenticatedEvent {
 
-    @Override
-    public Set<? extends GrantedAuthority> findScopesFromAuthorities(Set<? extends GrantedAuthority> authorities) {
-        return authorities;
+    public Collection<? extends GrantedAuthority> getExternalAuthorities() {
+        return externalAuthorities;
     }
+
+    private Collection<? extends GrantedAuthority> externalAuthorities;
+
+    public ExternalGroupAuthorizationEvent(UaaUser user, Collection<? extends GrantedAuthority> externalAuthorities) {
+        super(user);
+        this.externalAuthorities = externalAuthorities;
+    }
+
+
 
 }

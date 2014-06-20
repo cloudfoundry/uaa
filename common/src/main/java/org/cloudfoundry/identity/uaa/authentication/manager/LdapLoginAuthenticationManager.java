@@ -16,6 +16,7 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.ldap.userdetails.LdapUserDetails;
 
@@ -23,6 +24,7 @@ import java.util.Map;
 
 public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationManager {
 
+    private boolean autoAddAuthorities = false;
 
     @Override
     protected UaaUser getUser(UserDetails details, Map<String, String> info) {
@@ -34,4 +36,25 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
             return user.modifySource(getOrigin(), user.getExternalId());
         }
     }
+
+    @Override
+    protected UaaUser userAuthenticated(Authentication request, UaaUser user) {
+        if (isAutoAddAuthorities()) {
+            ExternalGroupAuthorizationEvent event = new ExternalGroupAuthorizationEvent(user, request.getAuthorities());
+            publish(event);
+            return getUserDatabase().retrieveUserById(user.getId());
+        } else {
+            return super.userAuthenticated(request, user);
+        }
+    }
+
+    public boolean isAutoAddAuthorities() {
+        return autoAddAuthorities;
+    }
+
+    public void setAutoAddAuthorities(boolean autoAddAuthorities) {
+        this.autoAddAuthorities = autoAddAuthorities;
+    }
+
+
 }

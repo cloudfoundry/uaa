@@ -72,6 +72,7 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
     public void setUserDatabase(UaaUserDatabase userDatabase) {
         this.userDatabase = userDatabase;
     }
+    public UaaUserDatabase getUserDatabase() { return this.userDatabase; }
 
     @Override
     public Authentication authenticate(Authentication request) throws AuthenticationException {
@@ -111,6 +112,8 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
                 throw new BadCredentialsException("Bad credentials");
             }
         }
+        //user is authenticated and exists in UAA
+        user = userAuthenticated(request, user);
 
         UaaAuthenticationDetails uaaAuthenticationDetails = null;
         if (request.getDetails() instanceof UaaAuthenticationDetails) {
@@ -139,6 +142,10 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
         if (eventPublisher != null) {
             eventPublisher.publishEvent(event);
         }
+    }
+
+    protected UaaUser userAuthenticated(Authentication request, UaaUser user) {
+        return user;
     }
 
     protected UaaUser getUser(UserDetails details, Map<String, String> info) {

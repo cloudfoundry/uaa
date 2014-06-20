@@ -56,6 +56,7 @@ public class ScimSearchQueryConverterTests {
         validate(filterProcessor.convert("displayName pr", "displayName", false),"displayName IS NOT NULL ORDER BY displayName DESC", 0);
         validate(filterProcessor.convert("username pr and emails.value co \".com\"", null, false),"(username IS NOT NULL AND LOWER(email) LIKE LOWER(:__value_0))", 1);
         validate(filterProcessor.convert("username eq \"joe\" or emails.value co \".com\"", null, false),"(LOWER(username) = LOWER(:__value_0) OR LOWER(email) LIKE LOWER(:__value_1))", 2);
+
     }
 
     @Test
@@ -78,6 +79,7 @@ public class ScimSearchQueryConverterTests {
 
     private void validate(ProcessedFilter filter, String expectedSql, int expectedParamCount) {
         assertNotNull(filter);
+        expectedSql = expectedSql.replaceAll("__value_", filter.getParamPrefix());
         assertEquals(expectedSql, filter.getSql());
         assertEquals(expectedParamCount, filter.getParams().size());
     }

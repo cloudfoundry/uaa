@@ -25,6 +25,8 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.rest.jdbc.AbstractQueryable;
+import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
@@ -44,7 +46,7 @@ import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
-public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManager {
+public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupMember> implements ScimGroupMembershipManager {
 
     private JdbcTemplate jdbcTemplate;
 
@@ -110,9 +112,22 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
         this.groupProvisioning = groupProvisioning;
     }
 
-    public JdbcScimGroupMembershipManager(JdbcTemplate jdbcTemplate) {
+
+
+    public JdbcScimGroupMembershipManager(JdbcTemplate jdbcTemplate, JdbcPagingListFactory pagingListFactory) {
+        super(jdbcTemplate,pagingListFactory,new ScimGroupMemberRowMapper());
         Assert.notNull(jdbcTemplate);
         this.jdbcTemplate = jdbcTemplate;
+    }
+
+    @Override
+    protected String getBaseSqlQuery() {
+        return GET_MEMBERS_SQL;
+    }
+
+    @Override
+    protected String getTableName() {
+        return MEMBERSHIP_TABLE;
     }
 
     @Override
