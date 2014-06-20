@@ -133,13 +133,18 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
                 values.put(pName, value);
                 return getAttributeName(filter, mapper) + " "+comparator+" " + paramName;
             }
-
-
         } else {
             try {
                 values.put(pName, Double.parseDouble(filter.getFilterValue()));
             } catch (NumberFormatException x) {
-                values.put(pName, filter.getFilterValue());
+                if ("true".equalsIgnoreCase(filter.getFilterValue())) {
+                    values.put(pName, Boolean.TRUE);
+                } else if ("false".equalsIgnoreCase(filter.getFilterValue())) {
+                    values.put(pName, Boolean.FALSE);
+                } else {
+                    throw new IllegalArgumentException("Invalid non quoted value ["+filter.getFilterAttribute()+
+                        " : "+filter.getFilterValue()+"]");
+                }
             }
             return getAttributeName(filter, mapper) + " "+comparator+" " + paramName;
         }
