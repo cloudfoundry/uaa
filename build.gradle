@@ -17,8 +17,6 @@ subprojects {
   }
   artifacts.archives packageSources
   repositories {
-    mavenLocal()
-    
     maven { url "http://maven.springframework.org/release" }
     maven { url "http://maven.springframework.org/milestone" }
     maven { url "http://maven.springframework.org/snapshot" }
