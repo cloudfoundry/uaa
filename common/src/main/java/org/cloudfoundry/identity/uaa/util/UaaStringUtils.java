@@ -90,6 +90,45 @@ public class UaaStringUtils {
     }
 
     /**
+     * Escapes all regular expression patterns in a string so that when
+     * using the string itself in a regular expression, only an exact literal match will
+     * return true. For example, the string ".*" will not match any string, it will only
+     * match ".*". The value ".*" when escaped will be "\.\*"
+     * @param s - the string for which we need to escape regular expression constructs
+     * @return a regular expression string that will only match exact literals
+     */
+    public static String escapeRegExCharacters(String s) {
+        return escapeRegExCharacters(s, "([^a-zA-z0-9 ])");
+    }
+
+    /**
+     * Escapes all regular expression patterns in a string so that when
+     * using the string itself in a regular expression, only an exact literal match will
+     * return true.
+     * @param s - the string for which we need to escape regular expression constructs
+     * @param pattern - the pattern containing the characters we wish to remain string literals
+     * @return a regular expression string that will only match exact literals
+     */
+    public static String escapeRegExCharacters(String s, String pattern) {
+        return s.replaceAll(pattern, "\\\\$1");
+    }
+
+    /**
+     * Returns a pattern that does a single level regular expression match where
+     * the * character is a wildcard until it encounters the next literal
+     * @param s
+     * @return
+     */
+    public static String constructSimpleWildcardPattern(String s) {
+        String result = escapeRegExCharacters(s);
+        //we want to match any characters between dots
+        //so what we do is replace \* in our escaped string
+        //with [^\\.]+
+        //reference http://www.regular-expressions.info/dot.html
+        return result.replace("\\*","[^\\\\.]+");
+    }
+
+    /**
      * Extract a Map from some properties by removing a prefix from the key
      * names.
      * 
