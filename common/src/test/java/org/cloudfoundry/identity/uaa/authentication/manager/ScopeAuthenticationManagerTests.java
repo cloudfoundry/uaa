@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import junit.framework.TestCase;
+import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.junit.Test;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -26,7 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class ScopeAuthenticationManagerTest extends TestCase {
+public class ScopeAuthenticationManagerTests extends TestCase {
     private ScopeAuthenticationManager authenticationManager;
     Map<String,String> clientCredentials;
     private DefaultAuthorizationRequest request;
@@ -53,8 +54,7 @@ public class ScopeAuthenticationManagerTest extends TestCase {
     }
 
     public void testPasswordAuthenticateSucceed() throws Exception {
-        UsernamePasswordAuthenticationToken userAuth = new UsernamePasswordAuthenticationToken("username", "password");
-        userAuth.setAuthenticated(true);
+        UsernamePasswordAuthenticationToken userAuth = new UsernamePasswordAuthenticationToken("username", "password", UaaAuthority.USER_AUTHORITIES);
         OAuth2Authentication auth = new OAuth2Authentication(request, userAuth);
         Authentication authentication = authenticationManager.authenticate(auth);
         assertTrue(authentication.isAuthenticated());
@@ -80,7 +80,5 @@ public class ScopeAuthenticationManagerTest extends TestCase {
         assertEquals(1, authenticationManager.dedup(l1).size());
         l1 = Arrays.asList("t1","t2","t3");
         assertEquals(3, authenticationManager.dedup(l1).size());
-
-
     }
 }
