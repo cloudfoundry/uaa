@@ -5,36 +5,37 @@ description = 'UAA'
 dependencies {
   compile project(':cloudfoundry-identity-common')
   compile project(':cloudfoundry-identity-scim')
-    compile group: 'org.springframework', name: 'spring-core', version:'4.0.3.RELEASE'
-    compile group: 'org.springframework', name: 'spring-webmvc', version:'4.0.3.RELEASE'
-    compile group: 'org.springframework', name: 'spring-tx', version:'4.0.3.RELEASE'
-    compile group: 'cglib', name: 'cglib', version:'2.2.2'
-    compile group: 'org.hibernate', name: 'hibernate-validator', version:'4.3.1.Final'
-    compile group: 'org.hsqldb', name: 'hsqldb', version:'2.3.1'
-    compile group: 'org.mariadb.jdbc', name: 'mariadb-java-client', version:'1.1.7'
-    runtime group: 'org.springframework.security', name: 'spring-security-config', version:'3.2.4.RELEASE'
-    runtime group: 'org.springframework.security', name: 'spring-security-jwt', version:'1.0.1.RELEASE'
-    runtime group: 'org.springframework.retry', name: 'spring-retry', version:'1.0.2.RELEASE'
-    runtime group: 'org.aspectj', name: 'aspectjweaver', version:'1.6.9'
-    runtime group: 'org.aspectj', name: 'aspectjrt', version:'1.6.9'
-    runtime group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:'7.0.32'
-    runtime group: 'log4j', name: 'log4j', version:'1.2.14'
-    runtime group: 'javax.servlet', name: 'jstl', version:'1.2'
-    runtime group: 'eu.tekul', name: 'szxcvbn_2.8.2', version:'0.2'
-    runtime(group: 'edu.vt.middleware', name: 'vt-password', version:'3.1.1') {
-exclude(module: 'bcprov-jdk15')
-exclude(module: 'commons-logging')
-    }
-    runtime group: 'postgresql', name: 'postgresql', version:'9.1-901.jdbc3'
-    testCompile group: 'org.springframework', name: 'spring-test', version:'4.0.3.RELEASE'
-    testCompile group: 'junit', name: 'junit', version:'4.11'
+  compile group: 'org.springframework', name: 'spring-core', version:'4.0.3.RELEASE'
+  compile group: 'org.springframework', name: 'spring-webmvc', version:'4.0.3.RELEASE'
+  compile group: 'org.springframework', name: 'spring-tx', version:'4.0.3.RELEASE'
+  compile group: 'cglib', name: 'cglib', version:'2.2.2'
+  compile group: 'org.hibernate', name: 'hibernate-validator', version:'4.3.1.Final'
+  compile group: 'org.hsqldb', name: 'hsqldb', version:'2.3.1'
+  compile group: 'org.mariadb.jdbc', name: 'mariadb-java-client', version:'1.1.7'
+  runtime group: 'org.springframework.security', name: 'spring-security-config', version:'3.2.4.RELEASE'
+  runtime group: 'org.springframework.security', name: 'spring-security-jwt', version:'1.0.1.RELEASE'
+  runtime group: 'org.springframework.retry', name: 'spring-retry', version:'1.0.2.RELEASE'
+  runtime group: 'org.aspectj', name: 'aspectjweaver', version:'1.6.9'
+  runtime group: 'org.aspectj', name: 'aspectjrt', version:'1.6.9'
+  runtime group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:'7.0.32'
+  runtime group: 'log4j', name: 'log4j', version:'1.2.14'
+  runtime group: 'javax.servlet', name: 'jstl', version:'1.2'
+  runtime group: 'eu.tekul', name: 'szxcvbn_2.8.2', version:'0.2'
+  runtime(group: 'edu.vt.middleware', name: 'vt-password', version:'3.1.1') {
+    exclude(module: 'bcprov-jdk15')
+    exclude(module: 'commons-logging')
+  }
+  runtime group: 'postgresql', name: 'postgresql', version:'9.1-901.jdbc3'
+  testCompile project(':cloudfoundry-identity-common').sourceSets.test.output
+  testCompile group: 'org.springframework', name: 'spring-test', version:'4.0.3.RELEASE'
+  testCompile group: 'junit', name: 'junit', version:'4.11'
   testCompile project(':cloudfoundry-identity-common')
-    testCompile group: 'org.mockito', name: 'mockito-all', version:'1.8.5'
-    testCompile group: 'com.jayway.jsonpath', name: 'json-path', version:'0.9.1'
-    testCompile group: 'com.jayway.jsonpath', name: 'json-path-assert', version:'0.9.1'
-    testCompile(group: 'org.apache.directory.server', name: 'apacheds-all', version:'1.5.5') {
-exclude(module: 'slf4j-api')
-    }
-    providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version:'3.0.1'
-    providedCompile group: 'javax.servlet.jsp', name: 'jsp-api', version:'2.1'
+  testCompile group: 'org.mockito', name: 'mockito-all', version:'1.8.5'
+  testCompile group: 'com.jayway.jsonpath', name: 'json-path', version:'0.9.1'
+  testCompile group: 'com.jayway.jsonpath', name: 'json-path-assert', version:'0.9.1'
+  testCompile(group: 'org.apache.directory.server', name: 'apacheds-all', version:'1.5.5') {
+    exclude(module: 'slf4j-api')
+  }
+  providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version:'3.0.1'
+  providedCompile group: 'javax.servlet.jsp', name: 'jsp-api', version:'2.1'
 }
