@@ -26,4 +26,5 @@ Servers/
 coverage.ec
 git.properties
 .springBeans
-
+.gradle
+build/

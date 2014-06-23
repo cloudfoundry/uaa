@@ -1,0 +1,32 @@
+
+apply plugin: 'war'
+
+description = 'Sample user webapp for Cloudfoundry Identity Services'
+dependencies {
+    compile(group: 'org.springframework.security.oauth', name: 'spring-security-oauth2', version:'1.0.5.RELEASE') {
+exclude(module: 'spring-jdbc')
+exclude(module: 'spring-aop')
+    }
+    compile group: 'org.springframework', name: 'spring-core', version:'4.0.3.RELEASE'
+    compile group: 'log4j', name: 'log4j', version:'1.2.14'
+    compile group: 'org.springframework', name: 'spring-beans', version:'4.0.3.RELEASE'
+    compile group: 'org.springframework', name: 'spring-context', version:'4.0.3.RELEASE'
+    compile group: 'org.springframework', name: 'spring-web', version:'4.0.3.RELEASE'
+    compile(group: 'org.springframework', name: 'spring-webmvc', version:'4.0.3.RELEASE') {
+exclude(module: 'spring-aop')
+    }
+    compile group: 'org.springframework.security', name: 'spring-security-core', version:'3.2.4.RELEASE'
+    compile group: 'org.springframework.security', name: 'spring-security-web', version:'3.2.4.RELEASE'
+    compile group: 'org.codehaus.jackson', name: 'jackson-mapper-asl', version:'1.9.2'
+    runtime group: 'org.springframework', name: 'spring-expression', version:'4.0.3.RELEASE'
+    runtime group: 'org.springframework', name: 'spring-aop', version:'4.0.3.RELEASE'
+    runtime group: 'javax.servlet', name: 'jstl', version:'1.2'
+    runtime(group: 'org.springframework.security', name: 'spring-security-config', version:'3.2.4.RELEASE') {
+exclude(module: 'spring-aop')
+    }
+  testCompile project(':cloudfoundry-identity-scim')
+    testCompile group: 'org.mockito', name: 'mockito-core', version:'1.8.5'
+    testCompile group: 'org.springframework', name: 'spring-test', version:'4.0.3.RELEASE'
+    testCompile group: 'junit', name: 'junit', version:'4.11'
+    providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version:'3.0.1'
+}
