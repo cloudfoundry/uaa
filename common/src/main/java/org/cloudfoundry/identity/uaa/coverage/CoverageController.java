@@ -27,9 +27,8 @@ public class CoverageController {
 
     @RequestMapping(value = "flush", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity saveGlobalProjectData() throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-        String className = "net.sourceforge.cobertura.coveragedata.ProjectData";
         String methodName = "saveGlobalProjectData";
-        Class saveClass = Class.forName(className);
+        Class saveClass = Class.forName(CoverageConfig.COBERTURA_PROJECT_DATA_CLASSNAME);
         java.lang.reflect.Method saveMethod = saveClass.getDeclaredMethod(methodName, new Class[0]);
         saveMethod.invoke(null, new Object[0]);
         return new ResponseEntity<>(HttpStatus.OK);
