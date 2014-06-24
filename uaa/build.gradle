@@ -1,10 +1,15 @@
 buildscript {
   repositories {
     jcenter()
+    maven {
+      url 'http://repo.spring.io/plugins-release'
+    }
   }
 
   dependencies {
-    classpath 'org.gradle.api.plugins:gradle-cargo-plugin:1.5'
+    classpath group: 'org.gradle.api.plugins', name: 'gradle-cargo-plugin', version: '1.5'
+/*    classpath 'org.kuali.maven.wagons:maven-s3-wagon:1.2.1'*/
+    classpath group: 'org.jfrog.buildinfo', name: 'build-info-extractor-gradle', version: '2.2.4'
   }
 }
 
@@ -86,3 +91,44 @@ task integrationTest(type: Test) {
     includeTestsMatching "org.cloudfoundry.identity.uaa.integration.*"
   }
 }
+
+/*apply plugin: 'maven-publish'
+
+publishing {
+  publications {
+    webApp(MavenPublication) {
+      from components.web
+    }
+  }
+
+  repositories {
+    maven {
+      credentials {
+        username "AKIAIEYGDWG4KUPRZUXA"
+        password "AfClHnhAU+jDlofSWaWyvMaUsVfW/PUGY/3OV180"
+      }
+      url "s3://maven.springframework.org/snapshot"
+    }
+  }
+}
+*/
+
+apply plugin: 'artifactory'
+
+artifactory {
+  contextUrl = "${artifactory_contextUrl}"   //The base Artifactory URL if not overridden by the publisher/resolver
+  publish {
+    contextUrl = "${artifactory_contextUrl}"   //The base Artifactory URL if not overridden by the publisher/resolver
+    repository {
+      repoKey = 'libs-snapshots-local'
+      maven = true
+    }
+  }
+/*  resolve {
+    contextUrl = "${artifactory_contextUrl}"   //The base Artifactory URL if not overridden by the publisher/resolver
+    repository {
+      repoKey = 'libs-release-remote'
+      maven = true
+    }
+  }
+*/}
