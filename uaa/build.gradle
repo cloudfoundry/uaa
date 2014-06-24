@@ -10,6 +10,7 @@ buildscript {
     classpath group: 'org.gradle.api.plugins', name: 'gradle-cargo-plugin', version: '1.5'
 /*    classpath 'org.kuali.maven.wagons:maven-s3-wagon:1.2.1'*/
     classpath group: 'org.jfrog.buildinfo', name: 'build-info-extractor-gradle', version: '2.2.4'
+/*    classpath "net.saliman:gradle-cobertura-plugin:2.2.2"*/
   }
 }
 
@@ -83,9 +84,15 @@ cargo {
   }
 }
 
+task flushCoverageData(type: Exec) {
+  commandLine "curl", "-v", "-X", "POST", "http://localhost:8080/uaa/healthz/coverage/flush"
+  
+  finalizedBy cargoStopLocal
+}
+
 task integrationTest(type: Test) {
   dependsOn cargoStartLocal
-  finalizedBy cargoStopLocal
+  finalizedBy flushCoverageData
 
   filter {
     includeTestsMatching "org.cloudfoundry.identity.uaa.integration.*"
@@ -124,11 +131,4 @@ artifactory {
       maven = true
     }
   }
-/*  resolve {
-    contextUrl = "${artifactory_contextUrl}"   //The base Artifactory URL if not overridden by the publisher/resolver
-    repository {
-      repoKey = 'libs-release-remote'
-      maven = true
-    }
-  }
-*/}
+}

@@ -1,7 +1,27 @@
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+  
+  dependencies {
+    classpath "net.saliman:gradle-cobertura-plugin:2.2.2"
+  }
+}
+
 allprojects  {
   apply plugin: 'maven'
   group = 'org.cloudfoundry.identity'
   version = '1.7.3-SNAPSHOT'
+  
+  apply plugin: 'cobertura'
+  
+  repositories {
+    mavenCentral()
+  }
+  
+  dependencies {
+    compile "net.sourceforge.cobertura:cobertura:2.0.3"
+  }
 }
 
 subprojects {
@@ -27,3 +47,18 @@ subprojects {
   configurations.all {
   }
 }
+
+cobertura {
+  coverageFormats = ['xml', 'html']
+  coverageMergeDatafiles = [
+    new File("common/build/cobertura/cobertura.ser"),
+    new File("scim/build/cobertura/cobertura.ser"),
+    new File("uaa/build/cobertura/cobertura.ser")
+  ]
+}
+
+test.dependsOn([
+  ":cloudfoundry-identity-common:test",
+  ":cloudfoundry-identity-scim:test",
+  ":cloudfoundry-identity-uaa:test"
+])
