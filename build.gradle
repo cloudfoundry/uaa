@@ -1,18 +1,4 @@
-buildscript {
-  repositories {
-    jcenter()
-  }
-
-  dependencies {
-    classpath 'org.gradle.api.plugins:gradle-cargo-plugin:1.5'
-  }
-}
-
 allprojects  {
-  repositories {
-    maven { url "http://repo.maven.apache.org/maven2" }
-  }
-
   apply plugin: 'maven'
   group = 'org.cloudfoundry.identity'
   version = '1.7.3-SNAPSHOT'
@@ -35,39 +21,9 @@ subprojects {
     maven { url "http://maven.springframework.org/snapshot" }
     maven { url "http://objectstyle.org/maven2/" }
     maven { url "http://repo.springsource.org/ext-release-local" }
-/*    maven { url "http://repo.maven.apache.org/maven2" }*/
+    maven { url "http://repo.maven.apache.org/maven2" }
   }
 
   configurations.all {
-  }
-}
-
-apply plugin: 'cargo'
-cargoRunLocal.dependsOn assemble
-cargo {
-  containerId = 'tomcat7x'
-  port = 8080
-
-  deployable {
-    file = file('uaa/build/libs/cloudfoundry-identity-uaa-' + version + '.war')
-    context = 'uaa'
-  }
-
-  deployable {
-    file = file('samples/api/build/libs/cloudfoundry-identity-api-' + version + '.war')
-    context = 'api'
-  }
-
-  deployable {
-    file = file('samples/app/build/libs/cloudfoundry-identity-app-' + version + '.war')
-    context = 'app'
-  }
-
-  local {
-    installer {
-      installUrl = 'http://archive.apache.org/dist/tomcat/tomcat-7/v7.0.52/bin/apache-tomcat-7.0.52.tar.gz'
-      downloadDir = file("$buildDir/download")
-      extractDir = file("$buildDir/extract")
-    }
   }
 }

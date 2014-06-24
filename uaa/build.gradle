@@ -1,3 +1,12 @@
+buildscript {
+  repositories {
+    jcenter()
+  }
+
+  dependencies {
+    classpath 'org.gradle.api.plugins:gradle-cargo-plugin:1.5'
+  }
+}
 
 apply plugin: 'war'
 
@@ -38,4 +47,42 @@ dependencies {
   }
   providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version:'3.0.1'
   providedCompile group: 'javax.servlet.jsp', name: 'jsp-api', version:'2.1'
+}
+
+apply plugin: 'cargo'
+cargoRunLocal.dependsOn assemble
+cargo {
+  containerId = 'tomcat7x'
+  port = 8080
+
+  deployable {
+    context = 'uaa'
+  }
+
+  deployable {
+    file = file('../samples/api/build/libs/cloudfoundry-identity-api-' + version + '.war')
+    context = 'api'
+  }
+
+  deployable {
+    file = file('../samples/app/build/libs/cloudfoundry-identity-app-' + version + '.war')
+    context = 'app'
+  }
+
+  local {
+    installer {
+      installUrl = 'http://archive.apache.org/dist/tomcat/tomcat-7/v7.0.52/bin/apache-tomcat-7.0.52.tar.gz'
+      downloadDir = file("$buildDir/download")
+      extractDir = file("$buildDir/extract")
+    }
+  }
+}
+
+task integrationTest(type: Test) {
+  dependsOn cargoStartLocal
+  finalizedBy cargoStopLocal
+
+  filter {
+    includeTestsMatching "org.cloudfoundry.identity.uaa.integration.*"
+  }
 }
