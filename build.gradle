@@ -18,10 +18,6 @@ allprojects  {
   repositories {
     mavenCentral()
   }
-  
-  dependencies {
-    compile "net.sourceforge.cobertura:cobertura:2.0.3"
-  }
 }
 
 subprojects {

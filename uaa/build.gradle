@@ -58,37 +58,10 @@ dependencies {
 apply plugin: 'cargo'
 cargoStartLocal.dependsOn assemble
 cargoRunLocal.dependsOn assemble
-cargo {
-  containerId = 'tomcat7x'
-  port = 8080
-
-  deployable {
-    file = file('build/instrumented_libs/cloudfoundry-identity-uaa-' + version + '.war')
-    context = 'uaa'
-  }
-
-  deployable {
-    file = file('../samples/api/build/libs/cloudfoundry-identity-api-' + version + '.war')
-    context = 'api'
-  }
-
-  deployable {
-    file = file('../samples/app/build/libs/cloudfoundry-identity-app-' + version + '.war')
-    context = 'app'
-  }
-
-  local {
-    installer {
-      installUrl = 'http://archive.apache.org/dist/tomcat/tomcat-7/v7.0.52/bin/apache-tomcat-7.0.52.tar.gz'
-      downloadDir = file("$buildDir/download")
-      extractDir = file("$buildDir/extract")
-    }
-  }
-}
 
 task flushCoverageData(type: Exec) {
   commandLine "curl", "-v", "-X", "POST", "http://localhost:8080/uaa/healthz/coverage/flush"
-  
+
   finalizedBy cargoStopLocal
 }
 
@@ -113,6 +86,43 @@ task instrumentedWar(type: War, dependsOn: instrument) {
                     it
                   }
                 }
+}
+
+cargo {
+  containerId = 'tomcat7x'
+  port = 8080
+
+  deployable {
+    file = file('../samples/api/build/libs/cloudfoundry-identity-api-' + version + '.war')
+    context = 'api'
+  }
+
+  deployable {
+    file = file('../samples/app/build/libs/cloudfoundry-identity-app-' + version + '.war')
+    context = 'app'
+  }
+
+  local {
+    installer {
+      installUrl = 'http://archive.apache.org/dist/tomcat/tomcat-7/v7.0.52/bin/apache-tomcat-7.0.52.tar.gz'
+      downloadDir = file("$buildDir/download")
+      extractDir = file("$buildDir/extract")
+    }
+  }
+}
+
+project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
+  cargo {
+    deployable {
+      Task instrumentTask = project.tasks.findByName('instrument')
+      if (graph.hasTask(instrumentTask) && instrumentTask.enabled) {
+        file = file('build/instrumented_libs/cloudfoundry-identity-uaa-' + version + '.war')
+      } else {
+        file = file('build/libs/cloudfoundry-identity-uaa-' + version + '.war')
+      }
+      context = 'uaa'
+    }
+  }
 }
 
 apply plugin: 'artifactory'
