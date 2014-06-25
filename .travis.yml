@@ -8,11 +8,11 @@ env:
     - CATALINA_PID=/tmp/tomcat.pid
     - CATALINA_OUT=/tmp/tomcat.log
   matrix:
-    - TESTENV=default,coverage
-    - TESTENV=mysql,default,coverage
-    - TESTENV=postgresql,default,coverage
-    - TESTENV=ldap,default,coverage
-    - TESTENV=keystone,default,coverage
+    - TESTENV=default
+    - TESTENV=mysql,default
+    - TESTENV=postgresql,default
+    - TESTENV=ldap,default
+    - TESTENV=keystone,default
 cache:
   apt: true
 services:
@@ -29,11 +29,11 @@ before_install:
   - mysql -e 'create database uaa;'
   - mysql -e "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('changeme');"
   - mysql -e "SET PASSWORD FOR 'root'@'127.0.0.1' = PASSWORD('changeme');"
-  - if [ "$TESTENV" = "ldap,default,coverage" ]; then ./scripts/ldap/install-ldap.sh; fi
-  - if [ "$TESTENV" = "keystone,default,coverage" ]; then ./scripts/keystone/install-keystone.sh; fi
+  - if [ "$TESTENV" = "ldap,default" ]; then ./scripts/ldap/install-ldap.sh; fi
+  - if [ "$TESTENV" = "keystone,default" ]; then ./scripts/keystone/install-keystone.sh; fi
 install:
-  - if [ "$TESTENV" = "ldap,default,coverage" ]; then ./scripts/ldap/configure-manifest.sh; fi
-  - if [ "$TESTENV" = "keystone,default,coverage" ]; then ./scripts/keystone/configure-manifest.sh; fi
+  - if [ "$TESTENV" = "ldap,default" ]; then ./scripts/ldap/configure-manifest.sh; fi
+  - if [ "$TESTENV" = "keystone,default" ]; then ./scripts/keystone/configure-manifest.sh; fi
   - mvn install -DskipTests -P coverage --quiet
   - mkdir -p target/tomcat && tar zxf tomcat.tar.gz -C target/tomcat --strip-components 1 && rm -rf target/tomcat/webapps/*
   - mvn -Dwar.exploded.dir=`pwd`/target/tomcat/webapps/api --quiet -pl samples/api war:exploded
