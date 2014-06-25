@@ -123,27 +123,6 @@ task instrumentedWar(type: War, dependsOn: instrument) {
                 }
 }
 
-/*apply plugin: 'maven-publish'
-
-publishing {
-  publications {
-    webApp(MavenPublication) {
-      from components.web
-    }
-  }
-
-  repositories {
-    maven {
-      credentials {
-        username "AKIAIEYGDWG4KUPRZUXA"
-        password "AfClHnhAU+jDlofSWaWyvMaUsVfW/PUGY/3OV180"
-      }
-      url "s3://maven.springframework.org/snapshot"
-    }
-  }
-}
-*/
-
 apply plugin: 'artifactory'
 
 artifactory {
