@@ -86,14 +86,6 @@ cargo {
   }
 }
 
-task copyInstrumentationData(type: Copy) {
-  dependsOn cargoStartLocal
-  
-  from "../common/build/cobertura/coberturaInput.ser"
-  into System.properties['java.io.tmpdir'] + 'cargo/conf'
-  rename 'coberturaInput.ser', 'cobertura.ser'
-}
-
 task flushCoverageData(type: Exec) {
   commandLine "curl", "-v", "-X", "POST", "http://localhost:8080/uaa/healthz/coverage/flush"
   
@@ -101,7 +93,7 @@ task flushCoverageData(type: Exec) {
 }
 
 task integrationTest(type: Test) {
-  dependsOn copyInstrumentationData
+  dependsOn cargoStartLocal
   finalizedBy flushCoverageData
 
   filter {
