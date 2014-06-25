@@ -53,7 +53,8 @@ cobertura {
   coverageMergeDatafiles = [
     new File("common/build/cobertura/cobertura.ser"),
     new File("scim/build/cobertura/cobertura.ser"),
-    new File("uaa/build/cobertura/cobertura.ser")
+    new File("uaa/build/cobertura/cobertura.ser"),
+    new File(System.properties['java.io.tmpdir'] + 'cargo/conf/cobertura.ser')
   ]
 }
 
