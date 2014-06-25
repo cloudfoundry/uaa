@@ -84,7 +84,7 @@ task instrumentedWar(type: War, dependsOn: instrument) {
                     it
                   }
                 }
-  onlyIf { project.tasks.findByName('instrument').enabled }
+  onlyIf { runningWithCoverage() }
 }
 
 instrumentedWar.dependsOn project(":cloudfoundry-identity-common").tasks.findByName('instrumentedJar')
@@ -128,7 +128,7 @@ cargo {
 project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
   cargo {
     deployable {
-      if (project.tasks.findByName('instrument').enabled) {
+      if (runningWithCoverage()) {
         file = file('build/instrumented_libs/cloudfoundry-identity-uaa-' + version + '.war')
       } else {
         file = file('build/libs/cloudfoundry-identity-uaa-' + version + '.war')

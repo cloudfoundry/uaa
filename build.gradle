@@ -47,19 +47,19 @@ subprojects {
   task copyInstrumentedClasses(type: Copy, dependsOn: instrument) {
     from "${buildDir}/instrumented_classes"
     into sourceSets.instrumented.output.classesDir
-    onlyIf { project.tasks.findByName('instrument').enabled }
+    onlyIf { runningWithCoverage() }
   }
 
   task makeInstrumentedSourceSet(type: Copy, dependsOn: copyInstrumentedClasses) {
     from sourceSets.main.output.resourcesDir
     into sourceSets.instrumented.output.resourcesDir
-    onlyIf { project.tasks.findByName('instrument').enabled }
+    onlyIf { runningWithCoverage() }
   }
 
   task instrumentedJar(type: Jar, dependsOn: makeInstrumentedSourceSet) {
     from sourceSets.instrumented.output
     destinationDir = file("$buildDir/instrumented_libs")
-    onlyIf { project.tasks.findByName('instrument').enabled }
+    onlyIf { runningWithCoverage() }
   }
 
   configurations.all {
@@ -82,3 +82,7 @@ test.dependsOn([
   ":cloudfoundry-identity-scim:test",
   ":cloudfoundry-identity-uaa:test"
 ])
+
+def runningWithCoverage() {
+  project.tasks.findByName('instrument').enabled
+}
