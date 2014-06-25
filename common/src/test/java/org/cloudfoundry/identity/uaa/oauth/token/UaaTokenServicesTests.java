@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.oauth.approval.InMemoryApprovalStore;
 import org.cloudfoundry.identity.uaa.test.MockAuthentication;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventPublisher;
 import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
+import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
@@ -33,6 +34,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.jwt.Jwt;
@@ -52,6 +54,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.user.UaaAuthority.USER_AUTHORITIES;
@@ -61,31 +64,68 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
- * 
+ * @author Filip Hanik
  * @author Joel D'sa
  * 
  */
 public class UaaTokenServicesTests {
 
+    public static final String CLIENT_ID = "client";
+    public static final String GRANT_TYPE = "grant_type";
+    public static final String PASSWORD = "password";
+    public static final String CLIENT_CREDENTIALS = "client_credentials";
+    public static final String AUTHORIZATION_CODE = "authorization_code";
+    public static final String REFRESH_TOKEN = "refresh_token";
+    public static final String AUTOAPPROVE = "autoapprove";
+    public static final String IMPLICIT = "implicit";
+    public static final String UPDATE = "update";
+    public static final String CANNOT_READ_TOKEN_CLAIMS = "Cannot read token claims";
+    public static final String ISSUER_URI = "http://localhost:8080/uaa/oauth/token";
+    public static final String READ = "read";
+    public static final String WRITE = "write";
+    public static final String DELETE = "delete";
+    public static final String ALL_GRANTS_CSV = "authorization_code,password,implicit,client_credentials";
+    public static final String CLIENTS = "clients";
+    public static final String SCIM = "scim";
+
+
     private TestApplicationEventPublisher<TokenIssuedEvent> publisher;
     private UaaTokenServices tokenServices = new UaaTokenServices();
-
     private SignerProvider signerProvider = new SignerProvider();
-
     private ObjectMapper mapper = new ObjectMapper();
+    
+    private List<GrantedAuthority> defaultUserAuthorities = Arrays.asList(
+        UaaAuthority.authority("space.123.developer"),
+        UaaAuthority.authority("uaa.user"),
+        UaaAuthority.authority("space.345.developer"),
+        UaaAuthority.authority("space.123.admin"));
 
     private String userId = "12345";
+    private String username = "jdsa";
+    private String email = "jdsa@vmware.com";
+    private final String externalId = "externalId";
     private UaaUser defaultUser =
-        new UaaUser(userId, "jdsa", "password", "jdsa@vmware.com",
-            USER_AUTHORITIES, null, null, new Date(
-            System.currentTimeMillis() - 15000), new Date(
-            System.currentTimeMillis() - 15000), Origin.UAA, "externalId");
+        new UaaUser(
+            userId, 
+            username, 
+            PASSWORD, 
+            email,
+            defaultUserAuthorities  , 
+            null, 
+            null, 
+            new Date(System.currentTimeMillis() - 15000), 
+            new Date(System.currentTimeMillis() - 15000), 
+            Origin.UAA, 
+            externalId);
+    
     // Need to create a user with a modified time slightly in the past because
     // the token IAT is in seconds and the token
     // expiry
     // skew will not be long enough
-    private InMemoryUaaUserDatabase userDatabase = new InMemoryUaaUserDatabase(new HashMap<String, UaaUser>(
-                    Collections.singletonMap("jdsa", defaultUser)));
+    private InMemoryUaaUserDatabase userDatabase =
+        new InMemoryUaaUserDatabase(
+            new HashMap<>(Collections.singletonMap(username, defaultUser))
+        );
 
     private Authentication defaultUserAuthentication = new UsernamePasswordAuthenticationToken(new UaaPrincipal(defaultUser), "n/a", null);
 
@@ -93,12 +133,45 @@ public class UaaTokenServicesTests {
 
     private ApprovalStore approvalStore = new InMemoryApprovalStore();
     private MockAuthentication mockAuthentication;
+    private List<String> requestedAuthScopes;
+    private List<String> clientScopes;
+    private List<String> readScope;
+    private List<String> writeScope;
+    private List<String> expandedScopes;
+    public List<String> resourceIds;
+    private String expectedJson;
+    private BaseClientDetails defaultClient;
+
 
     public UaaTokenServicesTests() {
         publisher = TestApplicationEventPublisher.forEventClass(TokenIssuedEvent.class);
-        clientDetailsService.setClientDetailsStore(Collections
-                        .singletonMap("client", new BaseClientDetails("client", "scim, clients", "read, write",
-                                        "authorization_code, password, implicit, client_credentials", "update")));
+    }
+
+    @Before
+    public void setUp() throws Exception {
+        mockAuthentication = new MockAuthentication();
+        SecurityContextHolder.getContext().setAuthentication(mockAuthentication);
+        requestedAuthScopes = Arrays.asList(READ, WRITE);
+        clientScopes = Arrays.asList(READ, WRITE);
+        readScope = Arrays.asList(READ);
+        writeScope = Arrays.asList(WRITE);
+        expandedScopes = Arrays.asList(READ, WRITE, DELETE);
+        resourceIds = Arrays.asList(SCIM, CLIENTS);
+        expectedJson = "[\""+READ+"\",\""+WRITE+"\"]";
+
+        defaultClient = new BaseClientDetails(
+            CLIENT_ID,
+            SCIM+","+CLIENTS,
+            READ+","+WRITE,
+            ALL_GRANTS_CSV,
+            UPDATE);
+
+        clientDetailsService.setClientDetailsStore(
+            Collections.singletonMap(
+                CLIENT_ID,
+                defaultClient
+            )
+        );
         tokenServices.setClientDetailsService(clientDetailsService);
         tokenServices.setDefaultUserAuthorities(AuthorityUtils.authorityListToSet(USER_AUTHORITIES));
         tokenServices.setIssuer("http://localhost:8080/uaa");
@@ -108,21 +181,13 @@ public class UaaTokenServicesTests {
         tokenServices.setApplicationEventPublisher(publisher);
     }
 
-    @Before
-    public void setUp() throws Exception {
-        mockAuthentication = new MockAuthentication();
-        SecurityContextHolder.getContext().setAuthentication(mockAuthentication);
-    }
-
     @Test
     public void testCreateAccessTokenForAClient() {
 
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        authorizationRequest.setResourceIds(new HashSet<String>(Arrays.asList(new String[] { "scim", "clients" })));
-        Map<String, String> azParameters = new HashMap<String, String>(
-                        authorizationRequest.getAuthorizationParameters());
-        azParameters.put("grant_type", "client_credentials");
+        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,clientScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        azParameters.put(GRANT_TYPE, CLIENT_CREDENTIALS);
         authorizationRequest.setAuthorizationParameters(azParameters);
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, null);
@@ -130,22 +195,21 @@ public class UaaTokenServicesTests {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         Jwt tokenJwt = JwtHelper.decodeAndVerify(accessToken.getValue(), signerProvider.getVerifier());
         assertNotNull(tokenJwt);
-        Map<String, Object> claims = null;
+        Map<String, Object> claims;
         try {
-            claims = mapper.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
-            });
+            claims = mapper.readValue(tokenJwt.getClaims(),new TypeReference<Map<String, Object>>() {});
         } catch (Exception e) {
-            throw new IllegalStateException("Cannot read token claims", e);
+            throw new IllegalStateException(CANNOT_READ_TOKEN_CLAIMS, e);
         }
 
-        assertEquals(claims.get(Claims.ISS), "http://localhost:8080/uaa/oauth/token");
-        assertEquals(claims.get(Claims.CLIENT_ID), "client");
+        assertEquals(claims.get(Claims.ISS), ISSUER_URI);
+        assertEquals(claims.get(Claims.CLIENT_ID), CLIENT_ID);
         assertNull("user_id should be null for a client token", claims.get(Claims.USER_ID));
-        assertEquals(claims.get(Claims.SUB), "client");
+        assertEquals(claims.get(Claims.SUB), CLIENT_ID);
         assertNull("user_name should be null for a client token", claims.get(Claims.USER_NAME));
-        assertEquals(claims.get(Claims.CID), "client");
-        assertEquals(claims.get(Claims.SCOPE), Arrays.asList(new String[] { "read", "write" }));
-        assertEquals(claims.get(Claims.AUD), Arrays.asList(new String[] { "scim", "clients" }));
+        assertEquals(claims.get(Claims.CID), CLIENT_ID);
+        assertEquals(claims.get(Claims.SCOPE), clientScopes);
+        assertEquals(claims.get(Claims.AUD), resourceIds);
         assertTrue(((String) claims.get(Claims.JTI)).length() > 0);
         assertTrue(((Integer) claims.get(Claims.IAT)) > 0);
         assertTrue(((Integer) claims.get(Claims.EXP)) > 0);
@@ -158,19 +222,17 @@ public class UaaTokenServicesTests {
         Assert.assertEquals(accessToken, event.getSource());
         Assert.assertEquals(mockAuthentication, event.getAuthentication());
         AuditEvent auditEvent = event.getAuditEvent();
-        Assert.assertEquals("client", auditEvent.getPrincipalId());
-        Assert.assertEquals("[\"read\",\"write\"]", auditEvent.getData());
+        Assert.assertEquals(CLIENT_ID, auditEvent.getPrincipalId());
+        Assert.assertEquals(expectedJson, auditEvent.getData());
         Assert.assertEquals(AuditEventType.TokenIssuedEvent, auditEvent.getType());
     }
 
     @Test
     public void testCreateAccessTokenAuthcodeGrant() {
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        authorizationRequest.setResourceIds(new HashSet<String>(Arrays.asList(new String[] { "scim", "clients" })));
-        Map<String, String> azParameters = new HashMap<String, String>(
-                        authorizationRequest.getAuthorizationParameters());
-        azParameters.put("grant_type", "authorization_code");
+        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
         authorizationRequest.setAuthorizationParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
@@ -180,12 +242,10 @@ public class UaaTokenServicesTests {
 
     @Test
     public void testCreateAccessTokenPasswordGrant() {
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        authorizationRequest.setResourceIds(new HashSet<String>(Arrays.asList(new String[] { "scim", "clients" })));
-        Map<String, String> azParameters = new HashMap<String, String>(
-                        authorizationRequest.getAuthorizationParameters());
-        azParameters.put("grant_type", "password");
+        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        azParameters.put(GRANT_TYPE, PASSWORD);
         authorizationRequest.setAuthorizationParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
@@ -201,54 +261,45 @@ public class UaaTokenServicesTests {
         Calendar updatedAt = Calendar.getInstance();
         updatedAt.add(Calendar.MILLISECOND, -1000);
 
-        approvalStore.addApproval(new Approval(userId, "client", "read", expiresAt.getTime(), ApprovalStatus.APPROVED,
-                        updatedAt.getTime()));
-        approvalStore.addApproval(new Approval(userId, "client", "write", expiresAt.getTime(), ApprovalStatus.APPROVED,
-                        updatedAt.getTime()));
+        approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,updatedAt.getTime()));
+        approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,updatedAt.getTime()));
 
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        authorizationRequest.setResourceIds(new HashSet<String>(Arrays.asList(new String[] { "scim", "clients" })));
-        Map<String, String> azParameters = new HashMap<String, String>(
-                        authorizationRequest.getAuthorizationParameters());
-        azParameters.put("grant_type", "authorization_code");
+        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
         authorizationRequest.setAuthorizationParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
 
-        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        refreshAuthorizationRequest.setResourceIds(new HashSet<String>(Arrays
-                        .asList(new String[] { "scim", "clients" })));
-        Map<String, String> refreshAzParameters = new HashMap<String, String>(
-                        refreshAuthorizationRequest.getAuthorizationParameters());
-        refreshAzParameters.put("grant_type", "refresh_token");
+        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        refreshAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getAuthorizationParameters());
+        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
         refreshAuthorizationRequest.setAuthorizationParameters(refreshAzParameters);
 
-        OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken()
-                        .getValue(), refreshAuthorizationRequest);
+        OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), refreshAuthorizationRequest);
 
         assertEquals(refreshedAccessToken.getRefreshToken().getValue(), accessToken.getRefreshToken().getValue());
         Jwt tokenJwt = JwtHelper.decodeAndVerify(refreshedAccessToken.getValue(), signerProvider.getVerifier());
         assertNotNull(tokenJwt);
-        Map<String, Object> claims = null;
+        Map<String, Object> claims;
         try {
-            claims = mapper.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
-            });
+            claims = mapper.readValue(tokenJwt.getClaims(),new TypeReference<Map<String, Object>>() {});
         } catch (Exception e) {
-            throw new IllegalStateException("Cannot read token claims", e);
+            throw new IllegalStateException(CANNOT_READ_TOKEN_CLAIMS, e);
         }
 
-        assertEquals(claims.get(Claims.ISS), "http://localhost:8080/uaa/oauth/token");
-        assertEquals(claims.get(Claims.CLIENT_ID), "client");
-        assertEquals(claims.get(Claims.USER_ID), "12345");
-        assertEquals(claims.get(Claims.SUB), "12345");
-        assertEquals(claims.get(Claims.USER_NAME), "jdsa");
-        assertEquals(claims.get(Claims.CID), "client");
-        assertEquals(claims.get(Claims.SCOPE), Arrays.asList(new String[] { "read", "write" }));
-        assertEquals(claims.get(Claims.AUD), Arrays.asList(new String[] { "scim", "clients" }));
+        assertEquals(claims.get(Claims.ISS), ISSUER_URI);
+        assertEquals(claims.get(Claims.CLIENT_ID), CLIENT_ID);
+        assertEquals(claims.get(Claims.USER_ID), userId);
+        assertEquals(claims.get(Claims.SUB), userId);
+        assertEquals(claims.get(Claims.USER_NAME), username);
+        assertEquals(claims.get(Claims.CID), CLIENT_ID);
+        assertEquals(claims.get(Claims.SCOPE), requestedAuthScopes);
+        assertEquals(claims.get(Claims.AUD), resourceIds);
         assertTrue(((String) claims.get(Claims.JTI)).length() > 0);
         assertTrue(((Integer) claims.get(Claims.IAT)) > 0);
         assertTrue(((Integer) claims.get(Claims.EXP)) > 0);
@@ -258,56 +309,48 @@ public class UaaTokenServicesTests {
 
     @Test
     public void testCreateAccessTokenRefreshGrantAllScopesAutoApproved() throws InterruptedException {
-        BaseClientDetails clientDetails = new BaseClientDetails("client", "scim. clients", "read,write",
-                        "authorization_code, password, implicit, client_credentials", "update");
-        clientDetails.addAdditionalInformation("autoapprove", "true");
-        clientDetailsService.setClientDetailsStore(Collections.singletonMap("client", clientDetails));
+        BaseClientDetails clientDetails = cloneClient(defaultClient);
+        clientDetails.addAdditionalInformation(AUTOAPPROVE, "true");
+        clientDetailsService.setClientDetailsStore(Collections.singletonMap(CLIENT_ID, clientDetails));
 
         // NO APPROVALS REQUIRED
 
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        authorizationRequest.setResourceIds(new HashSet<String>(Arrays.asList(new String[] { "scim", "clients" })));
-        Map<String, String> azParameters = new HashMap<String, String>(
-                        authorizationRequest.getAuthorizationParameters());
-        azParameters.put("grant_type", "authorization_code");
+        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
         authorizationRequest.setAuthorizationParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
 
-        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        refreshAuthorizationRequest.setResourceIds(new HashSet<String>(Arrays
-                        .asList(new String[] { "scim", "clients" })));
-        Map<String, String> refreshAzParameters = new HashMap<String, String>(
-                        refreshAuthorizationRequest.getAuthorizationParameters());
-        refreshAzParameters.put("grant_type", "refresh_token");
+        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        refreshAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getAuthorizationParameters());
+        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
         refreshAuthorizationRequest.setAuthorizationParameters(refreshAzParameters);
 
-        OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken()
-                        .getValue(), refreshAuthorizationRequest);
+        OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), refreshAuthorizationRequest);
 
         assertEquals(refreshedAccessToken.getRefreshToken().getValue(), accessToken.getRefreshToken().getValue());
         Jwt tokenJwt = JwtHelper.decodeAndVerify(refreshedAccessToken.getValue(), signerProvider.getVerifier());
         assertNotNull(tokenJwt);
-        Map<String, Object> claims = null;
+        Map<String, Object> claims;
         try {
-            claims = mapper.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
-            });
+            claims = mapper.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {});
         } catch (Exception e) {
-            throw new IllegalStateException("Cannot read token claims", e);
+            throw new IllegalStateException(CANNOT_READ_TOKEN_CLAIMS, e);
         }
 
-        assertEquals(claims.get(Claims.ISS), "http://localhost:8080/uaa/oauth/token");
-        assertEquals(claims.get(Claims.CLIENT_ID), "client");
-        assertEquals(claims.get(Claims.USER_ID), "12345");
-        assertEquals(claims.get(Claims.SUB), "12345");
-        assertEquals(claims.get(Claims.USER_NAME), "jdsa");
-        assertEquals(claims.get(Claims.CID), "client");
-        assertEquals(claims.get(Claims.SCOPE), Arrays.asList(new String[] { "read", "write" }));
-        assertEquals(claims.get(Claims.AUD), Arrays.asList(new String[] { "scim", "clients" }));
+        assertEquals(claims.get(Claims.ISS), ISSUER_URI);
+        assertEquals(claims.get(Claims.CLIENT_ID), CLIENT_ID);
+        assertEquals(claims.get(Claims.USER_ID), userId);
+        assertEquals(claims.get(Claims.SUB), userId);
+        assertEquals(claims.get(Claims.USER_NAME), username);
+        assertEquals(claims.get(Claims.CID), CLIENT_ID);
+        assertEquals(claims.get(Claims.SCOPE), requestedAuthScopes);
+        assertEquals(claims.get(Claims.AUD), resourceIds);
         assertTrue(((String) claims.get(Claims.JTI)).length() > 0);
         assertTrue(((Integer) claims.get(Claims.IAT)) > 0);
         assertTrue(((Integer) claims.get(Claims.EXP)) > 0);
@@ -317,56 +360,48 @@ public class UaaTokenServicesTests {
 
     @Test
     public void testCreateAccessTokenRefreshGrantSomeScopesAutoApprovedDowngradedRequest() throws InterruptedException {
-        BaseClientDetails clientDetails = new BaseClientDetails("client", "scim. clients", "read, write",
-                        "authorization_code, password, implicit, client_credentials", "update");
-        clientDetails.addAdditionalInformation("autoapprove", "true");
-        clientDetailsService.setClientDetailsStore(Collections.singletonMap("client", clientDetails));
+        BaseClientDetails clientDetails = cloneClient(defaultClient);
+        clientDetails.addAdditionalInformation(AUTOAPPROVE, Boolean.TRUE.toString());
+        clientDetailsService.setClientDetailsStore(Collections.singletonMap(CLIENT_ID, clientDetails));
 
         // NO APPROVALS REQUIRED
 
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        authorizationRequest.setResourceIds(new HashSet<String>(Arrays.asList(new String[] { "scim", "clients" })));
-        Map<String, String> azParameters = new HashMap<String, String>(
-                        authorizationRequest.getAuthorizationParameters());
-        azParameters.put("grant_type", "authorization_code");
+        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
         authorizationRequest.setAuthorizationParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
 
-        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read" }));
-        refreshAuthorizationRequest.setResourceIds(new HashSet<String>(Arrays
-                        .asList(new String[] { "scim", "clients" })));
-        Map<String, String> refreshAzParameters = new HashMap<String, String>(
-                        refreshAuthorizationRequest.getAuthorizationParameters());
-        refreshAzParameters.put("grant_type", "refresh_token");
+        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,readScope);
+        refreshAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getAuthorizationParameters());
+        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
         refreshAuthorizationRequest.setAuthorizationParameters(refreshAzParameters);
 
-        OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken()
-                        .getValue(), refreshAuthorizationRequest);
+        OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), refreshAuthorizationRequest);
 
         assertEquals(refreshedAccessToken.getRefreshToken().getValue(), accessToken.getRefreshToken().getValue());
         Jwt tokenJwt = JwtHelper.decodeAndVerify(refreshedAccessToken.getValue(), signerProvider.getVerifier());
         assertNotNull(tokenJwt);
-        Map<String, Object> claims = null;
+        Map<String, Object> claims;
         try {
-            claims = mapper.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
-            });
+            claims = mapper.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {});
         } catch (Exception e) {
-            throw new IllegalStateException("Cannot read token claims", e);
+            throw new IllegalStateException(CANNOT_READ_TOKEN_CLAIMS, e);
         }
 
-        assertEquals(claims.get(Claims.ISS), "http://localhost:8080/uaa/oauth/token");
-        assertEquals(claims.get(Claims.CLIENT_ID), "client");
-        assertEquals(claims.get(Claims.USER_ID), "12345");
-        assertEquals(claims.get(Claims.SUB), "12345");
-        assertEquals(claims.get(Claims.USER_NAME), "jdsa");
-        assertEquals(claims.get(Claims.CID), "client");
-        assertEquals(claims.get(Claims.SCOPE), Arrays.asList(new String[] { "read" }));
-        assertEquals(claims.get(Claims.AUD), Arrays.asList(new String[] { "scim", "clients" }));
+        assertEquals(claims.get(Claims.ISS), ISSUER_URI);
+        assertEquals(claims.get(Claims.CLIENT_ID), CLIENT_ID);
+        assertEquals(claims.get(Claims.USER_ID), userId);
+        assertEquals(claims.get(Claims.SUB), userId);
+        assertEquals(claims.get(Claims.USER_NAME), username);
+        assertEquals(claims.get(Claims.CID), CLIENT_ID);
+        assertEquals(claims.get(Claims.SCOPE), readScope);
+        assertEquals(claims.get(Claims.AUD), resourceIds);
         assertTrue(((String) claims.get(Claims.JTI)).length() > 0);
         assertTrue(((Integer) claims.get(Claims.IAT)) > 0);
         assertTrue(((Integer) claims.get(Claims.EXP)) > 0);
@@ -376,10 +411,9 @@ public class UaaTokenServicesTests {
 
     @Test
     public void testCreateAccessTokenRefreshGrantSomeScopesAutoApproved() throws InterruptedException {
-        BaseClientDetails clientDetails = new BaseClientDetails("client", "scim. clients", "read, write",
-                        "authorization_code, password, implicit, client_credentials", "update");
-        clientDetails.addAdditionalInformation("autoapprove", Arrays.asList(new String[] { "read" }));
-        clientDetailsService.setClientDetailsStore(Collections.singletonMap("client", clientDetails));
+        BaseClientDetails clientDetails = cloneClient(defaultClient);
+        clientDetails.addAdditionalInformation(AUTOAPPROVE, readScope);
+        clientDetailsService.setClientDetailsStore(Collections.singletonMap(CLIENT_ID, clientDetails));
 
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, 3000);
@@ -387,52 +421,44 @@ public class UaaTokenServicesTests {
         Calendar updatedAt = Calendar.getInstance();
         updatedAt.add(Calendar.MILLISECOND, -1000);
 
-        approvalStore.addApproval(new Approval(userId, "client", "write", expiresAt.getTime(), ApprovalStatus.APPROVED,
-                        updatedAt.getTime()));
+        approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,updatedAt.getTime()));
 
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        authorizationRequest.setResourceIds(new HashSet<String>(Arrays.asList(new String[] { "scim", "clients" })));
-        Map<String, String> azParameters = new HashMap<String, String>(
-                        authorizationRequest.getAuthorizationParameters());
-        azParameters.put("grant_type", "authorization_code");
+        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
         authorizationRequest.setAuthorizationParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
 
-        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        refreshAuthorizationRequest.setResourceIds(new HashSet<String>(Arrays
-                        .asList(new String[] { "scim", "clients" })));
-        Map<String, String> refreshAzParameters = new HashMap<String, String>(
-                        refreshAuthorizationRequest.getAuthorizationParameters());
-        refreshAzParameters.put("grant_type", "refresh_token");
+        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        refreshAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getAuthorizationParameters());
+        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
         refreshAuthorizationRequest.setAuthorizationParameters(refreshAzParameters);
 
-        OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken()
-                        .getValue(), refreshAuthorizationRequest);
+        OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), refreshAuthorizationRequest);
 
         assertEquals(refreshedAccessToken.getRefreshToken().getValue(), accessToken.getRefreshToken().getValue());
         Jwt tokenJwt = JwtHelper.decodeAndVerify(refreshedAccessToken.getValue(), signerProvider.getVerifier());
         assertNotNull(tokenJwt);
-        Map<String, Object> claims = null;
+        Map<String, Object> claims;
         try {
-            claims = mapper.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
-            });
+            claims = mapper.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {});
         } catch (Exception e) {
-            throw new IllegalStateException("Cannot read token claims", e);
+            throw new IllegalStateException(CANNOT_READ_TOKEN_CLAIMS, e);
         }
 
-        assertEquals(claims.get(Claims.ISS), "http://localhost:8080/uaa/oauth/token");
-        assertEquals(claims.get(Claims.CLIENT_ID), "client");
-        assertEquals(claims.get(Claims.USER_ID), "12345");
-        assertEquals(claims.get(Claims.SUB), "12345");
-        assertEquals(claims.get(Claims.USER_NAME), "jdsa");
-        assertEquals(claims.get(Claims.CID), "client");
-        assertEquals(claims.get(Claims.SCOPE), Arrays.asList(new String[] { "read", "write" }));
-        assertEquals(claims.get(Claims.AUD), Arrays.asList(new String[] { "scim", "clients" }));
+        assertEquals(claims.get(Claims.ISS), ISSUER_URI);
+        assertEquals(claims.get(Claims.CLIENT_ID), CLIENT_ID);
+        assertEquals(claims.get(Claims.USER_ID), userId);
+        assertEquals(claims.get(Claims.SUB), userId);
+        assertEquals(claims.get(Claims.USER_NAME), username);
+        assertEquals(claims.get(Claims.CID), CLIENT_ID);
+        assertEquals(claims.get(Claims.SCOPE), requestedAuthScopes);
+        assertEquals(claims.get(Claims.AUD), resourceIds);
         assertTrue(((String) claims.get(Claims.JTI)).length() > 0);
         assertTrue(((Integer) claims.get(Claims.IAT)) > 0);
         assertTrue(((Integer) claims.get(Claims.EXP)) > 0);
@@ -442,10 +468,9 @@ public class UaaTokenServicesTests {
 
     @Test(expected = InvalidTokenException.class)
     public void testCreateAccessTokenRefreshGrantNoScopesAutoApprovedIncompleteApprovals() throws InterruptedException {
-        BaseClientDetails clientDetails = new BaseClientDetails("client", "scim. clients", "read, write",
-                        "authorization_code, password, implicit, client_credentials", "update");
-        clientDetails.addAdditionalInformation("autoapprove", Arrays.asList(new String[] {}));
-        clientDetailsService.setClientDetailsStore(Collections.singletonMap("client", clientDetails));
+        BaseClientDetails clientDetails = cloneClient(defaultClient);
+        clientDetails.addAdditionalInformation(AUTOAPPROVE, Arrays.asList());
+        clientDetailsService.setClientDetailsStore(Collections.singletonMap(CLIENT_ID, clientDetails));
 
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, 3000);
@@ -453,40 +478,32 @@ public class UaaTokenServicesTests {
         Calendar updatedAt = Calendar.getInstance();
         updatedAt.add(Calendar.MILLISECOND, -1000);
 
-        approvalStore.addApproval(new Approval(userId, "client", "write", expiresAt.getTime(), ApprovalStatus.APPROVED,
-                        updatedAt.getTime()));
+        approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,updatedAt.getTime()));
 
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        authorizationRequest.setResourceIds(new HashSet<String>(Arrays.asList(new String[] { "scim", "clients" })));
-        Map<String, String> azParameters = new HashMap<String, String>(
-                        authorizationRequest.getAuthorizationParameters());
-        azParameters.put("grant_type", "authorization_code");
+        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
         authorizationRequest.setAuthorizationParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
 
-        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        refreshAuthorizationRequest.setResourceIds(new HashSet<String>(Arrays
-                        .asList(new String[] { "scim", "clients" })));
-        Map<String, String> refreshAzParameters = new HashMap<String, String>(
-                        refreshAuthorizationRequest.getAuthorizationParameters());
-        refreshAzParameters.put("grant_type", "refresh_token");
+        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        refreshAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getAuthorizationParameters());
+        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
         refreshAuthorizationRequest.setAuthorizationParameters(refreshAzParameters);
 
-        tokenServices.refreshAccessToken(accessToken.getRefreshToken()
-                        .getValue(), refreshAuthorizationRequest);
+        tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), refreshAuthorizationRequest);
     }
 
     @Test
     public void testCreateAccessTokenRefreshGrantAllScopesAutoApprovedButApprovalDenied() throws InterruptedException {
-        BaseClientDetails clientDetails = new BaseClientDetails("client", "scim. clients", "read,write",
-                        "authorization_code, password, implicit, client_credentials", "update");
-        clientDetails.addAdditionalInformation("autoapprove", Arrays.asList(new String[] { "read", "write" }));
-        clientDetailsService.setClientDetailsStore(Collections.singletonMap("client", clientDetails));
+        BaseClientDetails clientDetails = cloneClient(defaultClient);
+        clientDetails.addAdditionalInformation(AUTOAPPROVE, requestedAuthScopes);
+        clientDetailsService.setClientDetailsStore(Collections.singletonMap(CLIENT_ID, clientDetails));
 
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, 3000);
@@ -494,45 +511,35 @@ public class UaaTokenServicesTests {
         Calendar updatedAt = Calendar.getInstance();
         updatedAt.add(Calendar.MILLISECOND, -1000);
 
-        approvalStore.addApproval(new Approval(userId, "client", "read", expiresAt.getTime(), ApprovalStatus.APPROVED,
-                        updatedAt.getTime()));
-        approvalStore.addApproval(new Approval(userId, "client", "write", expiresAt.getTime(), ApprovalStatus.DENIED,
-                        updatedAt.getTime()));
+        approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,updatedAt.getTime()));
+        approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.DENIED,updatedAt.getTime()));
 
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        authorizationRequest.setResourceIds(new HashSet<String>(Arrays.asList(new String[] { "scim", "clients" })));
-        Map<String, String> azParameters = new HashMap<String, String>(
-                        authorizationRequest.getAuthorizationParameters());
-        azParameters.put("grant_type", "authorization_code");
+        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
         authorizationRequest.setAuthorizationParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
 
-        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        refreshAuthorizationRequest.setResourceIds(new HashSet<String>(Arrays
-                        .asList(new String[] { "scim", "clients" })));
-        Map<String, String> refreshAzParameters = new HashMap<String, String>(
-                        refreshAuthorizationRequest.getAuthorizationParameters());
-        refreshAzParameters.put("grant_type", "refresh_token");
+        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        refreshAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getAuthorizationParameters());
+        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
         refreshAuthorizationRequest.setAuthorizationParameters(refreshAzParameters);
 
-        OAuth2AccessToken refreshToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken()
-                        .getValue(), refreshAuthorizationRequest);
+        OAuth2AccessToken refreshToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), refreshAuthorizationRequest);
         assertNotNull(refreshToken);
     }
 
     @Test
     public void testCreateAccessTokenImplicitGrant() {
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        authorizationRequest.setResourceIds(new HashSet<String>(Arrays.asList(new String[] { "scim", "clients" })));
-        Map<String, String> azParameters = new HashMap<String, String>(
-                        authorizationRequest.getAuthorizationParameters());
-        azParameters.put("grant_type", "implicit");
+        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID, requestedAuthScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        azParameters.put(GRANT_TYPE, IMPLICIT);
         authorizationRequest.setAuthorizationParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
@@ -540,55 +547,68 @@ public class UaaTokenServicesTests {
         testCreateAccessTokenForAUser(authentication, true);
     }
 
+    @Test
+    public void testCreateAccessWithNonExistingScopes() {
+        List<String> scopesThatDontExist = Arrays.asList("scope1","scope2");
+        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID, scopesThatDontExist);
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        azParameters.put(GRANT_TYPE, IMPLICIT);
+        authorizationRequest.setAuthorizationParameters(azParameters);
+        Authentication userAuthentication = defaultUserAuthentication;
+
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
+        testCreateAccessTokenForAUser(authentication, true, scopesThatDontExist);
+    }
+
     private OAuth2AccessToken testCreateAccessTokenForAUser(OAuth2Authentication authentication, boolean noRefreshToken) {
+        return testCreateAccessTokenForAUser(authentication, noRefreshToken, requestedAuthScopes);
+    }
+
+    private OAuth2AccessToken testCreateAccessTokenForAUser(OAuth2Authentication authentication, boolean noRefreshToken, List<String> expectedScopes) {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         Jwt tokenJwt = JwtHelper.decodeAndVerify(accessToken.getValue(), signerProvider.getVerifier());
         assertNotNull(tokenJwt);
-        Map<String, Object> claims = null;
+        Map<String, Object> claims;
         try {
-            claims = mapper.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
-            });
+            claims = mapper.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {});
         } catch (Exception e) {
-            throw new IllegalStateException("Cannot read token claims", e);
+            throw new IllegalStateException(CANNOT_READ_TOKEN_CLAIMS, e);
         }
 
-        assertEquals(claims.get(Claims.ISS), "http://localhost:8080/uaa/oauth/token");
-        assertEquals(claims.get(Claims.CLIENT_ID), "client");
+        assertEquals(claims.get(Claims.ISS), ISSUER_URI);
+        assertEquals(claims.get(Claims.CLIENT_ID), CLIENT_ID);
         assertNotNull(claims.get(Claims.USER_ID));
         assertNotNull(claims.get(Claims.SUB));
-        assertEquals(claims.get(Claims.USER_NAME), "jdsa");
-        assertEquals(claims.get(Claims.EMAIL), "jdsa@vmware.com");
-        assertEquals(claims.get(Claims.CID), "client");
-        assertEquals(claims.get(Claims.SCOPE), Arrays.asList(new String[] { "read", "write" }));
-        assertEquals(claims.get(Claims.AUD), Arrays.asList(new String[] { "scim", "clients" }));
+        assertEquals(claims.get(Claims.USER_NAME), username);
+        assertEquals(claims.get(Claims.EMAIL), email);
+        assertEquals(claims.get(Claims.CID), CLIENT_ID);
+        assertEquals(expectedScopes,claims.get(Claims.SCOPE));
+        assertEquals(claims.get(Claims.AUD), resourceIds);
         assertTrue(((String) claims.get(Claims.JTI)).length() > 0);
         assertTrue(((Integer) claims.get(Claims.IAT)) > 0);
         assertTrue(((Integer) claims.get(Claims.EXP)) > 0);
         assertTrue(((Integer) claims.get(Claims.EXP)) - ((Integer) claims.get(Claims.IAT)) > 0);
         if (noRefreshToken) {
             assertNull(accessToken.getRefreshToken());
-        }
-        else {
+        } else {
             assertNotNull(accessToken.getRefreshToken());
 
-            Jwt refreshTokenJwt = JwtHelper.decodeAndVerify(accessToken.getRefreshToken().getValue(),
-                            signerProvider.getVerifier());
+            Jwt refreshTokenJwt = JwtHelper.decodeAndVerify(accessToken.getRefreshToken().getValue(),signerProvider.getVerifier());
             assertNotNull(refreshTokenJwt);
-            Map<String, Object> refreshTokenClaims = null;
+            Map<String, Object> refreshTokenClaims;
             try {
-                refreshTokenClaims = mapper.readValue(refreshTokenJwt.getClaims(),
-                                new TypeReference<Map<String, Object>>() {
-                                });
+                refreshTokenClaims = mapper.readValue(refreshTokenJwt.getClaims(),new TypeReference<Map<String, Object>>() {});
             } catch (Exception e) {
-                throw new IllegalStateException("Cannot read token claims", e);
+                throw new IllegalStateException(CANNOT_READ_TOKEN_CLAIMS, e);
             }
 
-            assertEquals(refreshTokenClaims.get(Claims.ISS), "http://localhost:8080/uaa/oauth/token");
+            assertEquals(refreshTokenClaims.get(Claims.ISS), ISSUER_URI);
             assertNotNull(refreshTokenClaims.get(Claims.USER_NAME));
             assertNotNull(refreshTokenClaims.get(Claims.SUB));
-            assertEquals(refreshTokenClaims.get(Claims.CID), "client");
-            assertEquals(refreshTokenClaims.get(Claims.SCOPE), Arrays.asList(new String[] { "read", "write" }));
-            assertEquals(refreshTokenClaims.get(Claims.AUD), Arrays.asList(new String[] { "read", "write" }));
+            assertEquals(refreshTokenClaims.get(Claims.CID), CLIENT_ID);
+            assertEquals(refreshTokenClaims.get(Claims.SCOPE), requestedAuthScopes);
+            assertEquals(refreshTokenClaims.get(Claims.AUD), requestedAuthScopes);
             assertTrue(((String) refreshTokenClaims.get(Claims.JTI)).length() > 0);
             assertTrue(((Integer) refreshTokenClaims.get(Claims.IAT)) > 0);
             assertTrue(((Integer) refreshTokenClaims.get(Claims.EXP)) > 0);
@@ -599,11 +619,26 @@ public class UaaTokenServicesTests {
         Assert.assertEquals(accessToken, event.getSource());
         Assert.assertEquals(mockAuthentication, event.getAuthentication());
         AuditEvent auditEvent = event.getAuditEvent();
-        Assert.assertEquals("12345", auditEvent.getPrincipalId());
-        Assert.assertEquals("[\"read\",\"write\"]", auditEvent.getData());
+        Assert.assertEquals(userId, auditEvent.getPrincipalId());
+        Assert.assertEquals(buildJsonString(expectedScopes), auditEvent.getData());
         Assert.assertEquals(AuditEventType.TokenIssuedEvent, auditEvent.getType());
 
         return accessToken;
+    }
+
+    private String buildJsonString(List<String> list) {
+        StringBuffer buf = new StringBuffer("[");
+        int count = list.size();
+        for (String s : list) {
+            buf.append("\"");
+            buf.append(s);
+            buf.append("\"");
+            if (--count > 0) {
+                buf.append(",");
+            }
+        }
+        buf.append("]");
+        return buf.toString();
     }
 
     @Test
@@ -614,18 +649,14 @@ public class UaaTokenServicesTests {
         Calendar updatedAt = Calendar.getInstance();
         updatedAt.add(Calendar.MILLISECOND, -1000);
 
-        approvalStore.addApproval(new Approval(userId, "client", "read", expiresAt.getTime(), ApprovalStatus.APPROVED,
-                        updatedAt.getTime()));
-        approvalStore.addApproval(new Approval(userId, "client", "write", expiresAt.getTime(), ApprovalStatus.APPROVED,
-                        updatedAt.getTime()));
+        approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,updatedAt.getTime()));
+        approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,updatedAt.getTime()));
 
         // First Request
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        authorizationRequest.setResourceIds(new HashSet<String>(Arrays.asList(new String[] { "scim", "clients" })));
-        Map<String, String> azParameters = new HashMap<String, String>(
-                        authorizationRequest.getAuthorizationParameters());
-        azParameters.put("grant_type", "authorization_code");
+        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
         authorizationRequest.setAuthorizationParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
@@ -633,59 +664,49 @@ public class UaaTokenServicesTests {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         Jwt tokenJwt = JwtHelper.decodeAndVerify(accessToken.getValue(), signerProvider.getVerifier());
         assertNotNull(tokenJwt);
-        Map<String, Object> claims = null;
+        Map<String, Object> claims;
         try {
-            claims = mapper.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
-            });
+            claims = mapper.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {});
         } catch (Exception e) {
-            throw new IllegalStateException("Cannot read token claims", e);
+            throw new IllegalStateException(CANNOT_READ_TOKEN_CLAIMS, e);
         }
 
-        assertEquals(claims.get(Claims.SCOPE), Arrays.asList(new String[] { "read", "write" }));
+        assertEquals(claims.get(Claims.SCOPE), requestedAuthScopes);
         assertNotNull(accessToken.getRefreshToken());
 
-        Jwt refreshTokenJwt = JwtHelper.decodeAndVerify(accessToken.getRefreshToken().getValue(),
-                        signerProvider.getVerifier());
+        Jwt refreshTokenJwt = JwtHelper.decodeAndVerify(accessToken.getRefreshToken().getValue(),signerProvider.getVerifier());
         assertNotNull(refreshTokenJwt);
-        Map<String, Object> refreshTokenClaims = null;
+        Map<String, Object> refreshTokenClaims;
         try {
-            refreshTokenClaims = mapper.readValue(refreshTokenJwt.getClaims(),
-                            new TypeReference<Map<String, Object>>() {
-                            });
+            refreshTokenClaims = mapper.readValue(refreshTokenJwt.getClaims(),new TypeReference<Map<String, Object>>() {});
         } catch (Exception e) {
-            throw new IllegalStateException("Cannot read token claims", e);
+            throw new IllegalStateException(CANNOT_READ_TOKEN_CLAIMS, e);
         }
 
-        assertEquals(refreshTokenClaims.get(Claims.SCOPE), Arrays.asList(new String[] { "read", "write" }));
-        assertEquals(refreshTokenClaims.get(Claims.AUD), Arrays.asList(new String[] { "read", "write" }));
+        assertEquals(refreshTokenClaims.get(Claims.SCOPE), requestedAuthScopes);
+        assertEquals(refreshTokenClaims.get(Claims.AUD), requestedAuthScopes);
 
         // Second request with reduced scopes
-        DefaultAuthorizationRequest reducedScopeAuthorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read" }));
-        reducedScopeAuthorizationRequest.setResourceIds(new HashSet<String>(Arrays.asList(new String[] { "scim",
-                        "clients" })));
-        Map<String, String> refreshAzParameters = new HashMap<String, String>(
-                        reducedScopeAuthorizationRequest.getAuthorizationParameters());
-        refreshAzParameters.put("grant_type", "refresh_token");
+        DefaultAuthorizationRequest reducedScopeAuthorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,readScope);
+        reducedScopeAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> refreshAzParameters = new HashMap<>(reducedScopeAuthorizationRequest.getAuthorizationParameters());
+        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
         reducedScopeAuthorizationRequest.setAuthorizationParameters(refreshAzParameters);
 
-        OAuth2Authentication reducedScopeAuthentication = new OAuth2Authentication(reducedScopeAuthorizationRequest,
-                        userAuthentication);
-        OAuth2AccessToken reducedScopeAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken()
-                        .getValue(), reducedScopeAuthentication.getAuthorizationRequest());
+        OAuth2Authentication reducedScopeAuthentication = new OAuth2Authentication(reducedScopeAuthorizationRequest,userAuthentication);
+        OAuth2AccessToken reducedScopeAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), reducedScopeAuthentication.getAuthorizationRequest());
 
         // AT should have the new scopes, RT should be the same
         Jwt newTokenJwt = JwtHelper.decodeAndVerify(reducedScopeAccessToken.getValue(), signerProvider.getVerifier());
         assertNotNull(tokenJwt);
-        Map<String, Object> reducedClaims = null;
+        Map<String, Object> reducedClaims;
         try {
-            reducedClaims = mapper.readValue(newTokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
-            });
+            reducedClaims = mapper.readValue(newTokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {});
         } catch (Exception e) {
-            throw new IllegalStateException("Cannot read token claims", e);
+            throw new IllegalStateException(CANNOT_READ_TOKEN_CLAIMS, e);
         }
 
-        assertEquals(reducedClaims.get(Claims.SCOPE), Arrays.asList(new String[] { "read" }));
+        assertEquals(reducedClaims.get(Claims.SCOPE), readScope);
         assertEquals(reducedScopeAccessToken.getRefreshToken(), accessToken.getRefreshToken());
     }
 
@@ -694,17 +715,13 @@ public class UaaTokenServicesTests {
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, 3000);
 
-        approvalStore.addApproval(new Approval(userId, "client", "read", expiresAt.getTime(), ApprovalStatus.APPROVED,
-                        new Date()));
-        approvalStore.addApproval(new Approval(userId, "client", "write", expiresAt.getTime(), ApprovalStatus.APPROVED,
-                        new Date()));
+        approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,new Date()));
+        approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,new Date()));
         // First Request
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        authorizationRequest.setResourceIds(new HashSet<String>(Arrays.asList(new String[] { "scim", "clients" })));
-        Map<String, String> azParameters = new HashMap<String, String>(
-                        authorizationRequest.getAuthorizationParameters());
-        azParameters.put("grant_type", "authorization_code");
+        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
         authorizationRequest.setAuthorizationParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
@@ -712,62 +729,50 @@ public class UaaTokenServicesTests {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         Jwt tokenJwt = JwtHelper.decodeAndVerify(accessToken.getValue(), signerProvider.getVerifier());
         assertNotNull(tokenJwt);
-        Map<String, Object> claims = null;
+        Map<String, Object> claims;
         try {
-            claims = mapper.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
-            });
+            claims = mapper.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {});
         } catch (Exception e) {
-            throw new IllegalStateException("Cannot read token claims", e);
+            throw new IllegalStateException(CANNOT_READ_TOKEN_CLAIMS, e);
         }
 
-        assertEquals(claims.get(Claims.SCOPE), Arrays.asList(new String[] { "read", "write" }));
+        assertEquals(claims.get(Claims.SCOPE), requestedAuthScopes);
         assertNotNull(accessToken.getRefreshToken());
 
-        Jwt refreshTokenJwt = JwtHelper.decodeAndVerify(accessToken.getRefreshToken().getValue(),
-                        signerProvider.getVerifier());
+        Jwt refreshTokenJwt = JwtHelper.decodeAndVerify(accessToken.getRefreshToken().getValue(),signerProvider.getVerifier());
         assertNotNull(refreshTokenJwt);
-        Map<String, Object> refreshTokenClaims = null;
+        Map<String, Object> refreshTokenClaims;
         try {
-            refreshTokenClaims = mapper.readValue(refreshTokenJwt.getClaims(),
-                            new TypeReference<Map<String, Object>>() {
-                            });
+            refreshTokenClaims = mapper.readValue(refreshTokenJwt.getClaims(),new TypeReference<Map<String, Object>>() {});
         } catch (Exception e) {
-            throw new IllegalStateException("Cannot read token claims", e);
+            throw new IllegalStateException(CANNOT_READ_TOKEN_CLAIMS, e);
         }
 
-        assertEquals(refreshTokenClaims.get(Claims.SCOPE), Arrays.asList(new String[] { "read", "write" }));
-        assertEquals(refreshTokenClaims.get(Claims.AUD), Arrays.asList(new String[] { "read", "write" }));
+        assertEquals(refreshTokenClaims.get(Claims.SCOPE), requestedAuthScopes);
+        assertEquals(refreshTokenClaims.get(Claims.AUD), requestedAuthScopes);
 
         // Second request with expanded scopes
-        DefaultAuthorizationRequest expandedScopeAuthorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write", "delete" }));
-        expandedScopeAuthorizationRequest.setResourceIds(new HashSet<String>(Arrays.asList(new String[] { "scim",
-                        "clients" })));
-        Map<String, String> refreshAzParameters = new HashMap<String, String>(
-                        expandedScopeAuthorizationRequest.getAuthorizationParameters());
-        refreshAzParameters.put("grant_type", "refresh_token");
+        DefaultAuthorizationRequest expandedScopeAuthorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,expandedScopes);
+        expandedScopeAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> refreshAzParameters = new HashMap<>(expandedScopeAuthorizationRequest.getAuthorizationParameters());
+        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
         expandedScopeAuthorizationRequest.setAuthorizationParameters(refreshAzParameters);
 
-        OAuth2Authentication expandedScopeAuthentication = new OAuth2Authentication(expandedScopeAuthorizationRequest,
-                        userAuthentication);
-        tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(),
-                        expandedScopeAuthentication.getAuthorizationRequest());
+        OAuth2Authentication expandedScopeAuthentication = new OAuth2Authentication(expandedScopeAuthorizationRequest,userAuthentication);
+        tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(),expandedScopeAuthentication.getAuthorizationRequest());
     }
 
     @Test
     public void testChangedExpiryForTokens() {
-        BaseClientDetails clientDetails = new BaseClientDetails("client", "scim. clients", "read, write",
-                        "authorization_code, password, implicit, client_credentials", "update");
+        BaseClientDetails clientDetails = cloneClient(defaultClient);
         clientDetails.setAccessTokenValiditySeconds(3600);
         clientDetails.setRefreshTokenValiditySeconds(36000);
-        clientDetailsService.setClientDetailsStore(Collections.singletonMap("client", clientDetails));
+        clientDetailsService.setClientDetailsStore(Collections.singletonMap(CLIENT_ID, clientDetails));
 
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        authorizationRequest.setResourceIds(new HashSet<String>(Arrays.asList(new String[] { "scim", "clients" })));
-        Map<String, String> azParameters = new HashMap<String, String>(
-                        authorizationRequest.getAuthorizationParameters());
-        azParameters.put("grant_type", "authorization_code");
+        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
         authorizationRequest.setAuthorizationParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
@@ -775,12 +780,11 @@ public class UaaTokenServicesTests {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         Jwt tokenJwt = JwtHelper.decodeAndVerify(accessToken.getValue(), signerProvider.getVerifier());
         assertNotNull(tokenJwt);
-        Map<String, Object> claims = null;
+        Map<String, Object> claims;
         try {
-            claims = mapper.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
-            });
+            claims = mapper.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {});
         } catch (Exception e) {
-            throw new IllegalStateException("Cannot read token claims", e);
+            throw new IllegalStateException(CANNOT_READ_TOKEN_CLAIMS, e);
         }
 
         assertTrue(((Integer) claims.get(Claims.IAT)) > 0);
@@ -788,16 +792,13 @@ public class UaaTokenServicesTests {
         assertTrue(((Integer) claims.get(Claims.EXP)) - ((Integer) claims.get(Claims.IAT)) == 3600);
         assertNotNull(accessToken.getRefreshToken());
 
-        Jwt refreshTokenJwt = JwtHelper.decodeAndVerify(accessToken.getRefreshToken().getValue(),
-                        signerProvider.getVerifier());
+        Jwt refreshTokenJwt = JwtHelper.decodeAndVerify(accessToken.getRefreshToken().getValue(),signerProvider.getVerifier());
         assertNotNull(refreshTokenJwt);
-        Map<String, Object> refreshTokenClaims = null;
+        Map<String, Object> refreshTokenClaims;
         try {
-            refreshTokenClaims = mapper.readValue(refreshTokenJwt.getClaims(),
-                            new TypeReference<Map<String, Object>>() {
-                            });
+            refreshTokenClaims = mapper.readValue(refreshTokenJwt.getClaims(),new TypeReference<Map<String, Object>>() {});
         } catch (Exception e) {
-            throw new IllegalStateException("Cannot read token claims", e);
+            throw new IllegalStateException(CANNOT_READ_TOKEN_CLAIMS, e);
         }
 
         assertTrue(((Integer) refreshTokenClaims.get(Claims.IAT)) > 0);
@@ -810,33 +811,26 @@ public class UaaTokenServicesTests {
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, 3000);
 
-        approvalStore.addApproval(new Approval(userId, "client", "read", expiresAt.getTime(), ApprovalStatus.APPROVED,
-                        new Date()));
-        approvalStore.addApproval(new Approval(userId, "client", "write", expiresAt.getTime(), ApprovalStatus.APPROVED,
-                        new Date()));
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        authorizationRequest.setResourceIds(new HashSet<String>(Arrays.asList(new String[] { "scim", "clients" })));
-        Map<String, String> azParameters = new HashMap<String, String>(
-                        authorizationRequest.getAuthorizationParameters());
-        azParameters.put("grant_type", "authorization_code");
+        approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,new Date()));
+        approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,new Date()));
+        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
         authorizationRequest.setAuthorizationParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
 
-        UaaUser user = userDatabase.retrieveUserByName("jdsa", Origin.UAA);
+        UaaUser user = userDatabase.retrieveUserByName(username, Origin.UAA);
         UaaUser newUser = new UaaUser(user.getUsername(), "blah", user.getEmail(), null, null);
         userDatabase.updateUser(userId, newUser);
 
-        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        refreshAuthorizationRequest.setResourceIds(new HashSet<String>(Arrays
-                        .asList(new String[] { "scim", "clients" })));
-        Map<String, String> refreshAzParameters = new HashMap<String, String>(
-                        refreshAuthorizationRequest.getAuthorizationParameters());
-        refreshAzParameters.put("grant_type", "refresh_token");
+        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        refreshAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getAuthorizationParameters());
+        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
         refreshAuthorizationRequest.setAuthorizationParameters(refreshAzParameters);
 
         tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), refreshAuthorizationRequest);
@@ -847,37 +841,29 @@ public class UaaTokenServicesTests {
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, 3000);
 
-        approvalStore.addApproval(new Approval(userId, "client", "read", expiresAt.getTime(), ApprovalStatus.APPROVED,
-                        new Date()));
-        approvalStore.addApproval(new Approval(userId, "client", "write", expiresAt.getTime(), ApprovalStatus.APPROVED,
-                        new Date()));
+        approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,new Date()));
+        approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,new Date()));
 
-        BaseClientDetails clientDetails = new BaseClientDetails("client", "scim. clients", "read, write",
-                        "authorization_code, password, implicit, client_credentials", "update");
+        BaseClientDetails clientDetails = cloneClient(defaultClient);
         // Back date the refresh token. Crude way to do this but i'm not sure of
         // another
         clientDetails.setRefreshTokenValiditySeconds(-36000);
-        clientDetailsService.setClientDetailsStore(Collections.singletonMap("client", clientDetails));
+        clientDetailsService.setClientDetailsStore(Collections.singletonMap(CLIENT_ID, clientDetails));
 
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        authorizationRequest.setResourceIds(new HashSet<String>(Arrays.asList(new String[] { "scim", "clients" })));
-        Map<String, String> azParameters = new HashMap<String, String>(
-                        authorizationRequest.getAuthorizationParameters());
-        azParameters.put("grant_type", "authorization_code");
+        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
         authorizationRequest.setAuthorizationParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
-        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        refreshAuthorizationRequest.setResourceIds(new HashSet<String>(Arrays
-                        .asList(new String[] { "scim", "clients" })));
-        Map<String, String> refreshAzParameters = new HashMap<String, String>(
-                        refreshAuthorizationRequest.getAuthorizationParameters());
-        refreshAzParameters.put("grant_type", "refresh_token");
+        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        refreshAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getAuthorizationParameters());
+        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
         refreshAuthorizationRequest.setAuthorizationParameters(refreshAzParameters);
 
         tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), refreshAuthorizationRequest);
@@ -885,10 +871,10 @@ public class UaaTokenServicesTests {
 
     @Test(expected = InvalidTokenException.class)
     public void testRefreshTokenAfterApprovalsChanged() {
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",Arrays.asList(new String[] { "read", "write" }));
-        authorizationRequest.setResourceIds(new HashSet<String>(Arrays.asList(new String[] { "scim", "clients" })));
-        Map<String, String> azParameters = new HashMap<String, String>(authorizationRequest.getAuthorizationParameters());
-        azParameters.put("grant_type", "authorization_code");
+        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID, requestedAuthScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
         authorizationRequest.setAuthorizationParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
@@ -898,18 +884,13 @@ public class UaaTokenServicesTests {
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, 3000);
 
-        approvalStore.addApproval(new Approval(userId, "client", "read", expiresAt.getTime(), ApprovalStatus.APPROVED,
-                        new Date()));
-        approvalStore.addApproval(new Approval(userId, "client", "write", expiresAt.getTime(), ApprovalStatus.APPROVED,
-                        new Date()));
+        approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,new Date()));
+        approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,new Date()));
 
-        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        refreshAuthorizationRequest.setResourceIds(new HashSet<String>(Arrays
-                        .asList(new String[] { "scim", "clients" })));
-        Map<String, String> refreshAzParameters = new HashMap<String, String>(
-                        refreshAuthorizationRequest.getAuthorizationParameters());
-        refreshAzParameters.put("grant_type", "refresh_token");
+        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        refreshAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getAuthorizationParameters());
+        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
         refreshAuthorizationRequest.setAuthorizationParameters(refreshAzParameters);
 
         tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), refreshAuthorizationRequest);
@@ -920,30 +901,23 @@ public class UaaTokenServicesTests {
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, -3000);
 
-        approvalStore.addApproval(new Approval(userId, "client", "read", expiresAt.getTime(), ApprovalStatus.APPROVED,
-                        new Date()));
-        approvalStore.addApproval(new Approval(userId, "client", "write", expiresAt.getTime(), ApprovalStatus.APPROVED,
-                        new Date()));
+        approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,new Date()));
+        approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,new Date()));
 
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        authorizationRequest.setResourceIds(new HashSet<String>(Arrays.asList(new String[] { "scim", "clients" })));
-        Map<String, String> azParameters = new HashMap<String, String>(
-                        authorizationRequest.getAuthorizationParameters());
-        azParameters.put("grant_type", "authorization_code");
+        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
         authorizationRequest.setAuthorizationParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
 
-        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        refreshAuthorizationRequest.setResourceIds(new HashSet<String>(Arrays
-                        .asList(new String[] { "scim", "clients" })));
-        Map<String, String> refreshAzParameters = new HashMap<String, String>(
-                        refreshAuthorizationRequest.getAuthorizationParameters());
-        refreshAzParameters.put("grant_type", "refresh_token");
+        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        refreshAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getAuthorizationParameters());
+        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
         refreshAuthorizationRequest.setAuthorizationParameters(refreshAzParameters);
 
         tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), refreshAuthorizationRequest);
@@ -954,30 +928,23 @@ public class UaaTokenServicesTests {
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, -3000);
 
-        approvalStore.addApproval(new Approval(userId, "client", "read", expiresAt.getTime(), ApprovalStatus.DENIED,
-                        new Date()));
-        approvalStore.addApproval(new Approval(userId, "client", "write", expiresAt.getTime(), ApprovalStatus.APPROVED,
-                        new Date()));
+        approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.DENIED,new Date()));
+        approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,new Date()));
 
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        authorizationRequest.setResourceIds(new HashSet<String>(Arrays.asList(new String[] { "scim", "clients" })));
-        Map<String, String> azParameters = new HashMap<String, String>(
-                        authorizationRequest.getAuthorizationParameters());
-        azParameters.put("grant_type", "authorization_code");
+        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
         authorizationRequest.setAuthorizationParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
 
-        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        refreshAuthorizationRequest.setResourceIds(new HashSet<String>(Arrays
-                        .asList(new String[] { "scim", "clients" })));
-        Map<String, String> refreshAzParameters = new HashMap<String, String>(
-                        refreshAuthorizationRequest.getAuthorizationParameters());
-        refreshAzParameters.put("grant_type", "refresh_token");
+        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        refreshAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getAuthorizationParameters());
+        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
         refreshAuthorizationRequest.setAuthorizationParameters(refreshAzParameters);
 
         tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), refreshAuthorizationRequest);
@@ -988,28 +955,22 @@ public class UaaTokenServicesTests {
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, -3000);
 
-        approvalStore.addApproval(new Approval(userId, "client", "read", expiresAt.getTime(), ApprovalStatus.DENIED,
-                        new Date()));
+        approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.DENIED,new Date()));
 
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        authorizationRequest.setResourceIds(new HashSet<String>(Arrays.asList(new String[] { "scim", "clients" })));
-        Map<String, String> azParameters = new HashMap<String, String>(
-                        authorizationRequest.getAuthorizationParameters());
-        azParameters.put("grant_type", "authorization_code");
+        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
         authorizationRequest.setAuthorizationParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
 
-        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        refreshAuthorizationRequest.setResourceIds(new HashSet<String>(Arrays
-                        .asList(new String[] { "scim", "clients" })));
-        Map<String, String> refreshAzParameters = new HashMap<String, String>(
-                        refreshAuthorizationRequest.getAuthorizationParameters());
-        refreshAzParameters.put("grant_type", "refresh_token");
+        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        refreshAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getAuthorizationParameters());
+        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
         refreshAuthorizationRequest.setAuthorizationParameters(refreshAzParameters);
 
         tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), refreshAuthorizationRequest);
@@ -1017,25 +978,20 @@ public class UaaTokenServicesTests {
 
     @Test(expected = InvalidTokenException.class)
     public void testRefreshTokenAfterApprovalsMissing2() {
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        authorizationRequest.setResourceIds(new HashSet<String>(Arrays.asList(new String[] { "scim", "clients" })));
-        Map<String, String> azParameters = new HashMap<String, String>(
-                        authorizationRequest.getAuthorizationParameters());
-        azParameters.put("grant_type", "authorization_code");
+        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
         authorizationRequest.setAuthorizationParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
 
-        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        refreshAuthorizationRequest.setResourceIds(new HashSet<String>(Arrays
-                        .asList(new String[] { "scim", "clients" })));
-        Map<String, String> refreshAzParameters = new HashMap<String, String>(
-                        refreshAuthorizationRequest.getAuthorizationParameters());
-        refreshAzParameters.put("grant_type", "refresh_token");
+        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        refreshAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getAuthorizationParameters());
+        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
         refreshAuthorizationRequest.setAuthorizationParameters(refreshAzParameters);
 
         tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), refreshAuthorizationRequest);
@@ -1043,11 +999,10 @@ public class UaaTokenServicesTests {
 
     @Test
     public void testReadAccessToken() {
-        DefaultAuthorizationRequest authorizationRequest =
-            new DefaultAuthorizationRequest("client",Arrays.asList(new String[] { "read", "write" }));
-        authorizationRequest.setResourceIds(new HashSet<String>(Arrays.asList(new String[] { "scim", "clients" })));
-        Map<String, String> azParameters = new HashMap<String, String>(authorizationRequest.getAuthorizationParameters());
-        azParameters.put("grant_type", "authorization_code");
+        DefaultAuthorizationRequest authorizationRequest =new DefaultAuthorizationRequest(CLIENT_ID, requestedAuthScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
         authorizationRequest.setAuthorizationParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
@@ -1056,10 +1011,8 @@ public class UaaTokenServicesTests {
         Calendar updatedAt = Calendar.getInstance();
         updatedAt.add(Calendar.MILLISECOND, -1000);
 
-        approvalStore.addApproval(new Approval(userId, "client", "read", expiresAt.getTime(), ApprovalStatus.APPROVED,
-                        updatedAt.getTime()));
-        approvalStore.addApproval(new Approval(userId, "client", "write", expiresAt.getTime(), ApprovalStatus.APPROVED,
-                        updatedAt.getTime()));
+        approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,updatedAt.getTime()));
+        approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,updatedAt.getTime()));
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
@@ -1068,12 +1021,10 @@ public class UaaTokenServicesTests {
 
     @Test
     public void testLoadAuthenticationForAUser() {
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        authorizationRequest.setResourceIds(new HashSet<String>(Arrays.asList(new String[] { "scim", "clients" })));
-        Map<String, String> azParameters = new HashMap<String, String>(
-                        authorizationRequest.getAuthorizationParameters());
-        azParameters.put("grant_type", "authorization_code");
+        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
         authorizationRequest.setAuthorizationParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
@@ -1082,25 +1033,23 @@ public class UaaTokenServicesTests {
         OAuth2Authentication loadedAuthentication = tokenServices.loadAuthentication(accessToken.getValue());
 
         assertEquals(USER_AUTHORITIES, loadedAuthentication.getAuthorities());
-        assertEquals("jdsa", loadedAuthentication.getName());
+        assertEquals(username, loadedAuthentication.getName());
         UaaPrincipal uaaPrincipal = (UaaPrincipal)defaultUserAuthentication.getPrincipal();
         assertEquals(uaaPrincipal, loadedAuthentication.getPrincipal());
         assertNull(loadedAuthentication.getDetails());
 
         Authentication userAuth = loadedAuthentication.getUserAuthentication();
-        assertEquals("jdsa", userAuth.getName());
+        assertEquals(username, userAuth.getName());
         assertEquals(uaaPrincipal, userAuth.getPrincipal());
         assertTrue(userAuth.isAuthenticated());
     }
 
     @Test
     public void testLoadAuthenticationForAClient() {
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        authorizationRequest.setResourceIds(new HashSet<String>(Arrays.asList(new String[] { "scim", "clients" })));
-        Map<String, String> azParameters = new HashMap<String, String>(
-                        authorizationRequest.getAuthorizationParameters());
-        azParameters.put("grant_type", "client_credentials");
+        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        azParameters.put(GRANT_TYPE, CLIENT_CREDENTIALS);
         authorizationRequest.setAuthorizationParameters(azParameters);
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, null);
@@ -1108,10 +1057,9 @@ public class UaaTokenServicesTests {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         OAuth2Authentication loadedAuthentication = tokenServices.loadAuthentication(accessToken.getValue());
 
-        assertEquals(AuthorityUtils.commaSeparatedStringToAuthorityList("update"),
-                        loadedAuthentication.getAuthorities());
-        assertEquals("client", loadedAuthentication.getName());
-        assertEquals("client", loadedAuthentication.getPrincipal());
+        assertEquals(AuthorityUtils.commaSeparatedStringToAuthorityList(UPDATE),loadedAuthentication.getAuthorities());
+        assertEquals(CLIENT_ID, loadedAuthentication.getName());
+        assertEquals(CLIENT_ID, loadedAuthentication.getPrincipal());
         assertNull(loadedAuthentication.getDetails());
 
         assertNull(loadedAuthentication.getUserAuthentication());
@@ -1119,18 +1067,14 @@ public class UaaTokenServicesTests {
 
     @Test(expected = InvalidTokenException.class)
     public void testLoadAuthenticationWithAnExpiredToken() throws InterruptedException {
-        BaseClientDetails shortExpiryClient = new BaseClientDetails("client", "scim, clients", "read, write",
-                        "authorization_code, password, implicit, client_credentials", "update");
+        BaseClientDetails shortExpiryClient = defaultClient;
         shortExpiryClient.setAccessTokenValiditySeconds(1);
-        clientDetailsService.setClientDetailsStore(Collections
-                        .singletonMap("client", shortExpiryClient));
+        clientDetailsService.setClientDetailsStore(Collections.singletonMap(CLIENT_ID, shortExpiryClient));
 
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        authorizationRequest.setResourceIds(new HashSet<String>(Arrays.asList(new String[] { "scim", "clients" })));
-        Map<String, String> azParameters = new HashMap<String, String>(
-                        authorizationRequest.getAuthorizationParameters());
-        azParameters.put("grant_type", "authorization_code");
+        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
         authorizationRequest.setAuthorizationParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
@@ -1142,22 +1086,23 @@ public class UaaTokenServicesTests {
 
     @Test
     public void testCreateAccessTokenAuthcodeGrantAdditionalAuthorizationAttributes() {
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
-                        Arrays.asList(new String[] { "read", "write" }));
-        authorizationRequest.setResourceIds(new HashSet<String>(Arrays.asList(new String[] { "scim", "clients" })));
-        Map<String, String> azParameters = new HashMap<String, String>(
-                        authorizationRequest.getAuthorizationParameters());
-        azParameters.put("grant_type", "authorization_code");
-        azParameters.put("authorities",
-                        "{\"az_attr\":{\"external_group\":\"domain\\\\group1\", \"external_id\":\"abcd1234\"}}");
+        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+        azParameters.put("authorities","{\"az_attr\":{\"external_group\":\"domain\\\\group1\", \"external_id\":\"abcd1234\"}}");
         authorizationRequest.setAuthorizationParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
         OAuth2AccessToken token = testCreateAccessTokenForAUser(authentication, false);
-        Map<String, String> azMap = new LinkedHashMap<String, String>();
+        Map<String, String> azMap = new LinkedHashMap<>();
         azMap.put("external_group", "domain\\group1");
         azMap.put("external_id", "abcd1234");
         assertEquals(azMap, token.getAdditionalInformation().get("az_attr"));
+    }
+    
+    private BaseClientDetails cloneClient(BaseClientDetails client) {
+        return new BaseClientDetails(client);
     }
 }
