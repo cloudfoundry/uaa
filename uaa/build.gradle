@@ -110,7 +110,16 @@ task integrationTest(type: Test) {
 
 task instrumentedWar(type: War, dependsOn: instrument) {
   destinationDir = file("$buildDir/instrumented_libs")
-  classpath = war.classpath.minus(files('/classes')).plus(files('/instrumented_classes'))
+  classpath = war.classpath
+                .minus(files('/classes')).plus(files('/instrumented_classes'))
+                .collect {
+                  instrumentable = it.name.startsWith("cloudfoundry-identity-common-") || it.name.startsWith("cloudfoundry-identity-scim-")
+                  if (instrumentable) {
+                    file(it.absolutePath.replaceFirst("libs", "instrumented_libs"))
+                  } else {
+                    it
+                  }
+                }
 }
 
 /*apply plugin: 'maven-publish'

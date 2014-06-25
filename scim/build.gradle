@@ -1,4 +1,3 @@
-
 description = 'CloudFoundry Identity SCIM'
 dependencies {
   compile project(':cloudfoundry-identity-common')
@@ -24,4 +23,18 @@ dependencies {
     This behavior is not yet supported by Gradle, so this dependency has been converted to a compile dependency.
     Please review and delete this closure when resolved. */
   }
+}
+
+sourceSets {
+  instrumented
+}
+
+task makeInstrumentedSourceSet(type: Copy, dependsOn: instrument) {
+  from "${buildDir}/instrumented_classes"
+  into sourceSets.instrumented.output.classesDir
+}
+
+task instrumentedJar(type: Jar, dependsOn: makeInstrumentedSourceSet) {
+  from sourceSets.instrumented.output
+  destinationDir = file("$buildDir/instrumented_libs")
 }
