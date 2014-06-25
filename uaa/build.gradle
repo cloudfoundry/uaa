@@ -126,9 +126,9 @@ task instrumentedWar(type: War, dependsOn: instrument) {
 apply plugin: 'artifactory'
 
 artifactory {
-  contextUrl = "${artifactory_contextUrl}"   //The base Artifactory URL if not overridden by the publisher/resolver
+  contextUrl = "http://repo.spring.io"   //The base Artifactory URL if not overridden by the publisher/resolver
   publish {
-    contextUrl = "${artifactory_contextUrl}"   //The base Artifactory URL if not overridden by the publisher/resolver
+    contextUrl = "http://repo.spring.io"   //The base Artifactory URL if not overridden by the publisher/resolver
     repository {
       repoKey = 'libs-snapshots-local'
       maven = true
