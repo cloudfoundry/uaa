@@ -20,7 +20,6 @@ services:
   - postgresql
 before_install:
   - git pull --unshallow
-  - wget -O tomcat.tar.gz http://archive.apache.org/dist/tomcat/tomcat-7/v7.0.52/bin/apache-tomcat-7.0.52.tar.gz
   - psql -c 'drop database if exists uaa;' -U postgres
   - psql -c 'create database uaa;' -U postgres
   - psql -c "drop user if exists root;" --dbname=uaa -U postgres
@@ -34,21 +33,10 @@ before_install:
 install:
   - if [ "$TESTENV" = "ldap,default" ]; then ./scripts/ldap/configure-manifest.sh; fi
   - if [ "$TESTENV" = "keystone,default" ]; then ./scripts/keystone/configure-manifest.sh; fi
-  - mvn install -DskipTests -P coverage --quiet
-  - mkdir -p target/tomcat && tar zxf tomcat.tar.gz -C target/tomcat --strip-components 1 && rm -rf target/tomcat/webapps/*
-  - mvn -Dwar.exploded.dir=`pwd`/target/tomcat/webapps/api --quiet -pl samples/api war:exploded
-  - mvn -Dwar.exploded.dir=`pwd`/target/tomcat/webapps/app --quiet -pl samples/app war:exploded
-  - $TRAVIS_BUILD_DIR/scripts/cobertura/cobertura-instrument.sh
-  - mvn -Dwar.exploded.dir=`pwd`/target/tomcat/webapps/uaa --quiet -pl uaa war:exploded -P coverage
 script:
-  - ./scripts/travis/run-script.sh start
-  - mvn -Dtest=org.cloudfoundry.identity.uaa.integration.* -DfailIfNoTests=false test -P coverage --quiet
-  - curl -v -X POST http://localhost:8080/uaa/healthz/coverage/flush
-  - ./scripts/travis/run-script.sh stop
-  - mvn -Dspring.profiles.active=$TESTENV test -P coverage --quiet
+  - ./gradlew cobertura
 after_success:
-  - $TRAVIS_BUILD_DIR/scripts/cobertura/cobertura-report.sh
-  - mvn coveralls:cobertura
+#  - mvn coveralls:cobertura
   - python scripts/travis/travis_after_all.py
   - export $(cat .to_export_back)
   - |
