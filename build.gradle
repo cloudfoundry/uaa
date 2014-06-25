@@ -39,6 +39,28 @@ subprojects {
     maven { url "http://repo.springsource.org/ext-release-local" }
     maven { url "http://repo.maven.apache.org/maven2" }
   }
+  
+  sourceSets {
+    instrumented
+  }
+
+  task copyInstrumentedClasses(type: Copy, dependsOn: instrument) {
+    from "${buildDir}/instrumented_classes"
+    into sourceSets.instrumented.output.classesDir
+    onlyIf { project.tasks.findByName('instrument').enabled }
+  }
+
+  task makeInstrumentedSourceSet(type: Copy, dependsOn: copyInstrumentedClasses) {
+    from sourceSets.main.output.resourcesDir
+    into sourceSets.instrumented.output.resourcesDir
+    onlyIf { project.tasks.findByName('instrument').enabled }
+  }
+
+  task instrumentedJar(type: Jar, dependsOn: makeInstrumentedSourceSet) {
+    from sourceSets.instrumented.output
+    destinationDir = file("$buildDir/instrumented_libs")
+    onlyIf { project.tasks.findByName('instrument').enabled }
+  }
 
   configurations.all {
   }

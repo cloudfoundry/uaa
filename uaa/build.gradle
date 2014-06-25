@@ -8,9 +8,7 @@ buildscript {
 
   dependencies {
     classpath group: 'org.gradle.api.plugins', name: 'gradle-cargo-plugin', version: '1.5'
-/*    classpath 'org.kuali.maven.wagons:maven-s3-wagon:1.2.1'*/
     classpath group: 'org.jfrog.buildinfo', name: 'build-info-extractor-gradle', version: '2.2.4'
-/*    classpath "net.saliman:gradle-cobertura-plugin:2.2.2"*/
   }
 }
 
@@ -60,7 +58,7 @@ cargoStartLocal.dependsOn assemble
 cargoRunLocal.dependsOn assemble
 
 task flushCoverageData(type: Exec) {
-  commandLine "curl", "-v", "-X", "POST", "http://localhost:8080/uaa/healthz/coverage/flush"
+  commandLine "curl", "-s", "-v", "-X", "POST", "http://localhost:8080/uaa/healthz/coverage/flush"
 
   finalizedBy cargoStopLocal
 }
@@ -79,13 +77,28 @@ task instrumentedWar(type: War, dependsOn: instrument) {
   classpath = war.classpath
                 .minus(files('/classes')).plus(files('/instrumented_classes'))
                 .collect {
-                  instrumentable = it.name.startsWith("cloudfoundry-identity-common-") || it.name.startsWith("cloudfoundry-identity-scim-")
+                  Boolean instrumentable = it.name.startsWith("cloudfoundry-identity-common-") || it.name.startsWith("cloudfoundry-identity-scim-")
                   if (instrumentable) {
                     file(it.absolutePath.replaceFirst("libs", "instrumented_libs"))
                   } else {
                     it
                   }
                 }
+  onlyIf { project.tasks.findByName('instrument').enabled }
+}
+
+instrumentedWar.dependsOn project(":cloudfoundry-identity-common").tasks.findByName('instrumentedJar')
+instrumentedWar.dependsOn project(":cloudfoundry-identity-scim").tasks.findByName('instrumentedJar')
+assemble.dependsOn instrumentedWar
+
+configurations {
+  coberturaJar
+}
+
+dependencies {
+  coberturaJar("net.sourceforge.cobertura:cobertura:2.0.3") {
+    exclude(group: "org.mortbay.jetty")
+  }
 }
 
 cargo {
@@ -103,6 +116,7 @@ cargo {
   }
 
   local {
+    extraClasspath = files(configurations.coberturaJar.files)
     installer {
       installUrl = 'http://archive.apache.org/dist/tomcat/tomcat-7/v7.0.52/bin/apache-tomcat-7.0.52.tar.gz'
       downloadDir = file("$buildDir/download")
@@ -114,8 +128,7 @@ cargo {
 project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
   cargo {
     deployable {
-      Task instrumentTask = project.tasks.findByName('instrument')
-      if (graph.hasTask(instrumentTask) && instrumentTask.enabled) {
+      if (project.tasks.findByName('instrument').enabled) {
         file = file('build/instrumented_libs/cloudfoundry-identity-uaa-' + version + '.war')
       } else {
         file = file('build/libs/cloudfoundry-identity-uaa-' + version + '.war')

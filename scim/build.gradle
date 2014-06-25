@@ -24,22 +24,3 @@ dependencies {
     Please review and delete this closure when resolved. */
   }
 }
-
-sourceSets {
-  instrumented
-}
-
-task copyInstrumentedClasses(type: Copy, dependsOn: instrument) {
-  from "${buildDir}/instrumented_classes"
-  into sourceSets.instrumented.output.classesDir
-}
-
-task makeInstrumentedSourceSet(type: Copy, dependsOn: copyInstrumentedClasses) {
-  from sourceSets.main.output.resourcesDir
-  into sourceSets.instrumented.output.resourcesDir
-}
-
-task instrumentedJar(type: Jar, dependsOn: makeInstrumentedSourceSet) {
-  from sourceSets.instrumented.output
-  destinationDir = file("$buildDir/instrumented_libs")
-}
