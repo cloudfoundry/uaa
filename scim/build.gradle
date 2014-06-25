@@ -29,9 +29,14 @@ sourceSets {
   instrumented
 }
 
-task makeInstrumentedSourceSet(type: Copy, dependsOn: instrument) {
+task copyInstrumentedClasses(type: Copy, dependsOn: instrument) {
   from "${buildDir}/instrumented_classes"
   into sourceSets.instrumented.output.classesDir
+}
+
+task makeInstrumentedSourceSet(type: Copy, dependsOn: copyInstrumentedClasses) {
+  from sourceSets.main.output.resourcesDir
+  into sourceSets.instrumented.output.resourcesDir
 }
 
 task instrumentedJar(type: Jar, dependsOn: makeInstrumentedSourceSet) {

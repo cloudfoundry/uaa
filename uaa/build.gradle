@@ -63,6 +63,7 @@ cargo {
   port = 8080
 
   deployable {
+    file = file('build/instrumented_libs/cloudfoundry-identity-uaa-' + version + '.war')
     context = 'uaa'
   }
 
