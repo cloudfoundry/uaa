@@ -56,6 +56,7 @@ cobertura {
     new File("uaa/build/cobertura/cobertura.ser"),
     new File(System.properties['java.io.tmpdir'] + 'cargo/conf/cobertura.ser')
   ]
+  coverageExcludes = ['.*org.cloudfoundry.identity.uaa.coverage.CoverageController']
 }
 
 test.dependsOn([
