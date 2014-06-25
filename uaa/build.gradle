@@ -141,11 +141,13 @@ project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
 apply plugin: 'artifactory'
 
 artifactory {
-  contextUrl = "http://repo.spring.io"   //The base Artifactory URL if not overridden by the publisher/resolver
+  contextUrl = "http://repo.spring.io"
   publish {
-    contextUrl = "http://repo.spring.io"   //The base Artifactory URL if not overridden by the publisher/resolver
+    contextUrl = "http://repo.spring.io"
     repository {
-      repoKey = 'libs-snapshots-local'
+      repoKey = version.endsWith('-SNAPSHOT') ? 'libs-snapshot-local' : 'libs-release-local'
+      username = project.hasProperty('artifactory_user') ? "${artifactory_user}" : ""
+      password = project.hasProperty('artifactory_password') ? "${artifactory_password}" : ""
       maven = true
     }
   }
