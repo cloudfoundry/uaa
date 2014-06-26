@@ -36,7 +36,7 @@ after_install:
   - if [ "$TESTENV" = "ldap,default" ]; then ./scripts/ldap/configure-manifest.sh; fi
   - if [ "$TESTENV" = "keystone,default" ]; then ./scripts/keystone/configure-manifest.sh; fi
 before_script:
-  - ./gradlew dependencies
+  - ./gradlew -q dependencies
 script:
   - ./gradlew cobertura
 after_success:
