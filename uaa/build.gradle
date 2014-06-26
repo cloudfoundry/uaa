@@ -38,7 +38,6 @@ dependencies {
   testCompile project(':cloudfoundry-identity-common').sourceSets.test.output
   testCompile group: 'org.springframework', name: 'spring-test', version:'4.0.3.RELEASE'
   testCompile group: 'junit', name: 'junit', version:'4.11'
-  testCompile project(':cloudfoundry-identity-common')
   testCompile group: 'org.mockito', name: 'mockito-all', version:'1.8.5'
   testCompile group: 'com.jayway.jsonpath', name: 'json-path', version:'0.9.1'
   testCompile group: 'com.jayway.jsonpath', name: 'json-path-assert', version:'0.9.1'
