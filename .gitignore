@@ -28,3 +28,4 @@ git.properties
 .springBeans
 .gradle
 build/
+/classes/
