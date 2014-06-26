@@ -17,29 +17,31 @@ package org.cloudfoundry.identity.uaa.mock.authentication;
 
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager;
-import org.cloudfoundry.identity.uaa.test.DefaultIntegrationTestConfig;
-import org.cloudfoundry.identity.uaa.test.IntegrationTestContextLoader;
+import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
+import org.springframework.mock.web.MockServletContext;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.test.context.web.WebAppConfiguration;
-import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
+import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@WebAppConfiguration
-@ContextConfiguration(classes = DefaultIntegrationTestConfig.class, loader = IntegrationTestContextLoader.class)
 public class AuthzAuthenticationManagerVerificationMockMvcTests {
 
-    @Autowired
-    AnnotationConfigWebApplicationContext webApplicationContext;
+    private XmlWebApplicationContext webApplicationContext;
 
+    @Before
+    public void setUp() {
+        webApplicationContext = new XmlWebApplicationContext();
+        webApplicationContext.setServletContext(new MockServletContext());
+        webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        new YamlServletProfileInitializer().initialize(webApplicationContext);
+        webApplicationContext.refresh();
+    }
     /**
      * We have a condition in the AutzhAuthenticationManager that automatically
      * fails a password validation for zero length password.
