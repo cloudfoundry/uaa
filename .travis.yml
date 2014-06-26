@@ -36,7 +36,7 @@ after_install:
   - if [ "$TESTENV" = "ldap,default" ]; then ./scripts/ldap/configure-manifest.sh; fi
   - if [ "$TESTENV" = "keystone,default" ]; then ./scripts/keystone/configure-manifest.sh; fi
 before_script:
-  - ./gradlew -q dependencies
+  - ./gradlew -q dependencies :cloudfoundry-identity-common:dependencies :cloudfoundry-identity-scim:dependencies :cloudfoundry-identity-uaa:dependencies :cloudfoundry-identity-samples:cloudfoundry-identity-api:dependencies :cloudfoundry-identity-samples:cloudfoundry-identity-app:dependencies --configuration testRuntime
 script:
   - ./gradlew cobertura
 after_success:

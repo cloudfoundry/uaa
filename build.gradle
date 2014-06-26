@@ -86,14 +86,6 @@ test.dependsOn([
   ":cloudfoundry-identity-uaa:test"
 ])
 
-dependencies {
-  compile project(':cloudfoundry-identity-common')
-  compile project(':cloudfoundry-identity-scim')
-  compile project(':cloudfoundry-identity-uaa')
-  compile project(':cloudfoundry-identity-samples:cloudfoundry-identity-api')
-  compile project(':cloudfoundry-identity-samples:cloudfoundry-identity-app')
-}
-
 def runningWithCoverage() {
   project.tasks.findByName('instrument').enabled
 }
