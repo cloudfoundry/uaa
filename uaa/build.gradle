@@ -59,6 +59,7 @@ task flushCoverageData(type: Exec) {
   commandLine "curl", "-s", "-v", "-X", "POST", "http://localhost:8080/uaa/healthz/coverage/flush"
 
   finalizedBy cargoStopLocal
+  onlyIf { runningWithCoverage() }
 }
 
 task integrationTest(type: Test) {
@@ -114,7 +115,6 @@ cargo {
   }
 
   local {
-    extraClasspath = files(configurations.coberturaJar.files)
     installer {
       installUrl = 'http://archive.apache.org/dist/tomcat/tomcat-7/v7.0.52/bin/apache-tomcat-7.0.52.tar.gz'
       downloadDir = file("$buildDir/download")
@@ -132,6 +132,12 @@ project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
         file = file('build/libs/cloudfoundry-identity-uaa-' + version + '.war')
       }
       context = 'uaa'
+    }
+    
+    local {
+      if (runningWithCoverage()) {
+        extraClasspath = files(configurations.coberturaJar.files)
+      }
     }
   }
 }
