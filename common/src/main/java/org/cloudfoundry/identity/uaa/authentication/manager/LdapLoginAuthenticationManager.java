@@ -15,6 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
+import org.cloudfoundry.identity.uaa.ldap.ExtendedLdapUserDetails;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -30,7 +31,27 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
     protected UaaUser getUser(UserDetails details, Map<String, String> info) {
         UaaUser user = super.getUser(details, info);
         if (details instanceof LdapUserDetails) {
-            return user.modifySource(getOrigin(), ((LdapUserDetails)details).getDn());
+            String mail = user.getEmail();
+            String origin = getOrigin();
+            String externalId = ((LdapUserDetails)details).getDn();
+            if (details instanceof ExtendedLdapUserDetails) {
+                String[] addrs = ((ExtendedLdapUserDetails)details).getMail();
+                if (addrs!=null && addrs.length>0) {
+                    mail = addrs[0];
+                }
+            }
+            return new UaaUser(
+                user.getId(),
+                user.getUsername(),
+                user.getPassword(),
+                mail,
+                user.getAuthorities(),
+                user.getGivenName(),
+                user.getFamilyName(),
+                user.getCreated(),
+                user.getModified(),
+                origin,
+                externalId);
         } else {
             logger.warn("Unable to get DN from user. Not an LDAP user:"+details+" of class:"+details.getClass());
             return user.modifySource(getOrigin(), user.getExternalId());
