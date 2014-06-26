@@ -86,6 +86,8 @@ task instrumentedWar(type: War, dependsOn: instrument) {
   onlyIf { runningWithCoverage() }
 }
 
+task run(dependsOn: cargoRunLocal)
+
 instrumentedWar.dependsOn project(":cloudfoundry-identity-common").tasks.findByName('instrumentedJar')
 instrumentedWar.dependsOn project(":cloudfoundry-identity-scim").tasks.findByName('instrumentedJar')
 assemble.dependsOn instrumentedWar
