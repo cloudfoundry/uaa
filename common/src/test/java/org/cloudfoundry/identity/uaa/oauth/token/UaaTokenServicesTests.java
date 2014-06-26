@@ -40,8 +40,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.jwt.Jwt;
 import org.springframework.security.jwt.JwtHelper;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
+import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
+import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
 import org.springframework.security.oauth2.provider.InMemoryClientDetailsService;
@@ -62,6 +64,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * @author Filip Hanik
@@ -180,6 +184,28 @@ public class UaaTokenServicesTests {
         tokenServices.setApprovalStore(approvalStore);
         tokenServices.setApplicationEventPublisher(publisher);
     }
+
+    @Test(expected = InvalidTokenException.class)
+    public void testNullRefreshTokenString() {
+        tokenServices.refreshAccessToken(null,null);
+    }
+
+    @Test(expected = InvalidGrantException.class)
+    public void testInvalidGrantType() {
+        AuthorizationRequest ar = mock(AuthorizationRequest.class);
+        when(ar.getAuthorizationParameters()).thenReturn(new HashMap<String, String>());
+        tokenServices.refreshAccessToken("", ar);
+    }
+
+    @Test(expected = InvalidTokenException.class)
+    public void testInvalidRefreshToken() {
+        Map<String,String> map = new HashMap<>();
+        map.put("grant_type","refresh_token");
+        AuthorizationRequest ar = mock(AuthorizationRequest.class);
+        when(ar.getAuthorizationParameters()).thenReturn(map);
+        tokenServices.refreshAccessToken("dasdasdasdasdas", ar);
+    }
+
 
     @Test
     public void testCreateAccessTokenForAClient() {
