@@ -1,11 +1,15 @@
 buildscript {
   repositories {
     mavenCentral()
+    maven {
+      url 'http://repo.spring.io/plugins-release'
+    }
   }
   
   dependencies {
-    classpath "net.saliman:gradle-cobertura-plugin:2.2.2"
-    classpath 'org.kt3k.gradle.plugin:coveralls-gradle-plugin:0.4.1'
+    classpath group: 'org.jfrog.buildinfo', name: 'build-info-extractor-gradle', version: '2.2.4'
+    classpath group: 'net.saliman', name: 'gradle-cobertura-plugin', version: '2.2.2'
+    classpath group: 'org.kt3k.gradle.plugin', name: 'coveralls-gradle-plugin', version: '0.4.1'
   }
 }
 
@@ -39,6 +43,21 @@ subprojects {
     maven { url "http://objectstyle.org/maven2/" }
     maven { url "http://repo.springsource.org/ext-release-local" }
     maven { url "http://repo.maven.apache.org/maven2" }
+  }
+  
+  apply plugin: 'artifactory'
+
+  artifactory {
+    contextUrl = "http://repo.spring.io"
+    publish {
+      contextUrl = "http://repo.spring.io"
+      repository {
+        repoKey = version.endsWith('-SNAPSHOT') ? 'libs-snapshot-local' : 'libs-release-local'
+        username = project.hasProperty('artifactory_user') ? "${artifactory_user}" : ""
+        password = project.hasProperty('artifactory_password') ? "${artifactory_password}" : ""
+        maven = true
+      }
+    }
   }
   
   sourceSets {
