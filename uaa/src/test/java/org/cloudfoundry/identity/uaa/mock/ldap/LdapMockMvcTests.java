@@ -258,7 +258,7 @@ public class LdapMockMvcTests {
     }
 
     @Test
-    public void validateOriginForLdapUser() throws Exception {
+    public void validateOriginAndEmailForLdapUser() throws Exception {
         setUp();
         String username = "marissa3";
         String password = "ldap3";
@@ -277,6 +277,32 @@ public class LdapMockMvcTests {
 
         String origin = jdbcTemplate.queryForObject("select origin from users where username='marissa3'", String.class);
         assertEquals("ldap", origin);
+        String email = jdbcTemplate.queryForObject("select email from users where username='marissa3' and origin='ldap'", String.class);
+        assertEquals("marissa3@test.com", email);
+    }
+
+    @Test
+    public void validateEmailMissingForLdapUser() throws Exception {
+        setUp();
+        String username = "marissa7";
+        String password = "ldap7";
+
+        MockHttpServletRequestBuilder post =
+            post("/authenticate")
+                .accept(MediaType.APPLICATION_JSON)
+                .param("username", username)
+                .param("password", password);
+
+        MvcResult result = mockMvc.perform(post)
+            .andExpect(status().isOk())
+            .andReturn();
+
+        assertEquals("{\"username\":\"" + username + "\"}", result.getResponse().getContentAsString());
+
+        String origin = jdbcTemplate.queryForObject("select origin from users where username='marissa7'", String.class);
+        assertEquals("ldap", origin);
+        String email = jdbcTemplate.queryForObject("select email from users where username='marissa7' and origin='ldap'", String.class);
+        assertEquals("marissa7@user.from.ldap.cf", email);
     }
 
     @Test
