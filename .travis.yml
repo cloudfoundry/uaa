@@ -36,7 +36,7 @@ install:
 script:
   - ./gradlew cobertura
 after_success:
-#  - mvn coveralls:cobertura
+  - ./gradlew coveralls
   - python scripts/travis/travis_after_all.py
   - export $(cat .to_export_back)
   - |

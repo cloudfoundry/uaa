@@ -5,6 +5,7 @@ buildscript {
   
   dependencies {
     classpath "net.saliman:gradle-cobertura-plugin:2.2.2"
+    classpath 'org.kt3k.gradle.plugin:coveralls-gradle-plugin:0.4.1'
   }
 }
 
@@ -65,6 +66,8 @@ subprojects {
   configurations.all {
   }
 }
+
+apply plugin: 'coveralls'
 
 cobertura {
   coverageFormats = ['xml', 'html']
