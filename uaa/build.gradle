@@ -54,8 +54,10 @@ dependencies {
 }
 
 apply plugin: 'cargo'
-cargoStartLocal.dependsOn assemble
-cargoRunLocal.dependsOn assemble
+
+Task[] cargoDepencies = [assemble, project(":cloudfoundry-identity-samples:cloudfoundry-identity-app").assemble, project(":cloudfoundry-identity-samples:cloudfoundry-identity-api").assemble]
+cargoStartLocal.dependsOn cargoDepencies
+cargoRunLocal.dependsOn cargoDepencies
 
 task flushCoverageData(type: Exec) {
   commandLine "curl", "-s", "-v", "-X", "POST", "http://localhost:8080/uaa/healthz/coverage/flush"
