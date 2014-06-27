@@ -34,7 +34,6 @@ dependencies {
   runtime group: 'postgresql', name: 'postgresql', version:'9.1-901.jdbc3'
   testCompile project(':cloudfoundry-identity-common').configurations.testCompile.dependencies
   testCompile project(':cloudfoundry-identity-common').sourceSets.test.output
-  testCompile group: 'junit', name: 'junit', version:'4.11'
   testCompile group: 'org.mockito', name: 'mockito-all', version:'1.8.5'
   testCompile group: 'com.jayway.jsonpath', name: 'json-path', version:'0.9.1'
   testCompile group: 'com.jayway.jsonpath', name: 'json-path-assert', version:'0.9.1'

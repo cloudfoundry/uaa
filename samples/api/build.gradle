@@ -17,7 +17,6 @@ dependencies {
   testCompile(group: 'org.cloudfoundry', name: 'cloudfoundry-client-lib', version:'1.0.2') {
     exclude(module: 'jackson-core-asl')
   }
-  testCompile group: 'junit', name: 'junit', version:'4.11'
   testCompile group: 'org.apache.httpcomponents', name: 'httpclient', version:'4.2.5'
   providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version:'3.0.1'
 }
