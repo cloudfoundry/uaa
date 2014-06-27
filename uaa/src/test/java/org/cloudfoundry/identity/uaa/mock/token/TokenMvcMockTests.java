@@ -315,7 +315,7 @@ public class TokenMvcMockTests {
             .param("username", developer.getUserName())
             .param("user_id",developer.getId())
             .param("origin",developer.getOrigin()))
-            .andExpect(status().isOk()).andDo(print());
+            .andExpect(status().isOk());
 
         //pretend to be login server
         mockMvc.perform(post("/oauth/token")
@@ -337,6 +337,45 @@ public class TokenMvcMockTests {
             .header("Authorization", "Bearer " + loginToken)
             .param("grant_type","password")
             .param("client_id",clientId)
+            .param("source", "login")
+            .param("add_new", "false")
+            .param("username", developer.getUserName())
+            .param("user_id",developer.getId())
+            .param("origin",developer.getOrigin()))
+            .andExpect(status().isUnauthorized());
+
+        //pretend to be login server - invalid client id
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("grant_type","password")
+            .param("client_id",clientId+"Dasdadadadas")
+            .param("client_secret", SECRET)
+            .param("source", "login")
+            .param("add_new", "false")
+            .param("username", developer.getUserName())
+            .param("user_id",developer.getId())
+            .param("origin",developer.getOrigin()))
+            .andExpect(status().isUnauthorized());
+
+        //pretend to be login server -no client id
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("grant_type","password")
+            .param("client_secret", SECRET)
+            .param("source", "login")
+            .param("add_new", "false")
+            .param("username", developer.getUserName())
+            .param("user_id",developer.getId())
+            .param("origin",developer.getOrigin()))
+            .andExpect(status().isUnauthorized());
+
+        //pretend to be login server -no client id/secret
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("grant_type","password")
             .param("source", "login")
             .param("add_new", "false")
             .param("username", developer.getUserName())
