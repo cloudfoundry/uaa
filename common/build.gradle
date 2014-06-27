@@ -1,7 +1,7 @@
 description = 'CloudFoundry Identity Common Jar'
 
 dependencies {
-  compile group: 'org.springframework.security', name: 'spring-security-ldap', version:'3.2.4.RELEASE'
+  compile group: 'org.springframework.security', name: 'spring-security-ldap', version:rootProject.ext.springSecurityVersion
   compile group: 'org.springframework.ldap', name: 'spring-ldap-core', version:'1.3.2.RELEASE'
   compile group: 'org.springframework.ldap', name: 'spring-ldap-core-tiger', version:'1.3.2.RELEASE'
   compile(group: 'org.apache.directory.api', name: 'api-ldap-model', version:'1.0.0-M22') {
@@ -21,8 +21,8 @@ dependencies {
   compile group: 'org.springframework', name: 'spring-jdbc', version:rootProject.ext.springVersion
   compile group: 'org.springframework', name: 'spring-webmvc', version:rootProject.ext.springVersion
   compile group: 'org.springframework', name: 'spring-tx', version:rootProject.ext.springVersion
-  compile group: 'org.springframework.security', name: 'spring-security-core', version:'3.2.4.RELEASE'
-  compile group: 'org.springframework.security', name: 'spring-security-web', version:'3.2.4.RELEASE'
+  compile group: 'org.springframework.security', name: 'spring-security-core', version:rootProject.ext.springSecurityVersion
+  compile group: 'org.springframework.security', name: 'spring-security-web', version:rootProject.ext.springSecurityVersion
   compile group: 'log4j', name: 'log4j', version:'1.2.14'
   compile(group: 'org.apache.httpcomponents', name: 'httpclient', version:'4.3.3') {
     exclude(module: 'commons-logging')

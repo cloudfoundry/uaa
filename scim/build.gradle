@@ -1,7 +1,6 @@
 description = 'CloudFoundry Identity SCIM'
 dependencies {
   compile project(':cloudfoundry-identity-common')
-  compile group: 'org.springframework.security', name: 'spring-security-core', version:'3.2.4.RELEASE'
   compile group: 'eu.tekul', name: 'szxcvbn_2.8.2', version:'0.2'
   compile(group: 'edu.vt.middleware', name: 'vt-password', version:'3.1.1') {
     exclude(module: 'bcprov-jdk15')

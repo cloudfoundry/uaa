@@ -14,7 +14,10 @@ buildscript {
   }
 }
 
-ext.springVersion = '4.0.3.RELEASE'
+ext {
+  springVersion = '4.0.3.RELEASE'
+  springSecurityVersion = '3.2.4.RELEASE'
+}
 
 allprojects  {
   apply plugin: 'maven'

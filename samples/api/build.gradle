@@ -8,16 +8,11 @@ dependencies {
     exclude(module: 'spring-jdbc')
     exclude(module: 'spring-aop')
   }
-  compile(group: 'org.springframework.security', name: 'spring-security-taglibs', version:'3.2.4.RELEASE') {
+  compile(group: 'org.springframework.security', name: 'spring-security-taglibs', version:rootProject.ext.springSecurityVersion) {
     exclude(module: 'spring-jdbc')
     exclude(module: 'spring-tx')
   }
-  compile(group: 'org.springframework.security', name: 'spring-security-web', version:'3.2.4.RELEASE') {
-    exclude(module: 'spring-jdbc')
-    exclude(module: 'spring-tx')
-  }
-  compile group: 'org.springframework.security', name: 'spring-security-core', version:'3.2.4.RELEASE'
-  compile group: 'org.springframework.security', name: 'spring-security-config', version:'3.2.4.RELEASE'
+  compile group: 'org.springframework.security', name: 'spring-security-config', version:rootProject.ext.springSecurityVersion
   compile group: 'org.codehaus.jackson', name: 'jackson-mapper-asl', version:'1.9.2'
   runtime group: 'log4j', name: 'log4j', version:'1.2.14'
   testCompile project(':cloudfoundry-identity-common').configurations.testCompile.dependencies

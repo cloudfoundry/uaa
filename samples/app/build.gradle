@@ -9,11 +9,9 @@ dependencies {
     exclude(module: 'spring-aop')
   }
   compile group: 'log4j', name: 'log4j', version:'1.2.14'
-  compile group: 'org.springframework.security', name: 'spring-security-core', version:'3.2.4.RELEASE'
-  compile group: 'org.springframework.security', name: 'spring-security-web', version:'3.2.4.RELEASE'
   compile group: 'org.codehaus.jackson', name: 'jackson-mapper-asl', version:'1.9.2'
   runtime group: 'javax.servlet', name: 'jstl', version:'1.2'
-  runtime(group: 'org.springframework.security', name: 'spring-security-config', version:'3.2.4.RELEASE') {
+  runtime(group: 'org.springframework.security', name: 'spring-security-config', version:rootProject.ext.springSecurityVersion) {
     exclude(module: 'spring-aop')
   }
   testCompile project(':cloudfoundry-identity-common').sourceSets.test.output
