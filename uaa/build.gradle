@@ -61,8 +61,14 @@ task flushCoverageData(type: Exec) {
   onlyIf { runningWithCoverage() }
 }
 
+task prepareDatabase {
+  dependsOn flywayClean
+  finalizedBy cargoStartLocal
+}
+
 task integrationTest(type: Test) {
-  dependsOn cargoStartLocal
+  dependsOn databaseType().equals('hsqldb') ? cargoStartLocal : prepareDatabase
+
   finalizedBy flushCoverageData
 
   filter {

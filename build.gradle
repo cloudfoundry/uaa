@@ -10,6 +10,7 @@ buildscript {
     classpath group: 'org.jfrog.buildinfo', name: 'build-info-extractor-gradle', version: '2.2.4'
     classpath group: 'net.saliman', name: 'gradle-cobertura-plugin', version: '2.2.2'
     classpath group: 'org.kt3k.gradle.plugin', name: 'coveralls-gradle-plugin', version: '0.4.1'
+    classpath group: 'org.flywaydb', name: 'flyway-gradle-plugin', version: '3.0'
   }
 }
 
@@ -82,7 +83,25 @@ subprojects {
     onlyIf { runningWithCoverage() }
   }
 
-  configurations.all {
+  apply plugin: 'flyway'
+
+  flyway {
+    switch (databaseType()) {
+      case 'mysql':
+        driver = 'org.mariadb.jdbc.Driver'
+        url = 'jdbc:mysql://localhost:3306/uaa'
+        user = 'root'
+        password = 'changeme'
+        schemas = ['uaa']
+        break
+      case 'postgresql':
+        driver = 'org.postgresql.Driver'
+        url = 'jdbc:postgresql:uaa'
+        user = 'root'
+        password = 'changeme'
+        schemas = ['uaa']
+        break
+    }
   }
 }
 
@@ -107,4 +126,15 @@ test.dependsOn([
 
 def runningWithCoverage() {
   project.tasks.findByName('instrument').enabled
+}
+
+def databaseType() {
+  List activeProfiles = (System.getenv('SPRING_PROFILES') ?: '').split(',')
+  if (activeProfiles.contains('mysql')) {
+    'mysql'
+  } else if (activeProfiles.contains('postgresql')) {
+    'postgresql'
+  } else {
+    'hsqldb'
+  }
 }
