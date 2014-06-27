@@ -1,4 +1,3 @@
-
 apply plugin: 'war'
 
 description = 'Sample resource server for Cloudfoundry Identity Services'
@@ -16,4 +15,14 @@ dependencies {
     exclude(module: 'jackson-core-asl')
   }
   providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version:'3.0.1'
+}
+
+task integrationTest(type: Test) {
+  dependsOn prepareDatabase
+
+  finalizedBy flushCoverageData
+
+  filter {
+    includeTestsMatching "org.cloudfoundry.identity.api.web.*IntegrationTests"
+  }
 }

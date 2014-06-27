@@ -1,4 +1,3 @@
-
 apply plugin: 'war'
 
 description = 'Sample user webapp for Cloudfoundry Identity Services'
@@ -12,4 +11,14 @@ dependencies {
   testCompile project(':cloudfoundry-identity-common').sourceSets.test.output
   testCompile project(':cloudfoundry-identity-scim')
   providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version:'3.0.1'
+}
+
+task integrationTest(type: Test) {
+  dependsOn prepareDatabase
+
+  finalizedBy flushCoverageData
+
+  filter {
+    includeTestsMatching "org.cloudfoundry.identity.app.integration.*"
+  }
 }

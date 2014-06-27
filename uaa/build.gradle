@@ -1,13 +1,3 @@
-buildscript {
-  repositories {
-    jcenter()
-  }
-
-  dependencies {
-    classpath group: 'org.gradle.api.plugins', name: 'gradle-cargo-plugin', version: '1.5'
-  }
-}
-
 apply plugin: 'war'
 
 description = 'UAA'
@@ -38,26 +28,8 @@ dependencies {
   providedCompile group: 'javax.servlet.jsp', name: 'jsp-api', version:'2.1'
 }
 
-apply plugin: 'cargo'
-
-Task[] cargoDependencies = [assemble, project(":cloudfoundry-identity-samples:cloudfoundry-identity-app").assemble, project(":cloudfoundry-identity-samples:cloudfoundry-identity-api").assemble]
-cargoStartLocal.dependsOn cargoDependencies
-cargoRunLocal.dependsOn cargoDependencies
-
-task flushCoverageData(type: Exec) {
-  commandLine "curl", "-s", "-v", "-X", "POST", "http://localhost:8080/uaa/healthz/coverage/flush"
-
-  finalizedBy cargoStopLocal
-  onlyIf { runningWithCoverage() }
-}
-
-task prepareDatabase {
-  dependsOn flywayClean
-  finalizedBy cargoStartLocal
-}
-
 task integrationTest(type: Test) {
-  dependsOn databaseType().equals('hsqldb') ? cargoStartLocal : prepareDatabase
+  dependsOn prepareDatabase
 
   finalizedBy flushCoverageData
 
@@ -81,60 +53,6 @@ task instrumentedWar(type: War, dependsOn: instrument) {
   onlyIf { runningWithCoverage() }
 }
 
-task run(dependsOn: cargoRunLocal)
-
 instrumentedWar.dependsOn project(":cloudfoundry-identity-common").tasks.findByName('instrumentedJar')
 instrumentedWar.dependsOn project(":cloudfoundry-identity-scim").tasks.findByName('instrumentedJar')
 assemble.dependsOn instrumentedWar
-
-configurations {
-  coberturaJar
-}
-
-dependencies {
-  coberturaJar("net.sourceforge.cobertura:cobertura:2.0.3") {
-    exclude(group: "org.mortbay.jetty")
-  }
-}
-
-cargo {
-  containerId = 'tomcat7x'
-  port = 8080
-
-  deployable {
-    file = file('../samples/api/build/libs/cloudfoundry-identity-api-' + version + '.war')
-    context = 'api'
-  }
-
-  deployable {
-    file = file('../samples/app/build/libs/cloudfoundry-identity-app-' + version + '.war')
-    context = 'app'
-  }
-
-  local {
-    installer {
-      installUrl = 'http://archive.apache.org/dist/tomcat/tomcat-7/v7.0.52/bin/apache-tomcat-7.0.52.tar.gz'
-      downloadDir = file("$buildDir/download")
-      extractDir = file("$buildDir/extract")
-    }
-  }
-}
-
-project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
-  cargo {
-    deployable {
-      if (runningWithCoverage()) {
-        file = file('build/instrumented_libs/cloudfoundry-identity-uaa-' + version + '.war')
-      } else {
-        file = file('build/libs/cloudfoundry-identity-uaa-' + version + '.war')
-      }
-      context = 'uaa'
-    }
-    
-    local {
-      if (runningWithCoverage()) {
-        extraClasspath = files(configurations.coberturaJar.files)
-      }
-    }
-  }
-}

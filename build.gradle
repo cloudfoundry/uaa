@@ -1,12 +1,14 @@
 buildscript {
   repositories {
     mavenCentral()
+    jcenter()
     maven {
       url 'http://repo.spring.io/plugins-release'
     }
   }
   
   dependencies {
+    classpath group: 'org.gradle.api.plugins', name: 'gradle-cargo-plugin', version: '1.5'
     classpath group: 'org.jfrog.buildinfo', name: 'build-info-extractor-gradle', version: '2.2.4'
     classpath group: 'net.saliman', name: 'gradle-cobertura-plugin', version: '2.2.2'
     classpath group: 'org.kt3k.gradle.plugin', name: 'coveralls-gradle-plugin', version: '0.4.1'
@@ -111,6 +113,77 @@ subprojects {
         break
     }
   }
+
+  task prepareDatabase {
+    dependsOn { databaseType().equals('hsqldb') ? null : flywayClean }
+    finalizedBy { rootProject.tasks.findByName('cargoStartLocal') }
+  }
+
+  task flushCoverageData(type: Exec) {
+    commandLine "curl", "-s", "-v", "-X", "POST", "http://localhost:8080/uaa/healthz/coverage/flush"
+
+    finalizedBy { rootProject.tasks.findByName('cargoStopLocal') }
+    onlyIf { runningWithCoverage() }
+  }
+}
+
+configurations {
+  coberturaJar
+}
+
+dependencies {
+  coberturaJar("net.sourceforge.cobertura:cobertura:2.0.3") {
+    exclude(group: "org.mortbay.jetty")
+  }
+}
+
+apply plugin: 'cargo'
+
+cargoStartLocal.dependsOn assemble
+cargoRunLocal.dependsOn assemble
+
+task run(dependsOn: cargoRunLocal)
+
+cargo {
+  containerId = 'tomcat7x'
+  port = 8080
+
+  deployable {
+    file = file('samples/api/build/libs/cloudfoundry-identity-api-' + version + '.war')
+    context = 'api'
+  }
+
+  deployable {
+    file = file('samples/app/build/libs/cloudfoundry-identity-app-' + version + '.war')
+    context = 'app'
+  }
+
+  local {
+    installer {
+      installUrl = 'http://archive.apache.org/dist/tomcat/tomcat-7/v7.0.52/bin/apache-tomcat-7.0.52.tar.gz'
+      downloadDir = file("$buildDir/download")
+      extractDir = file("$buildDir/extract")
+    }
+  }
+}
+
+project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
+  cargo {
+    deployable {
+      if (runningWithCoverage()) {
+        file = file('uaa/build/instrumented_libs/cloudfoundry-identity-uaa-' + version + '.war')
+      } else {
+        file = file('uaa/build/libs/cloudfoundry-identity-uaa-' + version + '.war')
+      }
+      context = 'uaa'
+    }
+
+    local {
+      if (runningWithCoverage()) {
+        extraClasspath = files(configurations.coberturaJar.files)
+      }
+    }
+  }
 }
 
 apply plugin: 'coveralls'
@@ -126,11 +199,8 @@ cobertura {
   coverageExcludes = ['.*org.cloudfoundry.identity.uaa.coverage.CoverageController']
 }
 
-test.dependsOn([
-  ":cloudfoundry-identity-common:test",
-  ":cloudfoundry-identity-scim:test",
-  ":cloudfoundry-identity-uaa:test"
-])
+assemble.dependsOn subprojects.assemble
+test.dependsOn subprojects.test
 
 def runningWithCoverage() {
   project.tasks.findByName('instrument').enabled
