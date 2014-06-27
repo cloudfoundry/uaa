@@ -4,7 +4,6 @@ apply plugin: 'war'
 description = 'Sample user webapp for Cloudfoundry Identity Services'
 dependencies {
   compile project(':cloudfoundry-identity-common')
-  compile group: 'org.codehaus.jackson', name: 'jackson-mapper-asl', version:'1.9.2'
   runtime group: 'javax.servlet', name: 'jstl', version:'1.2'
   runtime(group: 'org.springframework.security', name: 'spring-security-config', version:rootProject.ext.springSecurityVersion) {
     exclude(module: 'spring-aop')
