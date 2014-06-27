@@ -99,7 +99,6 @@ subprojects {
         url = 'jdbc:postgresql:uaa'
         user = 'root'
         password = 'changeme'
-        schemas = ['uaa']
         break
     }
   }
