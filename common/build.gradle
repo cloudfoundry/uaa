@@ -1,7 +1,5 @@
 description = 'CloudFoundry Identity Common Jar'
 
-springVersion = '4.0.3.RELEASE'
-
 dependencies {
   compile group: 'org.springframework.security', name: 'spring-security-ldap', version:'3.2.4.RELEASE'
   compile group: 'org.springframework.ldap', name: 'spring-ldap-core', version:'1.3.2.RELEASE'
@@ -14,15 +12,15 @@ dependencies {
     exclude(module: 'commons-codec')
   }
   compile group: 'org.springframework.security.oauth', name: 'spring-security-oauth', version:'1.0.5.RELEASE'
-  compile group: 'org.springframework', name: 'spring-core', version:springVersion
-  compile group: 'org.springframework', name: 'spring-expression', version:springVersion
-  compile group: 'org.springframework', name: 'spring-beans', version:springVersion
-  compile group: 'org.springframework', name: 'spring-context', version:springVersion
-  compile group: 'org.springframework', name: 'spring-aop', version:springVersion
-  compile group: 'org.springframework', name: 'spring-web', version:springVersion
-  compile group: 'org.springframework', name: 'spring-jdbc', version:springVersion
-  compile group: 'org.springframework', name: 'spring-webmvc', version:springVersion
-  compile group: 'org.springframework', name: 'spring-tx', version:springVersion
+  compile group: 'org.springframework', name: 'spring-core', version:rootProject.ext.springVersion
+  compile group: 'org.springframework', name: 'spring-expression', version:rootProject.ext.springVersion
+  compile group: 'org.springframework', name: 'spring-beans', version:rootProject.ext.springVersion
+  compile group: 'org.springframework', name: 'spring-context', version:rootProject.ext.springVersion
+  compile group: 'org.springframework', name: 'spring-aop', version:rootProject.ext.springVersion
+  compile group: 'org.springframework', name: 'spring-web', version:rootProject.ext.springVersion
+  compile group: 'org.springframework', name: 'spring-jdbc', version:rootProject.ext.springVersion
+  compile group: 'org.springframework', name: 'spring-webmvc', version:rootProject.ext.springVersion
+  compile group: 'org.springframework', name: 'spring-tx', version:rootProject.ext.springVersion
   compile group: 'org.springframework.security', name: 'spring-security-core', version:'3.2.4.RELEASE'
   compile group: 'org.springframework.security', name: 'spring-security-web', version:'3.2.4.RELEASE'
   compile group: 'log4j', name: 'log4j', version:'1.2.14'
@@ -42,7 +40,7 @@ dependencies {
   compile group: 'org.yaml', name: 'snakeyaml', version:'1.12'
   compile group: 'org.mariadb.jdbc', name: 'mariadb-java-client', version:'1.1.7'
   compile group: 'com.googlecode.flyway', name: 'flyway-core', version:'2.3.1'
-  testCompile group: 'org.springframework', name: 'spring-test', version:springVersion
+  testCompile group: 'org.springframework', name: 'spring-test', version:rootProject.ext.springVersion
   testCompile group: 'junit', name: 'junit', version:'4.11'
   testCompile group: 'org.hamcrest', name: 'hamcrest-all', version:'1.3'
   testCompile group: 'org.hsqldb', name: 'hsqldb', version:'2.3.1'
