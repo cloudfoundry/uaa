@@ -27,6 +27,7 @@ import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
@@ -46,6 +47,8 @@ import java.util.Set;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class TokenMvcMockTests {
 
@@ -218,7 +221,7 @@ public class TokenMvcMockTests {
 
     }
 
-    public void validatePasswordGrantToken(String clientId, String username, String requestedScopes, String... expectedScopes) throws Exception {
+    public String validatePasswordGrantToken(String clientId, String username, String requestedScopes, String... expectedScopes) throws Exception {
         String t1 = testClient.getUserOAuthAccessToken(clientId, SECRET, username, SECRET, requestedScopes);
         OAuth2Authentication a1 = tokenServices.loadAuthentication(t1);
         assertEquals(expectedScopes.length, a1.getAuthorizationRequest().getScope().size());
@@ -226,6 +229,91 @@ public class TokenMvcMockTests {
             a1.getAuthorizationRequest().getScope(),
             containsInAnyOrder(expectedScopes)
         );
+        return t1;
+    }
+
+    @Test
+    public void testLoginAuthenticationFilter() throws Exception {
+        String clientId = "testclient";
+        String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
+        setUpClients(clientId, scopes, scopes, GRANT_TYPES);
+        String userId = "testuser";
+        String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three";
+        ScimUser developer = setUpUser(userId, userScopes);
+        String loginToken = testClient.getClientCredentialsOAuthAccessToken("login","loginsecret","");
+
+        //missing client ID
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("grant_type", "password")
+            .param("username", developer.getUserName())
+            .param("user_id", developer.getId())
+            .param("origin", developer.getOrigin()))
+            .andExpect(status().isUnauthorized());
+
+        //Invalid client ID
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("grant_type","password")
+            .param("client_id","dasdasdadas")
+            .param("username", developer.getUserName())
+            .param("user_id",developer.getId())
+            .param("origin",developer.getOrigin()))
+            .andExpect(status().isUnauthorized());
+
+        //Invalid user ID
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("grant_type","password")
+            .param("client_id",clientId)
+            .param("username",developer.getUserName())
+            .param("user_id",developer.getId()+"1dsda")
+            .param("origin",developer.getOrigin()))
+            .andExpect(status().isUnauthorized());
+
+        //No user ID, valid username/origin
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("grant_type","password")
+            .param("client_id",clientId)
+            .param("username",developer.getUserName())
+            .param("origin",developer.getOrigin()))
+            .andExpect(status().isOk());
+
+        //No user ID, invalid origin
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("grant_type","password")
+            .param("client_id",clientId)
+            .param("username",developer.getUserName())
+            .param("origin",developer.getOrigin()+"dasda"))
+            .andExpect(status().isUnauthorized());
+
+        //No user ID, invalid username
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("grant_type","password")
+            .param("client_id",clientId)
+            .param("username",developer.getUserName()+"asdasdas")
+            .param("origin",developer.getOrigin()))
+            .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("grant_type","password")
+            .param("client_id",clientId)
+            .param("username", developer.getUserName())
+            .param("user_id",developer.getId())
+            .param("origin",developer.getOrigin()))
+            .andExpect(status().isOk());
+
     }
 
 

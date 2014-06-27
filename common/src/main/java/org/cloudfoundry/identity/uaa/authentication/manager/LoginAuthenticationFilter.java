@@ -43,6 +43,7 @@ import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
+import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint;
 import org.springframework.security.web.AuthenticationEntryPoint;
@@ -98,6 +99,10 @@ public class LoginAuthenticationFilter implements Filter {
 
                 Authentication authResult = authenticationManager.authenticate(credentials);
 
+                if (authResult==null) {
+                    throw new BadCredentialsException("Invalid user credentials");
+                }
+
                 if (debug) {
                     logger.debug("Authentication success: " + authResult.getName());
                 }
@@ -115,10 +120,14 @@ public class LoginAuthenticationFilter implements Filter {
                 }
 
                 // Check that the client exists
-                ClientDetails authenticatingClient = clientDetailsService.loadClientByClientId(clientId);
+                ClientDetails authenticatingClient = null;
+                try {
+                    authenticatingClient = clientDetailsService.loadClientByClientId(clientId);
+                } catch (NoSuchClientException x) {
+                    //pass on so we can throw BadCredentialsException
+                }
                 if (authenticatingClient == null) {
-                    throw new BadCredentialsException(
-                                    "No client " + clientId + " found");
+                    throw new BadCredentialsException("No client " + clientId + " found");
                 }
 
                 DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(

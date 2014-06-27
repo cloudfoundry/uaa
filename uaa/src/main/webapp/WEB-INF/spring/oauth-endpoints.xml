@@ -76,6 +76,7 @@
         <access-denied-handler ref="oauthAccessDeniedHandler" />
     </http>
 
+    <!--Filter used to authenticate against LoginAuthenticationManager - ie trusted client, no user credentials needed-->
     <bean id="authServerAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.manager.LoginAuthenticationFilter">
         <constructor-arg ref="loginAuthenticationMgr" />
         <constructor-arg ref="jdbcClientDetailsService" />
