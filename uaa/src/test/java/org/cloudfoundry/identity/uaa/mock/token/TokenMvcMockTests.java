@@ -29,6 +29,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockServletContext;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
 import org.springframework.security.oauth2.provider.JdbcClientDetailsService;
@@ -48,6 +49,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class TokenMvcMockTests {
@@ -234,10 +236,10 @@ public class TokenMvcMockTests {
 
     @Test
     public void testLoginAuthenticationFilter() throws Exception {
-        String clientId = "testclient";
+        String clientId = "testclient"+new RandomValueStringGenerator().generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
         setUpClients(clientId, scopes, scopes, GRANT_TYPES);
-        String userId = "testuser";
+        String userId = "testuser"+new RandomValueStringGenerator().generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three";
         ScimUser developer = setUpUser(userId, userScopes);
         String loginToken = testClient.getClientCredentialsOAuthAccessToken("login","loginsecret","");
@@ -298,12 +300,13 @@ public class TokenMvcMockTests {
         mockMvc.perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + loginToken)
-            .param("grant_type","password")
-            .param("client_id",clientId)
-            .param("username",developer.getUserName()+"asdasdas")
-            .param("origin",developer.getOrigin()))
+            .param("grant_type", "password")
+            .param("client_id", clientId)
+            .param("username", developer.getUserName() + "asdasdas")
+            .param("origin", developer.getOrigin()))
             .andExpect(status().isUnauthorized());
 
+        //Should be success
         mockMvc.perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + loginToken)
@@ -312,9 +315,88 @@ public class TokenMvcMockTests {
             .param("username", developer.getUserName())
             .param("user_id",developer.getId())
             .param("origin",developer.getOrigin()))
+            .andExpect(status().isOk()).andDo(print());
+
+        //pretend to be login server
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("grant_type","password")
+            .param("client_id",clientId)
+            .param("client_secret", SECRET)
+            .param("source", "login")
+            .param("add_new", "false")
+            .param("username", developer.getUserName())
+            .param("user_id",developer.getId())
+            .param("origin",developer.getOrigin()))
             .andExpect(status().isOk());
 
+        //pretend to be login server - no client secret
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("grant_type","password")
+            .param("client_id",clientId)
+            .param("source", "login")
+            .param("add_new", "false")
+            .param("username", developer.getUserName())
+            .param("user_id",developer.getId())
+            .param("origin",developer.getOrigin()))
+            .andExpect(status().isUnauthorized());
+
+        //pretend to be login server - add new user
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("grant_type", "password")
+            .param("client_id",clientId)
+            .param("client_secret", SECRET)
+            .param("source", "login")
+            .param("add_new", "true")
+            .param("username", developer.getUserName()+"AddNew"+(new RandomValueStringGenerator().generate()))
+            .param("origin", developer.getOrigin()))
+            .andExpect(status().isOk());
+
+        //pretend to be login server - add new user
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("grant_type", "password")
+            .param("client_id",clientId)
+            .param("client_secret", SECRET)
+            .param("source", "login")
+            .param("add_new", "false")
+            .param("username", developer.getUserName()+"AddNew"+(new RandomValueStringGenerator().generate()))
+            .param("origin",developer.getOrigin()))
+            .andExpect(status().isUnauthorized());
     }
 
+    @Test
+    public void testOauthResourceLoginAuthenticationFilter() throws Exception {
+        String clientId = "testclient" + new RandomValueStringGenerator().generate();
+        String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
+        setUpClients(clientId, scopes, scopes, GRANT_TYPES);
 
+
+        String oauthClientId = "testclient" + new RandomValueStringGenerator().generate();
+        String oauthScopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,oauth.something";
+        setUpClients(oauthClientId, oauthScopes, oauthScopes, GRANT_TYPES);
+
+
+        String userId = "testuser" + new RandomValueStringGenerator().generate();
+        String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three";
+        ScimUser developer = setUpUser(userId, userScopes);
+        String loginToken = testClient.getClientCredentialsOAuthAccessToken(oauthClientId, SECRET, "");
+
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("grant_type", "password")
+            .param("client_id", clientId)
+            .param("username", developer.getUserName())
+            .param("user_id", developer.getId())
+            .param("origin", developer.getOrigin()))
+            .andExpect(status().isOk()).andDo(print());
+
+    }
 }
