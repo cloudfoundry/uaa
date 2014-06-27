@@ -10,7 +10,6 @@ dependencies {
   }
   compile group: 'org.springframework.security', name: 'spring-security-config', version:rootProject.ext.springSecurityVersion
   compile group: 'org.codehaus.jackson', name: 'jackson-mapper-asl', version:'1.9.2'
-  runtime group: 'log4j', name: 'log4j', version:'1.2.14'
   testCompile project(':cloudfoundry-identity-common').configurations.testCompile.dependencies
   testCompile project(':cloudfoundry-identity-common').sourceSets.test.output
   testCompile project(':cloudfoundry-identity-scim')

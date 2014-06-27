@@ -24,7 +24,6 @@ dependencies {
   runtime group: 'org.aspectj', name: 'aspectjweaver', version:'1.6.9'
   runtime group: 'org.aspectj', name: 'aspectjrt', version:'1.6.9'
   runtime group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:'7.0.32'
-  runtime group: 'log4j', name: 'log4j', version:'1.2.14'
   runtime group: 'javax.servlet', name: 'jstl', version:'1.2'
   runtime group: 'eu.tekul', name: 'szxcvbn_2.8.2', version:'0.2'
   runtime(group: 'edu.vt.middleware', name: 'vt-password', version:'3.1.1') {
@@ -34,7 +33,6 @@ dependencies {
   runtime group: 'postgresql', name: 'postgresql', version:'9.1-901.jdbc3'
   testCompile project(':cloudfoundry-identity-common').configurations.testCompile.dependencies
   testCompile project(':cloudfoundry-identity-common').sourceSets.test.output
-  testCompile group: 'org.mockito', name: 'mockito-all', version:'1.8.5'
   testCompile group: 'com.jayway.jsonpath', name: 'json-path', version:'0.9.1'
   testCompile group: 'com.jayway.jsonpath', name: 'json-path-assert', version:'0.9.1'
   testCompile(group: 'org.apache.directory.server', name: 'apacheds-all', version:'1.5.5') {
