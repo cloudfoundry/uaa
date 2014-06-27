@@ -14,9 +14,6 @@ description = 'UAA'
 dependencies {
   compile project(':cloudfoundry-identity-common')
   compile project(':cloudfoundry-identity-scim')
-  compile group: 'org.springframework', name: 'spring-core', version:'4.0.3.RELEASE'
-  compile group: 'org.springframework', name: 'spring-webmvc', version:'4.0.3.RELEASE'
-  compile group: 'org.springframework', name: 'spring-tx', version:'4.0.3.RELEASE'
   compile group: 'cglib', name: 'cglib', version:'2.2.2'
   compile group: 'org.hibernate', name: 'hibernate-validator', version:'4.3.1.Final'
   compile group: 'org.hsqldb', name: 'hsqldb', version:'2.3.1'
@@ -35,8 +32,8 @@ dependencies {
     exclude(module: 'commons-logging')
   }
   runtime group: 'postgresql', name: 'postgresql', version:'9.1-901.jdbc3'
+  testCompile project(':cloudfoundry-identity-common').configurations.testCompile.dependencies
   testCompile project(':cloudfoundry-identity-common').sourceSets.test.output
-  testCompile group: 'org.springframework', name: 'spring-test', version:'4.0.3.RELEASE'
   testCompile group: 'junit', name: 'junit', version:'4.11'
   testCompile group: 'org.mockito', name: 'mockito-all', version:'1.8.5'
   testCompile group: 'com.jayway.jsonpath', name: 'json-path', version:'0.9.1'
