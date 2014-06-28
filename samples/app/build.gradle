@@ -4,7 +4,7 @@ description = 'Sample user webapp for Cloudfoundry Identity Services'
 dependencies {
   compile project(':cloudfoundry-identity-common')
   runtime group: 'javax.servlet', name: 'jstl', version:'1.2'
-  runtime(group: 'org.springframework.security', name: 'spring-security-config', version:rootProject.ext.springSecurityVersion) {
+  runtime(group: 'org.springframework.security', name: 'spring-security-config', version:parent.parent.ext.springSecurityVersion) {
     exclude(module: 'spring-aop')
   }
   testCompile project(':cloudfoundry-identity-common').configurations.testCompile.dependencies
