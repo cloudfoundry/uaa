@@ -17,10 +17,12 @@ import static org.junit.Assert.assertThat;
 
 import java.util.*;
 
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.rest.jdbc.DefaultLimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
@@ -252,11 +254,60 @@ public class ScimUserBootstrapTests {
         users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"");
         assertEquals(1, users.size());
         ScimUser created = users.get(0);
+        validateAuthoritiesCreated(externalAuthorities, userAuthorities, origin, created);
+
+        externalAuthorities = new String[] {"extTest1","extTest2"};
+        bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, getAuthorities(externalAuthorities)));
+        validateAuthoritiesCreated(externalAuthorities, userAuthorities, origin, created);
+    }
+
+    protected void validateAuthoritiesCreated(String[] externalAuthorities, String[] userAuthorities, String origin, ScimUser created) {
         Set<ScimGroup> groups = mdb.getGroupsWithMember(created.getId(),true);
         String[] expected = merge(externalAuthorities,userAuthorities);
         String[] actual = getGroupNames(groups);
         assertThat(actual, IsArrayContainingInAnyOrder.arrayContainingInAnyOrder(expected));
+
+        List<String> external = Arrays.asList(externalAuthorities);
+        for (ScimGroup g : groups) {
+            ScimGroupMember m = mdb.getMemberById(g.getId(), created.getId());
+            if (external.contains(g.getDisplayName())) {
+                assertEquals("Expecting relationship for Group[" + g.getDisplayName() + "] be of different origin.", origin, m.getOrigin());
+            } else {
+                assertEquals("Expecting relationship for Group[" + g.getDisplayName() + "] be of different origin.", Origin.UAA, m.getOrigin());
+            }
+        }
     }
+
+    @Test
+    public void canUpdateEmailThroughEvent() throws Exception {
+        String[] externalAuthorities = new String[] {"extTest1","extTest2","extTest3"};
+        String[] userAuthorities = new String[] {"usrTest1","usrTest2","usrTest3"};
+        String origin = "testOrigin";
+        String email = "test@test.org";
+        String newEmail = "test@test2.org";
+        String firstName = "FirstName";
+        String lastName = "LastName";
+        String password = "";
+        String externalId = null;
+        String userId = new RandomValueStringGenerator().generate();
+        String username = new RandomValueStringGenerator().generate();
+        UaaUser user = getUaaUser(userAuthorities, origin, email, firstName, lastName, password, externalId, userId, username);
+        ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(user));
+        bootstrap.afterPropertiesSet();
+
+        List<ScimUser> users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"");
+        assertEquals(1, users.size());
+        userId = users.get(0).getId();
+        user = getUaaUser(userAuthorities, origin, newEmail, firstName, lastName, password, externalId, userId, username);
+        bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, getAuthorities(externalAuthorities)));
+
+        users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"");
+        assertEquals(1, users.size());
+        ScimUser created = users.get(0);
+        validateAuthoritiesCreated(externalAuthorities, userAuthorities, origin, created);
+
+    }
+
 
     private UaaUser getUaaUser(String[] userAuthorities, String origin, String email, String firstName, String lastName, String password, String externalId, String userId, String username) {
         return new UaaUser(

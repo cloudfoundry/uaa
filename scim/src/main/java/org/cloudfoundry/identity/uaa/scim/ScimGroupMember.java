@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.scim;
 import java.util.Arrays;
 import java.util.List;
 
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
@@ -32,6 +33,8 @@ public class ScimGroupMember {
 
     @JsonProperty("value")
     private String memberId;
+
+    private String origin = Origin.UAA;
 
     @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
     public enum Type {
@@ -72,23 +75,38 @@ public class ScimGroupMember {
         return String.format("(memberId: %s, type: %s, roles: %s)", memberId, type, roles);
     }
 
-    @Override
-    public int hashCode() {
-        int hc = 31 ^ memberId.hashCode();
-        hc ^= type.hashCode();
-        return hc;
+    public String getOrigin() {
+        return origin;
+    }
+
+    public void setOrigin(String origin) {
+        //don't allow null values
+        if (origin==null) {
+            throw new NullPointerException();
+        }
+        this.origin = origin;
     }
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof ScimGroupMember)) {
-            return false;
-        }
-        ScimGroupMember other = (ScimGroupMember) o;
-        if (memberId.equals(other.memberId) && type.equals(other.type)) {
-            return true;
-        }
-        return false;
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        ScimGroupMember that = (ScimGroupMember) o;
+
+        if (!memberId.equals(that.memberId)) return false;
+        if (!origin.equals(that.origin)) return false;
+        if (type != that.type) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = memberId.hashCode();
+        result = 31 * result + origin.hashCode();
+        result = 31 * result + type.hashCode();
+        return result;
     }
 
     public ScimGroupMember() {
