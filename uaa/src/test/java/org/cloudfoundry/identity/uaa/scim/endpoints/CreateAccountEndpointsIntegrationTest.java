@@ -37,6 +37,7 @@ import java.sql.Timestamp;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -94,6 +95,7 @@ public class CreateAccountEndpointsIntegrationTest {
 
         mockMvc.perform(post)
                 .andExpect(status().isCreated())
-                .andExpect(content().string(username));
+                .andExpect(jsonPath("$.user_id").exists())
+                .andExpect(jsonPath("$.username").value(username));
     }
 }

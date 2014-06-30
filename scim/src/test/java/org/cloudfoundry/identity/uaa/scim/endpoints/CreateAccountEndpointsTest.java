@@ -23,8 +23,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.sql.Timestamp;
@@ -34,6 +37,7 @@ import static org.mockito.Matchers.eq;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class CreateAccountEndpointsTest {
@@ -55,6 +59,16 @@ public class CreateAccountEndpointsTest {
         Mockito.when(expiringCodeStore.retrieveCode("secret_code"))
                 .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis()), "user@example.com"));
 
+        Mockito.when(scimUserProvisioning.createUser(any(ScimUser.class), eq("secret")))
+            .thenAnswer(new Answer<ScimUser>() {
+                @Override
+                public ScimUser answer(InvocationOnMock invocationOnMock) throws Throwable {
+                    ScimUser u = (ScimUser) invocationOnMock.getArguments()[0];
+                    u.setId("newly-created-user-id");
+                    return u;
+                }
+            });
+
         MockHttpServletRequestBuilder post = post("/create_account")
                 .contentType(APPLICATION_JSON)
                 .content("{\"code\":\"secret_code\",\"password\":\"secret\"}")
@@ -62,12 +76,14 @@ public class CreateAccountEndpointsTest {
 
         mockMvc.perform(post)
                 .andExpect(status().isCreated())
-                .andExpect(content().string("user@example.com"));
+                .andExpect(jsonPath("$.user_id").exists())
+                .andExpect(jsonPath("$.username").value("user@example.com"));
 
         ArgumentCaptor<ScimUser> scimUserCaptor = ArgumentCaptor.forClass(ScimUser.class);
         Mockito.verify(scimUserProvisioning).createUser(scimUserCaptor.capture(), eq("secret"));
         Assert.assertEquals("user@example.com", scimUserCaptor.getValue().getUserName());
         Assert.assertEquals("user@example.com", scimUserCaptor.getValue().getPrimaryEmail());
+        Assert.assertEquals("newly-created-user-id", scimUserCaptor.getValue().getId());
         Assert.assertEquals(Origin.UAA, scimUserCaptor.getValue().getOrigin());
     }
 

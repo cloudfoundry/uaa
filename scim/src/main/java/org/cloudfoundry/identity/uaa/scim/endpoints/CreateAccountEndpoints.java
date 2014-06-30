@@ -29,6 +29,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CONFLICT;
@@ -39,7 +41,6 @@ public class CreateAccountEndpoints {
 
     private final ScimUserProvisioning scimUserProvisioning;
     private final ExpiringCodeStore expiringCodeStore;
-    private ApplicationEventPublisher publisher;
 
     public CreateAccountEndpoints(ScimUserProvisioning scimUserProvisioning, ExpiringCodeStore expiringCodeStore) {
         this.scimUserProvisioning = scimUserProvisioning;
@@ -47,15 +48,18 @@ public class CreateAccountEndpoints {
     }
 
     @RequestMapping(value = "/create_account", method = RequestMethod.POST)
-    public ResponseEntity<String> changePassword(@RequestBody AccountCreation accountCreation) {
-        ResponseEntity<String> responseEntity;
+    public ResponseEntity<Map<String,String>> changePassword(@RequestBody AccountCreation accountCreation) {
+        ResponseEntity<Map<String,String>> responseEntity;
 
         ExpiringCode expiringCode = expiringCodeStore.retrieveCode(accountCreation.getCode());
         if (expiringCode != null) {
             try {
                 String email = expiringCode.getData();
-                scimUserProvisioning.createUser(newScimUser(email), accountCreation.getPassword());
-                responseEntity = new ResponseEntity<>(email, CREATED);
+                ScimUser user = scimUserProvisioning.createUser(newScimUser(email), accountCreation.getPassword());
+                Map<String, String> response = new HashMap<>();
+                response.put("user_id", user.getId());
+                response.put("username", user.getUserName());
+                responseEntity = new ResponseEntity<>(response, CREATED);
             } catch (ScimResourceAlreadyExistsException e) {
                 responseEntity = new ResponseEntity<>(CONFLICT);
             }
