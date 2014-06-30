@@ -15,9 +15,12 @@
 
 package org.cloudfoundry.identity.uaa.ldap;
 
-import junit.framework.TestCase;
+import org.junit.Test;
 
-public class DynamicPasswordComparatorTest extends TestCase {
+import static org.junit.Assert.assertTrue;
+import static org.springframework.test.util.AssertionErrors.fail;
+
+public class DynamicPasswordComparatorTests  {
     private DynamicPasswordComparator comparator = new DynamicPasswordComparator();
     private static final String[] passwords = {
         "test", //plaintext
@@ -38,6 +41,7 @@ public class DynamicPasswordComparatorTest extends TestCase {
         return s.getBytes();
     }
 
+    @Test
     public void testComparePasswords() throws Exception {
         byte[] test = getBytes("test");
         for (String s : passwords) {
@@ -50,6 +54,7 @@ public class DynamicPasswordComparatorTest extends TestCase {
         }
     }
 
+    @Test
     public void testEncodePassword() throws Exception {
         try {
             comparator.encodePassword("test",null);
@@ -58,6 +63,7 @@ public class DynamicPasswordComparatorTest extends TestCase {
         }
     }
 
+    @Test
     public void testIsPasswordValid() throws Exception {
         try {
             comparator.isPasswordValid("test","test",null);
