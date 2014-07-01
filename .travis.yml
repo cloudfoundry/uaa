@@ -13,6 +13,8 @@ env:
     - TESTENV=keystone,default
 cache:
   apt: true
+  directories:
+    - $HOME/.gradle
 services:
   - mysql
   - postgresql
