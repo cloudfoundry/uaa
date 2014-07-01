@@ -22,22 +22,17 @@ clients, as well as various other management functions.
 If this works you are in business:
 
     $ git clone git://github.com/cloudfoundry/uaa.git
-    $ cd uaa
-    $ mvn install
+    $ ./gradlew run
 
-Each module has a `mvn tomcat7:run` target to run individually, or you
-could import them as projects into STS (use 2.8.0 or better if you
-can).  The apps all work together with the apps running on the same port
+The apps all work together with the apps running on the same port
 (8080) as `/uaa`, `/app` and `/api`.
-
-You will need Maven 3.0.4 or newer.
 
 ### Deploy to Cloud Foundry
 
 You can also build the app and push it to Cloud Foundry, e.g.
 
-    $ mvn install
-    $ cf push myuaa -m 512M -p uaa/target/cloudfoundry-identity-uaa-1.6.3-SNAPSHOT.war --no-start
+    $ ./gradlew :cloudfoundry-identity-uaa:war
+    $ cf push myuaa -m 512M -p uaa/build/libs/cloudfoundry-identity-uaa-1.6.3-SNAPSHOT.war --no-start
     $ cf set-env myuaa SPRING_PROFILES_ACTIVE default
     $ cf start myuaa
 
@@ -47,8 +42,7 @@ You can also build the app and push it to Cloud Foundry, e.g.
 
 First run the UAA server as described above:
 
-    $ cd uaa
-    $ mvn tomcat7:run
+    $ ./gradlew run
 
 Then start another terminal and from the project base directory,  ask
 the login endpoint to tell you about the system:
@@ -124,19 +118,9 @@ grant, the same as used by a client like CF.
 
 ## Integration tests
 
-With all apps deployed into a running server on port 8080 the tests
-will include integration tests (a check is done before each test that
-the app is running).  You can deploy them in your IDE or using the
-command line with `mvn tomcat7:run -P integration` and then run the
-tests as normal.
+You can run the integration tests with
 
-For individual modules, or for the whole project, you can also run
-integration tests and the server from the command line in one go with
-
-    $ mvn test -P integration
-
-(This might require an initial `mvn install` from the parent directory
-to get the wars in your local repo first.)
+    $ ./gradlew integrationTest
 
 To make the tests work in various environments you can modify the
 configuration of the server and the tests (e.g. the admin client)

@@ -5,8 +5,6 @@ branches:
 env:
   global:
     - secure: "Ubdyw9qc/AVX61ZTehLm90NG5q+qCIPljY5nYNmmkjvNKRIpx1bYIDjFflfXbSKn+opqBdpo5qQJwLQwO1xCvWfDsAO9YlriiqIZQuYXynAqe0hCqKkMn7OqTDR+rZuA+jl7t7LVwWhwbQ4+IiAC44d6CKIa1WPhmgy5dHxBKac="
-    - CATALINA_PID=/tmp/tomcat.pid
-    - CATALINA_OUT=/tmp/tomcat.log
   matrix:
     - TESTENV=default
     - TESTENV=mysql,default
@@ -20,7 +18,6 @@ services:
   - postgresql
 before_install:
   - git pull --unshallow
-  - wget -O tomcat.tar.gz http://archive.apache.org/dist/tomcat/tomcat-7/v7.0.52/bin/apache-tomcat-7.0.52.tar.gz
   - psql -c 'drop database if exists uaa;' -U postgres
   - psql -c 'create database uaa;' -U postgres
   - psql -c "drop user if exists root;" --dbname=uaa -U postgres
@@ -29,26 +26,18 @@ before_install:
   - mysql -e 'create database uaa;'
   - mysql -e "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('changeme');"
   - mysql -e "SET PASSWORD FOR 'root'@'127.0.0.1' = PASSWORD('changeme');"
+install:
   - if [ "$TESTENV" = "ldap,default" ]; then ./scripts/ldap/install-ldap.sh; fi
   - if [ "$TESTENV" = "keystone,default" ]; then ./scripts/keystone/install-keystone.sh; fi
-install:
+  - $TRAVIS_BUILD_DIR/scripts/travis/apply_spring_profiles_to_uaa_yaml.sh $TESTENV
   - if [ "$TESTENV" = "ldap,default" ]; then ./scripts/ldap/configure-manifest.sh; fi
   - if [ "$TESTENV" = "keystone,default" ]; then ./scripts/keystone/configure-manifest.sh; fi
-  - mvn install -DskipTests -P coverage --quiet
-  - mkdir -p target/tomcat && tar zxf tomcat.tar.gz -C target/tomcat --strip-components 1 && rm -rf target/tomcat/webapps/*
-  - mvn -Dwar.exploded.dir=`pwd`/target/tomcat/webapps/api --quiet -pl samples/api war:exploded
-  - mvn -Dwar.exploded.dir=`pwd`/target/tomcat/webapps/app --quiet -pl samples/app war:exploded
-  - $TRAVIS_BUILD_DIR/scripts/cobertura/cobertura-instrument.sh
-  - mvn -Dwar.exploded.dir=`pwd`/target/tomcat/webapps/uaa --quiet -pl uaa war:exploded -P coverage
+before_script:
+  - ./gradlew -q compileTest
 script:
-  - ./scripts/travis/run-script.sh start
-  - mvn -Dtest=org.cloudfoundry.identity.uaa.integration.* -DfailIfNoTests=false test -P coverage --quiet
-  - curl -v -X POST http://localhost:8080/uaa/healthz/coverage/flush
-  - ./scripts/travis/run-script.sh stop
-  - mvn -Dspring.profiles.active=$TESTENV test -P coverage --quiet
+  - ./gradlew cobertura --info
 after_success:
-  - $TRAVIS_BUILD_DIR/scripts/cobertura/cobertura-report.sh
-  - mvn coveralls:cobertura
+  - ./gradlew coveralls
   - python scripts/travis/travis_after_all.py
   - export $(cat .to_export_back)
   - |

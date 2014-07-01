@@ -1,0 +1,57 @@
+description = 'CloudFoundry Identity Common Jar'
+
+dependencies {
+  compile group: 'org.springframework.security', name: 'spring-security-ldap', version:parent.ext.springSecurityVersion
+  compile group: 'org.springframework.ldap', name: 'spring-ldap-core', version:parent.ext.springSecurityLdapVersion
+  compile group: 'org.springframework.ldap', name: 'spring-ldap-core-tiger', version:parent.ext.springSecurityLdapVersion
+  compile(group: 'org.apache.directory.api', name: 'api-ldap-model', version:'1.0.0-M22') {
+    exclude(module: 'slf4j-api')
+  }
+  compile group: 'org.springframework.security', name: 'spring-security-jwt', version:'1.0.1.RELEASE'
+  compile(group: 'org.springframework.security.oauth', name: 'spring-security-oauth2', version:parent.ext.springSecurityOAuthVersion) {
+    exclude(module: 'commons-codec')
+  }
+  compile group: 'org.springframework.security.oauth', name: 'spring-security-oauth', version:parent.ext.springSecurityOAuthVersion
+  compile group: 'org.springframework', name: 'spring-core', version:parent.ext.springVersion
+  compile group: 'org.springframework', name: 'spring-expression', version:parent.ext.springVersion
+  compile group: 'org.springframework', name: 'spring-beans', version:parent.ext.springVersion
+  compile group: 'org.springframework', name: 'spring-context', version:parent.ext.springVersion
+  compile group: 'org.springframework', name: 'spring-aop', version:parent.ext.springVersion
+  compile group: 'org.springframework', name: 'spring-web', version:parent.ext.springVersion
+  compile group: 'org.springframework', name: 'spring-jdbc', version:parent.ext.springVersion
+  compile group: 'org.springframework', name: 'spring-webmvc', version:parent.ext.springVersion
+  compile group: 'org.springframework', name: 'spring-tx', version:parent.ext.springVersion
+  compile group: 'org.springframework.security', name: 'spring-security-core', version:parent.ext.springSecurityVersion
+  compile group: 'org.springframework.security', name: 'spring-security-web', version:parent.ext.springSecurityVersion
+  compile group: 'log4j', name: 'log4j', version:'1.2.14'
+  compile(group: 'org.apache.httpcomponents', name: 'httpclient', version:'4.3.3') {
+    exclude(module: 'commons-logging')
+  }
+  compile(group: 'com.unboundid.product.scim', name: 'scim-sdk', version:'1.6.0') {
+    exclude(module: 'servlet-api')
+    exclude(module: 'commons-logging')
+    exclude(module: 'httpclient')
+    exclude(module: 'wink-client-apache-httpclient')
+  }
+  compile group: 'org.slf4j', name: 'slf4j-log4j12', version:'1.7.7'
+  compile group: 'org.hibernate', name: 'hibernate-validator', version:'4.3.1.Final'
+  compile group: 'org.aspectj', name: 'aspectjrt', version:'1.6.9'
+  compile group: 'org.codehaus.jackson', name: 'jackson-mapper-asl', version:'1.9.2'
+  compile group: 'org.yaml', name: 'snakeyaml', version:'1.12'
+  compile group: 'org.mariadb.jdbc', name: 'mariadb-java-client', version:'1.1.7'
+  compile group: 'com.googlecode.flyway', name: 'flyway-core', version:'2.3.1'
+  compile group: 'org.hsqldb', name: 'hsqldb', version:'2.3.1'
+  testCompile group: 'org.springframework', name: 'spring-test', version:parent.ext.springVersion
+  testCompile group: 'junit', name: 'junit', version:'4.11'
+  testCompile group: 'org.hamcrest', name: 'hamcrest-all', version:'1.3'
+  testCompile group: 'com.jayway.jsonpath', name: 'json-path', version:'0.9.1'
+  testCompile group: 'com.jayway.jsonpath', name: 'json-path-assert', version:'0.9.1'
+  testCompile group: 'postgresql', name: 'postgresql', version:parent.ext.postgresqlVersion
+  testCompile group: 'org.mockito', name: 'mockito-all', version:'1.8.5'
+  testCompile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.ext.tomcatVersion
+  compile(group: 'javax.servlet', name: 'javax.servlet-api', version:'3.0.1') {
+    /* This dependency was originally in the Maven provided scope, but the project was not of type war.
+    This behavior is not yet supported by Gradle, so this dependency has been converted to a compile dependency.
+    Please review and delete this closure when resolved. */
+  }
+}
