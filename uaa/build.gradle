@@ -19,8 +19,6 @@ dependencies {
   runtime group: 'postgresql', name: 'postgresql', version:parent.ext.postgresqlVersion
   testCompile project(':cloudfoundry-identity-common').configurations.testCompile.dependencies
   testCompile project(':cloudfoundry-identity-common').sourceSets.test.output
-  testCompile group: 'com.jayway.jsonpath', name: 'json-path', version:'0.9.1'
-  testCompile group: 'com.jayway.jsonpath', name: 'json-path-assert', version:'0.9.1'
   testCompile(group: 'org.apache.directory.server', name: 'apacheds-all', version:'1.5.5') {
     exclude(module: 'slf4j-api')
   }
