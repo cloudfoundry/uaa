@@ -1,9 +1,12 @@
+Project identityCommon = parent.subprojects.find { it.name.equals('cloudfoundry-identity-common') }
+Project identityScim = parent.subprojects.find { it.name.equals('cloudfoundry-identity-scim') }
+
 apply plugin: 'war'
 
 description = 'UAA'
 dependencies {
-  compile project(':cloudfoundry-identity-common')
-  compile project(':cloudfoundry-identity-scim')
+  compile identityCommon
+  compile identityScim
   compile group: 'cglib', name: 'cglib', version:'2.2.2'
   runtime group: 'org.springframework.security', name: 'spring-security-config', version:'3.2.4.RELEASE'
   runtime group: 'org.springframework.security', name: 'spring-security-jwt', version:'1.0.1.RELEASE'
@@ -17,8 +20,8 @@ dependencies {
     exclude(module: 'commons-logging')
   }
   runtime group: 'postgresql', name: 'postgresql', version:parent.ext.postgresqlVersion
-  testCompile project(':cloudfoundry-identity-common').configurations.testCompile.dependencies
-  testCompile project(':cloudfoundry-identity-common').sourceSets.test.output
+  testCompile identityCommon.configurations.testCompile.dependencies
+  testCompile identityCommon.sourceSets.test.output
   testCompile(group: 'org.apache.directory.server', name: 'apacheds-all', version:'1.5.5') {
     exclude(module: 'slf4j-api')
   }
@@ -51,6 +54,6 @@ task instrumentedWar(type: War, dependsOn: instrument) {
   onlyIf { runningWithCoverage() }
 }
 
-instrumentedWar.dependsOn project(":cloudfoundry-identity-common").tasks.findByName('instrumentedJar')
-instrumentedWar.dependsOn project(":cloudfoundry-identity-scim").tasks.findByName('instrumentedJar')
+instrumentedWar.dependsOn identityCommon.tasks.findByName('instrumentedJar')
+instrumentedWar.dependsOn identityScim.tasks.findByName('instrumentedJar')
 assemble.dependsOn instrumentedWar

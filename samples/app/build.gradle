@@ -2,14 +2,18 @@ apply plugin: 'war'
 
 description = 'Sample user webapp for Cloudfoundry Identity Services'
 dependencies {
-  compile project(':cloudfoundry-identity-common')
+  Project identityParent = parent.parent
+  Project identityCommon = identityParent.subprojects.find { it.name.equals('cloudfoundry-identity-common') }
+  Project identityScim = identityParent.subprojects.find { it.name.equals('cloudfoundry-identity-scim') }
+
+  compile identityCommon
   runtime group: 'javax.servlet', name: 'jstl', version:'1.2'
-  runtime(group: 'org.springframework.security', name: 'spring-security-config', version:parent.parent.ext.springSecurityVersion) {
+  runtime(group: 'org.springframework.security', name: 'spring-security-config', version:identityParent.ext.springSecurityVersion) {
     exclude(module: 'spring-aop')
   }
-  testCompile project(':cloudfoundry-identity-common').configurations.testCompile.dependencies
-  testCompile project(':cloudfoundry-identity-common').sourceSets.test.output
-  testCompile project(':cloudfoundry-identity-scim')
+  testCompile identityCommon.configurations.testCompile.dependencies
+  testCompile identityCommon.sourceSets.test.output
+  testCompile identityScim
   providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version:'3.0.1'
 }
 

@@ -2,15 +2,19 @@ apply plugin: 'war'
 
 description = 'Sample resource server for Cloudfoundry Identity Services'
 dependencies {
-  compile project(':cloudfoundry-identity-common')
-  compile(group: 'org.springframework.security', name: 'spring-security-taglibs', version:parent.parent.ext.springSecurityVersion) {
+  Project identityParent = parent.parent
+  Project identityCommon = identityParent.subprojects.find { it.name.equals('cloudfoundry-identity-common') }
+  Project identityScim = identityParent.subprojects.find { it.name.equals('cloudfoundry-identity-scim') }
+
+  compile identityCommon
+  compile(group: 'org.springframework.security', name: 'spring-security-taglibs', version:identityParent.ext.springSecurityVersion) {
     exclude(module: 'spring-jdbc')
     exclude(module: 'spring-tx')
   }
-  compile group: 'org.springframework.security', name: 'spring-security-config', version:parent.parent.ext.springSecurityVersion
-  testCompile project(':cloudfoundry-identity-common').configurations.testCompile.dependencies
-  testCompile project(':cloudfoundry-identity-common').sourceSets.test.output
-  testCompile project(':cloudfoundry-identity-scim')
+  compile group: 'org.springframework.security', name: 'spring-security-config', version:identityParent.ext.springSecurityVersion
+  testCompile identityCommon.configurations.testCompile.dependencies
+  testCompile identityCommon.sourceSets.test.output
+  testCompile identityScim
   testCompile(group: 'org.cloudfoundry', name: 'cloudfoundry-client-lib', version:'1.0.2') {
     exclude(module: 'jackson-core-asl')
   }
