@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -29,6 +30,7 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -97,9 +99,9 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
                 }
             }
         }
+        //translate scope to user scopes - including wild cards
+        autoApprovedScopes = retainAutoApprovedScopes(requestedScopes, autoApprovedScopes);
 
-        // Don't want to approve more than what's requested
-        autoApprovedScopes.retainAll(requestedScopes);
 
         if (userApproval) {
             // Store the scopes that have been approved / denied
@@ -174,7 +176,7 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
             // If the requested scopes have already been acted upon by the user,
             // this request is approved
             if (validUserApprovedScopes.containsAll(requestedScopes) && userAuthentication.isAuthenticated()) {
-                approvedScopes.retainAll(requestedScopes);
+                approvedScopes = retainAutoApprovedScopes(requestedScopes, approvedScopes);
                 // Set only the scopes that have been approved by the user
                 ((DefaultAuthorizationRequest) authorizationRequest).setScope(approvedScopes);
                 return true;
@@ -182,6 +184,18 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
         }
 
         return false;
+    }
+
+    protected Set<String> retainAutoApprovedScopes(Collection<String> requestedScopes, Set<String> autoApprovedScopes) {
+        HashSet<String> result = new HashSet<>();
+        Set<Pattern> autoApprovedScopePatterns = UaaStringUtils.constructWildcards(autoApprovedScopes);
+        // Don't want to approve more than what's requested
+        for (String scope : requestedScopes) {
+            if (UaaStringUtils.matches(autoApprovedScopePatterns, scope)) {
+                result.add(scope);
+            }
+        }
+        return result;
     }
 
     protected String getUserId(Authentication authentication) {

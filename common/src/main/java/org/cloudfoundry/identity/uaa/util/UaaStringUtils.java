@@ -14,9 +14,12 @@
 package org.cloudfoundry.identity.uaa.util;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * @author Dave Syer
@@ -126,6 +129,24 @@ public class UaaStringUtils {
         //with [^\\.]+
         //reference http://www.regular-expressions.info/dot.html
         return result.replace("\\*","[^\\\\.]+");
+    }
+
+    public static Set<Pattern> constructWildcards(Set<String> wildcardStrings) {
+        Set<Pattern> wildcards = new HashSet<>();
+        for (String wildcard : wildcardStrings) {
+            String pattern = UaaStringUtils.constructSimpleWildcardPattern(wildcard);
+            wildcards.add(Pattern.compile(pattern));
+        }
+        return wildcards;
+    }
+
+    public static boolean matches(Set<Pattern> wildcards, String scope) {
+        for (Pattern wildcard : wildcards) {
+            if (wildcard.matcher(scope).matches()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

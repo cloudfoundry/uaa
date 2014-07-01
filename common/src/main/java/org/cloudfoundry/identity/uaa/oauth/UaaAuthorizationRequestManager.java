@@ -260,21 +260,11 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
     }
 
     protected Set<Pattern> constructWildcards(Set<String> scopes) {
-        Set<Pattern> wildcards = new HashSet<>();
-        for (String wildcard : scopes) {
-            String pattern = UaaStringUtils.constructSimpleWildcardPattern(wildcard);
-            wildcards.add(Pattern.compile(pattern));
-        }
-        return wildcards;
+        return UaaStringUtils.constructWildcards(scopes);
     }
 
     protected boolean matches(Set<Pattern> wildcards, String scope) {
-        for (Pattern wildcard : wildcards) {
-            if (wildcard.matcher(scope).matches()) {
-                return true;
-            }
-        }
-        return false;
+        return UaaStringUtils.matches(wildcards, scope);
     }
 
     private Set<String> getResourceIds(ClientDetails clientDetails, Set<String> scopes) {

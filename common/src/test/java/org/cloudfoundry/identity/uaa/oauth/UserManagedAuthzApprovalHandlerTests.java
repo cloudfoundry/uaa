@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.rest.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -49,6 +50,7 @@ import static org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStat
 import static org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus.DENIED;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
@@ -88,7 +90,8 @@ public class UserManagedAuthzApprovalHandlerTests {
                 new String[]{
                     "cloud_controller.read",
                     "cloud_controller.write", 
-                    "openid"
+                    "openid",
+                    "space.*.developer"
                 }, 
                 Collections.<String, Object>emptyMap()
             )
@@ -345,7 +348,93 @@ public class UserManagedAuthzApprovalHandlerTests {
         // The request is not approved because the user has denied some of the
         // scopes requested
         assertTrue(handler.isApproved(request, userAuthentication));
-        assertEquals(new HashSet<>(Arrays.asList(new String[]{"openid", "cloud_controller.read","cloud_controller.write"})), request.getScope());
+        assertThat(
+            request.getScope(),
+            Matchers.containsInAnyOrder(new String[]{"openid", "cloud_controller.read","cloud_controller.write"})
+        );
+    }
+
+    @Test
+    public void testRequestedScopesMatchApprovalSomeDeniedButDeniedScopesAutoApprovedByWildcard() {
+        DefaultAuthorizationRequest request = new DefaultAuthorizationRequest(
+            "foo",
+            new HashSet<>(
+                Arrays.asList(
+                    "openid",
+                    "cloud_controller.read",
+                    "cloud_controller.write",
+                    "space.1.developer",
+                    "space.2.developer"
+                )
+            )
+        );
+        request.setApproved(false);
+        long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
+        Date nextWeek = new Date(theFuture);
+
+        handler.setClientDetailsService(mockClientDetailsService(
+            "foo",
+            new String[]{
+                "cloud_controller.read",
+                "cloud_controller.write",
+                "openid",
+                "space.*.developer"
+            },
+            Collections.singletonMap("autoapprove",(Object) Arrays.asList("space.*.developer", "cloud_controller.write"))));
+
+        approvalStore.addApproval(new Approval(userId, "foo", "openid", nextWeek, APPROVED));
+        approvalStore.addApproval(new Approval(userId, "foo", "cloud_controller.read",nextWeek, APPROVED));
+        approvalStore.addApproval(new Approval(userId, "foo", "cloud_controller.write",nextWeek, DENIED));
+        approvalStore.addApproval(new Approval(userId, "foo", "space.1.developer",nextWeek, DENIED));
+
+        // The request is not approved because the user has denied some of the
+        // scopes requested
+        assertTrue(handler.isApproved(request, userAuthentication));
+        assertThat(
+            request.getScope(),
+            Matchers.containsInAnyOrder(new String[]{"openid", "cloud_controller.read","cloud_controller.write","space.1.developer", "space.2.developer"})
+        );
+    }
+
+    @Test
+    public void testRequestedScopesMatchByWildcard() {
+        DefaultAuthorizationRequest request = new DefaultAuthorizationRequest(
+            "foo",
+            new HashSet<>(
+                Arrays.asList(
+                    "openid",
+                    "cloud_controller.read",
+                    "cloud_controller.write",
+                    "space.1.developer"
+                )
+            )
+        );
+        request.setApproved(false);
+        long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
+        Date nextWeek = new Date(theFuture);
+
+        handler.setClientDetailsService(mockClientDetailsService(
+            "foo",
+            new String[]{
+                "cloud_controller.read",
+                "cloud_controller.write",
+                "openid",
+                "space.*.developer"
+            },
+            Collections.singletonMap("autoapprove", (Object) "true")));
+
+        approvalStore.addApproval(new Approval(userId, "foo", "openid", nextWeek, APPROVED));
+        approvalStore.addApproval(new Approval(userId, "foo", "cloud_controller.read",nextWeek, APPROVED));
+        approvalStore.addApproval(new Approval(userId, "foo", "cloud_controller.write",nextWeek, DENIED));
+        approvalStore.addApproval(new Approval(userId, "foo", "space.1.developer",nextWeek, DENIED));
+
+        // The request is not approved because the user has denied some of the
+        // scopes requested
+        assertTrue(handler.isApproved(request, userAuthentication));
+        assertThat(
+            request.getScope(),
+            Matchers.containsInAnyOrder(new String[]{"openid", "cloud_controller.read","cloud_controller.write","space.1.developer"})
+        );
     }
 
     @Test
