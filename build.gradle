@@ -188,13 +188,22 @@ project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
 
 apply plugin: 'coveralls'
 
+Project identityCommon = subprojects.find { it.name.equals('cloudfoundry-identity-common') }
+Project identityScim = subprojects.find { it.name.equals('cloudfoundry-identity-scim') }
+Project identityUaa = subprojects.find { it.name.equals('cloudfoundry-identity-uaa') }
+
 cobertura {
   coverageFormats = ['xml', 'html']
+  coverageSourceDirs = [
+    identityCommon.sourceSets.main.java.srcDirs,
+    identityScim.sourceSets.main.java.srcDirs,
+    identityUaa.sourceSets.main.java.srcDirs
+  ]
   coverageMergeDatafiles = [
     new File("common/build/cobertura/cobertura.ser"),
     new File("scim/build/cobertura/cobertura.ser"),
     new File("uaa/build/cobertura/cobertura.ser"),
-    new File(System.properties['java.io.tmpdir'] + 'cargo/conf/cobertura.ser')
+    new File(System.properties['java.io.tmpdir'], 'cargo/conf/cobertura.ser')
   ]
   coverageExcludes = ['.*org.cloudfoundry.identity.uaa.coverage.CoverageController']
 }
