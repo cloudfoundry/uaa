@@ -19,6 +19,7 @@ services:
   - mysql
   - postgresql
 before_install:
+  - cp $TRAVIS_BUILD_DIR/scripts/travis/init.gradle $HOME/.gradle
   - git pull --unshallow
   - psql -c 'drop database if exists uaa;' -U postgres
   - psql -c 'create database uaa;' -U postgres
@@ -34,10 +35,8 @@ install:
   - $TRAVIS_BUILD_DIR/scripts/travis/apply_spring_profiles_to_uaa_yaml.sh $TESTENV
   - if [ "$TESTENV" = "ldap,default" ]; then ./scripts/ldap/configure-manifest.sh; fi
   - if [ "$TESTENV" = "keystone,default" ]; then ./scripts/keystone/configure-manifest.sh; fi
-before_script:
-  - ./gradlew -q compileTest
 script:
-  - ./gradlew cobertura --info
+  - ./gradlew cobertura
 after_success:
   - ./gradlew coveralls
   - python scripts/travis/travis_after_all.py
