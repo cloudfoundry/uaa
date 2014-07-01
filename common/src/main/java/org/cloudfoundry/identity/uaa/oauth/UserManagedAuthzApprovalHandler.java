@@ -61,8 +61,7 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
     }
 
     @Override
-    public AuthorizationRequest updateBeforeApproval(AuthorizationRequest authorizationRequest,
-                    Authentication userAuthentication) {
+    public AuthorizationRequest updateBeforeApproval(AuthorizationRequest authorizationRequest,Authentication userAuthentication) {
         return authorizationRequest;
     }
 
@@ -74,15 +73,15 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 
         if (logger.isDebugEnabled()) {
             StringBuilder builder = new StringBuilder("Looking up user approved authorizations for ");
-            builder.append("client_id=" + authorizationRequest.getClientId());
-            builder.append(" and username=" + userAuthentication.getName());
+            builder.append("client_id=").append(authorizationRequest.getClientId());
+            builder.append(" and username=").append(userAuthentication.getName());
             logger.debug(builder.toString());
         }
 
         Collection<String> requestedScopes = authorizationRequest.getScope();
 
         // Factor in auto approved scopes
-        Set<String> autoApprovedScopes = new HashSet<String>();
+        Set<String> autoApprovedScopes = new HashSet<>();
         ClientDetails client = clientDetailsService.retrieve(authorizationRequest.getClientId());
         if (null != client) {
             Map<String, Object> additionalInfo = client.getAdditionalInformation();
@@ -108,7 +107,7 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 
             // Get the approved scopes, calculate the denied scope
             Map<String, String> approvalParameters = authorizationRequest.getApprovalParameters();
-            Set<String> approvedScopes = new HashSet<String>();
+            Set<String> approvedScopes = new HashSet<>();
             approvedScopes.addAll(autoApprovedScopes);
             boolean foundUserApprovalParameter = false;
             for (String approvalParameter : approvalParameters.keySet()) {
@@ -148,15 +147,14 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
                 return true;
             }
 
-        }
-        else {
+        } else {
             // Find the stored approvals for that user and client
             List<Approval> userApprovals = approvalStore.getApprovals(getUserId(userAuthentication),
                             authorizationRequest.getClientId());
 
             // Look at the scopes and see if they have expired
-            Set<String> validUserApprovedScopes = new HashSet<String>();
-            Set<String> approvedScopes = new HashSet<String>();
+            Set<String> validUserApprovedScopes = new HashSet<>();
+            Set<String> approvedScopes = new HashSet<>();
             approvedScopes.addAll(autoApprovedScopes);
             validUserApprovedScopes.addAll(autoApprovedScopes);
             Date today = new Date();
