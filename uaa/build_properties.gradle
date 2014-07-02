@@ -1,4 +1,10 @@
+task mainOutputResourcesDir {
+    sourceSets.main.output.resourcesDir.mkdirs()
+}
+
 task gitInfo {
+    dependsOn mainOutputResourcesDir
+
     def os = new FileOutputStream("${sourceSets.main.output.resourcesDir}/git.properties")
     def es = new ByteArrayOutputStream()
     def cmd = "git show -s --format=git.commit.id.abbrev=%h%ngit.commit.time=%ai"
@@ -6,14 +12,16 @@ task gitInfo {
     proc.consumeProcessOutput(os, es)
     proc.waitForOrKill(3000)
     if (proc.exitValue() != 0) {
-        throw new TaskExecutionException(buildInfo, new Exception(new String(es.toByteArray())))
+        throw new TaskExecutionException(gitInfo, new Exception(new String(es.toByteArray())))
     }
 }
 
 task buildInfo {
+    dependsOn mainOutputResourcesDir
+
     def props = new Properties()
     props.setProperty("build.version", version)
     props.store(new FileOutputStream("${sourceSets.main.output.resourcesDir}/build.properties"), "DO NOT EDIT. This is generated file.")
 }
 
-war.dependsOn gitInfo, buildInfo
+classes.dependsOn gitInfo, buildInfo
