@@ -29,19 +29,7 @@ dependencies {
   providedCompile group: 'javax.servlet.jsp', name: 'jsp-api', version:'2.1'
 }
 
-task buildInfo {
-  def os = new FileOutputStream("${sourceSets.main.output.resourcesDir}/git.properties")
-  def es = new ByteArrayOutputStream()
-  def cmd = "git show -s --format=git.commit.id.abbrev=%h%ngit.commit.time=%ai"
-  def proc = cmd.execute()
-  proc.consumeProcessOutput(os, es)
-  proc.waitForOrKill(3000)
-  if (proc.exitValue() != 0) {
-    throw new TaskExecutionException(buildInfo, new Exception(new String(es.toByteArray())))
-  }
-}
-
-war.dependsOn buildInfo
+apply from: 'build_properties.gradle'
 
 task integrationTest(type: Test) {
   dependsOn prepareDatabase
