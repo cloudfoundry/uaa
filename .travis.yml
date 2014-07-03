@@ -63,6 +63,5 @@ after_failure:
           echo "Some Failed"
         fi
       fi
-  - cat $CATALINA_OUT
 after_script:
   - echo leader=$BUILD_LEADER status=$BUILD_AGGREGATE_STATUS
