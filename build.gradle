@@ -31,7 +31,7 @@ allprojects  {
 
   ext {
     runningWithCoverage = {
-      project.tasks.findByName('instrument').enabled
+      allprojects.collect { it.tasks.findByName('instrument').enabled }.find()
     }
   }
 }
