@@ -33,6 +33,15 @@ allprojects  {
     runningWithCoverage = {
       allprojects.collect { it.tasks.findByName('instrument').enabled }.find()
     }
+
+    rewriteInstrumentedLibs = {
+      Boolean instrumentable = it.name.startsWith("cloudfoundry-identity-common-") || it.name.startsWith("cloudfoundry-identity-scim-")
+      if (instrumentable) {
+        file(it.absolutePath.replaceFirst("libs", "instrumented_libs"))
+      } else {
+        it
+      }
+    }
   }
 }
 

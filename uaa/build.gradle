@@ -31,15 +31,6 @@ dependencies {
 
 apply from: 'build_properties.gradle'
 
-def rewriteInstrumentedLibs = {
-  Boolean instrumentable = it.name.startsWith("cloudfoundry-identity-common-") || it.name.startsWith("cloudfoundry-identity-scim-")
-  if (instrumentable) {
-    file(it.absolutePath.replaceFirst("libs", "instrumented_libs"))
-  } else {
-    it
-  }
-}
-
 test.dependsOn identityCommon.instrumentedJar, identityScim.instrumentedJar
 
 task integrationTest(type: Test) {
