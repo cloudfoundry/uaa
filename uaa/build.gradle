@@ -31,6 +31,17 @@ dependencies {
 
 apply from: 'build_properties.gradle'
 
+def rewriteInstrumentedLibs = {
+  Boolean instrumentable = it.name.startsWith("cloudfoundry-identity-common-") || it.name.startsWith("cloudfoundry-identity-scim-")
+  if (instrumentable) {
+    file(it.absolutePath.replaceFirst("libs", "instrumented_libs"))
+  } else {
+    it
+  }
+}
+
+test.dependsOn identityCommon.instrumentedJar, identityScim.instrumentedJar
+
 task integrationTest(type: Test) {
   dependsOn prepareDatabase
 
@@ -45,17 +56,18 @@ task instrumentedWar(type: War, dependsOn: instrument) {
   destinationDir = file("$buildDir/instrumented_libs")
   classpath = war.classpath
                 .minus(files('/classes')).plus(files('/instrumented_classes'))
-                .collect {
-                  Boolean instrumentable = it.name.startsWith("cloudfoundry-identity-common-") || it.name.startsWith("cloudfoundry-identity-scim-")
-                  if (instrumentable) {
-                    file(it.absolutePath.replaceFirst("libs", "instrumented_libs"))
-                  } else {
-                    it
-                  }
-                }
+                .collect(rewriteInstrumentedLibs)
   onlyIf { runningWithCoverage() }
 }
 
 instrumentedWar.dependsOn identityCommon.tasks.findByName('instrumentedJar')
 instrumentedWar.dependsOn identityScim.tasks.findByName('instrumentedJar')
 assemble.dependsOn instrumentedWar
+
+project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
+  if (runningWithCoverage()) {
+    test {
+      classpath = files(test.classpath.collect(rewriteInstrumentedLibs))
+    }
+  }
+}
