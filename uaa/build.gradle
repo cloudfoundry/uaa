@@ -12,14 +12,14 @@ dependencies {
   runtime group: 'org.springframework.security', name: 'spring-security-jwt', version:'1.0.1.RELEASE'
   runtime group: 'org.springframework.retry', name: 'spring-retry', version:'1.0.2.RELEASE'
   runtime group: 'org.aspectj', name: 'aspectjweaver', version:'1.6.9'
-  runtime group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.ext.tomcatVersion
+  runtime group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatVersion
   runtime group: 'javax.servlet', name: 'jstl', version:'1.2'
   runtime group: 'eu.tekul', name: 'szxcvbn_2.8.2', version:'0.2'
   runtime(group: 'edu.vt.middleware', name: 'vt-password', version:'3.1.1') {
     exclude(module: 'bcprov-jdk15')
     exclude(module: 'commons-logging')
   }
-  runtime group: 'postgresql', name: 'postgresql', version:parent.ext.postgresqlVersion
+  runtime group: 'postgresql', name: 'postgresql', version:parent.postgresqlVersion
   testCompile identityCommon.configurations.testCompile.dependencies
   testCompile identityCommon.sourceSets.test.output
   testCompile(group: 'org.apache.directory.server', name: 'apacheds-all', version:'1.5.5') {

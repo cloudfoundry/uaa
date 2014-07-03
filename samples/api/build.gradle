@@ -7,11 +7,11 @@ dependencies {
   Project identityScim = identityParent.subprojects.find { it.name.equals('cloudfoundry-identity-scim') }
 
   compile identityCommon
-  compile(group: 'org.springframework.security', name: 'spring-security-taglibs', version:identityParent.ext.springSecurityVersion) {
+  compile(group: 'org.springframework.security', name: 'spring-security-taglibs', version:identityParent.springSecurityVersion) {
     exclude(module: 'spring-jdbc')
     exclude(module: 'spring-tx')
   }
-  compile group: 'org.springframework.security', name: 'spring-security-config', version:identityParent.ext.springSecurityVersion
+  compile group: 'org.springframework.security', name: 'spring-security-config', version:identityParent.springSecurityVersion
   testCompile identityCommon.configurations.testCompile.dependencies
   testCompile identityCommon.sourceSets.test.output
   testCompile identityScim

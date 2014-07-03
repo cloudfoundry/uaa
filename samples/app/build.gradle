@@ -8,7 +8,7 @@ dependencies {
 
   compile identityCommon
   runtime group: 'javax.servlet', name: 'jstl', version:'1.2'
-  runtime(group: 'org.springframework.security', name: 'spring-security-config', version:identityParent.ext.springSecurityVersion) {
+  runtime(group: 'org.springframework.security', name: 'spring-security-config', version:identityParent.springSecurityVersion) {
     exclude(module: 'spring-aop')
   }
   testCompile identityCommon.configurations.testCompile.dependencies
