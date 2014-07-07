@@ -18,7 +18,7 @@ dependencies {
 }
 
 task integrationTest(type: Test) {
-  dependsOn prepareDatabase
+  dependsOn prepareDatabase, parent.parent.resetCoverage
 
   finalizedBy flushCoverageData
 

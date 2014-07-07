@@ -16,6 +16,10 @@ buildscript {
   }
 }
 
+ext {
+  integrationCoverageFile = file("$buildDir/integration.ser")
+}
+
 apply from: file('shared_versions.gradle')
 
 allprojects  {
@@ -167,6 +171,10 @@ cargo {
   }
 
   local {
+    systemProperties {
+      property 'net.sourceforge.cobertura.datafile', integrationCoverageFile
+    }
+
     installer {
       installUrl = 'http://archive.apache.org/dist/tomcat/tomcat-7/v7.0.52/bin/apache-tomcat-7.0.52.tar.gz'
       downloadDir = file("$buildDir/download")
@@ -211,13 +219,19 @@ cobertura {
     new File("common/build/cobertura/cobertura.ser"),
     new File("scim/build/cobertura/cobertura.ser"),
     new File("uaa/build/cobertura/cobertura.ser"),
-    new File(System.properties['java.io.tmpdir'], 'cargo/conf/cobertura.ser')
+    integrationCoverageFile
   ]
   coverageExcludes = ['.*org.cloudfoundry.identity.uaa.coverage.CoverageController']
 }
 
 assemble.dependsOn subprojects.assemble
 test.dependsOn subprojects.test
+
+task resetCoverage(type: Delete) {
+  delete integrationCoverageFile
+
+  onlyIf { runningWithCoverage() }
+}
 
 def databaseType() {
   List activeProfiles = (System.getenv('TESTENV') ?: '').split(',')

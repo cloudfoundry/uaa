@@ -34,7 +34,7 @@ apply from: 'build_properties.gradle'
 test.dependsOn identityCommon.instrumentedJar, identityScim.instrumentedJar
 
 task integrationTest(type: Test) {
-  dependsOn prepareDatabase
+  dependsOn prepareDatabase, parent.resetCoverage
 
   finalizedBy flushCoverageData
 
