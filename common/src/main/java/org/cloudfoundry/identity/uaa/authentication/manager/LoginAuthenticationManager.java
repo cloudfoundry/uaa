@@ -92,6 +92,8 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
                     if (NotANumber.equals(user.getId())) {
                         user = userDatabase.retrieveUserByName(user.getUsername(), user.getOrigin());
                     } else {
+                        //we should never add new accounts if we specify user_id
+                        addNewAccounts = false;
                         user = userDatabase.retrieveUserById(user.getId());
                     }
                 } catch (UsernameNotFoundException e) {
@@ -135,8 +137,11 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
         if (name == null && email != null) {
             name = email;
         }
-        if (name == null) {
+        if (name == null && NotANumber.equals(userId)) {
             throw new BadCredentialsException("Cannot determine username from credentials supplied");
+        } else if (name==null) {
+            //we have user_id, name is irrelevant
+            name="unknown";
         }
         if (email == null) {
             if (name.contains("@")) {
