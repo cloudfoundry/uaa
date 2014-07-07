@@ -22,9 +22,12 @@ ext {
 
 apply from: file('shared_versions.gradle')
 
-allprojects  {
+def uaaVersion = version
+
+allprojects {
   apply plugin: 'maven'
   group = 'org.cloudfoundry.identity'
+  version = uaaVersion
 
   apply plugin: 'cobertura'
   
