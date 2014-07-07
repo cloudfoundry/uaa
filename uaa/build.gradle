@@ -8,7 +8,7 @@ dependencies {
   compile identityCommon
   compile identityScim
   compile group: 'cglib', name: 'cglib', version:'2.2.2'
-  runtime group: 'org.springframework.security', name: 'spring-security-config', version:'3.2.4.RELEASE'
+  runtime group: 'org.springframework.security', name: 'spring-security-config', version:parent.springSecurityVersion
   runtime group: 'org.springframework.security', name: 'spring-security-jwt', version:'1.0.1.RELEASE'
   runtime group: 'org.springframework.retry', name: 'spring-retry', version:'1.0.2.RELEASE'
   runtime group: 'org.aspectj', name: 'aspectjweaver', version:'1.6.9'
