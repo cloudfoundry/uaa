@@ -49,9 +49,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
 public class TokenMvcMockTests {
 
     private static String SECRET = "secret";
@@ -244,174 +242,196 @@ public class TokenMvcMockTests {
         ScimUser developer = setUpUser(userId, userScopes);
         String loginToken = testClient.getClientCredentialsOAuthAccessToken("login","loginsecret","");
 
-        //missing client ID
+        //the login server is matched by providing
+        //1. Bearer token (will be authenticated for oauth.login scope)
+        //2. source=login
+        //3. grant_type=password
+        //4. add_new=<any value>
+        //without the above four parameters, it is not considered a login-server request
+
+        //success - contains everything we need
         mockMvc.perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + loginToken)
+            .param("source", "login")
+            .param("add_new", "false")
             .param("grant_type", "password")
+            .param("client_id", clientId)
+            .param("client_secret", SECRET)
+            .param("username", developer.getUserName())
+            .param("user_id", developer.getId())
+            .param("origin", developer.getOrigin()))
+            .andExpect(status().isOk());
+
+        //success - user_id only, contains everything we need
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("source", "login")
+            .param("add_new", "false")
+            .param("grant_type", "password")
+            .param("client_id", clientId)
+            .param("client_secret", SECRET)
+            .param("user_id", developer.getId()))
+            .andExpect(status().isOk());
+
+        //success - username/origin only, contains everything we need
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("source", "login")
+            .param("add_new", "false")
+            .param("grant_type", "password")
+            .param("client_id", clientId)
+            .param("client_secret", SECRET)
+            .param("username", developer.getUserName())
+            .param("origin", developer.getOrigin()))
+            .andExpect(status().isOk());
+
+        //failure - missing client ID
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("source", "login")
+            .param("add_new", "false")
+            .param("grant_type", "password")
+            .param("client_secret", SECRET)
+            .param("user_id", developer.getId()))
+            .andExpect(status().isUnauthorized());
+
+        //failure - invalid client ID
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("source", "login")
+            .param("add_new", "false")
+            .param("grant_type","password")
+            .param("client_id","dasdasdadas")
+            .param("client_secret",SECRET)
+            .param("username", developer.getUserName())
+            .param("user_id",developer.getId())
+            .param("origin",developer.getOrigin()))
+            .andExpect(status().isUnauthorized());
+
+        //failure - invalid client secret
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("source", "login")
+            .param("add_new", "false")
+            .param("grant_type","password")
+            .param("client_id",clientId)
+            .param("client_secret",SECRET+"dasdasasas")
+            .param("user_id",developer.getId()))
+            .andExpect(status().isUnauthorized());
+
+        //failure - missing client_id and secret
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("source", "login")
+            .param("add_new", "false")
+            .param("grant_type","password")
+            .param("username", developer.getUserName())
+            .param("user_id",developer.getId())
+            .param("origin",developer.getOrigin()))
+            .andExpect(status().isUnauthorized());
+
+        //failure - invalid user ID - user_id takes priority over username/origin so it must fail
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("source", "login")
+            .param("add_new", "false")
+            .param("grant_type", "password")
+            .param("client_id", clientId)
+            .param("client_secret",SECRET)
+            .param("username", developer.getUserName())
+            .param("user_id",developer.getId()+"1dsda")
+            .param("origin",developer.getOrigin()))
+            .andExpect(status().isUnauthorized());
+
+        //failure - no user ID and an invalid origin must fail
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("source", "login")
+            .param("add_new", "false")
+            .param("grant_type", "password")
+            .param("client_id",clientId)
+            .param("client_secret",SECRET)
+            .param("username", developer.getUserName())
+            .param("origin",developer.getOrigin()+"dasda"))
+            .andExpect(status().isUnauthorized());
+
+        //failure - no user ID, invalid username must fail
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("source", "login")
+            .param("add_new", "false")
+            .param("grant_type", "password")
+            .param("client_id", clientId)
+            .param("client_secret",SECRET)
+            .param("username", developer.getUserName() + "asdasdas")
+            .param("origin", developer.getOrigin()))
+            .andExpect(status().isUnauthorized());
+
+
+        //success - pretend to be login server - add new user is true - any username will be added
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("source", "login")
+            .param("add_new", "true")
+            .param("grant_type", "password")
+            .param("client_id",clientId)
+            .param("client_secret", SECRET)
+            .param("username", developer.getUserName()+"AddNew"+(new RandomValueStringGenerator().generate()))
+            .param("origin", developer.getOrigin()))
+            .andExpect(status().isOk());
+
+        //failure - pretend to be login server - add new user is false
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("source", "login")
+            .param("add_new", "false")
+            .param("grant_type", "password")
+            .param("client_id",clientId)
+            .param("client_secret", SECRET)
+            .param("username", developer.getUserName()+"AddNew"+(new RandomValueStringGenerator().generate()))
+            .param("origin",developer.getOrigin()))
+            .andExpect(status().isUnauthorized());
+
+        //failure - source=login missing, so missing user password should trigger a failure
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("add_new", "false")
+            .param("grant_type", "password")
+            .param("client_id", clientId)
+            .param("client_secret", SECRET)
             .param("username", developer.getUserName())
             .param("user_id", developer.getId())
             .param("origin", developer.getOrigin()))
             .andExpect(status().isUnauthorized());
 
-        //Invalid client ID
+        //failure - add_new is missing, so missing user password should trigger a failure
         mockMvc.perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + loginToken)
-            .param("grant_type","password")
-            .param("client_id","dasdasdadas")
-            .param("username", developer.getUserName())
-            .param("user_id",developer.getId())
-            .param("origin",developer.getOrigin()))
-            .andExpect(status().isUnauthorized());
-
-        //Invalid user ID
-        mockMvc.perform(post("/oauth/token")
-            .accept(MediaType.APPLICATION_JSON_VALUE)
-            .header("Authorization", "Bearer " + loginToken)
-            .param("grant_type","password")
-            .param("client_id",clientId)
-            .param("username",developer.getUserName())
-            .param("user_id",developer.getId()+"1dsda")
-            .param("origin",developer.getOrigin()))
-            .andExpect(status().isUnauthorized());
-
-        //No user ID, valid username/origin
-        mockMvc.perform(post("/oauth/token")
-            .accept(MediaType.APPLICATION_JSON_VALUE)
-            .header("Authorization", "Bearer " + loginToken)
-            .param("grant_type","password")
-            .param("client_id",clientId)
-            .param("username",developer.getUserName())
-            .param("origin",developer.getOrigin()))
-            .andExpect(status().isOk());
-
-        //No user ID, invalid origin
-        mockMvc.perform(post("/oauth/token")
-            .accept(MediaType.APPLICATION_JSON_VALUE)
-            .header("Authorization", "Bearer " + loginToken)
-            .param("grant_type","password")
-            .param("client_id",clientId)
-            .param("username",developer.getUserName())
-            .param("origin",developer.getOrigin()+"dasda"))
-            .andExpect(status().isUnauthorized());
-
-        //No user ID, invalid username
-        mockMvc.perform(post("/oauth/token")
-            .accept(MediaType.APPLICATION_JSON_VALUE)
-            .header("Authorization", "Bearer " + loginToken)
+            .param("source", "login")
             .param("grant_type", "password")
             .param("client_id", clientId)
-            .param("username", developer.getUserName() + "asdasdas")
+            .param("client_secret", SECRET)
+            .param("username", developer.getUserName())
+            .param("user_id", developer.getId())
             .param("origin", developer.getOrigin()))
-            .andExpect(status().isUnauthorized());
-
-        //Should be success
-        mockMvc.perform(post("/oauth/token")
-            .accept(MediaType.APPLICATION_JSON_VALUE)
-            .header("Authorization", "Bearer " + loginToken)
-            .param("grant_type","password")
-            .param("client_id",clientId)
-            .param("username", developer.getUserName())
-            .param("user_id",developer.getId())
-            .param("origin",developer.getOrigin()))
-            .andExpect(status().isOk());
-
-        //pretend to be login server
-        mockMvc.perform(post("/oauth/token")
-            .accept(MediaType.APPLICATION_JSON_VALUE)
-            .header("Authorization", "Bearer " + loginToken)
-            .param("grant_type","password")
-            .param("client_id",clientId)
-            .param("client_secret", SECRET)
-            .param("source", "login")
-            .param("add_new", "false")
-            .param("username", developer.getUserName())
-            .param("user_id",developer.getId())
-            .param("origin",developer.getOrigin()))
-            .andExpect(status().isOk());
-
-        //pretend to be login server - no client secret
-        mockMvc.perform(post("/oauth/token")
-            .accept(MediaType.APPLICATION_JSON_VALUE)
-            .header("Authorization", "Bearer " + loginToken)
-            .param("grant_type","password")
-            .param("client_id",clientId)
-            .param("source", "login")
-            .param("add_new", "false")
-            .param("username", developer.getUserName())
-            .param("user_id",developer.getId())
-            .param("origin",developer.getOrigin()))
-            .andExpect(status().isUnauthorized());
-
-        //pretend to be login server - invalid client id
-        mockMvc.perform(post("/oauth/token")
-            .accept(MediaType.APPLICATION_JSON_VALUE)
-            .header("Authorization", "Bearer " + loginToken)
-            .param("grant_type","password")
-            .param("client_id",clientId+"Dasdadadadas")
-            .param("client_secret", SECRET)
-            .param("source", "login")
-            .param("add_new", "false")
-            .param("username", developer.getUserName())
-            .param("user_id",developer.getId())
-            .param("origin",developer.getOrigin()))
-            .andExpect(status().isUnauthorized());
-
-        //pretend to be login server -no client id
-        mockMvc.perform(post("/oauth/token")
-            .accept(MediaType.APPLICATION_JSON_VALUE)
-            .header("Authorization", "Bearer " + loginToken)
-            .param("grant_type","password")
-            .param("client_secret", SECRET)
-            .param("source", "login")
-            .param("add_new", "false")
-            .param("username", developer.getUserName())
-            .param("user_id",developer.getId())
-            .param("origin",developer.getOrigin()))
-            .andExpect(status().isUnauthorized());
-
-        //pretend to be login server -no client id/secret
-        mockMvc.perform(post("/oauth/token")
-            .accept(MediaType.APPLICATION_JSON_VALUE)
-            .header("Authorization", "Bearer " + loginToken)
-            .param("grant_type","password")
-            .param("source", "login")
-            .param("add_new", "false")
-            .param("username", developer.getUserName())
-            .param("user_id",developer.getId())
-            .param("origin",developer.getOrigin()))
-            .andExpect(status().isUnauthorized());
-
-        //pretend to be login server - add new user
-        mockMvc.perform(post("/oauth/token")
-            .accept(MediaType.APPLICATION_JSON_VALUE)
-            .header("Authorization", "Bearer " + loginToken)
-            .param("grant_type", "password")
-            .param("client_id",clientId)
-            .param("client_secret", SECRET)
-            .param("source", "login")
-            .param("add_new", "true")
-            .param("username", developer.getUserName()+"AddNew"+(new RandomValueStringGenerator().generate()))
-            .param("origin", developer.getOrigin()))
-            .andExpect(status().isOk());
-
-        //pretend to be login server - add new user
-        mockMvc.perform(post("/oauth/token")
-            .accept(MediaType.APPLICATION_JSON_VALUE)
-            .header("Authorization", "Bearer " + loginToken)
-            .param("grant_type", "password")
-            .param("client_id",clientId)
-            .param("client_secret", SECRET)
-            .param("source", "login")
-            .param("add_new", "false")
-            .param("username", developer.getUserName()+"AddNew"+(new RandomValueStringGenerator().generate()))
-            .param("origin",developer.getOrigin()))
             .andExpect(status().isUnauthorized());
     }
-
     @Test
-    public void testOauthResourceLoginAuthenticationFilter() throws Exception {
+    public void testOtherOauthResourceLoginAuthenticationFilter() throws Exception {
         String clientId = "testclient" + new RandomValueStringGenerator().generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
         setUpClients(clientId, scopes, scopes, GRANT_TYPES);
@@ -427,15 +447,159 @@ public class TokenMvcMockTests {
         ScimUser developer = setUpUser(userId, userScopes);
         String loginToken = testClient.getClientCredentialsOAuthAccessToken(oauthClientId, SECRET, "");
 
+        //failure - success only if token has oauth.login
         mockMvc.perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + loginToken)
+            .param("source", "login")
+            .param("add_new", "false")
             .param("grant_type", "password")
             .param("client_id", clientId)
+            .param("client_secret", SECRET)
             .param("username", developer.getUserName())
             .param("user_id", developer.getId())
             .param("origin", developer.getOrigin()))
-            .andExpect(status().isOk()).andDo(print());
+            .andExpect(status().isForbidden());
 
+        //failure - success only if token has oauth.login
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("source", "login")
+            .param("add_new", "false")
+            .param("grant_type", "password")
+            .param("client_id", clientId)
+            .param("client_secret", SECRET)
+            .param("user_id", developer.getId()))
+            .andExpect(status().isForbidden());
+
+        //failure - success only if token has oauth.login
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("source", "login")
+            .param("add_new", "false")
+            .param("grant_type", "password")
+            .param("client_id", clientId)
+            .param("client_secret", SECRET)
+            .param("username", developer.getUserName())
+            .param("origin", developer.getOrigin()))
+            .andExpect(status().isForbidden());
+
+        //failure - missing client ID
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("source", "login")
+            .param("add_new", "false")
+            .param("grant_type", "password")
+            .param("client_secret", SECRET)
+            .param("user_id", developer.getId()))
+            .andExpect(status().isForbidden());
+
+        //failure - invalid client ID
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("source", "login")
+            .param("add_new", "false")
+            .param("grant_type","password")
+            .param("client_id","dasdasdadas")
+            .param("client_secret",SECRET)
+            .param("username", developer.getUserName())
+            .param("user_id",developer.getId())
+            .param("origin",developer.getOrigin()))
+            .andExpect(status().isForbidden());
+
+        //failure - invalid client secret
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("source", "login")
+            .param("add_new", "false")
+            .param("grant_type","password")
+            .param("client_id",clientId)
+            .param("client_secret",SECRET+"dasdasasas")
+            .param("user_id",developer.getId()))
+            .andExpect(status().isForbidden());
+
+        //failure - missing client_id and secret
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("source", "login")
+            .param("add_new", "false")
+            .param("grant_type","password")
+            .param("username", developer.getUserName())
+            .param("user_id",developer.getId())
+            .param("origin",developer.getOrigin()))
+            .andExpect(status().isForbidden());
+
+        //failure - invalid user ID - user_id takes priority over username/origin so it must fail
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("source", "login")
+            .param("add_new", "false")
+            .param("grant_type", "password")
+            .param("client_id", clientId)
+            .param("client_secret",SECRET)
+            .param("username", developer.getUserName())
+            .param("user_id",developer.getId()+"1dsda")
+            .param("origin",developer.getOrigin()))
+            .andExpect(status().isForbidden());
+
+        //failure - no user ID and an invalid origin must fail
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("source", "login")
+            .param("add_new", "false")
+            .param("grant_type", "password")
+            .param("client_id",clientId)
+            .param("client_secret",SECRET)
+            .param("username", developer.getUserName())
+            .param("origin",developer.getOrigin()+"dasda"))
+            .andExpect(status().isForbidden());
+
+        //failure - no user ID, invalid username must fail
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("source", "login")
+            .param("add_new", "false")
+            .param("grant_type", "password")
+            .param("client_id", clientId)
+            .param("client_secret",SECRET)
+            .param("username", developer.getUserName() + "asdasdas")
+            .param("origin", developer.getOrigin()))
+            .andExpect(status().isForbidden());
+
+
+        //failure - success only if token has oauth.login
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("source", "login")
+            .param("add_new", "true")
+            .param("grant_type", "password")
+            .param("client_id",clientId)
+            .param("client_secret", SECRET)
+            .param("username", developer.getUserName()+"AddNew"+(new RandomValueStringGenerator().generate()))
+            .param("origin", developer.getOrigin()))
+            .andExpect(status().isForbidden());
+
+        //failure - pretend to be login server - add new user is false
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("source", "login")
+            .param("add_new", "false")
+            .param("grant_type", "password")
+            .param("client_id",clientId)
+            .param("client_secret", SECRET)
+            .param("username", developer.getUserName()+"AddNew"+(new RandomValueStringGenerator().generate()))
+            .param("origin",developer.getOrigin()))
+            .andExpect(status().isForbidden());
     }
 }
