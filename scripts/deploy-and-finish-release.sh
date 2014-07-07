@@ -4,7 +4,7 @@ cd `dirname $0`/..
 
 if [ "$#" -ne 2 ]; then
     echo "Usage: $(basename $0) uaa_release_version uaa_next_dev_version"
-    exit
+    exit 1
 fi
 
 echo Deploying and finishing UAA release $1
