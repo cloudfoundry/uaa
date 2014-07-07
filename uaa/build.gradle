@@ -3,6 +3,11 @@ Project identityScim = parent.subprojects.find { it.name.equals('cloudfoundry-id
 
 apply plugin: 'war'
 
+war {
+    //workaround for maven <scope>optional</scope>
+    rootSpec.exclude("**/spring-security-oauth-*.jar")
+}
+
 description = 'UAA'
 dependencies {
   compile identityCommon
