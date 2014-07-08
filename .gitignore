@@ -25,6 +25,7 @@ Servers/
 *.swo
 coverage.ec
 git.properties
+build.properties
 .springBeans
 .gradle
 build/

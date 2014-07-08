@@ -5,7 +5,7 @@ task mainOutputResourcesDir {
 task gitInfo {
     dependsOn mainOutputResourcesDir
 
-    def os = new FileOutputStream("${sourceSets.main.output.resourcesDir}/git.properties")
+    def os = new FileOutputStream("${sourceSets.main.resources.srcDirs.find()}/git.properties")
     def es = new ByteArrayOutputStream()
     def cmd = "git show -s --format=git.commit.id.abbrev=%h%ngit.commit.time=%ai"
     def proc = cmd.execute()
@@ -21,7 +21,7 @@ task buildInfo {
 
     def props = new Properties()
     props.setProperty("build.version", version)
-    props.store(new FileOutputStream("${sourceSets.main.output.resourcesDir}/build.properties"), "DO NOT EDIT. This is generated file.")
+    props.store(new FileOutputStream("${sourceSets.main.resources.srcDirs.find()}/build.properties"), "DO NOT EDIT. This is generated file.")
 }
 
-classes.dependsOn gitInfo, buildInfo
+processResources.dependsOn gitInfo, buildInfo
