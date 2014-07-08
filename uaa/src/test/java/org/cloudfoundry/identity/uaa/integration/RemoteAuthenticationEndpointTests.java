@@ -27,6 +27,7 @@ import java.util.Map;
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.http.HttpEntity;
@@ -70,11 +71,11 @@ public class RemoteAuthenticationEndpointTests {
     public void validateLdapOrKeystoneOrigin() throws Exception {
         String profiles = System.getProperty("spring.profiles.active");
         if (profiles!=null && profiles.contains("ldap")) {
-            validateOrigin("marissa3","ldap3","ldap");
+            validateOrigin("marissa3","ldap3",Origin.LDAP);
         } else if (profiles!=null && profiles.contains("keystone")) {
-            validateOrigin("marissa2", "keystone", "keystone");
+            validateOrigin("marissa2", "keystone", Origin.KEYSTONE);
         } else {
-            validateOrigin(testAccounts.getUserName(), testAccounts.getPassword(), "uaa");
+            validateOrigin(testAccounts.getUserName(), testAccounts.getPassword(), Origin.UAA);
         }
     }
 
