@@ -13,17 +13,20 @@
 
 package org.cloudfoundry.identity.uaa.integration;
 
+import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.cloudfoundry.identity.uaa.util.LinkedMaskingMultiValueMap;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.http.HttpEntity;
@@ -70,6 +73,8 @@ public class RemoteAuthenticationEndpointTests {
             validateOrigin("marissa3","ldap3","ldap");
         } else if (profiles!=null && profiles.contains("keystone")) {
             validateOrigin("marissa2", "keystone", "keystone");
+        } else {
+            validateOrigin(testAccounts.getUserName(), testAccounts.getPassword(), "uaa");
         }
     }
 
@@ -77,20 +82,22 @@ public class RemoteAuthenticationEndpointTests {
         ResponseEntity<Map> authResp = authenticate(username,password);
         assertEquals(HttpStatus.OK, authResp.getStatusCode());
 
-        ResponseEntity<Map> response = serverRunning.getForObject("/Users" + "?attributes=id,userName,origin", Map.class);
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Authorization", "Bearer " + getScimReadBearerToken());
+        ResponseEntity<Map> response = serverRunning.getForObject("/Users" + "?attributes=id,userName,origin", Map.class, headers);
         Map<String, Object> results = response.getBody();
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
-        List<Map> list = (List) results.get("resources");
+
+        assertThat(((Integer) results.get("totalResults")), greaterThan(0));
+        List<Map<String, Object>> list = (List<Map<String, Object>>) results.get("resources");
         boolean found = false;
-        for (int i=0; i<list.size(); i++) {
-            Map user = list.get(i);
-            assertTrue(user.containsKey("id"));
-            assertTrue(user.containsKey("userName"));
-            assertTrue(user.containsKey(Origin.ORIGIN));
-            assertFalse(user.containsKey("name"));
-            assertFalse(user.containsKey("emails"));
-            if ("ldap3".equals(user.get("userName"))) {
+        for (Map<String, Object> user : list) {
+            assertThat(user, hasKey("id"));
+            assertThat(user, hasKey("userName"));
+            assertThat(user, hasKey(Origin.ORIGIN));
+            assertThat(user, not(hasKey("name")));
+            assertThat(user, not(hasKey("emails")));
+            if (user.get("userName").equals(username)) {
                 found = true;
                 assertEquals(origin, user.get(Origin.ORIGIN));
             }
@@ -98,7 +105,19 @@ public class RemoteAuthenticationEndpointTests {
         assertTrue(found);
     }
 
+    private String getScimReadBearerToken() {
+        HttpHeaders accessTokenHeaders = new HttpHeaders();
+        String basicDigestHeaderValue = "Basic "
+            + new String(Base64.encodeBase64((testAccounts.getAdminClientId() + ":" + testAccounts.getAdminClientSecret()).getBytes()));
+        accessTokenHeaders.add("Authorization", basicDigestHeaderValue);
 
+        LinkedMultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+        params.add("grant_type", "client_credentials");
+        params.add("client_id", testAccounts.getAdminClientId());
+        params.add("scope", "scim.read");
+        ResponseEntity<Map> tokenResponse = serverRunning.postForMap(serverRunning.getAccessTokenUri(), params, accessTokenHeaders);
+        return (String) tokenResponse.getBody().get("access_token");
+    }
 
     @SuppressWarnings("rawtypes")
     ResponseEntity<Map> authenticate(String username, String password) {
