@@ -65,6 +65,8 @@ public class UaaConfiguration {
     public Scim scim;
     @Valid
     public CloudController cloud_controller;
+    @Valid
+    public Map<String,Object> ldap;
 
     public static class CloudController {
         @Valid
