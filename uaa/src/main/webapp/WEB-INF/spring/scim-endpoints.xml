@@ -158,11 +158,6 @@
     <bean id="groupsUpdateRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
         <constructor-arg value="/Groups" />
         <property name="method" value="PUT" />
-        <property name="accept">
-            <list>
-                <value>application/json</value>
-            </list>
-        </property>
     </bean>
 
     <bean id="groupsReadRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
