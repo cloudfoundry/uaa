@@ -41,6 +41,8 @@ test.dependsOn identityCommon.instrumentedJar, identityScim.instrumentedJar
 task integrationTest(type: Test) {
   dependsOn prepareDatabase, parent.resetCoverage
 
+  systemProperty "spring.profiles.active", System.getenv('TESTENV') ?: 'default'
+
   finalizedBy flushCoverageData
 
   filter {

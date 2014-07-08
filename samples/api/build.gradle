@@ -24,6 +24,8 @@ dependencies {
 task integrationTest(type: Test) {
   dependsOn prepareDatabase, parent.parent.resetCoverage
 
+  systemProperty "spring.profiles.active", System.getenv('TESTENV') ?: 'default'
+
   finalizedBy flushCoverageData
 
   filter {
