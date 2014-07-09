@@ -36,7 +36,11 @@ dependencies {
 
 apply from: 'build_properties.gradle'
 
-test.dependsOn identityCommon.instrumentedJar, identityScim.instrumentedJar
+test {
+  dependsOn identityCommon.instrumentedJar, identityScim.instrumentedJar
+
+  systemProperty "spring.profiles.active", System.getenv('TESTENV') ?: 'default'
+}
 
 task integrationTest(type: Test) {
   dependsOn prepareDatabase, parent.resetCoverage
