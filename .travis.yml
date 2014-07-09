@@ -9,8 +9,8 @@ env:
     - TESTENV=default
     - TESTENV=mysql,default
     - TESTENV=postgresql,default
-    - TESTENV=ldap,default
-    - TESTENV=keystone,default
+    - TESTENV=ldap,default,hsqldb
+    - TESTENV=keystone,default,hsqldb
 cache:
   apt: true
   directories:
