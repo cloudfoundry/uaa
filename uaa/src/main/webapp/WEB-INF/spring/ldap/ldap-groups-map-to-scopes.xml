@@ -24,4 +24,9 @@
         <property name="groupMapper" ref="ldapGroupMappingAuthorizationManager"/>
     </bean>
 
+    <bean id="testLdapGroup" class="java.lang.String">
+        <constructor-arg value="ldap-groups-map-to-scopes.xml"/>
+    </bean>
+
+
 </beans>

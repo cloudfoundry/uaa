@@ -13,7 +13,6 @@
 package org.cloudfoundry.identity.uaa.mock.token;
 
 import com.googlecode.flyway.core.Flyway;
-import org.apache.directory.shared.ldap.util.Base64;
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -31,6 +30,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockServletContext;
+import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
@@ -648,7 +648,7 @@ public class TokenMvcMockTests {
         //failure - client ID mismatch
         mockMvc.perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
-            .header("Authorization", "Basic "+new String(Base64.encode((oauthClientId+":"+SECRET).getBytes())))
+            .header("Authorization", "Basic "+new String(Base64.encode((oauthClientId + ":" + SECRET).getBytes())))
             .param("grant_type", "password")
             .param("client_id", clientId)
             .param("client_secret", SECRET)

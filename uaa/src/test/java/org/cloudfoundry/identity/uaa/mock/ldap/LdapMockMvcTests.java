@@ -175,6 +175,7 @@ public class LdapMockMvcTests {
     public void printProfileType() throws Exception {
         setUp();
         assertEquals(ldapProfile, webApplicationContext.getBean("testLdapProfile"));
+        assertEquals(ldapGroup, webApplicationContext.getBean("testLdapGroup"));
     }
 
     @Test
