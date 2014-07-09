@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimExternalGroupBootstrap;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.test.DefaultIntegrationTestConfig;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -34,7 +35,6 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.mock.web.MockServletConfig;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -47,7 +47,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.support.XmlWebApplicationContext;
+import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
 
 import java.io.File;
 import java.util.Arrays;
@@ -109,7 +109,7 @@ public class LdapMockMvcTests {
 
 
 
-    XmlWebApplicationContext webApplicationContext;
+    AnnotationConfigWebApplicationContext webApplicationContext;
 
     MockMvc mockMvc;
     TestClient testClient;
@@ -131,13 +131,9 @@ public class LdapMockMvcTests {
         System.setProperty("ldap.profile.groups.file", "ldap/"+ldapGroup);
         System.setProperty("ldap.group.maxSearchDepth", "10");
 
-        webApplicationContext = new XmlWebApplicationContext();
-        MockServletContext servletContext = new MockServletContext();
-        MockServletConfig servletConfig = new MockServletConfig(servletContext);
-        servletConfig.addInitParameter("environmentConfigDefaults", "uaa.yml");
-        webApplicationContext.setServletContext(servletContext);
-        webApplicationContext.setServletConfig(servletConfig);
-        webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        webApplicationContext = new AnnotationConfigWebApplicationContext();
+        webApplicationContext.setServletContext(new MockServletContext());
+        webApplicationContext.register(DefaultIntegrationTestConfig.class);
         new YamlServletProfileInitializer().initialize(webApplicationContext);
         webApplicationContext.refresh();
         webApplicationContext.registerShutdownHook();
