@@ -14,7 +14,6 @@ package org.cloudfoundry.identity.uaa.mock.ldap;
 
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager;
-import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -134,7 +133,6 @@ public class LdapMockMvcTests {
         webApplicationContext = new AnnotationConfigWebApplicationContext();
         webApplicationContext.setServletContext(new MockServletContext());
         webApplicationContext.register(DefaultIntegrationTestConfig.class);
-        new YamlServletProfileInitializer().initialize(webApplicationContext);
         webApplicationContext.refresh();
         webApplicationContext.registerShutdownHook();
 
