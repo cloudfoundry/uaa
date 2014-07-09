@@ -40,6 +40,8 @@ test {
   dependsOn identityCommon.instrumentedJar, identityScim.instrumentedJar
 
   systemProperty "spring.profiles.active", System.getenv('TESTENV') ?: 'default'
+
+  exclude 'org/cloudfoundry/identity/uaa/integration/*.class'
 }
 
 task integrationTest(type: Test) {
