@@ -27,8 +27,13 @@ dependencies {
   runtime group: 'postgresql', name: 'postgresql', version:parent.postgresqlVersion
   testCompile identityCommon.configurations.testCompile.dependencies
   testCompile identityCommon.sourceSets.test.output
-  testCompile(group: 'org.apache.directory.server', name: 'apacheds-all', version:'1.5.5') {
+  testCompile(group: 'org.apache.directory.server', name: 'apacheds-core', version:'1.5.5') {
     exclude(module: 'slf4j-api')
+    exclude(module: 'slf4j-log4j12')
+  }
+  testCompile(group: 'org.apache.directory.server', name: 'apacheds-protocol-ldap', version:'1.5.5') {
+    exclude(module: 'slf4j-api')
+    exclude(module: 'slf4j-log4j12')
   }
   providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version:'3.0.1'
   providedCompile group: 'javax.servlet.jsp', name: 'jsp-api', version:'2.1'

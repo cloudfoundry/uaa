@@ -38,6 +38,7 @@ dependencies {
     exclude(module: 'wink-client-apache-httpclient')
   }
   compile group: 'org.slf4j', name: 'slf4j-log4j12', version:'1.7.7'
+  compile group: 'org.slf4j', name: 'slf4j-api', version:'1.7.7'
   compile group: 'org.hibernate', name: 'hibernate-validator', version:'4.3.1.Final'
   compile group: 'org.aspectj', name: 'aspectjrt', version:'1.6.9'
   compile group: 'org.codehaus.jackson', name: 'jackson-mapper-asl', version:'1.9.2'
