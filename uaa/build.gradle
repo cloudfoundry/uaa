@@ -39,8 +39,6 @@ apply from: 'build_properties.gradle'
 test {
   dependsOn identityCommon.instrumentedJar, identityScim.instrumentedJar
 
-  systemProperty "spring.profiles.active", System.getenv('TESTENV') ?: 'default'
-
   exclude 'org/cloudfoundry/identity/uaa/integration/*.class'
 }
 
@@ -70,8 +68,10 @@ task instrumentedWar(type: War, dependsOn: instrument) {
 assemble.dependsOn instrumentedWar
 
 project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
-  if (runningWithCoverage()) {
-    test {
+  test {
+    systemProperty "spring.profiles.active", System.getenv('TESTENV') ?: 'default'
+
+    if (runningWithCoverage()) {
       classpath = files(test.classpath.collect(rewriteInstrumentedLibs))
     }
   }
