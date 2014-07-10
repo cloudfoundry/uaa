@@ -71,6 +71,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @RunWith(Parameterized.class)
 public class LdapMockMvcTests {
 
+    public static final String SPRING_PROFILES_ACTIVE = "spring.profiles.active";
+    private static String originalProfile;
+
     @Parameters
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
@@ -88,8 +91,24 @@ public class LdapMockMvcTests {
 
     private static ApacheDSContainer apacheDS;
     private static File tmpDir;
+
+    @AfterClass
+    public static void afterClass() {
+        if (originalProfile==null || originalProfile.trim().length()==0) {
+            System.getProperties().remove(SPRING_PROFILES_ACTIVE);
+        } else {
+            System.setProperty(SPRING_PROFILES_ACTIVE, originalProfile);
+        }
+    }
+
     @BeforeClass
     public static void startApacheDS() throws Exception {
+        originalProfile = System.getProperty(SPRING_PROFILES_ACTIVE);
+        if (originalProfile==null || originalProfile.trim().length()==0) {
+            System.setProperty(SPRING_PROFILES_ACTIVE, "ldap");
+        } else {
+            System.setProperty(SPRING_PROFILES_ACTIVE, originalProfile+",ldap");
+        }
         tmpDir = new File(System.getProperty("java.io.tmpdir")+"/apacheds/"+new RandomValueStringGenerator().generate());
         tmpDir.deleteOnExit();
         System.out.println(tmpDir);
