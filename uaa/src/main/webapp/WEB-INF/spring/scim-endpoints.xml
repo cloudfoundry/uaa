@@ -280,6 +280,7 @@
         <constructor-arg name="scimGroupProvisioning" ref="scimGroupProvisioning" />
         <constructor-arg name="externalMembershipManager" ref="externalGroupMembershipManager" />
         <property name="externalGroupMap" ref="externalGroups" />
+        <property name="addNonExistingGroups" value="true"/>
     </bean>
 
     <bean id="nonDefaultUserGroups" class="java.lang.String">
