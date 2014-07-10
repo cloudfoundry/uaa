@@ -323,6 +323,13 @@
             <value>acme|acme.dev,acme.qa</value>
             <value>acme.dev|marissa</value>
         </util:list>
+        <util:list id="defaultExternalMembers">
+            <value>organizations.acme|cn=test_org,ou=people,o=springsource,o=org</value>
+            <value>internal.read|cn=developers,ou=scopes,dc=test,dc=com</value>
+            <value>internal.write|cn=operators,ou=scopes,dc=test,dc=com</value>
+            <value>internal.everything|cn=superusers,ou=scopes,dc=test,dc=com</value>
+            <value>internal.superuser|cn=superusers,ou=scopes,dc=test,dc=com</value>
+        </util:list>
         <bean id="defaultGroups" class="java.lang.String">
             <constructor-arg value="acme,acme.dev,acme.qa,organizations.acme" />
         </bean>

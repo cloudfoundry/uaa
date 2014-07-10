@@ -125,8 +125,6 @@ public class LdapMockMvcTests {
     TestClient testClient;
     JdbcTemplate jdbcTemplate;
     JdbcScimGroupProvisioning gDB;
-    ScimGroupExternalMembershipManager eDB;
-    ScimExternalGroupBootstrap bootstrap;
 
     private String ldapProfile;
     private String ldapGroup;
@@ -160,17 +158,6 @@ public class LdapMockMvcTests {
         LimitSqlAdapter limitSqlAdapter = webApplicationContext.getBean(LimitSqlAdapter.class);
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter);
         gDB = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
-        eDB = new JdbcScimGroupExternalMembershipManager(jdbcTemplate, pagingListFactory);
-        ((JdbcScimGroupExternalMembershipManager) eDB).setScimGroupProvisioning(gDB);
-
-        try {
-            gDB.create(new ScimGroup("internal.read"));
-            gDB.create(new ScimGroup("internal.write"));
-            gDB.create(new ScimGroup("internal.everything"));
-        }catch (ScimResourceAlreadyExistsException x) {
-        }
-
-        bootstrap = new ScimExternalGroupBootstrap(gDB, eDB);
     }
 
     @After
@@ -378,12 +365,10 @@ public class LdapMockMvcTests {
         Assume.assumeTrue(ldapGroup.equals("ldap-groups-map-to-scopes.xml"));
         setUp();
         Set<String> externalGroupSet = new HashSet<String>();
+        externalGroupSet.add("internal.superuser|cn=superusers,ou=scopes,dc=test,dc=com");
         externalGroupSet.add("internal.everything|cn=superusers,ou=scopes,dc=test,dc=com");
         externalGroupSet.add("internal.write|cn=operators,ou=scopes,dc=test,dc=com");
         externalGroupSet.add("internal.read|cn=developers,ou=scopes,dc=test,dc=com");
-        bootstrap.setExternalGroupMap(externalGroupSet);
-        bootstrap.afterPropertiesSet();
-
         AuthenticationManager manager = (AuthenticationManager)webApplicationContext.getBean("ldapAuthenticationManager");
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username,password);
         Authentication auth = manager.authenticate(token);
@@ -399,6 +384,7 @@ public class LdapMockMvcTests {
             "internal.read",
             "internal.write",
             "internal.everything",
+            "internal.superuser"
         };
         doTestNestedLdapGroupsMappedToScopes("marissa4","ldap4",list);
     }
@@ -429,6 +415,7 @@ public class LdapMockMvcTests {
             "internal.read",
             "internal.write",
             "internal.everything",
+            "internal.superuser"
         };
         doTestNestedLdapGroupsMappedToScopesWithDefaultScopes(username,password,list);
     }
@@ -460,12 +447,10 @@ public class LdapMockMvcTests {
         Assume.assumeTrue(ldapGroup.equals("ldap-groups-map-to-scopes.xml"));
         setUp();
         Set<String> externalGroupSet = new HashSet<>();
+        externalGroupSet.add("internal.superuser|cn=superusers,ou=scopes,dc=test,dc=com");
         externalGroupSet.add("internal.everything|cn=superusers,ou=scopes,dc=test,dc=com");
         externalGroupSet.add("internal.write|cn=operators,ou=scopes,dc=test,dc=com");
         externalGroupSet.add("internal.read|cn=developers,ou=scopes,dc=test,dc=com");
-        bootstrap.setExternalGroupMap(externalGroupSet);
-        bootstrap.afterPropertiesSet();
-
         AuthenticationManager manager = webApplicationContext.getBean(ChainedAuthenticationManager.class);
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username,password);
         Authentication auth = manager.authenticate(token);
