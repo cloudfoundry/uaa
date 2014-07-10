@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock.ldap;
 
+import com.googlecode.flyway.core.Flyway;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager;
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
@@ -180,6 +181,8 @@ public class LdapMockMvcTests {
     public void tearDown() throws Exception {
         System.clearProperty("ldap.profile.file");
         if (webApplicationContext!=null) {
+            Flyway flyway = webApplicationContext.getBean(Flyway.class);
+            flyway.clean();
             webApplicationContext.destroy();
         }
     }
