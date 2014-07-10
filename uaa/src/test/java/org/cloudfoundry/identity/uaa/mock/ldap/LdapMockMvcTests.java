@@ -106,11 +106,7 @@ public class LdapMockMvcTests {
     @BeforeClass
     public static void startApacheDS() throws Exception {
         originalProfile = System.getProperty(SPRING_PROFILES_ACTIVE);
-        if (originalProfile==null || originalProfile.trim().length()==0) {
-            System.setProperty(SPRING_PROFILES_ACTIVE, "ldap,default");
-        } else {
-            System.setProperty(SPRING_PROFILES_ACTIVE, originalProfile+",ldap");
-        }
+        System.setProperty(SPRING_PROFILES_ACTIVE, "ldap,default");
         System.out.println("LdapMockMvcTests Profile:"+System.getProperty(SPRING_PROFILES_ACTIVE));
         tmpDir = new File(System.getProperty("java.io.tmpdir")+"/apacheds/"+new RandomValueStringGenerator().generate());
         tmpDir.deleteOnExit();
