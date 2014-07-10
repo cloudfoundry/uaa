@@ -99,6 +99,7 @@ public class LdapMockMvcTests {
         } else {
             System.setProperty(SPRING_PROFILES_ACTIVE, originalProfile);
         }
+        apacheDS.stop();
     }
 
     @BeforeClass
@@ -119,14 +120,6 @@ public class LdapMockMvcTests {
         apacheDS.afterPropertiesSet();
         apacheDS.start();
     }
-
-    @AfterClass
-    public static void stopApacheDS() {
-        apacheDS.stop();
-
-    }
-
-
 
     AnnotationConfigWebApplicationContext webApplicationContext;
 
