@@ -57,6 +57,9 @@ task integrationTest(type: Test) {
 }
 
 task instrumentedWar(type: War, dependsOn: instrument) {
+  dependsOn identityCommon.tasks.findByName('instrumentedJar'),
+            identityScim.tasks.findByName('instrumentedJar')
+
   destinationDir = file("$buildDir/instrumented_libs")
   classpath = war.classpath
                 .minus(files('/classes')).plus(files('/instrumented_classes'))
@@ -64,8 +67,6 @@ task instrumentedWar(type: War, dependsOn: instrument) {
   onlyIf { runningWithCoverage() }
 }
 
-instrumentedWar.dependsOn identityCommon.tasks.findByName('instrumentedJar')
-instrumentedWar.dependsOn identityScim.tasks.findByName('instrumentedJar')
 assemble.dependsOn instrumentedWar
 
 project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
