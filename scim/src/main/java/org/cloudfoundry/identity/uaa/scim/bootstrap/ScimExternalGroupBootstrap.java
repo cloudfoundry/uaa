@@ -25,12 +25,18 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.util.StringUtils;
 
 public class ScimExternalGroupBootstrap implements InitializingBean {
 
     private List<Map<String, String>> externalGroupMap;
+    private Set<String> externalGroupList;
+
+    protected ScimGroupProvisioning getScimGroupProvisioning() {
+        return scimGroupProvisioning;
+    }
 
     private final ScimGroupProvisioning scimGroupProvisioning;
 
@@ -39,6 +45,16 @@ public class ScimExternalGroupBootstrap implements InitializingBean {
     private static final String GROUP_BY_NAME_FILTER = "displayName eq \"%s\"";
 
     private final Log logger = LogFactory.getLog(getClass());
+
+    public boolean isAddNonExistingGroups() {
+        return addNonExistingGroups;
+    }
+
+    public void setAddNonExistingGroups(boolean addNonExistingGroups) {
+        this.addNonExistingGroups = addNonExistingGroups;
+    }
+
+    private boolean addNonExistingGroups = false;
 
     public ScimExternalGroupBootstrap(ScimGroupProvisioning scimGroupProvisioning,
                     ScimGroupExternalMembershipManager externalMembershipManager) {
@@ -51,20 +67,44 @@ public class ScimExternalGroupBootstrap implements InitializingBean {
      * Specify the membership info as a list of strings, where each string takes
      * the format -
      * <group-name>|<external-group-names>
-     * 
+     * <p/>
      * external-group-names space separated list of external groups
-     * 
+     *
      * @param externalGroupMaps
      */
     public void setExternalGroupMap(Set<String> externalGroupMaps) {
-        for (String line : externalGroupMaps) {
+        this.externalGroupList = externalGroupMaps;
+    }
+
+
+    protected ScimGroup addGroup(String groupName) {
+        ScimGroup group = new ScimGroup(groupName);
+        try {
+            return getScimGroupProvisioning().create(group);
+        } catch (ScimResourceAlreadyExistsException x) {
+            List<ScimGroup> groups = getScimGroupProvisioning().query(String.format(GROUP_BY_NAME_FILTER, groupName));
+            if (groups!=null && groups.size()>0) {
+                return groups.get(0);
+            } else {
+                throw new RuntimeException("Unable to create or return group with name:"+groupName);
+            }
+        }
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        for (String line : externalGroupList) {
             String[] fields = line.split("\\|");
             if (fields.length < 2) {
                 continue;
             }
 
             String groupName = fields[0];
-            List<ScimGroup> groups = scimGroupProvisioning.query(String.format(GROUP_BY_NAME_FILTER, groupName));
+            List<ScimGroup> groups = getScimGroupProvisioning().query(String.format(GROUP_BY_NAME_FILTER, groupName));
+            if (groups == null || groups.size() == 0 && isAddNonExistingGroups()) {
+                groups = new ArrayList<>();
+                groups.add(addGroup(groupName));
+            }
 
             if (null != groups && groups.size() == 1) {
                 String groupId = groups.get(0).getId();
@@ -80,12 +120,6 @@ public class ScimExternalGroupBootstrap implements InitializingBean {
                 }
             }
         }
-
-        logger.debug("external group map: " + externalGroupMap);
-    }
-
-    @Override
-    public void afterPropertiesSet() throws Exception {
         for (Map<String, String> groupMap : externalGroupMap) {
             Entry<String, String> entry = groupMap.entrySet().iterator().next();
             addGroupMap(entry.getKey(), entry.getValue());
@@ -93,8 +127,7 @@ public class ScimExternalGroupBootstrap implements InitializingBean {
     }
 
     private void addGroupMap(String groupId, String externalGroup) {
-        ScimGroupExternalMember externalGroupMapping = externalMembershipManager.mapExternalGroup(groupId,
-                        externalGroup);
+        ScimGroupExternalMember externalGroupMapping = externalMembershipManager.mapExternalGroup(groupId, externalGroup);
         logger.debug("adding external group mapping: " + externalGroupMapping);
     }
 
