@@ -36,7 +36,7 @@ install:
   - if [ "$TESTENV" = "ldap,default" ]; then ./scripts/ldap/configure-manifest.sh; fi
   - if [ "$TESTENV" = "keystone,default" ]; then ./scripts/keystone/configure-manifest.sh; fi
 script:
-  - ./gradlew cobertura
+  - ./gradlew -Dspring.profiles.active=$TESTENV cobertura
 after_success:
   - ./gradlew coveralls
   - python scripts/travis/travis_after_all.py

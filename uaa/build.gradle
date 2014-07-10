@@ -43,14 +43,12 @@ apply from: 'build_properties.gradle'
 
 test {
   dependsOn identityCommon.instrumentedJar, identityScim.instrumentedJar
-//  systemProperty "spring.profiles.active", System.getenv('TESTENV') ?: System.getProperty('spring.profiles.active','default')
+
   exclude 'org/cloudfoundry/identity/uaa/integration/*.class'
 }
 
 task integrationTest(type: Test) {
   dependsOn prepareDatabase, parent.resetCoverage
-
-  systemProperty "spring.profiles.active", System.getenv('TESTENV') ?: 'default'
 
   finalizedBy flushCoverageData
 
@@ -73,10 +71,8 @@ task instrumentedWar(type: War, dependsOn: instrument) {
 assemble.dependsOn instrumentedWar
 
 project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
-  test {
-    systemProperty "spring.profiles.active", System.getenv('TESTENV') ?: 'default'
-
-    if (runningWithCoverage()) {
+  if (runningWithCoverage()) {
+    test {
       classpath = files(test.classpath.collect(rewriteInstrumentedLibs))
     }
   }

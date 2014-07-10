@@ -202,6 +202,10 @@ project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
       }
     }
   }
+
+  project.allprojects.collect({ it.tasks.withType(Test) }).flatten().each {
+    it.systemProperty 'spring.profiles.active', System.getProperty('spring.profiles.active', 'default')
+  }
 }
 
 apply plugin: 'coveralls'
@@ -236,7 +240,7 @@ task resetCoverage(type: Delete) {
 }
 
 def databaseType() {
-  List activeProfiles = (System.getenv('TESTENV') ?: '').split(',')
+  List activeProfiles = System.getProperty('spring.profiles.active', 'default').split(',')
   if (activeProfiles.contains('mysql')) {
     'mysql'
   } else if (activeProfiles.contains('postgresql')) {
