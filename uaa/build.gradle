@@ -43,7 +43,7 @@ apply from: 'build_properties.gradle'
 
 test {
   dependsOn identityCommon.instrumentedJar, identityScim.instrumentedJar
-  systemProperty "spring.profiles.active", System.getenv('TESTENV') ?: System.getProperty('spring.profiles.active','default')
+//  systemProperty "spring.profiles.active", System.getenv('TESTENV') ?: System.getProperty('spring.profiles.active','default')
   exclude 'org/cloudfoundry/identity/uaa/integration/*.class'
 }
 
