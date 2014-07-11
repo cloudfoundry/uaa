@@ -31,7 +31,7 @@
         <property name="convertToUpperCase" value="false"/>
         <!-- http://stackoverflow.com/questions/5163597/is-there-a-spring-security-defaultldapauthoritiespopulator-implementation-that-s -->
         <property name="groupSearchFilter" value="${ldap.group.groupSearchFilter:member={0}}"/>
-        <property name="maxSearchDepth" value="${ldap.group.maxSearchDepth:1}"/>
+        <property name="maxSearchDepth" value="${ldap.group.maxSearchDepth:10}"/>
         <property name="attributeNames">
             <util:set>
                 <value>cn</value>
