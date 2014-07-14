@@ -18,6 +18,7 @@ import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
+import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
 
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
@@ -68,12 +69,17 @@ public class PasswordResetEndpoints implements ApplicationEventPublisherAware {
     public ResponseEntity<String> resetPassword(@RequestBody String email) {
         List<ScimUser> results = scimUserProvisioning.query("email eq \"" + email + "\" and origin eq \"" + Origin.UAA + "\"");
         if (results.isEmpty()) {
-            return new ResponseEntity<>(BAD_REQUEST);
+            results = scimUserProvisioning.query("email eq \"" + email + "\"");
+            if (results.isEmpty()) {
+                return new ResponseEntity<>(BAD_REQUEST);
+            } else {
+                return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
+            }
         }
         ScimUser scimUser = results.get(0);
         String code = expiringCodeStore.generateCode(scimUser.getId(), new Timestamp(System.currentTimeMillis() + PASSWORD_RESET_LIFETIME)).getCode();
         publish(new ResetPasswordRequestEvent(email, code, SecurityContextHolder.getContext().getAuthentication()));
-        return new ResponseEntity<String>(code, CREATED);
+        return new ResponseEntity<>(code, CREATED);
     }
 
     @RequestMapping(value = "/password_change", method = RequestMethod.POST)

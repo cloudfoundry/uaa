@@ -85,6 +85,26 @@ public class PasswordResetEndpointsTest {
     }
 
     @Test
+    public void testCreatingAPasswordResetWhenTheUserHasNonUaaOrigin() throws Exception {
+        Mockito.when(scimUserProvisioning.query("email eq \"user@example.com\" and origin eq \"" + Origin.UAA + "\""))
+            .thenReturn(Arrays.<ScimUser>asList());
+
+        ScimUser user = new ScimUser("id001", "userman", null, null);
+        user.addEmail("user@example.com");
+        user.setOrigin(Origin.LDAP);
+        Mockito.when(scimUserProvisioning.query("email eq \"user@example.com\""))
+            .thenReturn(Arrays.<ScimUser>asList(user));
+
+        MockHttpServletRequestBuilder post = post("/password_resets")
+            .contentType(APPLICATION_JSON)
+            .content("user@example.com")
+            .accept(APPLICATION_JSON);
+
+        mockMvc.perform(post)
+            .andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
     public void testChangingAPasswordWithAValidCode() throws Exception {
         Mockito.when(expiringCodeStore.retrieveCode("secret_code"))
                 .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis()), "eyedee"));
