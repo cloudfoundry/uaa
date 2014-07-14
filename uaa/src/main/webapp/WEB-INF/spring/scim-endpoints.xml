@@ -120,6 +120,7 @@
         <property name="messageConverters">
             <bean class="org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter" />
         </property>
+        <property name="externalMembershipManager" ref="externalGroupMembershipManager" />
     </bean>
 
     <bean id="groupAccessDecisionManager" class="org.springframework.security.access.vote.AffirmativeBased">
@@ -170,6 +171,8 @@
         xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/Groups/**" access="scope=scim.write" method="DELETE" />
         <intercept-url pattern="/Groups" access="scope=scim.write" method="POST" />
+        <intercept-url pattern="/Groups/External" access="scope=scim.write" method="POST" />
+        <intercept-url pattern="/Groups/External/**" access="scope=scim.write" method="DELETE" />
         <intercept-url pattern="/**" access="ROLE_NONEXISTENT" />
         <custom-filter ref="scimResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />

@@ -12,13 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.util.Date;
-import java.util.List;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.AbstractQueryable;
@@ -32,10 +25,18 @@ import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jca.cci.InvalidResultSetAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.util.Assert;
+
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.Date;
+import java.util.List;
 
 public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<ScimGroupExternalMember> implements
                 ScimGroupExternalMembershipManager {
@@ -129,6 +130,31 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
                 // externalGroup + " already exists");
             }
             return getExternalGroupMap(groupId, externalGroup);
+        } else {
+            return null;
+        }
+    }
+
+    @Override
+    public ScimGroupExternalMember unmapExternalGroup(final String groupId, final String externalGroup)
+        throws ScimResourceNotFoundException {
+        ScimGroup group = scimGroupProvisioning.retrieve(groupId);
+        ScimGroupExternalMember result = getExternalGroupMap(groupId, externalGroup);
+        if (null != group && null != result) {
+            int count = jdbcTemplate.update(DELETE_EXTERNAL_GROUP_MAPPING_SQL, new PreparedStatementSetter() {
+                @Override
+                public void setValues(PreparedStatement ps) throws SQLException {
+                    ps.setString(1, groupId);
+                    ps.setString(2, externalGroup);
+                }
+            });
+            if (count==1) {
+                return result;
+            } else if (count==0) {
+                throw new ScimResourceNotFoundException("No group mappings deleted.");
+            } else {
+                throw new InvalidResultSetAccessException("More than one mapping deleted count="+count, new SQLException());
+            }
         } else {
             return null;
         }

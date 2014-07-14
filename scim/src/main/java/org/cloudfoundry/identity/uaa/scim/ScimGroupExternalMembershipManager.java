@@ -22,6 +22,9 @@ public interface ScimGroupExternalMembershipManager {
     public ScimGroupExternalMember mapExternalGroup(final String groupId, final String externalGroup)
                     throws ScimResourceNotFoundException, MemberAlreadyExistsException;
 
+    public ScimGroupExternalMember unmapExternalGroup(final String groupId, final String externalGroup)
+        throws ScimResourceNotFoundException;
+
     public List<ScimGroupExternalMember> getExternalGroupMapsByGroupId(final String groupId)
                     throws ScimResourceNotFoundException;
 
