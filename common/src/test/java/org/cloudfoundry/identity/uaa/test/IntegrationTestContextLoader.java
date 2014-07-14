@@ -12,12 +12,10 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.test;
 
-import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.FileSystemResourceLoader;
 import org.springframework.core.io.ResourceLoader;
-import org.springframework.mock.web.MockServletConfig;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.test.context.ContextConfigurationAttributes;
 import org.springframework.test.context.MergedContextConfiguration;
@@ -53,12 +51,7 @@ public class IntegrationTestContextLoader implements SmartContextLoader {
         }
         configureWebResources(context, webMergedConfig);
         context.getEnvironment().setActiveProfiles(mergedConfig.getActiveProfiles());
-        MockServletContext servletContext = new MockServletContext();
-        MockServletConfig servletConfig = new MockServletConfig(servletContext);
-        servletConfig.addInitParameter("environmentConfigDefaults", environmentConfigDefaults());
-        context.setServletContext(servletContext);
-        context.setServletConfig(servletConfig);
-        new YamlServletProfileInitializer().initialize(context);
+        new YamlServletProfileInitializerContextInitializer().initializeContext(context, environmentConfigDefaults());
         context.setConfigLocations(mergedConfig.getLocations());
         context.register(mergedConfig.getClasses());
         context.refresh();
