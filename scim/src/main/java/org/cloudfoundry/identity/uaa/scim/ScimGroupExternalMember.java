@@ -23,6 +23,8 @@ public class ScimGroupExternalMember extends ScimCore {
 
     private String displayName;
 
+    public ScimGroupExternalMember() {
+    }
     public ScimGroupExternalMember(String groupId, String externalGroup) {
         this.groupId = groupId;
         this.externalGroup = externalGroup;
@@ -55,8 +57,8 @@ public class ScimGroupExternalMember extends ScimCore {
     @Override
     public String toString() {
         return String.format(
-            "(Group id: %s, Name: %s, created: %s, modified: %s, version: %s, externalGroups: %s)",
-            getId(),
+            "(Group id: %s, Name: %s, created: %s, modified: %s, version: %s, externalGroup: %s)",
+            getGroupId(),
             getDisplayName(),
             getMeta().getCreated(),
             getMeta().getLastModified(),
