@@ -520,43 +520,6 @@ public class ScimUserEndpointsIntegrationTests {
         assertEquals(new Integer(1), results.get("startIndex"));
     }
 
-    @Test
-    public void validateLdapOrKeystoneOrigin() throws Exception {
-        String profiles = System.getProperty("spring.profiles.active");
-        if (profiles!=null && profiles.contains("ldap")) {
-            validateOrigin("marissa3","ldap3","ldap");
-        } else if (profiles!=null && profiles.contains("keystone")) {
-            validateOrigin("marissa2", "keystone", "keystone");
-        }
-    }
-
-    public void validateOrigin(String username, String password, String origin) throws Exception {
-        ResponseEntity<Map> authResp = authenticate(username,password);
-        assertEquals(HttpStatus.OK, authResp.getStatusCode());
-
-        ResponseEntity<Map> response = serverRunning.getForObject(usersEndpoint + "?attributes=id,userName,origin", Map.class);
-        Map<String, Object> results = response.getBody();
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
-        List<Map> list = (List) results.get("resources");
-        boolean found = false;
-        for (int i=0; i<list.size(); i++) {
-            Map user = list.get(i);
-            assertTrue(user.containsKey("id"));
-            assertTrue(user.containsKey("userName"));
-            assertTrue(user.containsKey(Origin.ORIGIN));
-            assertFalse(user.containsKey("name"));
-            assertFalse(user.containsKey("emails"));
-            if (username.equals(user.get("userName"))) {
-                found = true;
-                assertEquals(origin, user.get(Origin.ORIGIN));
-            }
-        }
-        assertTrue(found);
-    }
-
-
-
     @SuppressWarnings("rawtypes")
     ResponseEntity<Map> authenticate(String username, String password) {
         RestTemplate restTemplate = new RestTemplate();
