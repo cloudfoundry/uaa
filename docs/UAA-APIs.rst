@@ -22,6 +22,70 @@ Rather than trigger arguments about how RESTful these APIs are we'll just refer 
 .. _OpenID Connect: http://openid.net/openid-connect
 .. _SCIM: http://simplecloud.info
 
+A Note on Filtering
+=======================
+In several of the API calls, especially around the SCIM endpoints, ``/Users`` and ``/Groups``
+there is an option to specify filters. These filters are implemented in accordance with
+a SCIM specification [on resource queries](http://www.simplecloud.info/specs/draft-scim-api-01.html#query-resources).
+
+Filtering supports
+
+Attribute operators
+
+  * eq - equalsIgnoreCase
+  * co - contains - in SQL becomes 'like %value%', case insensitive
+  * sw - starts with - in SQL becomes 'like value%', case insensitive
+  * pr - present - in SQL becomes 'IS NOT NULL'
+  * gt - greater than - ``>``
+  * ge - greater or equal than - ``>=``
+  * lt - less than - ``<``
+  * le - less or equals than - ``<=``
+
+Logical operators
+
+  * and - logical and
+  * or - logical or
+
+Grouping operators
+
+  * Group expressions in parenthesis ``(`` expression ``)`` to set precedence for operators
+
+There are four different data types
+
+* string literals - values must always be enclosed in double quotes ``"``, and double quotes must be JSON escaped
+  (with a slash ``\``)
+* date times - values must always be enclosed in double quotes, format is ``yyyy-MM-dd'T'HH:mm:ss.SSS'Z'``
+* boolean - values must be either ``true`` or ``false`` and not enclosed in quotes
+* numerical - values are not enclosed in quotes, and can contain numbers and a dot for decimal delimitation
+
+For complete information on filters and pagination, please review the [specification](http://www.simplecloud.info/specs/draft-scim-api-01.html#query-resources)
+
+User column names
+-------------------
+The following column names can be used for querying a user
+
+* id - string, UUID of the user
+* username - string
+* email or emails.value - string
+* givenname - string
+* familyname - string
+* active - boolean
+* phonenumber - string
+* verified - boolean
+* origin - string
+* external_id - string
+* created or meta.created - date
+* lastmodified or meta.lastmodified - date
+* version or meta.version - number
+
+The following column names can be used for querying a group
+
+* id - string, UUID of the group
+* displayname - string
+* created or meta.created - date
+* lastmodified or meta.lastmodified - date
+* version or meta.version - number
+
 Configuration Options
 =======================
 
