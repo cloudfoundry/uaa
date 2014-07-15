@@ -42,12 +42,9 @@ import java.util.Map;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class ScimGroupEndpointsMockMvcTests {
@@ -163,7 +160,6 @@ public class ScimGroupEndpointsMockMvcTests {
             .content(content);
 
         ResultActions result = mockMvc.perform(post);
-        result.andDo(print());
         return result;
     }
 
@@ -219,7 +215,7 @@ public class ScimGroupEndpointsMockMvcTests {
             .accept(APPLICATION_JSON);
 
         ResultActions result = mockMvc.perform(get);
-        result.andDo(print()).andExpect(status().isOk());
+        result.andExpect(status().isOk());
         String content = result.andReturn().getResponse().getContentAsString();
         SearchResults<ScimGroupExternalMember> members = null;
 
