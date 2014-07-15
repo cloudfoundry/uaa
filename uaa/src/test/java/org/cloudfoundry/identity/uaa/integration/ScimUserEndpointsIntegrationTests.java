@@ -519,29 +519,4 @@ public class ScimUserEndpointsIntegrationTests {
         assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
         assertEquals(new Integer(1), results.get("startIndex"));
     }
-
-    @SuppressWarnings("rawtypes")
-    ResponseEntity<Map> authenticate(String username, String password) {
-        RestTemplate restTemplate = new RestTemplate();
-        // The default java.net client doesn't allow you to handle 4xx responses
-        restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
-        restTemplate.setErrorHandler(new DefaultResponseErrorHandler() {
-            @Override
-            protected boolean hasError(HttpStatus statusCode) {
-                return statusCode.series() == HttpStatus.Series.SERVER_ERROR;
-            }
-        });
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
-
-        MultiValueMap<String, Object> parameters = new LinkedMultiValueMap<String, Object>();
-        parameters.set("username", username);
-        parameters.set("password", password);
-
-        ResponseEntity<Map> result = restTemplate.exchange(serverRunning.getUrl("/authenticate"),
-            HttpMethod.POST, new HttpEntity<MultiValueMap<String, Object>>(parameters, headers), Map.class);
-        return result;
-    }
-
 }
