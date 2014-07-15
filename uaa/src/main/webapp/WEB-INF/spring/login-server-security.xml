@@ -187,8 +187,11 @@
     </bean>
 
     <bean id="passwordResetEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpoints">
-        <constructor-arg index="0" ref="scimUserProvisioning"/>
-        <constructor-arg index="1" ref="codeStore"/>
+        <constructor-arg index="0">
+            <bean class="org.codehaus.jackson.map.ObjectMapper" />
+        </constructor-arg>
+        <constructor-arg index="1" ref="scimUserProvisioning"/>
+        <constructor-arg index="2" ref="codeStore"/>
     </bean>
 
     <bean id="createAccountEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.CreateAccountEndpoints">

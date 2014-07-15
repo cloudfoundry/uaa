@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.MockAuthentication;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -46,7 +47,7 @@ public class PasswordResetEndpointsTest {
     public void setUp() throws Exception {
         scimUserProvisioning = Mockito.mock(ScimUserProvisioning.class);
         expiringCodeStore = Mockito.mock(ExpiringCodeStore.class);
-        PasswordResetEndpoints controller = new PasswordResetEndpoints(scimUserProvisioning, expiringCodeStore);
+        PasswordResetEndpoints controller = new PasswordResetEndpoints(new ObjectMapper(), scimUserProvisioning, expiringCodeStore);
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
 
         Mockito.when(expiringCodeStore.generateCode(eq("id001"), any(Timestamp.class)))
@@ -98,6 +99,38 @@ public class PasswordResetEndpointsTest {
         MockHttpServletRequestBuilder post = post("/password_resets")
             .contentType(APPLICATION_JSON)
             .content("user@example.com")
+            .accept(APPLICATION_JSON);
+
+        mockMvc.perform(post)
+            .andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
+    public void testCreatingAPasswordResetWithAnEmailContainingSpecialCharacters() throws Exception {
+        ScimUser user = new ScimUser("id001", "userman", null, null);
+        user.addEmail("user\"'@example.com");
+        Mockito.when(scimUserProvisioning.query("email eq \"user\\\"'@example.com\" and origin eq \"" + Origin.UAA + "\""))
+            .thenReturn(Arrays.asList(user));
+
+        MockHttpServletRequestBuilder post = post("/password_resets")
+            .contentType(APPLICATION_JSON)
+            .content("user\"'@example.com")
+            .accept(APPLICATION_JSON);
+
+        mockMvc.perform(post)
+            .andExpect(status().isCreated())
+            .andExpect(content().string("secret_code"));
+
+
+        Mockito.when(scimUserProvisioning.query("email eq \"user\\\"'@example.com\" and origin eq \"" + Origin.UAA + "\""))
+            .thenReturn(Arrays.<ScimUser>asList());
+        user.setOrigin(Origin.LDAP);
+        Mockito.when(scimUserProvisioning.query("email eq \"user\\\"'@example.com\""))
+            .thenReturn(Arrays.asList(user));
+
+        post = post("/password_resets")
+            .contentType(APPLICATION_JSON)
+            .content("user\"'@example.com")
             .accept(APPLICATION_JSON);
 
         mockMvc.perform(post)

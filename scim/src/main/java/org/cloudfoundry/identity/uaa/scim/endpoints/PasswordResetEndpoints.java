@@ -31,10 +31,10 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.codehaus.jackson.annotate.JsonProperty;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -43,6 +43,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
@@ -53,9 +54,11 @@ public class PasswordResetEndpoints implements ApplicationEventPublisherAware {
     public static final int PASSWORD_RESET_LIFETIME = 30 * 60 * 1000;
     private final ScimUserProvisioning scimUserProvisioning;
     private final ExpiringCodeStore expiringCodeStore;
+    private final ObjectMapper objectMapper;
     private ApplicationEventPublisher publisher;
 
-    public PasswordResetEndpoints(ScimUserProvisioning scimUserProvisioning, ExpiringCodeStore expiringCodeStore) {
+    public PasswordResetEndpoints(ObjectMapper objectMapper, ScimUserProvisioning scimUserProvisioning, ExpiringCodeStore expiringCodeStore) {
+        this.objectMapper = objectMapper;
         this.scimUserProvisioning = scimUserProvisioning;
         this.expiringCodeStore = expiringCodeStore;
     }
@@ -66,10 +69,11 @@ public class PasswordResetEndpoints implements ApplicationEventPublisherAware {
     }
 
     @RequestMapping(value = "/password_resets", method = RequestMethod.POST)
-    public ResponseEntity<String> resetPassword(@RequestBody String email) {
-        List<ScimUser> results = scimUserProvisioning.query("email eq \"" + email + "\" and origin eq \"" + Origin.UAA + "\"");
+    public ResponseEntity<String> resetPassword(@RequestBody String email) throws IOException {
+        String jsonEmail = objectMapper.writeValueAsString(email);
+        List<ScimUser> results = scimUserProvisioning.query("email eq " + jsonEmail + " and origin eq \"" + Origin.UAA + "\"");
         if (results.isEmpty()) {
-            results = scimUserProvisioning.query("email eq \"" + email + "\"");
+            results = scimUserProvisioning.query("email eq " + jsonEmail);
             if (results.isEmpty()) {
                 return new ResponseEntity<>(BAD_REQUEST);
             } else {
