@@ -12,14 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
-import static org.springframework.http.HttpStatus.CREATED;
-import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
-import static org.springframework.http.HttpStatus.NOT_FOUND;
-import static org.springframework.http.HttpStatus.OK;
-import static org.springframework.http.HttpStatus.UNAUTHORIZED;
-import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
-
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
@@ -48,6 +40,14 @@ import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
 
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.CONFLICT;
+import static org.springframework.http.HttpStatus.CREATED;
+import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.OK;
+import static org.springframework.http.HttpStatus.UNAUTHORIZED;
+
 @Controller
 public class PasswordResetEndpoints implements ApplicationEventPublisherAware {
 
@@ -71,13 +71,13 @@ public class PasswordResetEndpoints implements ApplicationEventPublisherAware {
     @RequestMapping(value = "/password_resets", method = RequestMethod.POST)
     public ResponseEntity<String> resetPassword(@RequestBody String email) throws IOException {
         String jsonEmail = objectMapper.writeValueAsString(email);
-        List<ScimUser> results = scimUserProvisioning.query("email eq " + jsonEmail + " and origin eq \"" + Origin.UAA + "\"");
+        List<ScimUser> results = scimUserProvisioning.query("userName eq " + jsonEmail + " and origin eq \"" + Origin.UAA + "\"");
         if (results.isEmpty()) {
-            results = scimUserProvisioning.query("email eq " + jsonEmail);
+            results = scimUserProvisioning.query("userName eq " + jsonEmail);
             if (results.isEmpty()) {
                 return new ResponseEntity<>(BAD_REQUEST);
             } else {
-                return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
+                return new ResponseEntity<>(CONFLICT);
             }
         }
         ScimUser scimUser = results.get(0);
@@ -117,7 +117,7 @@ public class PasswordResetEndpoints implements ApplicationEventPublisherAware {
         try {
             scimUserProvisioning.changePassword(user.getId(), oldPassword, passwordChange.getNewPassword());
             publish(new PasswordChangeEvent("Password changed", getUaaUser(user), SecurityContextHolder.getContext().getAuthentication()));
-            return new ResponseEntity<String>(user.getUserName(), OK);
+            return new ResponseEntity<>(user.getUserName(), OK);
         } catch (BadCredentialsException x) {
             publish(new PasswordChangeFailureEvent(x.getMessage(), getUaaUser(user), SecurityContextHolder.getContext().getAuthentication()));
             return new ResponseEntity<>(UNAUTHORIZED);
@@ -140,7 +140,7 @@ public class PasswordResetEndpoints implements ApplicationEventPublisherAware {
         try {
             scimUserProvisioning.changePassword(userId, null, passwordChange.getNewPassword());
             publish(new PasswordChangeEvent("Password changed", getUaaUser(user), SecurityContextHolder.getContext().getAuthentication()));
-            return new ResponseEntity<String>(user.getUserName(), OK);
+            return new ResponseEntity<>(user.getUserName(), OK);
         } catch (BadCredentialsException x) {
             publish(new PasswordChangeFailureEvent(x.getMessage(), getUaaUser(user), SecurityContextHolder.getContext().getAuthentication()));
             return new ResponseEntity<>(UNAUTHORIZED);

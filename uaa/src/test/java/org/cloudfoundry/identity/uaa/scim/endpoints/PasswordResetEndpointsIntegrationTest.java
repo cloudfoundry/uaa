@@ -71,7 +71,7 @@ public class PasswordResetEndpointsIntegrationTest {
         post = post("/password_resets")
                 .header("Authorization", "Bearer " + loginToken)
                 .contentType(APPLICATION_JSON)
-                .content("marissa@test.org")
+                .content("marissa")
                 .accept(APPLICATION_JSON);
 
         MvcResult result = mockMvc.perform(post)
