@@ -17,6 +17,7 @@ import static org.mockito.Matchers.eq;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.cloudfoundry.identity.uaa.authentication.Origin;
@@ -155,7 +156,8 @@ public class PasswordResetEndpointsTest {
 
         mockMvc.perform(post)
                 .andExpect(status().isOk())
-                .andExpect(content().string("user@example.com"));
+                .andExpect(jsonPath("$.user_id").value("eyedee"))
+                .andExpect(jsonPath("$.username").value("user@example.com"));
 
         Mockito.verify(scimUserProvisioning).changePassword("eyedee", null, "new_secret");
     }
@@ -176,7 +178,8 @@ public class PasswordResetEndpointsTest {
 
         mockMvc.perform(post)
                 .andExpect(status().isOk())
-                .andExpect(content().string("user@example.com"));
+                .andExpect(jsonPath("$.user_id").value("id001"))
+                .andExpect(jsonPath("$.username").value("user@example.com"));
 
         Mockito.verify(scimUserProvisioning).changePassword("id001", "secret", "new_secret");
     }

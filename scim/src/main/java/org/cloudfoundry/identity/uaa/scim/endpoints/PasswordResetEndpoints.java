@@ -38,7 +38,9 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CONFLICT;
@@ -87,8 +89,8 @@ public class PasswordResetEndpoints implements ApplicationEventPublisherAware {
     }
 
     @RequestMapping(value = "/password_change", method = RequestMethod.POST)
-    public ResponseEntity<String> changePassword(@RequestBody PasswordChange passwordChange) {
-        ResponseEntity<String> responseEntity;
+    public ResponseEntity<Map<String,String>> changePassword(@RequestBody PasswordChange passwordChange) {
+        ResponseEntity<Map<String,String>> responseEntity;
         if (isCodeAuthenticatedChange(passwordChange)) {
             responseEntity = changePasswordCodeAuthenticated(passwordChange);
         } else if (isUsernamePasswordAuthenticatedChange(passwordChange)) {
@@ -107,7 +109,7 @@ public class PasswordResetEndpoints implements ApplicationEventPublisherAware {
         return passwordChange.getCode() != null && passwordChange.getCurrentPassword() == null && passwordChange.getUsername() == null;
     }
 
-    private ResponseEntity<String> changePasswordUsernamePasswordAuthenticated(PasswordChange passwordChange) {
+    private ResponseEntity<Map<String,String>> changePasswordUsernamePasswordAuthenticated(PasswordChange passwordChange) {
         List<ScimUser> results = scimUserProvisioning.query("userName eq \"" + passwordChange.getUsername() + "\"");
         if (results.isEmpty()) {
             return new ResponseEntity<>(BAD_REQUEST);
@@ -117,7 +119,10 @@ public class PasswordResetEndpoints implements ApplicationEventPublisherAware {
         try {
             scimUserProvisioning.changePassword(user.getId(), oldPassword, passwordChange.getNewPassword());
             publish(new PasswordChangeEvent("Password changed", getUaaUser(user), SecurityContextHolder.getContext().getAuthentication()));
-            return new ResponseEntity<>(user.getUserName(), OK);
+            Map<String,String> userInfo = new HashMap<>();
+            userInfo.put("user_id", user.getId());
+            userInfo.put("username", user.getUserName());
+            return new ResponseEntity<>(userInfo, OK);
         } catch (BadCredentialsException x) {
             publish(new PasswordChangeFailureEvent(x.getMessage(), getUaaUser(user), SecurityContextHolder.getContext().getAuthentication()));
             return new ResponseEntity<>(UNAUTHORIZED);
@@ -130,7 +135,7 @@ public class PasswordResetEndpoints implements ApplicationEventPublisherAware {
         }
     }
 
-    private ResponseEntity<String> changePasswordCodeAuthenticated(PasswordChange passwordChange) {
+    private ResponseEntity<Map<String,String>> changePasswordCodeAuthenticated(PasswordChange passwordChange) {
         ExpiringCode expiringCode = expiringCodeStore.retrieveCode(passwordChange.getCode());
         if (expiringCode == null) {
             return new ResponseEntity<>(BAD_REQUEST);
@@ -140,7 +145,10 @@ public class PasswordResetEndpoints implements ApplicationEventPublisherAware {
         try {
             scimUserProvisioning.changePassword(userId, null, passwordChange.getNewPassword());
             publish(new PasswordChangeEvent("Password changed", getUaaUser(user), SecurityContextHolder.getContext().getAuthentication()));
-            return new ResponseEntity<>(user.getUserName(), OK);
+            Map<String,String> userInfo = new HashMap<>();
+            userInfo.put("user_id", user.getId());
+            userInfo.put("username", user.getUserName());
+            return new ResponseEntity<>(userInfo, OK);
         } catch (BadCredentialsException x) {
             publish(new PasswordChangeFailureEvent(x.getMessage(), getUaaUser(user), SecurityContextHolder.getContext().getAuthentication()));
             return new ResponseEntity<>(UNAUTHORIZED);

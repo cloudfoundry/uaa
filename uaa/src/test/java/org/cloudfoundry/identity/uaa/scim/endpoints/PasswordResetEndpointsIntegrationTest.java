@@ -29,7 +29,7 @@ import org.springframework.web.context.support.AnnotationConfigWebApplicationCon
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class PasswordResetEndpointsIntegrationTest {
@@ -88,7 +88,8 @@ public class PasswordResetEndpointsIntegrationTest {
 
         mockMvc.perform(post)
                 .andExpect(status().isOk())
-                .andExpect(content().string(testAccounts.getUserName()));
+                .andExpect(jsonPath("$.user_id").exists())
+                .andExpect(jsonPath("$.username").value(testAccounts.getUserName()));
     }
 
     @Test
@@ -101,6 +102,7 @@ public class PasswordResetEndpointsIntegrationTest {
 
         mockMvc.perform(post)
                 .andExpect(status().isOk())
-                .andExpect(content().string(testAccounts.getUserName()));
+                .andExpect(jsonPath("$.user_id").exists())
+                .andExpect(jsonPath("$.username").value(testAccounts.getUserName()));
     }
 }
