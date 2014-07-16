@@ -15,9 +15,11 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -25,18 +27,20 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.springframework.security.oauth2.provider.BaseClientDetails;
+import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.sql.Timestamp;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -45,19 +49,29 @@ public class CreateAccountEndpointsTest {
     private MockMvc mockMvc;
     private ScimUserProvisioning scimUserProvisioning;
     private ExpiringCodeStore expiringCodeStore;
+    private QueryableResourceManager<ClientDetails> clientDetailsService;
 
     @Before
     public void setUp() throws Exception {
         scimUserProvisioning = Mockito.mock(ScimUserProvisioning.class);
         expiringCodeStore = Mockito.mock(ExpiringCodeStore.class);
-        CreateAccountEndpoints controller = new CreateAccountEndpoints(scimUserProvisioning, expiringCodeStore);
+        clientDetailsService = Mockito.mock(QueryableResourceManager.class);
+        CreateAccountEndpoints controller = new CreateAccountEndpoints(new ObjectMapper(), clientDetailsService, scimUserProvisioning, expiringCodeStore);
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 
     @Test
     public void testCreatingAnAccountWithAValidCode() throws Exception {
         Mockito.when(expiringCodeStore.retrieveCode("secret_code"))
-                .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis()), "user@example.com"));
+                .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis()), "{\"username\":\"user@example.com\",\"client_id\":\"app\"}"));
+
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        Map<String, String> additionalInformation = new HashMap<>();
+        additionalInformation.put(CreateAccountEndpoints.SIGNUP_SUCCESS_REDIRECT_URL, "app_callback_url");
+        clientDetails.setAdditionalInformation(additionalInformation);
+
+        Mockito.when(clientDetailsService.retrieve("app"))
+            .thenReturn(clientDetails);
 
         Mockito.when(scimUserProvisioning.createUser(any(ScimUser.class), eq("secret")))
             .thenAnswer(new Answer<ScimUser>() {
@@ -77,7 +91,8 @@ public class CreateAccountEndpointsTest {
         mockMvc.perform(post)
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.user_id").exists())
-                .andExpect(jsonPath("$.username").value("user@example.com"));
+                .andExpect(jsonPath("$.username").value("user@example.com"))
+                .andExpect(jsonPath("$.redirect_location").value("app_callback_url"));
 
         ArgumentCaptor<ScimUser> scimUserCaptor = ArgumentCaptor.forClass(ScimUser.class);
         Mockito.verify(scimUserProvisioning).createUser(scimUserCaptor.capture(), eq("secret"));
@@ -101,7 +116,10 @@ public class CreateAccountEndpointsTest {
     @Test
     public void testCreatingAnAccountWhenTheEmailAlreadyExists() throws Exception {
         Mockito.when(expiringCodeStore.retrieveCode("secret_code"))
-                .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis()), "user@example.com"));
+                .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis()), "{\"username\":\"user@example.com\",\"client_id\":\"login\"}"));
+
+        Mockito.when(clientDetailsService.retrieve("login"))
+            .thenReturn(new BaseClientDetails());
 
         Mockito.when(scimUserProvisioning.createUser(any(ScimUser.class), eq("secret")))
                 .thenThrow(new ScimResourceAlreadyExistsException("User already exists"));

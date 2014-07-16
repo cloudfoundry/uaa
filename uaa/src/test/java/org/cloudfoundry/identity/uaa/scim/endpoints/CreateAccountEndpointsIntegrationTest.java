@@ -34,9 +34,9 @@ import org.springframework.web.context.WebApplicationContext;
 import java.security.SecureRandom;
 import java.sql.Timestamp;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -72,7 +72,7 @@ public class CreateAccountEndpointsIntegrationTest {
 
         String postJson = "{" +
                 "    \"expiresAt\":\"" + ts.getTime() + "\"," +
-                "    \"data\":\"" + username + "\"" +
+                "    \"data\":\"{\\\"username\\\":\\\"" + username + "\\\",\\\"client_id\\\":\\\"login\\\"}\"" +
                 "}";
 
         MockHttpServletRequestBuilder post = post("/Codes")
@@ -96,6 +96,7 @@ public class CreateAccountEndpointsIntegrationTest {
         mockMvc.perform(post)
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.user_id").exists())
-                .andExpect(jsonPath("$.username").value(username));
+                .andExpect(jsonPath("$.username").value(username))
+                .andExpect(jsonPath("$.redirect_location").value(nullValue()));
     }
 }

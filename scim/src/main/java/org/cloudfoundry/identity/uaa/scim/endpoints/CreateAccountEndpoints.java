@@ -15,19 +15,21 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.codehaus.jackson.annotate.JsonProperty;
-import org.springframework.context.ApplicationEvent;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.ApplicationEventPublisherAware;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.type.TypeReference;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -39,26 +41,36 @@ import static org.springframework.http.HttpStatus.CREATED;
 @Controller
 public class CreateAccountEndpoints {
 
+    public static final String SIGNUP_SUCCESS_REDIRECT_URL = "SIGNUP_SUCCESS_REDIRECT_URL";
+
+    private final ObjectMapper objectMapper;
+    private final QueryableResourceManager<ClientDetails> clientDetailsService;
     private final ScimUserProvisioning scimUserProvisioning;
     private final ExpiringCodeStore expiringCodeStore;
 
-    public CreateAccountEndpoints(ScimUserProvisioning scimUserProvisioning, ExpiringCodeStore expiringCodeStore) {
+    public CreateAccountEndpoints(ObjectMapper objectMapper, QueryableResourceManager<ClientDetails> clientDetailsService, ScimUserProvisioning scimUserProvisioning, ExpiringCodeStore expiringCodeStore) {
+        this.objectMapper = objectMapper;
+        this.clientDetailsService = clientDetailsService;
         this.scimUserProvisioning = scimUserProvisioning;
         this.expiringCodeStore = expiringCodeStore;
     }
 
     @RequestMapping(value = "/create_account", method = RequestMethod.POST)
-    public ResponseEntity<Map<String,String>> changePassword(@RequestBody AccountCreation accountCreation) {
+    public ResponseEntity<Map<String,String>> changePassword(@RequestBody AccountCreation accountCreation) throws IOException {
         ResponseEntity<Map<String,String>> responseEntity;
 
         ExpiringCode expiringCode = expiringCodeStore.retrieveCode(accountCreation.getCode());
         if (expiringCode != null) {
             try {
-                String email = expiringCode.getData();
+                Map<String, String> data = objectMapper.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
+                String email = data.get("username");
+                String clientId = data.get("client_id");
+                ClientDetails clientDetails = clientDetailsService.retrieve(clientId);
+                String redirectLocation = (String) clientDetails.getAdditionalInformation().get(SIGNUP_SUCCESS_REDIRECT_URL);
+
                 ScimUser user = scimUserProvisioning.createUser(newScimUser(email), accountCreation.getPassword());
-                Map<String, String> response = new HashMap<>();
-                response.put("user_id", user.getId());
-                response.put("username", user.getUserName());
+
+                Map<String, String> response = accountCreationResponse(user, redirectLocation);
                 responseEntity = new ResponseEntity<>(response, CREATED);
             } catch (ScimResourceAlreadyExistsException e) {
                 responseEntity = new ResponseEntity<>(CONFLICT);
@@ -68,6 +80,14 @@ public class CreateAccountEndpoints {
         }
 
         return responseEntity;
+    }
+
+    private Map<String, String> accountCreationResponse(ScimUser user, String redirectLocation) {
+        Map<String, String> response = new HashMap<>();
+        response.put("user_id", user.getId());
+        response.put("username", user.getUserName());
+        response.put("redirect_location", redirectLocation);
+        return response;
     }
 
     private ScimUser newScimUser(String emailAddress) {
