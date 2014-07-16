@@ -80,8 +80,11 @@ public class ClientAdminBootstrap implements InitializingBean {
      * @param clients the clients to set
      */
     public void setClients(Map<String, Map<String, Object>> clients) {
-        this.clients = clients == null ? Collections.<String, Map<String, Object>> emptyMap()
-                        : new HashMap<String, Map<String, Object>>(clients);
+        if (clients == null) {
+            this.clients = Collections.emptyMap();
+        } else {
+            this.clients = new HashMap<>(clients);
+        }
     }
 
     /**

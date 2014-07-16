@@ -41,7 +41,7 @@ import static org.springframework.http.HttpStatus.CREATED;
 @Controller
 public class CreateAccountEndpoints {
 
-    public static final String SIGNUP_SUCCESS_REDIRECT_URL = "SIGNUP_SUCCESS_REDIRECT_URL";
+    public static final String SIGNUP_SUCCESS_REDIRECT_URL = "signup-success-redirect-url";
 
     private final ObjectMapper objectMapper;
     private final QueryableResourceManager<ClientDetails> clientDetailsService;
