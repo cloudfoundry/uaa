@@ -17,6 +17,16 @@ buildscript {
 }
 
 ext {
+  databaseType = {
+    List activeProfiles = System.getProperty('spring.profiles.active', 'default').split(',')
+    if (activeProfiles.contains('mysql')) {
+      'mysql'
+    } else if (activeProfiles.contains('postgresql')) {
+      'postgresql'
+    } else {
+      'hsqldb'
+    }
+  }
   integrationCoverageFile = file("$buildDir/integration.ser")
 }
 
@@ -235,14 +245,3 @@ cobertura {
 
 assemble.dependsOn subprojects.assemble
 test.dependsOn subprojects.test
-
-def databaseType() {
-  List activeProfiles = System.getProperty('spring.profiles.active', 'default').split(',')
-  if (activeProfiles.contains('mysql')) {
-    'mysql'
-  } else if (activeProfiles.contains('postgresql')) {
-    'postgresql'
-  } else {
-    'hsqldb'
-  }
-}
