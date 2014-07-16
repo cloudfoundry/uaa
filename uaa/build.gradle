@@ -48,7 +48,7 @@ test {
 }
 
 task integrationTest(type: Test) {
-  dependsOn parent.prepareDatabase, parent.resetCoverage
+  dependsOn parent.cargoStartLocal, parent.resetCoverage
 
   finalizedBy parent.flushCoverageData
 
