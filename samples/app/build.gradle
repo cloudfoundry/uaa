@@ -22,9 +22,9 @@ test {
 }
 
 task integrationTest(type: Test) {
-  dependsOn prepareDatabase, parent.parent.resetCoverage
+  dependsOn parent.parent.prepareDatabase, parent.parent.resetCoverage
 
-  finalizedBy flushCoverageData
+  finalizedBy parent.parent.flushCoverageData
 
   filter {
     includeTestsMatching "org.cloudfoundry.identity.app.integration.*"

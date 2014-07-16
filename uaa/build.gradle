@@ -48,9 +48,9 @@ test {
 }
 
 task integrationTest(type: Test) {
-  dependsOn prepareDatabase, parent.resetCoverage
+  dependsOn parent.prepareDatabase, parent.resetCoverage
 
-  finalizedBy flushCoverageData
+  finalizedBy parent.flushCoverageData
 
   filter {
     includeTestsMatching "org.cloudfoundry.identity.uaa.integration.*"

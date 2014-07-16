@@ -107,38 +107,6 @@ subprojects {
     destinationDir = file("$buildDir/instrumented_libs")
     onlyIf { runningWithCoverage() }
   }
-
-  apply plugin: 'flyway'
-
-  flyway {
-    switch (databaseType()) {
-      case 'mysql':
-        driver = 'org.mariadb.jdbc.Driver'
-        url = 'jdbc:mysql://localhost:3306/uaa'
-        user = 'root'
-        password = 'changeme'
-        schemas = ['uaa']
-        break
-      case 'postgresql':
-        driver = 'org.postgresql.Driver'
-        url = 'jdbc:postgresql:uaa'
-        user = 'root'
-        password = 'changeme'
-        break
-    }
-  }
-
-  task prepareDatabase {
-    dependsOn { databaseType().equals('hsqldb') ? null : flywayClean }
-    finalizedBy { rootProject.tasks.findByName('cargoStartLocal') }
-  }
-
-  task flushCoverageData(type: Exec) {
-    commandLine "curl", "-s", "-v", "-X", "POST", "http://localhost:8080/uaa/healthz/coverage/flush"
-
-    finalizedBy { rootProject.tasks.findByName('cargoStopLocal') }
-    onlyIf { runningWithCoverage() }
-  }
 }
 
 configurations {
@@ -151,10 +119,45 @@ dependencies {
   }
 }
 
+apply plugin: 'flyway'
+
+flyway {
+  switch (databaseType()) {
+    case 'mysql':
+      driver = 'org.mariadb.jdbc.Driver'
+      url = 'jdbc:mysql://localhost:3306/uaa'
+      user = 'root'
+      password = 'changeme'
+      schemas = ['uaa']
+      break
+    case 'postgresql':
+      driver = 'org.postgresql.Driver'
+      url = 'jdbc:postgresql:uaa'
+      user = 'root'
+      password = 'changeme'
+      break
+  }
+}
+
+task prepareDatabase {
+  dependsOn { databaseType().equals('hsqldb') ? null : flywayClean }
+}
+
+task resetCoverage(type: Delete) {
+  delete integrationCoverageFile
+  onlyIf { runningWithCoverage() }
+}
+
 apply plugin: 'cargo'
 
-cargoStartLocal.dependsOn assemble
+cargoStartLocal.dependsOn assemble, prepareDatabase
 cargoRunLocal.dependsOn assemble
+
+task flushCoverageData(type: Exec) {
+  commandLine "curl", "-s", "-v", "-X", "POST", "http://localhost:8080/uaa/healthz/coverage/flush"
+  finalizedBy cargoStopLocal
+  onlyIf { runningWithCoverage() }
+}
 
 task run(dependsOn: cargoRunLocal)
 
@@ -232,12 +235,6 @@ cobertura {
 
 assemble.dependsOn subprojects.assemble
 test.dependsOn subprojects.test
-
-task resetCoverage(type: Delete) {
-  delete integrationCoverageFile
-
-  onlyIf { runningWithCoverage() }
-}
 
 def databaseType() {
   List activeProfiles = System.getProperty('spring.profiles.active', 'default').split(',')
