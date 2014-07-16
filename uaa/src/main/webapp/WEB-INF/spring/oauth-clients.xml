@@ -95,6 +95,7 @@
                                     <value>openid</value>
                                 </list>
                             </entry>
+                            <entry key="signup-success-redirect-url" value="http://localhost:8080/app/" />
                         </map>
                     </entry>
                     <entry key="login">
