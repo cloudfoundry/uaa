@@ -7,7 +7,7 @@ dependencies {
   compile(group: 'org.apache.directory.api', name: 'api-ldap-model', version:'1.0.0-M22') {
     exclude(module: 'slf4j-api')
   }
-  compile group: 'org.springframework.security', name: 'spring-security-jwt', version:'1.0.1.RELEASE'
+  compile group: 'org.springframework.security', name: 'spring-security-jwt', version:'1.0.2.RELEASE'
   compile(group: 'org.springframework.security.oauth', name: 'spring-security-oauth2', version:parent.springSecurityOAuthVersion) {
     exclude(module: 'commons-codec')
   }
@@ -54,4 +54,10 @@ dependencies {
   testCompile group: 'postgresql', name: 'postgresql', version:parent.postgresqlVersion
   testCompile group: 'org.mockito', name: 'mockito-all', version:'1.8.5'
   testCompile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatVersion
+}
+
+processResources {
+  //maven replaces project.artifactId in the log4j.properties file
+  //https://www.pivotaltracker.com/story/show/74344574
+  filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}','cloudfoundry-identity-common') : line }
 }

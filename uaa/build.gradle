@@ -3,6 +3,13 @@ Project identityScim = parent.subprojects.find { it.name.equals('cloudfoundry-id
 
 apply plugin: 'war'
 
+processResources {
+  //maven replaces project.artifactId in the log4j.properties file
+  //https://www.pivotaltracker.com/story/show/74344574
+  from(new File('../common/src/main/resources/log4j.properties'))
+  filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}','cloudfoundry-identity-uaa') : line }
+}
+
 war {
     //workaround for maven <scope>optional</scope>
     rootSpec.exclude("**/spring-security-oauth-*.jar")

@@ -14,6 +14,13 @@ dependencies {
 
 test.dependsOn identityCommon.instrumentedJar
 
+processResources {
+  //maven replaces project.artifactId in the log4j.properties file
+  //https://www.pivotaltracker.com/story/show/74344574
+  from(new File('../common/src/main/resources/log4j.properties'))
+  filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}','cloudfoundry-identity-scim') : line }
+}
+
 project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
   if (runningWithCoverage()) {
     test {
