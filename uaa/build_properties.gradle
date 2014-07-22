@@ -1,3 +1,17 @@
+import org.eclipse.jgit.storage.file.FileRepositoryBuilder
+import org.eclipse.jgit.revwalk.RevWalk
+import java.text.SimpleDateFormat
+
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+
+  dependencies {
+    classpath group: 'org.eclipse.jgit', name: 'org.eclipse.jgit', version: '3.4.1.201406201815-r'
+  }
+}
+
 task mainOutputResourcesDir {
     sourceSets.main.output.resourcesDir.mkdirs()
 }
@@ -5,15 +19,16 @@ task mainOutputResourcesDir {
 task gitInfo {
     dependsOn mainOutputResourcesDir
 
-    def os = new FileOutputStream("${sourceSets.main.resources.srcDirs.find()}/git.properties")
-    def es = new ByteArrayOutputStream()
-    def cmd = "git show -s --format=git.commit.id.abbrev=%h%ngit.commit.time=%ai"
-    def proc = cmd.execute()
-    proc.consumeProcessOutput(os, es)
-    proc.waitForOrKill(3000)
-    if (proc.exitValue() != 0) {
-        throw new TaskExecutionException(gitInfo, new Exception(new String(es.toByteArray())))
-    }
+    def builder = new FileRepositoryBuilder()
+    def repository = builder.findGitDir().build()
+    def objectId = repository.resolve("HEAD")
+    def commit = new RevWalk(repository).parseCommit(objectId)
+
+    def props = new Properties()
+    props.setProperty("git.commit.id.abbrev", commit.getId().getName().substring(0,7))
+    props.setProperty("git.commit.time", new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").format(commit.getAuthorIdent().getWhen()))
+
+    props.store(new FileOutputStream("${sourceSets.main.resources.srcDirs.find()}/git.properties"), "DO NOT EDIT. This is generated file.")
 }
 
 task buildInfo {
