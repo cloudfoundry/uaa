@@ -72,12 +72,12 @@ public class ClientAdminBootstrapTests {
         map.put("scope", "openid");
         map.put("authorized-grant-types", "authorization_code");
         map.put("authorities", "uaa.none");
-        map.put("signup-success-redirect-url", "callback_url");
+        map.put("signup_redirect_url", "callback_url");
         BaseClientDetails output = new BaseClientDetails("foo", "none", "openid", "authorization_code,refresh_token",
                         "uaa.none");
         output.setClientSecret("bar");
         Map<String, String> additionalInformation = new HashMap<>();
-        additionalInformation.put("signup-success-redirect-url", "callback_url");
+        additionalInformation.put("signup_redirect_url", "callback_url");
         output.setAdditionalInformation(additionalInformation);
         doSimpleTest(map, output);
     }

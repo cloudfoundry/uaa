@@ -67,7 +67,7 @@ public class CreateAccountEndpointsTest {
 
         BaseClientDetails clientDetails = new BaseClientDetails();
         Map<String, String> additionalInformation = new HashMap<>();
-        additionalInformation.put(CreateAccountEndpoints.SIGNUP_SUCCESS_REDIRECT_URL, "app_callback_url");
+        additionalInformation.put(CreateAccountEndpoints.SIGNUP_REDIRECT_URL, "app_callback_url");
         clientDetails.setAdditionalInformation(additionalInformation);
 
         Mockito.when(clientDetailsService.retrieve("app"))

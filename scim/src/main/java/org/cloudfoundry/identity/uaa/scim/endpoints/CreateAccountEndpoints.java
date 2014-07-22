@@ -41,7 +41,7 @@ import static org.springframework.http.HttpStatus.CREATED;
 @Controller
 public class CreateAccountEndpoints {
 
-    public static final String SIGNUP_SUCCESS_REDIRECT_URL = "signup-success-redirect-url";
+    public static final String SIGNUP_REDIRECT_URL = "signup_redirect_url";
 
     private final ObjectMapper objectMapper;
     private final QueryableResourceManager<ClientDetails> clientDetailsService;
@@ -66,7 +66,7 @@ public class CreateAccountEndpoints {
                 String email = data.get("username");
                 String clientId = data.get("client_id");
                 ClientDetails clientDetails = clientDetailsService.retrieve(clientId);
-                String redirectLocation = (String) clientDetails.getAdditionalInformation().get(SIGNUP_SUCCESS_REDIRECT_URL);
+                String redirectLocation = (String) clientDetails.getAdditionalInformation().get(SIGNUP_REDIRECT_URL);
 
                 ScimUser user = scimUserProvisioning.createUser(newScimUser(email), accountCreation.getPassword());
 
