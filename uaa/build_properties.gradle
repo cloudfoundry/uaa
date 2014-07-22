@@ -20,7 +20,7 @@ task gitInfo {
     dependsOn mainOutputResourcesDir
 
     def builder = new FileRepositoryBuilder()
-    def repository = builder.findGitDir().build()
+    def repository = builder.findGitDir(projectDir).build()
     def objectId = repository.resolve("HEAD")
     def commit = new RevWalk(repository).parseCommit(objectId)
 
