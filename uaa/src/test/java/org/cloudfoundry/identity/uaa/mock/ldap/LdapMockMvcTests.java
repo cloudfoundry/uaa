@@ -136,7 +136,7 @@ public class LdapMockMvcTests {
 
     public void setUp() throws Exception {
         System.setProperty("ldap.profile.file", "ldap/"+ldapProfile);
-        System.setProperty("ldap.profile.groups.file", "ldap/"+ldapGroup);
+        System.setProperty("ldap.groups.file", "ldap/"+ldapGroup);
         System.setProperty("ldap.group.maxSearchDepth", "10");
 
         webApplicationContext = new AnnotationConfigWebApplicationContext();

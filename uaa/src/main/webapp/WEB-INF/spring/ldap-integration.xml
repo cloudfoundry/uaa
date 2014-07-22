@@ -39,14 +39,14 @@
     </bean>
 
     <import resource="${ldap.profile.file:ldap/ldap-simple-bind.xml}" />
-    <import resource="${ldap.profile.groups.file:ldap/ldap-groups-null.xml}" />
+    <import resource="${ldap.groups.file:ldap/ldap-groups-null.xml}" />
 
     <security:authentication-manager id="ldapAuthenticationManager">
         <sec:authentication-provider ref="ldapAuthProvider"/>
     </security:authentication-manager>
 
     <bean id="autoAddAuthorities" class="java.lang.Boolean">
-        <constructor-arg value="${ldap.group.autoAdd:true}"/>
+        <constructor-arg value="${ldap.groups.autoAdd:true}"/>
     </bean>
 
     <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">
