@@ -46,8 +46,6 @@ dependencies {
   providedCompile group: 'javax.servlet.jsp', name: 'jsp-api', version:'2.1'
 }
 
-apply from: 'build_properties.gradle'
-
 test {
   dependsOn identityCommon.instrumentedJar, identityScim.instrumentedJar
 
