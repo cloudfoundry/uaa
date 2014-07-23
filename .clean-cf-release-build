@@ -1,26 +1,26 @@
 set -e -x
 
 #clean up source code, we don't need that anymore
-rm -rf ${BUILD_DIR}/uaa/scim
 rm -rf ${BUILD_DIR}/uaa/common
-rm -rf ${BUILD_DIR}/uaa/gatling
-rm -rf ${BUILD_DIR}/uaa/samples
 rm -rf ${BUILD_DIR}/uaa/docs
+rm -rf ${BUILD_DIR}/uaa/gatling
+rm -rf ${BUILD_DIR}/uaa/gem
+rm -rf ${BUILD_DIR}/uaa/gradle
+rm -rf ${BUILD_DIR}/uaa/samples
+rm -rf ${BUILD_DIR}/uaa/scim
+rm -rf ${BUILD_DIR}/uaa/scripts
 rm -rf ${BUILD_DIR}/uaa/uaa
 
-rm -f ${BUILD_DIR}/uaa/README.md
-rm -f ${BUILD_DIR}/uaa/NOTICE
-rm -f ${BUILD_DIR}/uaa/scripts/travis/run-script.sh
-rm -f ${BUILD_DIR}/uaa/scripts/travis/travis_after_all.py
-rm -f ${BUILD_DIR}/uaa/scripts/travis/settings.xml.enc
-rm -f ${BUILD_DIR}/uaa/.travis.yml
-rm -f ${BUILD_DIR}/uaa/scripts/cobertura/cobertura-instrument.sh
-rm -f ${BUILD_DIR}/uaa/scripts/cobertura/cobertura-report.sh
+rm -f ${BUILD_DIR}/uaa/.git
 rm -f ${BUILD_DIR}/uaa/.gitignore
 rm -f ${BUILD_DIR}/uaa/.gitreview
-rm -f ${BUILD_DIR}/uaa/cloudfoundry*.iml
-rm -f ${BUILD_DIR}/uaa/settings.gradle
+rm -f ${BUILD_DIR}/uaa/.travis.yml
 rm -f ${BUILD_DIR}/uaa/build.gradle
-rm -f ${BUILD_DIR}/uaa/shared_versions.gradle
 rm -f ${BUILD_DIR}/uaa/gradle.properties
+rm -f ${BUILD_DIR}/uaa/gradlew
+rm -f ${BUILD_DIR}/uaa/gradlew.bat
 rm -f ${BUILD_DIR}/uaa/LICENSE
+rm -f ${BUILD_DIR}/uaa/NOTICE
+rm -f ${BUILD_DIR}/uaa/README.md
+rm -f ${BUILD_DIR}/uaa/settings.gradle
+rm -f ${BUILD_DIR}/uaa/shared_versions.gradle
