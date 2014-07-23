@@ -1,6 +1,7 @@
 set -e -x
 
 #clean up source code, we don't need that anymore
+rm -rf ${BUILD_DIR}/uaa/.gradle
 rm -rf ${BUILD_DIR}/uaa/common
 rm -rf ${BUILD_DIR}/uaa/docs
 rm -rf ${BUILD_DIR}/uaa/gatling
