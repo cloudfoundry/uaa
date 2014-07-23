@@ -18,15 +18,30 @@ task mainOutputResourcesDir {
 
 task gitInfo {
     dependsOn mainOutputResourcesDir
-
-    def builder = new FileRepositoryBuilder()
-    def repository = builder.findGitDir(projectDir).readEnvironment().build()
-    def objectId = repository.resolve("HEAD")
-    def commit = new RevWalk(repository).parseCommit(objectId)
+    myProps = System.properties
+    gitSearchDir = projectDir
+    if ( myProps !=null && null != myProps.getProperty('dot.git.directory') ) {
+      gitSearchDir = new File(myProps.getProperty('dot.git.directory'))
+    }
 
     def props = new Properties()
-    props.setProperty("git.commit.id.abbrev", commit.getId().getName().substring(0,7))
-    props.setProperty("git.commit.time", new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").format(commit.getAuthorIdent().getWhen()))
+
+    if ( gitSearchDir.exists() ) {
+      try {
+          def builder = new FileRepositoryBuilder(gitSearchDir)
+          def repository = builder.findGitDir(projectDir).build()
+          def objectId = repository.resolve("HEAD")
+          def commit = new RevWalk(repository).parseCommit(objectId)
+          props.setProperty("git.commit.id.abbrev", commit.getId().getName().substring(0,7))
+          props.setProperty("git.commit.time", new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").format(commit.getAuthorIdent().getWhen()))
+      } catch (e) {
+        props.setProperty("git.commit.id.abbrev", "failure-git-properties-not-found")
+        props.setProperty("git.commit.time", new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").format(new java.util.Date()))
+      }
+    } else {
+      props.setProperty("git.commit.id.abbrev", "unknown-git-directory-not-found")
+      props.setProperty("git.commit.time", new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").format(new java.util.Date()))
+    }
 
     props.store(new FileOutputStream("${sourceSets.main.resources.srcDirs.find()}/git.properties"), "DO NOT EDIT. This is generated file.")
 }
