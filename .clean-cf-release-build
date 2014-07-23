@@ -19,5 +19,8 @@ rm -f ${BUILD_DIR}/uaa/scripts/cobertura/cobertura-report.sh
 rm -f ${BUILD_DIR}/uaa/.gitignore
 rm -f ${BUILD_DIR}/uaa/.gitreview
 rm -f ${BUILD_DIR}/uaa/cloudfoundry*.iml
-rm -f ${BUILD_DIR}/uaa/pom.xml
+rm -f ${BUILD_DIR}/uaa/settings.gradle
+rm -f ${BUILD_DIR}/uaa/build.gradle
+rm -f ${BUILD_DIR}/uaa/shared_versions.gradle
+rm -f ${BUILD_DIR}/uaa/gradle.properties
 rm -f ${BUILD_DIR}/uaa/LICENSE
