@@ -222,22 +222,22 @@
         </property>
     </bean>
 
-    <bean id="abstractAuthzAuthenticationMgr" abstract="true" class="org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager">
-        <constructor-arg ref="userDatabase" />
-        <property name="accountLoginPolicy">
-            <bean class="org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy">
-                <constructor-arg ref="jdbcAuditService" />
-                <property name="lockoutAfterFailures"
-                  value="#{@applicationProperties.containsKey('oauth.endpoint.lockoutAfterFailures')?@config['oauth']['endpoint']['lockoutAfterFailures']:'5'}" />
-                <property name="countFailuresWithin"
-                  value="#{@applicationProperties.containsKey('oauth.endpoint.countFailuresWithinSeconds')?@config['oauth']['endpoint']['countFailuresWithinSeconds']:'3600'}" />
-                <property name="lockoutPeriodSeconds"
-                  value="#{@applicationProperties.containsKey('oauth.endpoint.lockoutPeriodSeconds')?@config['oauth']['endpoint']['lockoutPeriodSeconds']:'300'}" />
-            </bean>
-        </property>
-        <property name="origin" value="uaa"/>
+    <bean id="periodLockoutPolicy" class="org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy">
+        <constructor-arg ref="jdbcAuditService"/>
+        <property name="lockoutAfterFailures"
+                  value="${authentication.policy.lockoutAfterFailures:5}"/>
+        <property name="countFailuresWithin"
+                  value="${authentication.policy.countFailuresWithinSeconds:3600}"/>
+        <property name="lockoutPeriodSeconds"
+                  value="${authentication.policy.lockoutPeriodSeconds:300}"/>
     </bean>
 
+    <bean id="abstractAuthzAuthenticationMgr" abstract="true"
+          class="org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager">
+        <constructor-arg ref="userDatabase"/>
+        <property name="accountLoginPolicy" ref="periodLockoutPolicy"/>
+        <property name="origin" value="uaa"/>
+    </bean>
     <bean id="uaaAuthenticationMgr" parent="abstractAuthzAuthenticationMgr"/>
 
     <bean id="authzAuthenticationMgr" parent="abstractAuthzAuthenticationMgr"/>

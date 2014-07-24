@@ -99,6 +99,18 @@ public class PeriodLockoutPolicy implements AccountLoginPolicy {
         this.countFailuresWithinMs = interval * 1000;
     }
 
+    public int getLockoutPeriodSeconds() {
+        return lockoutPeriodMs / 1000;
+    }
+
+    public int getLockoutAfterFailures() {
+        return lockoutAfterFailures;
+    }
+
+    public int getCountFailuresWithin() {
+        return countFailuresWithinMs / 1000;
+    }
+
     private AuditEvent mostRecentFailure(List<AuditEvent> events) {
         for (AuditEvent event : events) {
             if (event.getType() == AuditEventType.UserAuthenticationFailure) {
