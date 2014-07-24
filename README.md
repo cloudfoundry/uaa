@@ -37,7 +37,10 @@ You can also build the app and push it to Cloud Foundry, e.g.
     $ cf set-env myuaa SPRING_PROFILES_ACTIVE default
     $ cf start myuaa
 
-(If you do that, choose a unique application id, not 'myuaa'.)
+In the steps above, replace:
+  
+* `myuaa` with a unique application name
+* `1.6.3-SNAPSHOT` with the approrpiate version label from your build
 
 ### Demo of command line usage on local server
 
