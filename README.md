@@ -40,7 +40,7 @@ You can also build the app and push it to Cloud Foundry, e.g.
 In the steps above, replace:
   
 * `myuaa` with a unique application name
-* `1.6.3-SNAPSHOT` with the approrpiate version label from your build
+* `1.6.3-SNAPSHOT` with the appropriate version label from your build
 
 ### Demo of command line usage on local server
 
