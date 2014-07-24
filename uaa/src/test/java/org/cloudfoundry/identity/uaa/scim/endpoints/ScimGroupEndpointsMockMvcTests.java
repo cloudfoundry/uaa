@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.rest.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.test.DefaultIntegrationTestConfig;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.After;
@@ -33,7 +34,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.support.XmlWebApplicationContext;
+import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,7 +49,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 public class ScimGroupEndpointsMockMvcTests {
 
-    private XmlWebApplicationContext webApplicationContext;
+    private AnnotationConfigWebApplicationContext webApplicationContext;
     private MockMvc mockMvc;
     private String scimToken;
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
@@ -56,10 +57,10 @@ public class ScimGroupEndpointsMockMvcTests {
 
     @Before
     public void setUp() throws Exception {
-        webApplicationContext = new XmlWebApplicationContext();
+        webApplicationContext = new AnnotationConfigWebApplicationContext();
         webApplicationContext.setServletContext(new MockServletContext());
         new YamlServletProfileInitializer().initialize(webApplicationContext);
-        webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        webApplicationContext.register(DefaultIntegrationTestConfig.class);
         webApplicationContext.refresh();
         webApplicationContext.registerShutdownHook();
 

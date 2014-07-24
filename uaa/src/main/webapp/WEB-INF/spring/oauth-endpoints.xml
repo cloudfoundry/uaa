@@ -13,16 +13,13 @@
 
 -->
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
-       xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
-       xmlns:util="http://www.springframework.org/schema/util"
-       xmlns:aop="http://www.springframework.org/schema/aop"
-       xmlns:context="http://www.springframework.org/schema/context"
-       xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-1.0.xsd
+    xmlns:oauth="http://www.springframework.org/schema/security/oauth2" xmlns:util="http://www.springframework.org/schema/util"
+    xmlns:aop="http://www.springframework.org/schema/aop"
+    xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-1.0.xsd
 		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.2.xsd
 		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
 		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.0.xsd
-		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.0.xsd
-		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.0.xsd">
 
     <oauth:authorization-server client-details-service-ref="jdbcClientDetailsService"
         token-services-ref="tokenServices" user-approval-handler-ref="userManagedApprovalHandler"
@@ -225,6 +222,24 @@
         </property>
     </bean>
 
-    <context:annotation-config />
-    <bean class="org.cloudfoundry.identity.uaa.AuthenticationManagerConfig" />
+    <bean id="abstractAuthzAuthenticationMgr" abstract="true" class="org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager">
+        <constructor-arg ref="userDatabase" />
+        <property name="accountLoginPolicy">
+            <bean class="org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy">
+                <constructor-arg ref="jdbcAuditService" />
+                <property name="lockoutAfterFailures"
+                  value="#{@applicationProperties.containsKey('oauth.endpoint.lockoutAfterFailures')?@config['oauth']['endpoint']['lockoutAfterFailures']:'5'}" />
+                <property name="countFailuresWithin"
+                  value="#{@applicationProperties.containsKey('oauth.endpoint.countFailuresWithinSeconds')?@config['oauth']['endpoint']['countFailuresWithinSeconds']:'3600'}" />
+                <property name="lockoutPeriodSeconds"
+                  value="#{@applicationProperties.containsKey('oauth.endpoint.lockoutPeriodSeconds')?@config['oauth']['endpoint']['lockoutPeriodSeconds']:'300'}" />
+            </bean>
+        </property>
+        <property name="origin" value="uaa"/>
+    </bean>
+
+    <bean id="uaaAuthenticationMgr" parent="abstractAuthzAuthenticationMgr"/>
+
+    <bean id="authzAuthenticationMgr" parent="abstractAuthzAuthenticationMgr"/>
+
 </beans>
