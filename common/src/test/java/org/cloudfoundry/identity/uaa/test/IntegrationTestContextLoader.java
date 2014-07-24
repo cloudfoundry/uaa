@@ -53,7 +53,9 @@ public class IntegrationTestContextLoader implements SmartContextLoader {
         context.getEnvironment().setActiveProfiles(mergedConfig.getActiveProfiles());
         new YamlServletProfileInitializerContextInitializer().initializeContext(context, environmentConfigDefaults());
         context.setConfigLocations(mergedConfig.getLocations());
-        context.register(mergedConfig.getClasses());
+        if (mergedConfig.getClasses().length > 0) {
+            context.register(mergedConfig.getClasses());
+        }
         context.refresh();
         context.registerShutdownHook();
         return context;

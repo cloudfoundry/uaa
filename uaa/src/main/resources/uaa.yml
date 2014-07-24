@@ -36,6 +36,12 @@
 #SET PASSWORD FOR 'root'@'localhost' = PASSWORD('changeme');
 #SET PASSWORD FOR 'root'@'127.0.0.1' = PASSWORD('changeme');
 
+#oauth:
+#  endpoint:
+#    lockoutAfterFailures: 5
+#    lockoutPeriodSeconds: 300
+#    countFailuresWithin: 3600
+
 #keystone:
 #  authentication:
 #    url: http://localhost:35357/v2.0/tokens
