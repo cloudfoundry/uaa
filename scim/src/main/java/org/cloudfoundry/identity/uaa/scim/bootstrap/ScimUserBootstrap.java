@@ -162,7 +162,7 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
                 membershipManager.delete("member_id eq \""+event.getUser().getId()+"\" and origin eq \""+origin+"\"");
             }
             for (GrantedAuthority authority : exEvent.getExternalAuthorities()) {
-                addToGroup(exEvent.getUser().getId(), authority.getAuthority(), exEvent.getUser().getOrigin());
+                addToGroup(exEvent.getUser().getId(), authority.getAuthority(), exEvent.getUser().getOrigin(), exEvent.isAddGroups());
             }
             //update the user itself
             ScimUser user = getScimUser(event.getUser());
@@ -173,21 +173,23 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
     }
 
     private void addToGroup(String scimUserId, String gName) {
-        addToGroup(scimUserId,gName,Origin.UAA);
+        addToGroup(scimUserId,gName,Origin.UAA, true);
     }
 
-    private void addToGroup(String scimUserId, String gName, String origin) {
+    private void addToGroup(String scimUserId, String gName, String origin, boolean addGroup) {
         if (!StringUtils.hasText(gName)) {
             return;
         }
         logger.debug("Adding to group: " + gName);
         List<ScimGroup> g = scimGroupProvisioning.query(String.format("displayName eq \"%s\"", gName));
         ScimGroup group;
-        if (g == null || g.isEmpty()) {
+        if ((g == null || g.isEmpty()) && (!addGroup)) {
+            logger.debug("No group found with name:"+gName+". Group membership will not be added.");
+            return;
+        } else if (g == null || g.isEmpty()) {
             group = new ScimGroup(gName);
             group = scimGroupProvisioning.create(group);
-        }
-        else {
+        } else {
             group = g.get(0);
         }
         try {

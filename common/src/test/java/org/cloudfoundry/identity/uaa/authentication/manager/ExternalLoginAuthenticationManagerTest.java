@@ -291,8 +291,8 @@ public class ExternalLoginAuthenticationManagerTest  {
         assertEquals(userId, uaaAuthentication.getPrincipal().getId());
 
         userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
-        verify(applicationEventPublisher,times(2)).publishEvent(userArgumentCaptor.capture());
-        assertEquals(2,userArgumentCaptor.getAllValues().size());
+        verify(applicationEventPublisher,times(3)).publishEvent(userArgumentCaptor.capture());
+        assertEquals(3,userArgumentCaptor.getAllValues().size());
         NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent)userArgumentCaptor.getAllValues().get(0);
         assertEquals(origin, event.getUser().getOrigin());
         assertEquals(dn, event.getUser().getExternalId());
@@ -320,8 +320,8 @@ public class ExternalLoginAuthenticationManagerTest  {
         assertEquals(userId, uaaAuthentication.getPrincipal().getId());
 
         userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
-        verify(applicationEventPublisher,times(2)).publishEvent(userArgumentCaptor.capture());
-        assertEquals(2,userArgumentCaptor.getAllValues().size());
+        verify(applicationEventPublisher,times(3)).publishEvent(userArgumentCaptor.capture());
+        assertEquals(3,userArgumentCaptor.getAllValues().size());
         NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent)userArgumentCaptor.getAllValues().get(0);
         assertEquals(origin, event.getUser().getOrigin());
         //incorrect user details - we wont be able to get the correct external ID

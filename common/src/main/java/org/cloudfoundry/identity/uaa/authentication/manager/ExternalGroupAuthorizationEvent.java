@@ -14,7 +14,6 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.springframework.context.ApplicationEvent;
 import org.springframework.security.core.GrantedAuthority;
 
 import java.util.Collection;
@@ -27,11 +26,17 @@ public class ExternalGroupAuthorizationEvent extends NewUserAuthenticatedEvent {
 
     private Collection<? extends GrantedAuthority> externalAuthorities;
 
-    public ExternalGroupAuthorizationEvent(UaaUser user, Collection<? extends GrantedAuthority> externalAuthorities) {
+    private boolean addGroups = false;
+
+    public ExternalGroupAuthorizationEvent(UaaUser user, Collection<? extends GrantedAuthority> externalAuthorities, boolean addGroups) {
         super(user);
+        this.addGroups = addGroups;
         this.externalAuthorities = externalAuthorities;
     }
 
+    public boolean isAddGroups() {
+        return addGroups;
+    }
 
 
 }

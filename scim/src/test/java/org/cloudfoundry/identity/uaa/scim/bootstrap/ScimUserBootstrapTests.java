@@ -231,6 +231,9 @@ public class ScimUserBootstrapTests {
 
     @Test
     public void canAddNonExistentGroupThroughEvent() throws Exception {
+        nonExistentGroupThroughEvent(true);
+    }
+    public void nonExistentGroupThroughEvent(boolean add) throws Exception {
         String[] externalAuthorities = new String[] {"extTest1","extTest2","extTest3"};
         String[] userAuthorities = new String[] {"usrTest1","usrTest2","usrTest3"};
         String origin = "testOrigin";
@@ -249,16 +252,21 @@ public class ScimUserBootstrapTests {
         assertEquals(1, users.size());
         userId = users.get(0).getId();
         user = getUaaUser(userAuthorities, origin, email, firstName, lastName, password, externalId, userId, username);
-        bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, getAuthorities(externalAuthorities)));
+        bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, getAuthorities(externalAuthorities),add));
 
         users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"");
         assertEquals(1, users.size());
         ScimUser created = users.get(0);
-        validateAuthoritiesCreated(externalAuthorities, userAuthorities, origin, created);
+        validateAuthoritiesCreated(add?externalAuthorities:new String[0], userAuthorities, origin, created);
 
         externalAuthorities = new String[] {"extTest1","extTest2"};
-        bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, getAuthorities(externalAuthorities)));
-        validateAuthoritiesCreated(externalAuthorities, userAuthorities, origin, created);
+        bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, getAuthorities(externalAuthorities),add));
+        validateAuthoritiesCreated(add?externalAuthorities:new String[0], userAuthorities, origin, created);
+    }
+
+    @Test
+    public void doNotAddNonExistentUsers() throws Exception {
+        nonExistentGroupThroughEvent(false);
     }
 
     protected void validateAuthoritiesCreated(String[] externalAuthorities, String[] userAuthorities, String origin, ScimUser created) {
@@ -299,7 +307,7 @@ public class ScimUserBootstrapTests {
         assertEquals(1, users.size());
         userId = users.get(0).getId();
         user = getUaaUser(userAuthorities, origin, newEmail, firstName, lastName, password, externalId, userId, username);
-        bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, getAuthorities(externalAuthorities)));
+        bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, getAuthorities(externalAuthorities),true));
 
         users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"");
         assertEquals(1, users.size());

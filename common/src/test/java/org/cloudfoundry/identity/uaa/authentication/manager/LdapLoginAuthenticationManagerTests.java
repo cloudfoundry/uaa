@@ -105,9 +105,8 @@ public class LdapLoginAuthenticationManagerTests  {
 
         am.setAutoAddAuthorities(false);
         result = am.userAuthenticated(auth, user);
-        assertSame(user, result);
-        //count should still be 1
-        verify(publisher,times(1)).publishEvent(Matchers.<ApplicationEvent>anyObject());
+        assertSame(dbUser,result);
+        verify(publisher,times(2)).publishEvent(Matchers.<ApplicationEvent>anyObject());
     }
 
     protected User getUserDetails() {

@@ -60,13 +60,9 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
 
     @Override
     protected UaaUser userAuthenticated(Authentication request, UaaUser user) {
-        if (isAutoAddAuthorities()) {
-            ExternalGroupAuthorizationEvent event = new ExternalGroupAuthorizationEvent(user, request.getAuthorities());
-            publish(event);
-            return getUserDatabase().retrieveUserById(user.getId());
-        } else {
-            return super.userAuthenticated(request, user);
-        }
+        ExternalGroupAuthorizationEvent event = new ExternalGroupAuthorizationEvent(user, request.getAuthorities(), isAutoAddAuthorities());
+        publish(event);
+        return getUserDatabase().retrieveUserById(user.getId());
     }
 
     public boolean isAutoAddAuthorities() {
