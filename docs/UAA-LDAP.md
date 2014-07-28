@@ -300,7 +300,7 @@ dn: cn=developers,ou=scopes,dc=test,dc=com
 changetype: add
 objectClass: groupOfNames
 objectClass: top
-cn: operators
+cn: developers
 description: blog.read,blog.write,blog.delete
 member: cn=operators,ou=scopes,dc=test,dc=com
 member: cn=marissa6,ou=Users,dc=test,dc=com
