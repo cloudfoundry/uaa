@@ -14,9 +14,12 @@ clients, as well as various other management functions.
 
 ## Co-ordinates
 
+* Tokens: [A note on tokens, scopes and authorities](https://github.com/cloudfoundry/uaa/tree/master/doc/UAA-Tokens.md)
 * Technical forum: [vcap-dev google group](https://groups.google.com/a/cloudfoundry.org/forum/?fromgroups#!forum/vcap-dev)
 * Docs: [docs/](https://github.com/cloudfoundry/uaa/tree/master/docs)
 * API Documentation: [UAA-API.rst](https://github.com/cloudfoundry/uaa/tree/master/doc/UAA-API.rst)
+* Specification: [The Oauth 2 Authorization Framework](http://tools.ietf.org/html/rfc6749)
+* LDAP: [UAA LDAP Integration](https://github.com/cloudfoundry/uaa/tree/master/doc/UAA-LDAP.md)
 
 ## Quick Start
 
@@ -33,14 +36,14 @@ The apps all work together with the apps running on the same port
 You can also build the app and push it to Cloud Foundry, e.g.
 
     $ ./gradlew :cloudfoundry-identity-uaa:war
-    $ cf push myuaa -m 512M -p uaa/build/libs/cloudfoundry-identity-uaa-1.6.3-SNAPSHOT.war --no-start
+    $ cf push myuaa -m 512M -p uaa/build/libs/cloudfoundry-identity-uaa-1.8.0.war --no-start
     $ cf set-env myuaa SPRING_PROFILES_ACTIVE default
     $ cf start myuaa
 
 In the steps above, replace:
   
 * `myuaa` with a unique application name
-* `1.6.3-SNAPSHOT` with the appropriate version label from your build
+* `1.8.0` with the appropriate version label from your build
 
 ### Demo of command line usage on local server
 
