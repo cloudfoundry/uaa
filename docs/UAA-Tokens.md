@@ -156,17 +156,16 @@ A client that is accessing the resource server and reading, writing and deleting
 assigned the ```scope=document.*.read document.*.delete```. You can now assign scopes to the user in 
 the form of
 
-   document.asdsd-adasda-123212.write
-   document.asdsd-adasda-123212.read
-   document.wqere-adasda-adasda.read
-   document.wqere-adasda-adasda.delete
+    document.asdsd-adasda-123212.write
+    document.asdsd-adasda-123212.read
+    document.wqere-adasda-adasda.read
+    document.wqere-adasda-adasda.delete
 
 The token representing the user's permission, would contain 
 
-   document.asdsd-adasda-123212.read
-   document.wqere-adasda-adasda.read
-   document.wqere-adasda-adasda.delete
-
+    document.asdsd-adasda-123212.read
+    document.wqere-adasda-adasda.read
+    document.wqere-adasda-adasda.delete
 since the client does not have the ```write```.
 The audience field for the token would be ```document```.
 
