@@ -14,7 +14,7 @@ clients, as well as various other management functions.
 
 ## Co-ordinates
 
-* Tokens: [A note on tokens, scopes and authorities](https://github.com/cloudfoundry/uaa/tree/master/doc/UAA-Tokens.md)
+* Tokens: [A note on tokens, scopes and authorities](https://github.com/cloudfoundry/uaa/tree/master/docs/UAA-Tokens.md)
 * Technical forum: [vcap-dev google group](https://groups.google.com/a/cloudfoundry.org/forum/?fromgroups#!forum/vcap-dev)
 * Docs: [docs/](https://github.com/cloudfoundry/uaa/tree/master/docs)
 * API Documentation: [UAA-API.rst](https://github.com/cloudfoundry/uaa/tree/master/doc/UAA-API.rst)
