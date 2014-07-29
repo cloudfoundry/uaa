@@ -48,6 +48,7 @@
         </constructor-arg>
         <constructor-arg ref="ldapAuthoritiesPopulator"/>
         <property name="authoritiesMapper" ref="ldapAuthoritiesMapper"/>
+        <property name="userDetailsContextMapper" ref="extendedLdapUserDetailsMapper"/>
     </bean>
 
     <bean id="testLdapProfile" class="java.lang.String">

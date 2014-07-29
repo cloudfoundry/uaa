@@ -16,6 +16,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -26,6 +27,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.cloudfoundry.identity.uaa.error.UaaException;
+import org.cloudfoundry.identity.uaa.ldap.extension.ExtendedLdapUserImpl;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.rest.SearchResults;
@@ -44,6 +47,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.oauth2.common.exceptions.BadClientCredentialsException;
 import org.springframework.security.oauth2.provider.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -138,6 +142,21 @@ public class ClientAdminEndpointsTests {
     }
 
     @Test
+    public void testAccessors() throws Exception {
+        ApprovalStore as = mock(ApprovalStore.class);
+        endpoints.setApprovalStore(as);
+        assertSame(as, endpoints.getApprovalStore());
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testNoApprovalStore() {
+        endpoints.setApprovalStore(null);
+        endpoints.deleteApprovals("someclient");
+    }
+
+
+
+    @Test
     public void testStatistics() throws Exception {
         assertEquals(0, endpoints.getClientDeletes());
         assertEquals(0, endpoints.getClientSecretChanges());
@@ -152,6 +171,33 @@ public class ClientAdminEndpointsTests {
         assertNull(result.getClientSecret());
         Mockito.verify(clientRegistrationService).addClientDetails(detail);
     }
+
+    @Test(expected = NoSuchClientException.class)
+    public void testMultipleCreateClientDetailsNullArray() throws Exception {
+        endpoints.createClientDetailsTx(null);
+    }
+
+    @Test(expected = NoSuchClientException.class)
+    public void testMultipleCreateClientDetailsEmptyArray() throws Exception {
+        endpoints.createClientDetailsTx(new BaseClientDetails[0]);
+    }
+
+    @Test(expected = InvalidClientDetailsException.class)
+    public void testMultipleCreateClientDetailsNonExistent() throws Exception {
+        BaseClientDetails nonexist = new BaseClientDetails("unknown","","","","");
+        endpoints.createClientDetailsTx(new BaseClientDetails[] {nonexist});
+    }
+
+    @Test(expected = InvalidClientDetailsException.class)
+    public void testMultipleUpdateClientDetailsNullArray() throws Exception {
+        endpoints.updateClientDetailsTx(null);
+    }
+
+    @Test(expected = InvalidClientDetailsException.class)
+    public void testMultipleUpdateClientDetailsEmptyArray() throws Exception {
+        endpoints.updateClientDetailsTx(new BaseClientDetails[0]);
+    }
+
 
     @Test
     public void testMultipleCreateClientDetails() throws Exception {
@@ -232,6 +278,15 @@ public class ClientAdminEndpointsTests {
         SearchResults<?> result = endpoints.listClientDetails("client_id", "filter", "sortBy", "ascending", 1, 100);
         assertEquals(1, result.getResources().size());
         Mockito.verify(clientDetailsService).query("filter", "sortBy", true);
+
+        result = endpoints.listClientDetails("", "filter", "sortBy", "ascending", 1, 100);
+        assertEquals(1, result.getResources().size());
+    }
+
+    @Test(expected = UaaException.class)
+    public void testFindClientDetailsInvalidFilter() throws Exception {
+        Mockito.when(clientDetailsService.query("filter", "sortBy", true)).thenThrow(new IllegalArgumentException());
+        endpoints.listClientDetails("client_id", "filter", "sortBy", "ascending", 1, 100);
     }
 
     @Test(expected = InvalidClientDetailsException.class)
@@ -243,6 +298,18 @@ public class ClientAdminEndpointsTests {
         assertNull(result.getClientSecret());
         detail.setScope(Arrays.asList("read"));
         Mockito.verify(clientRegistrationService).updateClientDetails(detail);
+    }
+
+    @Test(expected = InvalidClientDetailsException.class)
+    public void testNonExistentClient1() throws Exception {
+        Mockito.when(clientDetailsService.retrieve(input.getClientId())).thenThrow(new InvalidClientDetailsException(""));
+        endpoints.getClientDetails(input.getClientId());
+    }
+
+    @Test(expected = NoSuchClientException.class)
+    public void testNonExistentClient2() throws Exception {
+        Mockito.when(clientDetailsService.retrieve(input.getClientId())).thenThrow(new BadClientCredentialsException());
+        endpoints.getClientDetails(input.getClientId());
     }
 
     @Test

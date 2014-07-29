@@ -23,4 +23,8 @@
     <bean id="ldapAuthoritiesMapper" class="org.springframework.security.core.authority.mapping.SimpleAuthorityMapper">
     </bean>
 
+    <bean id="testLdapGroup" class="java.lang.String">
+        <constructor-arg value="ldap-groups-null.xml"/>
+    </bean>
+
 </beans>

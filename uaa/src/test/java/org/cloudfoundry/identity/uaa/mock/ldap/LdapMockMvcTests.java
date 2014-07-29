@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock.ldap;
 
+import com.googlecode.flyway.core.Flyway;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager;
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
@@ -56,7 +57,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static org.hamcrest.collection.IsArrayContainingInAnyOrder.arrayContainingInAnyOrder;
+import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
@@ -70,6 +71,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @RunWith(Parameterized.class)
 public class LdapMockMvcTests {
+
+    public static final String SPRING_PROFILES_ACTIVE = "spring.profiles.active";
+    private static String originalProfile;
 
     @Parameters
     public static Collection<Object[]> data() {
@@ -88,8 +92,22 @@ public class LdapMockMvcTests {
 
     private static ApacheDSContainer apacheDS;
     private static File tmpDir;
+
+    @AfterClass
+    public static void afterClass() {
+        if (originalProfile==null || originalProfile.trim().length()==0) {
+            System.getProperties().remove(SPRING_PROFILES_ACTIVE);
+        } else {
+            System.setProperty(SPRING_PROFILES_ACTIVE, originalProfile);
+        }
+        apacheDS.stop();
+    }
+
     @BeforeClass
     public static void startApacheDS() throws Exception {
+        originalProfile = System.getProperty(SPRING_PROFILES_ACTIVE);
+        System.setProperty(SPRING_PROFILES_ACTIVE, "ldap,default");
+        System.out.println("LdapMockMvcTests Profile:"+System.getProperty(SPRING_PROFILES_ACTIVE));
         tmpDir = new File(System.getProperty("java.io.tmpdir")+"/apacheds/"+new RandomValueStringGenerator().generate());
         tmpDir.deleteOnExit();
         System.out.println(tmpDir);
@@ -101,22 +119,12 @@ public class LdapMockMvcTests {
         apacheDS.start();
     }
 
-    @AfterClass
-    public static void stopApacheDS() {
-        apacheDS.stop();
-
-    }
-
-
-
     AnnotationConfigWebApplicationContext webApplicationContext;
 
     MockMvc mockMvc;
     TestClient testClient;
     JdbcTemplate jdbcTemplate;
     JdbcScimGroupProvisioning gDB;
-    ScimGroupExternalMembershipManager eDB;
-    ScimExternalGroupBootstrap bootstrap;
 
     private String ldapProfile;
     private String ldapGroup;
@@ -128,13 +136,13 @@ public class LdapMockMvcTests {
 
     public void setUp() throws Exception {
         System.setProperty("ldap.profile.file", "ldap/"+ldapProfile);
-        System.setProperty("ldap.profile.groups.file", "ldap/"+ldapGroup);
+        System.setProperty("ldap.groups.file", "ldap/"+ldapGroup);
         System.setProperty("ldap.group.maxSearchDepth", "10");
 
         webApplicationContext = new AnnotationConfigWebApplicationContext();
         webApplicationContext.setServletContext(new MockServletContext());
-        webApplicationContext.register(DefaultIntegrationTestConfig.class);
         new YamlServletProfileInitializer().initialize(webApplicationContext);
+        webApplicationContext.register(DefaultIntegrationTestConfig.class);
         webApplicationContext.refresh();
         webApplicationContext.registerShutdownHook();
 
@@ -150,23 +158,14 @@ public class LdapMockMvcTests {
         LimitSqlAdapter limitSqlAdapter = webApplicationContext.getBean(LimitSqlAdapter.class);
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter);
         gDB = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
-        eDB = new JdbcScimGroupExternalMembershipManager(jdbcTemplate, pagingListFactory);
-        ((JdbcScimGroupExternalMembershipManager) eDB).setScimGroupProvisioning(gDB);
-
-        try {
-            gDB.create(new ScimGroup("internal.read"));
-            gDB.create(new ScimGroup("internal.write"));
-            gDB.create(new ScimGroup("internal.everything"));
-        }catch (ScimResourceAlreadyExistsException x) {
-        }
-
-        bootstrap = new ScimExternalGroupBootstrap(gDB, eDB);
     }
 
     @After
     public void tearDown() throws Exception {
         System.clearProperty("ldap.profile.file");
         if (webApplicationContext!=null) {
+            Flyway flyway = webApplicationContext.getBean(Flyway.class);
+            flyway.clean();
             webApplicationContext.destroy();
         }
     }
@@ -175,6 +174,7 @@ public class LdapMockMvcTests {
     public void printProfileType() throws Exception {
         setUp();
         assertEquals(ldapProfile, webApplicationContext.getBean("testLdapProfile"));
+        assertEquals(ldapGroup, webApplicationContext.getBean("testLdapGroup"));
     }
 
     @Test
@@ -258,7 +258,7 @@ public class LdapMockMvcTests {
     }
 
     @Test
-    public void validateOriginForLdapUser() throws Exception {
+    public void validateOriginAndEmailForLdapUser() throws Exception {
         setUp();
         String username = "marissa3";
         String password = "ldap3";
@@ -277,6 +277,32 @@ public class LdapMockMvcTests {
 
         String origin = jdbcTemplate.queryForObject("select origin from users where username='marissa3'", String.class);
         assertEquals("ldap", origin);
+        String email = jdbcTemplate.queryForObject("select email from users where username='marissa3' and origin='ldap'", String.class);
+        assertEquals("marissa3@test.com", email);
+    }
+
+    @Test
+    public void validateEmailMissingForLdapUser() throws Exception {
+        setUp();
+        String username = "marissa7";
+        String password = "ldap7";
+
+        MockHttpServletRequestBuilder post =
+            post("/authenticate")
+                .accept(MediaType.APPLICATION_JSON)
+                .param("username", username)
+                .param("password", password);
+
+        MvcResult result = mockMvc.perform(post)
+            .andExpect(status().isOk())
+            .andReturn();
+
+        assertEquals("{\"username\":\"" + username + "\"}", result.getResponse().getContentAsString());
+
+        String origin = jdbcTemplate.queryForObject("select origin from users where username='marissa7'", String.class);
+        assertEquals("ldap", origin);
+        String email = jdbcTemplate.queryForObject("select email from users where username='marissa7' and origin='ldap'", String.class);
+        assertEquals("marissa7@user.from.ldap.cf", email);
     }
 
     @Test
@@ -339,12 +365,10 @@ public class LdapMockMvcTests {
         Assume.assumeTrue(ldapGroup.equals("ldap-groups-map-to-scopes.xml"));
         setUp();
         Set<String> externalGroupSet = new HashSet<String>();
+        externalGroupSet.add("internal.superuser|cn=superusers,ou=scopes,dc=test,dc=com");
         externalGroupSet.add("internal.everything|cn=superusers,ou=scopes,dc=test,dc=com");
         externalGroupSet.add("internal.write|cn=operators,ou=scopes,dc=test,dc=com");
         externalGroupSet.add("internal.read|cn=developers,ou=scopes,dc=test,dc=com");
-        bootstrap.setExternalGroupMap(externalGroupSet);
-        bootstrap.afterPropertiesSet();
-
         AuthenticationManager manager = (AuthenticationManager)webApplicationContext.getBean("ldapAuthenticationManager");
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username,password);
         Authentication auth = manager.authenticate(token);
@@ -360,6 +384,7 @@ public class LdapMockMvcTests {
             "internal.read",
             "internal.write",
             "internal.everything",
+            "internal.superuser"
         };
         doTestNestedLdapGroupsMappedToScopes("marissa4","ldap4",list);
     }
@@ -390,6 +415,7 @@ public class LdapMockMvcTests {
             "internal.read",
             "internal.write",
             "internal.everything",
+            "internal.superuser"
         };
         doTestNestedLdapGroupsMappedToScopesWithDefaultScopes(username,password,list);
     }
@@ -421,12 +447,10 @@ public class LdapMockMvcTests {
         Assume.assumeTrue(ldapGroup.equals("ldap-groups-map-to-scopes.xml"));
         setUp();
         Set<String> externalGroupSet = new HashSet<>();
+        externalGroupSet.add("internal.superuser|cn=superusers,ou=scopes,dc=test,dc=com");
         externalGroupSet.add("internal.everything|cn=superusers,ou=scopes,dc=test,dc=com");
         externalGroupSet.add("internal.write|cn=operators,ou=scopes,dc=test,dc=com");
         externalGroupSet.add("internal.read|cn=developers,ou=scopes,dc=test,dc=com");
-        bootstrap.setExternalGroupMap(externalGroupSet);
-        bootstrap.afterPropertiesSet();
-
         AuthenticationManager manager = webApplicationContext.getBean(ChainedAuthenticationManager.class);
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username,password);
         Authentication auth = manager.authenticate(token);

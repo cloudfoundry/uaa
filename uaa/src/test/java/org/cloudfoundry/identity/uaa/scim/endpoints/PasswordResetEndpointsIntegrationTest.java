@@ -12,42 +12,29 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
+import com.googlecode.flyway.core.Flyway;
 import org.cloudfoundry.identity.uaa.test.DefaultIntegrationTestConfig;
-import org.cloudfoundry.identity.uaa.test.IntegrationTestContextLoader;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.web.FilterChainProxy;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@WebAppConfiguration
-@ContextConfiguration(classes = DefaultIntegrationTestConfig.class, loader = IntegrationTestContextLoader.class)
-@DirtiesContext(classMode = AFTER_EACH_TEST_METHOD)
+import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 public class PasswordResetEndpointsIntegrationTest {
 
-    @Autowired
-    WebApplicationContext webApplicationContext;
-
-    @Autowired
-    FilterChainProxy springSecurityFilterChain;
+    AnnotationConfigWebApplicationContext webApplicationContext;
 
     private MockMvc mockMvc;
     private String loginToken;
@@ -56,12 +43,25 @@ public class PasswordResetEndpointsIntegrationTest {
 
     @Before
     public void setUp() throws Exception {
+        webApplicationContext = new AnnotationConfigWebApplicationContext();
+        new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "uaa.yml");
+        webApplicationContext.register(DefaultIntegrationTestConfig.class);
+        webApplicationContext.refresh();
+
+        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
+
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .addFilter(springSecurityFilterChain)
                 .build();
 
         TestClient testClient = new TestClient(mockMvc);
         loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "oauth.login");
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        webApplicationContext.getBean(Flyway.class).clean();
+        webApplicationContext.destroy();
     }
 
     @Test
@@ -71,7 +71,7 @@ public class PasswordResetEndpointsIntegrationTest {
         post = post("/password_resets")
                 .header("Authorization", "Bearer " + loginToken)
                 .contentType(APPLICATION_JSON)
-                .content("marissa@test.org")
+                .content("marissa")
                 .accept(APPLICATION_JSON);
 
         MvcResult result = mockMvc.perform(post)
@@ -88,7 +88,8 @@ public class PasswordResetEndpointsIntegrationTest {
 
         mockMvc.perform(post)
                 .andExpect(status().isOk())
-                .andExpect(content().string(testAccounts.getUserName()));
+                .andExpect(jsonPath("$.user_id").exists())
+                .andExpect(jsonPath("$.username").value(testAccounts.getUserName()));
     }
 
     @Test
@@ -101,6 +102,7 @@ public class PasswordResetEndpointsIntegrationTest {
 
         mockMvc.perform(post)
                 .andExpect(status().isOk())
-                .andExpect(content().string(testAccounts.getUserName()));
+                .andExpect(jsonPath("$.user_id").exists())
+                .andExpect(jsonPath("$.username").value(testAccounts.getUserName()));
     }
 }

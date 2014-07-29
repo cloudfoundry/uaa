@@ -23,18 +23,23 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.UaaConfiguration;
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReport;
 import org.cloudfoundry.identity.uaa.rest.SearchResults;
 import org.cloudfoundry.identity.uaa.rest.SearchResultsFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimCore;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
+import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
@@ -67,6 +72,8 @@ public class ScimGroupEndpoints {
 
     private ScimGroupMembershipManager membershipManager;
 
+    private JdbcScimGroupExternalMembershipManager externalMembershipManager;
+
     private Map<Class<? extends Exception>, HttpStatus> statuses = new HashMap<Class<? extends Exception>, HttpStatus>();
 
     private HttpMessageConverter<?>[] messageConverters = new RestTemplate().getMessageConverters().toArray(
@@ -86,6 +93,14 @@ public class ScimGroupEndpoints {
 
     public void setMessageConverters(HttpMessageConverter<?>[] messageConverters) {
         this.messageConverters = messageConverters;
+    }
+
+    public JdbcScimGroupExternalMembershipManager getExternalMembershipManager() {
+        return externalMembershipManager;
+    }
+
+    public void setExternalMembershipManager(JdbcScimGroupExternalMembershipManager externalMembershipManager) {
+        this.externalMembershipManager = externalMembershipManager;
     }
 
     public ScimGroupEndpoints(ScimGroupProvisioning scimGroupProvisioning, ScimGroupMembershipManager membershipManager) {
@@ -161,6 +176,97 @@ public class ScimGroupEndpoints {
             throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST);
         }
     }
+
+    @RequestMapping(value = { "/Groups/External/list" }, method = RequestMethod.GET)
+    @ResponseBody
+    public SearchResults<?> listExternalGroups(
+        @RequestParam(required = false, defaultValue = "1") int startIndex,
+        @RequestParam(required = false, defaultValue = "100") int count) {
+        String filter = "";
+        List<ScimGroupExternalMember> result;
+        try {
+            result = externalMembershipManager.query(filter);
+        } catch (IllegalArgumentException e) {
+            throw new ScimException("Invalid filter expression: [" + filter + "]", HttpStatus.BAD_REQUEST);
+        }
+        String attributesCommaSeparated = null;
+        try {
+            return SearchResultsFactory.buildSearchResultFrom(
+                result,
+                startIndex,
+                count,
+                result.size(),
+                new String[] {"groupId", "displayName","externalGroup"},
+                Arrays.asList(ScimCore.SCHEMAS));
+        } catch (SpelParseException e) {
+            throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST);
+        } catch (SpelEvaluationException e) {
+            throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @RequestMapping(value = { "/Groups/External" }, method = RequestMethod.POST)
+    @ResponseBody
+    @ResponseStatus(HttpStatus.CREATED)
+    public ScimGroupExternalMember mapExternalGroup(@RequestBody ScimGroupExternalMember sgm) {
+        try {
+            String displayName = sgm.getDisplayName();
+            String groupId = sgm.getGroupId()==null?getGroupId(displayName):sgm.getGroupId();
+            String externalGroup = sgm.getExternalGroup();
+            return externalMembershipManager.mapExternalGroup(groupId, externalGroup);
+        } catch (IllegalArgumentException e) {
+            throw new ScimException(e.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (ScimResourceNotFoundException e) {
+            throw new ScimException(e.getMessage(), HttpStatus.NOT_FOUND);
+        } catch (MemberAlreadyExistsException e) {
+            throw new ScimException(e.getMessage(), HttpStatus.CONFLICT);
+        }
+    }
+
+    @RequestMapping(value = { "/Groups/External/id/{groupId}/{externalGroup}" }, method = RequestMethod.DELETE)
+    @ResponseBody
+    @ResponseStatus(HttpStatus.OK)
+    public ScimGroupExternalMember unmapExternalGroup(@PathVariable String groupId, @PathVariable String externalGroup) {
+        try {
+            return externalMembershipManager.unmapExternalGroup(groupId, externalGroup);
+        } catch (IllegalArgumentException e) {
+            throw new ScimException(e.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (ScimResourceNotFoundException e) {
+            throw new ScimException(e.getMessage(), HttpStatus.NOT_FOUND);
+        } catch (MemberAlreadyExistsException e) {
+            throw new ScimException(e.getMessage(), HttpStatus.CONFLICT);
+        }
+    }
+
+    @RequestMapping(value = { "/Groups/External/{displayName}/{externalGroup}" }, method = RequestMethod.DELETE)
+    @ResponseBody
+    @ResponseStatus(HttpStatus.OK)
+    public ScimGroupExternalMember unmapExternalGroupUsingName(@PathVariable String displayName, @PathVariable String externalGroup) {
+        try {
+            return externalMembershipManager.unmapExternalGroup(getGroupId(displayName), externalGroup);
+        } catch (IllegalArgumentException e) {
+            throw new ScimException(e.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (ScimResourceNotFoundException e) {
+            throw new ScimException(e.getMessage(), HttpStatus.NOT_FOUND);
+        } catch (MemberAlreadyExistsException e) {
+            throw new ScimException(e.getMessage(), HttpStatus.CONFLICT);
+        }
+    }
+
+    private String getGroupId(String displayName) {
+        if (displayName==null || displayName.trim().length()==0) {
+            throw new IllegalArgumentException("Missing group/displayName name");
+        }
+        List<ScimGroup> result = dao.query("displayName eq \""+displayName+"\"");
+        if (result==null || result.size()==0) {
+            throw new ScimException("Group not found:"+displayName, HttpStatus.NOT_FOUND);
+        }
+        if (result.size()>1) {
+            throw new IllegalArgumentException("Group name should be unique:"+displayName);
+        }
+        return result.get(0).getId();
+    }
+
 
     @RequestMapping(value = { "/Groups/{groupId}" }, method = RequestMethod.GET)
     @ResponseBody

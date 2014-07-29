@@ -100,6 +100,7 @@ public class ClientParametersAuthenticationFilter implements Filter {
             } else if (clientAuthenticationManager==null || loginInfo.get(CLIENT_ID)==null) {
                 logger.debug("Insufficient resources to perform client authentication. AuthMgr:"+
                     clientAuthenticationManager + "; clientId:"+clientId);
+                throw new BadCredentialsException("Request does not contain client credentials.");
             } else {
                 logger.debug("Located credentials in request, with keys: " + loginInfo.keySet());
 
@@ -137,7 +138,7 @@ public class ClientParametersAuthenticationFilter implements Filter {
         authentication.setDetails(new UaaAuthenticationDetails(req, clientId));
         try {
             Authentication auth = clientAuthenticationManager.authenticate(authentication);
-            if (!auth.isAuthenticated()) {
+            if (auth==null || !auth.isAuthenticated()) {
                 throw new BadCredentialsException("Client Authentication failed.");
             }
             loginInfo.remove(CLIENT_SECRET);

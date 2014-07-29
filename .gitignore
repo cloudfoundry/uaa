@@ -1,4 +1,3 @@
-target/
 *~
 #*
 .#*
@@ -24,6 +23,7 @@ Servers/
 *.swp
 *.swo
 coverage.ec
-git.properties
 .springBeans
-
+.gradle
+build/
+/classes/

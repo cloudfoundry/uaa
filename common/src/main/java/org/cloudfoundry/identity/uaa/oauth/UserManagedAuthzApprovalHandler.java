@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -29,6 +30,7 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -61,8 +63,7 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
     }
 
     @Override
-    public AuthorizationRequest updateBeforeApproval(AuthorizationRequest authorizationRequest,
-                    Authentication userAuthentication) {
+    public AuthorizationRequest updateBeforeApproval(AuthorizationRequest authorizationRequest,Authentication userAuthentication) {
         return authorizationRequest;
     }
 
@@ -74,15 +75,15 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 
         if (logger.isDebugEnabled()) {
             StringBuilder builder = new StringBuilder("Looking up user approved authorizations for ");
-            builder.append("client_id=" + authorizationRequest.getClientId());
-            builder.append(" and username=" + userAuthentication.getName());
+            builder.append("client_id=").append(authorizationRequest.getClientId());
+            builder.append(" and username=").append(userAuthentication.getName());
             logger.debug(builder.toString());
         }
 
         Collection<String> requestedScopes = authorizationRequest.getScope();
 
         // Factor in auto approved scopes
-        Set<String> autoApprovedScopes = new HashSet<String>();
+        Set<String> autoApprovedScopes = new HashSet<>();
         ClientDetails client = clientDetailsService.retrieve(authorizationRequest.getClientId());
         if (null != client) {
             Map<String, Object> additionalInfo = client.getAdditionalInformation();
@@ -98,9 +99,9 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
                 }
             }
         }
+        //translate scope to user scopes - including wild cards
+        autoApprovedScopes = retainAutoApprovedScopes(requestedScopes, autoApprovedScopes);
 
-        // Don't want to approve more than what's requested
-        autoApprovedScopes.retainAll(requestedScopes);
 
         if (userApproval) {
             // Store the scopes that have been approved / denied
@@ -108,7 +109,7 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 
             // Get the approved scopes, calculate the denied scope
             Map<String, String> approvalParameters = authorizationRequest.getApprovalParameters();
-            Set<String> approvedScopes = new HashSet<String>();
+            Set<String> approvedScopes = new HashSet<>();
             approvedScopes.addAll(autoApprovedScopes);
             boolean foundUserApprovalParameter = false;
             for (String approvalParameter : approvalParameters.keySet()) {
@@ -148,15 +149,14 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
                 return true;
             }
 
-        }
-        else {
+        } else {
             // Find the stored approvals for that user and client
             List<Approval> userApprovals = approvalStore.getApprovals(getUserId(userAuthentication),
                             authorizationRequest.getClientId());
 
             // Look at the scopes and see if they have expired
-            Set<String> validUserApprovedScopes = new HashSet<String>();
-            Set<String> approvedScopes = new HashSet<String>();
+            Set<String> validUserApprovedScopes = new HashSet<>();
+            Set<String> approvedScopes = new HashSet<>();
             approvedScopes.addAll(autoApprovedScopes);
             validUserApprovedScopes.addAll(autoApprovedScopes);
             Date today = new Date();
@@ -176,7 +176,7 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
             // If the requested scopes have already been acted upon by the user,
             // this request is approved
             if (validUserApprovedScopes.containsAll(requestedScopes) && userAuthentication.isAuthenticated()) {
-                approvedScopes.retainAll(requestedScopes);
+                approvedScopes = retainAutoApprovedScopes(requestedScopes, approvedScopes);
                 // Set only the scopes that have been approved by the user
                 ((DefaultAuthorizationRequest) authorizationRequest).setScope(approvedScopes);
                 return true;
@@ -184,6 +184,18 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
         }
 
         return false;
+    }
+
+    protected Set<String> retainAutoApprovedScopes(Collection<String> requestedScopes, Set<String> autoApprovedScopes) {
+        HashSet<String> result = new HashSet<>();
+        Set<Pattern> autoApprovedScopePatterns = UaaStringUtils.constructWildcards(autoApprovedScopes);
+        // Don't want to approve more than what's requested
+        for (String scope : requestedScopes) {
+            if (UaaStringUtils.matches(autoApprovedScopePatterns, scope)) {
+                result.add(scope);
+            }
+        }
+        return result;
     }
 
     protected String getUserId(Authentication authentication) {

@@ -31,29 +31,6 @@
         <oauth:password authentication-manager-ref="compositeAuthenticationManager" />
     </oauth:authorization-server>
 
-    <!--/oauth/token with Authorization: Bearer -->
-    <http name="tokenEndpointSecurityForAuthServers" create-session="stateless" authentication-manager-ref="clientAuthenticationManager"
-        request-matcher-ref="oauthBearerTokenMatcher" entry-point-ref="oauthAuthenticationEntryPoint" xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
-        <anonymous enabled="false" />
-        <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
-        <custom-filter ref="authServerAuthenticationFilter" after="PRE_AUTH_FILTER" />
-        <access-denied-handler ref="oauthAccessDeniedHandler" />
-    </http>
-
-    <bean id="oauthBearerTokenMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
-        <constructor-arg value="/oauth/token" />
-        <property name="headers">
-            <map>
-                <entry key="authorization">
-                    <list>
-                        <value>Bearer </value>
-                    </list>
-                </entry>
-            </map>
-        </property>
-    </bean>
-
     <!--/oauth/token with any match -->
     <http name="tokenEndpointSecurity" create-session="stateless" authentication-manager-ref="clientAuthenticationManager"
         pattern="/oauth/token/**" entry-point-ref="basicAuthenticationEntryPoint" xmlns="http://www.springframework.org/schema/security">
@@ -75,18 +52,6 @@
         <anonymous enabled="false" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
     </http>
-
-    <bean id="authServerAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.manager.LoginAuthenticationFilter">
-        <constructor-arg ref="loginAuthenticationMgr" />
-        <constructor-arg ref="jdbcClientDetailsService" />
-        <property name="parameterNames">
-            <list>
-                <value>username</value>
-                <value>origin</value>
-                <value>user_id</value>
-            </list>
-        </property>
-    </bean>
 
     <bean id="clientAuthenticationFilter" class="org.springframework.security.web.authentication.www.BasicAuthenticationFilter">
         <constructor-arg ref="clientAuthenticationManager" />
@@ -257,18 +222,22 @@
         </property>
     </bean>
 
-    <bean id="abstractAuthzAuthenticationMgr" abstract="true" class="org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager">
-        <constructor-arg ref="userDatabase" />
-        <property name="accountLoginPolicy">
-            <bean class="org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy">
-                <constructor-arg ref="jdbcAuditService" />
-                <property name="lockoutAfterFailures" value="5" />
-                <property name="lockoutPeriodSeconds" value="300" />
-            </bean>
-        </property>
-        <property name="origin" value="uaa"/>
+    <bean id="periodLockoutPolicy" class="org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy">
+        <constructor-arg ref="jdbcAuditService"/>
+        <property name="lockoutAfterFailures"
+                  value="${authentication.policy.lockoutAfterFailures:5}"/>
+        <property name="countFailuresWithin"
+                  value="${authentication.policy.countFailuresWithinSeconds:3600}"/>
+        <property name="lockoutPeriodSeconds"
+                  value="${authentication.policy.lockoutPeriodSeconds:300}"/>
     </bean>
 
+    <bean id="abstractAuthzAuthenticationMgr" abstract="true"
+          class="org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager">
+        <constructor-arg ref="userDatabase"/>
+        <property name="accountLoginPolicy" ref="periodLockoutPolicy"/>
+        <property name="origin" value="uaa"/>
+    </bean>
     <bean id="uaaAuthenticationMgr" parent="abstractAuthzAuthenticationMgr"/>
 
     <bean id="authzAuthenticationMgr" parent="abstractAuthzAuthenticationMgr"/>

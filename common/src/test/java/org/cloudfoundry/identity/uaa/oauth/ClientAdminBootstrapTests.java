@@ -52,7 +52,7 @@ public class ClientAdminBootstrapTests {
 
     @Test
     public void testSimpleAddClient() throws Exception {
-        Map<String, Object> map = new HashMap<String, Object>();
+        Map<String, Object> map = new HashMap<>();
         map.put("id", "foo");
         map.put("secret", "bar");
         map.put("scope", "openid");
@@ -65,8 +65,26 @@ public class ClientAdminBootstrapTests {
     }
 
     @Test
+    public void testSimpleAddClientWithSignupSuccessRedirectUrl() throws Exception {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", "foo");
+        map.put("secret", "bar");
+        map.put("scope", "openid");
+        map.put("authorized-grant-types", "authorization_code");
+        map.put("authorities", "uaa.none");
+        map.put("signup_redirect_url", "callback_url");
+        BaseClientDetails output = new BaseClientDetails("foo", "none", "openid", "authorization_code,refresh_token",
+                        "uaa.none");
+        output.setClientSecret("bar");
+        Map<String, String> additionalInformation = new HashMap<>();
+        additionalInformation.put("signup_redirect_url", "callback_url");
+        output.setAdditionalInformation(additionalInformation);
+        doSimpleTest(map, output);
+    }
+
+    @Test
     public void testSimpleAddClientWithAutoApprove() throws Exception {
-        Map<String, Object> map = new HashMap<String, Object>();
+        Map<String, Object> map = new HashMap<>();
         map.put("id", "foo");
         map.put("secret", "bar");
         map.put("scope", "openid");
@@ -88,7 +106,7 @@ public class ClientAdminBootstrapTests {
 
     @Test
     public void testOverrideClient() throws Exception {
-        Map<String, Object> map = new HashMap<String, Object>();
+        Map<String, Object> map = new HashMap<>();
         map.put("secret", "bar");
         map.put("override", true);
         bootstrap.setClients(Collections.singletonMap("foo", map));
@@ -102,7 +120,7 @@ public class ClientAdminBootstrapTests {
 
     @Test
     public void testOverrideClientByDefault() throws Exception {
-        Map<String, Object> map = new HashMap<String, Object>();
+        Map<String, Object> map = new HashMap<>();
         map.put("secret", "bar");
         bootstrap.setClients(Collections.singletonMap("foo", map));
         doThrow(new ClientAlreadyExistsException("Planned")).when(clientRegistrationService).addClientDetails(

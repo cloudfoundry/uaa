@@ -14,9 +14,12 @@
 package org.cloudfoundry.identity.uaa.util;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * @author Dave Syer
@@ -87,6 +90,63 @@ public class UaaStringUtils {
             }
         }
         return result;
+    }
+
+    /**
+     * Escapes all regular expression patterns in a string so that when
+     * using the string itself in a regular expression, only an exact literal match will
+     * return true. For example, the string ".*" will not match any string, it will only
+     * match ".*". The value ".*" when escaped will be "\.\*"
+     * @param s - the string for which we need to escape regular expression constructs
+     * @return a regular expression string that will only match exact literals
+     */
+    public static String escapeRegExCharacters(String s) {
+        return escapeRegExCharacters(s, "([^a-zA-z0-9 ])");
+    }
+
+    /**
+     * Escapes all regular expression patterns in a string so that when
+     * using the string itself in a regular expression, only an exact literal match will
+     * return true.
+     * @param s - the string for which we need to escape regular expression constructs
+     * @param pattern - the pattern containing the characters we wish to remain string literals
+     * @return a regular expression string that will only match exact literals
+     */
+    public static String escapeRegExCharacters(String s, String pattern) {
+        return s.replaceAll(pattern, "\\\\$1");
+    }
+
+    /**
+     * Returns a pattern that does a single level regular expression match where
+     * the * character is a wildcard until it encounters the next literal
+     * @param s
+     * @return
+     */
+    public static String constructSimpleWildcardPattern(String s) {
+        String result = escapeRegExCharacters(s);
+        //we want to match any characters between dots
+        //so what we do is replace \* in our escaped string
+        //with [^\\.]+
+        //reference http://www.regular-expressions.info/dot.html
+        return result.replace("\\*","[^\\\\.]+");
+    }
+
+    public static Set<Pattern> constructWildcards(Set<String> wildcardStrings) {
+        Set<Pattern> wildcards = new HashSet<>();
+        for (String wildcard : wildcardStrings) {
+            String pattern = UaaStringUtils.constructSimpleWildcardPattern(wildcard);
+            wildcards.add(Pattern.compile(pattern));
+        }
+        return wildcards;
+    }
+
+    public static boolean matches(Set<Pattern> wildcards, String scope) {
+        for (Pattern wildcard : wildcards) {
+            if (wildcard.matcher(scope).matches()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

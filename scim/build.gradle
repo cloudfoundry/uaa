@@ -1,0 +1,30 @@
+Project identityCommon = parent.subprojects.find { it.name.equals('cloudfoundry-identity-common') }
+
+description = 'CloudFoundry Identity SCIM'
+dependencies {
+  compile identityCommon
+  compile group: 'eu.tekul', name: 'szxcvbn_2.8.2', version:'0.2'
+  compile(group: 'edu.vt.middleware', name: 'vt-password', version:'3.1.1') {
+    exclude(module: 'bcprov-jdk15')
+    exclude(module: 'commons-logging')
+  }
+  testCompile identityCommon.configurations.testCompile.dependencies
+  testCompile identityCommon.sourceSets.test.output
+}
+
+test.dependsOn identityCommon.instrumentedJar
+
+processResources {
+  //maven replaces project.artifactId in the log4j.properties file
+  //https://www.pivotaltracker.com/story/show/74344574
+  from(new File('../common/src/main/resources/log4j.properties'))
+  filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}','cloudfoundry-identity-scim') : line }
+}
+
+project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
+  if (runningWithCoverage()) {
+    test {
+      classpath = files(test.classpath.collect(rewriteInstrumentedLibs))
+    }
+  }
+}

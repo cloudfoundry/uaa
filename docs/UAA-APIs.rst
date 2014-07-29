@@ -22,6 +22,70 @@ Rather than trigger arguments about how RESTful these APIs are we'll just refer 
 .. _OpenID Connect: http://openid.net/openid-connect
 .. _SCIM: http://simplecloud.info
 
+A Note on Filtering
+=======================
+In several of the API calls, especially around the SCIM endpoints, ``/Users`` and ``/Groups``
+there is an option to specify filters. These filters are implemented in accordance with
+a SCIM specification [on resource queries](http://www.simplecloud.info/specs/draft-scim-api-01.html#query-resources).
+
+Filtering supports
+
+Attribute operators
+
+  * eq - equalsIgnoreCase
+  * co - contains - in SQL becomes 'like %value%', case insensitive
+  * sw - starts with - in SQL becomes 'like value%', case insensitive
+  * pr - present - in SQL becomes 'IS NOT NULL'
+  * gt - greater than - ``>``
+  * ge - greater or equal than - ``>=``
+  * lt - less than - ``<``
+  * le - less or equals than - ``<=``
+
+Logical operators
+
+  * and - logical and
+  * or - logical or
+
+Grouping operators
+
+  * Group expressions in parenthesis ``(`` expression ``)`` to set precedence for operators
+
+There are four different data types
+
+* string literals - values must always be enclosed in double quotes ``"``, and double quotes must be JSON escaped
+  (with a slash ``\``)
+* date times - values must always be enclosed in double quotes, format is ``yyyy-MM-dd'T'HH:mm:ss.SSS'Z'``
+* boolean - values must be either ``true`` or ``false`` and not enclosed in quotes
+* numerical - values are not enclosed in quotes, and can contain numbers and a dot for decimal delimitation
+
+For complete information on filters and pagination, please review the [specification](http://www.simplecloud.info/specs/draft-scim-api-01.html#query-resources)
+
+User column names
+-------------------
+The following column names can be used for querying a user
+
+* id - string, UUID of the user
+* username - string
+* email or emails.value - string
+* givenname - string
+* familyname - string
+* active - boolean
+* phonenumber - string
+* verified - boolean
+* origin - string
+* external_id - string
+* created or meta.created - date
+* lastmodified or meta.lastmodified - date
+* version or meta.version - number
+
+The following column names can be used for querying a group
+
+* id - string, UUID of the group
+* displayname - string
+* created or meta.created - date
+* lastmodified or meta.lastmodified - date
+* version or meta.version - number
+
 Configuration Options
 =======================
 
@@ -924,6 +988,181 @@ See `SCIM - Deleting Resources <http://www.simplecloud.info/specs/draft-scim-res
         404 - Not found
 
 Deleting a group also removes the group from the 'groups' sub-attribute on users who were members of the group. 
+
+
+List External Group mapping: ``GET /Groups/External/list``
+----------------------------------
+
+Retrieves external group mappings in the form of a search result.
+
+* Request: ``GET /Groups/External/list``
+* Request Headers: Authorization header containing an OAuth2_ bearer token with::
+
+        scope = scim.read
+        aud = scim
+
+* Request(Query) Parameters::
+
+        startIndex - the start index of the pagination, default value is 1
+        count - the number of results to retrieve, default value is 100
+
+* Request Body::
+
+* Response Body::
+
+        HTTP/1.1 200 Ok
+        Content-Type: application/json
+
+        {"resources":
+          [
+            {"groupId":"79f37b92-21db-4a3e-a28c-ff93df476eca","displayName":"internal.write","externalGroup":"cn=operators,ou=scopes,dc=test,dc=com"},
+            {"groupId":"e66c720f-6f4b-4fb5-8b0a-37818045b5b7","displayName":"internal.superuser","externalGroup":"cn=superusers,ou=scopes,dc=test,dc=com"},
+            {"groupId":"ef325dad-63eb-46e6-800b-796f254e13ee","displayName":"organizations.acme","externalGroup":"cn=test_org,ou=people,o=springsource,o=org"},
+            {"groupId":"f149154e-c131-4e84-98cf-05aa94cc6b4e","displayName":"internal.everything","externalGroup":"cn=superusers,ou=scopes,dc=test,dc=com"},
+            {"groupId":"f2be2506-45e3-412e-9d85-6420d7e4afe4","displayName":"internal.read","externalGroup":"cn=developers,ou=scopes,dc=test,dc=com"}
+          ],
+          "startIndex":1,
+          "itemsPerPage":100,
+          "totalResults":5,
+          "schemas":["urn:scim:schemas:core:1.0"]
+        }
+
+
+        * Response Codes::
+
+        200 - Results retrieved successfully
+        401 - Unauthorized
+        403 - Forbidden - valid token but not enough privileges or invalid method
+
+Create a Group mapping: ``POST /Groups/External``
+----------------------------------
+
+Creates a group mapping with an internal UAA groups (scope) and an external group, for example LDAP DN.
+
+* Request: ``POST /Groups/External``
+* Request Headers: Authorization header containing an OAuth2_ bearer token with::
+
+        scope = scim.write
+        aud = scim
+
+* Request Body(using group name)::
+
+        {
+          "schemas":["urn:scim:schemas:core:1.0"],
+          "displayName":"uaa.admin",
+          "externalGroup":"cn=superusers,ou=scopes,dc=test,dc=com"
+        }
+
+* Request Body(using group ID)::
+
+        {
+          "schemas":["urn:scim:schemas:core:1.0"],
+          "groupId":"f2be2506-45e3-412e-9d85-6420d7e4afe3",
+          "externalGroup":"cn=superusers,ou=scopes,dc=test,dc=com"
+        }
+
+The ``displayName`` is unique in the UAA, but is allowed to change.  Each group also has a fixed primary key which is a UUID (stored in the ``id`` field of the core schema).
+It is possible to substitute the ``displayName`` field with a ``groupId`` field containing the UUID.
+
+* Response Body::
+
+        HTTP/1.1 201 Created
+        Content-Type: application/json
+        Location: https://example.com/v1/Groups/uid=123456
+        ETag: "0"
+
+        {
+          "schemas":["urn:scim:schemas:core:1.0"],
+          "id":"123456",
+          "meta":{
+            "version":0,
+            "created":"2011-08-01T21:32:44.882Z",
+            "lastModified":"2011-08-01T21:32:44.882Z"
+          },
+          "displayName":"uaa.admin",
+          "groupId":"3ebe4bda-74a2-40c4-8b70-f771d9bc8b9f",
+          "externalGroup":"cn=superusers,ou=scopes,dc=test,dc=com"
+        }
+
+* Response Codes::
+
+        201 - Created successfully
+        400 - Bad Request (unparseable, syntactically incorrect etc)
+        401 - Unauthorized
+
+Remove a Group mapping: ``DELETE /Groups/External/id/{groupId}/{externalGroup}``
+----------------------------------
+
+Removes the group mapping between an internal UAA groups (scope) and an external group, for example LDAP DN.
+
+* Request: ``DELETE /Groups/External/id/3ebe4bda-74a2-40c4-8b70-f771d9bc8b9f/cn=superusers,ou=scopes,dc=test,dc=com``
+* Request Headers: Authorization header containing an OAuth2_ bearer token with::
+
+        scope = scim.write
+        aud = scim
+
+* Response Body::
+
+        HTTP/1.1 200 Ok
+        Content-Type: application/json
+        Location: https://example.com/v1/Groups/uid=123456
+        ETag: "0"
+
+        {
+          "schemas":["urn:scim:schemas:core:1.0"],
+          "id":"123456",
+          "meta":{
+            "version":0,
+            "created":"2011-08-01T21:32:44.882Z",
+            "lastModified":"2011-08-01T21:32:44.882Z"
+          },
+          "displayName":"uaa.admin",
+          "groupId":"3ebe4bda-74a2-40c4-8b70-f771d9bc8b9f",
+          "externalGroup":"cn=superusers,ou=scopes,dc=test,dc=com"
+        }
+
+* Response Codes::
+
+        200 - Deleted successfully
+        400 - Bad Request (unparseable, syntactically incorrect etc)
+        401 - Unauthorized
+
+Remove a Group mapping: ``DELETE /Groups/External/{displayName}/{externalGroup}``
+----------------------------------
+
+Removes the group mapping between an internal UAA groups (scope) and an external group, for example LDAP DN.
+
+* Request: ``DELETE /Groups/External/internal.everything/cn=superusers,ou=scopes,dc=test,dc=com``
+* Request Headers: Authorization header containing an OAuth2_ bearer token with::
+
+        scope = scim.write
+        aud = scim
+
+* Response Body::
+
+        HTTP/1.1 200 Ok
+        Content-Type: application/json
+        Location: https://example.com/v1/Groups/uid=123456
+        ETag: "0"
+
+        {
+          "schemas":["urn:scim:schemas:core:1.0"],
+          "id":"123456",
+          "meta":{
+            "version":0,
+            "created":"2011-08-01T21:32:44.882Z",
+            "lastModified":"2011-08-01T21:32:44.882Z"
+          },
+          "displayName":"internal.everything",
+          "groupId":"3ebe4bda-74a2-40c4-8b70-f771d9bc8b9f",
+          "externalGroup":"cn=superusers,ou=scopes,dc=test,dc=com"
+        }
+
+* Response Codes::
+
+        200 - Deleted successfully
+        400 - Bad Request (unparseable, syntactically incorrect etc)
+        401 - Unauthorized
 
 Access Token Administration APIs
 =================================

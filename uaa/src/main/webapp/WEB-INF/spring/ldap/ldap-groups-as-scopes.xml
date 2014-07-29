@@ -22,4 +22,8 @@
 
     <bean id="ldapAuthoritiesMapper" class="org.cloudfoundry.identity.uaa.ldap.CommaSeparatedScopesMapper"/>
 
+    <bean id="testLdapGroup" class="java.lang.String">
+        <constructor-arg value="ldap-groups-as-scopes.xml"/>
+    </bean>
+
 </beans>

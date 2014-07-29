@@ -186,14 +186,19 @@
         </property>
     </bean>
 
+    <bean id="objectMapper" class="org.codehaus.jackson.map.ObjectMapper"/>
+
     <bean id="passwordResetEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpoints">
-        <constructor-arg index="0" ref="scimUserProvisioning"/>
-        <constructor-arg index="1" ref="codeStore"/>
+        <constructor-arg ref="objectMapper"/>
+        <constructor-arg ref="scimUserProvisioning"/>
+        <constructor-arg ref="codeStore"/>
     </bean>
 
     <bean id="createAccountEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.CreateAccountEndpoints">
-        <constructor-arg index="0" ref="scimUserProvisioning"/>
-        <constructor-arg index="1" ref="codeStore"/>
+        <constructor-arg ref="objectMapper"/>
+        <constructor-arg ref="clientDetailsService"/>
+        <constructor-arg ref="scimUserProvisioning"/>
+        <constructor-arg ref="codeStore"/>
     </bean>
 
     <http create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="emptyAuthenticationManager"

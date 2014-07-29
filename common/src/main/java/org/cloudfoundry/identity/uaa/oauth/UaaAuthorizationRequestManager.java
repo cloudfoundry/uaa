@@ -21,10 +21,11 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
-import org.cloudfoundry.identity.uaa.authorization.ExternalGroupMappingAuthorizationManager;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
@@ -39,7 +40,7 @@ import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
 /**
  * An {@link AuthorizationRequestManager} that applies various UAA-specific
  * rules to an authorization request,
- * validating it and setting the default values for scopes and resource ids.
+ * validating it and setting the default values for requestedScopes and resource ids.
  * 
  * @author Dave Syer
  * 
@@ -61,7 +62,7 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
     }
 
     /**
-     * Default scopes that are always added to a user token (and then removed if
+     * Default requestedScopes that are always added to a user token (and then removed if
      * the client doesn't have permission).
      * 
      * @param defaultScopes the defaultScopes to set
@@ -90,7 +91,7 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
     }
 
     /**
-     * The string used to separate resource ids from feature names in scopes
+     * The string used to separate resource ids from feature names in requestedScopes
      * (e.g. "cloud_controller.read").
      * 
      * @param scopeSeparator the scope separator to set. Default is period "."
@@ -104,15 +105,15 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
      * authorizationParameters and the registered
      * client details.
      * <ul>
-     * <li>For client_credentials grants, the default scopes are the client's
+     * <li>For client_credentials grants, the default requestedScopes are the client's
      * granted authorities</li>
-     * <li>For other grant types the default scopes are the registered scopes in
+     * <li>For other grant types the default requestedScopes are the registered requestedScopes in
      * the client details</li>
-     * <li>Only scopes in those lists are valid, otherwise there is an exception
+     * <li>Only requestedScopes in those lists are valid, otherwise there is an exception
      * </li>
-     * <li>If the scopes contain separators then resource ids are extracted as
+     * <li>If the requestedScopes contain separators then resource ids are extracted as
      * the scope value up to the last index of the separator</li>
-     * <li>Some scopes can be hard-wired to resource ids (like the open id
+     * <li>Some requestedScopes can be hard-wired to resource ids (like the open id
      * connect values), in which case the separator is ignored</li>
      * </ul>
      * 
@@ -127,11 +128,11 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
         String grantType = authorizationParameters.get("grant_type");
         if ((scopes == null || scopes.isEmpty())) {
             if ("client_credentials".equals(grantType)) {
-                // The client authorities should be a list of scopes
+                // The client authorities should be a list of requestedScopes
                 scopes = AuthorityUtils.authorityListToSet(clientDetails.getAuthorities());
             }
             else {
-                // The default for a user token is the scopes registered with
+                // The default for a user token is the requestedScopes registered with
                 // the client
                 scopes = clientDetails.getScope();
             }
@@ -144,11 +145,11 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
             // TODO: will the grantType ever contain client_credentials or
             // authorization_code
             // External Authorities are things like LDAP groups that will be
-            // mapped to Oauth scopes
-            // Add those scopes to the request. These scopes will not be
-            // validated against the scopes
+            // mapped to Oauth requestedScopes
+            // Add those requestedScopes to the request. These requestedScopes will not be
+            // validated against the requestedScopes
             // registered to a client.
-            // These scopes also do not need approval. The fact that they are
+            // These requestedScopes also do not need approval. The fact that they are
             // already in an external
             // group communicates user approval. Denying approval does not mean
             // much
@@ -179,8 +180,8 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
     }
 
     /**
-     * Apply UAA rules to validate the requested scope. For client credentials
-     * grants the valid scopes are actually in
+     * Apply UAA rules to validate the requestedScopes scope. For client credentials
+     * grants the valid requestedScopes are actually in
      * the authorities of the client.
      * 
      * @see org.springframework.security.oauth2.provider.endpoint.ParametersValidator#validateParameters(java.util.Map,
@@ -193,10 +194,12 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
             if ("client_credentials".equals(parameters.get("grant_type"))) {
                 validScope = AuthorityUtils.authorityListToSet(clientDetails.getAuthorities());
             }
-            for (String scope : OAuth2Utils.parseParameterList(parameters.get("scope"))) {
-                if (!validScope.contains(scope)) {
+            Set<Pattern> validWildcards = constructWildcards(validScope);
+            Set<String> scopes = OAuth2Utils.parseParameterList(parameters.get("scope"));
+            for (String scope : scopes) {
+                if (!matches(validWildcards, scope)) {
                     throw new InvalidScopeException("Invalid scope: " + scope
-                                    + ". Did you know that you can get default scopes by simply sending no value?",
+                                    + ". Did you know that you can get default requestedScopes by simply sending no value?",
                                     validScope);
                 }
             }
@@ -204,50 +207,64 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
     }
 
     /**
-     * Add or remove scopes derived from the current authenticated user's
+     * Add or remove requestedScopes derived from the current authenticated user's
      * authorities (if any)
      * 
-     * @param scopes the initial set of scopes from the client registration
+     * @param requestedScopes the initial set of requestedScopes from the client registration
      * @param clientDetails
      * @param collection the users authorities
-     * @return modified scopes adapted according to the rules specified
+     * @return modified requestedScopes adapted according to the rules specified
      */
-    private Set<String> checkUserScopes(Set<String> scopes, Collection<? extends GrantedAuthority> authorities,
+    private Set<String> checkUserScopes(Set<String> requestedScopes, Collection<? extends GrantedAuthority> authorities,
                     ClientDetails clientDetails) {
-
-        Set<String> result = new LinkedHashSet<String>(scopes);
-        Set<String> allowed = new LinkedHashSet<String>(AuthorityUtils.authorityListToSet(authorities));
-
-        // Add in all default scopes
+        Set<String> allowed = new LinkedHashSet<>(AuthorityUtils.authorityListToSet(authorities));
+        // Add in all default requestedScopes
         allowed.addAll(defaultScopes);
-        // Find intersection of user authorities, default scopes and client
-        // scopes:
-        for (Iterator<String> iter = allowed.iterator(); iter.hasNext();) {
-            String scope = iter.next();
-            if (!clientDetails.getScope().contains(scope)) {
-                iter.remove();
-            }
-        }
 
-        // Weed out disallowed scopes:
-        for (Iterator<String> iter = result.iterator(); iter.hasNext();) {
-            String scope = iter.next();
-            if (!allowed.contains(scope)) {
-                iter.remove();
-            }
-        }
+        // Find intersection of user authorities, default requestedScopes and client requestedScopes:
+        Set<String> result = intersectScopes(new LinkedHashSet<>(requestedScopes), clientDetails.getScope(), allowed);
 
         // Check that a token with empty scope is not going to be granted
         if (result.isEmpty() && !clientDetails.getScope().isEmpty()) {
             throw new InvalidScopeException(
-                            "Invalid scope (empty) - this user is not allowed any of the requested scopes: " + scopes
-                                            + " (either you requested a scope that was not allowed or client '"
-                                            + clientDetails.getClientId()
-                                            + "' is not allowed to act on behalf of this user)", allowed);
+                "Invalid scope (empty) - this user is not userScopes any of the requestedScopes requestedScopes: " + requestedScopes
+                + " (either you requestedScopes a scope that was not userScopes or client '"
+                + clientDetails.getClientId()
+                + "' is not userScopes to act on behalf of this user)", allowed);
         }
 
         return result;
+    }
 
+    protected Set<String> intersectScopes(Set<String> requestedScopes, Set<String> clientScopes, Set<String> userScopes) {
+        Set<String> result = new HashSet<>(userScopes);
+
+        Set<Pattern> clientWildcards = constructWildcards(clientScopes);
+        for (Iterator<String> iter = result.iterator(); iter.hasNext();) {
+            String scope = iter.next();
+            if (!matches(clientWildcards, scope)) {
+                iter.remove();
+            }
+        }
+
+        Set<Pattern> requestedWildcards = constructWildcards(requestedScopes);
+        // Weed out disallowed requestedScopes:
+        for (Iterator<String> iter = result.iterator(); iter.hasNext();) {
+            String scope = iter.next();
+            if (!matches(requestedWildcards, scope)) {
+                iter.remove();
+            }
+        }
+
+        return result;
+    }
+
+    protected Set<Pattern> constructWildcards(Set<String> scopes) {
+        return UaaStringUtils.constructWildcards(scopes);
+    }
+
+    protected boolean matches(Set<Pattern> wildcards, String scope) {
+        return UaaStringUtils.matches(wildcards, scope);
     }
 
     private Set<String> getResourceIds(ClientDetails clientDetails, Set<String> scopes) {
@@ -263,5 +280,7 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
         }
         return resourceIds.isEmpty() ? clientDetails.getResourceIds() : resourceIds;
     }
+
+
 
 }

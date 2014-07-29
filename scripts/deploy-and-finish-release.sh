@@ -4,7 +4,7 @@ cd `dirname $0`/..
 
 if [ "$#" -ne 2 ]; then
     echo "Usage: $(basename $0) uaa_release_version uaa_next_dev_version"
-    exit
+    exit 1
 fi
 
 echo Deploying and finishing UAA release $1
@@ -12,7 +12,7 @@ echo Deploying and finishing UAA release $1
 set -x
 
 git checkout releases/$1
-mvn deploy -DskipTests=true
+./gradlew clean artifactoryPublish
 git checkout master
 git merge releases/$1 --no-ff -m "Merge branch 'releases/$1'"
 git tag -a $1 -m "$1 release of the UAA"
@@ -26,7 +26,7 @@ git commit -am "Bump next developer version"
 
 set +x
 
-echo Maven deploy made from releases/$1
+echo Artifacts published to Artifactory from releases/$1
 echo
 echo releases/$1 merged into master, tagged and pushed
 echo

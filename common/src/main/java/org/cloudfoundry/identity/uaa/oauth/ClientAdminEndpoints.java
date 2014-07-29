@@ -412,7 +412,7 @@ public class ClientAdminEndpoints implements InitializingBean {
         return result;
     }
 
-    private void deleteApprovals(String clientId) {
+    protected void deleteApprovals(String clientId) {
         if (approvalStore!=null) {
             approvalStore.revokeApprovals(String.format("client_id eq \"%s\"", clientId));
         } else {

@@ -145,6 +145,10 @@ public class UaaUser {
         return modified;
     }
 
+    public Date getCreated() {
+        return created;
+    }
+
     public UaaUser modifySource(String origin, String externalId) {
         return new UaaUser(id, username, password, email, authorities, givenName, familyName, created, modified, origin, externalId);
     }

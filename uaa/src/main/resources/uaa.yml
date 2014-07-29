@@ -36,6 +36,12 @@
 #SET PASSWORD FOR 'root'@'localhost' = PASSWORD('changeme');
 #SET PASSWORD FOR 'root'@'127.0.0.1' = PASSWORD('changeme');
 
+#authentication:
+#  policy:
+#    lockoutAfterFailures: 5
+#    countFailuresWithinSeconds: 3600
+#    lockoutPeriodSeconds: 600
+
 #keystone:
 #  authentication:
 #    url: http://localhost:35357/v2.0/tokens
@@ -61,23 +67,24 @@
 
 #ldap:
 #  profile:
-#    file:ldap/ldap-search-and-bind.xml
+#    file: ldap/ldap-search-and-bind.xml
 #  base:
 #    url: 'ldap://localhost:10389/'
-#    userDn: 'cn=admin,ou=Users,dc=test,dc=com'
+#    userDn: 'cn=admin,dc=test,dc=com'
 #    password: 'password'
 #    searchBase: ''
 #    searchFilter: 'cn={0}'
 
 #ldap:
 #  profile:
-#    file:ldap/ldap-search-and-compare.xml
+#    file: ldap/ldap-search-and-compare.xml
 #  base:
 #    url: 'ldap://localhost:10389/'
-#    userDn: 'cn=admin,ou=Users,dc=test,dc=com'
+#    userDn: 'cn=admin,dc=test,dc=com'
 #    password: 'password'
 #    searchBase: '' 
 #    searchFilter: 'cn={0}'
 #    passwordAttributeName: userPassword
 #    passwordEncoder: org.cloudfoundry.identity.uaa.login.ldap.DynamicPasswordComparator
 #    localPasswordCompare: true
+

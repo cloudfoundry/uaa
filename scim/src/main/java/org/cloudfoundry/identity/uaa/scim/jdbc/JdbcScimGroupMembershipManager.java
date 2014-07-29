@@ -52,11 +52,11 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
 
     private final Log logger = LogFactory.getLog(getClass());
 
-    public static final String MEMBERSHIP_FIELDS = "group_id,member_id,member_type,authorities,added";
+    public static final String MEMBERSHIP_FIELDS = "group_id,member_id,member_type,authorities,added,origin";
 
     public static final String MEMBERSHIP_TABLE = "group_membership";
 
-    public static final String ADD_MEMBER_SQL = String.format("insert into %s ( %s ) values (?,?,?,?,?)",
+    public static final String ADD_MEMBER_SQL = String.format("insert into %s ( %s ) values (?,?,?,?,?,?)",
                     MEMBERSHIP_TABLE, MEMBERSHIP_FIELDS);
 
     public static final String UPDATE_MEMBER_SQL = String.format(
@@ -146,6 +146,7 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
                     ps.setString(3, type);
                     ps.setString(4, authorities);
                     ps.setTimestamp(5, new Timestamp(new Date().getTime()));
+                    ps.setString(6, member.getOrigin());
                 }
             });
         } catch (DuplicateKeyException e) {
@@ -389,8 +390,11 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
             String memberId = rs.getString(2);
             String memberType = rs.getString(3);
             String authorities = rs.getString(4);
-
-            return new ScimGroupMember(memberId, ScimGroupMember.Type.valueOf(memberType), getAuthorities(authorities));
+            Date added = rs.getDate(5);
+            String origin = rs.getString(6);
+            ScimGroupMember sgm = new ScimGroupMember(memberId, ScimGroupMember.Type.valueOf(memberType), getAuthorities(authorities));
+            sgm.setOrigin(origin);
+            return sgm;
         }
 
         private List<ScimGroupMember.Role> getAuthorities(String authorities) {

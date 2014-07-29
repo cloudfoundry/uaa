@@ -86,6 +86,14 @@ uid: 20f459e0-e30b-4d1f-998c-3ded7f769db6
 mail: marissa6@test.com
 sn: Marissa6
 
+dn: cn=marissa7,ou=Users,dc=test,dc=com
+changetype: add
+objectClass: person
+objectClass: organizationalPerson
+cn: marissa7
+userPassword: ldap7
+sn: Marissa7
+
 ###############################################################################
 #        BEGIN GROUP TO SCOPE MAPPING
 ###############################################################################
@@ -119,7 +127,7 @@ dn: cn=developers,ou=scopes,dc=test,dc=com
 changetype: add
 objectClass: groupOfNames
 objectClass: top
-cn: operators
+cn: developers
 description: test.read
 member: cn=operators,ou=scopes,dc=test,dc=com
 member: cn=marissa6,ou=Users,dc=test,dc=com

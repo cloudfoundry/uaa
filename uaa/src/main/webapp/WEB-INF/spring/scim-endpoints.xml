@@ -120,6 +120,7 @@
         <property name="messageConverters">
             <bean class="org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter" />
         </property>
+        <property name="externalMembershipManager" ref="externalGroupMembershipManager" />
     </bean>
 
     <bean id="groupAccessDecisionManager" class="org.springframework.security.access.vote.AffirmativeBased">
@@ -158,11 +159,6 @@
     <bean id="groupsUpdateRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
         <constructor-arg value="/Groups" />
         <property name="method" value="PUT" />
-        <property name="accept">
-            <list>
-                <value>application/json</value>
-            </list>
-        </property>
     </bean>
 
     <bean id="groupsReadRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
@@ -175,6 +171,8 @@
         xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/Groups/**" access="scope=scim.write" method="DELETE" />
         <intercept-url pattern="/Groups" access="scope=scim.write" method="POST" />
+        <intercept-url pattern="/Groups/External" access="scope=scim.write" method="POST" />
+        <intercept-url pattern="/Groups/External/**" access="scope=scim.write" method="DELETE" />
         <intercept-url pattern="/**" access="ROLE_NONEXISTENT" />
         <custom-filter ref="scimResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
@@ -285,6 +283,7 @@
         <constructor-arg name="scimGroupProvisioning" ref="scimGroupProvisioning" />
         <constructor-arg name="externalMembershipManager" ref="externalGroupMembershipManager" />
         <property name="externalGroupMap" ref="externalGroups" />
+        <property name="addNonExistingGroups" value="true"/>
     </bean>
 
     <bean id="nonDefaultUserGroups" class="java.lang.String">
@@ -327,6 +326,13 @@
         <util:list id="defaultMembers">
             <value>acme|acme.dev,acme.qa</value>
             <value>acme.dev|marissa</value>
+        </util:list>
+        <util:list id="defaultExternalMembers">
+            <value>organizations.acme|cn=test_org,ou=people,o=springsource,o=org</value>
+            <value>internal.read|cn=developers,ou=scopes,dc=test,dc=com</value>
+            <value>internal.write|cn=operators,ou=scopes,dc=test,dc=com</value>
+            <value>internal.everything|cn=superusers,ou=scopes,dc=test,dc=com</value>
+            <value>internal.superuser|cn=superusers,ou=scopes,dc=test,dc=com</value>
         </util:list>
         <bean id="defaultGroups" class="java.lang.String">
             <constructor-arg value="acme,acme.dev,acme.qa,organizations.acme" />

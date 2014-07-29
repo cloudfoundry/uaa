@@ -100,8 +100,8 @@ public class AuditCheckMvcMockTests {
     public void setUp() throws Exception {
         webApplicationContext = new AnnotationConfigWebApplicationContext();
         webApplicationContext.setServletContext(new MockServletContext());
-        webApplicationContext.register(DefaultIntegrationTestConfig.class);
         new YamlServletProfileInitializer().initialize(webApplicationContext);
+        webApplicationContext.register(DefaultIntegrationTestConfig.class);
         webApplicationContext.refresh();
         webApplicationContext.registerShutdownHook();
         FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
@@ -620,23 +620,20 @@ public class AuditCheckMvcMockTests {
     public void passwordResetRequestEvent() throws Exception {
         String loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "oauth.login");
 
-
         testListener.clearEvents();
         MockHttpServletRequestBuilder changePasswordPost = post("/password_resets")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .contentType(MediaType.APPLICATION_JSON)
             .header("Authorization", "Bearer " + loginToken)
-            .content("marissa@test.org");
+            .content(testAccounts.getUserName());
 
-        ResultActions result = mockMvc.perform(changePasswordPost)
+        mockMvc.perform(changePasswordPost)
             .andExpect(status().isCreated());
-
-        String code = result.andReturn().getResponse().getContentAsString();
 
         assertEquals(1, testListener.getEventCount());
         assertEquals(ResetPasswordRequestEvent.class, testListener.getLatestEvent().getClass());
         ResetPasswordRequestEvent event = (ResetPasswordRequestEvent) testListener.getLatestEvent();
-        assertEquals("marissa@test.org", event.getAuditEvent().getPrincipalId());
+        assertEquals(testAccounts.getUserName(), event.getAuditEvent().getPrincipalId());
         assertEquals(null, event.getAuditEvent().getData());
     }
 

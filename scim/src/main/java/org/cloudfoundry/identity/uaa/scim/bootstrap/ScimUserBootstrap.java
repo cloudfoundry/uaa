@@ -87,22 +87,26 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
         }
     }
 
+    protected ScimUser getScimUser(UaaUser user) {
+        List<ScimUser> users = scimUserProvisioning.query("userName eq \"" + user.getUsername() + "\""+
+            " and origin eq \""+
+            (user.getOrigin()==null? Origin.UAA : user.getOrigin())+"\"");
+        return users.isEmpty()?null:users.get(0);
+    }
+
     /**
      * Add a user account from the properties provided.
      * 
      * @param user a UaaUser
      */
     protected void addUser(UaaUser user) {
-        List<ScimUser> users = scimUserProvisioning.query("userName eq \"" + user.getUsername() + "\""+
-            " and origin eq \""+
-            (user.getOrigin()==null? Origin.UAA : user.getOrigin())+"\"");
-
-        if (users.isEmpty()) {
+        ScimUser scimUser = getScimUser(user);
+        if (scimUser==null) {
             createNewUser(user);
         }
         else {
             if (override) {
-                updateUser(users.get(0), user);
+                updateUser(scimUser, user);
             } else {
                 logger.debug("Override flag not set. Not registering existing user: " + user);
             }
@@ -110,22 +114,30 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
     }
 
     private void updateUser(ScimUser existingUser, UaaUser updatedUser) {
+        updateUser(existingUser,updatedUser,true);
+    }
+
+    private void updateUser(ScimUser existingUser, UaaUser updatedUser, boolean updateGroups) {
         String id = existingUser.getId();
         logger.debug("Updating user account: " + updatedUser + " with SCIM Id: " + id);
-        logger.debug("Removing existing group memberships ...");
-        Set<ScimGroup> existingGroups = membershipManager.getGroupsWithMember(id, true);
+        if (updateGroups) {
+            logger.debug("Removing existing group memberships ...");
+            Set<ScimGroup> existingGroups = membershipManager.getGroupsWithMember(id, true);
 
-        for (ScimGroup g : existingGroups) {
-            removeFromGroup(id, g.getDisplayName());
+            for (ScimGroup g : existingGroups) {
+                removeFromGroup(id, g.getDisplayName());
+            }
         }
 
         final ScimUser newScimUser = convertToScimUser(updatedUser);
         newScimUser.setVersion(existingUser.getVersion());
         scimUserProvisioning.update(id, newScimUser);
-        Collection<String> newGroups = convertToGroups(updatedUser.getAuthorities());
-        logger.debug("Adding new groups " + newGroups);
-        addGroups(id, newGroups);
-        scimUserProvisioning.changePassword(id, null, updatedUser.getPassword());
+        if (updateGroups) {
+            Collection<String> newGroups = convertToGroups(updatedUser.getAuthorities());
+            logger.debug("Adding new groups " + newGroups);
+            addGroups(id, newGroups);
+            scimUserProvisioning.changePassword(id, null, updatedUser.getPassword());
+        }
     }
 
     private void createNewUser(UaaUser user) {
@@ -150,34 +162,40 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
                 membershipManager.delete("member_id eq \""+event.getUser().getId()+"\" and origin eq \""+origin+"\"");
             }
             for (GrantedAuthority authority : exEvent.getExternalAuthorities()) {
-                addToGroup(exEvent.getUser().getId(), authority.getAuthority(), exEvent.getUser().getOrigin());
+                addToGroup(exEvent.getUser().getId(), authority.getAuthority(), exEvent.getUser().getOrigin(), exEvent.isAddGroups());
             }
+            //update the user itself
+            ScimUser user = getScimUser(event.getUser());
+            updateUser(user, event.getUser(), false);
         } else {
             addUser(event.getUser());
         }
-
     }
 
     private void addToGroup(String scimUserId, String gName) {
-        addToGroup(scimUserId,gName,Origin.UAA);
+        addToGroup(scimUserId,gName,Origin.UAA, true);
     }
 
-    private void addToGroup(String scimUserId, String gName, String origin) {
+    private void addToGroup(String scimUserId, String gName, String origin, boolean addGroup) {
         if (!StringUtils.hasText(gName)) {
             return;
         }
         logger.debug("Adding to group: " + gName);
         List<ScimGroup> g = scimGroupProvisioning.query(String.format("displayName eq \"%s\"", gName));
         ScimGroup group;
-        if (g == null || g.isEmpty()) {
+        if ((g == null || g.isEmpty()) && (!addGroup)) {
+            logger.debug("No group found with name:"+gName+". Group membership will not be added.");
+            return;
+        } else if (g == null || g.isEmpty()) {
             group = new ScimGroup(gName);
             group = scimGroupProvisioning.create(group);
-        }
-        else {
+        } else {
             group = g.get(0);
         }
         try {
-            membershipManager.addMember(group.getId(), new ScimGroupMember(scimUserId));
+            ScimGroupMember groupMember = new ScimGroupMember(scimUserId);
+            groupMember.setOrigin(origin);
+            membershipManager.addMember(group.getId(), groupMember);
         } catch (MemberAlreadyExistsException ex) {
             // do nothing
         }
