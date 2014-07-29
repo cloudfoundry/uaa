@@ -17,11 +17,11 @@ git checkout master && git pull
 git merge releases/$1 --no-ff -m "Merge branch 'releases/$1'"
 git tag -a $1 -m "$1 release of the UAA"
 git push origin master --tags
-git co develop && git pull
+git checkout develop && git pull
 git merge releases/$1 --no-ff -m "Merge branch 'releases/$1' into develop"
 git branch -d releases/$1
 ./scripts/set-version.sh $2
-git commit -am "Bump next developer version"
+git ci -am "Bump next developer version"
 
 
 set +x

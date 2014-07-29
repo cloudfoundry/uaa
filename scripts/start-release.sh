@@ -14,7 +14,7 @@ set -x
 git checkout develop
 git checkout -b releases/$1
 ./scripts/set-version.sh $1
-git commit -am "Bump release version to $1"
+git ci -am "Bump release version to $1"
 git push --set-upstream origin releases/$1
 
 set +x
