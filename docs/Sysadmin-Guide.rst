@@ -67,12 +67,7 @@ Requirements:
 
 ::
 
-    maven 3.0.4
-    java >= 1.6
-
-Older versions of maven will likely appear to work at first but
-eventually fail with an unhelpful error. Be sure mvn -v reports 3.0.4.
-It’s best if you only have one version installed.
+    java >= 1.7
 
 Clone, build UAA server:
 
@@ -80,7 +75,7 @@ Clone, build UAA server:
 
     git clone git@github.com:cloudfoundry/uaa.git
     cd uaa
-    mvn clean install
+    ./gradlew clean assemble
 
 Note the version number that you just built (e.g. look in the pom or in
 uaa/target for the version label on the WAR file).
@@ -91,19 +86,20 @@ Clone, build login-server:
 
     git clone git@github.com:cloudfoundry/login-server.git
     cd login-server
-    mvn clean install
+    git submodule update --init --recursive
+    ./gradlew clean assemble
 
 Run Servers (using the UAA version <X> from above):
 
 ::
 
-    cd login-server && mvn tomcat:run -P integration 
+    cd login-server && ./gradlew run 
 
 or to just run the UAA: 
 
 ::
 
-    cd uaa && mvn tomcat7:run)
+    cd uaa && ./gradlew run
 
 Configuration
 =============
