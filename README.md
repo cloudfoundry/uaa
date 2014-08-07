@@ -17,7 +17,7 @@ clients, as well as various other management functions.
 * Tokens: [A note on tokens, scopes and authorities](https://github.com/cloudfoundry/uaa/tree/master/docs/UAA-Tokens.md)
 * Technical forum: [vcap-dev google group](https://groups.google.com/a/cloudfoundry.org/forum/?fromgroups#!forum/vcap-dev)
 * Docs: [docs/](https://github.com/cloudfoundry/uaa/tree/master/docs)
-* API Documentation: [UAA-API.rst](https://github.com/cloudfoundry/uaa/tree/master/docs/UAA-API.rst)
+* API Documentation: [UAA-APIs.rst](https://github.com/cloudfoundry/uaa/tree/master/docs/UAA-APIs.rst)
 * Specification: [The Oauth 2 Authorization Framework](http://tools.ietf.org/html/rfc6749)
 * LDAP: [UAA LDAP Integration](https://github.com/cloudfoundry/uaa/tree/master/docs/UAA-LDAP.md)
 
