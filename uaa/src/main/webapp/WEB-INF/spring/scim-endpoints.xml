@@ -169,10 +169,11 @@
     <http pattern="/Groups/**" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
         entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
         xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/Groups/**" access="scope=scim.write" method="DELETE" />
-        <intercept-url pattern="/Groups" access="scope=scim.write" method="POST" />
+        <intercept-url pattern="/Groups/External" access="scope=scim.read" method="GET" />
         <intercept-url pattern="/Groups/External" access="scope=scim.write" method="POST" />
         <intercept-url pattern="/Groups/External/**" access="scope=scim.write" method="DELETE" />
+        <intercept-url pattern="/Groups/**" access="scope=scim.write" method="DELETE" />
+        <intercept-url pattern="/Groups" access="scope=scim.write" method="POST" />
         <intercept-url pattern="/**" access="ROLE_NONEXISTENT" />
         <custom-filter ref="scimResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />

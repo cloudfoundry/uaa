@@ -179,6 +179,7 @@ public class ScimGroupEndpoints {
 
     @RequestMapping(value = { "/Groups/External/list" }, method = RequestMethod.GET)
     @ResponseBody
+    @Deprecated
     public SearchResults<?> listExternalGroups(
         @RequestParam(required = false, defaultValue = "1") int startIndex,
         @RequestParam(required = false, defaultValue = "100") int count) {
@@ -205,6 +206,14 @@ public class ScimGroupEndpoints {
         }
     }
 
+    @RequestMapping(value = { "/Groups/External" }, method = RequestMethod.GET)
+    @ResponseBody
+    public SearchResults<?> getExternalGroups(
+        @RequestParam(required = false, defaultValue = "1") int startIndex,
+        @RequestParam(required = false, defaultValue = "100") int count) {
+        return listExternalGroups(startIndex, count);
+    }
+
     @RequestMapping(value = { "/Groups/External" }, method = RequestMethod.POST)
     @ResponseBody
     @ResponseStatus(HttpStatus.CREATED)
@@ -223,7 +232,7 @@ public class ScimGroupEndpoints {
         }
     }
 
-    @RequestMapping(value = { "/Groups/External/id/{groupId}/{externalGroup}" }, method = RequestMethod.DELETE)
+    @RequestMapping(value = { "/Groups/External/groupId/{groupId}/externalGroup/{externalGroup}" }, method = RequestMethod.DELETE)
     @ResponseBody
     @ResponseStatus(HttpStatus.OK)
     public ScimGroupExternalMember unmapExternalGroup(@PathVariable String groupId, @PathVariable String externalGroup) {
@@ -238,7 +247,15 @@ public class ScimGroupEndpoints {
         }
     }
 
-    @RequestMapping(value = { "/Groups/External/{displayName}/{externalGroup}" }, method = RequestMethod.DELETE)
+    @RequestMapping(value = { "/Groups/External/id/{groupId}/{externalGroup}" }, method = RequestMethod.DELETE)
+    @ResponseBody
+    @ResponseStatus(HttpStatus.OK)
+    @Deprecated
+    public ScimGroupExternalMember deprecatedUnmapExternalGroup(@PathVariable String groupId, @PathVariable String externalGroup) {
+        return unmapExternalGroup(groupId, externalGroup);
+    }
+
+    @RequestMapping(value = { "/Groups/External/displayName/{displayName}/externalGroup/{externalGroup}" }, method = RequestMethod.DELETE)
     @ResponseBody
     @ResponseStatus(HttpStatus.OK)
     public ScimGroupExternalMember unmapExternalGroupUsingName(@PathVariable String displayName, @PathVariable String externalGroup) {
@@ -251,6 +268,14 @@ public class ScimGroupEndpoints {
         } catch (MemberAlreadyExistsException e) {
             throw new ScimException(e.getMessage(), HttpStatus.CONFLICT);
         }
+    }
+
+    @RequestMapping(value = { "/Groups/External/{displayName}/{externalGroup}" }, method = RequestMethod.DELETE)
+    @ResponseBody
+    @ResponseStatus(HttpStatus.OK)
+    @Deprecated
+    public ScimGroupExternalMember deprecatedUnmapExternalGroupUsingName(@PathVariable String displayName, @PathVariable String externalGroup) {
+        return unmapExternalGroupUsingName(displayName, externalGroup);
     }
 
     private String getGroupId(String displayName) {

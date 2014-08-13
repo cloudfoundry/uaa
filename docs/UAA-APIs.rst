@@ -990,12 +990,13 @@ See `SCIM - Deleting Resources <http://www.simplecloud.info/specs/draft-scim-res
 Deleting a group also removes the group from the 'groups' sub-attribute on users who were members of the group. 
 
 
-List External Group mapping: ``GET /Groups/External/list``
+List External Group mapping: ``GET /Groups/External``
 ----------------------------------
 
 Retrieves external group mappings in the form of a search result.
+The API ``GET /Groups/External/list`` is deprecated
 
-* Request: ``GET /Groups/External/list``
+* Request: ``GET /Groups/External``
 * Request Headers: Authorization header containing an OAuth2_ bearer token with::
 
         scope = scim.read
@@ -1090,12 +1091,13 @@ It is possible to substitute the ``displayName`` field with a ``groupId`` field 
         400 - Bad Request (unparseable, syntactically incorrect etc)
         401 - Unauthorized
 
-Remove a Group mapping: ``DELETE /Groups/External/id/{groupId}/{externalGroup}``
+Remove a Group mapping: ``DELETE /Groups/External/groupId/{groupId}/externalGroup/{externalGroup}``
 ----------------------------------
 
 Removes the group mapping between an internal UAA groups (scope) and an external group, for example LDAP DN.
+The API ``DELETE /Groups/External/id/{groupId}/{externalGroup}`` is deprecated
 
-* Request: ``DELETE /Groups/External/id/3ebe4bda-74a2-40c4-8b70-f771d9bc8b9f/cn=superusers,ou=scopes,dc=test,dc=com``
+* Request: ``DELETE /Groups/External/groupId/3ebe4bda-74a2-40c4-8b70-f771d9bc8b9f/externalGroup/cn=superusers,ou=scopes,dc=test,dc=com``
 * Request Headers: Authorization header containing an OAuth2_ bearer token with::
 
         scope = scim.write
@@ -1127,12 +1129,13 @@ Removes the group mapping between an internal UAA groups (scope) and an external
         400 - Bad Request (unparseable, syntactically incorrect etc)
         401 - Unauthorized
 
-Remove a Group mapping: ``DELETE /Groups/External/{displayName}/{externalGroup}``
+Remove a Group mapping: ``DELETE /Groups/External/displayName/{displayName}/externalGroup/{externalGroup}``
 ----------------------------------
 
 Removes the group mapping between an internal UAA groups (scope) and an external group, for example LDAP DN.
+The API ``DELETE /Groups/External/{displayName}/{externalGroup}`` is deprecated
 
-* Request: ``DELETE /Groups/External/internal.everything/cn=superusers,ou=scopes,dc=test,dc=com``
+* Request: ``DELETE /Groups/External/displayName/internal.everything/externalGroup/cn=superusers,ou=scopes,dc=test,dc=com``
 * Request Headers: Authorization header containing an OAuth2_ bearer token with::
 
         scope = scim.write

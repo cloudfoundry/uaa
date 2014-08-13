@@ -51,7 +51,8 @@ public class ScimGroupEndpointsMockMvcTests {
 
     private AnnotationConfigWebApplicationContext webApplicationContext;
     private MockMvc mockMvc;
-    private String scimToken;
+    private String scimReadToken;
+    private String scimWriteToken;
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
     private List<String> defaultExternalMembers;
 
@@ -75,8 +76,8 @@ public class ScimGroupEndpointsMockMvcTests {
         String clientId = generator.generate().toLowerCase();
         String clientSecret = generator.generate().toLowerCase();
         createScimClient(adminToken, clientId, clientSecret);
-        scimToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret,
-                "scim.read scim.write password.write");
+        scimReadToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret,"scim.read password.write");
+        scimWriteToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret,"scim.write password.write");
 
         defaultExternalMembers = (List<String>)webApplicationContext.getBean("defaultExternalMembers");
     }
@@ -154,13 +155,37 @@ public class ScimGroupEndpointsMockMvcTests {
         if (name!=null) em.setDisplayName(name);
         String content = new ObjectMapper().writeValueAsString(em);
         MockHttpServletRequestBuilder post = MockMvcRequestBuilders.post("/Groups/External")
-            .header("Authorization", "Bearer " + scimToken)
+            .header("Authorization", "Bearer " + scimWriteToken)
             .contentType(MediaType.APPLICATION_JSON)
             .accept(APPLICATION_JSON)
             .content(content);
 
         ResultActions result = mockMvc.perform(post);
         return result;
+    }
+
+    @Test
+    public void testDeleteExternalGroupMapUsingNameDeprecatedAPI() throws Exception {
+        String displayName ="internal.read";
+        String externalGroup = "cn=developers,ou=scopes,dc=test,dc=com";
+        ScimGroupExternalMember em = new ScimGroupExternalMember();
+        em.setDisplayName(displayName);
+        em.setExternalGroup(externalGroup);
+
+        MockHttpServletRequestBuilder delete = MockMvcRequestBuilders.delete("/Groups/External/" + displayName + "/" + externalGroup)
+            .header("Authorization", "Bearer " + scimWriteToken)
+            .accept(APPLICATION_JSON);
+
+        ResultActions result = mockMvc.perform(delete);
+        result.andExpect(status().isOk());
+
+        //remove the deleted map from our expected list, and check again.
+        int previousSize = defaultExternalMembers.size();
+        ArrayList<String> list = new ArrayList<>(defaultExternalMembers);
+        assertTrue(list.remove(displayName + "|" + externalGroup));
+        defaultExternalMembers = list;
+        assertEquals(previousSize-1, defaultExternalMembers.size());
+        checkGetExternalGroups();
     }
 
     @Test
@@ -171,8 +196,30 @@ public class ScimGroupEndpointsMockMvcTests {
         em.setDisplayName(displayName);
         em.setExternalGroup(externalGroup);
 
-        MockHttpServletRequestBuilder post = MockMvcRequestBuilders.delete("/Groups/External/" + displayName + "/" + externalGroup)
-            .header("Authorization", "Bearer " + scimToken)
+        MockHttpServletRequestBuilder post = MockMvcRequestBuilders.delete("/Groups/External/displayName/" + displayName + "/externalGroup/" + externalGroup)
+            .header("Authorization", "Bearer " + scimWriteToken)
+            .accept(APPLICATION_JSON);
+
+        ResultActions result = mockMvc.perform(post);
+        result.andExpect(status().isOk());
+
+        //remove the deleted map from our expected list, and check again.
+        int previousSize = defaultExternalMembers.size();
+        ArrayList<String> list = new ArrayList<>(defaultExternalMembers);
+        assertTrue(list.remove(displayName + "|" + externalGroup));
+        defaultExternalMembers = list;
+        assertEquals(previousSize-1, defaultExternalMembers.size());
+        checkGetExternalGroups();
+    }
+
+    @Test
+    public void testDeleteExternalGroupMapUsingIdDeprecatedAPI() throws Exception {
+        String displayName ="internal.read";
+        String externalGroup = "cn=developers,ou=scopes,dc=test,dc=com";
+        String groupId = getGroupId(displayName);
+
+        MockHttpServletRequestBuilder post = MockMvcRequestBuilders.delete("/Groups/External/id/" + groupId + "/" + externalGroup)
+            .header("Authorization", "Bearer " + scimWriteToken)
             .accept(APPLICATION_JSON);
 
         ResultActions result = mockMvc.perform(post);
@@ -193,8 +240,8 @@ public class ScimGroupEndpointsMockMvcTests {
         String externalGroup = "cn=developers,ou=scopes,dc=test,dc=com";
         String groupId = getGroupId(displayName);
 
-        MockHttpServletRequestBuilder post = MockMvcRequestBuilders.delete("/Groups/External/id/" + groupId + "/" + externalGroup)
-            .header("Authorization", "Bearer " + scimToken)
+        MockHttpServletRequestBuilder post = MockMvcRequestBuilders.delete("/Groups/External/groupId/" + groupId + "/externalGroup/" + externalGroup)
+            .header("Authorization", "Bearer " + scimWriteToken)
             .accept(APPLICATION_JSON);
 
         ResultActions result = mockMvc.perform(post);
@@ -209,9 +256,31 @@ public class ScimGroupEndpointsMockMvcTests {
         checkGetExternalGroups();
     }
 
+    @Test
+    public void testDeleteExternalGroupMapUsingReadToken() throws Exception {
+        String displayName ="internal.read";
+        String externalGroup = "cn=developers,ou=scopes,dc=test,dc=com";
+        String groupId = getGroupId(displayName);
+
+        MockHttpServletRequestBuilder post = MockMvcRequestBuilders.delete("/Groups/External/id/" + groupId + "/" + externalGroup)
+            .header("Authorization", "Bearer " + scimReadToken)
+            .accept(APPLICATION_JSON);
+
+        ResultActions result = mockMvc.perform(post);
+        result.andExpect(status().isForbidden());
+
+        checkGetExternalGroups();
+    }
+
     protected void checkGetExternalGroups() throws Exception {
-        MockHttpServletRequestBuilder get = MockMvcRequestBuilders.get("/Groups/External/list")
-            .header("Authorization", "Bearer " + scimToken)
+        String path = "/Groups/External/list";
+        checkGetExternalGroups(path);
+        path = "/Groups/External";
+        checkGetExternalGroups(path);
+    }
+    protected void checkGetExternalGroups(String path) throws Exception {
+        MockHttpServletRequestBuilder get = MockMvcRequestBuilders.get(path)
+            .header("Authorization", "Bearer " + scimReadToken)
             .accept(APPLICATION_JSON);
 
         ResultActions result = mockMvc.perform(get);
