@@ -443,6 +443,56 @@ ldap:
 
 ### Populating External Group Mappings
 
+# LDAP Email integration
+As you may have noticed through the different examples, the property `ldap.base.mailAttributeName` is always 
+configured, and even has a default value. Each time the UAA authenticates an LDAP user it will update the 
+user's email record in the database. This is so that systems that provide notifications, have an email 
+address that is as current as the user's last authentication.
+
+## Generating an email address if LDAP mail attribute is empty
+If an LDAP user does not have an email address, the UAA can automatically generate one.
+
+<pre>
+spring_profiles: ldap
+ldap:
+  profile:
+    file: ldap/ldap-search-and-bind.xml
+  base:
+    url: 'ldap://localhost:10389/'
+    userDn: 'cn=admin,ou=Users,dc=test,dc=com'
+    password: 'password'
+    searchBase: ''
+    searchFilter: 'cn={0}'
+    mailAttributeName: 'mail'
+    mailSubstitute: 'generated-{0}@company.example.com'
+    mailSubstituteOverridesLdap: true
+</pre>
+In the above example, if user `marissa` has a mail record, her UAA email will be set to the email address she has on file.
+However, if `marissa` does not have an email address in the `mail` attribute, her UAA email will become
+`generated-marissa@company.example.com`.
+
+## Overriding the LDAP email address
+The UAA provides an ability to override the email address that is set in LDAP
+by setting the `mailSubstituteOverridesLdap` flag to true.
+
+<pre>
+spring_profiles: ldap
+ldap:
+  profile:
+    file: ldap/ldap-search-and-bind.xml
+  base:
+    url: 'ldap://localhost:10389/'
+    userDn: 'cn=admin,ou=Users,dc=test,dc=com'
+    password: 'password'
+    searchBase: ''
+    searchFilter: 'cn={0}'
+    mailAttributeName: 'mail'
+    mailSubstitute: 'generated-{0}@company.example.com'
+    mailSubstituteOverridesLdap: true
+</pre>
+In the above example, the user `marissa`'s  UAA email always become `generated-marissa@company.example.com`.
+
+
 # Samples
 
 # Configuration References
@@ -485,7 +535,25 @@ ldap:
 * <a name="ldap.base.mailAttributeName">`ldap.base.mailAttributeName`</a> 
   the name of the attribute that contains the user's email address
   Default value is `mail`
+  If an email address is not available, one will be generated for the user.
   <br/>This property is always used.
+
+
+* <a name="ldap.base.mailSubstitute">`ldap.base.mailSubstitute`</a> 
+  Defines a pattern, `{0}@ldap-generated.email.com`, that the system
+  uses to generate an email address based on the username for the user.
+  This property will set the email address for the user if the LDAP 
+  email address is null or if the property `ldap.base.mailSubstituteOverridesLdap`
+  is set to true. The pattern must contain `{0}` to be substituted for the username.
+  Default value is `null`
+  <br/>This property is optional
+
+
+* <a name="ldap.base.mailSubstituteOverridesLdap">`ldap.base.mailSubstituteOverridesLdap`</a> 
+  If set to true and the property/pattern `ldap.base.mailSubstitute` is defined
+  the users email address will be generated from the pattern, always.
+  Default value is `false`
+  <br/>This property is optional
 
 
 * <a name="ldap.base.userDn">`ldap.base.userDn`</a>

@@ -33,8 +33,11 @@ import static org.cloudfoundry.identity.uaa.ldap.extension.SpringSecurityLdapTem
 
 public class ExtendedLdapUserMapper extends LdapUserDetailsMapper {
     private static final Log logger = LogFactory.getLog(ExtendedLdapUserMapper.class);
+    public static final String SUBSTITUTE_MAIL_ATTR_NAME = "substitute-mail-attribute";
+    private String mailAttributeName = "mail";
+    private String mailSubstitute = null;
+    private boolean mailSubstituteOverrides = false;
 
-    private String mailAttributeName="mail";
     @Override
     public UserDetails mapUserFromContext(DirContextOperations ctx, String username, Collection<? extends GrantedAuthority> authorities) {
         LdapUserDetails ldapUserDetails = (LdapUserDetails)super.mapUserFromContext(ctx, username, authorities);
@@ -55,9 +58,33 @@ public class ExtendedLdapUserMapper extends LdapUserDetailsMapper {
             }
         }
         record.put(DN_KEY, new String[] {adapter.getDn().toString()});
+        String mailAttr = configureMailAttribute(username, record);
         ExtendedLdapUserImpl result = new ExtendedLdapUserImpl(ldapUserDetails, record);
-        result.setMailAttributeName(getMailAttributeName());
+        result.setMailAttributeName(mailAttr);
         return result;
+    }
+
+    protected String configureMailAttribute(String username, Map<String, String[]> record) {
+        //default behavior
+        String result = getMailAttributeName();
+        if (getMailSubstitute()!=null) {
+            String subemail = substituteMail(username);
+            record.put(SUBSTITUTE_MAIL_ATTR_NAME, new String[] {subemail});
+            if (isMailSubstituteOverridesLdap() ||
+                record.get(getMailAttributeName())==null ||
+                record.get(getMailAttributeName()).length==0) {
+                result = SUBSTITUTE_MAIL_ATTR_NAME;
+            }
+        }
+        return result;
+    }
+
+    protected String substituteMail(String username) {
+        if (getMailSubstitute()==null) {
+            return null;
+        } else {
+            return getMailSubstitute().replace("{0}", username);
+        }
     }
 
     public String getMailAttributeName() {
@@ -66,5 +93,27 @@ public class ExtendedLdapUserMapper extends LdapUserDetailsMapper {
 
     public void setMailAttributeName(String mailAttributeName) {
         this.mailAttributeName = mailAttributeName;
+    }
+
+    public String getMailSubstitute() {
+        return mailSubstitute;
+    }
+
+    public void setMailSubstitute(String mailSubstitute) {
+        if ("null".equals(mailSubstitute) || "".equals(mailSubstitute)) {
+            mailSubstitute = null;
+        }
+        if (mailSubstitute!=null && !mailSubstitute.contains("{0}")) {
+            throw new IllegalArgumentException("Invalid mail substitute pattern, {0} is missing.");
+        }
+        this.mailSubstitute = mailSubstitute;
+    }
+
+    public boolean isMailSubstituteOverridesLdap() {
+        return mailSubstituteOverrides;
+    }
+
+    public void setMailSubstituteOverridesLdap(boolean mailSubstituteOverridesLdap) {
+        this.mailSubstituteOverrides = mailSubstituteOverridesLdap;
     }
 }
