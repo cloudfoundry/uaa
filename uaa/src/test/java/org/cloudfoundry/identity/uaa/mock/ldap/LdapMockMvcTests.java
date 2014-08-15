@@ -16,13 +16,9 @@ import com.googlecode.flyway.core.Flyway;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager;
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
+import org.cloudfoundry.identity.uaa.ldap.ExtendedLdapUserMapper;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
-import org.cloudfoundry.identity.uaa.scim.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
-import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimExternalGroupBootstrap;
-import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
-import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.test.DefaultIntegrationTestConfig;
 import org.cloudfoundry.identity.uaa.test.TestClient;
@@ -60,7 +56,9 @@ import java.util.Set;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 import static org.springframework.http.MediaType.TEXT_HTML_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -163,6 +161,7 @@ public class LdapMockMvcTests {
     @After
     public void tearDown() throws Exception {
         System.clearProperty("ldap.profile.file");
+        System.clearProperty("ldap.base.mailSubstitute");
         if (webApplicationContext!=null) {
             Flyway flyway = webApplicationContext.getBean(Flyway.class);
             flyway.clean();
@@ -204,17 +203,7 @@ public class LdapMockMvcTests {
         setUp();
         String username = "marissa3";
         String password = "ldap3";
-
-        MockHttpServletRequestBuilder post =
-            post("/authenticate")
-            .accept(MediaType.APPLICATION_JSON)
-            .param("username", username)
-            .param("password", password);
-
-        MvcResult result = mockMvc.perform(post)
-            .andExpect(status().isOk())
-            .andReturn();
-
+        MvcResult result = performAuthentication(username, password);
         assertEquals("{\"username\":\"" + username + "\"}", result.getResponse().getContentAsString());
     }
 
@@ -223,16 +212,13 @@ public class LdapMockMvcTests {
         setUp();
         String username = "marissa3";
         String password = "ldapsadadasas";
-
         MockHttpServletRequestBuilder post =
             post("/authenticate")
                 .accept(MediaType.APPLICATION_JSON)
                 .param("username",username)
                 .param("password",password);
-
         mockMvc.perform(post)
             .andExpect(status().isUnauthorized());
-
     }
 
     @Test
@@ -240,21 +226,9 @@ public class LdapMockMvcTests {
         setUp();
         String username = "marissa";
         String password = "koala";
-
-        MockHttpServletRequestBuilder post =
-            post("/authenticate")
-                .accept(MediaType.APPLICATION_JSON)
-                .param("username", username)
-                .param("password", password);
-
-        MvcResult result = mockMvc.perform(post)
-            .andExpect(status().isOk())
-            .andReturn();
-
+        MvcResult result = performAuthentication(username, password);
         assertEquals("{\"username\":\"" + username + "\"}", result.getResponse().getContentAsString());
-
-        String origin = jdbcTemplate.queryForObject("select origin from users where username='marissa'", String.class);
-        assertEquals(Origin.UAA, origin);
+        assertEquals(Origin.UAA, getOrigin(username));
     }
 
     @Test
@@ -262,23 +236,10 @@ public class LdapMockMvcTests {
         setUp();
         String username = "marissa3";
         String password = "ldap3";
-
-        MockHttpServletRequestBuilder post =
-            post("/authenticate")
-                .accept(MediaType.APPLICATION_JSON)
-                .param("username", username)
-                .param("password", password);
-
-        MvcResult result = mockMvc.perform(post)
-            .andExpect(status().isOk())
-            .andReturn();
-
+        MvcResult result = performAuthentication(username, password);
         assertEquals("{\"username\":\"" + username + "\"}", result.getResponse().getContentAsString());
-
-        String origin = jdbcTemplate.queryForObject("select origin from users where username='marissa3'", String.class);
-        assertEquals("ldap", origin);
-        String email = jdbcTemplate.queryForObject("select email from users where username='marissa3' and origin='ldap'", String.class);
-        assertEquals("marissa3@test.com", email);
+        assertEquals("ldap", getOrigin(username));
+        assertEquals("marissa3@test.com",getEmail(username));
     }
 
     @Test
@@ -286,23 +247,90 @@ public class LdapMockMvcTests {
         setUp();
         String username = "marissa7";
         String password = "ldap7";
+        MvcResult result = performAuthentication(username, password);
+        assertEquals("{\"username\":\"" + username + "\"}", result.getResponse().getContentAsString());
+        assertEquals("ldap", getOrigin(username));
+        assertEquals("marissa7@user.from.ldap.cf",getEmail(username));
+    }
 
+    @Test
+    public void validateCustomEmailForLdapUser() throws Exception {
+        System.setProperty("ldap.base.mailSubstitute", "{0}@ldaptest.org");
+        setUp();
+        String username = "marissa7";
+        String password = "ldap7";
+        MvcResult result = performAuthentication(username, password);
+        assertEquals("{\"username\":\"" + username + "\"}", result.getResponse().getContentAsString());
+        assertEquals("ldap", getOrigin(username));
+        assertEquals("marissa7@ldaptest.org",getEmail(username));
+
+        ExtendedLdapUserMapper mapper = webApplicationContext.getBean(ExtendedLdapUserMapper.class);
+        try {
+            mapper.setMailSubstitute(null);
+            assertNull(mapper.getMailSubstitute());
+            mapper.setMailSubstitute("testing");
+            fail("It should not be possible setting up an email substitute missing {0}");
+        } catch (IllegalArgumentException x) {
+        } catch (Exception x) { fail(x.getMessage()); }
+
+        //null value should go back to default email
+        username = "marissa3";
+        password = "ldap3";
+        result = performAuthentication(username, password);
+        assertEquals("{\"username\":\"" + username + "\"}", result.getResponse().getContentAsString());
+        assertEquals("ldap", getOrigin(username));
+        assertEquals("marissa3@test.com",getEmail(username));
+
+        username = "marissa7";
+        password = "ldap7";
+        result = performAuthentication(username, password);
+        assertEquals("{\"username\":\"" + username + "\"}", result.getResponse().getContentAsString());
+        assertEquals("ldap", getOrigin(username));
+        assertEquals("marissa7@user.from.ldap.cf",getEmail(username));
+
+        //non null value
+        mapper.setMailSubstitute("user-{0}@testldap.org");
+        result = performAuthentication(username, password);
+        assertEquals("{\"username\":\"" + username + "\"}", result.getResponse().getContentAsString());
+        assertEquals("ldap", getOrigin(username));
+        assertEquals("user-marissa7@testldap.org",getEmail(username));
+
+        //value not overridden
+        username = "marissa3";
+        password = "ldap3";
+        result = performAuthentication(username, password);
+        assertEquals("{\"username\":\"" + username + "\"}", result.getResponse().getContentAsString());
+        assertEquals("ldap", getOrigin(username));
+        assertEquals("marissa3@test.com",getEmail(username));
+
+        //value overridden
+        mapper.setMailSubstituteOverridesLdap(true);
+        username = "marissa3";
+        password = "ldap3";
+        result = performAuthentication(username, password);
+        assertEquals("{\"username\":\"" + username + "\"}", result.getResponse().getContentAsString());
+        assertEquals("ldap", getOrigin(username));
+        assertEquals("user-marissa3@testldap.org",getEmail(username));
+    }
+
+    private String getOrigin(String username) {
+        return jdbcTemplate.queryForObject("select origin from users where username='"+username+"'", String.class);
+    }
+
+    private String getEmail(String username) {
+        return jdbcTemplate.queryForObject("select email from users where username='"+username+"' and origin='"+Origin.LDAP+"'", String.class);
+    }
+
+    private MvcResult performAuthentication(String username, String password) throws Exception {
         MockHttpServletRequestBuilder post =
             post("/authenticate")
                 .accept(MediaType.APPLICATION_JSON)
                 .param("username", username)
                 .param("password", password);
 
-        MvcResult result = mockMvc.perform(post)
+        return mockMvc.perform(post)
             .andExpect(status().isOk())
             .andReturn();
-
-        assertEquals("{\"username\":\"" + username + "\"}", result.getResponse().getContentAsString());
-
-        String origin = jdbcTemplate.queryForObject("select origin from users where username='marissa7'", String.class);
-        assertEquals("ldap", origin);
-        String email = jdbcTemplate.queryForObject("select email from users where username='marissa7' and origin='ldap'", String.class);
-        assertEquals("marissa7@user.from.ldap.cf", email);
     }
 
     @Test
