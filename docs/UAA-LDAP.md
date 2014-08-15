@@ -412,7 +412,7 @@ ldap:
 ### Ldap Groups to Scopes Configuration 
 * `ldap.groups.file` - set to `ldap/ldap-groups-map-to-scopes.xml` to map scopes to LDAP groups
 * `ldap.group.searchBase` - the search base for the group search
-* `ldap.group.groupRoleAttribute` - ignored by this implementation, as the DN will be used for the mapping
+* `ldap.group.groupRoleAttribute` - must be set to `'spring.security.ldap.dn'` to retrieve exactly one record per LDAP group
 * `ldap.group.searchSubtree` - boolean value, true indicates that we search the sub tree of the LDAP base
 * `ldap.group.groupSearchFilter` - similar to a user filter, most common is `member={0}`
 * `ldap.group.maxSearchDepth` - how many levels deep do we search for nested groups
@@ -434,7 +434,7 @@ ldap:
   groups:
     file: WEB-INF/spring/ldap/ldap-groups-map-to-scopes.xml    
     searchBase: ou=scopes,dc=test,dc=com
-    groupRoleAttribute: scopenames
+    groupRoleAttribute: 'spring.security.ldap.dn'
     searchSubtree: true
     groupSearchFilter: member={0}
     maxSearchDepth: 10
@@ -631,6 +631,8 @@ In the above example, the user `marissa`'s  UAA email always become `generated-m
   the name of the attribute in the LDAP record that contains the scope name(s).
   In case of multiple scopes, they must be delimited by a comma `,`
   <br/>This property is used by the LDAP Groups as Scopes mapping
+  When mapping groups to scopes, the value for this property MUST be
+  `'spring.security.ldap.dn'`
 
 
 * <a name="ldap.group.searchSubtree">`ldap.group.searchSubtree`</a>
