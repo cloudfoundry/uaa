@@ -25,7 +25,7 @@
           class="org.cloudfoundry.identity.uaa.ldap.extension.NestedLdapAuthoritiesPopulator">
         <constructor-arg ref="contextSource"/>
         <constructor-arg value="${ldap.groups.searchBase:ou=scopes,dc=test,dc=com}"/>
-        <property name="groupRoleAttribute" value="${ldap.groups.groupRoleAttribute:description}"/>
+        <property name="groupRoleAttribute" ref="configuredGroupRoleAttribute"/>
         <property name="searchSubtree" value="${ldap.groups.searchSubtree:true}"/>
         <property name="rolePrefix" value=""/>
         <property name="convertToUpperCase" value="false"/>
