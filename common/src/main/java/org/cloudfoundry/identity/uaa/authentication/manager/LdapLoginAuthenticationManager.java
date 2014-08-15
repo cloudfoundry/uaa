@@ -31,15 +31,9 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
     protected UaaUser getUser(UserDetails details, Map<String, String> info) {
         UaaUser user = super.getUser(details, info);
         if (details instanceof LdapUserDetails) {
-            String mail = user.getEmail();
+            String mail = getEmail(user, (LdapUserDetails)details);
             String origin = getOrigin();
             String externalId = ((LdapUserDetails)details).getDn();
-            if (details instanceof ExtendedLdapUserDetails) {
-                String[] addrs = ((ExtendedLdapUserDetails)details).getMail();
-                if (addrs!=null && addrs.length>0) {
-                    mail = addrs[0];
-                }
-            }
             return new UaaUser(
                 user.getId(),
                 user.getUsername(),
@@ -58,8 +52,27 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
         }
     }
 
+    protected String getEmail(UaaUser user, LdapUserDetails details) {
+        String mail = user.getEmail();
+        if (details instanceof ExtendedLdapUserDetails) {
+            String[] emails = ((ExtendedLdapUserDetails)details).getMail();
+            if (emails!=null && emails.length>0) {
+                mail = emails[0];
+            }
+        }
+        return mail;
+    }
+
     @Override
     protected UaaUser userAuthenticated(Authentication request, UaaUser user) {
+        //we must check and see if the email address has changed between authentications
+        if (request.getPrincipal() !=null && request.getPrincipal() instanceof ExtendedLdapUserDetails) {
+            ExtendedLdapUserDetails details = (ExtendedLdapUserDetails)request.getPrincipal();
+            UaaUser fromRequest = getUser(details, getExtendedAuthorizationInfo(request));
+            if (fromRequest.getEmail()!=null && !fromRequest.getEmail().equals(user.getEmail())) {
+                user = user.modifyEmail(fromRequest.getEmail());
+            }
+        }
         ExternalGroupAuthorizationEvent event = new ExternalGroupAuthorizationEvent(user, request.getAuthorities(), isAutoAddAuthorities());
         publish(event);
         return getUserDatabase().retrieveUserById(user.getId());
