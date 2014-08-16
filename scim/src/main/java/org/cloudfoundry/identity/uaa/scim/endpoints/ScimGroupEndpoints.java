@@ -183,6 +183,14 @@ public class ScimGroupEndpoints {
     public SearchResults<?> listExternalGroups(
         @RequestParam(required = false, defaultValue = "1") int startIndex,
         @RequestParam(required = false, defaultValue = "100") int count) {
+        return getExternalGroups(startIndex, count);
+    }
+
+    @RequestMapping(value = { "/Groups/External" }, method = RequestMethod.GET)
+    @ResponseBody
+    public SearchResults<?> getExternalGroups(
+        @RequestParam(required = false, defaultValue = "1") int startIndex,
+        @RequestParam(required = false, defaultValue = "100") int count) {
         String filter = "";
         List<ScimGroupExternalMember> result;
         try {
@@ -192,7 +200,7 @@ public class ScimGroupEndpoints {
         }
         String attributesCommaSeparated = null;
         try {
-            return SearchResultsFactory.buildSearchResultFrom(
+            return SearchResultsFactory.cropAndBuildSearchResultFrom(
                 result,
                 startIndex,
                 count,
@@ -204,14 +212,6 @@ public class ScimGroupEndpoints {
         } catch (SpelEvaluationException e) {
             throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST);
         }
-    }
-
-    @RequestMapping(value = { "/Groups/External" }, method = RequestMethod.GET)
-    @ResponseBody
-    public SearchResults<?> getExternalGroups(
-        @RequestParam(required = false, defaultValue = "1") int startIndex,
-        @RequestParam(required = false, defaultValue = "100") int count) {
-        return listExternalGroups(startIndex, count);
     }
 
     @RequestMapping(value = { "/Groups/External" }, method = RequestMethod.POST)

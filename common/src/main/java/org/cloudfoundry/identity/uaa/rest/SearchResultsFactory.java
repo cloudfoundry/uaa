@@ -26,14 +26,69 @@ import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.util.Assert;
 
 public class SearchResultsFactory {
-    public static <T> SearchResults<Map<String, Object>> buildSearchResultFrom(List<T> input, int startIndex,
-                    int count, int total, String[] attributes, List<String> schemas) {
-        return buildSearchResultFrom(input, startIndex, count, total, attributes, new SimpleAttributeNameMapper(
-                        Collections.<String, String> emptyMap()), schemas);
+    public static <T> SearchResults<Map<String, Object>> cropAndBuildSearchResultFrom(
+        List<T> input,
+        int startIndex,
+        int count,
+        int total,
+        String[] attributes,
+        List<String> schemas)  {
+
+        if (startIndex <= 0) {
+            //must start with 1
+            startIndex = 1;
+        }
+        if ( (startIndex -1) >= input.size() ) {
+            //start index is past the last result
+            count = 0;
+        }
+        if ( ((startIndex-1)+count) >= input.size()) {
+            //we're past the last result
+            count = input.size() - (startIndex - 1);
+        }
+
+        input = count>0 ? input.subList(startIndex-1, startIndex-1+count) : Collections.<T>emptyList();
+
+        return buildSearchResultFrom(
+            input,
+            startIndex,
+            count,
+            total,
+            attributes,
+            new SimpleAttributeNameMapper(Collections.<String, String> emptyMap()),
+            schemas);
+
     }
 
-    public static <T> SearchResults<Map<String, Object>> buildSearchResultFrom(List<T> input, int startIndex,
-                    int count, int total, String[] attributes, AttributeNameMapper mapper, List<String> schemas) {
+
+    public static <T> SearchResults<Map<String, Object>> buildSearchResultFrom(
+        List<T> input,
+        int startIndex,
+        int count,
+        int total,
+        String[] attributes,
+        List<String> schemas)  {
+
+        return buildSearchResultFrom(
+            input,
+            startIndex,
+            count,
+            total,
+            attributes,
+            new SimpleAttributeNameMapper(Collections.<String, String> emptyMap()),
+            schemas);
+
+    }
+
+    public static <T> SearchResults<Map<String, Object>> buildSearchResultFrom(
+        List<T> input,
+        int startIndex,
+        int count,
+        int total,
+        String[] attributes,
+        AttributeNameMapper mapper,
+        List<String> schemas) {
+
         Assert.state(input.size() <= count,
                         "Cannot build search results from parent list. Use subList before you call this method.");
         Map<String, Expression> expressions = buildExpressions(attributes, mapper);
