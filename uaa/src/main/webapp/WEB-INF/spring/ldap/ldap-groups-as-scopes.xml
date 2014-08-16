@@ -18,6 +18,10 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
 
+    <bean id="configuredGroupRoleAttribute" class="java.lang.String">
+        <constructor-arg value="${ldap.groups.groupRoleAttribute:description}"/>
+    </bean>
+
     <import resource="ldap-groups-populator.xml"/>
 
     <bean id="ldapAuthoritiesMapper" class="org.cloudfoundry.identity.uaa.ldap.CommaSeparatedScopesMapper"/>
