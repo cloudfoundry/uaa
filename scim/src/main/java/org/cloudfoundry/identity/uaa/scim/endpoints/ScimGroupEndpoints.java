@@ -182,18 +182,25 @@ public class ScimGroupEndpoints {
     @Deprecated
     public SearchResults<?> listExternalGroups(
         @RequestParam(required = false, defaultValue = "1") int startIndex,
-        @RequestParam(required = false, defaultValue = "100") int count) {
-        return getExternalGroups(startIndex, count);
+        @RequestParam(required = false, defaultValue = "100") int count,
+        @RequestParam(required = false, defaultValue = "") String filter) {
+        return getExternalGroups(startIndex, count, filter);
     }
 
     @RequestMapping(value = { "/Groups/External" }, method = RequestMethod.GET)
     @ResponseBody
     public SearchResults<?> getExternalGroups(
         @RequestParam(required = false, defaultValue = "1") int startIndex,
-        @RequestParam(required = false, defaultValue = "100") int count) {
-        String filter = "";
+        @RequestParam(required = false, defaultValue = "100") int count,
+        @RequestParam(required = false, defaultValue = "") String filter) {
+
         List<ScimGroupExternalMember> result;
         try {
+            if (filter!=null && filter.trim().length()>0) {
+                filter = filter.replace("displayName", "g.displayName");
+                filter = filter.replace("externalGroup", "gm.external_group");
+                filter = filter.replace("groupId", "g.id");
+            }
             result = externalMembershipManager.query(filter);
         } catch (IllegalArgumentException e) {
             throw new ScimException("Invalid filter expression: [" + filter + "]", HttpStatus.BAD_REQUEST);

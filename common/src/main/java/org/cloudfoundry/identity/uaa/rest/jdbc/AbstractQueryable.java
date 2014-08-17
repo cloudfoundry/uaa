@@ -86,10 +86,7 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
         logger.debug("Filtering groups with SQL: " + where);
         List<T> result;
         try {
-            String completeSql =
-                filter == null || filter.trim().length()==0 ?
-                getBaseSqlQuery() :
-                getBaseSqlQuery() + " where " + where.getSql();
+            String completeSql = getQuerySQL(filter, where);
             logger.debug("complete sql: " + completeSql + ", params: " + where.getParams());
             if (pageSize > 0 && pageSize < Integer.MAX_VALUE) {
                 result = pagingListFactory.createJdbcPagingList(completeSql, where.getParams(), rowMapper, pageSize);
@@ -102,6 +99,12 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
             logger.debug("Filter '" + filter + "' generated invalid SQL", e);
             throw new IllegalArgumentException("Invalid filter: " + filter);
         }
+    }
+
+    protected String getQuerySQL(String filter, SearchQueryConverter.ProcessedFilter where) {
+        return filter == null || filter.trim().length()==0 ?
+        getBaseSqlQuery() :
+        getBaseSqlQuery() + " where " + where.getSql();
     }
 
     protected abstract String getBaseSqlQuery();

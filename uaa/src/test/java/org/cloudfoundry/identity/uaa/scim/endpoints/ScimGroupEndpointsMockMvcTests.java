@@ -18,7 +18,6 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.rest.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.test.DefaultIntegrationTestConfig;
@@ -274,6 +273,69 @@ public class ScimGroupEndpointsMockMvcTests {
         result.andExpect(status().isForbidden());
 
         checkGetExternalGroups();
+    }
+
+    @Test
+    public void testGetExternalGroupsFilter() throws Exception {
+        checkGetExternalGroupsFilter("displayName", "internal.");
+        checkGetExternalGroupsFilter("externalGroup", "o=springsource,o=org");
+        checkGetExternalGroupsFilter("groupId", databaseExternalMembers.get(2).getGroupId());
+
+    }
+
+    protected void checkGetExternalGroupsFilter(String fieldName, String fieldValue) throws Exception {
+        MockHttpServletRequestBuilder get = MockMvcRequestBuilders.get("/Groups/External")
+            .param("filter", fieldName+" co \""+fieldValue+"\"")
+            .header("Authorization", "Bearer " + scimReadToken)
+            .accept(APPLICATION_JSON);
+
+        ResultActions result = mockMvc.perform(get);
+        result.andExpect(status().isOk());
+        String content = result.andReturn().getResponse().getContentAsString();
+        SearchResults<ScimGroupExternalMember> members = null;
+
+        Map<String,Object> map = new ObjectMapper().readValue(content, Map.class);
+        List<Map<String,String>> resources = (List<Map<String,String>>)map.get("resources");
+        int startIndex = Integer.parseInt(map.get("startIndex").toString());
+        int itemsPerPage = Integer.parseInt(map.get("itemsPerPage").toString());
+        int totalResults = Integer.parseInt(map.get("totalResults").toString());
+        List<ScimGroupExternalMember> memberList = new ArrayList<>();
+        for (Map<String,String> m : resources) {
+            ScimGroupExternalMember sgm = new ScimGroupExternalMember();
+            sgm.setGroupId(m.get("groupId"));
+            sgm.setDisplayName(m.get("displayName"));
+            sgm.setExternalGroup(m.get("externalGroup"));
+            memberList.add(sgm);
+        }
+        members = new SearchResults<>((List<String>)map.get("schemas"), memberList, startIndex, itemsPerPage, totalResults);
+        assertNotNull(members);
+
+        List<ScimGroupExternalMember> expected = new ArrayList<>();
+        for (ScimGroupExternalMember m : databaseExternalMembers) {
+            switch (fieldName) {
+                case "displayName" : {
+                    if (m.getDisplayName().startsWith(fieldValue)) {
+                        expected.add(m);
+                    }
+                    break;
+                }
+                case "externalGroup" : {
+                    if (m.getExternalGroup().contains(fieldValue)) {
+                        expected.add(m);
+                    }
+                    break;
+                }
+                case "groupId" : {
+                    if (m.getGroupId().contains(fieldValue)) {
+                        expected.add(m);
+                    }
+                    break;
+                }
+            }
+        }
+
+        assertEquals(expected.size(), members.getResources().size());
+        validateDbMembers(expected, members.getResources().toArray(new ScimGroupExternalMember[0]));
     }
 
     @Test
