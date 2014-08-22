@@ -18,6 +18,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,6 +38,7 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
+import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.oauth.approval.JdbcApprovalStore;
 import org.cloudfoundry.identity.uaa.rest.SearchResults;
 import org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper;
@@ -53,7 +59,6 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -439,6 +444,39 @@ public class ScimUserEndpointsTests {
         SearchResults<?> results = endpoints.findUsers("emails.value", "id pr", null, "ascending", 1, 100);
         Collection<Object> values = getSetFromMaps(results.getResources(), "emails.value");
         assertTrue(values.contains(Arrays.asList("olds@vmware.com")));
+    }
+
+    @Test
+    public void testFindUsersApprovalsSyncedByDefault() throws Exception {
+        ApprovalStore mockApprovalStore = mock(ApprovalStore.class);
+        endpoints.setApprovalStore(mockApprovalStore);
+
+        endpoints.findUsers("", "id pr", null, "ascending", 1, 100);
+        verify(mockApprovalStore, atLeastOnce()).getApprovals(anyString());
+
+        endpoints.setApprovalStore(am);
+    }
+
+    @Test
+    public void testFindUsersApprovalsSyncedIfIncluded() throws Exception {
+        ApprovalStore mockApprovalStore = mock(ApprovalStore.class);
+        endpoints.setApprovalStore(mockApprovalStore);
+
+        endpoints.findUsers("ApPrOvAls", "id pr", null, "ascending", 1, 100);
+        verify(mockApprovalStore, atLeastOnce()).getApprovals(anyString());
+
+        endpoints.setApprovalStore(am);
+    }
+
+    @Test
+    public void testFindUsersApprovalsNotSyncedIfNotIncluded() throws Exception {
+        ApprovalStore mockApprovalStore = mock(ApprovalStore.class);
+        endpoints.setApprovalStore(mockApprovalStore);
+
+        endpoints.findUsers("emails.value", "id pr", null, "ascending", 1, 100);
+        verifyZeroInteractions(mockApprovalStore);
+
+        endpoints.setApprovalStore(am);
     }
 
     @Test
