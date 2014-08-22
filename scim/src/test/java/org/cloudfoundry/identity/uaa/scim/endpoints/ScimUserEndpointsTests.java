@@ -18,6 +18,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
@@ -46,6 +47,7 @@ import org.cloudfoundry.identity.uaa.rest.jdbc.DefaultLimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
@@ -447,6 +449,39 @@ public class ScimUserEndpointsTests {
     }
 
     @Test
+    public void testFindUsersGroupsSyncedByDefault() throws Exception {
+        ScimGroupMembershipManager mockgroupMembershipManager = mock(ScimGroupMembershipManager.class);
+        endpoints.setScimGroupMembershipManager(mockgroupMembershipManager);
+
+        endpoints.findUsers("", "id pr", null, "ascending", 1, 100);
+        verify(mockgroupMembershipManager, atLeastOnce()).getGroupsWithMember(anyString(), anyBoolean());
+
+        endpoints.setScimGroupMembershipManager(mm);
+    }
+
+    @Test
+    public void testFindUsersGroupsSyncedIfIncluded() throws Exception {
+        ScimGroupMembershipManager mockgroupMembershipManager = mock(ScimGroupMembershipManager.class);
+        endpoints.setScimGroupMembershipManager(mockgroupMembershipManager);
+
+        endpoints.findUsers("groups", "id pr", null, "ascending", 1, 100);
+        verify(mockgroupMembershipManager, atLeastOnce()).getGroupsWithMember(anyString(), anyBoolean());
+
+        endpoints.setScimGroupMembershipManager(mm);
+    }
+
+    @Test
+    public void testFindUsersGroupsNotSyncedIfNotIncluded() throws Exception {
+        ScimGroupMembershipManager mockgroupMembershipManager = mock(ScimGroupMembershipManager.class);
+        endpoints.setScimGroupMembershipManager(mockgroupMembershipManager);
+
+        endpoints.findUsers("emails.value", "id pr", null, "ascending", 1, 100);
+        verifyZeroInteractions(mockgroupMembershipManager);
+
+        endpoints.setScimGroupMembershipManager(mm);
+    }
+
+    @Test
     public void testFindUsersApprovalsSyncedByDefault() throws Exception {
         ApprovalStore mockApprovalStore = mock(ApprovalStore.class);
         endpoints.setApprovalStore(mockApprovalStore);
@@ -462,7 +497,7 @@ public class ScimUserEndpointsTests {
         ApprovalStore mockApprovalStore = mock(ApprovalStore.class);
         endpoints.setApprovalStore(mockApprovalStore);
 
-        endpoints.findUsers("ApPrOvAls", "id pr", null, "ascending", 1, 100);
+        endpoints.findUsers("approvals", "id pr", null, "ascending", 1, 100);
         verify(mockApprovalStore, atLeastOnce()).getApprovals(anyString());
 
         endpoints.setApprovalStore(am);
