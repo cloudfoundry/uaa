@@ -110,26 +110,32 @@ public class UserIdConversionEndpoints implements InitializingBean {
         SCIMFilter scimFilter;
         try {
             scimFilter = SCIMFilter.parse(filter);
-            checkFilter(scimFilter);
+            if (!checkFilter(scimFilter)) {
+                throw new ScimException("Invalid filter attribute.", HttpStatus.BAD_REQUEST);
+            }
         } catch (SCIMException e) {
             logger.debug("/ids/Users received an invalid filter [" + filter + "]", e);
             throw new ScimException("Invalid filter '"+filter+"'", HttpStatus.BAD_REQUEST);
         }
     }
 
-    private void checkFilter(SCIMFilter filter) {
+    /**
+     * Returns true if the field 'id' or 'userName' are present in the query.
+     * @param filter
+     * @return
+     */
+    private boolean checkFilter(SCIMFilter filter) {
         switch (filter.getFilterType()) {
             case AND:
             case OR:
-                checkFilter(filter.getFilterComponents().get(0));
-                checkFilter(filter.getFilterComponents().get(1));
-                return;
+                return checkFilter(filter.getFilterComponents().get(0)) | checkFilter(filter.getFilterComponents().get(1));
             case EQUALITY:
                 String name = filter.getFilterAttribute().getAttributeName();
                 if ("id".equalsIgnoreCase(name) ||
-                    "userName".equalsIgnoreCase(name) ||
-                    "origin".equalsIgnoreCase(name)) {
-                    return;
+                    "userName".equalsIgnoreCase(name)) {
+                    return true;
+                } else if ("origin".equalsIgnoreCase(name)) {
+                    return false;
                 } else {
                     throw new ScimException("Invalid filter attribute.", HttpStatus.BAD_REQUEST);
                 }
@@ -143,6 +149,7 @@ public class UserIdConversionEndpoints implements InitializingBean {
             case LESS_OR_EQUAL:
                 throw new ScimException("Invalid operator.", HttpStatus.BAD_REQUEST);
         }
+        return false;
     }
 
     @Override

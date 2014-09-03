@@ -134,6 +134,13 @@ public class UserIdConversionEndpointsTests {
     }
 
     @Test
+    public void testBadFilter9() {
+        expected.expect(ScimException.class);
+        expected.expectMessage(containsString("Invalid filter"));
+        endpoints.findUsers("origin eq \"uaa\"", "ascending", 0, 100);
+    }
+
+    @Test
     public void testDisabled() {
         endpoints.setEnabled(false);
         expected.expect(ScimException.class);

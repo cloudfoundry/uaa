@@ -19,6 +19,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -100,6 +101,22 @@ public class ScimUserLookupMockMvcTests {
             .andReturn().getResponse().getContentAsString();
 
         validateLookupResults(new String[] {username}, body);
+    }
+
+    @Test
+    public void testLookupUsingOnlyOrigin() throws Exception {
+        String filter = "origin eq \"uaa\"";
+        MockHttpServletRequestBuilder post = post("/ids/Users")
+            .header("Authorization", "Bearer " + scimLookupIdUserToken)
+            .accept(APPLICATION_JSON)
+            .param("filter", filter)
+            .param("startIndex", String.valueOf(1))
+            .param("count", String.valueOf(50));
+
+        mockMvc.perform(post)
+            .andDo(print())
+            .andExpect(status().isBadRequest());
+
     }
 
     @Test
