@@ -367,7 +367,8 @@ Resource ID = `scim`.  Rules:
 
 * Obtain username information via `/ids/Users`
 * ``filter`` parameter must be supplied
-* Only attributes `userName` and `id` are returned (and can be queried on)
+* Only attributes `userName`, `origin` and `id` are returned (and can be queried on)
+* Requires `scim.userids` scope
 
 ### User Profiles
 

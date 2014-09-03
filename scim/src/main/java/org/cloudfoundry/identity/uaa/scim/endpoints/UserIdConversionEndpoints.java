@@ -20,6 +20,8 @@ import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 
+import com.unboundid.scim.sdk.SCIMException;
+import com.unboundid.scim.sdk.SCIMFilter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.rest.SearchResults;
@@ -53,19 +55,6 @@ public class UserIdConversionEndpoints implements InitializingBean {
 
     private boolean enabled = true;
 
-    private Set<Pattern> patterns = new HashSet<Pattern>();
-
-    {
-        patterns.add(Pattern.compile("(.*?)([a-z0-9]*) eq (.*?)([\\s]*.*)", Pattern.CASE_INSENSITIVE));
-        patterns.add(Pattern.compile("(.*?)([a-z0-9]*) co (.*?)([\\s]*.*)", Pattern.CASE_INSENSITIVE));
-        patterns.add(Pattern.compile("(.*?)([a-z0-9]*) sw (.*?)([\\s]*.*)", Pattern.CASE_INSENSITIVE));
-        patterns.add(Pattern.compile("(.*?)([a-z0-9]*) gt (.*?)([\\s]*.*)", Pattern.CASE_INSENSITIVE));
-        patterns.add(Pattern.compile("(.*?)([a-z0-9]*) ge (.*?)([\\s]*.*)", Pattern.CASE_INSENSITIVE));
-        patterns.add(Pattern.compile("(.*?)([a-z0-9]*) lt (.*?)([\\s]*.*)", Pattern.CASE_INSENSITIVE));
-        patterns.add(Pattern.compile("(.*?)([a-z0-9]*) le (.*?)([\\s]*.*)", Pattern.CASE_INSENSITIVE));
-        patterns.add(Pattern.compile("pr (.*?)([a-z0-9]*)([\\s]*.*)", Pattern.CASE_INSENSITIVE));
-    }
-
     void setSecurityContextAccessor(SecurityContextAccessor securityContextAccessor) {
         this.securityContextAccessor = securityContextAccessor;
     }
@@ -85,7 +74,7 @@ public class UserIdConversionEndpoints implements InitializingBean {
         this.enabled = enabled;
     }
 
-    @RequestMapping(value = "/ids/Users", method = RequestMethod.GET)
+    @RequestMapping(value = "/ids/Users")
     @ResponseBody
     public SearchResults<?> findUsers(
                     @RequestParam(required = true, defaultValue = "") String filter,
@@ -95,7 +84,7 @@ public class UserIdConversionEndpoints implements InitializingBean {
         if (!enabled) {
             logger.warn("Request from user " + securityContextAccessor.getAuthenticationInfo() +
                             " received at disabled Id translation endpoint with filter:" + filter);
-            throw new UnsupportedOperationException();
+            throw new ScimException("Illegal operation.", HttpStatus.BAD_REQUEST);
         }
 
         filter = filter.trim();
@@ -118,22 +107,41 @@ public class UserIdConversionEndpoints implements InitializingBean {
         if (filter.isEmpty()) {
             throw new ScimException("a 'filter' parameter is required", HttpStatus.BAD_REQUEST);
         }
-
-        String lowerCase = filter.toLowerCase();
-        if (lowerCase.contains("groups.")) {
-            throw new ScimException(
-                            "Invalid filter expression: [" + filter + "] (no group filters allowed on /ids/Users)",
-                            HttpStatus.BAD_REQUEST);
+        SCIMFilter scimFilter;
+        try {
+            scimFilter = SCIMFilter.parse(filter);
+            checkFilter(scimFilter);
+        } catch (SCIMException e) {
+            logger.debug("/ids/Users received an invalid filter [" + filter + "]", e);
+            throw new ScimException("Invalid filter '"+filter+"'", HttpStatus.BAD_REQUEST);
         }
-        for (Pattern pattern : patterns) {
-            Matcher matcher = pattern.matcher(lowerCase);
-            if (matcher.matches()) {
-                String field = matcher.group(2);
-                if (!"username".equals(field) && !"id".equals(field)) {
-                    throw new ScimException("Invalid filter expression: [" + filter + "] (no " + field
-                                    + " filters allowed on /ids/Users)", HttpStatus.BAD_REQUEST);
+    }
+
+    private void checkFilter(SCIMFilter filter) {
+        switch (filter.getFilterType()) {
+            case AND:
+            case OR:
+                checkFilter(filter.getFilterComponents().get(0));
+                checkFilter(filter.getFilterComponents().get(1));
+                return;
+            case EQUALITY:
+                String name = filter.getFilterAttribute().getAttributeName();
+                if ("id".equalsIgnoreCase(name) ||
+                    "userName".equalsIgnoreCase(name) ||
+                    "origin".equalsIgnoreCase(name)) {
+                    return;
+                } else {
+                    throw new ScimException("Invalid filter attribute.", HttpStatus.BAD_REQUEST);
                 }
-            }
+            case PRESENCE:
+            case STARTS_WITH:
+            case CONTAINS:
+                throw new ScimException("Wildcards are not allowed in filter.", HttpStatus.BAD_REQUEST);
+            case GREATER_THAN:
+            case GREATER_OR_EQUAL:
+            case LESS_THAN:
+            case LESS_OR_EQUAL:
+                throw new ScimException("Invalid operator.", HttpStatus.BAD_REQUEST);
         }
     }
 

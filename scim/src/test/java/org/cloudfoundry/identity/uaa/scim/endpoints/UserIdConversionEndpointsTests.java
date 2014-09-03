@@ -13,10 +13,10 @@
 
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import static org.hamcrest.CoreMatchers.containsString;
-
 import java.util.Collection;
 
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.mockito.Mockito.when;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.junit.Before;
@@ -51,12 +51,14 @@ public class UserIdConversionEndpointsTests {
     public void init() {
         endpoints.setScimUserEndpoints(scimUserEndpoints);
         endpoints.setEnabled(true);
-        Mockito.when(securityContextAccessor.getAuthorities()).thenReturn(authorities);
+        when(securityContextAccessor.getAuthorities()).thenReturn(authorities);
+        when(securityContextAccessor.getAuthenticationInfo()).thenReturn("mock object");
+        endpoints.setSecurityContextAccessor(securityContextAccessor);
     }
 
     @Test
     public void testHappyDay() {
-        endpoints.findUsers("userName eq marissa", "ascending", 0, 100);
+        endpoints.findUsers("userName eq \"marissa\"", "ascending", 0, 100);
     }
 
     @Test
@@ -70,6 +72,73 @@ public class UserIdConversionEndpointsTests {
     public void testBadFilterWithGroup() {
         expected.expect(ScimException.class);
         expected.expectMessage(containsString("Invalid filter"));
-        endpoints.findUsers("groups.display co 'foo'", "ascending", 0, 100);
+        endpoints.findUsers("groups.display eq \"foo\"", "ascending", 0, 100);
     }
+
+    @Test
+    public void testGoodFilter1() {
+        endpoints.findUsers("(id eq \"foo\" or username eq \"bar\") and origin eq \"uaa\"", "ascending", 0, 100);
+    }
+
+    @Test
+    public void testBadFilter1() {
+        expected.expect(ScimException.class);
+        expected.expectMessage(containsString("Wildcards are not allowed in filter."));
+        endpoints.findUsers("id co \"foo\"", "ascending", 0, 100);
+    }
+
+    @Test
+    public void testBadFilter2() {
+        expected.expect(ScimException.class);
+        expected.expectMessage(containsString("Invalid filter"));
+        endpoints.findUsers("id sq \"foo\"", "ascending", 0, 100);
+    }
+
+    @Test
+    public void testBadFilter3() {
+        expected.expect(ScimException.class);
+        expected.expectMessage(containsString("Wildcards are not allowed in filter."));
+        endpoints.findUsers("id sw \"foo\"", "ascending", 0, 100);
+    }
+
+    @Test
+    public void testBadFilter4() {
+        expected.expect(ScimException.class);
+        expected.expectMessage(containsString("Wildcards are not allowed in filter."));
+        endpoints.findUsers("id pr", "ascending", 0, 100);
+    }
+
+    @Test
+    public void testBadFilter5() {
+        expected.expect(ScimException.class);
+        expected.expectMessage(containsString("Invalid operator."));
+        endpoints.findUsers("id gt \"foo\"", "ascending", 0, 100);
+    }
+    @Test
+    public void testBadFilter6() {
+        expected.expect(ScimException.class);
+        expected.expectMessage(containsString("Invalid operator."));
+        endpoints.findUsers("id gt \"foo\"", "ascending", 0, 100);
+    }
+    @Test
+    public void testBadFilter7() {
+        expected.expect(ScimException.class);
+        expected.expectMessage(containsString("Invalid operator."));
+        endpoints.findUsers("id lt \"foo\"", "ascending", 0, 100);
+    }
+    @Test
+    public void testBadFilter8() {
+        expected.expect(ScimException.class);
+        expected.expectMessage(containsString("Invalid operator."));
+        endpoints.findUsers("id le \"foo\"", "ascending", 0, 100);
+    }
+
+    @Test
+    public void testDisabled() {
+        endpoints.setEnabled(false);
+        expected.expect(ScimException.class);
+        expected.expectMessage(containsString("Illegal operation."));
+        endpoints.findUsers("id eq \"foo\"", "ascending", 0, 100);
+    }
+
 }
