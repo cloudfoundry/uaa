@@ -777,9 +777,27 @@ Converting UserIds to Names
 ---------------------------
 
 There is a SCIM-like endpoint for converting usernames to names, with the same filter and attribute syntax as ``/Users``. It must be supplied with a ``filter`` parameter.  It is a special purpose endpoint for use as a user id/name translation api, and is should be disabled in production sites by setting ``scim.userids_enabled=false`` in the UAA configuration. It will be used by cf so it has to be quite restricted in function (i.e. it's not a general purpose groups or users endpoint). Otherwise the API is the same as /Users.
+This endpoint has a few restrictions, the only two fields that are allowed for filtering are ``id`` and ``userName`` and the only valid filter operator is the ``eq`` operator.
+Wildcard searches such as ``sw`` or ``co`` are not allowed. This endpoint requires the scope ``scim.userids`` to be present in the token.
 
 * Request: ``GET /ids/Users``
 * Response Body: list of users matching the filter
+    {
+        "itemsPerPage": 100,
+        "resources": [
+            {
+                "id": "309cc3b7-ec9a-4180-9ba1-5d73f12e97ea",
+                "origin": "uaa",
+                "userName": "marissa"
+            }
+        ],
+        "schemas": [
+            "urn:scim:schemas:core:1.0"
+        ],
+        "startIndex": 1,
+        "totalResults": 1
+    }
+
 
 Query the strength of a password: ``POST /password/score``
 -----------------------------------------------------------
