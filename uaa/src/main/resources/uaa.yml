@@ -88,3 +88,16 @@
 #    passwordEncoder: org.cloudfoundry.identity.uaa.login.ldap.DynamicPasswordComparator
 #    localPasswordCompare: true
 
+oauth:
+  user:
+    authorities:
+      - openid
+      - scim.me
+      - cloud_controller.read
+      - cloud_controller.write
+      - cloud_controller_service_permissions.read
+      - password.write
+      - scim.userids
+      - uaa.user
+      - approvals.me
+      - oauth.approvals

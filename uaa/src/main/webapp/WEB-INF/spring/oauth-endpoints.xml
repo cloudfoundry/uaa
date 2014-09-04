@@ -200,18 +200,9 @@
         <property name="approvalStore" ref="approvalStore" />
     </bean>
 
-    <util:set id="defaultUserAuthorities" set-class="java.util.HashSet">
-        <value>openid</value>
-        <value>scim.me</value>
-        <value>cloud_controller.read</value>
-        <value>cloud_controller.write</value>
-        <value>password.write</value>
-        <value>scim.userids</value>
-        <value>uaa.user</value>
-        <value>approvals.me</value>
-        <value>oauth.approvals</value>
-        <value>cloud_controller_service_permissions.read</value>
-    </util:set>
+    <bean id="defaultUserAuthorities" class="org.springframework.beans.factory.config.SetFactoryBean">
+        <property name="sourceSet" value="#{@config['oauth']==null ? T(java.util.Collections).emptySet() : @config['oauth']['user']==null ? T(java.util.Collections).emptySet(): @config['oauth']['user']['authorities']}"/>
+    </bean>
 
     <bean id="userDatabase" class="org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase">
         <constructor-arg ref="jdbcTemplate" />
