@@ -34,6 +34,7 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
+import org.springframework.mock.web.MockServletConfig;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.jwt.Jwt;
 import org.springframework.security.jwt.JwtHelper;
@@ -89,7 +90,11 @@ public class ClientAdminEndpointsMockMvcTests {
     @Before
     public void setUp() throws Exception {
         webApplicationContext = new XmlWebApplicationContext();
-        webApplicationContext.setServletContext(new MockServletContext());
+        MockServletContext context = new MockServletContext();
+        MockServletConfig config = new MockServletConfig(context);
+        config.addInitParameter("environmentConfigDefaults", "uaa.yml");
+        webApplicationContext.setServletContext(context);
+        webApplicationContext.setServletConfig(config);
         new YamlServletProfileInitializer().initialize(webApplicationContext);
         webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         webApplicationContext.refresh();
