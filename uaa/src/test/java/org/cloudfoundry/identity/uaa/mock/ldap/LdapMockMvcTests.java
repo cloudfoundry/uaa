@@ -147,6 +147,7 @@ public class LdapMockMvcTests {
 
         new YamlServletProfileInitializer().initialize(webApplicationContext);
         webApplicationContext.register(DefaultIntegrationTestConfig.class);
+        webApplicationContext.getEnvironment().setActiveProfiles("ldap","default");
         webApplicationContext.refresh();
         webApplicationContext.registerShutdownHook();
 
