@@ -34,7 +34,6 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.springframework.mock.web.MockServletConfig;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.web.FilterChainProxy;
@@ -64,14 +63,8 @@ public class ScimUserLookupMockMvcTests {
     @BeforeClass
     public static void setUp() throws Exception {
         System.setProperty("scim.userids_enabled", "true");
-
         webApplicationContext = new AnnotationConfigWebApplicationContext();
-        MockServletContext context = new MockServletContext();
-        MockServletConfig config = new MockServletConfig(context);
-        config.addInitParameter("environmentConfigDefaults", "uaa.yml");
-        webApplicationContext.setServletContext(context);
-        webApplicationContext.setServletConfig(config);
-
+        webApplicationContext.setServletContext(new MockServletContext());
         new YamlServletProfileInitializer().initialize(webApplicationContext);
         webApplicationContext.register(DefaultIntegrationTestConfig.class);
         webApplicationContext.refresh();

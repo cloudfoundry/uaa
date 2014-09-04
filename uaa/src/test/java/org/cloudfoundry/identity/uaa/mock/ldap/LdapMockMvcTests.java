@@ -32,7 +32,6 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.mock.web.MockServletConfig;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -139,12 +138,7 @@ public class LdapMockMvcTests {
         System.setProperty("ldap.group.maxSearchDepth", "10");
 
         webApplicationContext = new AnnotationConfigWebApplicationContext();
-        MockServletContext context = new MockServletContext();
-        MockServletConfig config = new MockServletConfig(context);
-        config.addInitParameter("environmentConfigDefaults", "uaa.yml");
-        webApplicationContext.setServletContext(context);
-        webApplicationContext.setServletConfig(config);
-
+        webApplicationContext.setServletContext(new MockServletContext());
         new YamlServletProfileInitializer().initialize(webApplicationContext);
         webApplicationContext.register(DefaultIntegrationTestConfig.class);
         webApplicationContext.refresh();

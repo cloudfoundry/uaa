@@ -55,7 +55,6 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockServletConfig;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.jwt.Jwt;
@@ -100,12 +99,7 @@ public class AuditCheckMvcMockTests {
     @Before
     public void setUp() throws Exception {
         webApplicationContext = new AnnotationConfigWebApplicationContext();
-        MockServletContext context = new MockServletContext();
-        MockServletConfig config = new MockServletConfig(context);
-        config.addInitParameter("environmentConfigDefaults", "uaa.yml");
-        webApplicationContext.setServletContext(context);
-        webApplicationContext.setServletConfig(config);
-
+        webApplicationContext.setServletContext(new MockServletContext());
         new YamlServletProfileInitializer().initialize(webApplicationContext);
         webApplicationContext.register(DefaultIntegrationTestConfig.class);
         webApplicationContext.refresh();
