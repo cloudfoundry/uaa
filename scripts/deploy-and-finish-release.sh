@@ -22,7 +22,7 @@ git merge releases/$1 --no-ff -m "Merge branch 'releases/$1' into develop"
 git branch -d releases/$1
 ./scripts/set-version.sh $2
 git commit -am "Bump next developer version"
-git diff origin/develop
+git diff --exit-code origin/develop
 git push origin develop
 
 set +x
