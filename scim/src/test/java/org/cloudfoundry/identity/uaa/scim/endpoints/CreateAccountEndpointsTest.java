@@ -83,6 +83,18 @@ public class CreateAccountEndpointsTest {
                 }
             });
 
+        Mockito.when(scimUserProvisioning.verifyUser("newly-created-user-id", -1))
+            .thenAnswer(new Answer<ScimUser>() {
+                @Override
+                public ScimUser answer(InvocationOnMock invocationOnMock) throws Throwable {
+                    ScimUser u = new ScimUser();
+                    u.setUserName("user@example.com");
+                    u.setId(invocationOnMock.getArguments()[0].toString());
+                    u.setVerified(true);
+                    return u;
+                }
+            });
+
         MockHttpServletRequestBuilder post = post("/create_account")
                 .contentType(APPLICATION_JSON)
                 .content("{\"code\":\"secret_code\",\"password\":\"secret\"}")
@@ -100,6 +112,10 @@ public class CreateAccountEndpointsTest {
         Assert.assertEquals("user@example.com", scimUserCaptor.getValue().getPrimaryEmail());
         Assert.assertEquals("newly-created-user-id", scimUserCaptor.getValue().getId());
         Assert.assertEquals(Origin.UAA, scimUserCaptor.getValue().getOrigin());
+
+        ArgumentCaptor<String> scimUserIdCaptor = ArgumentCaptor.forClass(String.class);
+        Mockito.verify(scimUserProvisioning).verifyUser(scimUserIdCaptor.capture(), eq(-1));
+        Assert.assertEquals("newly-created-user-id", scimUserIdCaptor.getValue());
     }
 
     @Test

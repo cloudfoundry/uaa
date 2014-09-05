@@ -200,7 +200,11 @@
         <property name="approvalStore" ref="approvalStore" />
     </bean>
 
-    <util:set id="defaultUserAuthorities" set-class="java.util.HashSet">
+    <bean id="defaultUserAuthorities" class="org.springframework.beans.factory.config.SetFactoryBean">
+        <property name="sourceSet" value="#{@config['oauth']==null ? legacyDefaultUserAuthorities : @config['oauth']['user']==null ? legacyDefaultUserAuthorities: @config['oauth']['user']['authorities']}"/>
+    </bean>
+
+    <util:set id="legacyDefaultUserAuthorities" set-class="java.util.HashSet">
         <value>openid</value>
         <value>scim.me</value>
         <value>cloud_controller.read</value>

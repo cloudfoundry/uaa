@@ -412,7 +412,7 @@ ldap:
 ### Ldap Groups to Scopes Configuration 
 * `ldap.groups.file` - set to `ldap/ldap-groups-map-to-scopes.xml` to map scopes to LDAP groups
 * `ldap.group.searchBase` - the search base for the group search
-* `ldap.group.groupRoleAttribute` - must be set to `'spring.security.ldap.dn'` to retrieve exactly one record per LDAP group
+* `ldap.group.groupRoleAttribute` - ignored by this implementation
 * `ldap.group.searchSubtree` - boolean value, true indicates that we search the sub tree of the LDAP base
 * `ldap.group.groupSearchFilter` - similar to a user filter, most common is `member={0}`
 * `ldap.group.maxSearchDepth` - how many levels deep do we search for nested groups
@@ -434,7 +434,6 @@ ldap:
   groups:
     file: WEB-INF/spring/ldap/ldap-groups-map-to-scopes.xml    
     searchBase: ou=scopes,dc=test,dc=com
-    groupRoleAttribute: 'spring.security.ldap.dn'
     searchSubtree: true
     groupSearchFilter: member={0}
     maxSearchDepth: 10
@@ -442,6 +441,56 @@ ldap:
 </pre>
 
 ### Populating External Group Mappings
+
+# LDAP Email integration
+As you may have noticed through the different examples, the property `ldap.base.mailAttributeName` is always 
+configured, and even has a default value. Each time the UAA authenticates an LDAP user it will update the 
+user's email record in the database. This is so that systems that provide notifications, have an email 
+address that is as current as the user's last authentication.
+
+## Generating an email address if LDAP mail attribute is empty
+If an LDAP user does not have an email address, the UAA can automatically generate one.
+
+<pre>
+spring_profiles: ldap
+ldap:
+  profile:
+    file: ldap/ldap-search-and-bind.xml
+  base:
+    url: 'ldap://localhost:10389/'
+    userDn: 'cn=admin,ou=Users,dc=test,dc=com'
+    password: 'password'
+    searchBase: ''
+    searchFilter: 'cn={0}'
+    mailAttributeName: 'mail'
+    mailSubstitute: 'generated-{0}@company.example.com'
+    mailSubstituteOverridesLdap: true
+</pre>
+In the above example, if user `marissa` has a mail record, her UAA email will be set to the email address she has on file.
+However, if `marissa` does not have an email address in the `mail` attribute, her UAA email will become
+`generated-marissa@company.example.com`.
+
+## Overriding the LDAP email address
+The UAA provides an ability to override the email address that is set in LDAP
+by setting the `mailSubstituteOverridesLdap` flag to true.
+
+<pre>
+spring_profiles: ldap
+ldap:
+  profile:
+    file: ldap/ldap-search-and-bind.xml
+  base:
+    url: 'ldap://localhost:10389/'
+    userDn: 'cn=admin,ou=Users,dc=test,dc=com'
+    password: 'password'
+    searchBase: ''
+    searchFilter: 'cn={0}'
+    mailAttributeName: 'mail'
+    mailSubstitute: 'generated-{0}@company.example.com'
+    mailSubstituteOverridesLdap: true
+</pre>
+In the above example, the user `marissa`'s  UAA email always become `generated-marissa@company.example.com`.
+
 
 # Samples
 
@@ -485,7 +534,25 @@ ldap:
 * <a name="ldap.base.mailAttributeName">`ldap.base.mailAttributeName`</a> 
   the name of the attribute that contains the user's email address
   Default value is `mail`
+  If an email address is not available, one will be generated for the user.
   <br/>This property is always used.
+
+
+* <a name="ldap.base.mailSubstitute">`ldap.base.mailSubstitute`</a> 
+  Defines a pattern, `{0}@ldap-generated.email.com`, that the system
+  uses to generate an email address based on the username for the user.
+  This property will set the email address for the user if the LDAP 
+  email address is null or if the property `ldap.base.mailSubstituteOverridesLdap`
+  is set to true. The pattern must contain `{0}` to be substituted for the username.
+  Default value is `null`
+  <br/>This property is optional
+
+
+* <a name="ldap.base.mailSubstituteOverridesLdap">`ldap.base.mailSubstituteOverridesLdap`</a> 
+  If set to true and the property/pattern `ldap.base.mailSubstitute` is defined
+  the users email address will be generated from the pattern, always.
+  Default value is `false`
+  <br/>This property is optional
 
 
 * <a name="ldap.base.userDn">`ldap.base.userDn`</a>
@@ -563,8 +630,6 @@ ldap:
   the name of the attribute in the LDAP record that contains the scope name(s).
   In case of multiple scopes, they must be delimited by a comma `,`
   <br/>This property is used by the LDAP Groups as Scopes mapping
-  When mapping groups to scopes, the value for this property MUST be
-  `'spring.security.ldap.dn'`
 
 
 * <a name="ldap.group.searchSubtree">`ldap.group.searchSubtree`</a>

@@ -1,0 +1,50 @@
+import org.eclipse.jgit.storage.file.FileRepositoryBuilder
+import org.eclipse.jgit.revwalk.RevWalk
+import java.text.SimpleDateFormat
+
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+
+  dependencies {
+    classpath group: 'org.eclipse.jgit', name: 'org.eclipse.jgit', version: '3.4.1.201406201815-r'
+  }
+}
+
+task mainOutputResourcesDir {
+  sourceSets.main.output.resourcesDir.mkdirs()
+}
+
+task gitInfo {
+  dependsOn mainOutputResourcesDir
+
+  def props = new Properties()
+  try {
+    def builder = new FileRepositoryBuilder()
+    builder.readEnvironment()
+    if (builder.getGitDir() == null) {
+      builder.findGitDir(projectDir)
+    }
+    def repository = builder.build()
+    def objectId = repository.resolve("HEAD")
+    def commit = new RevWalk(repository).parseCommit(objectId)
+    props.setProperty("git.commit.id.abbrev", commit.getId().getName().substring(0, 7))
+    props.setProperty("git.commit.time", new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").format(commit.getAuthorIdent().getWhen()))
+  } catch (e) {
+    logger.warn "Exception raised while reading git metadata: $e"
+    props.setProperty("git.commit.id.abbrev", "git-metadata-not-found")
+    props.setProperty("git.commit.time", new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").format(new java.util.Date()))
+  }
+  props.store(new FileOutputStream("${sourceSets.main.resources.srcDirs.find()}/git.properties"), "DO NOT EDIT. This is generated file.")
+}
+
+task buildInfo {
+  dependsOn mainOutputResourcesDir
+
+  def props = new Properties()
+  props.setProperty("build.version", version)
+  props.store(new FileOutputStream("${sourceSets.main.resources.srcDirs.find()}/build.properties"), "DO NOT EDIT. This is generated file.")
+}
+
+processResources.dependsOn gitInfo, buildInfo

@@ -152,4 +152,9 @@ public class UaaUser {
     public UaaUser modifySource(String origin, String externalId) {
         return new UaaUser(id, username, password, email, authorities, givenName, familyName, created, modified, origin, externalId);
     }
+
+    public UaaUser modifyEmail(String email) {
+        return new UaaUser(id, username, password, email, authorities, givenName, familyName, created, modified, origin, externalId);
+    }
+
 }

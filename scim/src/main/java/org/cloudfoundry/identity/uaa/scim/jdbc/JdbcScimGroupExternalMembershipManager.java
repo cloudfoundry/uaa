@@ -16,6 +16,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.AbstractQueryable;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
+import org.cloudfoundry.identity.uaa.rest.jdbc.SearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
@@ -199,6 +200,14 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
         }, rowMapper);
     }
 
+    @Override
+    protected String getQuerySQL(String filter, SearchQueryConverter.ProcessedFilter where) {
+        boolean containsWhereClause = getBaseSqlQuery().contains(" where ");
+        return filter == null || filter.trim().length()==0 ?
+            getBaseSqlQuery() :
+            getBaseSqlQuery() + (containsWhereClause ? " and " : " where ") + where.getSql();
+    }
+
     private ScimGroupExternalMember getExternalGroupMap(final String groupId, final String externalGroup)
                     throws ScimResourceNotFoundException {
         try {
@@ -224,6 +233,8 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
             return result;
         }
     }
+
+
 
     public void setScimGroupProvisioning(ScimGroupProvisioning scimGroupProvisioning) {
         this.scimGroupProvisioning = scimGroupProvisioning;

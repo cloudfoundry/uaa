@@ -260,7 +260,12 @@ public class ScimUserEndpoints implements InitializingBean {
         try {
             result = dao.query(filter, sortBy, sortOrder.equals("ascending"));
             for (ScimUser user : UaaPagingUtils.subList(result, startIndex, count)) {
-                syncApprovals(syncGroups(user));
+                if(attributesCommaSeparated == null || attributesCommaSeparated.matches("(?i)groups") || attributesCommaSeparated.isEmpty()) {
+                    syncGroups(user);
+                }
+                if(attributesCommaSeparated == null || attributesCommaSeparated.matches("(?i)approvals") || attributesCommaSeparated.isEmpty()) {
+                    syncApprovals(user);
+                }
                 input.add(user);
             }
         } catch (IllegalArgumentException e) {

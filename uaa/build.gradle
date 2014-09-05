@@ -3,6 +3,7 @@ Project identityScim = parent.subprojects.find { it.name.equals('cloudfoundry-id
 
 apply plugin: 'war'
 
+apply from: file('build_properties.gradle')
 processResources {
   //maven replaces project.artifactId in the log4j.properties file
   //https://www.pivotaltracker.com/story/show/74344574

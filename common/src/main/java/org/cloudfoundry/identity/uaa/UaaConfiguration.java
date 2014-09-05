@@ -106,6 +106,8 @@ public class UaaConfiguration {
         public Authorize authorize;
         @Valid
         public Map<String, OAuthClient> clients;
+        @Valid
+        public User user;
 
         public static class Client {
             public String override;
@@ -115,6 +117,11 @@ public class UaaConfiguration {
         public static class Authorize {
             @NotNull
             public boolean ssl;
+        }
+
+        public static class User {
+            @Valid
+            public Set<String> authorities;
         }
     }
 

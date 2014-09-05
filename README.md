@@ -17,9 +17,9 @@ clients, as well as various other management functions.
 * Tokens: [A note on tokens, scopes and authorities](https://github.com/cloudfoundry/uaa/tree/master/docs/UAA-Tokens.md)
 * Technical forum: [vcap-dev google group](https://groups.google.com/a/cloudfoundry.org/forum/?fromgroups#!forum/vcap-dev)
 * Docs: [docs/](https://github.com/cloudfoundry/uaa/tree/master/docs)
-* API Documentation: [UAA-API.rst](https://github.com/cloudfoundry/uaa/tree/master/doc/UAA-API.rst)
+* API Documentation: [UAA-APIs.rst](https://github.com/cloudfoundry/uaa/tree/master/docs/UAA-APIs.rst)
 * Specification: [The Oauth 2 Authorization Framework](http://tools.ietf.org/html/rfc6749)
-* LDAP: [UAA LDAP Integration](https://github.com/cloudfoundry/uaa/tree/master/doc/UAA-LDAP.md)
+* LDAP: [UAA LDAP Integration](https://github.com/cloudfoundry/uaa/tree/master/docs/UAA-LDAP.md)
 
 ## Quick Start
 
@@ -128,26 +128,14 @@ grant, the same as used by a client like CF.
 You can run the integration tests with
 
     $ ./gradlew integrationTest
-
-To make the tests work in various environments you can modify the
-configuration of the server and the tests (e.g. the admin client)
-using a variety of mechanisms. The simplest is to provide additional
-Maven profiles on the command line, e.g.
-
-    $ (cd uaa; mvn test -P vcap)
-    
-will run the integration tests against a uaa server running in a local
-vcap, so for example the service URL is set to `uaa.vcap.me` (by
-default).  There are several Maven profiles to play with, and they can
-be used to run the server, or the tests or both:
-
-* `local`: runs the server on the ROOT context `http://localhost:8080/`
-
-* `vcap`: also runs the server on the ROOT context and points the
-  tests at `uaa.vcap.me`.
   
-These profiles set the `CLOUD_FOUNDRY_CONFIG_PATH` to pick up a
-`uaa.yml` and (if appropriate) set the context root for running the
+will run the integration tests against a uaa server running in a local
+Apache Tomcat instance, so for example the service URL is set to `http://localhost:8080/uaa` (by
+default).  
+  
+You can point the `CLOUD_FOUNDRY_CONFIG_PATH` to pick up a
+`uaa.yml` where URLs can be changed
+and (if appropriate) set the context root for running the
 server (see below for more detail on that).
 
 ### Custom YAML Configuration
@@ -164,7 +152,7 @@ To modify the runtime parameters you can provide a `uaa.yml`, e.g.
 
 then from `uaa/uaa`
 
-    $ CLOUD_FOUNDRY_CONFIG_PATH=/tmp mvn test
+    $ CLOUD_FOUNDRY_CONFIG_PATH=/tmp ./gradlew test
     
 The webapp looks for a Yaml file in the following locations
 (later entries override earlier ones) when it starts up.
@@ -174,69 +162,23 @@ The webapp looks for a Yaml file in the following locations
     file:${UAA_CONFIG_FILE}
     ${UAA_CONFIG_URL}
 
-### Using Maven with Cloud Foundry
+### Using Gradle to test with postgresql or mysql
 
-To test against a Cloud Foundry instance use the Maven profile `vcap` (it
-switches off some of the tests that create random client and user
-accounts):
-
-    $ (cd uaa; mvn test -P vcap)
-
-To change the target server it should suffice to set
-`VCAP_BVT_TARGET` (the tests prefix it with `uaa.` to form the
-server url), e.g.
-
-    $ VCAP_BVT_TARGET=appcloud21.dev.mozycloud mvn test -P vcap
-
-You can also override some of the other most important default
-settings using environment variables.  The defaults as usual come from
-`uaa.yml` but tests will search first in an environment variable:
-
-* `UAA_ADMIN_CLIENT_ID` the client id for bootstrapping client
-  registrations needed for the rest of the tests.
-
-* `UAA_ADMIN_CLIENT_SECRET` the client secret for bootstrapping client
-  registrations
-  
-All other settings from `uaa.yml` can be overridden individually as
-system properties.  Running in an IDE this is easy just using whatever
-features allow you to modify the JVM in test runs, but using Maven you
-have to use the `argLine` property to get settings passed onto the
-test JVM, e.g.
-
-    $ mvn -DargLine=-Duaa.test.username=foo test
-    
-will create an account with `userName=foo` for testing (instead using
-the default setting from `uaa.yml`).
-
-If you prefer environment variables to system properties you can use a
-custom `uaa.yml` with placeholders for your environment variables,
-e.g.
-
-    uaa:
-      test:
-        username: ${UAA_TEST_USERNAME:marissa}
-
-will look for an environment variable (or system property)
-`UAA_TEST_USERNAME` before defaulting to `marissa`.  This is the trick
-used to expose `UAA_ADMIN_CLIENT_SECRET` etc. in the standard
-configuration.
-
-### Using Maven to test with postgresql or mysql
-
-The default uaa unit tests (mvn test) use hsqldb.
+The default uaa unit tests (./gradlew test) use hsqldb.
 
 To run the unit tests using postgresql:
 
-    $ SPRING_PROFILES_ACTIVE=test,postgresql CLOUD_FOUNDRY_CONFIG_PATH=src/test/resources/test/profiles/postgresql mvn test
+    $ echo "spring_profiles: default,postgresql" > src/main/resources/uaa.yml 
+    $ ./gradlew test integrationTest
 
 To run the unit tests using mysql:
 
-    $ SPRING_PROFILES_ACTIVE=test,mysql CLOUD_FOUNDRY_CONFIG_PATH=src/test/resources/test/profiles/mysql mvn test
+    $ echo "spring_profiles: default,mysql" > src/main/resources/uaa.yml 
+    $ ./gradlew test integrationTest
 
-The database configuration for the common and scim modules is located at:
-common/src/test/resources/(mysql|postgresql).properties
-scim/src/test/resources/(mysql|postgresql).properties
+
+The database configuration for the common and scim modules is defaulted in 
+the Spring XML configuration files. You can change them by configuring them in `uaa.yml`
 
 ## Inventory
 
@@ -268,10 +210,9 @@ In CloudFoundry terms
 
 The authentication service is `uaa`. It's a plain Spring MVC webapp.
 Deploy as normal in Tomcat or your container of choice, or execute
-`mvn tomcat7:run` to run it directly from `uaa` directory in the source
-tree (make sure the common jar is installed first using `mvn install`
-from the common subdirectory or from the top level directory).  When
-running with maven it listens on port 8080.
+`./gradlew run` to run it directly from `uaa` directory in the source
+tree. When running with gradle it listens on port 8080 and the URL is
+`http://localhost:8080/uaa`
 
 The UAA Server supports the APIs defined in the UAA-APIs document. To summarise:
 
@@ -339,63 +280,36 @@ To use Postgresql for user data, activate one of the Spring profiles
 
 The active profiles can be configured in `uaa.yml` using
 
-    spring_profiles: postgresql
+    spring_profiles: postgresql,default
     
-or by passing the `spring.profiles.active` parameter to the JVM. For,
-example to run with an embedded HSQL database:
+To use PostgreSQL instead of HSQL:
 
-     mvn -Dspring.profiles.active=hsqldb tomcat7:run
+     $ echo "spring_profiles: default,postgresql" > src/main/resources/uaa.yml 
+     $ ./gradlew run
 
-Or to use PostgreSQL instead of HSQL:
 
-     mvn -Dspring.profiles.active=postgresql tomcat7:run
+## The API Sample Application
 
-To bootstrap a microcloud type environment you need an admin client.
-For this there is a database initializer component that inserts an
-admin client.  If the default profile is active (i.e. not
-`postgresql`) there is also a `cf` client so that the gem login works
-out of the box.  You can override the default settings and add
-additional clients in `uaa.yml`:
+Two sample applications are included with the UAA. The `/api` and `/app`
 
-    oauth:
-      clients:
-        admin:    
-          authorized-grant-types: client_credentials
-          scope: read,write,password
-          authorities: ROLE_CLIENT,ROLE_ADIN
-          id: admin
-          secret: adminclientsecret
-          resource-ids: clients
+Run it using `./gradlew run` from the `uaa` root directory 
+All three apps, `/uaa`, `/api` and `/app` get deployed 
+simultaneously.
 
-The admin client can be used to create additional clients (but not to
-do anything much else).  A client with read/write access to the `scim`
-resource will be needed to create user accounts.  The integration
-tests take care of this automatically, inserting client and user
-accounts as necessary to make the tests work.
-
-## The API Application
-
-An example resource server.  It hosts a service which returns
-a list of mock applications under `/apps`.
-
-Run it using `mvn tomcat7:run` from the `api` directory (once all other
-tomcat processes have been shutdown). This will deploy the app to a
-Tomcat manager on port 8080.
-
-## The App Application
+## The App Sample Application
 
 This is a user interface app (primarily aimed at browsers) that uses
 OpenId Connect for authentication (i.e. SSO) and OAuth2 for access
 grants.  It authenticates with the Auth service, and then accesses
-resources in the API service.  Run it with `mvn tomcat7:run` from the
-`app` directory (once all other tomcat processes have been shutdown).
+resources in the API service.  Run it with `./gradlew run` from the
+`uaa` root directory.
 
 The application can operate in multiple different profiles according
 to the location (and presence) of the UAA server and the Login
 application.  By default it will look for a UAA on
 `localhost:8080/uaa`, but you can change this by setting an
 environment variable (or System property) called `UAA_PROFILE`.  In
-the application source code (`src/main/resources`) you will find
+the application source code (`samples/app/src/main/resources`) you will find
 multiple properties files pre-configured with different likely
 locations for those servers.  They are all in the form
 `application-<UAA_PROFILE>.properties` and the naming convention

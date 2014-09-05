@@ -69,6 +69,7 @@ public class CreateAccountEndpoints {
                 String redirectLocation = (String) clientDetails.getAdditionalInformation().get(SIGNUP_REDIRECT_URL);
 
                 ScimUser user = scimUserProvisioning.createUser(newScimUser(email), accountCreation.getPassword());
+                user = scimUserProvisioning.verifyUser(user.getId(), -1);
 
                 Map<String, String> response = accountCreationResponse(user, redirectLocation);
                 responseEntity = new ResponseEntity<>(response, CREATED);

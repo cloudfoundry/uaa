@@ -4,12 +4,12 @@ This login application is a sample for how you can set up your own custom login 
 
 ## Quick start
 
-Start your UAA
+Start your UAA and Sample Applications
 
     $ git clone git@github.com:cloudfoundry/uaa.git
     $ cd uaa
-    $ mvn install
-    $ mvn tomcat:run
+    $ ./gradlew run
+
 
 Verify that the uaa has started by going to http://localhost:8080/uaa
 
