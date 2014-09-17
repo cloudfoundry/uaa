@@ -22,6 +22,7 @@ import java.util.Collections;
 
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.junit.Assert;
 import org.junit.Test;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
@@ -166,4 +167,27 @@ public class ScimUserTests {
                         Boolean.class));
     }
 
+    @Test
+    public void testSetPrimaryEmail() throws Exception {
+        ScimUser user = new ScimUser();
+
+        ScimUser.Email email1 = new ScimUser.Email();
+        email1.setValue("email1@bar.com");
+        email1.setPrimary(true);
+        ScimUser.Email email2 = new ScimUser.Email();
+        email2.setValue("email2@bar.com");
+        ScimUser.Email email3 = new ScimUser.Email();
+        email3.setValue("email3@bar.com");
+        user.setEmails(Arrays.asList(email1, email2, email3));
+
+        ScimUser.Email newEmail = new ScimUser.Email();
+        newEmail.setValue("new@example.com");
+        newEmail.setPrimary(true);
+
+        user.setPrimaryEmail(newEmail.getValue());
+
+        Assert.assertEquals("new@example.com", user.getPrimaryEmail());
+
+        Assert.assertEquals(Arrays.asList(newEmail, email2, email3), user.getEmails());
+    }
 }

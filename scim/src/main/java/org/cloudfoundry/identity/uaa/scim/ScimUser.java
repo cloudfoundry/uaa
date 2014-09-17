@@ -234,6 +234,28 @@ public final class ScimUser extends ScimCore {
         public boolean isPrimary() {
             return primary;
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Email email = (Email) o;
+
+            if (primary != email.primary) return false;
+            if (type != null ? !type.equals(email.type) : email.type != null) return false;
+            if (value != null ? !value.equals(email.value) : email.value != null) return false;
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = value != null ? value.hashCode() : 0;
+            result = 31 * result + (type != null ? type.hashCode() : 0);
+            result = 31 * result + (primary ? 1 : 0);
+            return result;
+        }
     }
 
     @JsonSerialize(include = JsonSerialize.Inclusion.NON_DEFAULT)
@@ -494,6 +516,31 @@ public final class ScimUser extends ScimCore {
         return primaryEmail.getValue();
     }
 
+    public void setPrimaryEmail(String value) {
+        Email newPrimaryEmail = new Email();
+        newPrimaryEmail.setPrimary(true);
+        newPrimaryEmail.setValue(value);
+
+        if (emails == null) {
+            emails = new ArrayList<>(1);
+        }
+        else {
+            emails = new ArrayList<>(getEmails());
+        }
+
+        Email currentPrimaryEmail = null;
+        for (Email email : emails) {
+            if (email.isPrimary()) {
+                currentPrimaryEmail = email;
+                break;
+            }
+        }
+        if (currentPrimaryEmail != null) {
+            emails.remove(currentPrimaryEmail);
+        }
+        emails.add(0, newPrimaryEmail);
+    }
+
     @JsonIgnore
     public String getGivenName() {
         return name == null ? null : name.getGivenName();
@@ -512,7 +559,7 @@ public final class ScimUser extends ScimCore {
         Assert.hasText(newEmail);
 
         if (emails == null) {
-            emails = new ArrayList<Email>(1);
+            emails = new ArrayList<>(1);
         }
         for (Email email : emails) {
             if (email.value.equals(newEmail)) {
