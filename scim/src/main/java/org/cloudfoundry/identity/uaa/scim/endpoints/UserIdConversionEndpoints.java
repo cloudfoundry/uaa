@@ -24,6 +24,7 @@ import com.unboundid.scim.sdk.SCIMException;
 import com.unboundid.scim.sdk.SCIMFilter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.rest.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
@@ -134,7 +135,7 @@ public class UserIdConversionEndpoints implements InitializingBean {
                 if ("id".equalsIgnoreCase(name) ||
                     "userName".equalsIgnoreCase(name)) {
                     return true;
-                } else if ("origin".equalsIgnoreCase(name)) {
+                } else if (Origin.ORIGIN.equalsIgnoreCase(name)) {
                     return false;
                 } else {
                     throw new ScimException("Invalid filter attribute.", HttpStatus.BAD_REQUEST);
