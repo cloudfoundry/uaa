@@ -18,8 +18,10 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
+import com.googlecode.flyway.core.util.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -50,6 +52,11 @@ public class RemoteAuthenticationEndpoint {
     private final Log logger = LogFactory.getLog(getClass());
 
     private AuthenticationManager authenticationManager;
+    private AuthenticationManager loginAuthenticationManager;
+
+    public void setLoginAuthenticationManager(AuthenticationManager loginAuthenticationManager) {
+        this.loginAuthenticationManager = loginAuthenticationManager;
+    }
 
     public RemoteAuthenticationEndpoint(AuthenticationManager authenticationManager) {
         this.authenticationManager = authenticationManager;
@@ -58,9 +65,9 @@ public class RemoteAuthenticationEndpoint {
     @RequestMapping(value = { "/authenticate" }, method = RequestMethod.POST)
     @ResponseBody
     public HttpEntity<Map<String, String>> authenticate(HttpServletRequest request,
-                    @RequestParam("username") String username,
-                    @RequestParam("password") String password) {
-        Map<String, String> responseBody = new HashMap<String, String>();
+                    @RequestParam(value = "username", required = true) String username,
+                    @RequestParam(value = "password", required = true) String password) {
+        Map<String, String> responseBody = new HashMap<>();
 
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username, password);
         token.setDetails(new UaaAuthenticationDetails(request));
@@ -79,7 +86,45 @@ public class RemoteAuthenticationEndpoint {
             status = HttpStatus.INTERNAL_SERVER_ERROR;
         }
 
-        return new ResponseEntity<Map<String, String>>(responseBody, status);
+        return new ResponseEntity<>(responseBody, status);
+    }
+
+    @RequestMapping(value = { "/authenticate" }, method = RequestMethod.POST, params = {"source","origin", UaaAuthenticationDetails.ADD_NEW})
+    @ResponseBody
+    public HttpEntity<Map<String, String>> authenticate(HttpServletRequest request,
+                                                        @RequestParam(value = "username", required = true) String username,
+                                                        @RequestParam(value = Origin.ORIGIN, required = true) String origin,
+                                                        @RequestParam(value = "email", required = false) String email) {
+        Map<String, String> responseBody = new HashMap<>();
+        HttpStatus status = HttpStatus.UNAUTHORIZED;
+
+        if (!hasClientOauth2Authentication()) {
+            responseBody.put("error", "authentication failed");
+            return new ResponseEntity<>(responseBody, status);
+        }
+
+        Map<String, String> userInfo = new HashMap<>();
+        userInfo.put("username", username);
+        userInfo.put(Origin.ORIGIN, origin);
+        if (StringUtils.hasText(email)) {
+            userInfo.put("email", email);
+        }
+
+        AuthzAuthenticationRequest token = new AuthzAuthenticationRequest(userInfo, new UaaAuthenticationDetails(request));
+        try {
+            Authentication a = loginAuthenticationManager.authenticate(token);
+            responseBody.put("username", a.getName());
+            processAdditionalInformation(responseBody, a);
+            status = HttpStatus.OK;
+        } catch (AuthenticationException e) {
+            responseBody.put("error", "authentication failed");
+        } catch (Exception e) {
+            logger.debug("Failed to authenticate user ", e);
+            responseBody.put("error", "error");
+            status = HttpStatus.INTERNAL_SERVER_ERROR;
+        }
+
+        return new ResponseEntity<>(responseBody, status);
     }
 
     private void processAdditionalInformation(Map<String, String> responseBody, Authentication a) {

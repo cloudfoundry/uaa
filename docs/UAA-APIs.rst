@@ -267,7 +267,7 @@ This works similarly to the previous section, but does not require the credentia
 Trusted Authentication from Login Server
 ----------------------------------------
 
-In addition to the normal authentication of the ``/oauth/authorize`` endpoint described above (cookie-based for browser app and special case for ``cf``) the UAA offers a special channel whereby a trusted client app can authenticate itself and then use the ``/oauth/authorize`` endpoint by providing minimal information about the user account (but not the password).  This channel is provided so that authentication can be abstracted into a separate "Login" server.  The default client id for the trusted app is ``login``, and this client is registered in the default profile (but not in any other)::
+In addition to the normal authentication of the ``/authenticate`` and ``/oauth/authorize`` endpoints described above (cookie-based for browser app and special case for ``cf``) the UAA offers a special channel whereby a trusted client app can authenticate itself and then use the ``/oauth/authorize`` or ``/authenticate`` endpoint by providing minimal information about the user account (but not the password).  This channel is provided so that authentication can be abstracted into a separate "Login" server.  The default client id for the trusted app is ``login``, and this client is registered in the default profile (but not in any other)::
 
     id: login,
     secret: loginsecret,
@@ -275,13 +275,55 @@ In addition to the normal authentication of the ``/oauth/authorize`` endpoint de
     authorized_grant_types: client_credentials,
     authorities: oauth.login
 
-To authenticate the ``/oauth/authorize`` endpoint using this channel the Login Server has to provide a standard OAuth2 bearer token header _and_ some additional parameters to identify the user: ``source=login`` is mandatory, as is ``username``, plus optionally ``[email, given_name, family_name]``.  The UAA will lookup the user in its internal database and if it is found the request is authenticated.  The UAA can be configured to automatically register authenicated users that are missing from its database, but this will only work if all the fields are provided.  The response from the UAA (if the Login Server asks for JSON content) has enough information to get approval from the user and pass the response back to the UAA.
+To authenticate the ``/oauth/authorize`` or ``/authenticate`` endpoint using this channel the Login Server has to provide a standard OAuth2 bearer token header _and_ some additional parameters to identify the user: ``source=login`` is mandatory, as is ``username`` and ``origin``, plus optionally ``[email, given_name, family_name]``.  The UAA will lookup the user in its internal database and if it is found the request is authenticated.  The UAA can be configured to automatically register authenicated users that are missing from its database, but this will only work if all the fields are provided.  The response from the UAA (if the Login Server asks for JSON content) has enough information to get approval from the user and pass the response back to the UAA.
 
-Using this trusted channel a Login Server can obtain authorization (or tokens directly in the implicit grant) from the UAA, and also have complete control over authentication of the user, and the UI for logging in and approving token grants.
+Using this trusted channel a Login Server can obtain create a user or perform an Oauth authorization (or tokens directly in the implicit grant) from the UAA, and also have complete control over authentication of the user, and the UI for logging in and approving token grants.
 
 An authorization code grant has two steps (as normal), but instead of a UI response the UAA sends JSON:
 
-Step 1: Initial Authorization Request
+Create a user using trusted authenticate channel: /authenticate Request
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This endpoint lets the login client to retrieve a user_id during an external authentication sequence.
+So that the Authentication object in memory can always have a user_id available in the principal.
+This endpoint is used
+
+* Request: ``POST /authenticate``
+* Request query component: some parameters specified by the spec, appended to the query component using the "application/x-www-form-urlencoded" format,
+
+  * ``source=login`` - mandatory
+  * ``username`` - the user whom the client is acting on behalf of (the authenticated user in the Login Server)
+  * ``origin`` - the origin whom the user is authenticated through (the authenticated user in the Login Server)
+  * ``email`` - the email of the user, optional
+  * ``add_new`` - set to true to create a user that doesn't exist
+
+* Request header:
+
+        Accept: application/json
+        Authorization: Bearer <login-client-bearer-token-obtained-from-uaa>
+
+* Request body: empty (or form encoded parameters as above)
+
+* Response header will include a cookie.  This needs to be sent back in the second step (if required) so that the UAA can retrive the state from this request.
+
+* Response body if successful, and user approval is required (example)::
+
+        HTTP/1.1 200 OK
+        {
+            "username":"YbSgOG",
+            "origin":"zkV8lR",
+            "user_id":"723def1b-4209-4e2a-99a0-1ac8c6fbb18c"
+        }
+
+  the response body contains information about the user that is required for the login server to have access too.
+
+* Response Codes::
+
+        200 - OK
+        401 - UNAUTHORIZED (if the token is invalid or user did not exist and add_new was false)
+
+
+Authorization Step 1: Initial Authorization Request
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 * Request: ``POST /oauth/authorize``
@@ -293,6 +335,7 @@ Step 1: Initial Authorization Request
   * ``state`` - recommended (a random string that the client app can correlate with the current user session)
   * ``source=login`` - mandatory
   * ``username`` - the user whom the client is acting on behalf of (the authenticated user in the Login Server)
+  * ``origin`` - the origin whom the user is authenticated through (the authenticated user in the Login Server)
   * ``email`` - the email of the user, optional
   * ``given_name`` - the given (first) name of the user, optional
   * ``family_name`` - the family (last) name of the user, optional
@@ -338,7 +381,7 @@ Step 1: Initial Authorization Request
         403 - FORBIDDEN (if the user has denied approval)
         302 - FOUND (if the grant is already approved)
 
-Step 2: User Approves Grant
+Authorization Step 2: User Approves Grant
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Just a normal POST with approval parameters to ``/oauth/authorize``, including the cookie requested in Step 1 (just like a browser would do).  For example::

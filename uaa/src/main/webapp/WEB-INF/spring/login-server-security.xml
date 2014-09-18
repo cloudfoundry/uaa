@@ -173,6 +173,7 @@
 
     <bean class="org.cloudfoundry.identity.uaa.authentication.login.RemoteAuthenticationEndpoint">
         <constructor-arg ref="authzAuthenticationMgr" />
+        <property name="loginAuthenticationManager" ref="loginAuthenticationMgr"/>
     </bean>
 
     <bean id="codeStore" class="org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore">
