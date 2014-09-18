@@ -107,6 +107,14 @@
                             <entry key="authorities" value="uaa.resource" />
                         </map>
                     </entry>
+                    <entry key="notifications">
+                        <map>
+                            <entry key="id" value="notifications" />
+                            <entry key="secret" value="notificationssecret" />
+                            <entry key="authorized-grant-types" value="client_credentials" />
+                            <entry key="authorities" value="cloud_controller.admin,scim.read" />
+                        </map>
+                    </entry>
                 </map>
             </property>
         </bean>
