@@ -31,21 +31,23 @@ import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.AuthorizationRequestManager;
-import org.springframework.security.oauth2.provider.BaseClientDetails;
+import org.springframework.security.oauth2.provider.OAuth2Request;
+import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
+import org.springframework.security.oauth2.provider.TokenRequest;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
-import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
+import org.springframework.security.oauth2.provider.request.DefaultOAuth2RequestFactory;
 
 /**
- * An {@link AuthorizationRequestManager} that applies various UAA-specific
+ * An {@link OAuth2RequestFactory} that applies various UAA-specific
  * rules to an authorization request,
  * validating it and setting the default values for requestedScopes and resource ids.
  * 
  * @author Dave Syer
  * 
  */
-public class UaaAuthorizationRequestManager implements AuthorizationRequestManager {
+public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
 
     private final ClientDetailsService clientDetailsService;
 
@@ -57,8 +59,19 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
 
     private Collection<String> defaultScopes = new HashSet<String>();
 
+    public OAuth2RequestFactory getRequestFactory() {
+        return requestFactory;
+    }
+
+    public void setRequestFactory(OAuth2RequestFactory requestFactory) {
+        this.requestFactory = requestFactory;
+    }
+
+    private OAuth2RequestFactory requestFactory;
+
     public UaaAuthorizationRequestManager(ClientDetailsService clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
+        this.requestFactory = new DefaultOAuth2RequestFactory(clientDetailsService);
     }
 
     /**
@@ -123,7 +136,7 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
 
         String clientId = authorizationParameters.get("client_id");
         BaseClientDetails clientDetails = new BaseClientDetails(clientDetailsService.loadClientByClientId(clientId));
-
+        validateParameters(authorizationParameters, clientDetails);
         Set<String> scopes = OAuth2Utils.parseParameterList(authorizationParameters.get("scope"));
         String grantType = authorizationParameters.get("grant_type");
         if ((scopes == null || scopes.isEmpty())) {
@@ -158,19 +171,29 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
 
         Set<String> resourceIds = getResourceIds(clientDetails, scopes);
         clientDetails.setResourceIds(resourceIds);
-        DefaultAuthorizationRequest request = new DefaultAuthorizationRequest(authorizationParameters);
+        Map<String, String> actualParameters = new HashMap<>(authorizationParameters);
+        if (scopesFromExternalAuthorities != null) {
+            actualParameters.put("external_scopes",
+                            OAuth2Utils.formatParameterList(scopesFromExternalAuthorities));
+
+        }
+        AuthorizationRequest request = new AuthorizationRequest(
+            actualParameters,
+            null,
+            clientId,
+            scopes.isEmpty()?null:scopes,
+            null,
+            null,
+            false,
+            null,
+            null,
+            null
+        );
         if (!scopes.isEmpty()) {
             request.setScope(scopes);
         }
-        if (scopesFromExternalAuthorities != null) {
-            Map<String, String> existingAuthorizationParameters = new LinkedHashMap<String, String>();
-            existingAuthorizationParameters.putAll(request.getAuthorizationParameters());
-            existingAuthorizationParameters.put("external_scopes",
-                            OAuth2Utils.formatParameterList(scopesFromExternalAuthorities));
-            request.setAuthorizationParameters(existingAuthorizationParameters);
-        }
 
-        request.addClientDetails(clientDetails);
+        request.setResourceIdsAndAuthoritiesFromClientDetails(clientDetails);
 
         return request;
     }
@@ -184,10 +207,7 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
      * grants the valid requestedScopes are actually in
      * the authorities of the client.
      * 
-     * @see org.springframework.security.oauth2.provider.endpoint.ParametersValidator#validateParameters(java.util.Map,
-     *      org.springframework.security.oauth2.provider.ClientDetails)
      */
-    @Override
     public void validateParameters(Map<String, String> parameters, ClientDetails clientDetails) {
         if (parameters.containsKey("scope")) {
             Set<String> validScope = clientDetails.getScope();
@@ -212,7 +232,7 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
      * 
      * @param requestedScopes the initial set of requestedScopes from the client registration
      * @param clientDetails
-     * @param collection the users authorities
+     * @param authorities the users authorities
      * @return modified requestedScopes adapted according to the rules specified
      */
     private Set<String> checkUserScopes(Set<String> requestedScopes, Collection<? extends GrantedAuthority> authorities,
@@ -281,6 +301,23 @@ public class UaaAuthorizationRequestManager implements AuthorizationRequestManag
         return resourceIds.isEmpty() ? clientDetails.getResourceIds() : resourceIds;
     }
 
+    @Override
+    public OAuth2Request createOAuth2Request(AuthorizationRequest request) {
+        return requestFactory.createOAuth2Request(request);
+    }
 
+    @Override
+    public OAuth2Request createOAuth2Request(ClientDetails client, TokenRequest tokenRequest) {
+        return requestFactory.createOAuth2Request(client, tokenRequest);
+    }
 
+    @Override
+    public TokenRequest createTokenRequest(Map<String, String> requestParameters, ClientDetails authenticatedClient) {
+        return requestFactory.createTokenRequest(requestParameters, authenticatedClient);
+    }
+
+    @Override
+    public TokenRequest createTokenRequest(AuthorizationRequest authorizationRequest, String grantType) {
+        return requestFactory.createTokenRequest(authorizationRequest, grantType);
+    }
 }

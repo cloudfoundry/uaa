@@ -32,8 +32,9 @@ import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.BaseClientDetails;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.stereotype.Controller;
@@ -192,7 +193,7 @@ public class AccessController {
                         {
                             put("location", getLocation(request, "oauth/authorize"));
                             put("path", getPath(request, "oauth/authorize"));
-                            put("key", AuthorizationRequest.USER_OAUTH_APPROVAL);
+                            put("key", OAuth2Utils.USER_OAUTH_APPROVAL);
                             put("value", "true");
                         }
 
@@ -201,7 +202,7 @@ public class AccessController {
                         {
                             put("location", getLocation(request, "oauth/authorize"));
                             put("path", getPath(request, "oauth/authorize"));
-                            put("key", AuthorizationRequest.USER_OAUTH_APPROVAL);
+                            put("key", OAuth2Utils.USER_OAUTH_APPROVAL);
                             put("value", "false");
                         }
 

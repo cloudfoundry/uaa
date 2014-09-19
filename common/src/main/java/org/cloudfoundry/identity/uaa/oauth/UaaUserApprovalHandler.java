@@ -19,13 +19,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
-import org.springframework.security.oauth2.provider.approval.TokenServicesUserApprovalHandler;
+import org.springframework.security.oauth2.provider.approval.TokenStoreUserApprovalHandler;
 
 /**
  * @author Dave Syer
  * 
  */
-public class UaaUserApprovalHandler extends TokenServicesUserApprovalHandler {
+public class UaaUserApprovalHandler extends TokenStoreUserApprovalHandler {
 
     private boolean useTokenServices = true;
 

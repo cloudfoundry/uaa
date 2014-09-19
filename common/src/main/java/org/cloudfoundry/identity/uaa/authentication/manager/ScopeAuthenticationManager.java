@@ -13,19 +13,18 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashSet;
+import java.util.List;
+
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.oauth2.common.exceptions.InsufficientScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
-import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedHashSet;
-import java.util.List;
+import org.springframework.security.oauth2.provider.OAuth2Request;
 
 /**
  *
@@ -54,7 +53,7 @@ public class ScopeAuthenticationManager implements AuthenticationManager{
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         if (authentication instanceof OAuth2Authentication) {
-            AuthorizationRequest creq = ((OAuth2Authentication) authentication).getAuthorizationRequest();
+            OAuth2Request creq = ((OAuth2Authentication) authentication).getOAuth2Request();
             List<String> scopes = dedup(creq.getScope());
             int matches = 0;
             int requiredMatches = getRequiredScopes().size();
@@ -64,7 +63,6 @@ public class ScopeAuthenticationManager implements AuthenticationManager{
                 }
             }
             if (matches==requiredMatches) {
-                ((DefaultAuthorizationRequest)creq).setApproved(true);
                 authentication.setAuthenticated(true);
                 return authentication;
             } else if (isThrowOnNotAuthenticated()) {

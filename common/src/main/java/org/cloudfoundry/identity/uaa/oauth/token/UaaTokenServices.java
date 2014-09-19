@@ -84,9 +84,10 @@ import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.ClientRegistrationException;
-import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.security.oauth2.provider.OAuth2Request;
+import org.springframework.security.oauth2.provider.TokenRequest;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
 import org.springframework.util.Assert;
@@ -131,16 +132,14 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     }
 
     @Override
-    public OAuth2AccessToken refreshAccessToken(String refreshTokenValue, AuthorizationRequest request)
-                    throws AuthenticationException {
-
+    public OAuth2AccessToken refreshAccessToken(String refreshTokenValue, TokenRequest request) throws AuthenticationException {
         if (null == refreshTokenValue) {
             throw new InvalidTokenException("Invalid refresh token (empty token)");
         }
 
-        if (!"refresh_token".equals(request.getAuthorizationParameters().get("grant_type"))) {
+        if (!"refresh_token".equals(request.getRequestParameters().get("grant_type"))) {
             throw new InvalidGrantException("Invalid grant type: "
-                            + request.getAuthorizationParameters().get("grant_type"));
+                            + request.getRequestParameters().get("grant_type"));
         }
 
         Map<String, Object> claims = getClaimsForToken(refreshTokenValue);
@@ -220,7 +219,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         OAuth2AccessToken accessToken = createAccessToken(user.getId(), user.getUsername(), user.getEmail(),
                         validity != null ? validity.intValue() : accessTokenValiditySeconds, null, requestedScopes,
                         clientId,
-                        request.getResourceIds(), grantType, refreshTokenValue, additionalAuthorizationInfo);
+                        request.createOAuth2Request(client).getResourceIds(), grantType, refreshTokenValue, additionalAuthorizationInfo);
 
         return accessToken;
     }
@@ -298,7 +297,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         String token = JwtHelper.encode(content, signerProvider.getSigner()).getEncoded();
 
         // This setter copies the value and returns. Don't change.
-        accessToken = accessToken.setValue(token);
+        accessToken.setValue(token);
 
         publish(new TokenIssuedEvent(accessToken, SecurityContextHolder.getContext().getAuthentication()));
 
@@ -374,20 +373,20 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             userEmail = user.getEmail();
         }
 
-        String clientId = authentication.getAuthorizationRequest().getClientId();
-        Set<String> userScopes = authentication.getAuthorizationRequest().getScope();
-        String grantType = authentication.getAuthorizationRequest().getAuthorizationParameters().get("grant_type");
+        String clientId = authentication.getOAuth2Request().getClientId();
+        Set<String> userScopes = authentication.getOAuth2Request().getScope();
+        String grantType = authentication.getOAuth2Request().getRequestParameters().get("grant_type");
 
         Set<String> modifiableUserScopes = new LinkedHashSet<String>();
         modifiableUserScopes.addAll(userScopes);
-        String externalScopes = authentication.getAuthorizationRequest().getAuthorizationParameters()
+        String externalScopes = authentication.getOAuth2Request().getRequestParameters()
                         .get("external_scopes");
         if (null != externalScopes && StringUtils.hasLength(externalScopes)) {
             modifiableUserScopes.addAll(OAuth2Utils.parseParameterList(externalScopes));
         }
 
         Map<String, String> additionalAuthorizationAttributes = getAdditionalAuthorizationAttributes(authentication
-                        .getAuthorizationRequest().getAuthorizationParameters().get("authorities"));
+                        .getOAuth2Request().getRequestParameters().get("authorities"));
 
         ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
         Integer validity = client.getAccessTokenValiditySeconds();
@@ -395,7 +394,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         OAuth2AccessToken accessToken = createAccessToken(userId, username, userEmail,
                         validity != null ? validity.intValue() : accessTokenValiditySeconds, clientScopes,
                         modifiableUserScopes,
-                        clientId, authentication.getAuthorizationRequest().getResourceIds(), grantType,
+                        clientId, authentication.getOAuth2Request().getResourceIds(), grantType,
                         refreshToken != null ? refreshToken.getValue() : null, additionalAuthorizationAttributes);
 
         return accessToken;
@@ -430,15 +429,15 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     private ExpiringOAuth2RefreshToken createRefreshToken(OAuth2Authentication authentication) {
 
-        String grantType = authentication.getAuthorizationRequest().getAuthorizationParameters().get("grant_type");
+        String grantType = authentication.getOAuth2Request().getRequestParameters().get("grant_type");
         if (!isRefreshTokenSupported(grantType)) {
             return null;
         }
 
         Map<String, String> additionalAuthorizationAttributes = getAdditionalAuthorizationAttributes(authentication
-                        .getAuthorizationRequest().getAuthorizationParameters().get("authorities"));
+                        .getOAuth2Request().getRequestParameters().get("authorities"));
 
-        int validitySeconds = getRefreshTokenValiditySeconds(authentication.getAuthorizationRequest());
+        int validitySeconds = getRefreshTokenValiditySeconds(authentication.getOAuth2Request());
         ExpiringOAuth2RefreshToken token = new DefaultExpiringOAuth2RefreshToken(UUID.randomUUID().toString(),
                         new Date(System.currentTimeMillis() + (validitySeconds * 1000L)));
 
@@ -448,7 +447,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         String content;
         try {
             content = mapper.writeValueAsString(createJWTRefreshToken(token, user, authentication
-                            .getAuthorizationRequest().getScope(), authentication.getAuthorizationRequest()
+                            .getOAuth2Request().getScope(), authentication.getOAuth2Request()
                             .getClientId(), grantType, additionalAuthorizationAttributes));
         } catch (Exception e) {
             throw new IllegalStateException("Cannot convert access token to JSON", e);
@@ -518,7 +517,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
      * @param authorizationRequest the current authorization request
      * @return the refresh token validity period in seconds
      */
-    protected int getRefreshTokenValiditySeconds(AuthorizationRequest authorizationRequest) {
+    protected int getRefreshTokenValiditySeconds(OAuth2Request authorizationRequest) {
         ClientDetails client = clientDetailsService.loadClientByClientId(authorizationRequest.getClientId());
         Integer validity = client.getRefreshTokenValiditySeconds();
         if (validity != null) {
@@ -571,14 +570,14 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         @SuppressWarnings("unchecked")
         ArrayList<String> scopes = (ArrayList<String>) claims.get(SCOPE);
 
-        AuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest((String) claims.get(CLIENT_ID),
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest((String) claims.get(CLIENT_ID),
                         scopes);
 
         ArrayList<String> rids = (ArrayList<String>) claims.get(AUD);
         Set<String> resourceIds = Collections.unmodifiableSet(new HashSet<String>(rids));
-        ((DefaultAuthorizationRequest) authorizationRequest).setResourceIds(resourceIds);
+        authorizationRequest.setResourceIds(resourceIds);
 
-        ((DefaultAuthorizationRequest) authorizationRequest).setApproved(true);
+        authorizationRequest.setApproved(true);
 
         Collection<? extends GrantedAuthority> authorities = AuthorityUtils
                         .commaSeparatedStringToAuthorityList(StringUtils
@@ -604,10 +603,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             userAuthentication = new UaaAuthentication(principal, UaaAuthority.USER_AUTHORITIES, null);
         }
         else {
-            ((DefaultAuthorizationRequest) authorizationRequest).setAuthorities(authorities);
+            authorizationRequest.setAuthorities(authorities);
         }
 
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         authentication.setAuthenticated(true);
         return authentication;
     }
