@@ -38,7 +38,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
+import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 
 /**
@@ -60,8 +60,8 @@ public class LoginAuthenticationManagerTests {
         publisher = TestApplicationEventPublisher.forEventClass(UserAuthenticationSuccessEvent.class);
         manager.setApplicationEventPublisher(publisher);
         manager.setUserDatabase(userDatabase);
-        oauth2Authentication = new OAuth2Authentication(new DefaultAuthorizationRequest("client", Arrays.asList("read",
-                        "write")), null);
+        oauth2Authentication = new OAuth2Authentication(new AuthorizationRequest("client", Arrays.asList("read",
+                        "write")).createOAuth2Request(), null);
         SecurityContextImpl context = new SecurityContextImpl();
         context.setAuthentication(oauth2Authentication);
         SecurityContextHolder.setContext(context);

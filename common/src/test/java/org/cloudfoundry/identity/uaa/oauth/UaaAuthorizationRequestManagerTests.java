@@ -40,7 +40,6 @@ import org.springframework.security.oauth2.common.exceptions.InvalidScopeExcepti
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
-import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
 import org.springframework.test.annotation.IfProfileValue;
 import org.springframework.test.annotation.ProfileValueSourceConfiguration;
 import org.springframework.test.context.ContextConfiguration;
@@ -105,7 +104,7 @@ public class UaaAuthorizationRequestManagerTests {
         client.setScope(StringUtils.commaDelimitedListToSet("one,two,foo.bar"));
         AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
         assertEquals(StringUtils.commaDelimitedListToSet("foo.bar"), new TreeSet<String>(request.getScope()));
-        factory.validateParameters(request.getAuthorizationParameters(), client);
+        factory.validateParameters(request.getRequestParameters(), client);
     }
 
     @Test
@@ -127,7 +126,7 @@ public class UaaAuthorizationRequestManagerTests {
         client.setScope(StringUtils.commaDelimitedListToSet("space.*.developer"));
         AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
         assertEquals(StringUtils.commaDelimitedListToSet("space.1.developer,space.2.developer"), new TreeSet<String>(request.getScope()));
-        factory.validateParameters(request.getAuthorizationParameters(), client);
+        factory.validateParameters(request.getRequestParameters(), client);
     }
 
     @Test

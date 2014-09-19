@@ -24,8 +24,8 @@ import org.mockito.Mockito;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
-import org.springframework.security.oauth2.provider.InMemoryClientDetailsService;
+import org.springframework.security.oauth2.provider.AuthorizationRequest;
+import org.springframework.security.oauth2.provider.client.InMemoryClientDetailsService;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.support.SimpleSessionStatus;
 
@@ -60,7 +60,7 @@ public class AccessControllerTests {
         request.setScheme("https");
         request.addHeader("Host", "foo");
         ModelMap model = new ModelMap();
-        model.put("authorizationRequest", new DefaultAuthorizationRequest("client", null));
+        model.put("authorizationRequest", new AuthorizationRequest("client", null));
         Authentication auth = UaaAuthenticationTestFactory.getAuthentication("foo@bar.com", "Foo Bar", "foo@bar.com");
         controller.confirm(model, request, auth, new SimpleSessionStatus());
         Map<String, Object> options = (Map<String, Object>) ((Map<String, Object>) model.get("options")).get("confirm");

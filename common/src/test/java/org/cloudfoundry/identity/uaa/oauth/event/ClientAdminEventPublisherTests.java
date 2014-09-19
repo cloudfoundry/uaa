@@ -28,7 +28,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
-import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
+import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 
 /**
@@ -46,8 +46,8 @@ public class ClientAdminEventPublisherTests {
     @Before
     public void init() {
         subject.setApplicationEventPublisher(publisher);
-        Authentication authentication = new OAuth2Authentication(new DefaultAuthorizationRequest("client",
-                        Arrays.asList("read")), UaaAuthenticationTestFactory.getAuthentication("ID", "joe",
+        Authentication authentication = new OAuth2Authentication(new AuthorizationRequest("client",
+                        Arrays.asList("read")).createOAuth2Request(), UaaAuthenticationTestFactory.getAuthentication("ID", "joe",
                         "joe@test.org"));
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }

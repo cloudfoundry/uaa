@@ -27,7 +27,7 @@ import org.mockito.Mockito;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
+import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 
 /**
@@ -45,8 +45,8 @@ public class PasswordChangeEventPublisherTests {
     @Before
     public void init() {
         subject.setApplicationEventPublisher(publisher);
-        Authentication authentication = new OAuth2Authentication(new DefaultAuthorizationRequest("client",
-                        Arrays.asList("read")), UaaPasswordTestFactory.getAuthentication("ID", "joe", "joe@test.org"));
+        Authentication authentication = new OAuth2Authentication(new AuthorizationRequest("client",
+                        Arrays.asList("read")).createOAuth2Request(), UaaPasswordTestFactory.getAuthentication("ID", "joe", "joe@test.org"));
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 

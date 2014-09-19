@@ -12,6 +12,21 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
+import javax.sql.DataSource;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+
+import static org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus.APPROVED;
+import static org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus.DENIED;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.oauth.approval.JdbcApprovalStore;
@@ -32,27 +47,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
 import org.springframework.test.annotation.ProfileValueSourceConfiguration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import javax.sql.DataSource;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-
-import static org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus.APPROVED;
-import static org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus.DENIED;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
 
 @ContextConfiguration(locations = {"classpath:spring/env.xml", "classpath:spring/data-source.xml"})
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -112,7 +111,7 @@ public class UserManagedAuthzApprovalHandlerTests {
 
     @Test
     public void testNoScopeApproval() {
-        DefaultAuthorizationRequest request = new DefaultAuthorizationRequest(new HashMap<String, String>());
+        AuthorizationRequest request = new AuthorizationRequest("testclient", Collections.<String>emptySet());
         request.setApproved(true);
         // The request is approved but does not request any scopes. The user has
         // also not approved any scopes. Approved.
@@ -121,7 +120,7 @@ public class UserManagedAuthzApprovalHandlerTests {
 
     @Test
     public void testNoPreviouslyApprovedScopes() {
-        DefaultAuthorizationRequest request = new DefaultAuthorizationRequest(
+        AuthorizationRequest request = new AuthorizationRequest(
             "foo", 
             new HashSet<>(
                 Arrays.asList("cloud_controller.read", "cloud_controller.write")
@@ -136,7 +135,7 @@ public class UserManagedAuthzApprovalHandlerTests {
 
     @Test
     public void testAuthzApprovedButNoPreviouslyApprovedScopes() {
-        DefaultAuthorizationRequest request = new DefaultAuthorizationRequest(
+        AuthorizationRequest request = new AuthorizationRequest(
             "foo", 
             new HashSet<>(
                 Arrays.asList("cloud_controller.read", "cloud_controller.write")
@@ -151,7 +150,7 @@ public class UserManagedAuthzApprovalHandlerTests {
 
     @Test
     public void testNoRequestedScopesButSomeApprovedScopes() {
-        DefaultAuthorizationRequest request = new DefaultAuthorizationRequest("foo", new HashSet<String>());
+        AuthorizationRequest request = new AuthorizationRequest("foo", new HashSet<String>());
         request.setApproved(false);
 
         long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
@@ -167,7 +166,7 @@ public class UserManagedAuthzApprovalHandlerTests {
 
     @Test
     public void testRequestedScopesDontMatchApprovalsAtAll() {
-        DefaultAuthorizationRequest request = new DefaultAuthorizationRequest(
+        AuthorizationRequest request = new AuthorizationRequest(
             "foo", 
             new HashSet<>(
                 Arrays.asList("openid")
@@ -188,7 +187,7 @@ public class UserManagedAuthzApprovalHandlerTests {
 
     @Test
     public void testOnlySomeRequestedScopeMatchesApproval() {
-        DefaultAuthorizationRequest request = new DefaultAuthorizationRequest(
+        AuthorizationRequest request = new AuthorizationRequest(
             "foo", 
             new HashSet<>(
                 Arrays.asList("openid", "cloud_controller.read")
@@ -209,7 +208,7 @@ public class UserManagedAuthzApprovalHandlerTests {
 
     @Test
     public void testOnlySomeRequestedScopeMatchesDeniedApprovalButScopeAutoApproved() {
-        DefaultAuthorizationRequest request = new DefaultAuthorizationRequest(
+        AuthorizationRequest request = new AuthorizationRequest(
             "foo", 
             new HashSet<>(
                 Arrays.asList("openid", "cloud_controller.read")
@@ -241,7 +240,7 @@ public class UserManagedAuthzApprovalHandlerTests {
 
     @Test
     public void testRequestedScopesMatchApprovalButAdditionalScopesRequested() {
-        DefaultAuthorizationRequest request = new DefaultAuthorizationRequest(
+        AuthorizationRequest request = new AuthorizationRequest(
             "foo", 
             new HashSet<>(
                 Arrays.asList(
@@ -266,7 +265,7 @@ public class UserManagedAuthzApprovalHandlerTests {
 
     @Test
     public void testAllRequestedScopesMatchApproval() {
-        DefaultAuthorizationRequest request = new DefaultAuthorizationRequest(
+        AuthorizationRequest request = new AuthorizationRequest(
             "foo", 
             new HashSet<>(
                 Arrays.asList(
@@ -292,7 +291,7 @@ public class UserManagedAuthzApprovalHandlerTests {
 
     @Test
     public void testRequestedScopesMatchApprovalButSomeDenied() {
-        DefaultAuthorizationRequest request = new DefaultAuthorizationRequest(
+        AuthorizationRequest request = new AuthorizationRequest(
             "foo", 
             new HashSet<>(
                 Arrays.asList(
@@ -318,7 +317,7 @@ public class UserManagedAuthzApprovalHandlerTests {
 
     @Test
     public void testRequestedScopesMatchApprovalSomeDeniedButDeniedScopesAutoApproved() {
-        DefaultAuthorizationRequest request = new DefaultAuthorizationRequest(
+        AuthorizationRequest request = new AuthorizationRequest(
             "foo", 
             new HashSet<>(
                 Arrays.asList(
@@ -356,7 +355,7 @@ public class UserManagedAuthzApprovalHandlerTests {
 
     @Test
     public void testRequestedScopesMatchApprovalSomeDeniedButDeniedScopesAutoApprovedByWildcard() {
-        DefaultAuthorizationRequest request = new DefaultAuthorizationRequest(
+        AuthorizationRequest request = new AuthorizationRequest(
             "foo",
             new HashSet<>(
                 Arrays.asList(
@@ -398,7 +397,7 @@ public class UserManagedAuthzApprovalHandlerTests {
 
     @Test
     public void testRequestedScopesMatchByWildcard() {
-        DefaultAuthorizationRequest request = new DefaultAuthorizationRequest(
+        AuthorizationRequest request = new AuthorizationRequest(
             "foo",
             new HashSet<>(
                 Arrays.asList(
@@ -439,7 +438,7 @@ public class UserManagedAuthzApprovalHandlerTests {
 
     @Test
     public void testSomeRequestedScopesMatchApproval() {
-        DefaultAuthorizationRequest request = new DefaultAuthorizationRequest(
+        AuthorizationRequest request = new AuthorizationRequest(
             "foo", 
             new HashSet<>(Arrays.asList("openid"))
         );

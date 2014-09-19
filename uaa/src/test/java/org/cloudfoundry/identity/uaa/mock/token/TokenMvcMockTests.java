@@ -227,9 +227,9 @@ public class TokenMvcMockTests {
     public String validatePasswordGrantToken(String clientId, String username, String requestedScopes, String... expectedScopes) throws Exception {
         String t1 = testClient.getUserOAuthAccessToken(clientId, SECRET, username, SECRET, requestedScopes);
         OAuth2Authentication a1 = tokenServices.loadAuthentication(t1);
-        assertEquals(expectedScopes.length, a1.getAuthorizationRequest().getScope().size());
+        assertEquals(expectedScopes.length, a1.getOAuth2Request().getScope().size());
         assertThat(
-            a1.getAuthorizationRequest().getScope(),
+            a1.getOAuth2Request().getScope(),
             containsInAnyOrder(expectedScopes)
         );
         return t1;

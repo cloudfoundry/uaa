@@ -21,8 +21,8 @@ import org.junit.After;
 import org.junit.Test;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 
 /**
@@ -65,9 +65,9 @@ public class DefaultSecurityContextAccessorTests {
         BaseClientDetails client = new BaseClientDetails();
         client.setAuthorities(UaaAuthority.ADMIN_AUTHORITIES);
 
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("admin", null);
-        authorizationRequest.addClientDetails(client);
-        SecurityContextHolder.getContext().setAuthentication(new OAuth2Authentication(authorizationRequest, null));
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest("admin", null);
+        authorizationRequest.setResourceIdsAndAuthoritiesFromClientDetails(client);
+        SecurityContextHolder.getContext().setAuthentication(new OAuth2Authentication(authorizationRequest.createOAuth2Request(), null));
 
         assertTrue(new DefaultSecurityContextAccessor().isAdmin());
 

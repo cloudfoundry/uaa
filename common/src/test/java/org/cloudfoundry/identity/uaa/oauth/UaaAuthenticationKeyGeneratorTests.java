@@ -26,7 +26,6 @@ import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
-import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 
 /**
@@ -39,7 +38,7 @@ public class UaaAuthenticationKeyGeneratorTests {
 
     private ClientDetailsService clientDetailsService = Mockito.mock(ClientDetailsService.class);
 
-    private AuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client", Arrays.asList("read",
+    private AuthorizationRequest authorizationRequest = new AuthorizationRequest("client", Arrays.asList("read",
                     "write"));
 
     private UaaAuthentication userAuthentication = UaaAuthenticationTestFactory.getAuthentication("FOO", "foo",
@@ -54,9 +53,9 @@ public class UaaAuthenticationKeyGeneratorTests {
 
     @Test
     public void testEmailChanges() {
-        String key1 = generator.extractKey(new OAuth2Authentication(authorizationRequest, userAuthentication));
+        String key1 = generator.extractKey(new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication));
         userAuthentication = UaaAuthenticationTestFactory.getAuthentication("FOO", "foo", "foo@none.org");
-        String key2 = generator.extractKey(new OAuth2Authentication(authorizationRequest, userAuthentication));
+        String key2 = generator.extractKey(new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication));
         assertNotSame(key1, key2);
     }
 
