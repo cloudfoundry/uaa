@@ -216,10 +216,12 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         @SuppressWarnings("unchecked")
         Map<String, String> additionalAuthorizationInfo = (Map<String, String>) claims.get(ADDITIONAL_AZ_ATTR);
 
+        Set<String> audience = new HashSet<>((ArrayList<String>)claims.get(AUD));
+
         OAuth2AccessToken accessToken = createAccessToken(user.getId(), user.getUsername(), user.getEmail(),
                         validity != null ? validity.intValue() : accessTokenValiditySeconds, null, requestedScopes,
                         clientId,
-                        request.createOAuth2Request(client).getResourceIds(), grantType, refreshTokenValue, additionalAuthorizationInfo);
+                        audience /*request.createOAuth2Request(client).getResourceIds()*/, grantType, refreshTokenValue, additionalAuthorizationInfo);
 
         return accessToken;
     }
@@ -446,9 +448,13 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         String content;
         try {
-            content = mapper.writeValueAsString(createJWTRefreshToken(token, user, authentication
-                            .getOAuth2Request().getScope(), authentication.getOAuth2Request()
-                            .getClientId(), grantType, additionalAuthorizationAttributes));
+            content = mapper.writeValueAsString(
+                createJWTRefreshToken(
+                    token, user, authentication.getOAuth2Request().getScope(),
+                    authentication.getOAuth2Request().getClientId(),
+                    grantType, additionalAuthorizationAttributes,authentication.getOAuth2Request().getResourceIds()
+                )
+            );
         } catch (Exception e) {
             throw new IllegalStateException("Cannot convert access token to JSON", e);
         }
@@ -463,8 +469,14 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         return Origin.getUserId(authentication.getUserAuthentication());
     }
 
-    private Map<String, ?> createJWTRefreshToken(OAuth2RefreshToken token, UaaUser user, Set<String> scopes,
-                    String clientId, String grantType, Map<String, String> additionalAuthorizationAttributes) {
+    private Map<String, ?> createJWTRefreshToken(
+        OAuth2RefreshToken token,
+        UaaUser user,
+        Set<String> scopes,
+        String clientId,
+        String grantType,
+        Map<String, String> additionalAuthorizationAttributes,
+        Set<String> resourceIds) {
 
         Map<String, Object> response = new LinkedHashMap<String, Object>();
 
@@ -494,7 +506,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             response.put(USER_ID, user.getId());
         }
 
-        response.put(AUD, scopes);
+        response.put(AUD, resourceIds);
 
         return response;
     }

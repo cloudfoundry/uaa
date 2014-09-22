@@ -284,7 +284,7 @@ public class UaaTokenServicesTests {
     @Test
     public void testCreateAccessTokenRefreshGrant() throws InterruptedException {
         Calendar expiresAt = Calendar.getInstance();
-        expiresAt.add(Calendar.MILLISECOND, 3000);
+        expiresAt.add(Calendar.MILLISECOND, 300000);
 
         Calendar updatedAt = Calendar.getInstance();
         updatedAt.add(Calendar.MILLISECOND, -1000);
@@ -327,7 +327,7 @@ public class UaaTokenServicesTests {
         assertEquals(claims.get(Claims.USER_NAME), username);
         assertEquals(claims.get(Claims.CID), CLIENT_ID);
         assertEquals(claims.get(Claims.SCOPE), requestedAuthScopes);
-        assertEquals(claims.get(Claims.AUD), resourceIds);
+        assertEquals(resourceIds, claims.get(Claims.AUD));
         assertTrue(((String) claims.get(Claims.JTI)).length() > 0);
         assertTrue(((Integer) claims.get(Claims.IAT)) > 0);
         assertTrue(((Integer) claims.get(Claims.EXP)) > 0);
@@ -636,7 +636,7 @@ public class UaaTokenServicesTests {
             assertNotNull(refreshTokenClaims.get(Claims.SUB));
             assertEquals(refreshTokenClaims.get(Claims.CID), CLIENT_ID);
             assertEquals(refreshTokenClaims.get(Claims.SCOPE), requestedAuthScopes);
-            assertEquals(refreshTokenClaims.get(Claims.AUD), requestedAuthScopes);
+            assertEquals(refreshTokenClaims.get(Claims.AUD), resourceIds);
             assertTrue(((String) refreshTokenClaims.get(Claims.JTI)).length() > 0);
             assertTrue(((Integer) refreshTokenClaims.get(Claims.IAT)) > 0);
             assertTrue(((Integer) refreshTokenClaims.get(Claims.EXP)) > 0);
@@ -712,7 +712,7 @@ public class UaaTokenServicesTests {
         }
 
         assertEquals(refreshTokenClaims.get(Claims.SCOPE), requestedAuthScopes);
-        assertEquals(refreshTokenClaims.get(Claims.AUD), requestedAuthScopes);
+        assertEquals(refreshTokenClaims.get(Claims.AUD), resourceIds);
 
         // Second request with reduced scopes
         AuthorizationRequest reducedScopeAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,readScope);
@@ -777,7 +777,7 @@ public class UaaTokenServicesTests {
         }
 
         assertEquals(refreshTokenClaims.get(Claims.SCOPE), requestedAuthScopes);
-        assertEquals(refreshTokenClaims.get(Claims.AUD), requestedAuthScopes);
+        assertEquals(refreshTokenClaims.get(Claims.AUD), resourceIds);
 
         // Second request with expanded scopes
         AuthorizationRequest expandedScopeAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,expandedScopes);
