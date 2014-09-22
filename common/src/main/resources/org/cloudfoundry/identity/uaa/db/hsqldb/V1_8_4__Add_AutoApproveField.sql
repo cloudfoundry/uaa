@@ -1,0 +1,1 @@
+ALTER TABLE oauth_client_details ADD COLUMN autoapprove VARCHAR(1024) default NULL;
