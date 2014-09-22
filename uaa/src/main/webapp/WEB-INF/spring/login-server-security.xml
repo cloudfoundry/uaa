@@ -46,6 +46,7 @@
     <http request-matcher-ref="loginAuthorizeRequestMatcher" create-session="never" entry-point-ref="oauthAuthenticationEntryPoint"
         authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+        <custom-filter ref="backwardsCompatibleScopeParameter" position="FIRST"/>
         <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
         <!-- scope authentication filter configured with a scope authentication manager -->
         <custom-filter ref="oauthLoginScopeAuthenticatingFilter" after="PRE_AUTH_FILTER"/>
@@ -79,6 +80,7 @@
              TODO, if there is no token this filter must throw.
              What we need is scope=oauth.login
          -->
+        <custom-filter ref="backwardsCompatibleScopeParameter" position="FIRST"/>
         <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
         <!-- scope authentication filter configured with a scope authentication manager -->
         <custom-filter ref="oauthLoginScopeAuthenticatingFilter" after="PRE_AUTH_FILTER"/>
@@ -135,6 +137,7 @@
     <http request-matcher-ref="loginAuthorizeRequestMatcherOld" create-session="always" entry-point-ref="oauthAuthenticationEntryPoint"
         authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+        <custom-filter ref="backwardsCompatibleScopeParameter" position="FIRST"/>
         <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
         <custom-filter ref="loginAuthenticationFilter" position="FORM_LOGIN_FILTER" />
         <anonymous enabled="false" />

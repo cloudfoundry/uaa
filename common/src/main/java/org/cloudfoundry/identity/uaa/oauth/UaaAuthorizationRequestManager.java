@@ -28,6 +28,7 @@ import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
@@ -316,7 +317,57 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
 
     @Override
     public TokenRequest createTokenRequest(Map<String, String> requestParameters, ClientDetails authenticatedClient) {
-        return requestFactory.createTokenRequest(requestParameters, authenticatedClient);
+        String clientId = requestParameters.get(OAuth2Utils.CLIENT_ID);
+        if (clientId == null) {
+            // if the clientId wasn't passed in in the map, we add pull it from the authenticated client object
+            clientId = authenticatedClient.getClientId();
+        }
+        else {
+            // otherwise, make sure that they match
+            if (!clientId.equals(authenticatedClient.getClientId())) {
+                throw new InvalidClientException("Given client ID does not match authenticated client");
+            }
+        }
+        String grantType = requestParameters.get(OAuth2Utils.GRANT_TYPE);
+
+        Set<String> scopes = extractScopes(requestParameters, authenticatedClient);
+        TokenRequest tokenRequest = new TokenRequest(requestParameters, clientId, scopes, grantType);
+
+        return tokenRequest;
+    }
+
+    protected Set<String> extractScopes(Map<String, String> requestParameters, ClientDetails clientDetails) {
+        boolean clientCredentials = "client_credentials".equals(requestParameters.get(OAuth2Utils.GRANT_TYPE));
+        Set<String> scopes = OAuth2Utils.parseParameterList(requestParameters.get(OAuth2Utils.SCOPE));
+        if ((scopes == null || scopes.isEmpty())) {
+            // If no scopes are specified in the incoming data, use the default values registered with the client
+            // (the spec allows us to choose between this option and rejecting the request completely, so we'll take the
+            // least obnoxious choice as a default).
+            if (clientCredentials) {
+                Set<String> authorities = new HashSet<>();
+                for (GrantedAuthority a : clientDetails.getAuthorities()) {
+                    authorities.add(a.getAuthority());
+                }
+                scopes = authorities;
+            } else {
+                scopes = clientDetails.getScope();
+            }
+        }
+        if (!clientCredentials) {
+            Set<String> userScopes = getUserScopes();
+            scopes = intersectScopes(scopes, clientDetails.getScope(), userScopes);
+        }
+        return scopes;
+    }
+
+    protected Set<String> getUserScopes() {
+        Set<String> scopes = new HashSet<>();
+        if (securityContextAccessor.isUser()) {
+            for (GrantedAuthority a : securityContextAccessor.getAuthorities()) {
+                scopes.add(a.getAuthority());
+            }
+        }
+        return scopes;
     }
 
     @Override

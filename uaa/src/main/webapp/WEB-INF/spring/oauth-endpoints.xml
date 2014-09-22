@@ -44,6 +44,7 @@
         pattern="/oauth/token/**" entry-point-ref="basicAuthenticationEntryPoint" xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
         <anonymous enabled="false" />
+        <custom-filter ref="backwardsCompatibleScopeParameter" position="FIRST"/>
         <custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
         <custom-filter ref="tokenEndpointAuthenticationFilter" after="BASIC_AUTH_FILTER" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
@@ -56,6 +57,7 @@
         entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="authzAuthenticationMgr"
         xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+        <custom-filter ref="backwardsCompatibleScopeParameter" position="FIRST"/>
         <custom-filter ref="authzAuthenticationFilter" position="FORM_LOGIN_FILTER" />
         <anonymous enabled="false" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
@@ -69,7 +71,7 @@
 
     <bean id="compositeAuthenticationManager" class="org.cloudfoundry.identity.uaa.authentication.manager.CompositeAuthenticationManager" />
 
-    <bean id="tokenEndpointAuthenticationFilter" class="org.springframework.security.oauth2.provider.endpoint.TokenEndpointAuthenticationFilter">
+    <bean id="tokenEndpointAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.BackwardsCompatibleTokenEndpointAuthenticationFilter">
         <constructor-arg ref="authzAuthenticationMgr" />
         <constructor-arg ref="authorizationRequestManager"/>
         <property name="authenticationDetailsSource" ref="authenticationDetailsSource" />
@@ -133,6 +135,7 @@
         entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="authzAuthenticationMgr"
         xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+        <custom-filter ref="backwardsCompatibleScopeParameter" position="FIRST"/>
         <custom-filter ref="authzAuthenticationFilter" position="FORM_LOGIN_FILTER" />
         <anonymous enabled="false" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />

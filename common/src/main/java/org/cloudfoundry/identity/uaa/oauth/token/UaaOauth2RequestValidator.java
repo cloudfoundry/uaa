@@ -15,7 +15,9 @@ package org.cloudfoundry.identity.uaa.oauth.token;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.regex.Pattern;
 
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
@@ -30,24 +32,39 @@ public class UaaOauth2RequestValidator implements OAuth2RequestValidator {
 
     public void validateScope(AuthorizationRequest authorizationRequest, ClientDetails client) throws InvalidScopeException {
         if (CLIENT_CREDENTIALS.equalsIgnoreCase(authorizationRequest.getRequestParameters().get(OAuth2Utils.GRANT_TYPE))) {
-            validateScope(authorizationRequest.getScope(), getAuthorities(client.getAuthorities()));
+            validateScope(authorizationRequest.getScope(), getAuthorities(client.getAuthorities()), false);
         } else {
-            validateScope(authorizationRequest.getScope(), client.getScope());
+            validateScope(authorizationRequest.getScope(), client.getScope(), true);
         }
 
     }
 
     public void validateScope(TokenRequest tokenRequest, ClientDetails client) throws InvalidScopeException {
         if (CLIENT_CREDENTIALS.equalsIgnoreCase(tokenRequest.getGrantType())) {
-            validateScope(tokenRequest.getScope(), getAuthorities(client.getAuthorities()));
+            validateScope(tokenRequest.getScope(), getAuthorities(client.getAuthorities()), false);
         } else {
-            validateScope(tokenRequest.getScope(), client.getScope());
+            validateScope(tokenRequest.getScope(), client.getScope(), true);
         }
     }
 
-    private void validateScope(Set<String> requestScopes, Set<String> clientScopes) {
+    private void validateScope(Set<String> requestScopes, Set<String> clientScopes, boolean wildCardsAllowed) {
 
-        if (clientScopes != null && !clientScopes.isEmpty()) {
+        if (requestScopes.isEmpty()) {
+            throw new InvalidScopeException("Empty scope (either the client or the user is not allowed the requested scopes)");
+        }
+
+        if (clientScopes == null || clientScopes.isEmpty()) {
+            throw new InvalidScopeException("Empty scope (client has no registered scopes)");
+        }
+
+        if (wildCardsAllowed) {
+            Set<Pattern> wildcards = UaaStringUtils.constructWildcards(clientScopes);
+            for (String scope : requestScopes) {
+                if (!UaaStringUtils.matches(wildcards, scope)) {
+                    throw new InvalidScopeException("Invalid scope: " + scope, clientScopes);
+                }
+            }
+        } else {
             for (String scope : requestScopes) {
                 if (!clientScopes.contains(scope)) {
                     throw new InvalidScopeException("Invalid scope: " + scope, clientScopes);
@@ -55,9 +72,6 @@ public class UaaOauth2RequestValidator implements OAuth2RequestValidator {
             }
         }
 
-        if (requestScopes.isEmpty()) {
-            throw new InvalidScopeException("Empty scope (either the client or the user is not allowed the requested scopes)");
-        }
     }
 
     private Set<String> getAuthorities(Collection<GrantedAuthority> authorities) {
