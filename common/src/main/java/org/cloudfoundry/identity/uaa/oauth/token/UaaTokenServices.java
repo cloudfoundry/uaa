@@ -586,7 +586,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                         scopes);
 
         ArrayList<String> rids = (ArrayList<String>) claims.get(AUD);
-        Set<String> resourceIds = Collections.unmodifiableSet(new HashSet<String>(rids));
+        //TODO - Fix null resource IDs for a client_credentials request to /oauth/token
+        Set<String> resourceIds = Collections.unmodifiableSet(rids==null?new HashSet<String>():new HashSet<>(rids));
         authorizationRequest.setResourceIds(resourceIds);
 
         authorizationRequest.setApproved(true);

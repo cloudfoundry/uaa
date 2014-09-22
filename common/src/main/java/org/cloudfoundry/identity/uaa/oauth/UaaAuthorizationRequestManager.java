@@ -137,8 +137,11 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
         String clientId = authorizationParameters.get("client_id");
         BaseClientDetails clientDetails = new BaseClientDetails(clientDetailsService.loadClientByClientId(clientId));
         validateParameters(authorizationParameters, clientDetails);
-        Set<String> scopes = OAuth2Utils.parseParameterList(authorizationParameters.get("scope"));
-        String grantType = authorizationParameters.get("grant_type");
+        Set<String> scopes = OAuth2Utils.parseParameterList(authorizationParameters.get(OAuth2Utils.SCOPE));
+        Set<String> responseTypes = OAuth2Utils.parseParameterList(authorizationParameters.get(OAuth2Utils.RESPONSE_TYPE));
+        String grantType = authorizationParameters.get(OAuth2Utils.GRANT_TYPE);
+        String state = authorizationParameters.get(OAuth2Utils.STATE);
+        String redirectUri = authorizationParameters.get(OAuth2Utils.REDIRECT_URI);
         if ((scopes == null || scopes.isEmpty())) {
             if ("client_credentials".equals(grantType)) {
                 // The client authorities should be a list of requestedScopes
@@ -185,9 +188,9 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
             null,
             null,
             false,
-            null,
-            null,
-            null
+            state,
+            redirectUri,
+            responseTypes
         );
         if (!scopes.isEmpty()) {
             request.setScope(scopes);

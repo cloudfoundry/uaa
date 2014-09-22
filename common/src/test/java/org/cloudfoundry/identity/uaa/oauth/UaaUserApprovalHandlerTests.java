@@ -47,9 +47,8 @@ public class UaaUserApprovalHandlerTests {
     private Authentication userAuthentication = new UsernamePasswordAuthenticationToken("joe", "", AuthorityUtils.commaSeparatedStringToAuthorityList("USER"));
 
     {
-        InMemoryTokenStore store = new InMemoryTokenStore();
         handler.setClientDetailsService(clientDetailsService);
-        handler.setTokenStore(store);
+        handler.setTokenServices(tokenServices);
     }
 
     @Test
