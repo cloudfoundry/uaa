@@ -22,6 +22,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.web.FilterChainProxy;
@@ -39,7 +40,8 @@ public class ScimUserEndpointsMockMvcTests {
 
     private AnnotationConfigWebApplicationContext webApplicationContext;
     private MockMvc mockMvc;
-    private String scimToken;
+    private String scimReadWriteToken;
+    private String scimCreateToken;
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
 
     @Before
@@ -62,8 +64,8 @@ public class ScimUserEndpointsMockMvcTests {
         String clientId = generator.generate().toLowerCase();
         String clientSecret = generator.generate().toLowerCase();
         createScimClient(adminToken, clientId, clientSecret);
-        scimToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret,
-                "scim.read scim.write password.write");
+        scimReadWriteToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret,"scim.read scim.write password.write");
+        scimCreateToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret,"scim.create");
     }
     
     @After
@@ -71,77 +73,118 @@ public class ScimUserEndpointsMockMvcTests {
         webApplicationContext.destroy();
     }
 
-    @Test
-    public void testCreateUser() throws Exception {
+    private void createUser(String token) throws Exception {
         String email = "joe@"+generator.generate().toLowerCase()+".com";
         ScimUser user = new ScimUser();
-        user.setUserName("JOE");
+        user.setUserName(email);
         user.setName(new ScimUser.Name("Joe", "User"));
         user.addEmail(email);
 
         byte[] requestBody = new ObjectMapper().writeValueAsBytes(user);
         MockHttpServletRequestBuilder post = post("/Users")
-                        .header("Authorization", "Bearer " + scimToken)
-                        .contentType(APPLICATION_JSON)
-                        .content(requestBody);
+            .header("Authorization", "Bearer " + token)
+            .contentType(APPLICATION_JSON)
+            .content(requestBody);
 
         mockMvc.perform(post)
-                        .andExpect(status().isCreated())
-                        .andExpect(header().string("ETag", "\"0\""))
-                        .andExpect(jsonPath("$.userName").value("JOE"))
-                        .andExpect(jsonPath("$.emails[0].value").value(email))
-                        .andExpect(jsonPath("$.name.familyName").value("User"))
-                        .andExpect(jsonPath("$.name.givenName").value("Joe"));
+            .andExpect(status().isCreated())
+            .andExpect(header().string("ETag", "\"0\""))
+            .andExpect(jsonPath("$.userName").value(email))
+            .andExpect(jsonPath("$.emails[0].value").value(email))
+            .andExpect(jsonPath("$.name.familyName").value("User"))
+            .andExpect(jsonPath("$.name.givenName").value("Joe"));
+    }
+
+    @Test
+    public void testCreateUser() throws Exception {
+        createUser(scimReadWriteToken);
+    }
+
+    @Test
+    public void testCreateUserWithScimCreateToken() throws Exception {
+        createUser(scimCreateToken);
+    }
+
+    private void getUser(String token, int status) throws Exception {
+        ScimUserProvisioning usersRepository = webApplicationContext.getBean(ScimUserProvisioning.class);
+        String email = "joe@"+generator.generate().toLowerCase()+".com";
+        ScimUser joel = new ScimUser(null, email, "Joel", "D'sa");
+        joel.addEmail(email);
+        joel = usersRepository.createUser(joel, "password");
+
+        MockHttpServletRequestBuilder get = MockMvcRequestBuilders.get("/Users/" + joel.getId())
+            .header("Authorization", "Bearer " + token)
+            .accept(APPLICATION_JSON);
+
+        if (status==HttpStatus.OK.value()) {
+            mockMvc.perform(get)
+                .andExpect(status().is(status))
+                .andExpect(header().string("ETag", "\"0\""))
+                .andExpect(jsonPath("$.userName").value(email))
+                .andExpect(jsonPath("$.emails[0].value").value(email))
+                .andExpect(jsonPath("$.name.familyName").value("D'sa"))
+                .andExpect(jsonPath("$.name.givenName").value("Joel"));
+        } else {
+            mockMvc.perform(get)
+                .andExpect(status().is(status));
+        }
     }
 
     @Test
     public void testGetUser() throws Exception {
+        getUser(scimReadWriteToken, HttpStatus.OK.value());
+    }
+
+    @Test
+    public void testGetUserWithScimCreateToken() throws Exception {
+        getUser(scimCreateToken,HttpStatus.FORBIDDEN.value());
+    }
+
+    private void updateUser(String token, int status) throws Exception {
         ScimUserProvisioning usersRepository = webApplicationContext.getBean(ScimUserProvisioning.class);
-        ScimUser joel = new ScimUser(null, "jdsa", "Joel", "D'sa");
-        joel.addEmail("jdsa@vmware.com");
-        joel = usersRepository.createUser(joel, "password");
+        String email = "otheruser@"+generator.generate().toLowerCase()+".com";
+        ScimUser user = new ScimUser(null, email, "Other", "User");
+        user.addEmail(email);
+        user = usersRepository.createUser(user, "password");
 
-        MockHttpServletRequestBuilder get = MockMvcRequestBuilders.get("/Users/" + joel.getId())
-                        .header("Authorization", "Bearer " + scimToken)
-                        .accept(APPLICATION_JSON);
+        String username2 = "ou"+generator.generate().toLowerCase();
+        user.setUserName(username2);
+        user.setName(new ScimUser.Name("Joe", "Smith"));
 
-        mockMvc.perform(get)
-                        .andExpect(status().isOk())
-                        .andExpect(header().string("ETag", "\"0\""))
-                        .andExpect(jsonPath("$.userName").value("jdsa"))
-                        .andExpect(jsonPath("$.emails[0].value").value("jdsa@vmware.com"))
-                        .andExpect(jsonPath("$.name.familyName").value("D'sa"))
-                        .andExpect(jsonPath("$.name.givenName").value("Joel"));
+        MockHttpServletRequestBuilder put = MockMvcRequestBuilders.put("/Users/" + user.getId())
+            .header("Authorization", "Bearer " + token)
+            .header("If-Match", "\"" + user.getVersion() + "\"")
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .content(new ObjectMapper().writeValueAsBytes(user));
+
+        if (status==HttpStatus.OK.value()) {
+            mockMvc.perform(put)
+                .andExpect(status().isOk())
+                .andExpect(header().string("ETag", "\"1\""))
+                .andExpect(jsonPath("$.userName").value(username2))
+                .andExpect(jsonPath("$.emails[0].value").value(email))
+                .andExpect(jsonPath("$.name.givenName").value("Joe"))
+                .andExpect(jsonPath("$.name.familyName").value("Smith"));
+        } else {
+            mockMvc.perform(put)
+                .andExpect(status().is(status));
+        }
     }
 
     @Test
     public void testUpdateUser() throws Exception {
-        ScimUserProvisioning usersRepository = webApplicationContext.getBean(ScimUserProvisioning.class);
-        ScimUser user = new ScimUser(null, "otheruser", "Other", "User");
-        user.addEmail("otheruser@vmware.com");
-        user = usersRepository.createUser(user, "password");
-
-        user.setUserName("ou");
-        user.setName(new ScimUser.Name("Joe", "Smith"));
-
-        MockHttpServletRequestBuilder put = MockMvcRequestBuilders.put("/Users/" + user.getId())
-                .header("Authorization", "Bearer " + scimToken)
-                .header("If-Match", "\"" + user.getVersion() + "\"")
-                .accept(APPLICATION_JSON)
-                .contentType(APPLICATION_JSON)
-                .content(new ObjectMapper().writeValueAsBytes(user));
-
-        mockMvc.perform(put)
-                .andExpect(status().isOk())
-                .andExpect(header().string("ETag", "\"1\""))
-                .andExpect(jsonPath("$.userName").value("ou"))
-                .andExpect(jsonPath("$.emails[0].value").value("otheruser@vmware.com"))
-                .andExpect(jsonPath("$.name.givenName").value("Joe"))
-                .andExpect(jsonPath("$.name.familyName").value("Smith"));
+        updateUser(scimReadWriteToken, HttpStatus.OK.value());
     }
 
+    @Test
+    public void testUpdateUserWithScimCreateToken() throws Exception {
+        updateUser(scimCreateToken, HttpStatus.FORBIDDEN.value());
+    }
+
+
     private void createScimClient(String adminAccessToken, String id, String secret) throws Exception {
-        ClientDetailsModification client = new ClientDetailsModification(id, "oauth", "foo,bar", "client_credentials", "scim.read,scim.write,password.write,oauth.approvals");
+        ClientDetailsModification client = new ClientDetailsModification(id, "oauth", "foo,bar", "client_credentials", "scim.read,scim.write,password.write,oauth.approvals,scim.create");
         client.setClientSecret(secret);
         MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
                 .header("Authorization", "Bearer " + adminAccessToken)
