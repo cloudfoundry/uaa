@@ -197,6 +197,8 @@
 
     <bean id="changeEmailEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ChangeEmailEndpoints">
         <constructor-arg ref="scimUserProvisioning"/>
+        <constructor-arg ref="codeStore"/>
+        <constructor-arg ref="objectMapper"/>
     </bean>
 
     <bean id="createAccountEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.CreateAccountEndpoints">

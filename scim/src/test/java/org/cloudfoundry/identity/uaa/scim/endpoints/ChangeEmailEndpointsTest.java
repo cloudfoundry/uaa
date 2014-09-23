@@ -1,14 +1,20 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import java.sql.Timestamp;
 
 import static org.mockito.Mockito.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -18,25 +24,28 @@ public class ChangeEmailEndpointsTest {
 
     private ScimUserProvisioning scimUserProvisioning;
     private MockMvc mockMvc;
+    private ExpiringCodeStore expiringCodeStore;
 
     @Before
     public void setUp() throws Exception {
         scimUserProvisioning = mock(ScimUserProvisioning.class);
-        ChangeEmailEndpoints changeEmailEndpoints = new ChangeEmailEndpoints(scimUserProvisioning);
+        expiringCodeStore = Mockito.mock(ExpiringCodeStore.class);
+        ChangeEmailEndpoints changeEmailEndpoints = new ChangeEmailEndpoints(scimUserProvisioning, expiringCodeStore, new ObjectMapper());
         mockMvc = MockMvcBuilders.standaloneSetup(changeEmailEndpoints).build();
     }
 
     @Test
     public void testChangeEmail() throws Exception {
+        Mockito.when(expiringCodeStore.retrieveCode("the_secret_code"))
+            .thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\"}"));
+
         ScimUser scimUser = new ScimUser();
 
         when(scimUserProvisioning.retrieve("user-id-001")).thenReturn(scimUser);
 
         mockMvc.perform(post("/email_changes")
             .contentType(APPLICATION_JSON)
-            .param("userId", "user-id-001")
-            .param("newEmail", "new@example.com")
-            .content("{\"userId\":\"user-id-001\",\"newEmail\":\"new@example.com\"}")
+            .content("the_secret_code")
             .accept(APPLICATION_JSON))
             .andExpect(MockMvcResultMatchers.status().isOk());
 
