@@ -33,9 +33,9 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.BaseClientDetails;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
-import org.springframework.security.oauth2.provider.JdbcClientDetailsService;
+import org.springframework.security.oauth2.provider.client.JdbcClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.web.servlet.MockMvc;
@@ -227,9 +227,9 @@ public class TokenMvcMockTests {
     public String validatePasswordGrantToken(String clientId, String username, String requestedScopes, String... expectedScopes) throws Exception {
         String t1 = testClient.getUserOAuthAccessToken(clientId, SECRET, username, SECRET, requestedScopes);
         OAuth2Authentication a1 = tokenServices.loadAuthentication(t1);
-        assertEquals(expectedScopes.length, a1.getAuthorizationRequest().getScope().size());
+        assertEquals(expectedScopes.length, a1.getOAuth2Request().getScope().size());
         assertThat(
-            a1.getAuthorizationRequest().getScope(),
+            a1.getOAuth2Request().getScope(),
             containsInAnyOrder(expectedScopes)
         );
         return t1;

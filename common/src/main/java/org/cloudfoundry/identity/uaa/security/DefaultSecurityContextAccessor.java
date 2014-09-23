@@ -109,7 +109,7 @@ public class DefaultSecurityContextAccessor implements SecurityContextAccessor {
             return null;
         }
 
-        return ((OAuth2Authentication) a).getAuthorizationRequest().getClientId();
+        return ((OAuth2Authentication) a).getOAuth2Request().getClientId();
     }
 
     @Override

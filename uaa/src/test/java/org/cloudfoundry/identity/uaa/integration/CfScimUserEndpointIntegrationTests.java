@@ -19,10 +19,12 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
+import org.cloudfoundry.identity.uaa.oauth.UaaOauth2ErrorHandler;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Assume;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.http.HttpEntity;
@@ -35,6 +37,7 @@ import org.springframework.security.oauth2.client.test.OAuth2ContextConfiguratio
 import org.springframework.security.oauth2.client.test.OAuth2ContextSetup;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.web.client.RestOperations;
+import org.springframework.web.client.RestTemplate;
 
 /**
  * Integration test to verify that the trusted client use cases are supported
@@ -99,6 +102,13 @@ public class CfScimUserEndpointIntegrationTests {
         context.setParameters(Collections.singletonMap("credentials",
                         testAccounts.getJsonCredentials(joe.getUserName(), "password")));
 
+    }
+
+    @Before
+    public void setUp() throws Exception {
+        ((RestTemplate)serverRunning.getRestTemplate()).setErrorHandler(
+            new UaaOauth2ErrorHandler(context.getResource(), HttpStatus.Series.SERVER_ERROR)
+        );
     }
 
     @SuppressWarnings("rawtypes")

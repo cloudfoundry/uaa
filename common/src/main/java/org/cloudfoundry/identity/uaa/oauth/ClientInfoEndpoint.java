@@ -16,7 +16,7 @@ import java.security.Principal;
 import java.util.Collections;
 
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.security.oauth2.provider.BaseClientDetails;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.stereotype.Controller;

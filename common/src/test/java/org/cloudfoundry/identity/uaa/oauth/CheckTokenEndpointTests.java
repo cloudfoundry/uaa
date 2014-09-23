@@ -31,10 +31,10 @@ import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.junit.Test;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
-import org.springframework.security.oauth2.provider.BaseClientDetails;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
-import org.springframework.security.oauth2.provider.InMemoryClientDetailsService;
+import org.springframework.security.oauth2.provider.AuthorizationRequest;
+import org.springframework.security.oauth2.provider.client.InMemoryClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 
 /**
@@ -62,8 +62,8 @@ public class CheckTokenEndpointTests {
     private String userName = "olds";
 
     public CheckTokenEndpointTests() {
-        authentication = new OAuth2Authentication(new DefaultAuthorizationRequest("client",
-                        Collections.singleton("read")),
+        authentication = new OAuth2Authentication(new AuthorizationRequest("client",
+                        Collections.singleton("read")).createOAuth2Request(),
                         UaaAuthenticationTestFactory.getAuthentication(userId, userName, "olds@vmware.com"));
 
         SignerProvider signerProvider = new SignerProvider();
@@ -179,8 +179,8 @@ public class CheckTokenEndpointTests {
 
     @Test
     public void testClientOnly() {
-        authentication = new OAuth2Authentication(new DefaultAuthorizationRequest("client",
-                        Collections.singleton("read")), null);
+        authentication = new OAuth2Authentication(new AuthorizationRequest("client",
+                        Collections.singleton("read")).createOAuth2Request(), null);
         accessToken = tokenServices.createAccessToken(authentication);
         Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
         assertEquals("client", result.get("client_id"));

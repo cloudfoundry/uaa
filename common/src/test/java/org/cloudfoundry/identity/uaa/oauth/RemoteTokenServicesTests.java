@@ -65,7 +65,7 @@ public class RemoteTokenServicesTests {
     public void testTokenRetrieval() throws Exception {
         OAuth2Authentication result = services.loadAuthentication("FOO");
         assertNotNull(result);
-        assertEquals("remote", result.getAuthorizationRequest().getClientId());
+        assertEquals("remote", result.getOAuth2Request().getClientId());
         assertEquals("olds", result.getUserAuthentication().getName());
         assertEquals("HDGFJSHGDF", ((RemoteUserAuthentication) result.getUserAuthentication()).getId());
     }
@@ -75,7 +75,7 @@ public class RemoteTokenServicesTests {
         body.put("client_authorities", Collections.singleton("uaa.none"));
         OAuth2Authentication result = services.loadAuthentication("FOO");
         assertNotNull(result);
-        assertEquals("[uaa.none]", result.getAuthorizationRequest().getAuthorities().toString());
+        assertEquals("[uaa.none]", result.getOAuth2Request().getAuthorities().toString());
     }
 
     @Test
@@ -95,7 +95,7 @@ public class RemoteTokenServicesTests {
         OAuth2Authentication result = services.loadAuthentication("FOO");
 
         assertNotNull(result);
-        assertEquals(mapper.writeValueAsString(additionalAuthorizationAttributesMap), result.getAuthorizationRequest()
-                        .getAuthorizationParameters().get(Claims.ADDITIONAL_AZ_ATTR));
+        assertEquals(mapper.writeValueAsString(additionalAuthorizationAttributesMap), result.getOAuth2Request()
+                        .getRequestParameters().get(Claims.ADDITIONAL_AZ_ATTR));
     }
 }

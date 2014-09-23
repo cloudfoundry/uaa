@@ -14,7 +14,7 @@
 -->
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
     xmlns:sec="http://www.springframework.org/schema/security" xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
-    xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-1.0.xsd
+    xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-2.0.xsd
 		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.2.xsd
 		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
 
@@ -36,7 +36,7 @@
         <property name="accept" value="application/json" />
         <property name="headers">
             <map>
-                <entry key="Authorization" value="Bearer " />
+                <entry key="Authorization" value="bearer "  />
             </map>
         </property>
     </bean>
@@ -46,6 +46,7 @@
     <http request-matcher-ref="loginAuthorizeRequestMatcher" create-session="never" entry-point-ref="oauthAuthenticationEntryPoint"
         authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+        <custom-filter ref="backwardsCompatibleScopeParameter" position="FIRST"/>
         <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
         <!-- scope authentication filter configured with a scope authentication manager -->
         <custom-filter ref="oauthLoginScopeAuthenticatingFilter" after="PRE_AUTH_FILTER"/>
@@ -79,6 +80,7 @@
              TODO, if there is no token this filter must throw.
              What we need is scope=oauth.login
          -->
+        <custom-filter ref="backwardsCompatibleScopeParameter" position="FIRST"/>
         <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
         <!-- scope authentication filter configured with a scope authentication manager -->
         <custom-filter ref="oauthLoginScopeAuthenticatingFilter" after="PRE_AUTH_FILTER"/>
@@ -107,7 +109,7 @@
         <property name="accept" value="application/json" />
         <property name="headers">
             <map>
-                <entry key="Authorization" value="Bearer " />
+                <entry key="Authorization" value="bearer " />
             </map>
         </property>
         <property name="parameters">
@@ -121,6 +123,7 @@
 
     <bean id="loginServerTokenEndpointAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.LoginServerTokenEndpointFilter">
         <constructor-arg ref="loginAuthenticationMgr" />
+        <constructor-arg ref="authorizationRequestManager"/>
         <property name="authenticationDetailsSource" ref="authenticationDetailsSource" />
     </bean>
 
@@ -134,6 +137,7 @@
     <http request-matcher-ref="loginAuthorizeRequestMatcherOld" create-session="always" entry-point-ref="oauthAuthenticationEntryPoint"
         authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+        <custom-filter ref="backwardsCompatibleScopeParameter" position="FIRST"/>
         <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
         <custom-filter ref="loginAuthenticationFilter" position="FORM_LOGIN_FILTER" />
         <anonymous enabled="false" />

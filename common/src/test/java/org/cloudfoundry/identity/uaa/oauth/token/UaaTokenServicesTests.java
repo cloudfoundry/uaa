@@ -44,10 +44,11 @@ import org.springframework.security.oauth2.common.exceptions.InvalidGrantExcepti
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.BaseClientDetails;
-import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
-import org.springframework.security.oauth2.provider.InMemoryClientDetailsService;
+import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.security.oauth2.provider.client.InMemoryClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.security.oauth2.provider.request.DefaultOAuth2RequestFactory;
 
 import java.util.Arrays;
 import java.util.Calendar;
@@ -145,6 +146,7 @@ public class UaaTokenServicesTests {
     public List<String> resourceIds;
     private String expectedJson;
     private BaseClientDetails defaultClient;
+    private OAuth2RequestFactory requestFactory;
 
 
     public UaaTokenServicesTests() {
@@ -153,6 +155,7 @@ public class UaaTokenServicesTests {
 
     @Before
     public void setUp() throws Exception {
+
         mockAuthentication = new MockAuthentication();
         SecurityContextHolder.getContext().setAuthentication(mockAuthentication);
         requestedAuthScopes = Arrays.asList(READ, WRITE);
@@ -176,6 +179,7 @@ public class UaaTokenServicesTests {
                 defaultClient
             )
         );
+        requestFactory = new DefaultOAuth2RequestFactory(clientDetailsService);
         tokenServices.setClientDetailsService(clientDetailsService);
         tokenServices.setDefaultUserAuthorities(AuthorityUtils.authorityListToSet(USER_AUTHORITIES));
         tokenServices.setIssuer("http://localhost:8080/uaa");
@@ -193,30 +197,28 @@ public class UaaTokenServicesTests {
     @Test(expected = InvalidGrantException.class)
     public void testInvalidGrantType() {
         AuthorizationRequest ar = mock(AuthorizationRequest.class);
-        when(ar.getAuthorizationParameters()).thenReturn(new HashMap<String, String>());
-        tokenServices.refreshAccessToken("", ar);
+        tokenServices.refreshAccessToken("", requestFactory.createTokenRequest(ar,"dsdada"));
     }
 
     @Test(expected = InvalidTokenException.class)
     public void testInvalidRefreshToken() {
         Map<String,String> map = new HashMap<>();
         map.put("grant_type","refresh_token");
-        AuthorizationRequest ar = mock(AuthorizationRequest.class);
-        when(ar.getAuthorizationParameters()).thenReturn(map);
-        tokenServices.refreshAccessToken("dasdasdasdasdas", ar);
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(map,null,null,null,null,null,false,null,null,null);
+        tokenServices.refreshAccessToken("dasdasdasdasdas", requestFactory.createTokenRequest(authorizationRequest,"refresh_token"));
     }
 
 
     @Test
     public void testCreateAccessTokenForAClient() {
 
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,clientScopes);
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,clientScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, CLIENT_CREDENTIALS);
-        authorizationRequest.setAuthorizationParameters(azParameters);
+        authorizationRequest.setRequestParameters(azParameters);
 
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, null);
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), null);
 
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         Jwt tokenJwt = JwtHelper.decodeAndVerify(accessToken.getValue(), signerProvider.getVerifier());
@@ -255,34 +257,34 @@ public class UaaTokenServicesTests {
 
     @Test
     public void testCreateAccessTokenAuthcodeGrant() {
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
-        authorizationRequest.setAuthorizationParameters(azParameters);
+        authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         testCreateAccessTokenForAUser(authentication, false);
     }
 
     @Test
     public void testCreateAccessTokenPasswordGrant() {
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, PASSWORD);
-        authorizationRequest.setAuthorizationParameters(azParameters);
+        authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         testCreateAccessTokenForAUser(authentication, false);
     }
 
     @Test
     public void testCreateAccessTokenRefreshGrant() throws InterruptedException {
         Calendar expiresAt = Calendar.getInstance();
-        expiresAt.add(Calendar.MILLISECOND, 3000);
+        expiresAt.add(Calendar.MILLISECOND, 300000);
 
         Calendar updatedAt = Calendar.getInstance();
         updatedAt.add(Calendar.MILLISECOND, -1000);
@@ -290,23 +292,23 @@ public class UaaTokenServicesTests {
         approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,updatedAt.getTime()));
         approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,updatedAt.getTime()));
 
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
-        authorizationRequest.setAuthorizationParameters(azParameters);
+        authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
 
-        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         refreshAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getAuthorizationParameters());
+        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
         refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
-        refreshAuthorizationRequest.setAuthorizationParameters(refreshAzParameters);
+        refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
-        OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), refreshAuthorizationRequest);
+        OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
 
         assertEquals(refreshedAccessToken.getRefreshToken().getValue(), accessToken.getRefreshToken().getValue());
         Jwt tokenJwt = JwtHelper.decodeAndVerify(refreshedAccessToken.getValue(), signerProvider.getVerifier());
@@ -325,7 +327,7 @@ public class UaaTokenServicesTests {
         assertEquals(claims.get(Claims.USER_NAME), username);
         assertEquals(claims.get(Claims.CID), CLIENT_ID);
         assertEquals(claims.get(Claims.SCOPE), requestedAuthScopes);
-        assertEquals(claims.get(Claims.AUD), resourceIds);
+        assertEquals(resourceIds, claims.get(Claims.AUD));
         assertTrue(((String) claims.get(Claims.JTI)).length() > 0);
         assertTrue(((Integer) claims.get(Claims.IAT)) > 0);
         assertTrue(((Integer) claims.get(Claims.EXP)) > 0);
@@ -341,23 +343,23 @@ public class UaaTokenServicesTests {
 
         // NO APPROVALS REQUIRED
 
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
-        authorizationRequest.setAuthorizationParameters(azParameters);
+        authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
 
-        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         refreshAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getAuthorizationParameters());
+        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
         refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
-        refreshAuthorizationRequest.setAuthorizationParameters(refreshAzParameters);
+        refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
-        OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), refreshAuthorizationRequest);
+        OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
 
         assertEquals(refreshedAccessToken.getRefreshToken().getValue(), accessToken.getRefreshToken().getValue());
         Jwt tokenJwt = JwtHelper.decodeAndVerify(refreshedAccessToken.getValue(), signerProvider.getVerifier());
@@ -392,23 +394,23 @@ public class UaaTokenServicesTests {
 
         // NO APPROVALS REQUIRED
 
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
-        authorizationRequest.setAuthorizationParameters(azParameters);
+        authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
 
-        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,readScope);
+        AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,readScope);
         refreshAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getAuthorizationParameters());
+        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
         refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
-        refreshAuthorizationRequest.setAuthorizationParameters(refreshAzParameters);
+        refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
-        OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), refreshAuthorizationRequest);
+        OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
 
         assertEquals(refreshedAccessToken.getRefreshToken().getValue(), accessToken.getRefreshToken().getValue());
         Jwt tokenJwt = JwtHelper.decodeAndVerify(refreshedAccessToken.getValue(), signerProvider.getVerifier());
@@ -449,23 +451,23 @@ public class UaaTokenServicesTests {
 
         approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,updatedAt.getTime()));
 
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
-        authorizationRequest.setAuthorizationParameters(azParameters);
+        authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
 
-        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         refreshAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getAuthorizationParameters());
+        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
         refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
-        refreshAuthorizationRequest.setAuthorizationParameters(refreshAzParameters);
+        refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
-        OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), refreshAuthorizationRequest);
+        OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
 
         assertEquals(refreshedAccessToken.getRefreshToken().getValue(), accessToken.getRefreshToken().getValue());
         Jwt tokenJwt = JwtHelper.decodeAndVerify(refreshedAccessToken.getValue(), signerProvider.getVerifier());
@@ -506,23 +508,23 @@ public class UaaTokenServicesTests {
 
         approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,updatedAt.getTime()));
 
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
-        authorizationRequest.setAuthorizationParameters(azParameters);
+        authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
 
-        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         refreshAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getAuthorizationParameters());
+        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
         refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
-        refreshAuthorizationRequest.setAuthorizationParameters(refreshAzParameters);
+        refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
-        tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), refreshAuthorizationRequest);
+        tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
     }
 
     @Test
@@ -540,50 +542,50 @@ public class UaaTokenServicesTests {
         approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,updatedAt.getTime()));
         approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.DENIED,updatedAt.getTime()));
 
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
-        authorizationRequest.setAuthorizationParameters(azParameters);
+        authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
 
-        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         refreshAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getAuthorizationParameters());
+        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
         refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
-        refreshAuthorizationRequest.setAuthorizationParameters(refreshAzParameters);
+        refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
-        OAuth2AccessToken refreshToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), refreshAuthorizationRequest);
+        OAuth2AccessToken refreshToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
         assertNotNull(refreshToken);
     }
 
     @Test
     public void testCreateAccessTokenImplicitGrant() {
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID, requestedAuthScopes);
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, IMPLICIT);
-        authorizationRequest.setAuthorizationParameters(azParameters);
+        authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         testCreateAccessTokenForAUser(authentication, true);
     }
 
     @Test
     public void testCreateAccessWithNonExistingScopes() {
         List<String> scopesThatDontExist = Arrays.asList("scope1","scope2");
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID, scopesThatDontExist);
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, scopesThatDontExist);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, IMPLICIT);
-        authorizationRequest.setAuthorizationParameters(azParameters);
+        authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         testCreateAccessTokenForAUser(authentication, true, scopesThatDontExist);
     }
 
@@ -634,7 +636,7 @@ public class UaaTokenServicesTests {
             assertNotNull(refreshTokenClaims.get(Claims.SUB));
             assertEquals(refreshTokenClaims.get(Claims.CID), CLIENT_ID);
             assertEquals(refreshTokenClaims.get(Claims.SCOPE), requestedAuthScopes);
-            assertEquals(refreshTokenClaims.get(Claims.AUD), requestedAuthScopes);
+            assertEquals(refreshTokenClaims.get(Claims.AUD), resourceIds);
             assertTrue(((String) refreshTokenClaims.get(Claims.JTI)).length() > 0);
             assertTrue(((Integer) refreshTokenClaims.get(Claims.IAT)) > 0);
             assertTrue(((Integer) refreshTokenClaims.get(Claims.EXP)) > 0);
@@ -679,14 +681,14 @@ public class UaaTokenServicesTests {
         approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,updatedAt.getTime()));
 
         // First Request
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
-        authorizationRequest.setAuthorizationParameters(azParameters);
+        authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         Jwt tokenJwt = JwtHelper.decodeAndVerify(accessToken.getValue(), signerProvider.getVerifier());
         assertNotNull(tokenJwt);
@@ -710,17 +712,17 @@ public class UaaTokenServicesTests {
         }
 
         assertEquals(refreshTokenClaims.get(Claims.SCOPE), requestedAuthScopes);
-        assertEquals(refreshTokenClaims.get(Claims.AUD), requestedAuthScopes);
+        assertEquals(refreshTokenClaims.get(Claims.AUD), resourceIds);
 
         // Second request with reduced scopes
-        DefaultAuthorizationRequest reducedScopeAuthorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,readScope);
+        AuthorizationRequest reducedScopeAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,readScope);
         reducedScopeAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> refreshAzParameters = new HashMap<>(reducedScopeAuthorizationRequest.getAuthorizationParameters());
+        Map<String, String> refreshAzParameters = new HashMap<>(reducedScopeAuthorizationRequest.getRequestParameters());
         refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
-        reducedScopeAuthorizationRequest.setAuthorizationParameters(refreshAzParameters);
+        reducedScopeAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
-        OAuth2Authentication reducedScopeAuthentication = new OAuth2Authentication(reducedScopeAuthorizationRequest,userAuthentication);
-        OAuth2AccessToken reducedScopeAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), reducedScopeAuthentication.getAuthorizationRequest());
+        OAuth2Authentication reducedScopeAuthentication = new OAuth2Authentication(reducedScopeAuthorizationRequest.createOAuth2Request(),userAuthentication);
+        OAuth2AccessToken reducedScopeAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), requestFactory.createTokenRequest(reducedScopeAuthorizationRequest,"refresh_token"));
 
         // AT should have the new scopes, RT should be the same
         Jwt newTokenJwt = JwtHelper.decodeAndVerify(reducedScopeAccessToken.getValue(), signerProvider.getVerifier());
@@ -744,14 +746,14 @@ public class UaaTokenServicesTests {
         approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,new Date()));
         approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,new Date()));
         // First Request
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
-        authorizationRequest.setAuthorizationParameters(azParameters);
+        authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         Jwt tokenJwt = JwtHelper.decodeAndVerify(accessToken.getValue(), signerProvider.getVerifier());
         assertNotNull(tokenJwt);
@@ -775,17 +777,17 @@ public class UaaTokenServicesTests {
         }
 
         assertEquals(refreshTokenClaims.get(Claims.SCOPE), requestedAuthScopes);
-        assertEquals(refreshTokenClaims.get(Claims.AUD), requestedAuthScopes);
+        assertEquals(refreshTokenClaims.get(Claims.AUD), resourceIds);
 
         // Second request with expanded scopes
-        DefaultAuthorizationRequest expandedScopeAuthorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,expandedScopes);
+        AuthorizationRequest expandedScopeAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,expandedScopes);
         expandedScopeAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> refreshAzParameters = new HashMap<>(expandedScopeAuthorizationRequest.getAuthorizationParameters());
+        Map<String, String> refreshAzParameters = new HashMap<>(expandedScopeAuthorizationRequest.getRequestParameters());
         refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
-        expandedScopeAuthorizationRequest.setAuthorizationParameters(refreshAzParameters);
+        expandedScopeAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
-        OAuth2Authentication expandedScopeAuthentication = new OAuth2Authentication(expandedScopeAuthorizationRequest,userAuthentication);
-        tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(),expandedScopeAuthentication.getAuthorizationRequest());
+        OAuth2Authentication expandedScopeAuthentication = new OAuth2Authentication(expandedScopeAuthorizationRequest.createOAuth2Request(),userAuthentication);
+        tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(),requestFactory.createTokenRequest(expandedScopeAuthorizationRequest,"refresh_token"));
     }
 
     @Test
@@ -795,14 +797,14 @@ public class UaaTokenServicesTests {
         clientDetails.setRefreshTokenValiditySeconds(36000);
         clientDetailsService.setClientDetailsStore(Collections.singletonMap(CLIENT_ID, clientDetails));
 
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
-        authorizationRequest.setAuthorizationParameters(azParameters);
+        authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         Jwt tokenJwt = JwtHelper.decodeAndVerify(accessToken.getValue(), signerProvider.getVerifier());
         assertNotNull(tokenJwt);
@@ -839,27 +841,27 @@ public class UaaTokenServicesTests {
 
         approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,new Date()));
         approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,new Date()));
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
-        authorizationRequest.setAuthorizationParameters(azParameters);
+        authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
 
         UaaUser user = userDatabase.retrieveUserByName(username, Origin.UAA);
         UaaUser newUser = new UaaUser(user.getUsername(), "blah", user.getEmail(), null, null);
         userDatabase.updateUser(userId, newUser);
 
-        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         refreshAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getAuthorizationParameters());
+        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
         refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
-        refreshAuthorizationRequest.setAuthorizationParameters(refreshAzParameters);
+        refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
-        tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), refreshAuthorizationRequest);
+        tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
     }
 
     @Test(expected = InvalidTokenException.class)
@@ -876,35 +878,35 @@ public class UaaTokenServicesTests {
         clientDetails.setRefreshTokenValiditySeconds(-36000);
         clientDetailsService.setClientDetailsStore(Collections.singletonMap(CLIENT_ID, clientDetails));
 
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
-        authorizationRequest.setAuthorizationParameters(azParameters);
+        authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
-        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         refreshAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getAuthorizationParameters());
+        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
         refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
-        refreshAuthorizationRequest.setAuthorizationParameters(refreshAzParameters);
+        refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
-        tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), refreshAuthorizationRequest);
+        tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
     }
 
     @Test(expected = InvalidTokenException.class)
     public void testRefreshTokenAfterApprovalsChanged() {
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID, requestedAuthScopes);
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
-        authorizationRequest.setAuthorizationParameters(azParameters);
+        authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
 
         Calendar expiresAt = Calendar.getInstance();
@@ -913,13 +915,13 @@ public class UaaTokenServicesTests {
         approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,new Date()));
         approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,new Date()));
 
-        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         refreshAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getAuthorizationParameters());
+        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
         refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
-        refreshAuthorizationRequest.setAuthorizationParameters(refreshAzParameters);
+        refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
-        tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), refreshAuthorizationRequest);
+        tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
     }
 
     @Test(expected = InvalidTokenException.class)
@@ -930,23 +932,23 @@ public class UaaTokenServicesTests {
         approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,new Date()));
         approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,new Date()));
 
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
-        authorizationRequest.setAuthorizationParameters(azParameters);
+        authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
 
-        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         refreshAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getAuthorizationParameters());
+        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
         refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
-        refreshAuthorizationRequest.setAuthorizationParameters(refreshAzParameters);
+        refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
-        tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), refreshAuthorizationRequest);
+        tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
     }
 
     @Test(expected = InvalidTokenException.class)
@@ -957,23 +959,23 @@ public class UaaTokenServicesTests {
         approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.DENIED,new Date()));
         approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,new Date()));
 
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
-        authorizationRequest.setAuthorizationParameters(azParameters);
+        authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
 
-        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         refreshAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getAuthorizationParameters());
+        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
         refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
-        refreshAuthorizationRequest.setAuthorizationParameters(refreshAzParameters);
+        refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
-        tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), refreshAuthorizationRequest);
+        tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
     }
 
     @Test(expected = InvalidTokenException.class)
@@ -983,53 +985,53 @@ public class UaaTokenServicesTests {
 
         approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.DENIED,new Date()));
 
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
-        authorizationRequest.setAuthorizationParameters(azParameters);
+        authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
 
-        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         refreshAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getAuthorizationParameters());
+        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
         refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
-        refreshAuthorizationRequest.setAuthorizationParameters(refreshAzParameters);
+        refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
-        tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), refreshAuthorizationRequest);
+        tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
     }
 
     @Test(expected = InvalidTokenException.class)
     public void testRefreshTokenAfterApprovalsMissing2() {
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
-        authorizationRequest.setAuthorizationParameters(azParameters);
+        authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
 
-        DefaultAuthorizationRequest refreshAuthorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         refreshAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getAuthorizationParameters());
+        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
         refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
-        refreshAuthorizationRequest.setAuthorizationParameters(refreshAzParameters);
+        refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
-        tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), refreshAuthorizationRequest);
+        tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
     }
 
     @Test
     public void testReadAccessToken() {
-        DefaultAuthorizationRequest authorizationRequest =new DefaultAuthorizationRequest(CLIENT_ID, requestedAuthScopes);
+        AuthorizationRequest authorizationRequest =new AuthorizationRequest(CLIENT_ID, requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
-        authorizationRequest.setAuthorizationParameters(azParameters);
+        authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
         Calendar expiresAt = Calendar.getInstance();
@@ -1040,21 +1042,21 @@ public class UaaTokenServicesTests {
         approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,updatedAt.getTime()));
         approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,updatedAt.getTime()));
 
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
         assertEquals(accessToken, tokenServices.readAccessToken(accessToken.getValue()));
     }
 
     @Test
     public void testLoadAuthenticationForAUser() {
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
-        authorizationRequest.setAuthorizationParameters(azParameters);
+        authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
         OAuth2Authentication loadedAuthentication = tokenServices.loadAuthentication(accessToken.getValue());
 
@@ -1072,13 +1074,13 @@ public class UaaTokenServicesTests {
 
     @Test
     public void testLoadAuthenticationForAClient() {
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, CLIENT_CREDENTIALS);
-        authorizationRequest.setAuthorizationParameters(azParameters);
+        authorizationRequest.setRequestParameters(azParameters);
 
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, null);
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), null);
 
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         OAuth2Authentication loadedAuthentication = tokenServices.loadAuthentication(accessToken.getValue());
@@ -1097,14 +1099,14 @@ public class UaaTokenServicesTests {
         shortExpiryClient.setAccessTokenValiditySeconds(1);
         clientDetailsService.setClientDetailsStore(Collections.singletonMap(CLIENT_ID, shortExpiryClient));
 
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
-        authorizationRequest.setAuthorizationParameters(azParameters);
+        authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
         Thread.sleep(1000l);
         tokenServices.loadAuthentication(accessToken.getValue());
@@ -1112,15 +1114,15 @@ public class UaaTokenServicesTests {
 
     @Test
     public void testCreateAccessTokenAuthcodeGrantAdditionalAuthorizationAttributes() {
-        DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getAuthorizationParameters());
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
         azParameters.put("authorities","{\"az_attr\":{\"external_group\":\"domain\\\\group1\", \"external_id\":\"abcd1234\"}}");
-        authorizationRequest.setAuthorizationParameters(azParameters);
+        authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest, userAuthentication);
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken token = testCreateAccessTokenForAUser(authentication, false);
         Map<String, String> azMap = new LinkedHashMap<>();
         azMap.put("external_group", "domain\\group1");

@@ -15,7 +15,7 @@
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
     xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
 
-    <bean id="jdbcClientDetailsService" class="org.springframework.security.oauth2.provider.JdbcClientDetailsService">
+    <bean id="jdbcClientDetailsService" class="org.springframework.security.oauth2.provider.client.JdbcClientDetailsService">
         <constructor-arg ref="dataSource" />
         <property name="passwordEncoder" ref="bcryptPasswordEncoder" />
     </bean>
@@ -26,7 +26,7 @@
         <constructor-arg name="pagingListFactory" ref="jdbcPagingListFactory" />
     </bean>
 
-    <bean id="clientRegistrationService" class="org.springframework.security.oauth2.provider.JdbcClientDetailsService">
+    <bean id="clientRegistrationService" class="org.springframework.security.oauth2.provider.client.JdbcClientDetailsService">
         <constructor-arg ref="dataSource" />
         <property name="passwordEncoder" ref="bcryptPasswordEncoder" />
     </bean>

@@ -80,7 +80,7 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
             StringBuilder builder = new StringBuilder();
             if (caller instanceof OAuth2Authentication) {
                 OAuth2Authentication oAuth2Authentication = (OAuth2Authentication) caller;
-                builder.append("client=").append(oAuth2Authentication.getAuthorizationRequest().getClientId());
+                builder.append("client=").append(oAuth2Authentication.getOAuth2Request().getClientId());
                 if (!oAuth2Authentication.isClientOnly()) {
                     builder.append(", ").append("user=").append(oAuth2Authentication.getName());
                 }

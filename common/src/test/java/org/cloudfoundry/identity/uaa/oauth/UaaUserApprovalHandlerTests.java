@@ -24,10 +24,11 @@ import org.mockito.Mockito;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.oauth2.provider.BaseClientDetails;
+import org.springframework.security.oauth2.provider.AuthorizationRequest;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
-import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
+import org.springframework.security.oauth2.provider.token.store.InMemoryTokenStore;
 
 /**
  * @author Dave Syer
@@ -41,11 +42,9 @@ public class UaaUserApprovalHandlerTests {
 
     private AuthorizationServerTokenServices tokenServices = Mockito.mock(AuthorizationServerTokenServices.class);
 
-    private DefaultAuthorizationRequest authorizationRequest = new DefaultAuthorizationRequest("client",
-                    Arrays.asList("read"));
+    private AuthorizationRequest authorizationRequest = new AuthorizationRequest("client",Arrays.asList("read"));
 
-    private Authentication userAuthentication = new UsernamePasswordAuthenticationToken("joe", "",
-                    AuthorityUtils.commaSeparatedStringToAuthorityList("USER"));
+    private Authentication userAuthentication = new UsernamePasswordAuthenticationToken("joe", "", AuthorityUtils.commaSeparatedStringToAuthorityList("USER"));
 
     {
         handler.setClientDetailsService(clientDetailsService);

@@ -35,8 +35,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
-import org.springframework.security.oauth2.provider.BaseClientDetails;
-import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
+import org.springframework.security.oauth2.provider.AuthorizationRequest;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
 import org.springframework.util.Assert;
@@ -122,7 +122,7 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
             Collection<String> values = (Collection<String>) map.get("scope");
             scope.addAll(values);
         }
-        DefaultAuthorizationRequest clientAuthentication = new DefaultAuthorizationRequest(remoteClientId, scope);
+        AuthorizationRequest clientAuthentication = new AuthorizationRequest(remoteClientId, scope);
 
         if (map.containsKey("resource_ids") || map.containsKey("client_authorities")) {
             Set<String> resourceIds = new HashSet<String>();
@@ -141,13 +141,17 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
             clientDetails.setClientId(remoteClientId);
             clientDetails.setResourceIds(resourceIds);
             clientDetails.setAuthorities(clientAuthorities);
-            clientAuthentication.addClientDetails(clientDetails);
+            clientAuthentication.setResourceIdsAndAuthoritiesFromClientDetails(clientDetails);
         }
 
         if (map.containsKey(Claims.ADDITIONAL_AZ_ATTR)) {
             try {
-                clientAuthentication.setAuthorizationParameters(Collections.singletonMap(Claims.ADDITIONAL_AZ_ATTR,
-                                mapper.writeValueAsString(map.get(Claims.ADDITIONAL_AZ_ATTR))));
+                clientAuthentication.setRequestParameters(
+                    Collections.singletonMap(
+                        Claims.ADDITIONAL_AZ_ATTR,
+                        mapper.writeValueAsString(map.get(Claims.ADDITIONAL_AZ_ATTR))
+                    )
+                );
             } catch (IOException e) {
                 throw new IllegalStateException("Cannot convert access token to JSON", e);
             }
@@ -156,7 +160,7 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
         Authentication userAuthentication = getUserAuthentication(map, scope);
 
         clientAuthentication.setApproved(true);
-        return new OAuth2Authentication(clientAuthentication, userAuthentication);
+        return new OAuth2Authentication(clientAuthentication.createOAuth2Request(), userAuthentication);
     }
 
     private Authentication getUserAuthentication(Map<String, Object> map, Set<String> scope) {
