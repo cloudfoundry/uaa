@@ -141,7 +141,13 @@ public final class UaaRequestMatcher implements RequestMatcher, BeanNameAware {
 
     private boolean matchesHeader(String requestValue, List<String> expectedValues) {
         for (String headerValue : expectedValues) {
-            if (requestValue == null || !requestValue.startsWith(headerValue)) {
+            //TODO - Spring Security Oauth2 v2 upgrade - bearer changed capitalization
+            if ("bearer ".equalsIgnoreCase(headerValue)) {
+                //case insensitive for Authorization: Bearer match
+                if (requestValue == null || !requestValue.toLowerCase().startsWith(headerValue)) {
+                    return false;
+                }
+            } else if (requestValue == null || !requestValue.startsWith(headerValue)) {
                 return false;
             }
         }

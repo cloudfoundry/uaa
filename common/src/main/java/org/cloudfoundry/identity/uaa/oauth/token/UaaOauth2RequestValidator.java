@@ -49,10 +49,6 @@ public class UaaOauth2RequestValidator implements OAuth2RequestValidator {
 
     private void validateScope(Set<String> requestScopes, Set<String> clientScopes, boolean wildCardsAllowed) {
 
-        if (requestScopes.isEmpty()) {
-            throw new InvalidScopeException("Empty scope (either the client or the user is not allowed the requested scopes)");
-        }
-
         if (clientScopes == null || clientScopes.isEmpty()) {
             throw new InvalidScopeException("Empty scope (client has no registered scopes)");
         }

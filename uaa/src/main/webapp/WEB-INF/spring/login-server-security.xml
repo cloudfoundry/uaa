@@ -36,7 +36,7 @@
         <property name="accept" value="application/json" />
         <property name="headers">
             <map>
-                <entry key="Authorization" value="Bearer " />
+                <entry key="Authorization" value="bearer "  />
             </map>
         </property>
     </bean>
@@ -109,7 +109,7 @@
         <property name="accept" value="application/json" />
         <property name="headers">
             <map>
-                <entry key="Authorization" value="Bearer " />
+                <entry key="Authorization" value="bearer " />
             </map>
         </property>
         <property name="parameters">
