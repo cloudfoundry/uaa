@@ -27,6 +27,7 @@ import java.util.Map;
 
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.oauth.UaaOauth2ErrorHandler;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Assume;
 import org.junit.Rule;
@@ -38,6 +39,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.security.oauth2.client.OAuth2RestTemplate;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -156,12 +158,17 @@ public class RemoteAuthenticationEndpointTests {
         RestTemplate restTemplate = new RestTemplate();
         // The default java.net client doesn't allow you to handle 4xx responses
         restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
-        restTemplate.setErrorHandler(new DefaultResponseErrorHandler() {
-            @Override
-            protected boolean hasError(HttpStatus statusCode) {
-                return statusCode.series() == HttpStatus.Series.SERVER_ERROR;
-            }
-        });
+        if (restTemplate instanceof OAuth2RestTemplate) {
+            OAuth2RestTemplate oAuth2RestTemplate = (OAuth2RestTemplate)restTemplate;
+            oAuth2RestTemplate.setErrorHandler(new UaaOauth2ErrorHandler(oAuth2RestTemplate.getResource(), HttpStatus.Series.SERVER_ERROR));
+        } else {
+            restTemplate.setErrorHandler(new DefaultResponseErrorHandler() {
+                @Override
+                protected boolean hasError(HttpStatus statusCode) {
+                    return statusCode.series() == HttpStatus.Series.SERVER_ERROR;
+                }
+            });
+        }
         HttpHeaders headers = new HttpHeaders();
         if (additionalParams!=null) {
             headers.add("Authorization", "Bearer " + getLoginReadBearerToken());
