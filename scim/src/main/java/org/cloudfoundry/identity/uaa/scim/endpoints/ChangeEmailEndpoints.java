@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
+import org.cloudfoundry.identity.uaa.audit.event.UserModifiedEvent;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -7,6 +8,8 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -20,10 +23,11 @@ import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.OK;
 
 @Controller
-public class ChangeEmailEndpoints {
+public class ChangeEmailEndpoints implements ApplicationEventPublisherAware {
     private final ScimUserProvisioning scimUserProvisioning;
     private final ExpiringCodeStore expiringCodeStore;
     private final ObjectMapper objectMapper;
+    private ApplicationEventPublisher publisher;
 
     public ChangeEmailEndpoints(ScimUserProvisioning scimUserProvisioning, ExpiringCodeStore expiringCodeStore, ObjectMapper objectMapper) {
         this.scimUserProvisioning = scimUserProvisioning;
@@ -46,6 +50,8 @@ public class ChangeEmailEndpoints {
 
             scimUserProvisioning.update(userId, user);
 
+            publisher.publishEvent(UserModifiedEvent.emailChanged(userId, user.getUserName(), user.getPrimaryEmail()));
+
             EmailChangeResponse emailChangeResponse = new EmailChangeResponse();
             emailChangeResponse.setEmail(email);
             emailChangeResponse.setUserId(userId);
@@ -55,7 +61,12 @@ public class ChangeEmailEndpoints {
             return new ResponseEntity<>(BAD_REQUEST);
         }
     }
-    
+
+    @Override
+    public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
+        this.publisher = applicationEventPublisher;
+    }
+
     public static class EmailChangeResponse {
         @JsonProperty("username")
         private String username;

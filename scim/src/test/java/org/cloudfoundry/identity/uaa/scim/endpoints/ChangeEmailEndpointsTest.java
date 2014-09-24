@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
+import org.cloudfoundry.identity.uaa.audit.event.UserModifiedEvent;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -10,6 +11,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -25,12 +27,15 @@ public class ChangeEmailEndpointsTest {
     private ScimUserProvisioning scimUserProvisioning;
     private MockMvc mockMvc;
     private ExpiringCodeStore expiringCodeStore;
+    private ApplicationEventPublisher publisher;
 
     @Before
     public void setUp() throws Exception {
         scimUserProvisioning = mock(ScimUserProvisioning.class);
         expiringCodeStore = Mockito.mock(ExpiringCodeStore.class);
+        publisher = Mockito.mock(ApplicationEventPublisher.class);
         ChangeEmailEndpoints changeEmailEndpoints = new ChangeEmailEndpoints(scimUserProvisioning, expiringCodeStore, new ObjectMapper());
+        changeEmailEndpoints.setApplicationEventPublisher(publisher);
         mockMvc = MockMvcBuilders.standaloneSetup(changeEmailEndpoints).build();
     }
 
@@ -59,6 +64,11 @@ public class ChangeEmailEndpointsTest {
         Assert.assertEquals("new@example.com", user.getValue().getPrimaryEmail());
         Assert.assertEquals("new@example.com", user.getValue().getUserName());
 
+        ArgumentCaptor<UserModifiedEvent> event = ArgumentCaptor.forClass(UserModifiedEvent.class);
+        verify(publisher).publishEvent(event.capture());
+        Assert.assertEquals("user-id-001", event.getValue().getUserId());
+        Assert.assertEquals("new@example.com", event.getValue().getUsername());
+        Assert.assertEquals("new@example.com", event.getValue().getEmail());
     }
 
     @Test

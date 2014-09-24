@@ -30,13 +30,23 @@ public class UserModifiedEvent extends AbstractUaaEvent {
 
     private String userId;
     private String username;
+    private String email;
     private AuditEventType eventType;
+
 
     protected UserModifiedEvent(String userId, String username, AuditEventType type, Authentication authentication) {
         super(authentication);
         this.userId = userId;
         this.username = username;
         this.eventType = type;
+    }
+
+    protected UserModifiedEvent(String userId, String username, String email, AuditEventType type, Authentication authentication) {
+        super(authentication);
+        this.userId = userId;
+        this.username = username;
+        this.eventType = type;
+        this.email = email;
     }
 
     public static UserModifiedEvent userCreated(String userId, String username) {
@@ -71,6 +81,15 @@ public class UserModifiedEvent extends AbstractUaaEvent {
             getContextAuthentication());
     }
 
+    public static UserModifiedEvent emailChanged(String userId, String username, String email) {
+        return new UserModifiedEvent(
+            userId,
+            username,
+            email,
+            AuditEventType.EmailChangedEvent,
+            getContextAuthentication());
+    }
+
     @Override
     public AuditEvent getAuditEvent() {
         String[] details = {"user_id="+userId, "username="+username};
@@ -91,6 +110,10 @@ public class UserModifiedEvent extends AbstractUaaEvent {
 
     public String getUsername() {
         return username;
+    }
+
+    public String getEmail() {
+        return email;
     }
 
     protected static Authentication getContextAuthentication() {
