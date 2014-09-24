@@ -40,6 +40,35 @@ public class ChangeEmailEndpointsTest {
             .thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\"}"));
 
         ScimUser scimUser = new ScimUser();
+        scimUser.setUserName("user@example.com");
+        scimUser.setPrimaryEmail("user@example.com");
+
+        when(scimUserProvisioning.retrieve("user-id-001")).thenReturn(scimUser);
+
+        mockMvc.perform(post("/email_changes")
+            .contentType(APPLICATION_JSON)
+            .content("the_secret_code")
+            .accept(APPLICATION_JSON))
+            .andExpect(MockMvcResultMatchers.jsonPath("$.userId").value("user-id-001"))
+            .andExpect(MockMvcResultMatchers.jsonPath("$.username").value("new@example.com"))
+            .andExpect(MockMvcResultMatchers.jsonPath("$.email").value("new@example.com"))
+            .andExpect(MockMvcResultMatchers.status().isOk());
+
+        ArgumentCaptor<ScimUser> user = ArgumentCaptor.forClass(ScimUser.class);
+        verify(scimUserProvisioning).update(eq("user-id-001"), user.capture());
+        Assert.assertEquals("new@example.com", user.getValue().getPrimaryEmail());
+        Assert.assertEquals("new@example.com", user.getValue().getUserName());
+
+    }
+
+    @Test
+    public void testChangeEmailWhenUsernameNotTheSame() throws Exception {
+        Mockito.when(expiringCodeStore.retrieveCode("the_secret_code"))
+            .thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\"}"));
+
+        ScimUser scimUser = new ScimUser();
+        scimUser.setUserName("username");
+        scimUser.setPrimaryEmail("user@example.com");
 
         when(scimUserProvisioning.retrieve("user-id-001")).thenReturn(scimUser);
 
@@ -53,6 +82,6 @@ public class ChangeEmailEndpointsTest {
         verify(scimUserProvisioning).update(eq("user-id-001"), user.capture());
 
         Assert.assertEquals("new@example.com", user.getValue().getPrimaryEmail());
-
+        Assert.assertEquals("username", user.getValue().getUserName());
     }
 }

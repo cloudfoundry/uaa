@@ -4,6 +4,7 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
 import org.springframework.http.ResponseEntity;
@@ -31,22 +32,64 @@ public class ChangeEmailEndpoints {
     }
 
     @RequestMapping(value="/email_changes", method = RequestMethod.POST)
-    public ResponseEntity changeEmail(@RequestBody String code) throws IOException {
-        ResponseEntity<Map<String,String>> responseEntity;
+    public ResponseEntity<EmailChangeResponse> changeEmail(@RequestBody String code) throws IOException {
         ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code);
         if (expiringCode != null) {
             Map<String, String> data = objectMapper.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
             String userId = data.get("userId");
             String email = data.get("email");
             ScimUser user = scimUserProvisioning.retrieve(userId);
+            if (user.getUserName().equals(user.getPrimaryEmail())) {
+                user.setUserName(email);
+            }
             user.setPrimaryEmail(email);
+
             scimUserProvisioning.update(userId, user);
-            responseEntity = new ResponseEntity<>(OK);
+
+            EmailChangeResponse emailChangeResponse = new EmailChangeResponse();
+            emailChangeResponse.setEmail(email);
+            emailChangeResponse.setUserId(userId);
+            emailChangeResponse.setUsername(user.getUserName());
+            return new ResponseEntity<>(emailChangeResponse, OK);
+        } else {
+            return new ResponseEntity<>(BAD_REQUEST);
         }
-        else {
-            responseEntity = new ResponseEntity<>(BAD_REQUEST);
+    }
+    
+    public static class EmailChangeResponse {
+        @JsonProperty("username")
+        private String username;
+
+
+        @JsonProperty("userId")
+        private String userId;
+
+
+        @JsonProperty("email")
+        private String email;
+
+        public String getUsername() {
+            return username;
         }
 
-        return responseEntity;
+        public void setUsername(String username) {
+            this.username = username;
+        }
+
+        public String getUserId() {
+            return userId;
+        }
+
+        public void setUserId(String userId) {
+            this.userId = userId;
+        }
+
+        public String getEmail() {
+            return email;
+        }
+
+        public void setEmail(String email) {
+            this.email = email;
+        }
     }
 }
