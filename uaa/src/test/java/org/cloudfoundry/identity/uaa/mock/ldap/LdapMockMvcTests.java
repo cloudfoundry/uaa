@@ -54,6 +54,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -204,7 +205,8 @@ public class LdapMockMvcTests {
         String username = "marissa3";
         String password = "ldap3";
         MvcResult result = performAuthentication(username, password);
-        assertEquals("{\"username\":\"" + username + "\"}", result.getResponse().getContentAsString());
+        assertThat(result.getResponse().getContentAsString(), containsString("\"username\":\"" + username + "\""));
+        assertThat(result.getResponse().getContentAsString(), containsString("\"email\":\"marissa3@test.com\""));
     }
 
     @Test
@@ -227,7 +229,8 @@ public class LdapMockMvcTests {
         String username = "marissa";
         String password = "koala";
         MvcResult result = performAuthentication(username, password);
-        assertEquals("{\"username\":\"" + username + "\"}", result.getResponse().getContentAsString());
+        assertThat(result.getResponse().getContentAsString(), containsString("\"username\":\"" + username + "\""));
+        assertThat(result.getResponse().getContentAsString(), containsString("\"email\":\"marissa@test.org\""));
         assertEquals(Origin.UAA, getOrigin(username));
     }
 
@@ -237,7 +240,8 @@ public class LdapMockMvcTests {
         String username = "marissa3";
         String password = "ldap3";
         MvcResult result = performAuthentication(username, password);
-        assertEquals("{\"username\":\"" + username + "\"}", result.getResponse().getContentAsString());
+        assertThat(result.getResponse().getContentAsString(), containsString("\"username\":\"" + username + "\""));
+        assertThat(result.getResponse().getContentAsString(), containsString("\"email\":\"marissa3@test.com\""));
         assertEquals("ldap", getOrigin(username));
         assertEquals("marissa3@test.com",getEmail(username));
     }
@@ -248,7 +252,8 @@ public class LdapMockMvcTests {
         String username = "marissa7";
         String password = "ldap7";
         MvcResult result = performAuthentication(username, password);
-        assertEquals("{\"username\":\"" + username + "\"}", result.getResponse().getContentAsString());
+        assertThat(result.getResponse().getContentAsString(), containsString("\"username\":\"" + username + "\""));
+        assertThat(result.getResponse().getContentAsString(), containsString("\"email\":\"marissa7@user.from.ldap.cf\""));
         assertEquals("ldap", getOrigin(username));
         assertEquals("marissa7@user.from.ldap.cf",getEmail(username));
     }
@@ -260,7 +265,8 @@ public class LdapMockMvcTests {
         String username = "marissa7";
         String password = "ldap7";
         MvcResult result = performAuthentication(username, password);
-        assertEquals("{\"username\":\"" + username + "\"}", result.getResponse().getContentAsString());
+        assertThat(result.getResponse().getContentAsString(), containsString("\"username\":\"" + username + "\""));
+        assertThat(result.getResponse().getContentAsString(), containsString("\"email\":\"marissa7@ldaptest.org\""));
         assertEquals("ldap", getOrigin(username));
         assertEquals("marissa7@ldaptest.org",getEmail(username));
 
@@ -277,21 +283,24 @@ public class LdapMockMvcTests {
         username = "marissa3";
         password = "ldap3";
         result = performAuthentication(username, password);
-        assertEquals("{\"username\":\"" + username + "\"}", result.getResponse().getContentAsString());
+        assertThat(result.getResponse().getContentAsString(), containsString("\"username\":\"" + username + "\""));
+        assertThat(result.getResponse().getContentAsString(), containsString("\"email\":\"marissa3@test.com\""));
         assertEquals("ldap", getOrigin(username));
         assertEquals("marissa3@test.com",getEmail(username));
 
         username = "marissa7";
         password = "ldap7";
         result = performAuthentication(username, password);
-        assertEquals("{\"username\":\"" + username + "\"}", result.getResponse().getContentAsString());
+        assertThat(result.getResponse().getContentAsString(), containsString("\"username\":\"" + username + "\""));
+        assertThat(result.getResponse().getContentAsString(), containsString("\"email\":\"marissa7@user.from.ldap.cf\""));
         assertEquals("ldap", getOrigin(username));
         assertEquals("marissa7@user.from.ldap.cf",getEmail(username));
 
         //non null value
         mapper.setMailSubstitute("user-{0}@testldap.org");
         result = performAuthentication(username, password);
-        assertEquals("{\"username\":\"" + username + "\"}", result.getResponse().getContentAsString());
+        assertThat(result.getResponse().getContentAsString(), containsString("\"username\":\"" + username + "\""));
+        assertThat(result.getResponse().getContentAsString(), containsString("\"email\":\"user-marissa7@testldap.org\""));
         assertEquals("ldap", getOrigin(username));
         assertEquals("user-marissa7@testldap.org",getEmail(username));
 
@@ -299,7 +308,8 @@ public class LdapMockMvcTests {
         username = "marissa3";
         password = "ldap3";
         result = performAuthentication(username, password);
-        assertEquals("{\"username\":\"" + username + "\"}", result.getResponse().getContentAsString());
+        assertThat(result.getResponse().getContentAsString(), containsString("\"username\":\"" + username + "\""));
+        assertThat(result.getResponse().getContentAsString(), containsString("\"email\":\"marissa3@test.com\""));
         assertEquals("ldap", getOrigin(username));
         assertEquals("marissa3@test.com",getEmail(username));
 
@@ -308,7 +318,8 @@ public class LdapMockMvcTests {
         username = "marissa3";
         password = "ldap3";
         result = performAuthentication(username, password);
-        assertEquals("{\"username\":\"" + username + "\"}", result.getResponse().getContentAsString());
+        assertThat(result.getResponse().getContentAsString(), containsString("\"username\":\"" + username + "\""));
+        assertThat(result.getResponse().getContentAsString(), containsString("\"email\":\"user-marissa3@testldap.org\""));
         assertEquals("ldap", getOrigin(username));
         assertEquals("user-marissa3@testldap.org",getEmail(username));
     }

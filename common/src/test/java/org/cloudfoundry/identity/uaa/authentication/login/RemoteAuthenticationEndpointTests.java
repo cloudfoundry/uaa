@@ -17,6 +17,8 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
@@ -33,7 +35,7 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
  * @author Luke Taylor
  */
 public class RemoteAuthenticationEndpointTests {
-    private Authentication success = new UsernamePasswordAuthenticationToken("joe", null);
+    private Authentication success;
     private RemoteAuthenticationEndpoint endpoint;
     private AuthenticationManager am;
     private AuthenticationManager loginAuthMgr;
@@ -41,6 +43,9 @@ public class RemoteAuthenticationEndpointTests {
 
     @Before
     public void setUp() throws Exception {
+        UaaPrincipal principal = new UaaPrincipal("user-id-001", "joe", "joe@example.com", Origin.UAA, null);
+        success = new UsernamePasswordAuthenticationToken(principal, null);
+
         loginAuthMgr = mock(AuthenticationManager.class);
         am = mock(AuthenticationManager.class);
         endpoint = new RemoteAuthenticationEndpoint(am);
@@ -50,6 +55,7 @@ public class RemoteAuthenticationEndpointTests {
 
     @Test
     public void successfulAuthenticationGives200Status() throws Exception {
+
         when(am.authenticate(any(Authentication.class))).thenReturn(success);
         @SuppressWarnings("rawtypes")
         ResponseEntity response = (ResponseEntity) endpoint.authenticate(new MockHttpServletRequest(), "joe","joespassword");
@@ -76,7 +82,7 @@ public class RemoteAuthenticationEndpointTests {
     public void successfulLoginAuthenticationInvokesLoginAuthManager() throws Exception {
         SecurityContextHolder.getContext().setAuthentication(loginAuthentication);
         when(am.authenticate(any(Authentication.class))).thenThrow(new BadCredentialsException("Invalid authentication manager invoked"));
-        when(loginAuthMgr.authenticate(any(Authentication.class))).thenReturn(success);
+        when(loginAuthMgr.authenticate(any(Authentication.class))).thenReturn(new UsernamePasswordAuthenticationToken("joe", null));
         when(loginAuthentication.isClientOnly()).thenReturn(Boolean.TRUE);
         @SuppressWarnings("rawtypes")
         ResponseEntity response = (ResponseEntity) endpoint.authenticate(new MockHttpServletRequest(), "joe","origin", null);

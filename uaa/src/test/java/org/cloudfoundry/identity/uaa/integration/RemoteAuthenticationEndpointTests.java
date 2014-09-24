@@ -61,6 +61,7 @@ public class RemoteAuthenticationEndpointTests {
         ResponseEntity<Map> response = authenticate(testAccounts.getUserName(), testAccounts.getPassword(), null);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(testAccounts.getUserName(), response.getBody().get("username"));
+        assertEquals(testAccounts.getEmail(), response.getBody().get("email"));
     }
 
     @Test

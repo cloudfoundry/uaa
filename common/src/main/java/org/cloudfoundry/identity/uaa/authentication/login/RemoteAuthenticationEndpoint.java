@@ -76,6 +76,9 @@ public class RemoteAuthenticationEndpoint {
         try {
             Authentication a = authenticationManager.authenticate(token);
             responseBody.put("username", a.getName());
+            if (a.getPrincipal() != null && a.getPrincipal() instanceof UaaPrincipal) {
+                responseBody.put("email", ((UaaPrincipal) a.getPrincipal()).getEmail());
+            }
             processAdditionalInformation(responseBody, a);
             status = HttpStatus.OK;
         } catch (AuthenticationException e) {

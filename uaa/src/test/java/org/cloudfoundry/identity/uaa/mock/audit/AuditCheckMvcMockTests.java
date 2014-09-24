@@ -32,7 +32,6 @@ import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFail
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserNotFoundEvent;
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
-import org.cloudfoundry.identity.uaa.oauth.Claims;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.password.event.PasswordChangeEvent;
 import org.cloudfoundry.identity.uaa.password.event.PasswordChangeFailureEvent;
@@ -47,7 +46,6 @@ import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.type.TypeReference;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -57,8 +55,6 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.jwt.Jwt;
-import org.springframework.security.jwt.JwtHelper;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
 import org.springframework.security.web.FilterChainProxy;
@@ -70,7 +66,6 @@ import org.springframework.web.context.support.AnnotationConfigWebApplicationCon
 import scala.actors.threadpool.Arrays;
 
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -152,7 +147,7 @@ public class AuditCheckMvcMockTests {
 
         mockMvc.perform(loginPost)
             .andExpect(status().isOk())
-            .andExpect(content().string("{\"username\":\""+testAccounts.getUserName()+"\"}"));
+            .andExpect(content().string("{\"username\":\"" + testAccounts.getUserName() + "\",\"email\":\"" + testAccounts.getEmail() + "\"}"));
 
         ArgumentCaptor<UserAuthenticationSuccessEvent> captor  = ArgumentCaptor.forClass(UserAuthenticationSuccessEvent.class);
         verify(listener).onApplicationEvent(captor.capture());
