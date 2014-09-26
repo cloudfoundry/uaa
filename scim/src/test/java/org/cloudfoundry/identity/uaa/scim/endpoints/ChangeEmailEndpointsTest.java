@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import org.cloudfoundry.identity.uaa.audit.event.UserModifiedEvent;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -13,14 +14,18 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.sql.Timestamp;
+import java.util.Arrays;
 
 import static org.mockito.Mockito.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class ChangeEmailEndpointsTest {
 
@@ -37,6 +42,49 @@ public class ChangeEmailEndpointsTest {
         ChangeEmailEndpoints changeEmailEndpoints = new ChangeEmailEndpoints(scimUserProvisioning, expiringCodeStore, new ObjectMapper());
         changeEmailEndpoints.setApplicationEventPublisher(publisher);
         mockMvc = MockMvcBuilders.standaloneSetup(changeEmailEndpoints).build();
+    }
+
+    @Test
+    public void testGenerateEmailChangeCode() throws Exception {
+        String data = "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\"}";
+        Mockito.when(expiringCodeStore.generateCode(eq(data), any(Timestamp.class)))
+            .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + 1000), data));
+
+        ScimUser userChangingEmail = new ScimUser("user-id-001", "user@example.com", null, null);
+        userChangingEmail.setPrimaryEmail("user@example.com");
+        Mockito.when(scimUserProvisioning.retrieve("user-id-001")).thenReturn(userChangingEmail);
+
+        MockHttpServletRequestBuilder post = post("/email_verifications")
+            .contentType(APPLICATION_JSON)
+            .content(data)
+            .accept(APPLICATION_JSON);
+
+        mockMvc.perform(post)
+            .andExpect(status().isCreated())
+            .andExpect(content().string("secret_code"));
+    }
+
+    @Test
+    public void testGenerateEmailChangeCodeWithExistingUsernameChange() throws Exception {
+        String data = "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\"}";
+        Mockito.when(expiringCodeStore.generateCode(eq(data), any(Timestamp.class)))
+            .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + 1000), data));
+
+        ScimUser userChangingEmail = new ScimUser("id001", "user@example.com", null, null);
+        userChangingEmail.setPrimaryEmail("user@example.com");
+        Mockito.when(scimUserProvisioning.retrieve("user-id-001")).thenReturn(userChangingEmail);
+
+        ScimUser existingUser = new ScimUser("id001", "new@example.com", null, null);
+        Mockito.when(scimUserProvisioning.query("userName eq \"new@example.com\" and origin eq \"" + Origin.UAA + "\""))
+            .thenReturn(Arrays.asList(existingUser));
+
+        MockHttpServletRequestBuilder post = post("/email_verifications")
+            .contentType(APPLICATION_JSON)
+            .content(data)
+            .accept(APPLICATION_JSON);
+
+        mockMvc.perform(post)
+            .andExpect(status().isConflict());
     }
 
     @Test
