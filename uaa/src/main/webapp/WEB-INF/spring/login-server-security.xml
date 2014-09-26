@@ -237,7 +237,7 @@
     </http>
 
     <http create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="emptyAuthenticationManager"
-          access-decision-manager-ref="accessDecisionManager" pattern="/email_changes" xmlns="http://www.springframework.org/schema/security">
+          access-decision-manager-ref="accessDecisionManager" pattern="/email_*" xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="scope=oauth.login" />
         <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
         <anonymous enabled="false" />
