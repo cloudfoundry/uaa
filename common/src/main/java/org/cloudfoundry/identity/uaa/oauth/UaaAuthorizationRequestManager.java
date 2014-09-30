@@ -331,7 +331,8 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
         String grantType = requestParameters.get(OAuth2Utils.GRANT_TYPE);
 
         Set<String> scopes = extractScopes(requestParameters, authenticatedClient);
-        TokenRequest tokenRequest = new TokenRequest(requestParameters, clientId, scopes, grantType);
+        Set<String> resourceIds = getResourceIds(authenticatedClient, scopes);
+        TokenRequest tokenRequest = new UaaTokenRequest(requestParameters, clientId, scopes, grantType, resourceIds);
 
         return tokenRequest;
     }
@@ -373,5 +374,27 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
     @Override
     public TokenRequest createTokenRequest(AuthorizationRequest authorizationRequest, String grantType) {
         return requestFactory.createTokenRequest(authorizationRequest, grantType);
+    }
+
+    public class UaaTokenRequest extends TokenRequest {
+        private Set<String> resourceIds;
+        public UaaTokenRequest(Map<String, String> requestParameters, String clientId, Collection<String> scope, String grantType, Set<String> resourceIds) {
+            super(requestParameters, clientId, scope, grantType);
+            this.resourceIds = resourceIds;
+        }
+
+        @Override
+        public OAuth2Request createOAuth2Request(ClientDetails client) {
+            OAuth2Request request = super.createOAuth2Request(client);
+            return new OAuth2Request(
+                request.getRequestParameters(),
+                client.getClientId(),
+                client.getAuthorities(),
+                true, request.getScope(),
+                resourceIds,
+                request.getRedirectUri(),
+                request.getResponseTypes(),
+                request.getExtensions());
+        }
     }
 }

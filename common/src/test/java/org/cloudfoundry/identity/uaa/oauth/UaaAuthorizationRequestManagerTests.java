@@ -37,7 +37,9 @@ import org.mockito.Mockito;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
+import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
+import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.test.annotation.IfProfileValue;
@@ -72,6 +74,30 @@ public class UaaAuthorizationRequestManagerTests {
         factory = new UaaAuthorizationRequestManager(clientDetailsService);
         factory.setSecurityContextAccessor(new StubSecurityContextAccessor());
         Mockito.when(clientDetailsService.loadClientByClientId("foo")).thenReturn(client);
+    }
+
+    @Test
+    public void testTokenRequestIncludesResourceIds() {
+        SecurityContextAccessor securityContextAccessor = new StubSecurityContextAccessor() {
+            @Override
+            public boolean isUser() {
+                return false;
+            }
+
+            @Override
+            public Collection<? extends GrantedAuthority> getAuthorities() {
+                return AuthorityUtils.commaSeparatedStringToAuthorityList("aud1.test aud2.test");
+            }
+        };
+        parameters.put("scope", "aud1.test aud2.test");
+        parameters.put("client_id", client.getClientId());
+        parameters.put(OAuth2Utils.GRANT_TYPE, "client_credentials");
+        factory.setDefaultScopes(Arrays.asList("aud1.test"));
+        factory.setSecurityContextAccessor(securityContextAccessor);
+        client.setScope(StringUtils.commaDelimitedListToSet("aud1.test,aud2.test"));
+        OAuth2Request request = factory.createTokenRequest(parameters, client).createOAuth2Request(client);
+        assertEquals(StringUtils.commaDelimitedListToSet("aud1.test,aud2.test"), new TreeSet<>(request.getScope()));
+        assertEquals(StringUtils.commaDelimitedListToSet("aud1,aud2"), new TreeSet<>(request.getResourceIds()));
     }
 
     @Test
@@ -217,18 +243,19 @@ public class UaaAuthorizationRequestManagerTests {
 
     @Test
     public void testScopesValid() throws Exception {
+        parameters.put("scope","read");
         factory.validateParameters(parameters, new BaseClientDetails("foo", null, "read,write", "implicit", null));
     }
 
     @Test
     public void testScopesValidWithWildcard() throws Exception {
-        parameters.put("scope","read,write,space.1.developer,space.2.developer");
+        parameters.put("scope","read write space.1.developer space.2.developer");
         factory.validateParameters(parameters, new BaseClientDetails("foo", null, "read,write,space.*.developer", "implicit", null));
     }
 
     @Test(expected = InvalidScopeException.class)
     public void testScopesInvValidWithWildcard() throws Exception {
-        parameters.put("scope","read,write,space.1.developer,space.2.developer,space.1.admin");
+        parameters.put("scope","read write space.1.developer space.2.developer space.1.admin");
         factory.validateParameters(parameters, new BaseClientDetails("foo", null, "read,write,space.*.developer", "implicit", null));
     }
 
