@@ -583,15 +583,15 @@ public final class ScimUser extends ScimCore {
         if (phoneNumbers == null) {
             phoneNumbers = new ArrayList<PhoneNumber>(1);
         }
-        for (PhoneNumber email : phoneNumbers) {
-            if (email.value.equals(newPhoneNumber) && email.getType() == null) {
+        for (PhoneNumber phoneNumber : phoneNumbers) {
+            if (phoneNumber.value.equals(newPhoneNumber) && phoneNumber.getType() == null) {
                 throw new IllegalArgumentException("Already contains phoneNumber " + newPhoneNumber);
             }
         }
 
-        PhoneNumber e = new PhoneNumber();
-        e.setValue(newPhoneNumber);
-        phoneNumbers.add(e);
+        PhoneNumber number = new PhoneNumber();
+        number.setValue(newPhoneNumber);
+        phoneNumbers.add(number);
     }
 
     /**
