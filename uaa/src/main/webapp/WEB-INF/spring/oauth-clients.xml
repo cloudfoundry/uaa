@@ -94,7 +94,7 @@
                             <entry key="secret" value="loginsecret" />
                             <entry key="scope" value="openid,oauth.approvals" />
                             <entry key="authorized-grant-types" value="client_credentials,authorization_code" />
-                            <entry key="authorities" value="oauth.login,notifications.write,scim.userids" />
+                            <entry key="authorities" value="oauth.login,notifications.write,scim.userids,critical_notifications.write" />
                             <entry key="autoapprove" value="true" />
                         </map>
                     </entry>
