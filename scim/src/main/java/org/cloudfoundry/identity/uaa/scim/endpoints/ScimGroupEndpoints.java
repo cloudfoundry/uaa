@@ -199,18 +199,13 @@ public class ScimGroupEndpoints {
         } catch (IllegalArgumentException e) {
             throw new ScimException("Invalid filter expression: [" + filter + "]", HttpStatus.BAD_REQUEST);
         }
-        String attributesCommaSeparated = null;
-        try {
-            return SearchResultsFactory.cropAndBuildSearchResultFrom(
-                result,
-                startIndex,
-                count,
-                result.size(),
-                new String[] {"groupId", "displayName","externalGroup"},
-                Arrays.asList(ScimCore.SCHEMAS));
-        } catch (ExpressionException e) {
-            throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST);
-        }
+        return SearchResultsFactory.cropAndBuildSearchResultFrom(
+            result,
+            startIndex,
+            count,
+            result.size(),
+            new String[] {"groupId", "displayName","externalGroup"},
+            Arrays.asList(ScimCore.SCHEMAS));
     }
 
     @RequestMapping(value = { "/Groups/External" }, method = RequestMethod.POST)
@@ -279,14 +274,11 @@ public class ScimGroupEndpoints {
 
     private String getGroupId(String displayName) {
         if (displayName==null || displayName.trim().length()==0) {
-            throw new IllegalArgumentException("Missing group/displayName name");
+            throw new ScimException("Group not found, not name provided", HttpStatus.NOT_FOUND);
         }
         List<ScimGroup> result = dao.query("displayName eq \""+displayName+"\"");
         if (result==null || result.size()==0) {
             throw new ScimException("Group not found:"+displayName, HttpStatus.NOT_FOUND);
-        }
-        if (result.size()>1) {
-            throw new IllegalArgumentException("Group name should be unique:"+displayName);
         }
         return result.get(0).getId();
     }

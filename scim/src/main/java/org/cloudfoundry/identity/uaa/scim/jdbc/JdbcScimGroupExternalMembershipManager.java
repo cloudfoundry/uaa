@@ -132,7 +132,7 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
             }
             return getExternalGroupMap(groupId, externalGroup);
         } else {
-            return null;
+            throw new ScimResourceNotFoundException("Group does not exist");
         }
     }
 
@@ -215,7 +215,7 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
                             rowMapper, groupId, externalGroup);
             return u;
         } catch (EmptyResultDataAccessException e) {
-            throw new MemberNotFoundException("The mapping between groupId " + groupId + " and external group "
+            throw new ScimResourceNotFoundException("The mapping between groupId " + groupId + " and external group "
                             + externalGroup + " does not exist");
         }
     }
