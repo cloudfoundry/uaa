@@ -49,7 +49,18 @@
                 <value>uiSecurity</value>
             </list>
         </property>
+        <property name="errorMap">
+            <map>
+              <entry key="org.springframework.dao.NonTransientDataAccessException">
+                  <bean class="org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor$ReasonPhrase">
+                      <constructor-arg index="0" value="503"/>
+                      <constructor-arg index="1" value="Database unavailable. Retry later."/>
+                  </bean>
+              </entry>
+            </map>
+        </property>
     </bean>
+
 
     <import resource="spring/oauth-clients.xml" />
     <!-- The order of these imports is important because of Spring Security filter chain rules -->

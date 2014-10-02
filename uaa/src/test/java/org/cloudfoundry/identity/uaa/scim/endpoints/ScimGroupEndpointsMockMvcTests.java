@@ -116,6 +116,20 @@ public class ScimGroupEndpointsMockMvcTests {
         }
     }
 
+    @Test
+    public void testDBisDownDuringCreate() throws Exception {
+        String externalGroup = "cn=developers,ou=scopes,dc=test,dc=com";
+        String displayName ="internal.read";
+        DataSource ds = webApplicationContext.getBean(DataSource.class);
+        new JdbcTemplate(ds).execute("SHUTDOWN");
+        Method close = ds.getClass().getMethod("close");
+        Assert.assertNotNull(close);
+        close.invoke(ds);
+        ResultActions result = createGroup(null, displayName, externalGroup);
+        result.andExpect(status().isServiceUnavailable());
+    }
+
+
 
     @Test
     public void testGetGroups() throws Exception {

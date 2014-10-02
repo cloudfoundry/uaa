@@ -16,7 +16,9 @@ package org.cloudfoundry.identity.uaa.security.web;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -31,6 +33,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.jmx.export.annotation.ManagedAttribute;
 import org.springframework.jmx.export.annotation.ManagedResource;
@@ -62,11 +65,39 @@ import org.springframework.util.Assert;
  */
 @ManagedResource
 public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
+    public static class ReasonPhrase {
+        private int code;
+        private String phrase;
+
+        public ReasonPhrase(int code, String phrase) {
+            this.code = code;
+            this.phrase = phrase;
+        }
+
+        public int getCode() {
+            return code;
+        }
+
+        public String getPhrase() {
+            return phrase;
+        }
+    }
+
     private final Log logger = LogFactory.getLog(getClass());
     private boolean requireHttps = false;
     private List<String> redirectToHttps = Collections.emptyList();
     private List<String> ignore = Collections.emptyList();
     private boolean dumpRequests = false;
+
+    private Map<Class<? extends Exception>, ReasonPhrase> errorMap = new HashMap<>();
+
+    public void setErrorMap(Map<Class<? extends Exception>, ReasonPhrase> errorMap) {
+        this.errorMap = errorMap;
+    }
+
+    public Map<Class<? extends Exception>, ReasonPhrase> getErrorMap() {
+        return errorMap;
+    }
 
     @Override
     public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
@@ -198,8 +229,24 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
                     logger.debug(dumpRequest(request));
                 }
             }
-
-            chain.doFilter(request, response);
+            try {
+                chain.doFilter(request, response);
+            }catch (Exception x) {
+                logger.error("Uncaught Exception:", x);
+                ReasonPhrase reasonPhrase = getErrorMap().get(x.getClass());
+                if (null==reasonPhrase) {
+                    for (Class<? extends Exception> clazz : getErrorMap().keySet()) {
+                        if (clazz.isAssignableFrom(x.getClass())) {
+                            reasonPhrase = getErrorMap().get(clazz);
+                            break;
+                        }
+                    }
+                    if (null==reasonPhrase) {
+                        reasonPhrase = new ReasonPhrase(HttpStatus.INTERNAL_SERVER_ERROR.value(), HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase());
+                    }
+                }
+                response.sendError(reasonPhrase.getCode(), reasonPhrase.getPhrase());
+            }
         }
 
         @SuppressWarnings("unchecked")
