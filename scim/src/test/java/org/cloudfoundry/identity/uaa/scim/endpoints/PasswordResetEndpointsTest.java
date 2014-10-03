@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -69,7 +70,8 @@ public class PasswordResetEndpointsTest {
 
         mockMvc.perform(post)
                 .andExpect(status().isCreated())
-                .andExpect(content().string("secret_code"));
+                .andExpect(content().string(containsString("\"code\":\"secret_code\"")))
+                .andExpect(content().string(containsString("\"user_id\":\"id001\"")));
     }
 
     @Test
@@ -103,7 +105,8 @@ public class PasswordResetEndpointsTest {
             .accept(APPLICATION_JSON);
 
         mockMvc.perform(post)
-            .andExpect(status().isConflict());
+            .andExpect(status().isConflict())
+            .andExpect(content().string(containsString("\"user_id\":\"id001\"")));
     }
 
     @Test
@@ -120,7 +123,8 @@ public class PasswordResetEndpointsTest {
 
         mockMvc.perform(post)
             .andExpect(status().isCreated())
-            .andExpect(content().string("secret_code"));
+            .andExpect(content().string(containsString("\"code\":\"secret_code\"")))
+            .andExpect(content().string(containsString("\"user_id\":\"id001\"")));
 
 
         Mockito.when(scimUserProvisioning.query("userName eq \"user\\\"'@example.com\" and origin eq \"" + Origin.UAA + "\""))

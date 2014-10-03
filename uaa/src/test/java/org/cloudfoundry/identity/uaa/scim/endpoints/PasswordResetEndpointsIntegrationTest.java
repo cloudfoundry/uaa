@@ -17,6 +17,8 @@ import org.cloudfoundry.identity.uaa.test.DefaultIntegrationTestConfig;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.type.TypeReference;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -26,6 +28,8 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
+
+import java.util.Map;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -78,12 +82,14 @@ public class PasswordResetEndpointsIntegrationTest {
                 .andExpect(status().isCreated())
                 .andReturn();
 
-        String code = result.getResponse().getContentAsString();
+        String responseString = result.getResponse().getContentAsString();
+        Map<String,String> response = new ObjectMapper().readValue(responseString, new TypeReference<Map<String, String>>() {
+        });
 
         post = post("/password_change")
                 .header("Authorization", "Bearer " + loginToken)
                 .contentType(APPLICATION_JSON)
-                .content("{\"code\":\"" + code + "\",\"new_password\":\"new_secret\"}")
+                .content("{\"code\":\"" + response.get("code") + "\",\"new_password\":\"new_secret\"}")
                 .accept(APPLICATION_JSON);
 
         mockMvc.perform(post)
