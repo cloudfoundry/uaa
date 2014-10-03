@@ -22,6 +22,31 @@ Rather than trigger arguments about how RESTful these APIs are we'll just refer 
 .. _OpenID Connect: http://openid.net/openid-connect
 .. _SCIM: http://simplecloud.info
 
+Scopes authorized by the UAA
+=======================
+The UAA itself is also performing authorization based on the ``scope`` claim in the JWT token for it's operation.
+Here is a summary of the different scopes that are known to the UAA.
+
+  * oauth.approval - ``/approvals`` endpoint. Scope required to be able to approve/disapprove clients to act on a user's behalf. This is a default scope defined in uaa.yml.
+  * approvals.me - not currently used
+  * clients.secret - ``/oauth/clients/*/secret`` endpoint. Scope required to change the password of a client. Considered an admin scope.
+  * oauth.login - Scope used to indicate a login application, such as the login-server, to perform trusted operations, such as create users not authenticated in the UAA.
+  * openid - Required to access the /userinfo endpoint. Intended for OpenID clients.
+  * scim.write - Admin write access to all SCIM endpoints, ``/Users``, ``/Groups/``.
+  * scim.read - Admin read access to all SCIM endpoints, ``/Users``, ``/Groups/``.
+  * scim.create - Reduced scope to be able to create a user using ``POST /Users`` but not be able to modify, read or delete users.
+  * scim.userids - ``/ids/Users`` - Required to convert a username+origin to a user ID and vice versa.
+  * groups.update -
+  * password.write - ``/User*/*/password`` endpoint. Admin scope to change a user's password.
+  * uaa.user - scope to indicate this is a user
+  * uaa.resource - scope to indicate this is a resource server
+  * uaa.admin - scope to indicate this is the super user
+  * uaa.none - scope to indicate that this client will not be performing actions on behalf of a user
+  * clients.admin - super user scope to create, modify and delete clients
+  * clients.write - scope required to create and modify clients. The scopes/authorities are limited to be prefixed with the scope holder's client id. For example, id:testclient authorities:client.write may create a client that has scopes/authorities that have the 'testclient.' prefix.
+  * clients.read - scope to read information about clients
+  * clients.secret - scope to change client secrets
+
 A Note on Filtering
 =======================
 In several of the API calls, especially around the SCIM endpoints, ``/Users`` and ``/Groups``
