@@ -203,6 +203,7 @@
         <constructor-arg ref="scimUserProvisioning"/>
         <constructor-arg ref="codeStore"/>
         <constructor-arg ref="objectMapper"/>
+        <constructor-arg ref="clientDetailsService"/>
     </bean>
 
     <bean id="createAccountEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.CreateAccountEndpoints">

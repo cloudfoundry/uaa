@@ -4,6 +4,7 @@ import org.cloudfoundry.identity.uaa.audit.event.UserModifiedEvent;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -13,6 +14,8 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
@@ -20,6 +23,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.sql.Timestamp;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.mockito.Mockito.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -33,20 +38,23 @@ public class ChangeEmailEndpointsTest {
     private MockMvc mockMvc;
     private ExpiringCodeStore expiringCodeStore;
     private ApplicationEventPublisher publisher;
+    private QueryableResourceManager<ClientDetails> clientDetailsService;
+
 
     @Before
     public void setUp() throws Exception {
         scimUserProvisioning = mock(ScimUserProvisioning.class);
         expiringCodeStore = Mockito.mock(ExpiringCodeStore.class);
         publisher = Mockito.mock(ApplicationEventPublisher.class);
-        ChangeEmailEndpoints changeEmailEndpoints = new ChangeEmailEndpoints(scimUserProvisioning, expiringCodeStore, new ObjectMapper());
+        clientDetailsService = Mockito.mock(QueryableResourceManager.class);
+        ChangeEmailEndpoints changeEmailEndpoints = new ChangeEmailEndpoints(scimUserProvisioning, expiringCodeStore, new ObjectMapper(), clientDetailsService);
         changeEmailEndpoints.setApplicationEventPublisher(publisher);
         mockMvc = MockMvcBuilders.standaloneSetup(changeEmailEndpoints).build();
     }
 
     @Test
     public void testGenerateEmailChangeCode() throws Exception {
-        String data = "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\"}";
+        String data = "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\",\"client_id\":null}";
         Mockito.when(expiringCodeStore.generateCode(eq(data), any(Timestamp.class)))
             .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + 1000), data));
 
@@ -66,7 +74,7 @@ public class ChangeEmailEndpointsTest {
 
     @Test
     public void testGenerateEmailChangeCodeWithExistingUsernameChange() throws Exception {
-        String data = "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\"}";
+        String data = "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\",\"client_id\":null}";
         Mockito.when(expiringCodeStore.generateCode(eq(data), any(Timestamp.class)))
             .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + 1000), data));
 
@@ -90,7 +98,15 @@ public class ChangeEmailEndpointsTest {
     @Test
     public void testChangeEmail() throws Exception {
         Mockito.when(expiringCodeStore.retrieveCode("the_secret_code"))
-            .thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\"}"));
+            .thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\", \"client_id\":\"app\"}"));
+
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        Map<String, String> additionalInformation = new HashMap<>();
+        additionalInformation.put(ChangeEmailEndpoints.CHANGE_EMAIL_REDIRECT_URL, "app_callback_url");
+        clientDetails.setAdditionalInformation(additionalInformation);
+
+        Mockito.when(clientDetailsService.retrieve("app"))
+            .thenReturn(clientDetails);
 
         ScimUser scimUser = new ScimUser();
         scimUser.setUserName("user@example.com");
@@ -105,6 +121,7 @@ public class ChangeEmailEndpointsTest {
             .andExpect(MockMvcResultMatchers.jsonPath("$.userId").value("user-id-001"))
             .andExpect(MockMvcResultMatchers.jsonPath("$.username").value("new@example.com"))
             .andExpect(MockMvcResultMatchers.jsonPath("$.email").value("new@example.com"))
+            .andExpect(MockMvcResultMatchers.jsonPath("$.redirect_url").value("app_callback_url"))
             .andExpect(MockMvcResultMatchers.status().isOk());
 
         ArgumentCaptor<ScimUser> user = ArgumentCaptor.forClass(ScimUser.class);
@@ -122,7 +139,7 @@ public class ChangeEmailEndpointsTest {
     @Test
     public void testChangeEmailWhenUsernameNotTheSame() throws Exception {
         Mockito.when(expiringCodeStore.retrieveCode("the_secret_code"))
-            .thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\"}"));
+            .thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\",\"client_id\":null}"));
 
         ScimUser scimUser = new ScimUser();
         scimUser.setUserName("username");
