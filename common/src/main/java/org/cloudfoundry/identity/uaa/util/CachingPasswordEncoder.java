@@ -43,6 +43,15 @@ public class CachingPasswordEncoder implements PasswordEncoder {
 
     private int maxKeys = 1000;
     private int maxEncodedPasswords = 5;
+    private boolean enabled = true;
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
 
     private final ConcurrentHashMap<CharSequence, Set<String>> cache = new ConcurrentHashMap<>();
 
@@ -72,8 +81,12 @@ public class CachingPasswordEncoder implements PasswordEncoder {
 
     @Override
     public boolean matches(CharSequence rawPassword, String encodedPassword) {
-        String cacheKey = cacheEncode(rawPassword);
-        return internalMatches(cacheKey, rawPassword, encodedPassword);
+        if (isEnabled()) {
+            String cacheKey = cacheEncode(rawPassword);
+            return internalMatches(cacheKey, rawPassword, encodedPassword);
+        } else {
+            return getPasswordEncoder().matches(rawPassword, encodedPassword);
+        }
     }
 
     private Set<String> getOrCreateHashList(String cacheKey) {

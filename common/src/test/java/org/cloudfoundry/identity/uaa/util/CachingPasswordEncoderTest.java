@@ -152,4 +152,31 @@ public class CachingPasswordEncoderTest  {
         cachingPasswordEncoder.matches(password, cachingPasswordEncoder.encode(password));
         assertEquals(0, passwords.size());
     }
+
+
+    @Test
+    public void testDisabledMatchesSpeedTest() throws Exception {
+        int iterations = 100;
+        cachingPasswordEncoder.setEnabled(false);
+        assertFalse(cachingPasswordEncoder.isEnabled());
+
+        String password = new RandomValueStringGenerator().generate();
+        String encodedBcrypt = cachingPasswordEncoder.encode(password);
+        long nanoStart = System.nanoTime();
+        for (int i=0; i<iterations; i++) {
+            assertTrue(cachingPasswordEncoder.getPasswordEncoder().matches(password, encodedBcrypt));
+        }
+        long nanoStop = System.nanoTime();
+        long bcryptTime = nanoStop - nanoStart;
+        nanoStart = System.nanoTime();
+        for (int i=0; i<iterations; i++) {
+            assertTrue(cachingPasswordEncoder.matches(password, encodedBcrypt));
+        }
+        nanoStop = System.nanoTime();
+        long cacheTime = nanoStop - nanoStart;
+        //assert that the cache is at least 10 times faster
+        assertFalse(bcryptTime > (10 * cacheTime));
+        assertEquals(0, cachingPasswordEncoder.getNumberOfKeys());
+        System.out.println("CachingPasswordEncoder[disabled] - Bcrypt Time:"+((double)bcryptTime / 1000000000.0) + " sec. Cache Time:"+((double)cacheTime / 1000000000.0)+" sec.");
+    }
 }
