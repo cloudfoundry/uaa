@@ -83,6 +83,24 @@ public class ClientAdminBootstrapTests {
     }
 
     @Test
+    public void testSimpleAddClientWithChangeEmailRedirectUrl() throws Exception {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", "foo");
+        map.put("secret", "bar");
+        map.put("scope", "openid");
+        map.put("authorized-grant-types", "authorization_code");
+        map.put("authorities", "uaa.none");
+        map.put("change_email_redirect_url", "change_email_callback_url");
+        BaseClientDetails output = new BaseClientDetails("foo", "none", "openid", "authorization_code,refresh_token",
+                        "uaa.none");
+        output.setClientSecret("bar");
+        Map<String, String> additionalInformation = new HashMap<>();
+        additionalInformation.put("change_email_redirect_url", "change_email_callback_url");
+        output.setAdditionalInformation(additionalInformation);
+        doSimpleTest(map, output);
+    }
+
+    @Test
     public void testSimpleAddClientWithAutoApprove() throws Exception {
         Map<String, Object> map = new HashMap<>();
         map.put("id", "foo");

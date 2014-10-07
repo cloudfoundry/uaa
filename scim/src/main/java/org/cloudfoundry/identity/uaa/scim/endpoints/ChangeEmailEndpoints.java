@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.error.UaaException;
+import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.codehaus.jackson.annotate.JsonProperty;
@@ -13,6 +14,7 @@ import org.codehaus.jackson.type.TypeReference;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -34,12 +36,16 @@ public class ChangeEmailEndpoints implements ApplicationEventPublisherAware {
     private final ExpiringCodeStore expiringCodeStore;
     private final ObjectMapper objectMapper;
     private ApplicationEventPublisher publisher;
+    private final QueryableResourceManager<ClientDetails> clientDetailsService;
     private static final int EMAIL_CHANGE_LIFETIME = 30 * 60 * 1000;
 
-    public ChangeEmailEndpoints(ScimUserProvisioning scimUserProvisioning, ExpiringCodeStore expiringCodeStore, ObjectMapper objectMapper) {
+    public static final String CHANGE_EMAIL_REDIRECT_URL = "change_email_redirect_url";
+
+    public ChangeEmailEndpoints(ScimUserProvisioning scimUserProvisioning, ExpiringCodeStore expiringCodeStore, ObjectMapper objectMapper, QueryableResourceManager<ClientDetails> clientDetailsService) {
         this.scimUserProvisioning = scimUserProvisioning;
         this.expiringCodeStore = expiringCodeStore;
         this.objectMapper = objectMapper;
+        this.clientDetailsService = clientDetailsService;
     }
 
     @RequestMapping(value="/email_verifications", method = RequestMethod.POST)
@@ -57,7 +63,7 @@ public class ChangeEmailEndpoints implements ApplicationEventPublisherAware {
 
         String code;
         try {
-            code = expiringCodeStore.generateCode(new ObjectMapper().writeValueAsString(emailChange), new Timestamp(System.currentTimeMillis() + EMAIL_CHANGE_LIFETIME)).getCode();
+            code = expiringCodeStore.generateCode(objectMapper.writeValueAsString(emailChange), new Timestamp(System.currentTimeMillis() + EMAIL_CHANGE_LIFETIME)).getCode();
         } catch (IOException e) {
             throw new UaaException("Error while generating change email code", e);
         }
@@ -80,12 +86,21 @@ public class ChangeEmailEndpoints implements ApplicationEventPublisherAware {
 
             scimUserProvisioning.update(userId, user);
 
+            String redirectLocation = null;
+            String clientId = data.get("client_id");
+
+            if (clientId != null && !clientId.equals("")) {
+                ClientDetails clientDetails = clientDetailsService.retrieve(clientId);
+                redirectLocation = (String) clientDetails.getAdditionalInformation().get(CHANGE_EMAIL_REDIRECT_URL);
+            }
+
             publisher.publishEvent(UserModifiedEvent.emailChanged(userId, user.getUserName(), user.getPrimaryEmail()));
 
             EmailChangeResponse emailChangeResponse = new EmailChangeResponse();
             emailChangeResponse.setEmail(email);
             emailChangeResponse.setUserId(userId);
             emailChangeResponse.setUsername(user.getUserName());
+            emailChangeResponse.setRedirectUrl(redirectLocation);
             return new ResponseEntity<>(emailChangeResponse, OK);
         } else {
             return new ResponseEntity<>(BAD_REQUEST);
@@ -101,9 +116,11 @@ public class ChangeEmailEndpoints implements ApplicationEventPublisherAware {
         @JsonProperty("userId")
         private String userId;
 
-
         @JsonProperty("email")
         private String email;
+
+        @JsonProperty("client_id")
+        private String clientId;
 
         public String getUserId() {
             return userId;
@@ -120,6 +137,14 @@ public class ChangeEmailEndpoints implements ApplicationEventPublisherAware {
         public void setEmail(String email) {
             this.email = email;
         }
+
+        public String getClientId() {
+            return clientId;
+        }
+
+        public void setClientId(String clientId) {
+            this.clientId = clientId;
+        }
     }
 
     public static class EmailChangeResponse {
@@ -130,6 +155,8 @@ public class ChangeEmailEndpoints implements ApplicationEventPublisherAware {
         @JsonProperty("userId")
         private String userId;
 
+        @JsonProperty("redirect_url")
+        private String redirectUrl;
 
         @JsonProperty("email")
         private String email;
@@ -156,6 +183,14 @@ public class ChangeEmailEndpoints implements ApplicationEventPublisherAware {
 
         public void setEmail(String email) {
             this.email = email;
+        }
+
+        public String getRedirectUrl() {
+            return redirectUrl;
+        }
+
+        public void setRedirectUrl(String redirectUrl) {
+            this.redirectUrl = redirectUrl;
         }
     }
 }
