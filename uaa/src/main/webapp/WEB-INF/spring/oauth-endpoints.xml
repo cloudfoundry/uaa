@@ -79,7 +79,7 @@
 
     <authentication-manager id="clientAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
         <authentication-provider user-service-ref="clientDetailsUserService">
-            <password-encoder ref="bcryptPasswordEncoder" />
+            <password-encoder ref="cachingPasswordEncoder" />
         </authentication-provider>
     </authentication-manager>
 
@@ -95,9 +95,11 @@
         </aop:aspect>
     </aop:config>
 
+
+
     <bean id="clientDetailsUserService" class="org.springframework.security.oauth2.provider.client.ClientDetailsUserDetailsService">
         <constructor-arg ref="jdbcClientDetailsService" />
-        <property name="passwordEncoder" ref="bcryptPasswordEncoder" />
+        <property name="passwordEncoder" ref="cachingPasswordEncoder" />
     </bean>
 
     <bean id="oauthAuthorizeRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">

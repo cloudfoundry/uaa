@@ -151,6 +151,12 @@
 
     <bean id="bcryptPasswordEncoder" class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder" />
 
+    <bean id="cachingPasswordEncoder" class="org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder">
+        <property name="passwordEncoder" ref="bcryptPasswordEncoder"/>
+        <property name="maxKeys" value="1000"/>
+        <property name="maxEncodedPasswords" value="5"/>
+    </bean>
+
     <oauth:web-expression-handler id="oauthWebExpressionHandler" />
 
     <mvc:resources location="/" mapping="/**" />
