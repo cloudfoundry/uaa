@@ -42,6 +42,7 @@ allprojects {
   version = uaaVersion
 
   apply plugin: 'cobertura'
+  apply plugin: 'eclipse-wtp'
   
   repositories {
     mavenCentral()
