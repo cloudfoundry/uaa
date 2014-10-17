@@ -18,6 +18,7 @@ import static org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStat
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -32,9 +33,9 @@ import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
 import org.springframework.security.oauth2.provider.approval.UserApprovalHandler;
 
 public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
@@ -43,7 +44,7 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 
     private static Log logger = LogFactory.getLog(UserManagedAuthzApprovalHandler.class);
 
-    private final String approvalParameter = AuthorizationRequest.USER_OAUTH_APPROVAL;
+    private final String approvalParameter = OAuth2Utils.USER_OAUTH_APPROVAL;
 
     private ApprovalStore approvalStore;
 
@@ -60,11 +61,6 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 
     public void setApprovalStore(ApprovalStore approvalStore) {
         this.approvalStore = approvalStore;
-    }
-
-    @Override
-    public AuthorizationRequest updateBeforeApproval(AuthorizationRequest authorizationRequest,Authentication userAuthentication) {
-        return authorizationRequest;
     }
 
     @Override
@@ -120,7 +116,7 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
             }
 
             if (foundUserApprovalParameter) {
-                ((DefaultAuthorizationRequest) authorizationRequest).setScope(approvedScopes);
+                authorizationRequest.setScope(approvedScopes);
 
                 for (String requestedScope : requestedScopes) {
                     if (approvedScopes.contains(requestedScope)) {
@@ -135,7 +131,7 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 
             }
             else { // Deny all except auto approved scopes
-                ((DefaultAuthorizationRequest) authorizationRequest).setScope(autoApprovedScopes);
+                authorizationRequest.setScope(autoApprovedScopes);
 
                 for (String requestedScope : requestedScopes) {
                     if (!autoApprovedScopes.contains(requestedScope)) {
@@ -178,7 +174,7 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
             if (validUserApprovedScopes.containsAll(requestedScopes) && userAuthentication.isAuthenticated()) {
                 approvedScopes = retainAutoApprovedScopes(requestedScopes, approvedScopes);
                 // Set only the scopes that have been approved by the user
-                ((DefaultAuthorizationRequest) authorizationRequest).setScope(approvedScopes);
+                authorizationRequest.setScope(approvedScopes);
                 return true;
             }
         }
@@ -217,4 +213,20 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
         this.approvalExpiryInMillis = approvalExpirySeconds * 1000;
     }
 
+    @Override
+    public AuthorizationRequest checkForPreApproval(AuthorizationRequest authorizationRequest, Authentication userAuthentication) {
+        return authorizationRequest;
+    }
+
+    @Override
+    public AuthorizationRequest updateAfterApproval(AuthorizationRequest authorizationRequest, Authentication userAuthentication) {
+        return authorizationRequest;
+    }
+
+    @Override
+    public Map<String, Object> getUserApprovalRequest(AuthorizationRequest authorizationRequest, Authentication userAuthentication) {
+        Map<String, Object> model = new HashMap<String, Object>();
+        model.putAll(authorizationRequest.getRequestParameters());
+        return model;
+    }
 }

@@ -15,7 +15,7 @@
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
     xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
 
-    <bean id="jdbcClientDetailsService" class="org.springframework.security.oauth2.provider.JdbcClientDetailsService">
+    <bean id="jdbcClientDetailsService" class="org.springframework.security.oauth2.provider.client.JdbcClientDetailsService">
         <constructor-arg ref="dataSource" />
         <property name="passwordEncoder" ref="bcryptPasswordEncoder" />
     </bean>
@@ -26,7 +26,7 @@
         <constructor-arg name="pagingListFactory" ref="jdbcPagingListFactory" />
     </bean>
 
-    <bean id="clientRegistrationService" class="org.springframework.security.oauth2.provider.JdbcClientDetailsService">
+    <bean id="clientRegistrationService" class="org.springframework.security.oauth2.provider.client.JdbcClientDetailsService">
         <constructor-arg ref="dataSource" />
         <property name="passwordEncoder" ref="bcryptPasswordEncoder" />
     </bean>
@@ -86,6 +86,7 @@
                                 </list>
                             </entry>
                             <entry key="signup_redirect_url" value="http://localhost:8080/app/" />
+                            <entry key="change_email_redirect_url" value="http://localhost:8080/app/" />
                         </map>
                     </entry>
                     <entry key="login">
@@ -94,7 +95,7 @@
                             <entry key="secret" value="loginsecret" />
                             <entry key="scope" value="openid,oauth.approvals" />
                             <entry key="authorized-grant-types" value="client_credentials,authorization_code" />
-                            <entry key="authorities" value="oauth.login" />
+                            <entry key="authorities" value="oauth.login,notifications.write,critical_notifications.write,emails.write" />
                             <entry key="autoapprove" value="true" />
                         </map>
                     </entry>
@@ -105,6 +106,14 @@
                             <entry key="scope" value="dashboard.user,openid" />
                             <entry key="authorized-grant-types" value="authorization_code" />
                             <entry key="authorities" value="uaa.resource" />
+                        </map>
+                    </entry>
+                    <entry key="notifications">
+                        <map>
+                            <entry key="id" value="notifications" />
+                            <entry key="secret" value="notificationssecret" />
+                            <entry key="authorized-grant-types" value="client_credentials" />
+                            <entry key="authorities" value="cloud_controller.admin,scim.read" />
                         </map>
                     </entry>
                 </map>

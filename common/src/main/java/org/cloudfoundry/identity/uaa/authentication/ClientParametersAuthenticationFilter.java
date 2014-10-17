@@ -26,8 +26,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
-import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
+import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.util.Assert;
@@ -142,16 +143,12 @@ public class ClientParametersAuthenticationFilter implements Filter {
                 throw new BadCredentialsException("Client Authentication failed.");
             }
             loginInfo.remove(CLIENT_SECRET);
-            DefaultAuthorizationRequest authorizationRequest =
-                new DefaultAuthorizationRequest(
-                    getSingleValueMap(req),
-                    null,
-                    clientId,
-                    getScope(req));
+            AuthorizationRequest authorizationRequest = new AuthorizationRequest(clientId, getScope(req));
+            authorizationRequest.setRequestParameters(getSingleValueMap(req));
+            authorizationRequest.setApproved(true);
             //must set this to true in order for
             //Authentication.isAuthenticated to return true
-            authorizationRequest.setApproved(true);
-            OAuth2Authentication result = new OAuth2Authentication(authorizationRequest,null);
+            OAuth2Authentication result = new OAuth2Authentication(authorizationRequest.createOAuth2Request(),null);
             result.setAuthenticated(true);
             return result;
         } catch (AuthenticationException e) {

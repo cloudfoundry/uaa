@@ -17,7 +17,7 @@
        xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
        xmlns:mvc="http://www.springframework.org/schema/mvc"
        xmlns:context="http://www.springframework.org/schema/context"
-       xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-1.0.xsd
+       xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-2.0.xsd
 		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.2.xsd
 		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
 		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
@@ -28,6 +28,8 @@
         </constructor-arg>
         <property name="yaml" value="${environmentYamlKey}" />
     </bean>
+
+    <bean id="backwardsCompatibleScopeParameter" class="org.cloudfoundry.identity.uaa.oauth.BackwardsCompatibleScopeParsingFilter"/>
 
     <import resource="classpath:spring/data-source.xml" />
     <import resource="classpath:spring/env.xml" />
@@ -47,7 +49,18 @@
                 <value>uiSecurity</value>
             </list>
         </property>
+        <property name="errorMap">
+            <map>
+              <entry key="org.springframework.dao.NonTransientDataAccessException">
+                  <bean class="org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor$ReasonPhrase">
+                      <constructor-arg index="0" value="503"/>
+                      <constructor-arg index="1" value="Database unavailable. Retry later."/>
+                  </bean>
+              </entry>
+            </map>
+        </property>
     </bean>
+
 
     <import resource="spring/oauth-clients.xml" />
     <!-- The order of these imports is important because of Spring Security filter chain rules -->

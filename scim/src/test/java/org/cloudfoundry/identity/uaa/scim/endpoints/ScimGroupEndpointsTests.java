@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,10 +39,12 @@ import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimExternalGroupBootstrap;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
@@ -96,6 +99,10 @@ public class ScimGroupEndpointsTests {
 
     private volatile JdbcScimGroupMembershipManager mm;
 
+    private volatile JdbcScimGroupExternalMembershipManager em;
+
+    private volatile ScimExternalGroupBootstrap externalGroupBootstrap;
+
     private volatile ScimGroupEndpoints endpoints;
 
     private volatile ScimUserEndpoints userEndpoints;
@@ -134,7 +141,12 @@ public class ScimGroupEndpointsTests {
         mm.setScimUserProvisioning(udao);
         mm.setDefaultUserGroups(Collections.singleton("uaa.user"));
 
+        em = new JdbcScimGroupExternalMembershipManager(template, pagingListFactory);
+        em.setScimGroupProvisioning(dao);
+
         endpoints = new ScimGroupEndpoints(dao, mm);
+        endpoints.setExternalMembershipManager(em);
+
         userEndpoints = new ScimUserEndpoints();
         userEndpoints.setScimUserProvisioning(udao);
         userEndpoints.setScimGroupMembershipManager(mm);
@@ -151,11 +163,22 @@ public class ScimGroupEndpointsTests {
                         Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER),
                                         createMember(ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_ADMIN)))
                         );
+
+        externalGroupBootstrap = new ScimExternalGroupBootstrap(dao, em);
+        externalGroupBootstrap.setAddNonExistingGroups(true);
+        Set<String> externalGroups = new LinkedHashSet<>();
+        externalGroups.add("organizations.acme|cn=test_org,ou=people,o=springsource,o=org");
+        externalGroups.add("internal.read|cn=developers,ou=scopes,dc=test,dc=com");
+        externalGroups.add("internal.write|cn=operators,ou=scopes,dc=test,dc=com");
+        externalGroups.add("internal.everything|cn=superusers,ou=scopes,dc=test,dc=com");
+        externalGroups.add("internal.superuser|cn=superusers,ou=scopes,dc=test,dc=com");
+        externalGroupBootstrap.setExternalGroupMap(externalGroups);
+        externalGroupBootstrap.afterPropertiesSet();
     }
 
     @After
     public void cleanDB() throws Exception {
-        TestUtils.deleteFrom(database, "users", "groups", "group_membership");
+        TestUtils.deleteFrom(database, "users", "groups", "group_membership", "external_group_mapping");
     }
 
     @AfterClass
@@ -228,13 +251,27 @@ public class ScimGroupEndpointsTests {
 
     @Test
     public void testListGroups() throws Exception {
-        validateSearchResults(endpoints.listGroups("id,displayName", "id pr", "created", "ascending", 1, 100), 6);
+        validateSearchResults(endpoints.listGroups("id,displayName", "id pr", "created", "ascending", 1, 100), 11);
+    }
+
+    @Test
+    public void testListExternalGroups() throws Exception {
+        validateSearchResults(endpoints.getExternalGroups(1, 100,""), 5);
+    }
+
+    @Test
+    public void testListExternalGroupsInvalidFilter() throws Exception {
+        try {
+            endpoints.getExternalGroups(1, 100, "dasda dasdas dasdas");
+        }catch (ScimException x) {
+            assertTrue(x.getMessage().startsWith("Invalid filter"));
+        }
     }
 
     @Test
     public void testFindPageOfIds() {
         SearchResults<?> results = endpoints.listGroups("id", "id pr", null, "ascending", 1, 1);
-        assertEquals(6, results.getTotalResults());
+        assertEquals(11, results.getTotalResults());
         assertEquals(1, results.getResources().size());
     }
 
@@ -244,8 +281,8 @@ public class ScimGroupEndpointsTests {
         dao.setPageSize(1);
         try {
             SearchResults<?> results = endpoints.listGroups("id", "id pr", null, "ascending", 1, 100);
-            assertEquals(6, results.getTotalResults());
-            assertEquals(6, results.getResources().size());
+            assertEquals(11, results.getTotalResults());
+            assertEquals(11, results.getResources().size());
         } finally {
             dao.setPageSize(pageSize);
         }
@@ -395,6 +432,79 @@ public class ScimGroupEndpointsTests {
         validateGroup(g1, "superadmin", 1);
         assertEquals(ScimGroupMember.GROUP_MEMBER, g1.getMembers().get(0).getRoles());
         validateUserGroups(g.getMembers().get(0).getMemberId(), "superadmin");
+    }
+
+    @Test
+    public void testUpdateGroupQuotedEtag() throws Exception {
+        ScimGroup g = new ScimGroup("", "clients.read");
+        g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
+        g = endpoints.createGroup(g, new MockHttpServletResponse());
+        validateUserGroups(g.getMembers().get(0).getMemberId(), "clients.read");
+
+        g.setDisplayName("superadmin");
+        g.getMembers().get(0).setRoles(ScimGroupMember.GROUP_MEMBER);
+        MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
+        ScimGroup g1 = endpoints.updateGroup(g, g.getId(), "\"*\"", httpServletResponse);
+        assertEquals("\"1\"", httpServletResponse.getHeader("ETag"));
+
+        validateGroup(g1, "superadmin", 1);
+        assertEquals(ScimGroupMember.GROUP_MEMBER, g1.getMembers().get(0).getRoles());
+        validateUserGroups(g.getMembers().get(0).getMemberId(), "superadmin");
+    }
+
+    @Test
+    public void testUpdateGroupRemoveMembers() throws Exception {
+        ScimGroup g = new ScimGroup("", "clients.read");
+        g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
+        g = endpoints.createGroup(g, new MockHttpServletResponse());
+        validateUserGroups(g.getMembers().get(0).getMemberId(), "clients.read");
+
+        g.setDisplayName("superadmin");
+        g.setMembers(new ArrayList<ScimGroupMember>());
+        MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
+        ScimGroup g1 = endpoints.updateGroup(g, g.getId(), "*", httpServletResponse);
+        assertEquals("\"1\"", httpServletResponse.getHeader("ETag"));
+
+        validateGroup(g1, "superadmin", 0);
+    }
+
+    @Test(expected = ScimException.class)
+    public void testUpdateGroupNullEtag() throws Exception {
+        ScimGroup g = new ScimGroup("", "clients.read");
+        g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
+        g = endpoints.createGroup(g, new MockHttpServletResponse());
+        validateUserGroups(g.getMembers().get(0).getMemberId(), "clients.read");
+
+        g.setDisplayName("superadmin");
+        g.getMembers().get(0).setRoles(ScimGroupMember.GROUP_MEMBER);
+        MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
+        endpoints.updateGroup(g, g.getId(), null, httpServletResponse);
+    }
+
+    @Test(expected = ScimException.class)
+    public void testUpdateGroupNoEtag() throws Exception {
+        ScimGroup g = new ScimGroup("", "clients.read");
+        g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
+        g = endpoints.createGroup(g, new MockHttpServletResponse());
+        validateUserGroups(g.getMembers().get(0).getMemberId(), "clients.read");
+
+        g.setDisplayName("superadmin");
+        g.getMembers().get(0).setRoles(ScimGroupMember.GROUP_MEMBER);
+        MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
+        endpoints.updateGroup(g, g.getId(), "", httpServletResponse);
+    }
+
+    @Test(expected = ScimException.class)
+    public void testUpdateGroupInvalidEtag() throws Exception {
+        ScimGroup g = new ScimGroup("", "clients.read");
+        g.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
+        g = endpoints.createGroup(g, new MockHttpServletResponse());
+        validateUserGroups(g.getMembers().get(0).getMemberId(), "clients.read");
+
+        g.setDisplayName("superadmin");
+        g.getMembers().get(0).setRoles(ScimGroupMember.GROUP_MEMBER);
+        MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
+        endpoints.updateGroup(g, g.getId(), "abc", httpServletResponse);
     }
 
     @Test

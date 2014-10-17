@@ -19,6 +19,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.oauth2.provider.endpoint.TokenEndpointAuthenticationFilter;
 
 import javax.servlet.http.HttpServletRequest;
@@ -33,8 +34,8 @@ public class LoginServerTokenEndpointFilter extends TokenEndpointAuthenticationF
     /**
      * @param authenticationManager an AuthenticationManager for the incoming request
      */
-    public LoginServerTokenEndpointFilter(AuthenticationManager authenticationManager) {
-        super(authenticationManager);
+    public LoginServerTokenEndpointFilter(AuthenticationManager authenticationManager, OAuth2RequestFactory oAuth2RequestFactory) {
+        super(authenticationManager, oAuth2RequestFactory);
     }
 
     @Override

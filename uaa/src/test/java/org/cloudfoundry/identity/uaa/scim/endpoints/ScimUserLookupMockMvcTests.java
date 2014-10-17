@@ -24,6 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import com.googlecode.flyway.core.Flyway;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -259,7 +260,7 @@ public class ScimUserLookupMockMvcTests {
         List<Map<String, Object>> resources = (List<Map<String, Object>>) map.get("resources");
         assertEquals(usernames.length, resources.size());
         for (Map<String, Object> user : resources) {
-            assertTrue("Response should contain 'origin' object", user.get("origin")!=null);
+            assertTrue("Response should contain 'origin' object", user.get(Origin.ORIGIN)!=null);
             assertTrue("Response should contain 'id' object", user.get("id")!=null);
             assertTrue("Response should contain 'userName' object", user.get("userName")!=null);
             String userName = (String)user.get("userName");

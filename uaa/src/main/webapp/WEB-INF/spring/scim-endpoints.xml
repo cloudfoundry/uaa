@@ -235,7 +235,7 @@
         <intercept-url pattern="/Users/**" access="scope=scim.read,user=self" method="GET" />
         <intercept-url pattern="/Users/*" access="scope=scim.write" method="DELETE" />
         <intercept-url pattern="/Users/*" access="scope=scim.write,user=self" method="PUT" />
-        <intercept-url pattern="/Users" access="scope=scim.write" method="POST" />
+        <intercept-url pattern="/Users" access="scope=scim.write,scope=scim.create" method="POST" />
         <intercept-url pattern="/**" access="ROLE_NONEXISTENT" />
         <custom-filter ref="scimResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />

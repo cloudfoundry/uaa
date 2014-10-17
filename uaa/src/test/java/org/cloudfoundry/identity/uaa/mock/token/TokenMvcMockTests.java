@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.mock.token;
 
 import com.googlecode.flyway.core.Flyway;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -32,9 +33,9 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.BaseClientDetails;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
-import org.springframework.security.oauth2.provider.JdbcClientDetailsService;
+import org.springframework.security.oauth2.provider.client.JdbcClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.web.servlet.MockMvc;
@@ -226,9 +227,9 @@ public class TokenMvcMockTests {
     public String validatePasswordGrantToken(String clientId, String username, String requestedScopes, String... expectedScopes) throws Exception {
         String t1 = testClient.getUserOAuthAccessToken(clientId, SECRET, username, SECRET, requestedScopes);
         OAuth2Authentication a1 = tokenServices.loadAuthentication(t1);
-        assertEquals(expectedScopes.length, a1.getAuthorizationRequest().getScope().size());
+        assertEquals(expectedScopes.length, a1.getOAuth2Request().getScope().size());
         assertThat(
-            a1.getAuthorizationRequest().getScope(),
+            a1.getOAuth2Request().getScope(),
             containsInAnyOrder(expectedScopes)
         );
         return t1;
@@ -262,7 +263,7 @@ public class TokenMvcMockTests {
             .param("client_secret", SECRET)
             .param("username", developer.getUserName())
             .param("user_id", developer.getId())
-            .param("origin", developer.getOrigin()))
+            .param(Origin.ORIGIN, developer.getOrigin()))
             .andExpect(status().isOk());
 
         //success - user_id only, contains everything we need
@@ -287,7 +288,7 @@ public class TokenMvcMockTests {
             .param("client_id", clientId)
             .param("client_secret", SECRET)
             .param("username", developer.getUserName())
-            .param("origin", developer.getOrigin()))
+            .param(Origin.ORIGIN, developer.getOrigin()))
             .andExpect(status().isOk());
 
         //failure - missing client ID
@@ -312,7 +313,7 @@ public class TokenMvcMockTests {
             .param("client_secret", SECRET)
             .param("username", developer.getUserName())
             .param("user_id", developer.getId())
-            .param("origin", developer.getOrigin()))
+            .param(Origin.ORIGIN, developer.getOrigin()))
             .andExpect(status().isUnauthorized());
 
         //failure - invalid client secret
@@ -336,7 +337,7 @@ public class TokenMvcMockTests {
             .param("grant_type", "password")
             .param("username", developer.getUserName())
             .param("user_id", developer.getId())
-            .param("origin", developer.getOrigin()))
+            .param(Origin.ORIGIN, developer.getOrigin()))
             .andExpect(status().isUnauthorized());
 
         //failure - invalid user ID - user_id takes priority over username/origin so it must fail
@@ -350,7 +351,7 @@ public class TokenMvcMockTests {
             .param("client_secret", SECRET)
             .param("username", developer.getUserName())
             .param("user_id", developer.getId() + "1dsda")
-            .param("origin", developer.getOrigin()))
+            .param(Origin.ORIGIN, developer.getOrigin()))
             .andExpect(status().isUnauthorized());
 
         //failure - no user ID and an invalid origin must fail
@@ -363,7 +364,7 @@ public class TokenMvcMockTests {
             .param("client_id", clientId)
             .param("client_secret", SECRET)
             .param("username", developer.getUserName())
-            .param("origin", developer.getOrigin() + "dasda"))
+            .param(Origin.ORIGIN, developer.getOrigin() + "dasda"))
             .andExpect(status().isUnauthorized());
 
         //failure - no user ID, invalid username must fail
@@ -376,7 +377,7 @@ public class TokenMvcMockTests {
             .param("client_id", clientId)
             .param("client_secret", SECRET)
             .param("username", developer.getUserName() + "asdasdas")
-            .param("origin", developer.getOrigin()))
+            .param(Origin.ORIGIN, developer.getOrigin()))
             .andExpect(status().isUnauthorized());
 
 
@@ -390,7 +391,7 @@ public class TokenMvcMockTests {
             .param("client_id", clientId)
             .param("client_secret", SECRET)
             .param("username", developer.getUserName() + "AddNew" + (new RandomValueStringGenerator().generate()))
-            .param("origin", developer.getOrigin()))
+            .param(Origin.ORIGIN, developer.getOrigin()))
             .andExpect(status().isOk());
 
         //failure - pretend to be login server - add new user is false
@@ -403,7 +404,7 @@ public class TokenMvcMockTests {
             .param("client_id", clientId)
             .param("client_secret", SECRET)
             .param("username", developer.getUserName() + "AddNew" + (new RandomValueStringGenerator().generate()))
-            .param("origin", developer.getOrigin()))
+            .param(Origin.ORIGIN, developer.getOrigin()))
             .andExpect(status().isUnauthorized());
 
         //failure - source=login missing, so missing user password should trigger a failure
@@ -416,7 +417,7 @@ public class TokenMvcMockTests {
             .param("client_secret", SECRET)
             .param("username", developer.getUserName())
             .param("user_id", developer.getId())
-            .param("origin", developer.getOrigin()))
+            .param(Origin.ORIGIN, developer.getOrigin()))
             .andExpect(status().isUnauthorized());
 
         //failure - add_new is missing, so missing user password should trigger a failure
@@ -429,7 +430,7 @@ public class TokenMvcMockTests {
             .param("client_secret", SECRET)
             .param("username", developer.getUserName())
             .param("user_id", developer.getId())
-            .param("origin", developer.getOrigin()))
+            .param(Origin.ORIGIN, developer.getOrigin()))
             .andExpect(status().isUnauthorized());
     }
 
@@ -461,7 +462,7 @@ public class TokenMvcMockTests {
             .param("client_secret", SECRET)
             .param("username", developer.getUserName())
             .param("user_id", developer.getId())
-            .param("origin", developer.getOrigin()))
+            .param(Origin.ORIGIN, developer.getOrigin()))
             .andExpect(status().isForbidden());
 
         //failure - success only if token has oauth.login
@@ -486,7 +487,7 @@ public class TokenMvcMockTests {
             .param("client_id", clientId)
             .param("client_secret", SECRET)
             .param("username", developer.getUserName())
-            .param("origin", developer.getOrigin()))
+            .param(Origin.ORIGIN, developer.getOrigin()))
             .andExpect(status().isForbidden());
 
         //failure - missing client ID
@@ -511,7 +512,7 @@ public class TokenMvcMockTests {
             .param("client_secret", SECRET)
             .param("username", developer.getUserName())
             .param("user_id", developer.getId())
-            .param("origin", developer.getOrigin()))
+            .param(Origin.ORIGIN, developer.getOrigin()))
             .andExpect(status().isForbidden());
 
         //failure - invalid client secret
@@ -535,7 +536,7 @@ public class TokenMvcMockTests {
             .param("grant_type", "password")
             .param("username", developer.getUserName())
             .param("user_id", developer.getId())
-            .param("origin", developer.getOrigin()))
+            .param(Origin.ORIGIN, developer.getOrigin()))
             .andExpect(status().isForbidden());
 
         //failure - invalid user ID - user_id takes priority over username/origin so it must fail
@@ -549,7 +550,7 @@ public class TokenMvcMockTests {
             .param("client_secret", SECRET)
             .param("username", developer.getUserName())
             .param("user_id", developer.getId() + "1dsda")
-            .param("origin", developer.getOrigin()))
+            .param(Origin.ORIGIN, developer.getOrigin()))
             .andExpect(status().isForbidden());
 
         //failure - no user ID and an invalid origin must fail
@@ -562,7 +563,7 @@ public class TokenMvcMockTests {
             .param("client_id", clientId)
             .param("client_secret", SECRET)
             .param("username", developer.getUserName())
-            .param("origin", developer.getOrigin() + "dasda"))
+            .param(Origin.ORIGIN, developer.getOrigin() + "dasda"))
             .andExpect(status().isForbidden());
 
         //failure - no user ID, invalid username must fail
@@ -575,7 +576,7 @@ public class TokenMvcMockTests {
             .param("client_id", clientId)
             .param("client_secret", SECRET)
             .param("username", developer.getUserName() + "asdasdas")
-            .param("origin", developer.getOrigin()))
+            .param(Origin.ORIGIN, developer.getOrigin()))
             .andExpect(status().isForbidden());
 
 
@@ -589,7 +590,7 @@ public class TokenMvcMockTests {
             .param("client_id", clientId)
             .param("client_secret", SECRET)
             .param("username", developer.getUserName() + "AddNew" + (new RandomValueStringGenerator().generate()))
-            .param("origin", developer.getOrigin()))
+            .param(Origin.ORIGIN, developer.getOrigin()))
             .andExpect(status().isForbidden());
 
         //failure - pretend to be login server - add new user is false
@@ -602,7 +603,7 @@ public class TokenMvcMockTests {
             .param("client_id", clientId)
             .param("client_secret", SECRET)
             .param("username", developer.getUserName() + "AddNew" + (new RandomValueStringGenerator().generate()))
-            .param("origin", developer.getOrigin()))
+            .param(Origin.ORIGIN, developer.getOrigin()))
             .andExpect(status().isForbidden());
     }
 

@@ -46,7 +46,8 @@ public enum AuditEventType {
     PasswordResetRequest(22),
     GroupCreatedEvent(23),
     GroupModifiedEvent(24),
-    GroupDeletedEvent(25);
+    GroupDeletedEvent(25),
+    EmailChangedEvent(26);
 
 
     private final int code;
