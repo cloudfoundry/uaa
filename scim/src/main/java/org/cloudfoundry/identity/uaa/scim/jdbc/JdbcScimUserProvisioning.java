@@ -18,7 +18,9 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -168,7 +170,11 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
             });
         } catch (DuplicateKeyException e) {
             ScimUser existingUser = query("userName eq \"" + user.getUserName() + "\" and origin eq \"" + (StringUtils.hasText(user.getOrigin())? user.getOrigin() : Origin.UAA) + "\"").get(0);
-            throw new ScimResourceAlreadyExistsException("{\"message\":\"Username already in use: " + existingUser.getUserName() + "\",\"user_id\":\"" + existingUser.getId() + "\",\"active\":" + existingUser.isActive() + ",\"verified\":" + existingUser.isVerified() + "}");
+            Map<String,Object> userDetails = new HashMap<>();
+            userDetails.put("active", existingUser.isActive());
+            userDetails.put("verified", existingUser.isVerified());
+            userDetails.put("user_id", existingUser.getId());
+            throw new ScimResourceAlreadyExistsException("Username already in use: " + existingUser.getUserName(), userDetails);
         }
         return retrieve(id);
     }

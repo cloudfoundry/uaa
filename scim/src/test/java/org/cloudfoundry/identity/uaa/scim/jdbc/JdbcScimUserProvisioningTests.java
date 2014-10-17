@@ -408,14 +408,18 @@ public class JdbcScimUserProvisioningTests {
         email.setValue("user@example.com");
         scimUser.setEmails(Arrays.asList(email));
         scimUser.setPassword("password");
-        scimUser.setActive(true);
-        scimUser.setVerified(false);
+
         try {
             db.create(scimUser);
             fail("Should have thrown an exception");
         } catch (ScimResourceAlreadyExistsException e) {
+            Map<String,Object> userDetails = new HashMap<>();
+            userDetails.put("active", true);
+            userDetails.put("verified", false);
+            userDetails.put("user_id", "cba09242-aa43-4247-9aa0-b5c75c281f94");
             assertEquals(HttpStatus.CONFLICT, e.getStatus());
-            assertEquals("{\"message\":\"Username already in use: user@example.com\",\"user_id\":\"cba09242-aa43-4247-9aa0-b5c75c281f94\",\"active\":true,\"verified\":false}", e.getMessage());
+            assertEquals("Username already in use: user@example.com", e.getMessage());
+            assertEquals(userDetails, e.getExtraInfo());
         }
     }
 
