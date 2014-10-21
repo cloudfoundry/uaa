@@ -66,7 +66,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * @author Filip Hanik
@@ -121,7 +120,8 @@ public class UaaTokenServicesTests {
             new Date(System.currentTimeMillis() - 15000), 
             new Date(System.currentTimeMillis() - 15000), 
             Origin.UAA, 
-            externalId);
+            externalId,
+            false);
     
     // Need to create a user with a modified time slightly in the past because
     // the token IAT is in seconds and the token

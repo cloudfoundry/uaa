@@ -25,13 +25,13 @@ public class MockUaaUserDatabase implements UaaUserDatabase {
 
     public MockUaaUserDatabase(String id, String name, String email, String givenName, String familyName) {
         user = new UaaUser(id, name, "", email, UaaAuthority.USER_AUTHORITIES, givenName, familyName,
-                        new Date(), new Date(), Origin.UAA, "externalId");
+                        new Date(), new Date(), Origin.UAA, "externalId", false);
     }
 
     public MockUaaUserDatabase(String id, String name, String email, String givenName, String familyName,
                     Date createdAt, Date updatedAt) {
         user = new UaaUser(id, name, "", email, UaaAuthority.USER_AUTHORITIES, givenName, familyName,
-                        createdAt, updatedAt, Origin.UAA, "externalId");
+                        createdAt, updatedAt, Origin.UAA, "externalId", false);
     }
 
     @Override

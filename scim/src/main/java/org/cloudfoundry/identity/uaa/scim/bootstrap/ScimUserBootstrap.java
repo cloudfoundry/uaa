@@ -223,12 +223,14 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
 
     /**
      * Convert UaaUser to SCIM data.
+     * Bootstrapped users are verified by default
      */
     private ScimUser convertToScimUser(UaaUser user) {
         ScimUser scim = new ScimUser(user.getId(), user.getUsername(), user.getGivenName(), user.getFamilyName());
         scim.addEmail(user.getEmail());
         scim.setOrigin(user.getOrigin());
         scim.setExternalId(user.getExternalId());
+        scim.setVerified(true);
         return scim;
     }
 

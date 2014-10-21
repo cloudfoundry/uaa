@@ -107,6 +107,7 @@ public class TokenMvcMockTests {
         email.setValue("test@test.org");
         email.setPrimary(true);
         user.setEmails(Arrays.asList(email));
+        user.setVerified(true);
 
         user = userProvisioning.createUser(user, SECRET);
 

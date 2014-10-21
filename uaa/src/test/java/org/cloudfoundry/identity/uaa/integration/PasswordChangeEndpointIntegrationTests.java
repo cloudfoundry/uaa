@@ -75,6 +75,7 @@ public class PasswordChangeEndpointIntegrationTests {
         user.setName(new ScimUser.Name(firstName, lastName));
         user.addEmail(email);
         user.setPassword("password");
+        user.setVerified(true);
         return client.postForEntity(serverRunning.getUrl(userEndpoint), user, ScimUser.class);
     }
 

@@ -187,7 +187,8 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
             new Date(),
             new Date(),
             origin,
-            details.getUsername());
+            details.getUsername(),
+            false);
     }
 
     @Override

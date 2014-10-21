@@ -76,7 +76,8 @@ public class AuthzAuthenticationManagerTests {
             new Date(),
             new Date(),
             Origin.UAA,
-            null);
+            null,
+            true);
         db = mock(UaaUserDatabase.class);
         publisher = mock(ApplicationEventPublisher.class);
         mgr = new AuthzAuthenticationManager(db, encoder);
