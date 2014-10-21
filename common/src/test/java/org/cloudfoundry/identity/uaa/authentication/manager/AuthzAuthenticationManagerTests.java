@@ -23,13 +23,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
 import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
@@ -166,10 +166,16 @@ public class AuthzAuthenticationManagerTests {
 
     @Test(expected = BadCredentialsException.class)
     public void originAuthenticationFail() throws Exception {
-        when(db.retrieveUserByName("auser","anything")).thenReturn(user);
+        when(db.retrieveUserByName("auser", "not UAA")).thenReturn(user);
         mgr.authenticate(createAuthRequest("auser", "password"));
     }
 
+    @Test(expected = AccountNotVerifiedException.class)
+    public void unverifiedAuthenticationFail() throws Exception {
+        user.setVerified(false);
+        when(db.retrieveUserByName("auser", Origin.UAA)).thenReturn(user);
+        mgr.authenticate(createAuthRequest("auser", "password"));
+    }
 
     AuthzAuthenticationRequest createAuthRequest(String username, String password) {
         Map<String, String> userdata = new HashMap<String, String>();
