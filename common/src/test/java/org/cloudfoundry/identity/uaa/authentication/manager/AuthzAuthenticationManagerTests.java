@@ -35,6 +35,7 @@ import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.authentication.event.UnverifiedUserAuthenticationEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserNotFoundEvent;
@@ -46,6 +47,7 @@ import org.junit.Test;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -170,11 +172,18 @@ public class AuthzAuthenticationManagerTests {
         mgr.authenticate(createAuthRequest("auser", "password"));
     }
 
-    @Test(expected = AccountNotVerifiedException.class)
+    @Test
     public void unverifiedAuthenticationFail() throws Exception {
         user.setVerified(false);
         when(db.retrieveUserByName("auser", Origin.UAA)).thenReturn(user);
-        mgr.authenticate(createAuthRequest("auser", "password"));
+        try {
+            mgr.authenticate(createAuthRequest("auser", "password"));
+
+            fail("Expected AccountNotVerifiedException");
+        } catch (AccountNotVerifiedException e) {
+            // woo hoo
+        }
+        verify(publisher).publishEvent(isA(UnverifiedUserAuthenticationEvent.class));
     }
 
     AuthzAuthenticationRequest createAuthRequest(String username, String password) {
