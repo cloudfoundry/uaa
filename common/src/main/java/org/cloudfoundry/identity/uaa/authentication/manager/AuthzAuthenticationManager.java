@@ -21,10 +21,12 @@ import java.util.UUID;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
 import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.authentication.event.UnverifiedUserAuthenticationEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserNotFoundEvent;
@@ -106,6 +108,12 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
 
         if (passwordMatches) {
             logger.debug("Password successfully matched for userId["+user.getUsername()+"]:"+user.getId());
+
+            if (!user.isVerified()) {
+                publish(new UnverifiedUserAuthenticationEvent(user, req));
+                logger.debug("Account not verified: " + user.getId());
+                throw new AccountNotVerifiedException("Account not verified");
+            }
 
             Authentication success = new UaaAuthentication(new UaaPrincipal(user),
                             user.getAuthorities(), (UaaAuthenticationDetails) req.getDetails());

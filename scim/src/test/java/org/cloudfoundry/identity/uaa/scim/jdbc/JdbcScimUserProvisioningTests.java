@@ -18,6 +18,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -49,6 +50,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.bcrypt.BCrypt;
@@ -397,6 +399,30 @@ public class JdbcScimUserProvisioningTests {
         assertFalse(user.isVerified());
         removeUser(tmpUserIdString);
     }
+
+    @Test
+    public void testCreateUserWithDuplicateUsername() throws Exception {
+        addUser("cba09242-aa43-4247-9aa0-b5c75c281f94", "user@example.com", "password", "user@example.com", "first", "user", "90438");
+        ScimUser scimUser = new ScimUser("user-id-2", "user@example.com", "User", "Example");
+        ScimUser.Email email = new ScimUser.Email();
+        email.setValue("user@example.com");
+        scimUser.setEmails(Arrays.asList(email));
+        scimUser.setPassword("password");
+
+        try {
+            db.create(scimUser);
+            fail("Should have thrown an exception");
+        } catch (ScimResourceAlreadyExistsException e) {
+            Map<String,Object> userDetails = new HashMap<>();
+            userDetails.put("active", true);
+            userDetails.put("verified", false);
+            userDetails.put("user_id", "cba09242-aa43-4247-9aa0-b5c75c281f94");
+            assertEquals(HttpStatus.CONFLICT, e.getStatus());
+            assertEquals("Username already in use: user@example.com", e.getMessage());
+            assertEquals(userDetails, e.getExtraInfo());
+        }
+    }
+
 
     @Test
     public void testUpdatedUserVerified() {

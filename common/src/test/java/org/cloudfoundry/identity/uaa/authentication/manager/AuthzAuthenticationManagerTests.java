@@ -23,18 +23,19 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
 import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.authentication.event.UnverifiedUserAuthenticationEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserNotFoundEvent;
@@ -46,6 +47,7 @@ import org.junit.Test;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -76,7 +78,8 @@ public class AuthzAuthenticationManagerTests {
             new Date(),
             new Date(),
             Origin.UAA,
-            null);
+            null,
+            true);
         db = mock(UaaUserDatabase.class);
         publisher = mock(ApplicationEventPublisher.class);
         mgr = new AuthzAuthenticationManager(db, encoder);
@@ -165,10 +168,23 @@ public class AuthzAuthenticationManagerTests {
 
     @Test(expected = BadCredentialsException.class)
     public void originAuthenticationFail() throws Exception {
-        when(db.retrieveUserByName("auser","anything")).thenReturn(user);
+        when(db.retrieveUserByName("auser", "not UAA")).thenReturn(user);
         mgr.authenticate(createAuthRequest("auser", "password"));
     }
 
+    @Test
+    public void unverifiedAuthenticationFail() throws Exception {
+        user.setVerified(false);
+        when(db.retrieveUserByName("auser", Origin.UAA)).thenReturn(user);
+        try {
+            mgr.authenticate(createAuthRequest("auser", "password"));
+
+            fail("Expected AccountNotVerifiedException");
+        } catch (AccountNotVerifiedException e) {
+            // woo hoo
+        }
+        verify(publisher).publishEvent(isA(UnverifiedUserAuthenticationEvent.class));
+    }
 
     AuthzAuthenticationRequest createAuthRequest(String username, String password) {
         Map<String, String> userdata = new HashMap<String, String>();

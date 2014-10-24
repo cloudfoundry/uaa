@@ -146,6 +146,7 @@ public class ScimGroupEndpointsIntegrationTests {
         user.setUserName(username);
         user.setName(new ScimUser.Name(username, username));
         user.addEmail(username);
+        user.setVerified(true);
 
         ScimUser u = client.postForEntity(serverRunning.getUrl(userEndpoint), user, ScimUser.class).getBody();
         PasswordChangeRequest change = new PasswordChangeRequest();

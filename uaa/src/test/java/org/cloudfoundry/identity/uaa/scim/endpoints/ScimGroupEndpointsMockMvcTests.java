@@ -648,7 +648,9 @@ public class ScimGroupEndpointsMockMvcTests {
         String email = "otheruser@"+generator.generate().toLowerCase()+".com";
         ScimUser user = new ScimUser(null, email, "Other", "User");
         user.addEmail(email);
+        user.setVerified(true);
         user = usersRepository.createUser(user, "password");
+
         Collection<ScimUser.Group> groups = new LinkedList<>();
         for (String scope : scopes) {
             List<ScimGroup> scimGroups = groupRepository.query("displayName eq \""+scope+"\"");

@@ -93,9 +93,12 @@ public class ExceptionReportHttpMessageConverter extends AbstractHttpMessageConv
     protected void writeInternal(ExceptionReport report, HttpOutputMessage outputMessage) throws IOException,
                     HttpMessageNotWritableException {
         Exception e = report.getException();
-        Map<String, String> map = new HashMap<String, String>();
+        Map<String, Object> map = new HashMap<>();
         map.put("error", UaaStringUtils.getErrorName(e));
         map.put("message", e.getMessage());
+        if (report.getExtraInfo() != null) {
+            map.putAll(report.getExtraInfo());
+        }
         if (report.isTrace()) {
             StringWriter trace = new StringWriter();
             e.printStackTrace(new PrintWriter(trace));
