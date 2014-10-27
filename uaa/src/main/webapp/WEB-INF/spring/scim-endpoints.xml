@@ -231,7 +231,7 @@
     <http pattern="/Users/**" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
         entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="userAccessDecisionManager"
         xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/Users/*/verify" access="scope=scim.write" method="GET" />
+        <intercept-url pattern="/Users/*/verify" access="scope=scim.write,scope=scim.create" method="GET" />
         <intercept-url pattern="/Users/**" access="scope=scim.read,user=self" method="GET" />
         <intercept-url pattern="/Users/*" access="scope=scim.write" method="DELETE" />
         <intercept-url pattern="/Users/*" access="scope=scim.write,user=self" method="PUT" />
