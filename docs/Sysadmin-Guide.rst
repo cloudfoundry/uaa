@@ -264,7 +264,7 @@ for example if you ssh into the login server:
 
 uaac and cf can take a --trace option which shows each online interaction.
 
-"uaa target" your uaa if you haven't already.
+"uaac target" your uaa if you haven't already.
 
 "uaac token decode" functions can be used to examine tokens. 
 Make sure attributes like scopes match what you expect. 
