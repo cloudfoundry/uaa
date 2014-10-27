@@ -34,7 +34,7 @@ Here is a summary of the different scopes that are known to the UAA.
   * openid - Required to access the /userinfo endpoint. Intended for OpenID clients.
   * scim.write - Admin write access to all SCIM endpoints, ``/Users``, ``/Groups/``.
   * scim.read - Admin read access to all SCIM endpoints, ``/Users``, ``/Groups/``.
-  * scim.create - Reduced scope to be able to create a user using ``POST /Users`` but not be able to modify, read or delete users.
+  * scim.create - Reduced scope to be able to create a user using ``POST /Users`` (and verify their account using ``GET /Users/{id}/verify``) but not be able to modify, read or delete users.
   * scim.userids - ``/ids/Users`` - Required to convert a username+origin to a user ID and vice versa.
   * groups.update -
   * password.write - ``/User*/*/password`` endpoint. Admin scope to change a user's password.
