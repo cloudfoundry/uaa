@@ -12,8 +12,30 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock.token;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URL;
+import java.net.URLDecoder;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import com.googlecode.flyway.core.Flyway;
+import junit.framework.Assert;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -25,38 +47,39 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.DefaultIntegrationTestConfig;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.mock.web.MockServletContext;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.codec.Base64;
+import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
-import org.springframework.security.oauth2.provider.client.JdbcClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.security.oauth2.provider.client.JdbcClientDetailsService;
 import org.springframework.security.web.FilterChainProxy;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
-
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 public class TokenMvcMockTests {
 
     private static String SECRET = "secret";
     private static String GRANT_TYPES = "password,implicit,client_credentials,authorization_code";
+    private static String TEST_REDIRECT_URI = "http://test.example.org/redirect";
 
     AnnotationConfigWebApplicationContext webApplicationContext;
     ClientRegistrationService clientRegistrationService;
@@ -97,6 +120,10 @@ public class TokenMvcMockTests {
     protected void setUpClients(String id, String authorities, String scopes, String grantTypes) {
         BaseClientDetails c = new BaseClientDetails(id, "", scopes, grantTypes, authorities);
         c.setClientSecret(SECRET);
+        c.setRegisteredRedirectUri(new HashSet<String>(Arrays.asList(TEST_REDIRECT_URI)));
+        Map<String,String> additional = new HashMap<>();
+        additional.put("autoapprove","true");
+        c.setAdditionalInformation(additional);
         clientDetailsService.addClientDetails(c);
     }
 
@@ -141,6 +168,207 @@ public class TokenMvcMockTests {
         Flyway flyway = webApplicationContext.getBean(Flyway.class);
         flyway.clean();
         webApplicationContext.destroy();
+    }
+
+    @Test
+    public void testOpenIdToken() throws Exception {
+        String clientId = "testclient";
+        String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,openid";
+        setUpClients(clientId, scopes, scopes, GRANT_TYPES);
+        String username = "testuser";
+        String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
+        ScimUser developer = setUpUser(username, userScopes);
+
+        String basicDigestHeaderValue = "Basic "
+            + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes()));
+
+
+        //password grant - request for id_token
+        MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
+            .header("Authorization", basicDigestHeaderValue)
+            .param(OAuth2Utils.RESPONSE_TYPE,"token id_token")
+            .param(OAuth2Utils.GRANT_TYPE, "password")
+            .param(OAuth2Utils.CLIENT_ID, clientId)
+            .param("username", username)
+            .param("password", SECRET)
+            .param(OAuth2Utils.SCOPE, "openid");
+        MvcResult result = mockMvc.perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
+        Map token = new ObjectMapper().readValue(result.getResponse().getContentAsByteArray(), Map.class);
+        assertNotNull(token.get("access_token"));
+        assertNotNull(token.get("refresh_token"));
+        assertNotNull(token.get("id_token"));
+        assertEquals(token.get("access_token"), token.get("id_token"));
+
+        //implicit grant - request for id_token using our old-style direct authentication
+        //this returns a redirect with a fragment in the URL/Location header
+        String credentials = String.format("{ \"username\":\"%s\", \"password\":\"%s\" }", username, SECRET);
+        oauthTokenPost = post("/oauth/authorize")
+            .header("Accept", "application/json")
+            .param(OAuth2Utils.RESPONSE_TYPE, "token id_token")
+            .param(OAuth2Utils.GRANT_TYPE, "implicit")
+            .param(OAuth2Utils.CLIENT_ID, clientId)
+            .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
+            .param("credentials", credentials)
+            .param(OAuth2Utils.STATE, new RandomValueStringGenerator().generate())
+            .param(OAuth2Utils.SCOPE, "openid");
+        result = mockMvc.perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
+        URL url = new URL(result.getResponse().getHeader("Location").replace("redirect#","redirect?"));
+        token = splitQuery(url);
+        assertNotNull(((List<String>)token.get("access_token")).get(0));
+        assertNotNull(((List<String>)token.get("id_token")).get(0));
+        assertEquals(((List<String>)token.get("access_token")).get(0), ((List<String>)token.get("id_token")).get(0));
+
+        //authorization_code grant - requesting id_token
+        UaaPrincipal p = new UaaPrincipal(developer.getId(),developer.getUserName(),developer.getPrimaryEmail(), Origin.UAA,"");
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(p, "", UaaAuthority.USER_AUTHORITIES);
+        Assert.assertTrue(auth.isAuthenticated());
+
+        SecurityContextHolder.getContext().setAuthentication(auth);
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute(
+            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+            new MockSecurityContext(auth)
+        );
+
+        String state = new RandomValueStringGenerator().generate();
+        oauthTokenPost = get("/oauth/authorize")
+            .header("Authorization", basicDigestHeaderValue)
+            .session(session)
+            .param(OAuth2Utils.RESPONSE_TYPE, "code")
+            .param(OAuth2Utils.SCOPE, "openid")
+            .param(OAuth2Utils.STATE, state)
+            .param(OAuth2Utils.CLIENT_ID, clientId)
+            .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
+
+        result = mockMvc.perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
+        url = new URL(result.getResponse().getHeader("Location"));
+        token = splitQuery(url);
+        assertNotNull(token.get(OAuth2Utils.STATE));
+        assertEquals(state, ((List<String>) token.get(OAuth2Utils.STATE)).get(0));
+        assertNotNull(token.get("code"));
+        assertNotNull(((List<String>) token.get(OAuth2Utils.STATE)).get(0));
+        String code = ((List<String>) token.get("code")).get(0);
+
+        oauthTokenPost = post("/oauth/token")
+            .header("Authorization", basicDigestHeaderValue)
+            .session(session)
+            .param(OAuth2Utils.GRANT_TYPE, "authorization_code")
+            .param("code", code)
+            .param(OAuth2Utils.RESPONSE_TYPE, "token id_token")
+            .param(OAuth2Utils.SCOPE, "openid")
+            .param(OAuth2Utils.STATE, state)
+            .param(OAuth2Utils.CLIENT_ID, clientId)
+            .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
+        result = mockMvc.perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
+        token = new ObjectMapper().readValue(result.getResponse().getContentAsByteArray(), Map.class);
+        assertNotNull(token.get("access_token"));
+        assertNotNull(token.get("refresh_token"));
+        assertNotNull(token.get("id_token"));
+        assertEquals(token.get("access_token"), token.get("id_token"));
+
+
+        //hybrid flow defined in - response_types=code token id_token
+        //http://openid.net/specs/openid-connect-core-1_0.html#HybridFlowAuth
+        SecurityContextHolder.getContext().setAuthentication(auth);
+        session = new MockHttpSession();
+        session.setAttribute(
+            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+            new MockSecurityContext(auth)
+        );
+
+        state = new RandomValueStringGenerator().generate();
+        oauthTokenPost = get("/oauth/authorize")
+            .header("Authorization", basicDigestHeaderValue)
+            .session(session)
+            .param(OAuth2Utils.RESPONSE_TYPE, "code id_token token")
+            .param(OAuth2Utils.SCOPE, "openid")
+            .param(OAuth2Utils.STATE, state)
+            .param(OAuth2Utils.CLIENT_ID, clientId)
+            .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
+
+        result = mockMvc.perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
+        url = new URL(result.getResponse().getHeader("Location").replace("redirect#","redirect?"));
+        token = splitQuery(url);
+        assertNotNull(token.get(OAuth2Utils.STATE));
+        assertEquals(state, ((List<String>) token.get(OAuth2Utils.STATE)).get(0));
+        assertNotNull(token.get("code"));
+        assertNotNull(((List<String>) token.get(OAuth2Utils.STATE)).get(0));
+        assertNotNull(((List<String>)token.get("access_token")).get(0));
+        assertNotNull(((List<String>)token.get("id_token")).get(0));
+        assertEquals(((List<String>)token.get("access_token")).get(0), ((List<String>)token.get("id_token")).get(0));
+
+        //hybrid flow defined in - response_types=code token
+        //http://openid.net/specs/openid-connect-core-1_0.html#HybridFlowAuth
+        SecurityContextHolder.getContext().setAuthentication(auth);
+        session = new MockHttpSession();
+        session.setAttribute(
+            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+            new MockSecurityContext(auth)
+        );
+
+        state = new RandomValueStringGenerator().generate();
+        oauthTokenPost = get("/oauth/authorize")
+            .header("Authorization", basicDigestHeaderValue)
+            .session(session)
+            .param(OAuth2Utils.RESPONSE_TYPE, "code id_token token")
+            .param(OAuth2Utils.SCOPE, "openid")
+            .param(OAuth2Utils.STATE, state)
+            .param(OAuth2Utils.CLIENT_ID, clientId)
+            .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
+
+        result = mockMvc.perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
+        url = new URL(result.getResponse().getHeader("Location").replace("redirect#","redirect?"));
+        token = splitQuery(url);
+        assertNotNull(token.get(OAuth2Utils.STATE));
+        assertEquals(state, ((List<String>) token.get(OAuth2Utils.STATE)).get(0));
+        assertNotNull(token.get("code"));
+        assertNotNull(((List<String>) token.get(OAuth2Utils.STATE)).get(0));
+        assertNotNull(((List<String>)token.get("access_token")).get(0));
+
+        //hybrid flow defined in - reesponse_types=code id_token
+        //http://openid.net/specs/openid-connect-core-1_0.html#HybridFlowAuth
+        SecurityContextHolder.getContext().setAuthentication(auth);
+        session = new MockHttpSession();
+        session.setAttribute(
+            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+            new MockSecurityContext(auth)
+        );
+
+        state = new RandomValueStringGenerator().generate();
+        oauthTokenPost = get("/oauth/authorize")
+            .header("Authorization", basicDigestHeaderValue)
+            .session(session)
+            .param(OAuth2Utils.RESPONSE_TYPE, "code id_token token")
+            .param(OAuth2Utils.SCOPE, "openid")
+            .param(OAuth2Utils.STATE, state)
+            .param(OAuth2Utils.CLIENT_ID, clientId)
+            .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
+
+        result = mockMvc.perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
+        url = new URL(result.getResponse().getHeader("Location").replace("redirect#","redirect?"));
+        token = splitQuery(url);
+        assertNotNull(token.get(OAuth2Utils.STATE));
+        assertEquals(state, ((List<String>) token.get(OAuth2Utils.STATE)).get(0));
+        assertNotNull(token.get("code"));
+        assertNotNull(((List<String>) token.get(OAuth2Utils.STATE)).get(0));
+        assertNotNull(((List<String>)token.get("id_token")).get(0));
+
+
+    }
+
+    public static Map<String, List<String>> splitQuery(URL url) throws UnsupportedEncodingException {
+        Map<String, List<String>> params = new LinkedHashMap<>();
+        String[] kv = url.getQuery().split("&");
+        for (String pair : kv) {
+            int i = pair.indexOf("=");
+            String key = i > 0 ? URLDecoder.decode(pair.substring(0, i), "UTF-8") : pair;
+            if (!params.containsKey(key)) {
+                params.put(key, new LinkedList<String>());
+            }
+            String value = i > 0 && pair.length() > i + 1 ? URLDecoder.decode(pair.substring(i + 1), "UTF-8") : null;
+            params.get(key).add(value);
+        }
+        return params;
     }
 
     @Test
@@ -668,5 +896,26 @@ public class TokenMvcMockTests {
             .param("username", developer.getUserName())
             .param("password", SECRET))
             .andExpect(status().isUnauthorized());
+    }
+
+    public static class MockSecurityContext implements SecurityContext {
+
+        private static final long serialVersionUID = -1386535243513362694L;
+
+        private Authentication authentication;
+
+        public MockSecurityContext(Authentication authentication) {
+            this.authentication = authentication;
+        }
+
+        @Override
+        public Authentication getAuthentication() {
+            return this.authentication;
+        }
+
+        @Override
+        public void setAuthentication(Authentication authentication) {
+            this.authentication = authentication;
+        }
     }
 }

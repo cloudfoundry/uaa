@@ -39,6 +39,15 @@
         <oauth:password authentication-manager-ref="compositeAuthenticationManager" />
     </oauth:authorization-server>
 
+    <bean id="uaaAuthorizationEndpoint" class="org.cloudfoundry.identity.uaa.authorization.UaaAuthorizationEndpoint">
+        <property name="authorizationCodeServices" ref="authorizationCodeServices"/>
+        <property name="OAuth2RequestValidator" ref="oauth2RequestValidator"/>
+        <property name="userApprovalHandler" ref="userManagedApprovalHandler"/>
+        <property name="tokenGranter" ref="oauth2TokenGranter"/> <!--this bean create by oauth:authorization-server -->
+        <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
+        <property name="OAuth2RequestFactory" ref="authorizationRequestManager"/>
+    </bean>
+
     <!--/oauth/token with any match -->
     <http name="tokenEndpointSecurity" create-session="stateless" authentication-manager-ref="clientAuthenticationManager"
         pattern="/oauth/token/**" entry-point-ref="basicAuthenticationEntryPoint" xmlns="http://www.springframework.org/schema/security">
