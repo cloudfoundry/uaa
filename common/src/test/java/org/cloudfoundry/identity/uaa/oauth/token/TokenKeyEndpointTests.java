@@ -39,7 +39,7 @@ public class TokenKeyEndpointTests {
     @Test
     public void sharedSecretIsReturnedFromTokenKeyEndpoint() throws Exception {
         signerProvider.setVerifierKey("someKey");
-        assertEquals("{alg=HMACSHA256, value=someKey}",
+        assertEquals("{alg=HMACSHA256, value=someKey, kty=MAC, use=sig}",
                         tokenEnhancer.getKey(new UsernamePasswordAuthenticationToken("foo", "bar")).toString());
     }
 

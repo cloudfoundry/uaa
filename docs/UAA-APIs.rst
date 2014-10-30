@@ -1263,7 +1263,7 @@ Get the Token Signing Key: ``GET /token_key``
 -----------------------------------------------
 
 An endpoint which returns the JWT token key, used by the UAA to sign JWT access tokens, and to be used by authorized clients to verify that a token came from the UAA.
-
+Key is in JSON Web Key format, for RSA public keys, the values n, modulues, and e, exponent, are available.
 This call is authenticated with client credentials using the HTTP Basic method.
 
 ================  ==========================================
@@ -1274,8 +1274,21 @@ Response body     *example* ::
                     HTTP/1.1 200 OK
                     Content-Type: text/plain
 
-                    {alg:HMACSHA256, value:FYSDKJHfgdUydsFJSHDFKAJHDSF}
+                    {
+                        "alg":"HMACSHA256",
+                        "value":"FYSDKJHfgdUydsFJSHDFKAJHDSF"
+                    }
 
+                    HTTP/1.1 200 OK
+                    Content-Type: text/plain
+                    {
+                        "alg":"SHA256withRSA",
+                        "value":"-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0m59l2u9iDnMbrXHfqkO\nrn2dVQ3vfBJqcDuFUK03d+1PZGbVlNCqnkpIJ8syFppW8ljnWweP7+LiWpRoz0I7\nfYb3d8TjhV86Y997Fl4DBrxgM6KTJOuE/uxnoDhZQ14LgOU2ckXjOzOdTsnGMKQB\nLCl0vpcXBtFLMaSbpv1ozi8h7DJyVZ6EnFQZUWGdgTMhDrmqevfx95U/16c5WBDO\nkqwIn7Glry9n9Suxygbf8g5AzpWcusZgDLIIZ7JTUldBb8qU2a0Dl4mvLZOn4wPo\njfj9Cw2QICsc5+Pwf21fP+hzf+1WSRHbnYv8uanRO0gZ8ekGaghM/2H6gqJbo2nI\nJwIDAQAB\n-----END PUBLIC KEY-----",
+                        "kty":"RSA",
+                        "use":"sig",
+                        "n":"ANJufZdrvYg5zG61x36pDq59nVUN73wSanA7hVCtN3ftT2Rm1ZTQqp5KSCfLMhaaVvJY51sHj+/i4lqUaM9CO32G93fE44VfOmPfexZeAwa8YDOikyTrhP7sZ6A4WUNeC4DlNnJF4zsznU7JxjCkASwpdL6XFwbRSzGkm6b9aM4vIewyclWehJxUGVFhnYEzIQ65qnr38feVP9enOVgQzpKsCJ+xpa8vZ/UrscoG3/IOQM6VnLrGYAyyCGeyU1JXQW/KlNmtA5eJry2Tp+MD6I34/QsNkCArHOfj8H9tXz/oc3/tVkkR252L/Lmp0TtIGfHpBmoITP9h+oKiW6NpyCc=",
+                        "e":"AQAB"
+                    }
 ================  ==========================================
 
 The algorithm ("alg") tells the caller how to use the value (it is the

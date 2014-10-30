@@ -12,7 +12,10 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import java.lang.reflect.Field;
+import java.math.BigInteger;
 import java.security.Principal;
+import java.security.interfaces.RSAPublicKey;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -21,6 +24,9 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.crypto.codec.Base64;
+import org.springframework.security.jwt.crypto.sign.RsaVerifier;
+import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -65,7 +71,42 @@ public class TokenKeyEndpoint implements InitializingBean {
         Map<String, String> result = new LinkedHashMap<String, String>();
         result.put("alg", signerProvider.getSigner().algorithm());
         result.put("value", signerProvider.getVerifierKey());
+        //new values per OpenID and JWK spec
+        result.put("kty", signerProvider.getType());
+        result.put("use", "sig");
+        if (signerProvider.isPublic() && "RSA".equals(signerProvider.getType())) {
+            SignatureVerifier verifier = signerProvider.getVerifier();
+            if (verifier!=null && verifier instanceof RsaVerifier) {
+                RSAPublicKey rsaKey = extractRsaPublicKey((RsaVerifier) verifier) ;
+                if (rsaKey!=null) {
+                    String n = new String(Base64.encode(rsaKey.getModulus().toByteArray()));
+                    String e = new String(Base64.encode(rsaKey.getPublicExponent().toByteArray()));
+                    result.put("n", n);
+                    result.put("e", e);
+                }
+            }
+        }
         return result;
+    }
+
+
+    private RSAPublicKey extractRsaPublicKey(RsaVerifier verifier) {
+        try {
+            Field f = verifier.getClass().getDeclaredField("key");
+            if (f != null) {
+                f.setAccessible(true);
+                if (f.get(verifier) instanceof RSAPublicKey) {
+                    return (RSAPublicKey) f.get(verifier);
+                }
+            }
+        } catch (NoSuchFieldException e) {
+
+        } catch (IllegalAccessException e) {
+
+        } catch (ClassCastException x) {
+
+        }
+        return null;
     }
 
     @Override
