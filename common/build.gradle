@@ -1,6 +1,8 @@
 description = 'CloudFoundry Identity Common Jar'
 
 dependencies {
+  compile group: 'org.bouncycastle', name: 'bcpkix-jdk15on', version:'1.47'
+  compile group: 'org.bouncycastle', name: 'bcprov-jdk15on', version:'1.47'
   compile group: 'org.springframework.security', name: 'spring-security-ldap', version:parent.springSecurityVersion
   compile group: 'org.springframework.ldap', name: 'spring-ldap-core', version:parent.springSecurityLdapVersion
   compile group: 'org.springframework.ldap', name: 'spring-ldap-core-tiger', version:parent.springSecurityLdapVersion
