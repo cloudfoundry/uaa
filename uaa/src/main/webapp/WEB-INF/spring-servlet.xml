@@ -72,6 +72,7 @@
     <import resource="spring/resource-endpoints.xml" />
     <import resource="spring/openid-endpoints.xml" />
     <import resource="spring/password-endpoints.xml" />
+    <import resource="spring/codestore-endpoints.xml" />
 
     <bean id="messageSource" class="org.springframework.context.support.ResourceBundleMessageSource">
         <property name="basename" value="messages" />

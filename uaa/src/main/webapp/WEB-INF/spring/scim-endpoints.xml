@@ -255,6 +255,9 @@
     <oauth:resource-server id="scimResourceAuthenticationFilter" token-services-ref="tokenServices"
         resource-id="scim" entry-point-ref="oauthAuthenticationEntryPoint" />
 
+    <oauth:resource-server id="resourceAgnosticAuthenticationFilter" token-services-ref="tokenServices"
+                           entry-point-ref="oauthAuthenticationEntryPoint" />
+
     <!--TODO What is this resource-server actually guarding? -->
     <oauth:resource-server id="idsResourceAuthenticationFilter" token-services-ref="tokenServices"
         entry-point-ref="oauthAuthenticationEntryPoint" />

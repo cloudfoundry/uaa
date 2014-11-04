@@ -87,6 +87,7 @@
                             </entry>
                             <entry key="signup_redirect_url" value="http://localhost:8080/app/" />
                             <entry key="change_email_redirect_url" value="http://localhost:8080/app/" />
+                            <entry key="invitation_redirect_url" value="http://localhost:8080/app/" />
                         </map>
                     </entry>
                     <entry key="login">
