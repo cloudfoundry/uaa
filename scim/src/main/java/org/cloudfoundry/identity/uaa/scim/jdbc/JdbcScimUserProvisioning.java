@@ -94,7 +94,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
 
     private final RowMapper<ScimUser> mapper = new ScimUserRowMapper();
 
-    private Pattern usernamePattern = Pattern.compile("[a-zA-Z0-9+\\-_.@]+");
+    private Pattern usernamePattern = Pattern.compile("[a-zA-Z0-9+\\-_.@']+");
 
     public JdbcScimUserProvisioning(JdbcTemplate jdbcTemplate, JdbcPagingListFactory pagingListFactory) {
         super(jdbcTemplate, pagingListFactory, new ScimUserRowMapper());

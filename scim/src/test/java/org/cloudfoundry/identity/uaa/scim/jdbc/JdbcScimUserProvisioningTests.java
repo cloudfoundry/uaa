@@ -66,9 +66,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  */
 @ContextConfiguration(locations = { "classpath:spring/env.xml", "classpath:spring/data-source.xml" })
 @RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "", "test,postgresql", "hsqldb", "test,mysql",
-                "test,oracle" })
-@ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class JdbcScimUserProvisioningTests {
 
     @Autowired
@@ -193,6 +190,13 @@ public class JdbcScimUserProvisioningTests {
         assertEquals(user.getUserName(), map.get("userName"));
         assertEquals(user.getUserType(), map.get(UaaAuthority.UAA_USER.getUserType()));
         assertNull(created.getGroups());
+    }
+
+    @Test
+    public void canCreateUserWithSingleQuoteInEmailAndUsername() {
+        ScimUser user = new ScimUser(null, "ro'gallagher@pivotal.com", "Rob", "O'Gallagher");
+        user.addEmail("ro'gallagher@pivotal.com");
+        db.createUser(user, "j7hyqpassX");
     }
 
     @Test(expected = InvalidScimResourceException.class)
@@ -555,7 +559,7 @@ public class JdbcScimUserProvisioningTests {
 
     @Test
     public void canRetrieveUsersWithFilterStartsWith() {
-        assertEquals(1 + existingUserCount, db.query("username sw \"joe\"").size());
+        assertEquals(1, db.query("username sw \"joe\"").size());
     }
 
     @Test

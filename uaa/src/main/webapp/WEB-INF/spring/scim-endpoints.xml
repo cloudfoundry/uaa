@@ -32,7 +32,7 @@
         </property>
         <property name="queryConverter" ref="scimUserQueryConverter" />
         <property name="deactivateOnDelete" value="${scim.delete.deactivate:false}" />
-        <property name="usernamePattern" value="${scim.username_pattern:[a-zA-Z0-9+\-_.@]+}" />
+        <property name="usernamePattern" value="${scim.username_pattern:[a-zA-Z0-9+\-_.@']+}" />
     </bean>
 
     <bean id="scimEventPublisher" class="org.cloudfoundry.identity.uaa.scim.event.ScimEventPublisher"/>
