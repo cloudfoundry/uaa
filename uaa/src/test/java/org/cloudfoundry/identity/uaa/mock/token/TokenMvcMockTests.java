@@ -24,10 +24,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.cloudfoundry.identity.uaa.oauth.Claims.ISS;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -37,6 +39,8 @@ import junit.framework.Assert;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
+import org.cloudfoundry.identity.uaa.oauth.Claims;
+import org.cloudfoundry.identity.uaa.oauth.token.SignerProvider;
 import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
@@ -49,6 +53,7 @@ import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.type.TypeReference;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -61,6 +66,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.codec.Base64;
+import org.springframework.security.jwt.Jwt;
+import org.springframework.security.jwt.JwtHelper;
+import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
@@ -92,6 +100,8 @@ public class TokenMvcMockTests {
     private JdbcScimGroupMembershipManager groupMembershipManager;
     private UaaTokenServices tokenServices;
     private Set<String> defaultAuthorities;
+    private SignerProvider signerProvider;
+    private UaaTokenServices uaaTokenServices;
 
     @Before
     public void setUp() throws Exception {
@@ -115,6 +125,8 @@ public class TokenMvcMockTests {
         groupMembershipManager = (JdbcScimGroupMembershipManager) webApplicationContext.getBean("groupMembershipManager");
         tokenServices = (UaaTokenServices) webApplicationContext.getBean("tokenServices");
         defaultAuthorities = (Set<String>) webApplicationContext.getBean("defaultUserAuthorities");
+        signerProvider = webApplicationContext.getBean(SignerProvider.class);
+        uaaTokenServices = webApplicationContext.getBean(UaaTokenServices.class);
     }
 
     protected void setUpClients(String id, String authorities, String scopes, String grantTypes) {
@@ -198,6 +210,7 @@ public class TokenMvcMockTests {
         assertNotNull(token.get("refresh_token"));
         assertNotNull(token.get("id_token"));
         assertEquals(token.get("access_token"), token.get("id_token"));
+        validateOpenIdConnectToken((String)token.get("id_token"), developer.getId(), clientId);
 
         //implicit grant - request for id_token using our old-style direct authentication
         //this returns a redirect with a fragment in the URL/Location header
@@ -217,6 +230,7 @@ public class TokenMvcMockTests {
         assertNotNull(((List<String>)token.get("access_token")).get(0));
         assertNotNull(((List<String>)token.get("id_token")).get(0));
         assertEquals(((List<String>)token.get("access_token")).get(0), ((List<String>)token.get("id_token")).get(0));
+        validateOpenIdConnectToken(((List<String>)token.get("id_token")).get(0), developer.getId(), clientId);
 
         //authorization_code grant - requesting id_token
         UaaPrincipal p = new UaaPrincipal(developer.getId(),developer.getUserName(),developer.getPrimaryEmail(), Origin.UAA,"");
@@ -265,6 +279,7 @@ public class TokenMvcMockTests {
         assertNotNull(token.get("refresh_token"));
         assertNotNull(token.get("id_token"));
         assertEquals(token.get("access_token"), token.get("id_token"));
+        validateOpenIdConnectToken((String)token.get("id_token"), developer.getId(), clientId);
 
 
         //hybrid flow defined in - response_types=code token id_token
@@ -296,6 +311,7 @@ public class TokenMvcMockTests {
         assertNotNull(((List<String>)token.get("access_token")).get(0));
         assertNotNull(((List<String>)token.get("id_token")).get(0));
         assertEquals(((List<String>)token.get("access_token")).get(0), ((List<String>)token.get("id_token")).get(0));
+        validateOpenIdConnectToken(((List<String>)token.get("id_token")).get(0), developer.getId(), clientId);
 
         //hybrid flow defined in - response_types=code token
         //http://openid.net/specs/openid-connect-core-1_0.html#HybridFlowAuth
@@ -352,8 +368,47 @@ public class TokenMvcMockTests {
         assertNotNull(token.get("code"));
         assertNotNull(((List<String>) token.get(OAuth2Utils.STATE)).get(0));
         assertNotNull(((List<String>)token.get("id_token")).get(0));
+        validateOpenIdConnectToken(((List<String>)token.get("id_token")).get(0), developer.getId(), clientId);
+    }
+
+    private void validateOpenIdConnectToken(String token, String userId, String clientId) {
+        Map<String,Object> result = getClaimsForToken(token);
+        String iss = (String)result.get(Claims.ISS);
+        assertEquals(uaaTokenServices.getTokenEndpoint(), iss);
+        String sub = (String)result.get(Claims.SUB);
+        assertEquals(userId, sub);
+        List<String> aud = (List<String>)result.get(Claims.AUD);
+        assertTrue(aud.contains(clientId));
+        Integer exp = (Integer)result.get(Claims.EXP);
+        assertNotNull(exp);
+        Integer iat = (Integer)result.get(Claims.IAT);
+        assertNotNull(iat);
+        assertTrue(exp>iat);
+
+        //TODO OpenID
+//        Integer auth_time = (Integer)result.get(Claims.AUTH_TIME);
+//        assertNotNull(auth_time);
 
 
+    }
+
+    private Map<String, Object> getClaimsForToken(String token) {
+        Jwt tokenJwt = null;
+        try {
+            tokenJwt = JwtHelper.decodeAndVerify(token, signerProvider.getVerifier());
+        } catch (Throwable t) {
+            throw new InvalidTokenException("Invalid token (could not decode): " + token);
+        }
+
+        Map<String, Object> claims = null;
+        try {
+            claims = new ObjectMapper().readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
+            });
+        } catch (Exception e) {
+            throw new IllegalStateException("Cannot read token claims", e);
+        }
+
+        return claims;
     }
 
     public static Map<String, List<String>> splitQuery(URL url) throws UnsupportedEncodingException {

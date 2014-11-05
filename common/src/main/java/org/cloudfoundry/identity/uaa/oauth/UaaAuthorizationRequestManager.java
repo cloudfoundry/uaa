@@ -292,6 +292,9 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
 
     private Set<String> getResourceIds(ClientDetails clientDetails, Set<String> scopes) {
         Set<String> resourceIds = new LinkedHashSet<String>();
+        //at a minimum - the resourceIds should contain the client this is intended for
+        //http://openid.net/specs/openid-connect-core-1_0.html#IDToken
+        resourceIds.add(clientDetails.getClientId());
         for (String scope : scopes) {
             if (scopeToResource.containsKey(scope)) {
                 resourceIds.add(scopeToResource.get(scope));

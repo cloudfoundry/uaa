@@ -75,6 +75,7 @@ import java.util.UUID;
 
 import static org.cloudfoundry.identity.uaa.oauth.Claims.ADDITIONAL_AZ_ATTR;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.AUD;
+import static org.cloudfoundry.identity.uaa.oauth.Claims.AZP;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.AUTHORITIES;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.CID;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.CLIENT_ID;
@@ -113,6 +114,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private SignerProvider signerProvider = new SignerProvider();
 
     private String issuer = null;
+
+    private String tokenEndpoint = null;
 
     private Set<String> defaultUserAuthorities = new HashSet<String>();
 
@@ -335,6 +338,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         response.put(OAuth2AccessToken.SCOPE, requestedScopes);
         response.put(CLIENT_ID, clientId);
         response.put(CID, clientId);
+        response.put(AZP, clientId); //openId Connect
 
         if (null != grantType) {
             response.put(GRANT_TYPE, grantType);
@@ -352,8 +356,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             response.put(EXP, token.getExpiration().getTime() / 1000);
         }
 
-        if (issuer != null) {
-            String tokenEndpoint = issuer + "/oauth/token";
+        if (tokenEndpoint != null) {
             response.put(ISS, tokenEndpoint);
         }
 
@@ -533,8 +536,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
 
         response.put(CID, clientId);
-        if (issuer != null) {
-            String tokenEndpoint = issuer + "/oauth/token";
+        if (tokenEndpoint != null) {
             response.put(ISS, tokenEndpoint);
         }
 
@@ -761,6 +763,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             throw new IllegalStateException("Cannot read token claims", e);
         }
 
+        if (tokenEndpoint!=null && !tokenEndpoint.equals(claims.get(ISS))) {
+            throw new InvalidTokenException("Invalid issuer for token:"+claims.get(ISS));
+        }
+
         return claims;
     }
 
@@ -775,6 +781,15 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     public void setIssuer(String issuer) {
         this.issuer = issuer;
+        if (issuer==null) {
+            tokenEndpoint = null;
+        } else {
+            tokenEndpoint = issuer + "/oauth/token";
+        }
+    }
+
+    public String getTokenEndpoint() {
+        return tokenEndpoint;
     }
 
     public void setClientDetailsService(ClientDetailsService clientDetailsService) {

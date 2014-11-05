@@ -23,22 +23,24 @@ package org.cloudfoundry.identity.uaa.oauth;
  * 
  */
 public class Claims {
-    public static String USER_ID = "user_id";
-    public static String USER_NAME = "user_name";
-    public static String NAME = "name";
-    public static String GIVEN_NAME = "given_name";
-    public static String FAMILY_NAME = "family_name";
-    public static String EMAIL = "email";
-    public static String CLIENT_ID = "client_id";
-    public static String EXP = "exp";
-    public static String AUTHORITIES = "authorities";
-    public static String SCOPE = "scope";
-    public static String JTI = "jti";
-    public static String AUD = "aud";
-    public static String SUB = "sub";
-    public static String ISS = "iss";
-    public static String IAT = "iat";
-    public static String CID = "cid";
-    public static String GRANT_TYPE = "grant_type";
-    public static String ADDITIONAL_AZ_ATTR = "az_attr";
+    public static final String USER_ID = "user_id";
+    public static final String USER_NAME = "user_name";
+    public static final String NAME = "name";
+    public static final String GIVEN_NAME = "given_name";
+    public static final String FAMILY_NAME = "family_name";
+    public static final String EMAIL = "email";
+    public static final String CLIENT_ID = "client_id";
+    public static final String EXP = "exp";
+    public static final String AUTHORITIES = "authorities";
+    public static final String SCOPE = "scope";
+    public static final String JTI = "jti";
+    public static final String AUD = "aud";
+    public static final String SUB = "sub";
+    public static final String ISS = "iss";
+    public static final String IAT = "iat";
+    public static final String CID = "cid";
+    public static final String GRANT_TYPE = "grant_type";
+    public static final String ADDITIONAL_AZ_ATTR = "az_attr";
+    public static final String AZP = "azp";
+    public static final String AUTH_TIME = "auth_time";
 }
