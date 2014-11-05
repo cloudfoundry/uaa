@@ -42,7 +42,6 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
-import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.junit.After;
 import org.junit.Before;
@@ -55,8 +54,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.test.annotation.IfProfileValue;
-import org.springframework.test.annotation.ProfileValueSourceConfiguration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -132,7 +129,10 @@ public class JdbcScimUserProvisioningTests {
     public void clear() throws Exception {
         template.execute("delete from users where id = '" + JOE_ID + "'");
         template.execute("delete from users where id = '" + MABEL_ID + "'");
-        template.execute("delete from users where userName = 'JO@FOO.COM'");
+        template.execute("delete from users where upper(userName) = 'JO@FOO.COM'");
+        template.execute("delete from users where upper(userName) = 'JONAH@FOO.COM'");
+        template.execute("delete from users where upper(userName) = 'RO''GALLAGHER@EXAMPLE.COM'");
+        template.execute("delete from users where upper(userName) = 'USER@EXAMPLE.COM'");
     }
 
     @Test
@@ -180,10 +180,10 @@ public class JdbcScimUserProvisioningTests {
 
     @Test
     public void canCreateUserWithoutGivenNameAndFamilyName() {
-        ScimUser user = new ScimUser(null, "jo@foo.com", null, null);
+        ScimUser user = new ScimUser(null, "jonah@foo.com", null, null);
         user.addEmail("jo@blah.com");
         ScimUser created = db.createUser(user, "j7hyqpassX");
-        assertEquals("jo@foo.com", created.getUserName());
+        assertEquals("jonah@foo.com", created.getUserName());
         assertNotNull(created.getId());
         assertNotSame(user.getId(), created.getId());
         Map<String, Object> map = template.queryForMap("select * from users where id=?", created.getId());
@@ -194,8 +194,8 @@ public class JdbcScimUserProvisioningTests {
 
     @Test
     public void canCreateUserWithSingleQuoteInEmailAndUsername() {
-        ScimUser user = new ScimUser(null, "ro'gallagher@pivotal.com", "Rob", "O'Gallagher");
-        user.addEmail("ro'gallagher@pivotal.com");
+        ScimUser user = new ScimUser(null, "ro'gallagher@example.com", "Rob", "O'Gallagher");
+        user.addEmail("ro'gallagher@example.com");
         db.createUser(user, "j7hyqpassX");
     }
 
@@ -554,7 +554,7 @@ public class JdbcScimUserProvisioningTests {
 
     @Test
     public void canRetrieveUsersWithFilterContains() {
-        assertEquals(2 + existingUserCount, db.query("username co \"e\"").size());
+        assertEquals(2, db.query("username co \"e\"").size());
     }
 
     @Test
@@ -574,7 +574,7 @@ public class JdbcScimUserProvisioningTests {
 
     @Test
     public void canRetrieveUsersWithGroupsFilter() {
-        assertEquals(2, db.query("groups.display co \"uaa.user\"").size());
+        assertEquals(2 + existingUserCount, db.query("groups.display co \"uaa.user\"").size());
     }
 
     @Test
@@ -609,12 +609,12 @@ public class JdbcScimUserProvisioningTests {
 
     @Test
     public void canRetrieveUsersWithFilterBooleanAnd() {
-        assertEquals(2 + existingUserCount, db.query("username pr and emails.value co \".com\"").size());
+        assertEquals(2, db.query("username pr and emails.value co \".com\"").size());
     }
 
     @Test
     public void canRetrieveUsersWithFilterBooleanOr() {
-        assertEquals(2 + existingUserCount, db.query("username eq \"joe\" or emails.value co \".com\"").size());
+        assertEquals(2, db.query("username eq \"joe\" or emails.value co \".com\"").size());
     }
 
     @Test
