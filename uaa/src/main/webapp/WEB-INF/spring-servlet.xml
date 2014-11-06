@@ -125,6 +125,21 @@
         <property name="realmName" value="UAA/oauth" />
     </bean>
 
+    <bean id="identityZoneProvisioning" class="org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning">
+    </bean>
+
+    <bean id="identityZoneEndpoints"  class="org.cloudfoundry.identity.uaa.zone.IdentityZoneEndpoints">
+        <property name="identityZoneProvisioning" ref="identityZoneProvisioning" />
+    </bean>
+
+    <http pattern="/Identity-Zone" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
+          entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="userAccessDecisionManager"
+          xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/Identity-Zone" method="POST" />
+        <custom-filter ref="resourceAgnosticAuthenticationFilter" position="PRE_AUTH_FILTER" />
+        <access-denied-handler ref="oauthAccessDeniedHandler" />
+    </http>
+
     <bean id="oauthAccessDeniedHandler" class="org.springframework.security.oauth2.provider.error.OAuth2AccessDeniedHandler" />
 
     <import resource="classpath:login-ui.xml"/>
