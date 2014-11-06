@@ -27,8 +27,9 @@ CREATE UNIQUE INDEX key_in_zone ON identity_provider (identity_zone_id,origin_ke
 
 ALTER TABLE users ADD COLUMN identity_provider_id CHAR(36) DEFAULT NULL;
 CREATE UNIQUE INDEX username_in_idp ON users (identity_provider_id,username);
+DROP INDEX users_unique_key IF EXISTS;
 -- we would do this later, when we're ready to remove users.origin
--- ALTER TABLE users drop key users_unique_key; ALTER TABLE users DROP COLUMN origin;
+-- ALTER TABLE users DROP COLUMN origin;
 
 ALTER TABLE group_membership ADD COLUMN identity_provider_id CHAR(36) DEFAULT NULL;
 CREATE INDEX identity_provider_id ON group_membership (identity_provider_id);
