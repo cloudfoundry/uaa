@@ -5,7 +5,7 @@ CREATE TABLE `identity_zone` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `subdomain` (`subdomain`),
   UNIQUE KEY `service_instance_id` (`service_instance_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+);
 
 CREATE TABLE `identity_provider` (
   `id` varchar(36) NOT NULL,
@@ -16,7 +16,7 @@ CREATE TABLE `identity_provider` (
   `config` longtext,
   PRIMARY KEY (`id`),
   UNIQUE KEY `key_in_zone` (`identity_zone_id`,`origin_key`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+);
 
 ALTER TABLE users ADD COLUMN identity_provider_id varchar(36) DEFAULT NULL;
 ALTER TABLE users ADD UNIQUE KEY `username_in_idp` (`identity_provider_id`,`username`);
@@ -30,4 +30,4 @@ CREATE TABLE `client_idp` (
   `client_id` varchar(255) NOT NULL,
   `identity_provider_id` varchar(36) NOT NULL,
   PRIMARY KEY (`client_id`,`identity_provider_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+);
