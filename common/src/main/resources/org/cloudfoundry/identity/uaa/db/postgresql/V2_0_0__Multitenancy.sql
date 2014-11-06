@@ -1,11 +1,11 @@
 CREATE TABLE identity_zone (
   id CHAR(36) NOT NULL PRIMARY KEY,
-  subdomain varchar(255) NOT NULL,
-  service_instance_id varchar(255) DEFAULT NULL,
-  name varchar(255) NOT NULL,
   created TIMESTAMP default current_timestamp,
   lastModified TIMESTAMP default current_timestamp,
-  version BIGINT default 0
+  version BIGINT default 0,
+  subdomain varchar(255) NOT NULL,
+  service_instance_id varchar(255) DEFAULT NULL,
+  name varchar(255) NOT NULL
 );
 
 CREATE UNIQUE INDEX subdomain ON identity_zone (subdomain);
@@ -13,14 +13,14 @@ CREATE UNIQUE INDEX service_instance_id ON identity_zone (service_instance_id);
 
 CREATE TABLE identity_provider (
   id CHAR(36) NOT NULL PRIMARY KEY,
+  created TIMESTAMP default current_timestamp,
+  lastModified TIMESTAMP default current_timestamp,
+  version BIGINT default 0,
   identity_zone_id varchar(36) NOT NULL,
   name varchar(255) NOT NULL,
   origin_key varchar(255) NOT NULL,
   type varchar(255) NOT NULL,
-  config TEXT,
-  created TIMESTAMP default current_timestamp,
-  lastModified TIMESTAMP default current_timestamp,
-  version BIGINT default 0
+  config TEXT
 );
 
 CREATE UNIQUE INDEX key_in_zone ON identity_provider (identity_zone_id,origin_key);

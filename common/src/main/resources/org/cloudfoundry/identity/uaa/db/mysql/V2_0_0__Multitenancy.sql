@@ -1,11 +1,11 @@
 CREATE TABLE `identity_zone` (
   `id` varchar(36) NOT NULL,
-  `subdomain` varchar(255) NOT NULL,
-  `service_instance_id` varchar(255) DEFAULT NULL,
-  `name` varchar(255) NOT NULL,
   `created` TIMESTAMP default current_timestamp not null,
   `lastModified` TIMESTAMP null,
   `version` BIGINT default 0 not null,
+  `subdomain` varchar(255) NOT NULL,
+  `service_instance_id` varchar(255) DEFAULT NULL,
+  `name` varchar(255) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `subdomain` (`subdomain`),
   UNIQUE KEY `service_instance_id` (`service_instance_id`)
@@ -13,14 +13,14 @@ CREATE TABLE `identity_zone` (
 
 CREATE TABLE `identity_provider` (
   `id` varchar(36) NOT NULL,
+  `created` TIMESTAMP default current_timestamp not null,
+  `lastModified` TIMESTAMP null,
+  `version` BIGINT default 0 not null,
   `identity_zone_id` varchar(36) NOT NULL,
   `name` varchar(255) NOT NULL,
   `origin_key` varchar(255) NOT NULL,
   `type` varchar(255) NOT NULL,
   `config` longtext,
-  `created` TIMESTAMP default current_timestamp not null,
-  `lastModified` TIMESTAMP null,
-  `version` BIGINT default 0 not null,
   PRIMARY KEY (`id`),
   UNIQUE KEY `key_in_zone` (`identity_zone_id`,`origin_key`)
 );

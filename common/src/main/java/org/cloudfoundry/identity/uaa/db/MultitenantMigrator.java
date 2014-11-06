@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.db;
 
+import java.sql.Timestamp;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +32,7 @@ public class MultitenantMigrator implements InitializingBean {
     @Transactional
     public void afterPropertiesSet() throws Exception {
         Integer zoneCount;
+        final Timestamp t = new Timestamp(new Date().getTime());
         try {
             zoneCount = jdbcTemplate.queryForObject("select count(id) from identity_zone",Integer.class);
         } catch (Exception e) {
@@ -42,17 +45,17 @@ public class MultitenantMigrator implements InitializingBean {
                 protected void doInTransactionWithoutResult(TransactionStatus status) {
                     String uaaZoneId = UUID.randomUUID().toString();
                     String tempZoneId = UUID.randomUUID().toString();
-                    jdbcTemplate.update("insert into identity_zone VALUES (?,'uaa',null)", uaaZoneId);
-                    jdbcTemplate.update("insert into identity_zone VALUES (?,'temp','temp')", tempZoneId);
+                    jdbcTemplate.update("insert into identity_zone VALUES (?,?,?,0,'uaa',null,'id-zone')", uaaZoneId, t, t);
+                    jdbcTemplate.update("insert into identity_zone VALUES (?,?,?,0,'temp','temp','temp')", tempZoneId, t, t);
                     String uaaIdpId = UUID.randomUUID().toString();
-                    jdbcTemplate.update("insert into identity_provider VALUES (?,?,'uaa_internal','uaa','INTERNAL',null)", uaaIdpId, uaaZoneId);
+                    jdbcTemplate.update("insert into identity_provider VALUES (?,?,?,0,?,'uaa_internal','uaa','INTERNAL',null)", uaaIdpId, t, t, uaaZoneId);
                     Map<String,String> originMap = new HashMap<String, String>();
                     originMap.put("uaa", uaaIdpId);
                     List<String> origins = jdbcTemplate.queryForList("SELECT DISTINCT origin from users where origin <> 'uaa'", String.class);
                     for (String origin : origins) {
                         String identityProviderId = UUID.randomUUID().toString();  
                         originMap.put(origin, identityProviderId);
-                        jdbcTemplate.update("insert into identity_provider VALUES (?,?,?,?,?,null)",identityProviderId,tempZoneId,origin,origin,origin);
+                        jdbcTemplate.update("insert into identity_provider VALUES (?,?,?,0,?,?,?,?,null)",identityProviderId, t, t, tempZoneId,origin,origin,origin);
                     }
                     jdbcTemplate.update("update oauth_client_details set identity_zone_id = ?",uaaZoneId);
                     List<String> clientIds = jdbcTemplate.queryForList("SELECT client_id from oauth_client_details", String.class);
