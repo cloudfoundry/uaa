@@ -63,6 +63,7 @@ public class MultitenantMigrator implements InitializingBean {
                         jdbcTemplate.update("insert into client_idp values (?,?) ",clientId,uaaIdpId);
                     }
                     jdbcTemplate.update("update users set identity_provider_id = (select id from identity_provider where identity_provider.origin_key = users.origin);");
+                    jdbcTemplate.update("update group_membership set identity_provider_id = (select id from identity_provider where identity_provider.origin_key = group_membership.origin);");
                 }
             });
             

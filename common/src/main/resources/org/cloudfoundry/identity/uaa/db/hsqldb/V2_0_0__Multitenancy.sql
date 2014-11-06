@@ -30,6 +30,9 @@ CREATE UNIQUE INDEX username_in_idp ON users (identity_provider_id,username);
 -- we would do this later, when we're ready to remove users.origin
 -- ALTER TABLE users drop key users_unique_key; ALTER TABLE users DROP COLUMN origin;
 
+ALTER TABLE group_membership ADD COLUMN identity_provider_id CHAR(36) DEFAULT NULL;
+CREATE INDEX identity_provider_id ON group_membership (identity_provider_id);
+
 ALTER TABLE oauth_client_details ADD COLUMN identity_zone_id CHAR(36) DEFAULT NULL;
 CREATE INDEX identity_zone_id ON oauth_client_details (identity_zone_id);
 
