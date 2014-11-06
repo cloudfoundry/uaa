@@ -1,0 +1,14 @@
+sec_audit
+schema_version
+oauth_code
+expiring_code_store
+authz_approvals_old
+client_idp
+authz_approvals
+group_membership
+external_group_mapping
+users
+oauth_client_details
+identity_provider
+identity_zone
+groups
