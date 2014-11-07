@@ -3,10 +3,10 @@
    <tables>
       <table name="authz_approvals" numRows="0" remarks="" type="TABLE">
          <column autoUpdated="false" defaultValue="" digits="0" id="0" name="user_id" nullable="false" remarks="" size="36" type="CHAR">
-            <parent column="id" foreignKey="authz_approvals_ibfk_2" implied="false" onDeleteCascade="false" table="users"/>
+            <parent column="id" foreignKey="authz_approvals_ibfk_1" implied="false" onDeleteCascade="false" table="users"/>
          </column>
-         <column autoUpdated="false" digits="0" id="1" name="client_id" nullable="false" remarks="" size="36" type="VARCHAR">
-            <parent column="client_id" foreignKey="authz_approvals_ibfk_1" implied="false" onDeleteCascade="false" table="oauth_client_details"/>
+         <column autoUpdated="false" defaultValue="" digits="0" id="1" name="client_id" nullable="false" remarks="" size="36" type="CHAR">
+            <parent column="client_id" foreignKey="authz_approvals_ibfk_2" implied="false" onDeleteCascade="false" table="oauth_client_details"/>
          </column>
          <column autoUpdated="false" digits="0" id="2" name="scope" nullable="false" remarks="" size="255" type="VARCHAR"/>
          <column autoUpdated="false" defaultValue="CURRENT_TIMESTAMP" digits="0" id="3" name="expiresat" nullable="false" remarks="" size="19" type="TIMESTAMP"/>
@@ -41,10 +41,10 @@
          </index>
       </table>
       <table name="client_idp" numRows="6" remarks="" type="TABLE">
-         <column autoUpdated="false" digits="0" id="0" name="client_id" nullable="false" remarks="" size="36" type="VARCHAR">
+         <column autoUpdated="false" defaultValue="" digits="0" id="0" name="client_id" nullable="false" remarks="" size="36" type="CHAR">
             <parent column="client_id" foreignKey="client_idp_ibfk_1" implied="false" onDeleteCascade="false" table="oauth_client_details"/>
          </column>
-         <column autoUpdated="false" digits="0" id="1" name="identity_provider_id" nullable="false" remarks="" size="36" type="VARCHAR">
+         <column autoUpdated="false" defaultValue="" digits="0" id="1" name="identity_provider_id" nullable="false" remarks="" size="36" type="CHAR">
             <parent column="id" foreignKey="client_idp_ibfk_2" implied="false" onDeleteCascade="false" table="identity_provider"/>
          </column>
          <primaryKey column="client_id" sequenceNumberInPK="1"/>
@@ -67,7 +67,7 @@
          </index>
       </table>
       <table name="external_group_mapping" numRows="5" remarks="" type="TABLE">
-         <column autoUpdated="false" digits="0" id="0" name="group_id" nullable="false" remarks="" size="36" type="VARCHAR">
+         <column autoUpdated="false" defaultValue="" digits="0" id="0" name="group_id" nullable="false" remarks="" size="36" type="CHAR">
             <parent column="id" foreignKey="external_group_mapping_ibfk_1" implied="false" onDeleteCascade="false" table="groups"/>
          </column>
          <column autoUpdated="false" digits="0" id="1" name="external_group" nullable="false" remarks="" size="255" type="VARCHAR"/>
@@ -79,24 +79,30 @@
             <column ascending="true" name="external_group"/>
          </index>
       </table>
-      <table name="group_membership" numRows="3" remarks="" type="TABLE">
-         <column autoUpdated="false" digits="0" id="0" name="group_id" nullable="false" remarks="" size="36" type="VARCHAR">
+      <table name="group_membership" numRows="4" remarks="" type="TABLE">
+         <column autoUpdated="false" defaultValue="" digits="0" id="0" name="group_id" nullable="false" remarks="" size="36" type="CHAR">
             <parent column="id" foreignKey="group_membership_ibfk_1" implied="false" onDeleteCascade="false" table="groups"/>
          </column>
-         <column autoUpdated="false" digits="0" id="1" name="member_id" nullable="false" remarks="" size="36" type="VARCHAR"/>
+         <column autoUpdated="false" defaultValue="" digits="0" id="1" name="member_id" nullable="false" remarks="" size="36" type="CHAR"/>
          <column autoUpdated="false" defaultValue="USER" digits="0" id="2" name="member_type" nullable="false" remarks="" size="8" type="VARCHAR"/>
          <column autoUpdated="false" defaultValue="READ" digits="0" id="3" name="authorities" nullable="false" remarks="" size="255" type="VARCHAR"/>
          <column autoUpdated="false" defaultValue="CURRENT_TIMESTAMP" digits="0" id="4" name="added" nullable="false" remarks="" size="19" type="TIMESTAMP"/>
          <column autoUpdated="false" defaultValue="uaa" digits="0" id="5" name="origin" nullable="false" remarks="" size="36" type="VARCHAR"/>
+         <column autoUpdated="false" digits="0" id="6" name="identity_provider_id" nullable="true" remarks="" size="36" type="CHAR">
+            <parent column="id" foreignKey="group_membership_ibfk_2" implied="false" onDeleteCascade="false" table="identity_provider"/>
+         </column>
          <primaryKey column="group_id" sequenceNumberInPK="1"/>
          <primaryKey column="member_id" sequenceNumberInPK="2"/>
          <index name="PRIMARY" unique="true">
             <column ascending="true" name="group_id"/>
             <column ascending="true" name="member_id"/>
          </index>
+         <index name="identity_provider_id" unique="false">
+            <column ascending="true" name="identity_provider_id"/>
+         </index>
       </table>
       <table name="groups" numRows="27" remarks="" type="TABLE">
-         <column autoUpdated="false" digits="0" id="0" name="id" nullable="false" remarks="" size="36" type="VARCHAR">
+         <column autoUpdated="false" defaultValue="" digits="0" id="0" name="id" nullable="false" remarks="" size="36" type="CHAR">
             <child column="group_id" foreignKey="external_group_mapping_ibfk_1" implied="false" onDeleteCascade="false" table="external_group_mapping"/>
             <child column="group_id" foreignKey="group_membership_ibfk_1" implied="false" onDeleteCascade="false" table="group_membership"/>
          </column>
@@ -113,17 +119,21 @@
          </index>
       </table>
       <table name="identity_provider" numRows="0" remarks="" type="TABLE">
-         <column autoUpdated="false" digits="0" id="0" name="id" nullable="false" remarks="" size="36" type="VARCHAR">
+         <column autoUpdated="false" defaultValue="" digits="0" id="0" name="id" nullable="false" remarks="" size="36" type="CHAR">
             <child column="identity_provider_id" foreignKey="client_idp_ibfk_2" implied="false" onDeleteCascade="false" table="client_idp"/>
+            <child column="identity_provider_id" foreignKey="group_membership_ibfk_2" implied="false" onDeleteCascade="false" table="group_membership"/>
             <child column="identity_provider_id" foreignKey="users_ibfk_1" implied="false" onDeleteCascade="false" table="users"/>
          </column>
-         <column autoUpdated="false" digits="0" id="1" name="identity_zone_id" nullable="false" remarks="" size="36" type="VARCHAR">
+         <column autoUpdated="false" defaultValue="CURRENT_TIMESTAMP" digits="0" id="1" name="created" nullable="false" remarks="" size="19" type="TIMESTAMP"/>
+         <column autoUpdated="false" digits="0" id="2" name="lastModified" nullable="true" remarks="" size="19" type="TIMESTAMP"/>
+         <column autoUpdated="false" defaultValue="0" digits="0" id="3" name="version" nullable="false" remarks="" size="19" type="BIGINT"/>
+         <column autoUpdated="false" digits="0" id="4" name="identity_zone_id" nullable="true" remarks="" size="36" type="CHAR">
             <parent column="id" foreignKey="identity_provider_ibfk_1" implied="false" onDeleteCascade="false" table="identity_zone"/>
          </column>
-         <column autoUpdated="false" digits="0" id="2" name="name" nullable="false" remarks="" size="255" type="VARCHAR"/>
-         <column autoUpdated="false" digits="0" id="3" name="origin_key" nullable="false" remarks="" size="255" type="VARCHAR"/>
-         <column autoUpdated="false" digits="0" id="4" name="type" nullable="false" remarks="" size="255" type="VARCHAR"/>
-         <column autoUpdated="false" digits="0" id="5" name="config" nullable="true" remarks="" size="2147483647" type="LONGTEXT"/>
+         <column autoUpdated="false" digits="0" id="5" name="name" nullable="false" remarks="" size="255" type="VARCHAR"/>
+         <column autoUpdated="false" digits="0" id="6" name="origin_key" nullable="false" remarks="" size="255" type="VARCHAR"/>
+         <column autoUpdated="false" digits="0" id="7" name="type" nullable="false" remarks="" size="255" type="VARCHAR"/>
+         <column autoUpdated="false" digits="0" id="8" name="config" nullable="true" remarks="" size="2147483647" type="LONGTEXT"/>
          <primaryKey column="id" sequenceNumberInPK="1"/>
          <index name="PRIMARY" unique="true">
             <column ascending="true" name="id"/>
@@ -134,12 +144,16 @@
          </index>
       </table>
       <table name="identity_zone" numRows="2" remarks="" type="TABLE">
-         <column autoUpdated="false" digits="0" id="0" name="id" nullable="false" remarks="" size="36" type="VARCHAR">
+         <column autoUpdated="false" defaultValue="" digits="0" id="0" name="id" nullable="false" remarks="" size="36" type="CHAR">
             <child column="identity_zone_id" foreignKey="identity_provider_ibfk_1" implied="false" onDeleteCascade="false" table="identity_provider"/>
             <child column="identity_zone_id" foreignKey="oauth_client_details_ibfk_1" implied="false" onDeleteCascade="false" table="oauth_client_details"/>
          </column>
-         <column autoUpdated="false" digits="0" id="1" name="subdomain" nullable="false" remarks="" size="255" type="VARCHAR"/>
-         <column autoUpdated="false" digits="0" id="2" name="service_instance_id" nullable="true" remarks="" size="255" type="VARCHAR"/>
+         <column autoUpdated="false" defaultValue="CURRENT_TIMESTAMP" digits="0" id="1" name="created" nullable="false" remarks="" size="19" type="TIMESTAMP"/>
+         <column autoUpdated="false" digits="0" id="2" name="lastModified" nullable="true" remarks="" size="19" type="TIMESTAMP"/>
+         <column autoUpdated="false" defaultValue="0" digits="0" id="3" name="version" nullable="false" remarks="" size="19" type="BIGINT"/>
+         <column autoUpdated="false" digits="0" id="4" name="subdomain" nullable="false" remarks="" size="255" type="VARCHAR"/>
+         <column autoUpdated="false" digits="0" id="5" name="service_instance_id" nullable="true" remarks="" size="36" type="CHAR"/>
+         <column autoUpdated="false" digits="0" id="6" name="name" nullable="false" remarks="" size="255" type="VARCHAR"/>
          <primaryKey column="id" sequenceNumberInPK="1"/>
          <index name="PRIMARY" unique="true">
             <column ascending="true" name="id"/>
@@ -152,8 +166,8 @@
          </index>
       </table>
       <table name="oauth_client_details" numRows="6" remarks="" type="TABLE">
-         <column autoUpdated="false" digits="0" id="0" name="client_id" nullable="false" remarks="" size="255" type="VARCHAR">
-            <child column="client_id" foreignKey="authz_approvals_ibfk_1" implied="false" onDeleteCascade="false" table="authz_approvals"/>
+         <column autoUpdated="false" defaultValue="" digits="0" id="0" name="client_id" nullable="false" remarks="" size="36" type="CHAR">
+            <child column="client_id" foreignKey="authz_approvals_ibfk_2" implied="false" onDeleteCascade="false" table="authz_approvals"/>
             <child column="client_id" foreignKey="client_idp_ibfk_1" implied="false" onDeleteCascade="false" table="client_idp"/>
          </column>
          <column autoUpdated="false" digits="0" id="1" name="resource_ids" nullable="true" remarks="" size="1024" type="VARCHAR"/>
@@ -166,7 +180,7 @@
          <column autoUpdated="false" defaultValue="0" digits="0" id="8" name="refresh_token_validity" nullable="true" remarks="" size="10" type="INT"/>
          <column autoUpdated="false" digits="0" id="9" name="additional_information" nullable="true" remarks="" size="4096" type="VARCHAR"/>
          <column autoUpdated="false" digits="0" id="10" name="autoapprove" nullable="true" remarks="" size="1024" type="VARCHAR"/>
-         <column autoUpdated="false" digits="0" id="11" name="identity_zone_id" nullable="true" remarks="" size="36" type="VARCHAR">
+         <column autoUpdated="false" digits="0" id="11" name="identity_zone_id" nullable="true" remarks="" size="36" type="CHAR">
             <parent column="id" foreignKey="oauth_client_details_ibfk_1" implied="false" onDeleteCascade="false" table="identity_zone"/>
          </column>
          <primaryKey column="client_id" sequenceNumberInPK="1"/>
@@ -181,7 +195,7 @@
          <column autoUpdated="false" digits="0" id="0" name="code" nullable="true" remarks="" size="255" type="VARCHAR"/>
          <column autoUpdated="false" digits="0" id="1" name="authentication" nullable="true" remarks="" size="65535" type="BLOB"/>
       </table>
-      <table name="schema_version" numRows="11" remarks="" type="TABLE">
+      <table name="schema_version" numRows="12" remarks="" type="TABLE">
          <column autoUpdated="false" digits="0" id="0" name="version_rank" nullable="false" remarks="" size="10" type="INT"/>
          <column autoUpdated="false" digits="0" id="1" name="installed_rank" nullable="false" remarks="" size="10" type="INT"/>
          <column autoUpdated="false" digits="0" id="2" name="version" nullable="false" remarks="" size="50" type="VARCHAR"/>
@@ -215,8 +229,8 @@
          <column autoUpdated="false" defaultValue="CURRENT_TIMESTAMP" digits="0" id="4" name="created" nullable="false" remarks="" size="19" type="TIMESTAMP"/>
       </table>
       <table name="users" numRows="0" remarks="" type="TABLE">
-         <column autoUpdated="false" digits="0" id="0" name="id" nullable="false" remarks="" size="36" type="CHAR">
-            <child column="user_id" foreignKey="authz_approvals_ibfk_2" implied="false" onDeleteCascade="false" table="authz_approvals"/>
+         <column autoUpdated="false" defaultValue="" digits="0" id="0" name="id" nullable="false" remarks="" size="36" type="CHAR">
+            <child column="user_id" foreignKey="authz_approvals_ibfk_1" implied="false" onDeleteCascade="false" table="authz_approvals"/>
          </column>
          <column autoUpdated="false" defaultValue="CURRENT_TIMESTAMP" digits="0" id="1" name="created" nullable="false" remarks="" size="19" type="TIMESTAMP"/>
          <column autoUpdated="false" digits="0" id="2" name="lastmodified" nullable="true" remarks="" size="19" type="TIMESTAMP"/>
@@ -232,7 +246,7 @@
          <column autoUpdated="false" digits="0" id="12" name="verified" nullable="false" remarks="" size="0" type="BIT"/>
          <column autoUpdated="false" defaultValue="uaa" digits="0" id="13" name="origin" nullable="false" remarks="" size="36" type="VARCHAR"/>
          <column autoUpdated="false" digits="0" id="14" name="external_id" nullable="true" remarks="" size="255" type="VARCHAR"/>
-         <column autoUpdated="false" digits="0" id="15" name="identity_provider_id" nullable="true" remarks="" size="36" type="VARCHAR">
+         <column autoUpdated="false" digits="0" id="15" name="identity_provider_id" nullable="true" remarks="" size="36" type="CHAR">
             <parent column="id" foreignKey="users_ibfk_1" implied="false" onDeleteCascade="false" table="identity_provider"/>
          </column>
          <primaryKey column="id" sequenceNumberInPK="1"/>
@@ -242,10 +256,6 @@
          <index name="username_in_idp" unique="true">
             <column ascending="true" name="identity_provider_id"/>
             <column ascending="true" name="username"/>
-         </index>
-         <index name="users_unique_key" unique="true">
-            <column ascending="true" name="username"/>
-            <column ascending="true" name="origin"/>
          </index>
       </table>
    </tables>

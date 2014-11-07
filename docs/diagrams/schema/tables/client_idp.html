@@ -84,17 +84,17 @@
 </tr>
 </thead>
 <tbody valign='top'>
-<tr class='odd'>
+<tr class='even'>
  <td class='primaryKey' title='Primary Key'>client_id</td>
- <td class='detail'>varchar</td>
+ <td class='detail'>char</td>
  <td class='detail' align='right'>36</td>
  <td class='detail' align='center'></td>
  <td class='detail' align='center'></td>
- <td class='detail'></td>
+ <td class='detail' align='right'></td>
  <td class='detail'></td>
  <td class='detail'>
   <table border='0' width='100%' cellspacing='0' cellpadding='0'>
-   <tr class='relative odd' valign='top'>
+   <tr class='relative even' valign='top'>
     <td class='relatedTable detail' title="client_idp.client_id refs oauth_client_details.client_id via client_idp_ibfk_1"><a href='oauth_client_details.html'>oauth_client_details</a><span class='relatedKey'>.client_id</span>
     </td>
     <td class='constraint detail'>client_idp_ibfk_1<span title='Restrict delete:
@@ -104,17 +104,17 @@
  </td>
  <td class='comment detail'></td>
 </tr>
-<tr class='even'>
+<tr class='odd'>
  <td class='primaryKey' title='Primary Key'>identity_provider_id</td>
- <td class='detail'>varchar</td>
+ <td class='detail'>char</td>
  <td class='detail' align='right'>36</td>
  <td class='detail' align='center'></td>
  <td class='detail' align='center'></td>
- <td class='detail'></td>
+ <td class='detail' align='right'></td>
  <td class='detail'></td>
  <td class='detail'>
   <table border='0' width='100%' cellspacing='0' cellpadding='0'>
-   <tr class='relative even' valign='top'>
+   <tr class='relative odd' valign='top'>
     <td class='relatedTable detail' title="client_idp.identity_provider_id refs identity_provider.id via client_idp_ibfk_2"><a href='identity_provider.html'>identity_provider</a><span class='relatedKey'>.id</span>
     </td>
     <td class='constraint detail'>client_idp_ibfk_2<span title='Restrict delete:
@@ -125,7 +125,7 @@
  <td class='comment detail'></td>
 </tr>
 </table>
-<p title='2 columns'>Table contained 6 rows at Thu Nov 06 12:47 EST 2014<p/>
+<p title='2 columns'>Table contained 6 rows at Fri Nov 07 11:31 EST 2014<p/>
 </td></tr></table>
 <div class='indent'>
 <b>Indexes:</b>
@@ -157,18 +157,19 @@
 <br><form action='get'><b>Close relationships</b><span class='degrees' id='degrees' title='Detail diminishes with increased separation from client_idp'>
 &nbsp;within <label for='oneDegree'><input type='radio' name='degrees' id='oneDegree' checked>one</label>  <label for='twoDegrees'><input type='radio' name='degrees' id='twoDegrees'>two degrees</label> of separation</span><b>:</b></form>
 <map id="oneDegreeRelationshipsDiagram" name="oneDegreeRelationshipsDiagram">
-<area shape="rect" id="node1" href="client_idp.html" title="client_idp" alt="" coords="239,173,486,286">
+<area shape="rect" id="node1" href="client_idp.html" title="client_idp" alt="" coords="239,173,465,286">
 <area shape="rect" id="node2" href="oauth_client_details.html" title="oauth_client_details" alt="" coords="5,5,195,353">
-<area shape="rect" id="node3" href="identity_provider.html" title="identity_provider" alt="" coords="31,370,169,574">
+<area shape="rect" id="node3" href="identity_provider.html" title="identity_provider" alt="" coords="31,370,169,646">
 </map>
   <a name='diagram'><img id='oneDegreeImg' src='../diagrams/client_idp.1degree.png' usemap='#oneDegreeRelationshipsDiagram' class='diagram' border='0' alt='' align='left'></a>
 <map id="twoDegreesRelationshipsDiagram" name="twoDegreesRelationshipsDiagram">
-<area shape="rect" id="node1" href="authz_approvals.html" title="authz_approvals" alt="" coords="697,158,836,242">
+<area shape="rect" id="node1" href="authz_approvals.html" title="authz_approvals" alt="" coords="676,126,815,210">
 <area shape="rect" id="node2" href="oauth_client_details.html" title="oauth_client_details" alt="" coords="172,5,361,353">
-<area shape="rect" id="node3" href="users.html" title="users" alt="" coords="463,289,596,373">
-<area shape="rect" id="node6" href="identity_zone.html" title="identity_zone" alt="" coords="6,331,127,415">
-<area shape="rect" id="node5" href="identity_provider.html" title="identity_provider" alt="" coords="197,370,336,574">
-<area shape="rect" id="node4" href="client_idp.html" title="client_idp" alt="" coords="406,117,653,230">
+<area shape="rect" id="node3" href="users.html" title="users" alt="" coords="452,238,585,322">
+<area shape="rect" id="node7" href="identity_zone.html" title="identity_zone" alt="" coords="6,367,127,451">
+<area shape="rect" id="node5" href="identity_provider.html" title="identity_provider" alt="" coords="197,370,336,646">
+<area shape="rect" id="node4" href="client_idp.html" title="client_idp" alt="" coords="406,91,631,205">
+<area shape="rect" id="node6" href="group_membership.html" title="group_membership" alt="" coords="440,370,597,454">
 </map>
 
   <a name='diagram'><img id='twoDegreesImg' src='../diagrams/client_idp.2degrees.png' usemap='#twoDegreesRelationshipsDiagram' class='diagram' border='0' alt='' align='left'></a>

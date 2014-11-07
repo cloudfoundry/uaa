@@ -4,9 +4,9 @@ identity_provider
 oauth_client_details
 users
 external_group_mapping
-group_membership
 authz_approvals
 client_idp
+group_membership
 authz_approvals_old
 expiring_code_store
 oauth_code

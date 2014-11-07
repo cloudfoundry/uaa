@@ -86,17 +86,17 @@
 <tbody valign='top'>
 <tr class='odd'>
  <td class='primaryKey' title='Primary Key'>client_id</td>
- <td class='detail'>varchar</td>
- <td class='detail' align='right'>255</td>
+ <td class='detail'>char</td>
+ <td class='detail' align='right'>36</td>
  <td class='detail' align='center'></td>
  <td class='detail' align='center'></td>
- <td class='detail'></td>
+ <td class='detail' align='right'></td>
  <td class='detail'>
   <table border='0' width='100%' cellspacing='0' cellpadding='0'>
    <tr class='relative odd' valign='top'>
-    <td class='relatedTable detail' title="authz_approvals.client_id refs oauth_client_details.client_id via authz_approvals_ibfk_1"><a href='authz_approvals.html'>authz_approvals</a><span class='relatedKey'>.client_id</span>
+    <td class='relatedTable detail' title="authz_approvals.client_id refs oauth_client_details.client_id via authz_approvals_ibfk_2"><a href='authz_approvals.html'>authz_approvals</a><span class='relatedKey'>.client_id</span>
     </td>
-    <td class='constraint detail'>authz_approvals_ibfk_1<span title='Restrict delete:
+    <td class='constraint detail'>authz_approvals_ibfk_2<span title='Restrict delete:
  Parent cannot be deleted if children exist'>&nbsp;R</span></td>
    </tr>
    <tr class='relative odd' valign='top'>
@@ -222,7 +222,7 @@
 </tr>
 <tr class='even'>
  <td class='indexedColumn' title='Indexed'>identity_zone_id</td>
- <td class='detail'>varchar</td>
+ <td class='detail'>char</td>
  <td class='detail' align='right'>36</td>
  <td class='detail' align='center' title='nullable'>&nbsp;&radic;&nbsp;</td>
  <td class='detail' align='center'></td>
@@ -241,7 +241,7 @@
  <td class='comment detail'></td>
 </tr>
 </table>
-<p title='12 columns'>Table contained 6 rows at Thu Nov 06 12:47 EST 2014<p/>
+<p title='12 columns'>Table contained 6 rows at Fri Nov 07 11:31 EST 2014<p/>
 </td></tr></table>
 <div class='indent'>
 <b>Indexes:</b>
@@ -275,7 +275,7 @@
 <map id="oneDegreeRelationshipsDiagram" name="oneDegreeRelationshipsDiagram">
 <area shape="rect" id="node1" href="authz_approvals.html" title="authz_approvals" alt="" coords="557,5,696,209">
 <area shape="rect" id="node2" href="oauth_client_details.html" title="oauth_client_details" alt="" coords="209,125,503,478">
-<area shape="rect" id="node4" href="identity_zone.html" title="identity_zone" alt="" coords="5,391,165,523">
+<area shape="rect" id="node4" href="identity_zone.html" title="identity_zone" alt="" coords="5,391,165,619">
 <area shape="rect" id="node3" href="client_idp.html" title="client_idp" alt="" coords="547,226,706,334">
 </map>
   <a name='diagram'><img id='oneDegreeImg' src='../diagrams/oauth_client_details.1degree.png' usemap='#oneDegreeRelationshipsDiagram' class='diagram' border='0' alt='' align='left'></a>
@@ -283,7 +283,7 @@
 <area shape="rect" id="node1" href="authz_approvals.html" title="authz_approvals" alt="" coords="751,90,889,294">
 <area shape="rect" id="node2" href="oauth_client_details.html" title="oauth_client_details" alt="" coords="209,151,503,505">
 <area shape="rect" id="node3" href="users.html" title="users" alt="" coords="560,5,693,89">
-<area shape="rect" id="node6" href="identity_zone.html" title="identity_zone" alt="" coords="5,234,165,366">
+<area shape="rect" id="node6" href="identity_zone.html" title="identity_zone" alt="" coords="5,234,165,462">
 <area shape="rect" id="node5" href="identity_provider.html" title="identity_provider" alt="" coords="287,50,425,134">
 <area shape="rect" id="node4" href="client_idp.html" title="client_idp" alt="" coords="547,106,706,214">
 </map>

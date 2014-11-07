@@ -25,7 +25,7 @@ digraph "twoDegreesRelationshipsDiagram" {
     label=<
     <TABLE BORDER="2" CELLBORDER="1" CELLSPACING="0" BGCOLOR="#ffffff">
       <TR><TD COLSPAN="3" BGCOLOR="#9bab96" ALIGN="CENTER">external_group_mapping</TD></TR>
-      <TR><TD PORT="group_id" COLSPAN="2" BGCOLOR="#bed1b8" ALIGN="LEFT">group_id</TD><TD PORT="group_id.type" ALIGN="LEFT">varchar[36]</TD></TR>
+      <TR><TD PORT="group_id" COLSPAN="2" BGCOLOR="#bed1b8" ALIGN="LEFT">group_id</TD><TD PORT="group_id.type" ALIGN="LEFT">char[36]</TD></TR>
       <TR><TD PORT="external_group" COLSPAN="2" BGCOLOR="#bed1b8" ALIGN="LEFT">external_group</TD><TD PORT="external_group.type" ALIGN="LEFT">varchar[255]</TD></TR>
       <TR><TD PORT="added" COLSPAN="2" ALIGN="LEFT">added</TD><TD PORT="added.type" ALIGN="LEFT">timestamp[19]</TD></TR>
       <TR><TD ALIGN="LEFT" BGCOLOR="#f7f7f7">&lt; 1</TD><TD ALIGN="RIGHT" BGCOLOR="#f7f7f7">5 rows</TD><TD ALIGN="RIGHT" BGCOLOR="#f7f7f7">0 &gt;</TD></TR>
@@ -38,7 +38,7 @@ digraph "twoDegreesRelationshipsDiagram" {
     <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" BGCOLOR="#ffffff">
       <TR><TD COLSPAN="3" BGCOLOR="#9bab96" ALIGN="CENTER">group_membership</TD></TR>
       <TR><TD PORT="elipses" COLSPAN="3" ALIGN="LEFT">...</TD></TR>
-      <TR><TD ALIGN="LEFT" BGCOLOR="#f7f7f7">&lt; 1</TD><TD ALIGN="RIGHT" BGCOLOR="#f7f7f7">3 rows</TD><TD ALIGN="RIGHT" BGCOLOR="#f7f7f7">  </TD></TR>
+      <TR><TD ALIGN="LEFT" BGCOLOR="#f7f7f7">&lt; 2</TD><TD ALIGN="RIGHT" BGCOLOR="#f7f7f7">4 rows</TD><TD ALIGN="RIGHT" BGCOLOR="#f7f7f7">  </TD></TR>
     </TABLE>>
     URL="group_membership.html"
     tooltip="group_membership"

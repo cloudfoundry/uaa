@@ -32,7 +32,7 @@ digraph "schema_version" {
       <TR><TD PORT="installed_on" COLSPAN="3" ALIGN="LEFT">installed_on</TD></TR>
       <TR><TD PORT="execution_time" COLSPAN="3" ALIGN="LEFT">execution_time</TD></TR>
       <TR><TD PORT="success" COLSPAN="3" BGCOLOR="#f4f7da" ALIGN="LEFT">success</TD></TR>
-      <TR><TD ALIGN="LEFT" BGCOLOR="#f7f7f7">  </TD><TD ALIGN="RIGHT" BGCOLOR="#f7f7f7">11 rows</TD><TD ALIGN="RIGHT" BGCOLOR="#f7f7f7">  </TD></TR>
+      <TR><TD ALIGN="LEFT" BGCOLOR="#f7f7f7">  </TD><TD ALIGN="RIGHT" BGCOLOR="#f7f7f7">12 rows</TD><TD ALIGN="RIGHT" BGCOLOR="#f7f7f7">  </TD></TR>
     </TABLE>>
     URL="tables/schema_version.html"
     tooltip="schema_version"

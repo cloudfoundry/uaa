@@ -84,7 +84,7 @@
 </tr>
 </thead>
 <tbody valign='top'>
-<tr class='odd'>
+<tr class='even'>
  <td class='primaryKey' title='Primary Key'>user_id</td>
  <td class='detail'>char</td>
  <td class='detail' align='right'>36</td>
@@ -94,28 +94,8 @@
  <td class='detail'></td>
  <td class='detail'>
   <table border='0' width='100%' cellspacing='0' cellpadding='0'>
-   <tr class='relative odd' valign='top'>
-    <td class='relatedTable detail' title="authz_approvals.user_id refs users.id via authz_approvals_ibfk_2"><a href='users.html'>users</a><span class='relatedKey'>.id</span>
-    </td>
-    <td class='constraint detail'>authz_approvals_ibfk_2<span title='Restrict delete:
- Parent cannot be deleted if children exist'>&nbsp;R</span></td>
-   </tr>
-  </table>
- </td>
- <td class='comment detail'></td>
-</tr>
-<tr class='even'>
- <td class='primaryKey' title='Primary Key'>client_id</td>
- <td class='detail'>varchar</td>
- <td class='detail' align='right'>36</td>
- <td class='detail' align='center'></td>
- <td class='detail' align='center'></td>
- <td class='detail'></td>
- <td class='detail'></td>
- <td class='detail'>
-  <table border='0' width='100%' cellspacing='0' cellpadding='0'>
    <tr class='relative even' valign='top'>
-    <td class='relatedTable detail' title="authz_approvals.client_id refs oauth_client_details.client_id via authz_approvals_ibfk_1"><a href='oauth_client_details.html'>oauth_client_details</a><span class='relatedKey'>.client_id</span>
+    <td class='relatedTable detail' title="authz_approvals.user_id refs users.id via authz_approvals_ibfk_1"><a href='users.html'>users</a><span class='relatedKey'>.id</span>
     </td>
     <td class='constraint detail'>authz_approvals_ibfk_1<span title='Restrict delete:
  Parent cannot be deleted if children exist'>&nbsp;R</span></td>
@@ -125,6 +105,26 @@
  <td class='comment detail'></td>
 </tr>
 <tr class='odd'>
+ <td class='primaryKey' title='Primary Key'>client_id</td>
+ <td class='detail'>char</td>
+ <td class='detail' align='right'>36</td>
+ <td class='detail' align='center'></td>
+ <td class='detail' align='center'></td>
+ <td class='detail' align='right'></td>
+ <td class='detail'></td>
+ <td class='detail'>
+  <table border='0' width='100%' cellspacing='0' cellpadding='0'>
+   <tr class='relative odd' valign='top'>
+    <td class='relatedTable detail' title="authz_approvals.client_id refs oauth_client_details.client_id via authz_approvals_ibfk_2"><a href='oauth_client_details.html'>oauth_client_details</a><span class='relatedKey'>.client_id</span>
+    </td>
+    <td class='constraint detail'>authz_approvals_ibfk_2<span title='Restrict delete:
+ Parent cannot be deleted if children exist'>&nbsp;R</span></td>
+   </tr>
+  </table>
+ </td>
+ <td class='comment detail'></td>
+</tr>
+<tr class='even'>
  <td class='primaryKey' title='Primary Key'>scope</td>
  <td class='detail'>varchar</td>
  <td class='detail' align='right'>255</td>
@@ -135,7 +135,7 @@
  <td class='detail'> </td>
  <td class='comment detail'></td>
 </tr>
-<tr class='even'>
+<tr class='odd'>
  <td class='detail'>expiresat</td>
  <td class='detail'>timestamp</td>
  <td class='detail' align='right'>19</td>
@@ -146,7 +146,7 @@
  <td class='detail'> </td>
  <td class='comment detail'></td>
 </tr>
-<tr class='odd'>
+<tr class='even'>
  <td class='detail'>status</td>
  <td class='detail'>varchar</td>
  <td class='detail' align='right'>50</td>
@@ -157,7 +157,7 @@
  <td class='detail'> </td>
  <td class='comment detail'></td>
 </tr>
-<tr class='even'>
+<tr class='odd'>
  <td class='detail'>lastmodifiedat</td>
  <td class='detail'>timestamp</td>
  <td class='detail' align='right'>19</td>
@@ -169,7 +169,7 @@
  <td class='comment detail'></td>
 </tr>
 </table>
-<p title='6 columns'>Table contained 0 rows at Thu Nov 06 12:47 EST 2014<p/>
+<p title='6 columns'>Table contained 0 rows at Fri Nov 07 11:31 EST 2014<p/>
 </td></tr></table>
 <div class='indent'>
 <b>Indexes:</b>

@@ -32,7 +32,7 @@
 <div class='indent'>
 <table width='100%'>
 <tr><td class='container' valign='bottom'><b>
-9 Foreign Key Constraints:</b>
+10 Foreign Key Constraints:</b>
 </td><td class='container' align='right'>
 <table>
   <tr><td class='container' align='right' valign='top'><a href='http://sourceforge.net' target='_blank'><img src='http://sourceforge.net/sflogo.php?group_id=137197&amp;type=1' alt='SourceForge.net' border='0' height='31' width='88'></a></td></tr>
@@ -56,15 +56,15 @@
 <tbody>
   <tr class='even'>
   <td class='detail'>authz_approvals_ibfk_1</td>
-  <td class='detail'><a href='tables/authz_approvals.html'>authz_approvals</a>.client_id</td>
-  <td class='detail'><a href='tables/oauth_client_details.html'>oauth_client_details</a>.client_id</td>
+  <td class='detail'><a href='tables/authz_approvals.html'>authz_approvals</a>.user_id</td>
+  <td class='detail'><a href='tables/users.html'>users</a>.id</td>
   <td class='detail'><span title='Restrict delete:
  Parent cannot be deleted if children exist'>Restrict delete&nbsp;</span></td>
  </tr>
   <tr class='odd'>
   <td class='detail'>authz_approvals_ibfk_2</td>
-  <td class='detail'><a href='tables/authz_approvals.html'>authz_approvals</a>.user_id</td>
-  <td class='detail'><a href='tables/users.html'>users</a>.id</td>
+  <td class='detail'><a href='tables/authz_approvals.html'>authz_approvals</a>.client_id</td>
+  <td class='detail'><a href='tables/oauth_client_details.html'>oauth_client_details</a>.client_id</td>
   <td class='detail'><span title='Restrict delete:
  Parent cannot be deleted if children exist'>Restrict delete&nbsp;</span></td>
  </tr>
@@ -97,20 +97,27 @@
  Parent cannot be deleted if children exist'>Restrict delete&nbsp;</span></td>
  </tr>
   <tr class='even'>
+  <td class='detail'>group_membership_ibfk_2</td>
+  <td class='detail'><a href='tables/group_membership.html'>group_membership</a>.identity_provider_id</td>
+  <td class='detail'><a href='tables/identity_provider.html'>identity_provider</a>.id</td>
+  <td class='detail'><span title='Restrict delete:
+ Parent cannot be deleted if children exist'>Restrict delete&nbsp;</span></td>
+ </tr>
+  <tr class='odd'>
   <td class='detail'>identity_provider_ibfk_1</td>
   <td class='detail'><a href='tables/identity_provider.html'>identity_provider</a>.identity_zone_id</td>
   <td class='detail'><a href='tables/identity_zone.html'>identity_zone</a>.id</td>
   <td class='detail'><span title='Restrict delete:
  Parent cannot be deleted if children exist'>Restrict delete&nbsp;</span></td>
  </tr>
-  <tr class='odd'>
+  <tr class='even'>
   <td class='detail'>oauth_client_details_ibfk_1</td>
   <td class='detail'><a href='tables/oauth_client_details.html'>oauth_client_details</a>.identity_zone_id</td>
   <td class='detail'><a href='tables/identity_zone.html'>identity_zone</a>.id</td>
   <td class='detail'><span title='Restrict delete:
  Parent cannot be deleted if children exist'>Restrict delete&nbsp;</span></td>
  </tr>
-  <tr class='even'>
+  <tr class='odd'>
   <td class='detail'>users_ibfk_1</td>
   <td class='detail'><a href='tables/users.html'>users</a>.identity_provider_id</td>
   <td class='detail'><a href='tables/identity_provider.html'>identity_provider</a>.id</td>

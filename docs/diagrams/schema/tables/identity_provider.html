@@ -84,22 +84,28 @@
 </tr>
 </thead>
 <tbody valign='top'>
-<tr class='even'>
+<tr class='odd'>
  <td class='primaryKey' title='Primary Key'>id</td>
- <td class='detail'>varchar</td>
+ <td class='detail'>char</td>
  <td class='detail' align='right'>36</td>
  <td class='detail' align='center'></td>
  <td class='detail' align='center'></td>
- <td class='detail'></td>
+ <td class='detail' align='right'></td>
  <td class='detail'>
   <table border='0' width='100%' cellspacing='0' cellpadding='0'>
-   <tr class='relative even' valign='top'>
+   <tr class='relative odd' valign='top'>
     <td class='relatedTable detail' title="client_idp.identity_provider_id refs identity_provider.id via client_idp_ibfk_2"><a href='client_idp.html'>client_idp</a><span class='relatedKey'>.identity_provider_id</span>
     </td>
     <td class='constraint detail'>client_idp_ibfk_2<span title='Restrict delete:
  Parent cannot be deleted if children exist'>&nbsp;R</span></td>
    </tr>
-   <tr class='relative even' valign='top'>
+   <tr class='relative odd' valign='top'>
+    <td class='relatedTable detail' title="group_membership.identity_provider_id refs identity_provider.id via group_membership_ibfk_2"><a href='group_membership.html'>group_membership</a><span class='relatedKey'>.identity_provider_id</span>
+    </td>
+    <td class='constraint detail'>group_membership_ibfk_2<span title='Restrict delete:
+ Parent cannot be deleted if children exist'>&nbsp;R</span></td>
+   </tr>
+   <tr class='relative odd' valign='top'>
     <td class='relatedTable detail' title="users.identity_provider_id refs identity_provider.id via users_ibfk_1"><a href='users.html'>users</a><span class='relatedKey'>.identity_provider_id</span>
     </td>
     <td class='constraint detail'>users_ibfk_1<span title='Restrict delete:
@@ -110,13 +116,46 @@
  <td class='detail'> </td>
  <td class='comment detail'></td>
 </tr>
+<tr class='even'>
+ <td class='detail'>created</td>
+ <td class='detail'>timestamp</td>
+ <td class='detail' align='right'>19</td>
+ <td class='detail' align='center'></td>
+ <td class='detail' align='center'></td>
+ <td class='detail' align='right'>CURRENT_TIMESTAMP</td>
+ <td class='detail'></td>
+ <td class='detail'> </td>
+ <td class='comment detail'></td>
+</tr>
+<tr class='odd'>
+ <td class='detail'>lastModified</td>
+ <td class='detail'>timestamp</td>
+ <td class='detail' align='right'>19</td>
+ <td class='detail' align='center' title='nullable'>&nbsp;&radic;&nbsp;</td>
+ <td class='detail' align='center'></td>
+ <td class='detail' align='right'>null</td>
+ <td class='detail'></td>
+ <td class='detail'> </td>
+ <td class='comment detail'></td>
+</tr>
+<tr class='even'>
+ <td class='detail'>version</td>
+ <td class='detail'>bigint</td>
+ <td class='detail' align='right'>19</td>
+ <td class='detail' align='center'></td>
+ <td class='detail' align='center'></td>
+ <td class='detail' align='right'>0</td>
+ <td class='detail'></td>
+ <td class='detail'> </td>
+ <td class='comment detail'></td>
+</tr>
 <tr class='odd'>
  <td class='indexedColumn' title='Indexed'>identity_zone_id</td>
- <td class='detail'>varchar</td>
+ <td class='detail'>char</td>
  <td class='detail' align='right'>36</td>
+ <td class='detail' align='center' title='nullable'>&nbsp;&radic;&nbsp;</td>
  <td class='detail' align='center'></td>
- <td class='detail' align='center'></td>
- <td class='detail'></td>
+ <td class='detail' align='right'>null</td>
  <td class='detail'></td>
  <td class='detail'>
   <table border='0' width='100%' cellspacing='0' cellpadding='0'>
@@ -175,7 +214,7 @@
  <td class='comment detail'></td>
 </tr>
 </table>
-<p title='6 columns'>Table contained 0 rows at Thu Nov 06 12:47 EST 2014<p/>
+<p title='9 columns'>Table contained 0 rows at Fri Nov 07 11:31 EST 2014<p/>
 </td></tr></table>
 <div class='indent'>
 <b>Indexes:</b>
@@ -208,18 +247,21 @@
 &nbsp;within <label for='oneDegree'><input type='radio' name='degrees' id='oneDegree' checked>one</label>  <label for='twoDegrees'><input type='radio' name='degrees' id='twoDegrees'>two degrees</label> of separation</span><b>:</b></form>
 <map id="oneDegreeRelationshipsDiagram" name="oneDegreeRelationshipsDiagram">
 <area shape="rect" id="node1" href="client_idp.html" title="client_idp" alt="" coords="547,5,706,113">
-<area shape="rect" id="node2" href="identity_provider.html" title="identity_provider" alt="" coords="210,257,502,466">
-<area shape="rect" id="node3" href="identity_zone.html" title="identity_zone" alt="" coords="5,283,165,415">
-<area shape="rect" id="node4" href="users.html" title="users" alt="" coords="547,130,706,574">
+<area shape="rect" id="node2" href="identity_provider.html" title="identity_provider" alt="" coords="210,271,502,553">
+<area shape="rect" id="node4" href="identity_zone.html" title="identity_zone" alt="" coords="5,370,165,598">
+<area shape="rect" id="node3" href="group_membership.html" title="group_membership" alt="" coords="547,130,706,358">
+<area shape="rect" id="node5" href="users.html" title="users" alt="" coords="547,375,706,819">
 </map>
   <a name='diagram'><img id='oneDegreeImg' src='../diagrams/identity_provider.1degree.png' usemap='#oneDegreeRelationshipsDiagram' class='diagram' border='0' alt='' align='left'></a>
 <map id="twoDegreesRelationshipsDiagram" name="twoDegreesRelationshipsDiagram">
-<area shape="rect" id="node1" href="authz_approvals.html" title="authz_approvals" alt="" coords="751,69,889,153">
-<area shape="rect" id="node2" href="oauth_client_details.html" title="oauth_client_details" alt="" coords="275,6,437,90">
-<area shape="rect" id="node3" href="users.html" title="users" alt="" coords="547,166,706,610">
-<area shape="rect" id="node6" href="identity_zone.html" title="identity_zone" alt="" coords="5,70,165,202">
-<area shape="rect" id="node5" href="identity_provider.html" title="identity_provider" alt="" coords="210,107,502,317">
-<area shape="rect" id="node4" href="client_idp.html" title="client_idp" alt="" coords="547,41,706,149">
+<area shape="rect" id="node1" href="authz_approvals.html" title="authz_approvals" alt="" coords="751,526,889,610">
+<area shape="rect" id="node2" href="oauth_client_details.html" title="oauth_client_details" alt="" coords="275,803,437,887">
+<area shape="rect" id="node3" href="users.html" title="users" alt="" coords="547,250,706,694">
+<area shape="rect" id="node8" href="identity_zone.html" title="identity_zone" alt="" coords="5,703,165,931">
+<area shape="rect" id="node5" href="identity_provider.html" title="identity_provider" alt="" coords="210,505,502,786">
+<area shape="rect" id="node4" href="client_idp.html" title="client_idp" alt="" coords="547,711,706,819">
+<area shape="rect" id="node6" href="group_membership.html" title="group_membership" alt="" coords="547,5,706,233">
+<area shape="rect" id="node7" href="groups.html" title="groups" alt="" coords="291,5,421,89">
 </map>
 
   <a name='diagram'><img id='twoDegreesImg' src='../diagrams/identity_provider.2degrees.png' usemap='#twoDegreesRelationshipsDiagram' class='diagram' border='0' alt='' align='left'></a>

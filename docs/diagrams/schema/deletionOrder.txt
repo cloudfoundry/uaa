@@ -3,9 +3,9 @@ schema_version
 oauth_code
 expiring_code_store
 authz_approvals_old
+group_membership
 client_idp
 authz_approvals
-group_membership
 external_group_mapping
 users
 oauth_client_details

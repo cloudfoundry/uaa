@@ -86,11 +86,11 @@
 <tbody valign='top'>
 <tr class='odd'>
  <td class='primaryKey' title='Primary Key'>id</td>
- <td class='detail'>varchar</td>
+ <td class='detail'>char</td>
  <td class='detail' align='right'>36</td>
  <td class='detail' align='center'></td>
  <td class='detail' align='center'></td>
- <td class='detail'></td>
+ <td class='detail' align='right'></td>
  <td class='detail'>
   <table border='0' width='100%' cellspacing='0' cellpadding='0'>
    <tr class='relative odd' valign='top'>
@@ -155,7 +155,7 @@
  <td class='comment detail'></td>
 </tr>
 </table>
-<p title='5 columns'>Table contained 27 rows at Thu Nov 06 12:47 EST 2014<p/>
+<p title='5 columns'>Table contained 27 rows at Fri Nov 07 11:31 EST 2014<p/>
 </td></tr></table>
 <div class='indent'>
 <b>Indexes:</b>
@@ -184,12 +184,22 @@
 </table>
 </div>
 <table width='100%' border='0'><tr><td class='container'>
-<br><form action='get'><b>Close relationships:</b></form><map id="oneDegreeRelationshipsDiagram" name="oneDegreeRelationshipsDiagram">
+<br><form action='get'><b>Close relationships</b><span class='degrees' id='degrees' title='Detail diminishes with increased separation from groups'>
+&nbsp;within <label for='oneDegree'><input type='radio' name='degrees' id='oneDegree' checked>one</label>  <label for='twoDegrees'><input type='radio' name='degrees' id='twoDegrees'>two degrees</label> of separation</span><b>:</b></form>
+<map id="oneDegreeRelationshipsDiagram" name="oneDegreeRelationshipsDiagram">
 <area shape="rect" id="node1" href="external_group_mapping.html" title="external_group_mapping" alt="" coords="271,5,465,137">
 <area shape="rect" id="node2" href="groups.html" title="groups" alt="" coords="6,77,226,262">
-<area shape="rect" id="node3" href="group_membership.html" title="group_membership" alt="" coords="289,154,447,358">
+<area shape="rect" id="node3" href="group_membership.html" title="group_membership" alt="" coords="289,154,447,382">
 </map>
   <a name='diagram'><img id='oneDegreeImg' src='../diagrams/groups.1degree.png' usemap='#oneDegreeRelationshipsDiagram' class='diagram' border='0' alt='' align='left'></a>
+<map id="twoDegreesRelationshipsDiagram" name="twoDegreesRelationshipsDiagram">
+<area shape="rect" id="node1" href="external_group_mapping.html" title="external_group_mapping" alt="" coords="271,5,465,137">
+<area shape="rect" id="node2" href="groups.html" title="groups" alt="" coords="6,49,226,234">
+<area shape="rect" id="node3" href="group_membership.html" title="group_membership" alt="" coords="289,154,447,382">
+<area shape="rect" id="node4" href="identity_provider.html" title="identity_provider" alt="" coords="47,298,185,382">
+</map>
+
+  <a name='diagram'><img id='twoDegreesImg' src='../diagrams/groups.2degrees.png' usemap='#twoDegreesRelationshipsDiagram' class='diagram' border='0' alt='' align='left'></a>
 </td></tr></table>
 </div>
 </body>

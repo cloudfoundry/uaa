@@ -61,8 +61,9 @@ digraph "compactRelationshipsDiagram" {
       <TR><TD COLSPAN="3" BGCOLOR="#9bab96" ALIGN="CENTER">group_membership</TD></TR>
       <TR><TD PORT="group_id" COLSPAN="3" BGCOLOR="#bed1b8" ALIGN="LEFT">group_id</TD></TR>
       <TR><TD PORT="member_id" COLSPAN="3" BGCOLOR="#bed1b8" ALIGN="LEFT">member_id</TD></TR>
+      <TR><TD PORT="identity_provider_id" COLSPAN="3" BGCOLOR="#f4f7da" ALIGN="LEFT">identity_provider_id</TD></TR>
       <TR><TD PORT="elipses" COLSPAN="3" ALIGN="LEFT">...</TD></TR>
-      <TR><TD ALIGN="LEFT" BGCOLOR="#f7f7f7">&lt; 1</TD><TD ALIGN="RIGHT" BGCOLOR="#f7f7f7">3 rows</TD><TD ALIGN="RIGHT" BGCOLOR="#f7f7f7">  </TD></TR>
+      <TR><TD ALIGN="LEFT" BGCOLOR="#f7f7f7">&lt; 2</TD><TD ALIGN="RIGHT" BGCOLOR="#f7f7f7">4 rows</TD><TD ALIGN="RIGHT" BGCOLOR="#f7f7f7">  </TD></TR>
     </TABLE>>
     URL="tables/group_membership.html"
     tooltip="group_membership"
@@ -87,7 +88,7 @@ digraph "compactRelationshipsDiagram" {
       <TR><TD PORT="identity_zone_id" COLSPAN="3" BGCOLOR="#f4f7da" ALIGN="LEFT">identity_zone_id</TD></TR>
       <TR><TD PORT="origin_key" COLSPAN="3" BGCOLOR="#f4f7da" ALIGN="LEFT">origin_key</TD></TR>
       <TR><TD PORT="elipses" COLSPAN="3" ALIGN="LEFT">...</TD></TR>
-      <TR><TD ALIGN="LEFT" BGCOLOR="#f7f7f7">&lt; 1</TD><TD ALIGN="RIGHT" BGCOLOR="#f7f7f7">0 rows</TD><TD ALIGN="RIGHT" BGCOLOR="#f7f7f7">2 &gt;</TD></TR>
+      <TR><TD ALIGN="LEFT" BGCOLOR="#f7f7f7">&lt; 1</TD><TD ALIGN="RIGHT" BGCOLOR="#f7f7f7">0 rows</TD><TD ALIGN="RIGHT" BGCOLOR="#f7f7f7">3 &gt;</TD></TR>
     </TABLE>>
     URL="tables/identity_provider.html"
     tooltip="identity_provider"
@@ -99,6 +100,7 @@ digraph "compactRelationshipsDiagram" {
       <TR><TD PORT="id" COLSPAN="3" BGCOLOR="#bed1b8" ALIGN="LEFT">id</TD></TR>
       <TR><TD PORT="subdomain" COLSPAN="3" BGCOLOR="#f4f7da" ALIGN="LEFT">subdomain</TD></TR>
       <TR><TD PORT="service_instance_id" COLSPAN="3" BGCOLOR="#f4f7da" ALIGN="LEFT">service_instance_id</TD></TR>
+      <TR><TD PORT="elipses" COLSPAN="3" ALIGN="LEFT">...</TD></TR>
       <TR><TD ALIGN="LEFT" BGCOLOR="#f7f7f7">  </TD><TD ALIGN="RIGHT" BGCOLOR="#f7f7f7">2 rows</TD><TD ALIGN="RIGHT" BGCOLOR="#f7f7f7">2 &gt;</TD></TR>
     </TABLE>>
     URL="tables/identity_zone.html"
@@ -122,7 +124,6 @@ digraph "compactRelationshipsDiagram" {
       <TR><TD COLSPAN="3" BGCOLOR="#9bab96" ALIGN="CENTER">users</TD></TR>
       <TR><TD PORT="id" COLSPAN="3" BGCOLOR="#bed1b8" ALIGN="LEFT">id</TD></TR>
       <TR><TD PORT="username" COLSPAN="3" BGCOLOR="#f4f7da" ALIGN="LEFT">username</TD></TR>
-      <TR><TD PORT="origin" COLSPAN="3" BGCOLOR="#f4f7da" ALIGN="LEFT">origin</TD></TR>
       <TR><TD PORT="identity_provider_id" COLSPAN="3" BGCOLOR="#f4f7da" ALIGN="LEFT">identity_provider_id</TD></TR>
       <TR><TD PORT="elipses" COLSPAN="3" ALIGN="LEFT">...</TD></TR>
       <TR><TD ALIGN="LEFT" BGCOLOR="#f7f7f7">&lt; 1</TD><TD ALIGN="RIGHT" BGCOLOR="#f7f7f7">0 rows</TD><TD ALIGN="RIGHT" BGCOLOR="#f7f7f7">1 &gt;</TD></TR>
@@ -136,6 +137,7 @@ digraph "compactRelationshipsDiagram" {
   "client_idp":"identity_provider_id":w -> "identity_provider":"id":e [arrowhead=none dir=back arrowtail=crowodot];
   "external_group_mapping":"group_id":w -> "groups":"id":e [arrowhead=none dir=back arrowtail=crowodot];
   "group_membership":"group_id":w -> "groups":"id":e [arrowhead=none dir=back arrowtail=crowodot];
+  "group_membership":"identity_provider_id":w -> "identity_provider":"id":e [arrowhead=none dir=back arrowtail=crowodot];
   "identity_provider":"identity_zone_id":w -> "identity_zone":"id":e [arrowhead=none dir=back arrowtail=crowodot];
   "oauth_client_details":"identity_zone_id":w -> "identity_zone":"id":e [arrowhead=none dir=back arrowtail=crowodot];
   "users":"identity_provider_id":w -> "identity_provider":"id":e [arrowhead=none dir=back arrowtail=crowodot];

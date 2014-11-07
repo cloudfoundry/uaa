@@ -86,11 +86,11 @@
 <tbody valign='top'>
 <tr class='even'>
  <td class='primaryKey' title='Primary Key'>id</td>
- <td class='detail'>varchar</td>
+ <td class='detail'>char</td>
  <td class='detail' align='right'>36</td>
  <td class='detail' align='center'></td>
  <td class='detail' align='center'></td>
- <td class='detail'></td>
+ <td class='detail' align='right'></td>
  <td class='detail'>
   <table border='0' width='100%' cellspacing='0' cellpadding='0'>
    <tr class='relative even' valign='top'>
@@ -111,6 +111,39 @@
  <td class='comment detail'></td>
 </tr>
 <tr class='odd'>
+ <td class='detail'>created</td>
+ <td class='detail'>timestamp</td>
+ <td class='detail' align='right'>19</td>
+ <td class='detail' align='center'></td>
+ <td class='detail' align='center'></td>
+ <td class='detail' align='right'>CURRENT_TIMESTAMP</td>
+ <td class='detail'></td>
+ <td class='detail'> </td>
+ <td class='comment detail'></td>
+</tr>
+<tr class='even'>
+ <td class='detail'>lastModified</td>
+ <td class='detail'>timestamp</td>
+ <td class='detail' align='right'>19</td>
+ <td class='detail' align='center' title='nullable'>&nbsp;&radic;&nbsp;</td>
+ <td class='detail' align='center'></td>
+ <td class='detail' align='right'>null</td>
+ <td class='detail'></td>
+ <td class='detail'> </td>
+ <td class='comment detail'></td>
+</tr>
+<tr class='odd'>
+ <td class='detail'>version</td>
+ <td class='detail'>bigint</td>
+ <td class='detail' align='right'>19</td>
+ <td class='detail' align='center'></td>
+ <td class='detail' align='center'></td>
+ <td class='detail' align='right'>0</td>
+ <td class='detail'></td>
+ <td class='detail'> </td>
+ <td class='comment detail'></td>
+</tr>
+<tr class='even'>
  <td class='indexedColumn' title='Indexed'>subdomain</td>
  <td class='detail'>varchar</td>
  <td class='detail' align='right'>255</td>
@@ -121,10 +154,10 @@
  <td class='detail'> </td>
  <td class='comment detail'></td>
 </tr>
-<tr class='even'>
+<tr class='odd'>
  <td class='indexedColumn' title='Indexed'>service_instance_id</td>
- <td class='detail'>varchar</td>
- <td class='detail' align='right'>255</td>
+ <td class='detail'>char</td>
+ <td class='detail' align='right'>36</td>
  <td class='detail' align='center' title='nullable'>&nbsp;&radic;&nbsp;</td>
  <td class='detail' align='center'></td>
  <td class='detail' align='right'>null</td>
@@ -132,8 +165,19 @@
  <td class='detail'> </td>
  <td class='comment detail'></td>
 </tr>
+<tr class='even'>
+ <td class='detail'>name</td>
+ <td class='detail'>varchar</td>
+ <td class='detail' align='right'>255</td>
+ <td class='detail' align='center'></td>
+ <td class='detail' align='center'></td>
+ <td class='detail'></td>
+ <td class='detail'></td>
+ <td class='detail'> </td>
+ <td class='comment detail'></td>
+</tr>
 </table>
-<p title='3 columns'>Table contained 2 rows at Thu Nov 06 12:47 EST 2014<p/>
+<p title='7 columns'>Table contained 2 rows at Fri Nov 07 11:31 EST 2014<p/>
 </td></tr></table>
 <div class='indent'>
 <b>Indexes:</b>
@@ -175,18 +219,19 @@
 <br><form action='get'><b>Close relationships</b><span class='degrees' id='degrees' title='Detail diminishes with increased separation from identity_zone'>
 &nbsp;within <label for='oneDegree'><input type='radio' name='degrees' id='oneDegree' checked>one</label>  <label for='twoDegrees'><input type='radio' name='degrees' id='twoDegrees'>two degrees</label> of separation</span><b>:</b></form>
 <map id="oneDegreeRelationshipsDiagram" name="oneDegreeRelationshipsDiagram">
-<area shape="rect" id="node1" href="identity_provider.html" title="identity_provider" alt="" coords="331,5,469,209">
-<area shape="rect" id="node2" href="identity_zone.html" title="identity_zone" alt="" coords="5,257,261,394">
-<area shape="rect" id="node3" href="oauth_client_details.html" title="oauth_client_details" alt="" coords="305,226,495,574">
+<area shape="rect" id="node1" href="identity_provider.html" title="identity_provider" alt="" coords="341,5,480,281">
+<area shape="rect" id="node2" href="identity_zone.html" title="identity_zone" alt="" coords="5,329,272,562">
+<area shape="rect" id="node3" href="oauth_client_details.html" title="oauth_client_details" alt="" coords="316,298,505,646">
 </map>
   <a name='diagram'><img id='oneDegreeImg' src='../diagrams/identity_zone.1degree.png' usemap='#oneDegreeRelationshipsDiagram' class='diagram' border='0' alt='' align='left'></a>
 <map id="twoDegreesRelationshipsDiagram" name="twoDegreesRelationshipsDiagram">
-<area shape="rect" id="node1" href="authz_approvals.html" title="authz_approvals" alt="" coords="716,153,855,237">
-<area shape="rect" id="node2" href="oauth_client_details.html" title="oauth_client_details" alt="" coords="305,5,495,353">
-<area shape="rect" id="node3" href="users.html" title="users" alt="" coords="539,274,672,358">
-<area shape="rect" id="node6" href="identity_zone.html" title="identity_zone" alt="" coords="5,329,261,466">
-<area shape="rect" id="node5" href="identity_provider.html" title="identity_provider" alt="" coords="331,370,469,574">
-<area shape="rect" id="node4" href="client_idp.html" title="client_idp" alt="" coords="545,125,666,209">
+<area shape="rect" id="node1" href="authz_approvals.html" title="authz_approvals" alt="" coords="751,121,889,205">
+<area shape="rect" id="node2" href="oauth_client_details.html" title="oauth_client_details" alt="" coords="316,5,505,353">
+<area shape="rect" id="node3" href="users.html" title="users" alt="" coords="561,223,695,307">
+<area shape="rect" id="node7" href="identity_zone.html" title="identity_zone" alt="" coords="5,365,272,598">
+<area shape="rect" id="node5" href="identity_provider.html" title="identity_provider" alt="" coords="341,370,480,646">
+<area shape="rect" id="node4" href="client_idp.html" title="client_idp" alt="" coords="567,99,689,183">
+<area shape="rect" id="node6" href="group_membership.html" title="group_membership" alt="" coords="549,370,707,454">
 </map>
 
   <a name='diagram'><img id='twoDegreesImg' src='../diagrams/identity_zone.2degrees.png' usemap='#twoDegreesRelationshipsDiagram' class='diagram' border='0' alt='' align='left'></a>
