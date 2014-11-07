@@ -13,11 +13,14 @@
 package org.cloudfoundry.identity.uaa.authentication.login;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.security.Principal;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +45,12 @@ public class LoginInfoEndpoint {
 
     private Properties buildProperties = new Properties();
 
+    private Map<String, String> links = new HashMap<String, String>();
+
+    private String baseUrl;
+
+    private String uaaHost;
+
     public LoginInfoEndpoint() {
         try {
             gitProperties = PropertiesLoaderUtils.loadAllProperties("git.properties");
@@ -62,7 +71,7 @@ public class LoginInfoEndpoint {
         this.prompts = prompts;
     }
 
-    @RequestMapping(value = { "/", "/login" })
+    @RequestMapping(value = {"/login" })
     public String login(Model model, Principal principal) {
         Map<String, String[]> map = new LinkedHashMap<String, String[]>();
         for (Prompt prompt : prompts) {
@@ -75,6 +84,7 @@ public class LoginInfoEndpoint {
                         gitProperties.getProperty("git.commit.time",
                                         new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date())));
         model.addAttribute("app", UaaStringUtils.getMapFromProperties(buildProperties, "build."));
+        model.addAttribute("links", getLinksInfo());
 
         if (principal == null) {
             return "login";
@@ -97,4 +107,53 @@ public class LoginInfoEndpoint {
         return result;
     }
 
+    protected Map<String, ?> getLinksInfo() {
+        Map<String, Object> model = new HashMap<String, Object>();
+        model.put("uaa", getUaaBaseUrl());
+        model.put("login", getUaaBaseUrl().replaceAll("uaa", "login"));
+        model.putAll(getLinks());
+        return model;
+    }
+
+    public void setUaaBaseUrl(String baseUrl) {
+        this.baseUrl = baseUrl;
+        try {
+            URI uri = new URI(baseUrl);
+            setUaaHost(uri.getHost());
+            if (uri.getPort()!=443 && uri.getPort()!=80 && uri.getPort()>0) {
+                //append non standard ports to the hostname
+                setUaaHost(getUaaHost()+":"+uri.getPort());
+            }
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException("Could not extract host from URI: " + baseUrl);
+        }
+    }
+
+    public Map<String, String> getLinks() {
+        return links;
+    }
+
+    public void setLinks(Map<String, String> links) {
+        this.links = links;
+    }
+
+    public String getBaseUrl() {
+        return baseUrl;
+    }
+
+    public void setBaseUrl(String baseUrl) {
+        this.baseUrl = baseUrl;
+    }
+
+    protected String getUaaBaseUrl() {
+        return baseUrl;
+    }
+
+    public String getUaaHost() {
+        return uaaHost;
+    }
+
+    public void setUaaHost(String uaaHost) {
+        this.uaaHost = uaaHost;
+    }
 }

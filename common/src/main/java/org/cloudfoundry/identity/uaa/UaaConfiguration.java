@@ -69,6 +69,19 @@ public class UaaConfiguration {
     @Valid
     public Map<String,Object> ldap;
 
+    @Valid
+    public Map<String,Object> login;
+    @Valid
+    public Map<String,Object> links;
+    @Valid
+    public Map<String,Object> smtp;
+    @Valid
+    public Map<String,Object> tiles;
+    @Valid
+    public Map<String,Object> notifications;
+    @Valid
+    public String assetBaseUrl;
+
     public static class CloudController {
         @Valid
         public Database database;

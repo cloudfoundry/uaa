@@ -60,7 +60,7 @@ allprojects {
     }
 
     rewriteInstrumentedLibs = {
-      Boolean instrumentable = it.name.startsWith("cloudfoundry-identity-common-") || it.name.startsWith("cloudfoundry-identity-scim-")
+      Boolean instrumentable = it.name.startsWith("cloudfoundry-identity-common-") || it.name.startsWith("cloudfoundry-identity-scim-") || it.name.startsWith("cloudfoundry-identity-login-")
       if (instrumentable) {
         file(it.absolutePath.replaceFirst("libs", "instrumented_libs"))
       } else {
@@ -234,6 +234,7 @@ apply plugin: 'coveralls'
 
 Project identityCommon = subprojects.find { it.name.equals('cloudfoundry-identity-common') }
 Project identityScim = subprojects.find { it.name.equals('cloudfoundry-identity-scim') }
+Project identityLogin = subprojects.find { it.name.equals('cloudfoundry-identity-login') }
 Project identityUaa = subprojects.find { it.name.equals('cloudfoundry-identity-uaa') }
 
 cobertura {
@@ -241,11 +242,13 @@ cobertura {
   coverageSourceDirs = [
     identityCommon.sourceSets.main.java.srcDirs,
     identityScim.sourceSets.main.java.srcDirs,
+    identityLogin.sourceSets.main.java.srcDirs,
     identityUaa.sourceSets.main.java.srcDirs
   ]
   coverageMergeDatafiles = [
     new File("common/build/cobertura/cobertura.ser"),
     new File("scim/build/cobertura/cobertura.ser"),
+    new File("login/build/cobertura/cobertura.ser"),
     new File("uaa/build/cobertura/cobertura.ser"),
     integrationCoverageFile
   ]

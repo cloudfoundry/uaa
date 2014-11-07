@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head lang="en">
+    <meta charset="UTF-8" />
+</head>
+<body>
+<p>
+    A request has been made to activate <th:block th:text="${servicePhrase}">an ExampleService</th:block> for: <th:block th:text="${email}">user@example.com</th:block>
+</p>
+<p>
+    <a href="http://login.example.com/accounts?code=some_code&amp;email=user%40example.com"
+       th:href="@{${accountsUrl}(code=${code},email=${email})}">Activate your account</a>
+    to continue the registration process.
+</p>
+<p>
+    If you did not make this request, simply ignore this message.
+</p>
+<p>
+    Thank you,<br />
+    <th:block th:text="${serviceName}">The Administration</th:block>
+</p>
+</body>
+</html>

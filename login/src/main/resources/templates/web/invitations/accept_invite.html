@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorator="layouts/main"
+      th:with="pivotal=${@environment.getProperty('login.brand') == 'pivotal'}">
+<head>
+</head>
+<body>
+<div class="island-landscape" layout:fragment="page-content">
+    <div class="island-title">
+        <h1>Create your <th:block th:text="${pivotal ? 'Pivotal ID' : 'account'}">account</th:block></h1>
+        <p th:if="${pivotal}">A <strong>Pivotal ID</strong> lets you sign in to many Pivotal products using a single username and password.</p>
+    </div>
+    <div class="island-content">
+        <div th:text="|Email: ${email}|" th:unless="${error_message_code == 'code_expired'}" class="email-display">Email: user@example.com</div>
+        <div th:if="${error_message_code}" class="alert alert-error">
+            <p th:text="#{'account_activation.' + ${error_message_code}}">Error Message</p>
+        </div>
+        <form th:action="@{/invitations/accept.do}" th:unless="${error_message_code == 'code_expired'}" method="post" novalidate="novalidate">
+            <input name="client_id" type="hidden" value="login" th:value="${client_id}"/>
+            <input name="password" type="password" placeholder="Password" autocomplete="off" class="form-control"/>
+            <input name="password_confirmation" type="password" placeholder="Confirm" autocomplete="off" class="form-control"/>
+            <input type="submit" th:value="${pivotal ? 'Create Pivotal ID' : 'Create account'}" class="island-button"/>
+        </form>
+    </div>
+</div>
+</body>
+</html>

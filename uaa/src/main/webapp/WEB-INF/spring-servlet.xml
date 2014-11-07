@@ -40,6 +40,17 @@
     <sec:http pattern="/info" security="none" />
     <sec:http pattern="/password/**" security="none" />
     <sec:http pattern="/healthz/**" security="none" />
+    <sec:http pattern="/saml/web/**" security="none" />
+    <sec:http pattern="/vendor/**" security="none" />
+    <!--<sec:http pattern="/login" security="none" />-->
+    <sec:http pattern="/error" security="none" />
+    <sec:http pattern="/forgot_password*" security="none" />
+    <sec:http pattern="/reset_password" security="none" />
+    <sec:http pattern="/email_sent" security="none" />
+    <sec:http pattern="/create_account*" security="none" />
+    <sec:http pattern="/accounts/email_sent" security="none" />
+
+    <bean id="xFrameOptionsFilter" class="org.cloudfoundry.identity.uaa.login.XFrameOptionsFilter" />
 
     <bean class="org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor">
         <property name="requireHttps" value="${require_https:false}" />
@@ -74,8 +85,13 @@
     <import resource="spring/password-endpoints.xml" />
     <import resource="spring/codestore-endpoints.xml" />
 
-    <bean id="messageSource" class="org.springframework.context.support.ResourceBundleMessageSource">
-        <property name="basename" value="messages" />
+    <bean id="messageSource" class="org.springframework.context.support.ReloadableResourceBundleMessageSource">
+      <property name="basenames">
+        <list>
+          <value>#{systemEnvironment['CLOUD_FOUNDRY_CONFIG_PATH']!=null ? 'file:'+systemEnvironment['CLOUD_FOUNDRY_CONFIG_PATH']+'/messages':'classpath:messages'}</value>
+          <value>classpath:messages</value>
+        </list>
+      </property>
     </bean>
 
     <authentication-manager id="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security" />
@@ -108,21 +124,13 @@
 
     <bean id="oauthAccessDeniedHandler" class="org.springframework.security.oauth2.provider.error.OAuth2AccessDeniedHandler" />
 
-    <http name="uiSecurity" request-matcher-ref="uiRequestMatcher" access-denied-page="/"
-        authentication-manager-ref="authzAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/login**" access="IS_AUTHENTICATED_ANONYMOUSLY" />
-        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
-        <form-login authentication-failure-url="/login?error=true" login-page="/login" login-processing-url="/login.do"
-            username-parameter="username" default-target-url="/" password-parameter="password"
-            authentication-details-source-ref="authenticationDetailsSource" />
-        <logout logout-url="/logout.do" success-handler-ref="logoutHandler" />
-    </http>
+    <import resource="classpath:login-ui.xml"/>
 
     <!-- Deny-all "buffer" which a request will hit if it isn't matched by any of the other filter chains -->
-    <sec:http name="denyAll" use-expressions="true" create-session="stateless" entry-point-ref="http403EntryPoint"
-        authentication-manager-ref="emptyAuthenticationManager">
-        <sec:intercept-url pattern="/**" access="denyAll" />
-    </sec:http>
+    <!--<sec:http name="denyAll" use-expressions="true" create-session="stateless" entry-point-ref="http403EntryPoint"-->
+        <!--authentication-manager-ref="emptyAuthenticationManager">-->
+        <!--<sec:intercept-url pattern="/**" access="denyAll" />-->
+    <!--</sec:http>-->
 
     <bean id="http403EntryPoint" class="org.springframework.security.web.authentication.Http403ForbiddenEntryPoint" />
 
@@ -164,31 +172,17 @@
 
     <oauth:web-expression-handler id="oauthWebExpressionHandler" />
 
-    <mvc:resources location="/" mapping="/**" />
+    <!--<mvc:resources location="/" mapping="/**" />-->
 
     <mvc:annotation-driven />
 
     <mvc:default-servlet-handler />
 
-    <bean id="viewResolver" class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
-        <property name="viewResolvers">
-            <list>
-                <bean class="org.cloudfoundry.identity.uaa.web.ForwardAwareInternalResourceViewResolver">
-                    <property name="prefix" value="/WEB-INF/jsp/" />
-                    <property name="suffix" value=".jsp" />
-                </bean>
-                <bean class="org.springframework.web.servlet.view.BeanNameViewResolver" />
-            </list>
-        </property>
-        <property name="defaultViews">
-            <bean class="org.springframework.web.servlet.view.json.MappingJacksonJsonView">
-                <property name="extractValueFromSingleKeyModel" value="true" />
-            </bean>
-        </property>
-    </bean>
-
     <!--Basic application beans. -->
-    <bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.authentication.login.LoginInfoEndpoint" />
+    <bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.authentication.login.LoginInfoEndpoint">
+        <property name="uaaBaseUrl" value="${uaa.url:http://localhost:8080/uaa}" />
+        <property name="links" ref="links" />
+    </bean>
 
     <bean id="healthzEndpoint" class="org.cloudfoundry.identity.uaa.web.HealthzEndpoint" />
 

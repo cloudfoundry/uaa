@@ -16,6 +16,7 @@ import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
@@ -86,12 +87,13 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 
             List<Resource> resources = new ArrayList<Resource>();
 
-            String defaultLocation = servletConfig == null ? null : servletConfig
-                            .getInitParameter(PROFILE_CONFIG_FILE_DEFAULT);
-            if (defaultLocation != null) {
-                Resource defaultResource = new ClassPathResource(defaultLocation);
-                if (defaultResource.exists()) {
-                    resources.add(defaultResource);
+            Set<String> defaultLocation = StringUtils.commaDelimitedListToSet(servletConfig == null ? null : servletConfig.getInitParameter(PROFILE_CONFIG_FILE_DEFAULT));
+            if (defaultLocation != null && defaultLocation.size()>0) {
+                for (String s : defaultLocation) {
+                    Resource defaultResource = new ClassPathResource(s);
+                    if (defaultResource.exists()) {
+                        resources.add(defaultResource);
+                    }
                 }
             }
 

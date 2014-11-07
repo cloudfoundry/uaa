@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/html"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorator="layouts/main">
+<head>
+    <th:block layout:include="nav :: head"></th:block>
+</head>
+<body>
+<div class="header" layout:fragment="page-header">
+    <th:block layout:include="nav :: nav"></th:block>
+</div>
+<div class="panel-container" layout:fragment="page-content">
+    <div class="panel">
+        <h1>Application Authorization</h1>
+        <form id="application_authorization" action="/oauth/authorize" th:action="@{/oauth/authorize}" method="POST" class="panel-content">
+            <h2 th:text="${client_id}">Cloudbees</h2>
+            <a class="application-link"
+               href="https://cloudfoundry.cloudbees.com/authenticate"
+               th:href="${redirect_uri}"
+               th:text="${redirect_uri}">https://cloudfoundry.cloudbees.com/authenticate</a>
+            <p>
+                <th:block th:text="${client_id}">Cloudbees</th:block> has requested permission to
+                access your Pivotal account. If you do not recognize this application or
+                its URL, you should click deny. The application will not see your password.
+            </p>
+            <ul class="application-scopes">
+                <th:block th:each="scope, iter : ${undecided_scopes}">
+                    <th:block th:with="index=${iter.index},code=${scope.get('code')}">
+                        <li class="undecided">
+                            <input type="checkbox" checked="checked" name="scope.0" id="scope.0" th:name="|scope.${index}|" th:value="${code}" th:id="|scope.${index}|"/>
+                            <label for="scope.0" th:for="|scope.${index}|" th:utext="${#messages.msgOrNull(code) ?: code}">Something new.</label>
+                        </li>
+                    </th:block>
+                </th:block>
+                <th:block th:each="scope, iter : ${approved_scopes}">
+                    <th:block th:with="index=${iter.index + undecided_scopes.size()},code=${scope.get('code')}">
+                        <li>
+                            <input type="checkbox" checked="checked" name="scope.1" id="scope.1" th:name="|scope.${index}|" th:value="${code}" th:id="|scope.${index}|"/>
+                            <label for="scope.1" th:for="|scope.${index}|" th:utext="${#messages.msgOrNull(code) ?: code}">Something already approved.</label>
+                        </li>
+                    </th:block>
+                </th:block>
+                <th:block th:each="scope, iter : ${denied_scopes}">
+                    <th:block th:with="index=${iter.index + undecided_scopes.size() + approved_scopes.size()},code=${scope.get('code')}">
+                        <li>
+                            <input type="checkbox" name="scope.2" id="scope.2" th:name="|scope.${index}|" th:value="${code}" th:id="|scope.${index}|"/>
+                            <label for="scope.2" th:for="|scope.${index}|" th:utext="${#messages.msgOrNull(code) ?: code}">Something previously denied.</label>
+                        </li>
+                    </th:block>
+                </th:block>
+            </ul>
+            <p>
+                You can change your approval of permissions or revoke access for this application
+                at any time from account settings. By approving access, you agree to
+                <th:block th:text="${client_id}">Cloudbees</th:block>'s terms of service and privacy policy.
+            </p>
+            <div class="actions">
+                <button id="deny"
+                        type="submit"
+                        name="user_oauth_approval"
+                        th:name="${options.get('deny').get('key')}"
+                        value="false"
+                        class="btn btn-lowlight">Deny</button>
+                <button id="authorize"
+                        type="submit"
+                        name="user_oauth_approval"
+                        th:name="${options.get('confirm').get('key')}"
+                        value="true"
+                        class="btn btn-primary">Authorize</button>
+            </div>
+        </form>
+    </div>
+</div>
+</body>
+</html>

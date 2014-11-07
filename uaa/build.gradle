@@ -1,5 +1,6 @@
 Project identityCommon = parent.subprojects.find { it.name.equals('cloudfoundry-identity-common') }
 Project identityScim = parent.subprojects.find { it.name.equals('cloudfoundry-identity-scim') }
+Project identityLogin = parent.subprojects.find { it.name.equals('cloudfoundry-identity-login') }
 
 apply plugin: 'war'
 
@@ -28,6 +29,7 @@ description = 'UAA'
 dependencies {
   compile identityCommon
   compile identityScim
+  compile identityLogin
   compile group: 'cglib', name: 'cglib', version:'2.2.2'
   runtime group: 'org.springframework.security', name: 'spring-security-config', version:parent.springSecurityVersion
   runtime group: 'org.springframework.security', name: 'spring-security-jwt', version:'1.0.1.RELEASE'
@@ -56,9 +58,9 @@ dependencies {
 }
 
 test {
-  dependsOn identityCommon.instrumentedJar, identityScim.instrumentedJar
-
+  dependsOn identityCommon.instrumentedJar, identityScim.instrumentedJar, identityLogin.instrumentedJar
   exclude 'org/cloudfoundry/identity/uaa/integration/*.class'
+  exclude '**/*IT.class'
 }
 
 task integrationTest(type: Test) {
@@ -68,12 +70,14 @@ task integrationTest(type: Test) {
 
   filter {
     includeTestsMatching "org.cloudfoundry.identity.uaa.integration.*"
+    includeTestsMatching "*IT"
   }
 }
 
 task instrumentedWar(type: War, dependsOn: instrument) {
   dependsOn identityCommon.tasks.findByName('instrumentedJar'),
-            identityScim.tasks.findByName('instrumentedJar')
+            identityScim.tasks.findByName('instrumentedJar'),
+            identityLogin.tasks.findByName('instrumentedJar')
 
   destinationDir = file("$buildDir/instrumented_libs")
   classpath = war.classpath
