@@ -1,9 +1,8 @@
-package org.cloudfoundry.identity.uaa.integration;
+package org.cloudfoundry.identity.uaa.zone;
 
+import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -35,9 +34,6 @@ public class IdentityZoneEndpointsIntegrationTests {
 
     @Before
     public void createRestTemplate() throws Exception {
-
-        Assume.assumeTrue(!testAccounts.isProfileActive("vcap"));
-
         client = (RestTemplate)serverRunning.getRestTemplate();
         client.setErrorHandler(new OAuth2ErrorHandler(context.getResource()) {
             // Pass errors through in response entity for status code analysis
@@ -50,7 +46,6 @@ public class IdentityZoneEndpointsIntegrationTests {
             public void handleError(ClientHttpResponse response) throws IOException {
             }
         });
-
     }
 
     @Test
@@ -58,11 +53,13 @@ public class IdentityZoneEndpointsIntegrationTests {
         IdentityZone idZone = new IdentityZone();
         idZone.setServiceInstanceId("service-instance-id");
         idZone.setSubDomain("subdomain.domain.io");
+        idZone.setName("twiglet service");
 
-        ResponseEntity<IdentityZone> responseEntity = client.postForEntity(serverRunning.getUrl("/Identity-Zone"), idZone, IdentityZone.class);
+        ResponseEntity<IdentityZone> responseEntity = client.postForEntity(serverRunning.getUrl("/identity_zones"), idZone, IdentityZone.class);
 
         assertEquals("service-instance-id", responseEntity.getBody().getServiceInstanceId());
         assertEquals("subdomain.domain.io", responseEntity.getBody().getSubDomain());
+        assertEquals("twiglet service", responseEntity.getBody().getName());
         assertNotNull(responseEntity.getBody().getId());
     }
 }

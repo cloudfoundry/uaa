@@ -126,16 +126,17 @@
     </bean>
 
     <bean id="identityZoneProvisioning" class="org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning">
+        <constructor-arg ref="jdbcTemplate" />
     </bean>
 
     <bean id="identityZoneEndpoints"  class="org.cloudfoundry.identity.uaa.zone.IdentityZoneEndpoints">
         <property name="identityZoneProvisioning" ref="identityZoneProvisioning" />
     </bean>
 
-    <http pattern="/Identity-Zone" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
+    <http pattern="/identity_zones" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
           entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="userAccessDecisionManager"
           xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/Identity-Zone" method="POST" />
+        <intercept-url pattern="/identity_zones" method="POST" />
         <custom-filter ref="resourceAgnosticAuthenticationFilter" position="PRE_AUTH_FILTER" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
     </http>

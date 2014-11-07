@@ -5,14 +5,15 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 
-@Controller
+@RestController
+@RequestMapping("/identity_zones")
 public class IdentityZoneEndpoints {
 
     private IdentityZoneProvisioning dao;
 
-    @RequestMapping(value = "/Identity-Zone", method = RequestMethod.POST)
-    @ResponseBody
+    @RequestMapping(method = RequestMethod.POST)
     public IdentityZone createIdentityZone(@RequestBody IdentityZone zone) {
         return dao.createZone(zone);
     }
