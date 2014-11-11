@@ -1,4 +1,4 @@
-package org.cloudfoundry.identity.uaa.login.saml;
+package org.cloudfoundry.identity.uaa.login;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -29,8 +29,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.client.SocialClientUserDetails;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
-import org.cloudfoundry.identity.uaa.login.PasscodeAuthenticationFilter;
-import org.cloudfoundry.identity.uaa.login.PasscodeInformation;
+import org.cloudfoundry.identity.uaa.login.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.After;

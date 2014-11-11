@@ -12,19 +12,12 @@ dependencies {
   }
 
   compile group: 'org.springframework', name: 'spring-context-support', version:springVersion
-  compile group: 'org.springframework.security', name: 'spring-security-openid', version:springSecurityVersion
-  compile(group: 'org.springframework.security.extensions', name: 'spring-security-saml2-core', version:'1.0.0.RELEASE') {
-    exclude(module: 'bcprov-jdk15')
-  }
   provided group: 'javax.servlet', name: 'javax.servlet-api', version:'3.0.1'
 
   testCompile identityCommon.configurations.testCompile.dependencies
   testCompile identityCommon.sourceSets.test.output
 
   compile group: 'org.springframework.security', name: 'spring-security-openid', version:springSecurityVersion
-  compile(group: 'org.springframework.security.extensions', name: 'spring-security-saml2-core', version:'1.0.0.RELEASE') {
-    exclude(module: 'bcprov-jdk15')
-  }
   compile group: 'org.thymeleaf', name: 'thymeleaf-spring4', version:'2.1.2.RELEASE'
   compile group: 'nz.net.ultraq.thymeleaf', name: 'thymeleaf-layout-dialect', version:'1.2.3'
   compile group: 'org.thymeleaf.extras', name: 'thymeleaf-extras-springsecurity3', version:'2.1.1.RELEASE'

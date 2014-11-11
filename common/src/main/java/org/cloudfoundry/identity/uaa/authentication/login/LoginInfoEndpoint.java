@@ -12,9 +12,12 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication.login;
 
+import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URLDecoder;
 import java.security.Principal;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -26,11 +29,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 
 /**
  * Controller that sends login info (e.g. prompts) to clients wishing to
@@ -41,6 +55,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @Controller
 public class LoginInfoEndpoint {
 
+    protected static final String HOST = "Host";
+    protected static final String AUTHORIZATON = "Authorization";
+
     private Properties gitProperties = new Properties();
 
     private Properties buildProperties = new Properties();
@@ -50,6 +67,21 @@ public class LoginInfoEndpoint {
     private String baseUrl;
 
     private String uaaHost;
+
+    protected Environment environment;
+
+    private List<IdentityProviderDefinition> idpDefinitions;
+
+    public void setIdpDefinitions(List<IdentityProviderDefinition> idpDefinitions) {
+        this.idpDefinitions = idpDefinitions;
+    }
+
+    public void setEnvironment(Environment environment) {
+        this.environment = environment;
+    }
+
+    @Value("${login.entityID}")
+    public String entityID = "";
 
     public LoginInfoEndpoint() {
         try {
@@ -71,20 +103,57 @@ public class LoginInfoEndpoint {
         this.prompts = prompts;
     }
 
+    @RequestMapping(value = { "/info", "/login" }, method = RequestMethod.GET, produces = APPLICATION_JSON_VALUE, headers = "Accept=application/json")
+    public String prompts(HttpServletRequest request, @RequestHeader HttpHeaders headers, Model model,
+                          Principal principal) throws Exception {
+
+        // Entity ID to start the discovery
+        model.addAttribute("entityID", entityID);
+        model.addAttribute("idpDefinitions", idpDefinitions);
+        for (IdentityProviderDefinition idp : idpDefinitions) {
+            if(idp.isShowSamlLink()) {
+                model.addAttribute("showSamlLoginLinks", true);
+                break;
+            }
+        }
+        model.addAttribute("links", getLinksInfo());
+        setCommitInfo(model);
+        if (principal == null) {
+            String customSignupLink = environment.getProperty("links.signup");
+            if (customSignupLink != null) {
+                model.addAttribute("createAccountLink", customSignupLink);
+            } else {
+                boolean localSignupsEnabled = !"false".equalsIgnoreCase(environment.getProperty("login.signupsEnabled"));
+                if (localSignupsEnabled) {
+                    model.addAttribute("createAccountLink", "/create_account");
+                }
+            }
+            return "login";
+        }
+        return "home";
+    }
+
     @RequestMapping(value = {"/login" })
     public String login(Model model, Principal principal) {
         Map<String, String[]> map = new LinkedHashMap<String, String[]>();
         for (Prompt prompt : prompts) {
             map.put(prompt.getName(), prompt.getDetails());
         }
+        map.remove("passcode");
         model.addAttribute("prompts", map);
-        model.addAttribute("commit_id", gitProperties.getProperty("git.commit.id.abbrev", "UNKNOWN"));
-        model.addAttribute(
-                        "timestamp",
-                        gitProperties.getProperty("git.commit.time",
-                                        new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date())));
-        model.addAttribute("app", UaaStringUtils.getMapFromProperties(buildProperties, "build."));
+
+        setCommitInfo(model);
         model.addAttribute("links", getLinksInfo());
+
+        // Entity ID to start the discovery
+        model.addAttribute("entityID", entityID);
+        model.addAttribute("idpDefinitions", idpDefinitions);
+        for (IdentityProviderDefinition idp : idpDefinitions) {
+            if(idp.isShowSamlLink()) {
+                model.addAttribute("showSamlLoginLinks", true);
+                break;
+            }
+        }
 
         if (principal == null) {
             return "login";
@@ -92,17 +161,29 @@ public class LoginInfoEndpoint {
         return "home";
     }
 
+    private void setCommitInfo(Model model) {
+        model.addAttribute("commit_id", gitProperties.getProperty("git.commit.id.abbrev", "UNKNOWN"));
+        model.addAttribute(
+                        "timestamp",
+                        gitProperties.getProperty("git.commit.time",
+                                        new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date())));
+        model.addAttribute("app", UaaStringUtils.getMapFromProperties(buildProperties, "build."));
+    }
+
     @RequestMapping("/info")
     public String info(Model model, Principal principal) {
         String result = login(model, principal);
         List<Map<String, String>> list = new ArrayList<Map<String, String>>();
         for (Prompt prompt : prompts) {
-            Map<String, String> map = new LinkedHashMap<String, String>();
-            map.put("name", prompt.getName());
-            map.put("type", prompt.getDetails()[0]);
-            map.put("text", prompt.getDetails()[1]);
-            list.add(map);
+            if (!"passcode".equals(prompt.getName())) {
+                Map<String, String> map = new LinkedHashMap<String, String>();
+                map.put("name", prompt.getName());
+                map.put("type", prompt.getDetails()[0]);
+                map.put("text", prompt.getDetails()[1]);
+                list.add(map);
+            }
         }
+
         model.addAttribute("prompts", list);
         return result;
     }
@@ -156,4 +237,22 @@ public class LoginInfoEndpoint {
     public void setUaaHost(String uaaHost) {
         this.uaaHost = uaaHost;
     }
+
+    protected String extractPath(HttpServletRequest request) {
+        String query = request.getQueryString();
+        try {
+            query = query == null ? "" : "?" + URLDecoder.decode(query, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new IllegalStateException("Cannot decode query string: " + query);
+        }
+        String path = request.getRequestURI() + query;
+        String context = request.getContextPath();
+        path = path.substring(context.length());
+        if (path.startsWith("/")) {
+            // In the root context we have to remove this as well
+            path = path.substring(1);
+        }
+        return path;
+    }
+
 }
