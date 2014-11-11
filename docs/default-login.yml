@@ -14,7 +14,7 @@ uaa:
 
 login:
   authorize:
-    url: http://localhost:8080/login/oauth/authorize
+    url: http://localhost:8080/uaa/oauth/authorize
 
 autologin:
   expire_when_used: true

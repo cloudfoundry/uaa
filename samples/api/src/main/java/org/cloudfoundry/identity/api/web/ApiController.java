@@ -42,7 +42,7 @@ import org.springframework.web.servlet.View;
 public class ApiController {
 
     private String infoResource;
-    private String loginUrl = "http://localhost:8080/login";
+    private String loginUrl = "http://localhost:8080/uaa";
     private String uaaUrl = "http://localhost:8080/uaa";
 
     /**
