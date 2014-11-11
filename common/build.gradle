@@ -60,7 +60,7 @@ dependencies {
   testCompile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatVersion
 }
 
-
+apply from: file('build_properties.gradle')
 processResources {
   //maven replaces project.artifactId in the log4j.properties file
   //https://www.pivotaltracker.com/story/show/74344574

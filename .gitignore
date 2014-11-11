@@ -27,8 +27,8 @@ coverage.ec
 .gradle
 build/
 /classes/
-uaa/src/main/resources/build.properties
-uaa/src/main/resources/git.properties
+common/src/main/resources/build.properties
+common/src/main/resources/git.properties
 bin
 phantomjsdriver.log
 
