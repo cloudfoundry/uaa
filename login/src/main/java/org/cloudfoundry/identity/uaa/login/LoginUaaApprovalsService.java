@@ -12,15 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
-import org.codehaus.jackson.annotate.JsonIgnore;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.RestOperations;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -29,23 +20,34 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class UaaApprovalsService implements ApprovalsService {
+import javassist.runtime.Desc;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
+import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalsAdminEndpoints;
+import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalsControllerService;
+import org.codehaus.jackson.annotate.JsonIgnore;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestOperations;
 
-    private final Log logger = LogFactory.getLog(getClass());
+public class LoginUaaApprovalsService implements ApprovalsService {
 
-    private final RestOperations restTemplate;
-    private final String approvalsUrl;
-
-    public UaaApprovalsService(RestOperations restTemplate, String approvalsUrl) {
-        this.restTemplate = restTemplate;
-        this.approvalsUrl = approvalsUrl;
-    }
+    @Autowired
+    private ApprovalsControllerService approvalsAdminEndpoints;
 
     @Override
     public Map<String, List<DescribedApproval>> getCurrentApprovalsByClientId() {
         Map<String, List<DescribedApproval>> result = new HashMap<>();
-        ResponseEntity<Set<DescribedApproval>> approvalsResponse = restTemplate.exchange(approvalsUrl, HttpMethod.GET, null, new ParameterizedTypeReference<Set<DescribedApproval>>() {});
-        Set<DescribedApproval> approvals = approvalsResponse.getBody();
+        List<Approval> approvalsResponse = approvalsAdminEndpoints.getApprovals("user_id pr", 1, 1000);
+
+        List<DescribedApproval> approvals = new ArrayList<>();
+        for (Approval approval : approvalsResponse) {
+            DescribedApproval describedApproval = new DescribedApproval(approval);
+            approvals.add(describedApproval);
+        }
 
         for (DescribedApproval approval : approvals) {
             List<DescribedApproval> clientApprovals = result.get(approval.getClientId());
@@ -83,26 +85,11 @@ public class UaaApprovalsService implements ApprovalsService {
 
     @Override
     public void updateApprovals(List<DescribedApproval> approvals) {
-        restTemplate.put(approvalsUrl, approvals);
+        approvalsAdminEndpoints.updateApprovals(approvals.toArray(new DescribedApproval[approvals.size()]));
     }
 
     @Override
     public void deleteApprovalsForClient(String clientId) {
-        ResponseEntity<String> response = restTemplate.exchange(approvalsUrl + "?clientId=" + clientId,
-                HttpMethod.DELETE, null, String.class);
-        logger.debug("Delete approvals request for client " + clientId + " resulted in " + response);
-    }
-
-    public static class DescribedApproval extends Approval {
-        private String description;
-
-        @JsonIgnore
-        public String getDescription() {
-            return description;
-        }
-
-        public void setDescription(String description) {
-            this.description = description;
-        }
+        approvalsAdminEndpoints.revokeApprovals(clientId);
     }
 }

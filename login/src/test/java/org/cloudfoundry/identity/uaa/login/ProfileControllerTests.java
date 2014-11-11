@@ -79,16 +79,16 @@ public class ProfileControllerTests {
     public void setUp() throws Exception {
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
 
-        Map<String, List<UaaApprovalsService.DescribedApproval>> approvalsByClientId = new HashMap<String, List<UaaApprovalsService.DescribedApproval>>();
+        Map<String, List<DescribedApproval>> approvalsByClientId = new HashMap<String, List<DescribedApproval>>();
 
-        UaaApprovalsService.DescribedApproval readApproval = new UaaApprovalsService.DescribedApproval();
+        DescribedApproval readApproval = new DescribedApproval();
         readApproval.setUserId("userId");
         readApproval.setClientId("app");
         readApproval.setScope("thing.read");
         readApproval.setStatus(APPROVED);
         readApproval.setDescription("Read your thing resources");
 
-        UaaApprovalsService.DescribedApproval writeApproval = new UaaApprovalsService.DescribedApproval();
+        DescribedApproval writeApproval = new DescribedApproval();
         writeApproval.setUserId("userId");
         writeApproval.setClientId("app");
         writeApproval.setScope("thing.write");
@@ -117,7 +117,7 @@ public class ProfileControllerTests {
 
     @Test
     public void testSpecialMessageWhenNoAppsAreAuthorized() throws Exception {
-        Map<String, List<UaaApprovalsService.DescribedApproval>> approvalsByClientId = new HashMap<String, List<UaaApprovalsService.DescribedApproval>>();
+        Map<String, List<DescribedApproval>> approvalsByClientId = new HashMap<String, List<DescribedApproval>>();
         Mockito.when(approvalsService.getCurrentApprovalsByClientId()).thenReturn(approvalsByClientId);
 
         UaaPrincipal uaaPrincipal = new UaaPrincipal("fake-user-id", "username", "email@example.com", Origin.UAA, null);
@@ -152,16 +152,16 @@ public class ProfileControllerTests {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("profile"));
 
-        ArgumentCaptor<List<UaaApprovalsService.DescribedApproval>> captor = ArgumentCaptor.forClass((Class)List.class);
+        ArgumentCaptor<List<DescribedApproval>> captor = ArgumentCaptor.forClass((Class)List.class);
         Mockito.verify(approvalsService).updateApprovals(captor.capture());
 
-        UaaApprovalsService.DescribedApproval readApproval = captor.getValue().get(0);
+        DescribedApproval readApproval = captor.getValue().get(0);
         Assert.assertEquals("userId", readApproval.getUserId());
         Assert.assertEquals("app", readApproval.getClientId());
         Assert.assertEquals("thing.read", readApproval.getScope());
         Assert.assertEquals(APPROVED, readApproval.getStatus());
 
-        UaaApprovalsService.DescribedApproval writeApproval = captor.getValue().get(1);
+        DescribedApproval writeApproval = captor.getValue().get(1);
         Assert.assertEquals("userId", writeApproval.getUserId());
         Assert.assertEquals("app", writeApproval.getClientId());
         Assert.assertEquals("thing.write", writeApproval.getScope());

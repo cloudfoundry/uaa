@@ -108,6 +108,22 @@
         <access-denied-handler ref="oauthAccessDeniedHandler" />
     </http>
 
+  <bean id="passcodeAuthenticationFilter" class="org.cloudfoundry.identity.uaa.login.PasscodeAuthenticationFilter">
+    <constructor-arg name="authenticationManager" ref="authzAuthenticationMgr" />
+    <property name="authorizationTemplate" ref="authorizationTemplate" />
+    <property name="uaaBaseUrl" ref="uaaUrl" />
+    <property name="parameterNames">
+      <list>
+        <value>username</value>
+        <value>password</value>
+        <value>passcode</value>
+        <value>credentials</value>
+        <value>origin</value>
+        <value>user_id</value>
+      </list>
+    </property>
+  </bean>
+
     <bean id="passcodeTokenMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
         <constructor-arg value="/oauth/token" />
         <property name="accept">
@@ -153,21 +169,7 @@
         <security:anonymous enabled="false" />
     </security:http>
 
-    <bean id="passcodeAuthenticationFilter" class="org.cloudfoundry.identity.uaa.login.PasscodeAuthenticationFilter">
-        <constructor-arg name="authenticationManager" ref="authzAuthenticationMgr" />
-        <property name="authorizationTemplate" ref="authorizationTemplate" />
-        <property name="uaaBaseUrl" ref="uaaUrl" />
-        <property name="parameterNames">
-            <list>
-                <value>username</value>
-                <value>password</value>
-                <value>passcode</value>
-                <value>credentials</value>
-                <value>origin</value>
-                <value>user_id</value>
-            </list>
-        </property>
-    </bean>
+
 
     <bean id="httpsHeaderFilter" class="org.cloudfoundry.identity.web.HttpsHeaderFilter" />
 
@@ -211,14 +213,11 @@
 
   <!--define an oauth 2 resource for api access -->
   <oauth:resource id="userApprovals" type="authorization_code" client-id="login" client-secret="${LOGIN_SECRET:loginsecret}"
-                  access-token-uri="${uaa.token.url:http://localhost:8080/uaa/oauth/token}" user-authorization-uri="${login.authorize.url:http://localhost:8080/login/oauth/authorize}" />
+                  access-token-uri="${uaa.token.url:http://localhost:8080/uaa/oauth/token}" user-authorization-uri="${login.authorize.url:http://localhost:8080/uaa/oauth/authorize}" />
 
   <oauth:web-expression-handler id="oauthWebExpressionHandler" />
 
-  <bean id="approvalsService" class="org.cloudfoundry.identity.uaa.login.UaaApprovalsService">
-    <constructor-arg ref="restTemplate"/>
-    <constructor-arg value="${uaa.approvals.url:http://localhost:8080/uaa/approvals}"/>
-  </bean>
+  <bean id="approvalsService" class="org.cloudfoundry.identity.uaa.login.LoginUaaApprovalsService"/>
 
   <bean id="approvalsController" class="org.cloudfoundry.identity.uaa.login.ProfileController" />
 

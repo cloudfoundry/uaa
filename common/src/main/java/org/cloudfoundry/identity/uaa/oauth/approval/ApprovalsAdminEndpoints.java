@@ -46,7 +46,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
 
 @Controller
-public class ApprovalsAdminEndpoints implements InitializingBean {
+public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsControllerService {
 
     private ApprovalStore approvalStore = null;
 
@@ -89,6 +89,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 
     @RequestMapping(value = "/approvals", method = RequestMethod.GET)
     @ResponseBody
+    @Override
     public List<Approval> getApprovals(@RequestParam(required = false, defaultValue = "user_id pr") String filter,
                     @RequestParam(required = false, defaultValue = "1") int startIndex,
                     @RequestParam(required = false, defaultValue = "100") int count) {
@@ -145,6 +146,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 
     @RequestMapping(value = "/approvals", method = RequestMethod.PUT)
     @ResponseBody
+    @Override
     public List<Approval> updateApprovals(@RequestBody Approval[] approvals) {
         String currentUserId = getCurrentUserId();
         logger.debug("Updating approvals for user: " + currentUserId);
@@ -165,6 +167,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 
     @RequestMapping(value = "/approvals/{clientId}", method = RequestMethod.PUT)
     @ResponseBody
+    @Override
     public List<Approval> updateClientApprovals(@PathVariable String clientId, @RequestBody Approval[] approvals) {
         String currentUserId = getCurrentUserId();
         logger.debug("Updating approvals for user: " + currentUserId);
@@ -197,6 +200,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 
     @RequestMapping(value = "/approvals", method = RequestMethod.DELETE)
     @ResponseBody
+    @Override
     public SimpleMessage revokeApprovals(@RequestParam(required = true) String clientId) {
         String username = getCurrentUserId();
         logger.debug("Revoking all existing approvals for user: " + username + " and client " + clientId);

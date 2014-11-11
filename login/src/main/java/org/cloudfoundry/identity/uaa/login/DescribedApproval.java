@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,13 +12,26 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
-import java.util.List;
-import java.util.Map;
 
-public interface ApprovalsService {
-    Map<String, List<DescribedApproval>> getCurrentApprovalsByClientId();
+import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
+import org.codehaus.jackson.annotate.JsonIgnore;
 
-    void updateApprovals(List<DescribedApproval> approvals);
+public class DescribedApproval extends Approval {
+    private String description;
 
-    void deleteApprovalsForClient(String clientId);
+    public DescribedApproval() {
+    }
+    public DescribedApproval(Approval approval) {
+        super(approval);
+    }
+
+    @JsonIgnore
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
 }

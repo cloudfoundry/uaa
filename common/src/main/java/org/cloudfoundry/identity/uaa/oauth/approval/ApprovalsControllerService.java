@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -10,15 +10,15 @@
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-package org.cloudfoundry.identity.uaa.login;
+package org.cloudfoundry.identity.uaa.oauth.approval;
 
 import java.util.List;
-import java.util.Map;
 
-public interface ApprovalsService {
-    Map<String, List<DescribedApproval>> getCurrentApprovalsByClientId();
+import org.cloudfoundry.identity.uaa.message.SimpleMessage;
 
-    void updateApprovals(List<DescribedApproval> approvals);
-
-    void deleteApprovalsForClient(String clientId);
+public interface ApprovalsControllerService {
+    public List<Approval> getApprovals(String filter, int startIndex, int count);
+    public List<Approval> updateApprovals(Approval[] approvals);
+    public List<Approval> updateClientApprovals(String clientId, Approval[] approvals);
+    public SimpleMessage revokeApprovals(String clientId);
 }

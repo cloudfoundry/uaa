@@ -36,17 +36,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class UaaApprovalsServiceTest {
+public class RestUaaApprovalsServiceTest {
 
     private MockRestServiceServer mockUaaServer;
-    private UaaApprovalsService approvalsService;
+    private RestUaaApprovalsService approvalsService;
 
     @Before
     public void setUp() throws Exception {
         RestTemplate restTemplate = new RestTemplate();
         mockUaaServer = MockRestServiceServer.createServer(restTemplate);
 
-        approvalsService = new UaaApprovalsService(restTemplate, "http://uaa.example.com/uaa/approvals");
+        approvalsService = new RestUaaApprovalsService(restTemplate, "http://uaa.example.com/uaa/approvals");
     }
 
     @Test
@@ -59,20 +59,20 @@ public class UaaApprovalsServiceTest {
                         "{\"userId\":\"abc-def-ghi\", \"clientId\":\"app\", \"scope\":\"cloud_controller.write\", \"status\":\"APPROVED\", \"expiresAt\":\"2014-05-17T15:17:52.310Z\", \"lastUpdatedAt\":\"2014-04-17T15:17:52.313Z\"}," +
                         "{\"userId\":\"abc-def-ghi\", \"clientId\":\"app\", \"scope\":\"password.write\", \"status\":\"DENIED\", \"expiresAt\":\"2014-05-17T15:17:52.310Z\", \"lastUpdatedAt\":\"2014-04-17T15:17:52.316Z\"}]", APPLICATION_JSON));
 
-        Map<String, List<UaaApprovalsService.DescribedApproval>> approvalsByClientId = approvalsService.getCurrentApprovalsByClientId();
+        Map<String, List<DescribedApproval>> approvalsByClientId = approvalsService.getCurrentApprovalsByClientId();
         Assert.assertThat(approvalsByClientId, hasKey("app"));
         
-        List<UaaApprovalsService.DescribedApproval> describedApprovals = approvalsByClientId.get("app");
+        List<DescribedApproval> describedApprovals = approvalsByClientId.get("app");
         Assert.assertEquals(4, describedApprovals.size());
 
-        UaaApprovalsService.DescribedApproval cloudControllerReadApproval = describedApprovals.get(0);
+        DescribedApproval cloudControllerReadApproval = describedApprovals.get(0);
         Assert.assertEquals("abc-def-ghi", cloudControllerReadApproval.getUserId());
         Assert.assertEquals("app", cloudControllerReadApproval.getClientId());
         Assert.assertEquals("cloud_controller.read", cloudControllerReadApproval.getScope());
         Assert.assertEquals(Approval.ApprovalStatus.APPROVED, cloudControllerReadApproval.getStatus());
         Assert.assertEquals("Access your 'cloud_controller' resources with scope 'read'", cloudControllerReadApproval.getDescription());
 
-        UaaApprovalsService.DescribedApproval passwordWriteApproval = describedApprovals.get(2);
+        DescribedApproval passwordWriteApproval = describedApprovals.get(2);
         Assert.assertEquals("password.write", passwordWriteApproval.getScope());
         Assert.assertEquals(Approval.ApprovalStatus.DENIED, passwordWriteApproval.getStatus());
 
@@ -90,8 +90,8 @@ public class UaaApprovalsServiceTest {
                 .andExpect(jsonPath("$[0].status").value("APPROVED"))
                 .andRespond(withSuccess());
 
-        List<UaaApprovalsService.DescribedApproval> approvals = new ArrayList<UaaApprovalsService.DescribedApproval>();
-        UaaApprovalsService.DescribedApproval approval = new UaaApprovalsService.DescribedApproval();
+        List<DescribedApproval> approvals = new ArrayList<DescribedApproval>();
+        DescribedApproval approval = new DescribedApproval();
         approval.setClientId("app");
         approval.setUserId("user-id");
         approval.setScope("thing.write");

@@ -46,7 +46,7 @@ public class ProfileController {
      */
     @RequestMapping(value = "/profile", method = RequestMethod.GET)
     public String get(Authentication authentication, Model model) {
-        Map<String, List<UaaApprovalsService.DescribedApproval>> approvals = approvalsService.getCurrentApprovalsByClientId();
+        Map<String, List<DescribedApproval>> approvals = approvalsService.getCurrentApprovalsByClientId();
         model.addAttribute("approvals", approvals);
         model.addAttribute("isUaaManagedUser", isUaaManagedUser(authentication));
         return "approvals";
@@ -62,10 +62,10 @@ public class ProfileController {
                        @RequestParam(required = false) String clientId) {
 
         if (null != update) {
-            Map<String, List<UaaApprovalsService.DescribedApproval>> approvalsByClientId = approvalsService.getCurrentApprovalsByClientId();
+            Map<String, List<DescribedApproval>> approvalsByClientId = approvalsService.getCurrentApprovalsByClientId();
 
-            List<UaaApprovalsService.DescribedApproval> allApprovals = new ArrayList<UaaApprovalsService.DescribedApproval>();
-            for (List<UaaApprovalsService.DescribedApproval> clientApprovals : approvalsByClientId.values()) {
+            List<DescribedApproval> allApprovals = new ArrayList<>();
+            for (List<DescribedApproval> clientApprovals : approvalsByClientId.values()) {
                 allApprovals.addAll(clientApprovals);
             }
 
