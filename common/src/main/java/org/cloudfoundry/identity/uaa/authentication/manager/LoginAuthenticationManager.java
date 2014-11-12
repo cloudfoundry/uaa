@@ -40,7 +40,7 @@ import java.util.Date;
 import java.util.Map;
 
 public class LoginAuthenticationManager implements AuthenticationManager, ApplicationEventPublisherAware {
-    public static final String NotANumber = "NaN";
+    public static final String NotANumber = Origin.NotANumber;
 
     private final Log logger = LogFactory.getLog(getClass());
 

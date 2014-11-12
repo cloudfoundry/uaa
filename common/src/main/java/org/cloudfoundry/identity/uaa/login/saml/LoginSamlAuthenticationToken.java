@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login.saml;
 
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.springframework.security.providers.ExpiringUsernameAuthenticationToken;
 
 import javax.validation.constraints.NotNull;
@@ -19,14 +20,15 @@ import javax.validation.constraints.NotNull;
 
 public class LoginSamlAuthenticationToken extends ExpiringUsernameAuthenticationToken {
 
-    private final String idpAlias;
+    private final UaaPrincipal uaaPrincipal;
 
-    public LoginSamlAuthenticationToken(ExpiringUsernameAuthenticationToken token, @NotNull String alias) {
+    public LoginSamlAuthenticationToken(UaaPrincipal uaaPrincipal, ExpiringUsernameAuthenticationToken token) {
         super(token.getTokenExpiration(), token.getPrincipal(), token.getCredentials(), token.getAuthorities());
-        this.idpAlias = alias;
+        this.uaaPrincipal = uaaPrincipal;
+
     }
 
-    public String getIdpAlias() {
-        return idpAlias;
+    public UaaPrincipal getUaaPrincipal() {
+        return uaaPrincipal;
     }
 }

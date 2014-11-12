@@ -553,7 +553,7 @@ public class AuditCheckMvcMockTests {
             .param("external_id","jacob")
             .param("response_type","code")
             .param("client_id","login")
-            .param("redirect_uri", "http://localhost:8080/login")
+            .param("redirect_uri", "http://localhost:8080/uaa")
             .param("state","erw342");
 
         testListener.clearEvents();

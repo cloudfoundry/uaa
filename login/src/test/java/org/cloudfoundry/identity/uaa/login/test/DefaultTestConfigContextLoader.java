@@ -17,6 +17,6 @@ import org.cloudfoundry.identity.uaa.test.IntegrationTestContextLoader;
 public class DefaultTestConfigContextLoader extends IntegrationTestContextLoader {
 
     protected String environmentConfigDefaults() {
-        return "login.yml";
+        return "uaa.yml,login.yml";
     }
 }

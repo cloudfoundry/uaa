@@ -17,6 +17,7 @@ public class Origin {
     public static final String LOGIN_SERVER = "login-server";
     public static final String LDAP = "ldap";
     public static final String KEYSTONE = "keystone";
+    public static final String NotANumber = "NaN";
 
 
     public static String getUserId(Authentication authentication) {

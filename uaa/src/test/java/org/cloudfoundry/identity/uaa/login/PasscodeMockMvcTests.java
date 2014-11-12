@@ -21,6 +21,7 @@ import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import org.apache.commons.codec.binary.Base64;
@@ -31,6 +32,8 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.login.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.After;
 import org.junit.Before;
@@ -47,6 +50,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.providers.ExpiringUsernameAuthenticationToken;
 import org.springframework.security.web.DefaultSecurityFilterChain;
 import org.springframework.security.web.FilterChainProxy;
@@ -65,9 +69,8 @@ public class PasscodeMockMvcTests {
     private MockMvc mockMvc;
     private CaptureSecurityContextFilter captureSecurityContextFilter;
 
-    private static String USERNAME = "marissa@saml.test.pivotal.io";
-    private static String PASSWORD = "foo";
-    private static String ALIAS = "testalias";
+    private static String USERNAME = "marissa";
+    private UaaPrincipal marissa;
 
     @After
     public void tearDown() throws Exception {
@@ -80,7 +83,7 @@ public class PasscodeMockMvcTests {
         MockEnvironment environment = new MockEnvironment();
         MockServletContext context = new MockServletContext();
         MockServletConfig config = new MockServletConfig(context);
-        config.addInitParameter("environmentConfigDefaults", "login.yml");
+        config.addInitParameter("environmentConfigDefaults", "uaa.yml,login.yml");
         webApplicationContext = new XmlWebApplicationContext();
         webApplicationContext.setServletConfig(config);
         webApplicationContext.setEnvironment(environment);
@@ -107,64 +110,14 @@ public class PasscodeMockMvcTests {
                 }
             }
         }
-        
-        RestTemplate restTemplate = mock(RestTemplate.class);
-        when(
-            restTemplate.exchange(
-                anyString(),
-                eq(HttpMethod.POST),
-                any(HttpEntity.class),
-                eq(ExpiringCode.class)
-            )
-        ).thenReturn(
-            new ResponseEntity<>(
-                new ExpiringCode("test",
-                    new Timestamp(System.currentTimeMillis()),
-                    "data"),
-                HttpStatus.CREATED)
-        );
-
-        PasscodeInformation pi = new PasscodeInformation("user_id", "username", "passcode", Origin.ORIGIN, (Map)null);
-        when(
-            restTemplate.exchange(
-                anyString(),
-                eq(HttpMethod.GET),
-                any(HttpEntity.class),
-                eq(ExpiringCode.class)
-            )
-        ).thenReturn(
-            new ResponseEntity<>(
-                new ExpiringCode("test",
-                    new Timestamp(System.currentTimeMillis()),
-                    new ObjectMapper().writeValueAsString(pi)),
-                HttpStatus.OK)
-        );
-
-        when(
-            restTemplate.exchange(
-                anyString(),
-                any(HttpMethod.class),
-                any(HttpEntity.class),
-                eq(byte[].class)
-            )
-        ).thenReturn(
-            new ResponseEntity<>(
-                "{\"access_token\": test}".getBytes(),
-                HttpStatus.OK)
-        );
-
-
-        PasscodeAuthenticationFilter pcFilter = webApplicationContext.getBean(PasscodeAuthenticationFilter.class);
-        pcFilter.setAuthorizationTemplate(restTemplate);
-
-
+        UaaUserDatabase db = webApplicationContext.getBean(UaaUserDatabase.class);
+        marissa = new UaaPrincipal(db.retrieveUserByName(USERNAME, Origin.UAA));
     }
 
     @Test
     public void testLoginUsingPasscodeWithSamlToken() throws Exception {
-        UaaPrincipal p = new UaaPrincipal("123","marissa","marissa@test.org", Origin.UAA,"");
         ExpiringUsernameAuthenticationToken et = new ExpiringUsernameAuthenticationToken(USERNAME, null);
-        LoginSamlAuthenticationToken auth = new LoginSamlAuthenticationToken(et, ALIAS);
+        LoginSamlAuthenticationToken auth = new LoginSamlAuthenticationToken(marissa, et);
         final MockSecurityContext mockSecurityContext = new MockSecurityContext(auth);
 
         SecurityContextHolder.setContext(mockSecurityContext);
@@ -175,15 +128,18 @@ public class PasscodeMockMvcTests {
             mockSecurityContext
         );
 
-        String passcode = "";
+
 
         MockHttpServletRequestBuilder get = get("/passcode")
             .accept(APPLICATION_JSON)
             .session(session);
 
-        mockMvc.perform(get)
+        String passcode = new ObjectMapper().readValue(
+            mockMvc.perform(get)
             .andExpect(status().isOk())
-            .andExpect(content().string("\"test\""));
+            .andDo(print())
+            .andReturn().getResponse().getContentAsString(),
+            String.class);
 
         mockSecurityContext.setAuthentication(null);
         session = new MockHttpSession();
@@ -203,16 +159,23 @@ public class PasscodeMockMvcTests {
             .session(session);
 
 
-        mockMvc.perform(post)
-            .andExpect(status().isOk())
-            .andExpect(content().string("{\"access_token\": test}"));
-
+        Map accessToken =
+            new ObjectMapper().readValue(
+                mockMvc.perform(post)
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andReturn().getResponse().getContentAsString(),
+                Map.class);
+        assertEquals("bearer", accessToken.get("token_type"));
+        assertNotNull(accessToken.get("access_token"));
+        assertNotNull(accessToken.get("refresh_token"));
+        assertEquals("scim.userids password.write cloud_controller.write openid cloud_controller.read", accessToken.get("scope"));
         Authentication authentication = captureSecurityContextFilter.getAuthentication();
         assertNotNull(authentication);
-        assertTrue(authentication instanceof UsernamePasswordAuthenticationToken);
-        assertTrue(authentication.getPrincipal() instanceof SocialClientUserDetails);
-        SocialClientUserDetails details = (SocialClientUserDetails)authentication.getPrincipal();
-        assertEquals(Origin.ORIGIN, details.getSource());
+        assertTrue(authentication instanceof OAuth2Authentication);
+        assertTrue(((OAuth2Authentication)authentication).getUserAuthentication() instanceof UsernamePasswordAuthenticationToken);
+        assertTrue(authentication.getPrincipal() instanceof UaaPrincipal);
+        assertEquals(marissa.getOrigin(), ((UaaPrincipal)authentication.getPrincipal()).getOrigin());
 
     }
 

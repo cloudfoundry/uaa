@@ -39,7 +39,7 @@ public class IdentityProviderConfiguratorTests {
 
     String sampleYaml = "  providers:\n" +
         "    okta-local:\n" +
-        "      idpMetadata: sample-okta-localhost.xml\n" +
+        "      idpMetadata: test-file-metadata.xml\n" +
         "      nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress\n" +
         "      assertionConsumerIndex: 0\n" +
         "      metadataTrustCheck: true\n" +
@@ -129,7 +129,7 @@ public class IdentityProviderConfiguratorTests {
                 }
                 case "okta-local" : {
                     assertEquals(IdentityProviderDefinition.MetadataLocation.FILE, idp.getType());
-                    assertEquals("sample-okta-localhost.xml", idp.getMetaDataLocation());
+                    assertEquals("test-file-metadata.xml", idp.getMetaDataLocation());
                     assertEquals("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress", idp.getNameID());
                     assertEquals(0, idp.getAssertionConsumerIndex());
                     assertEquals("Okta Preview 1", idp.getLinkText());

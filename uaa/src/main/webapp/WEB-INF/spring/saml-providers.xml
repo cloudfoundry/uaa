@@ -117,7 +117,7 @@
             SAML messages -->
         <bean id="samlAuthenticationProvider" class="org.cloudfoundry.identity.uaa.login.saml.LoginSamlAuthenticationProvider">
             <property name="userDetails" ref="samlUserDetails" />
-            <property name="authenticationManager" ref="authzAuthenticationMgr"/>
+            <property name="userDatabase" ref="userDatabase"/>
         </bean>
 
         <bean id="samlUserDetails" class="org.cloudfoundry.identity.uaa.login.LoginServerSamlUserDetailsService" />
@@ -249,7 +249,7 @@
                     <!--<bean class="org.cloudfoundry.identity.uaa.authentication.login.Prompt">-->
                         <!--<constructor-arg name="name" value="passcode" />-->
                         <!--<constructor-arg name="text"-->
-                                         <!--value="One Time Code (Get one at ${login.url:http://localhost:8080/login}/passcode)" />-->
+                                         <!--value="One Time Code (Get one at ${login.url:http://localhost:8080/uaa}/passcode)" />-->
                         <!--<constructor-arg name="type" value="password" />-->
                     <!--</bean>-->
                 <!--</util:list>-->

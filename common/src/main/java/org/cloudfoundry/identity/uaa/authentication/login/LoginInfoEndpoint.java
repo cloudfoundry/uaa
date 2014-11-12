@@ -18,10 +18,13 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
+import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
+import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -30,16 +33,23 @@ import java.util.Map;
 import java.util.Properties;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.login.PasscodeInformation;
+import org.cloudfoundry.identity.uaa.login.SamlUserDetails;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.login.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.codehaus.jackson.map.JsonMappingException;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
-import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.providers.ExpiringUsernameAuthenticationToken;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -55,8 +65,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 @Controller
 public class LoginInfoEndpoint {
 
-    protected static final String HOST = "Host";
-    protected static final String AUTHORIZATON = "Authorization";
+    public static final String NotANumber = Origin.NotANumber;
 
     private Properties gitProperties = new Properties();
 
@@ -71,6 +80,22 @@ public class LoginInfoEndpoint {
     protected Environment environment;
 
     private List<IdentityProviderDefinition> idpDefinitions;
+
+    private long codeExpirationMillis = 5 * 60 * 1000;
+
+    private ExpiringCodeStore expiringCodeStore;
+
+    public void setExpiringCodeStore(ExpiringCodeStore expiringCodeStore) {
+        this.expiringCodeStore = expiringCodeStore;
+    }
+
+    public long getCodeExpirationMillis() {
+        return codeExpirationMillis;
+    }
+
+    public void setCodeExpirationMillis(long codeExpirationMillis) {
+        this.codeExpirationMillis = codeExpirationMillis;
+    }
 
     public void setIdpDefinitions(List<IdentityProviderDefinition> idpDefinitions) {
         this.idpDefinitions = idpDefinitions;
@@ -188,8 +213,48 @@ public class LoginInfoEndpoint {
         return result;
     }
 
+    @RequestMapping(value = { "/passcode" }, method = RequestMethod.GET)
+    public String generatePasscode(@RequestHeader HttpHeaders headers, Map<String, Object> model, Principal principal)
+        throws NoSuchAlgorithmException, IOException, JsonMappingException {
+        String username = null, origin = null, userId = NotANumber;
+        Map<String, Object> authorizationParameters = null;
+
+        if (principal instanceof LoginSamlAuthenticationToken) {
+            username = principal.getName();
+            origin = ((LoginSamlAuthenticationToken)principal).getUaaPrincipal().getOrigin();
+            userId = ((LoginSamlAuthenticationToken)principal).getUaaPrincipal().getId();
+            //TODO collect authorities here?
+        } else if (principal instanceof ExpiringUsernameAuthenticationToken) {
+            username = ((SamlUserDetails) ((ExpiringUsernameAuthenticationToken) principal).getPrincipal()).getUsername();
+            origin = "login-saml";
+            Collection<GrantedAuthority> authorities = ((SamlUserDetails) (((ExpiringUsernameAuthenticationToken) principal)
+                .getPrincipal())).getAuthorities();
+            if (authorities != null) {
+                authorizationParameters = new LinkedHashMap<>();
+                authorizationParameters.put("authorities", authorities);
+            }
+        } else {
+            username = principal.getName();
+            origin = "passcode";
+        }
+
+        PasscodeInformation pi = new PasscodeInformation(userId, username, null, origin, authorizationParameters);
+
+        ExpiringCode code = doGenerateCode(pi);
+        model.put("passcode", code.getCode());
+        return "passcode";
+    }
+
+    protected ExpiringCode doGenerateCode(Object o) throws IOException {
+        return expiringCodeStore.generateCode(
+            new ObjectMapper().writeValueAsString(o),
+            new Timestamp(System.currentTimeMillis() + (getCodeExpirationMillis()))
+        );
+    }
+
+
     protected Map<String, ?> getLinksInfo() {
-        Map<String, Object> model = new HashMap<String, Object>();
+        Map<String, Object> model = new HashMap<>();
         model.put("uaa", getUaaBaseUrl());
         model.put("login", getUaaBaseUrl().replaceAll("uaa", "login"));
         model.putAll(getLinks());

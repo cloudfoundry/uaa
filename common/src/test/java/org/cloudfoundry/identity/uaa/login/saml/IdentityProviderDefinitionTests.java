@@ -19,7 +19,7 @@ public class IdentityProviderDefinitionTests {
         assertEquals(IdentityProviderDefinition.MetadataLocation.URL, def.getType());
         def.setMetaDataLocation("http://dadas.dadas.dadas/sdada");
         assertEquals(IdentityProviderDefinition.MetadataLocation.URL, def.getType());
-        def.setMetaDataLocation("sample-okta-localhost.xml");
+        def.setMetaDataLocation("test-file-metadata.xml");
         assertEquals(IdentityProviderDefinition.MetadataLocation.FILE, def.getType());
         File f = new File(System.getProperty("java.io.tmpdir"),IdentityProviderDefinitionTests.class.getName()+".testcase");
         f.createNewFile();

@@ -39,7 +39,7 @@ public class CheckDefaultAuthoritiesMvcMockTests {
     public void setUp() throws Exception {
         MockServletContext context = new MockServletContext();
         MockServletConfig config = new MockServletConfig(context);
-        config.addInitParameter("environmentConfigDefaults", "uaa.yml");
+        config.addInitParameter("environmentConfigDefaults", "uaa.yml,login.yml");
 
         webApplicationContext = new AnnotationConfigWebApplicationContext();
         webApplicationContext.setServletContext(context);

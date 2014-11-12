@@ -203,12 +203,13 @@
                 <bean class="org.cloudfoundry.identity.uaa.authentication.login.Prompt">
                     <constructor-arg name="name" value="passcode" />
                     <constructor-arg name="text"
-                                     value="One Time Code (Get one at ${login.url:http://localhost:8080/login}/passcode)" />
+                                     value="One Time Code (Get one at ${login.url:http://localhost:8080/uaa}/passcode)" />
                     <constructor-arg name="type" value="password" />
                 </bean>
             </util:list>
         </property>
         <property name="environment" ref="environment"/>
+        <property name="expiringCodeStore" ref="codeStore"/>
     </bean>
 
     <bean id="healthzEndpoint" class="org.cloudfoundry.identity.uaa.web.HealthzEndpoint" />
