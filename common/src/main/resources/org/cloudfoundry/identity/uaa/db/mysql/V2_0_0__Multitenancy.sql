@@ -6,6 +6,7 @@ CREATE TABLE `identity_zone` (
   `subdomain` varchar(255) NOT NULL,
   `service_instance_id` varchar(255) DEFAULT NULL,
   `name` varchar(255) NOT NULL,
+  `description` longtext,
   PRIMARY KEY (`id`),
   UNIQUE KEY `subdomain` (`subdomain`),
   UNIQUE KEY `service_instance_id` (`service_instance_id`)

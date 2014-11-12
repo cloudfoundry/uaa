@@ -5,7 +5,8 @@ CREATE TABLE identity_zone (
   version BIGINT default 0,
   subdomain varchar(255) NOT NULL,
   service_instance_id varchar(255) DEFAULT NULL,
-  name varchar(255) NOT NULL
+  name varchar(255) NOT NULL,
+  description TEXT
 );
 
 CREATE UNIQUE INDEX subdomain ON identity_zone (subdomain);
