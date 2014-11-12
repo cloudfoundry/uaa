@@ -56,7 +56,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning {
                 }
             });
         } catch (DuplicateKeyException e) {
-            throw new ZoneAlreadyExistsException("Identity Zone with domain '" + identityZone.getSubDomain() + "' already exists.");
+            throw new ZoneAlreadyExistsException(e.getMostSpecificCause().getMessage());
         }
 
         return retrieve(id);

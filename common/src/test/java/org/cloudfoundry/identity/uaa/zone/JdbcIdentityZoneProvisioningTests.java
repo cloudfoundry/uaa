@@ -42,17 +42,22 @@ public class JdbcIdentityZoneProvisioningTests {
         UUID.fromString(createdIdZone.getId());
     }
 
-    @Test(expected = ZoneAlreadyExistsException.class)
+    @Test
     public void testCreateDuplicateIdentityZone() throws Exception {
         IdentityZone identityZone = getIdentityZone("there-can-be-only-one");
         db.create(identityZone);
-        db.create(identityZone);
+        try {
+            db.create(identityZone);
+            fail("Should have thrown exception");
+        } catch (ZoneAlreadyExistsException e) {
+            // success
+        }
     }
 
-    private IdentityZone getIdentityZone(String salt) {
+    private IdentityZone getIdentityZone(String serviceInstanceId) {
         IdentityZone identityZone = new IdentityZone();
-        identityZone.setSubDomain("subdomain-" + salt);
-        identityZone.setServiceInstanceId("a-service-instance-id");
+        identityZone.setSubDomain("subdomain-" + serviceInstanceId);
+        identityZone.setServiceInstanceId(serviceInstanceId);
         identityZone.setName("The Twiglet Zone");
         identityZone.setDescription("Like the Twilight Zone but tastier.");
         return identityZone;
