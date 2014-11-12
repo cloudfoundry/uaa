@@ -55,7 +55,7 @@ public class IdentityZoneEndpointsIntegrationTests {
         idZone.setSubDomain("subdomain.domain.io");
         idZone.setName("twiglet service");
 
-        ResponseEntity<IdentityZone> responseEntity = client.postForEntity(serverRunning.getUrl("/identity_zones"), idZone, IdentityZone.class);
+        ResponseEntity<IdentityZone> responseEntity = client.postForEntity(serverRunning.getUrl("/identity-zones"), idZone, IdentityZone.class);
 
         assertEquals("service-instance-id", responseEntity.getBody().getServiceInstanceId());
         assertEquals("subdomain.domain.io", responseEntity.getBody().getSubDomain());

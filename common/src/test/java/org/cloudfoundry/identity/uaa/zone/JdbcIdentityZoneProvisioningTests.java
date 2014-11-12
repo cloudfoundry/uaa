@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -10,6 +9,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.ProfileValueSourceConfiguration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import java.util.UUID;
 
 import static org.junit.Assert.*;
 
@@ -30,16 +31,30 @@ public class JdbcIdentityZoneProvisioningTests {
 
     @Test
     public void testCreateIdentityZone() throws Exception {
-        IdentityZone idZone = new IdentityZone();
-        idZone.setServiceInstanceId("service-instance-id");
-        idZone.setSubDomain("subdomain.domain.io");
-        idZone.setName("twiglet service");
+        IdentityZone identityZone = getIdentityZone(UUID.randomUUID().toString());
 
-        IdentityZone createdIdZone = db.createZone(idZone);
+        IdentityZone createdIdZone = db.create(identityZone);
 
-        assertNotNull(createdIdZone.getId());
-        assertEquals("service-instance-id", createdIdZone.getServiceInstanceId());
-        assertEquals("subdomain.domain.io", createdIdZone.getSubDomain());
-        assertEquals("twiglet service", createdIdZone.getName());
+        assertEquals(identityZone.getServiceInstanceId(), createdIdZone.getServiceInstanceId());
+        assertEquals(identityZone.getSubDomain(), createdIdZone.getSubDomain());
+        assertEquals(identityZone.getName(), createdIdZone.getName());
+        assertEquals(identityZone.getDescription(), createdIdZone.getDescription());
+        UUID.fromString(createdIdZone.getId());
+    }
+
+    @Test(expected = ZoneAlreadyExistsException.class)
+    public void testCreateDuplicateIdentityZone() throws Exception {
+        IdentityZone identityZone = getIdentityZone("there-can-be-only-one");
+        db.create(identityZone);
+        db.create(identityZone);
+    }
+
+    private IdentityZone getIdentityZone(String salt) {
+        IdentityZone identityZone = new IdentityZone();
+        identityZone.setSubDomain("subdomain-" + salt);
+        identityZone.setServiceInstanceId("a-service-instance-id");
+        identityZone.setName("The Twiglet Zone");
+        identityZone.setDescription("Like the Twilight Zone but tastier.");
+        return identityZone;
     }
 }

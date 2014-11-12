@@ -41,6 +41,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning {
     public IdentityZone create(final IdentityZone identityZone) {
         final String id = UUID.randomUUID().toString();
 
+        try {
             jdbcTemplate.update(CREATE_IDENTITY_ZONE_SQL, new PreparedStatementSetter() {
                 @Override
                 public void setValues(PreparedStatement ps) throws SQLException {
@@ -54,6 +55,9 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning {
                     ps.setString(8, identityZone.getDescription());
                 }
             });
+        } catch (DuplicateKeyException e) {
+            throw new ZoneAlreadyExistsException("Identity Zone with domain '" + identityZone.getSubDomain() + "' already exists.");
+        }
 
         return retrieve(id);
     }
