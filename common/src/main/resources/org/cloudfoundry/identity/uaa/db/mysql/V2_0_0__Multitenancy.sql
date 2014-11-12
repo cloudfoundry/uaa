@@ -4,12 +4,10 @@ CREATE TABLE `identity_zone` (
   `lastModified` TIMESTAMP null,
   `version` BIGINT default 0 not null,
   `hostname` varchar(255) NOT NULL,
-  `service_instance_id` varchar(255) DEFAULT NULL,
   `name` varchar(255) NOT NULL,
   `description` longtext,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `hostname` (`hostname`),
-  UNIQUE KEY `service_instance_id` (`service_instance_id`)
+  UNIQUE KEY `hostname` (`hostname`)
 );
 
 CREATE TABLE `identity_provider` (

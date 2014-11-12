@@ -4,13 +4,11 @@ CREATE TABLE identity_zone (
   lastModified TIMESTAMP default current_timestamp,
   version BIGINT default 0,
   hostname varchar(255) NOT NULL,
-  service_instance_id varchar(255) DEFAULT NULL,
   name varchar(255) NOT NULL,
   description TEXT
 );
 
 CREATE UNIQUE INDEX hostname ON identity_zone (hostname);
-CREATE UNIQUE INDEX service_instance_id ON identity_zone (service_instance_id);
 
 CREATE TABLE identity_provider (
   id CHAR(36) NOT NULL PRIMARY KEY,

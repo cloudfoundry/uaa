@@ -57,7 +57,6 @@ public class IdentityZoneEndpointsMockMvcTests {
                                     .andReturn();
 
         IdentityZone createdIdentityZone = new ObjectMapper().readValue(result.getResponse().getContentAsString(), IdentityZone.class);
-        assertEquals(identityZone.getServiceInstanceId(), createdIdentityZone.getServiceInstanceId());
         assertEquals(identityZone.getHostname(), createdIdentityZone.getHostname());
         assertEquals(identityZone.getName(), createdIdentityZone.getName());
         assertEquals(identityZone.getDescription(), createdIdentityZone.getDescription());
@@ -67,7 +66,6 @@ public class IdentityZoneEndpointsMockMvcTests {
     private IdentityZone getIdentityZone(String salt) {
         IdentityZone identityZone = new IdentityZone();
         identityZone.setHostname("hostname-" + salt);
-        identityZone.setServiceInstanceId("a-service-instance-id");
         identityZone.setName("The Twiglet Zone");
         identityZone.setDescription("Like the Twilight Zone but tastier.");
         return identityZone;

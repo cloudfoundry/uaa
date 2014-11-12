@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.zone;
 
-import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
@@ -16,9 +15,9 @@ import java.util.UUID;
 
 public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning {
 
-    public static final String ID_ZONE_FIELDS = "id,version,created,lastModified,name,hostname,service_instance_id,description";
+    public static final String ID_ZONE_FIELDS = "id,version,created,lastModified,name,hostname,description";
 
-    public static final String CREATE_IDENTITY_ZONE_SQL = "insert into identity_zone(" + ID_ZONE_FIELDS + ") values (?,?,?,?,?,?,?,?)";
+    public static final String CREATE_IDENTITY_ZONE_SQL = "insert into identity_zone(" + ID_ZONE_FIELDS + ") values (?,?,?,?,?,?,?)";
 
     public static final String IDENTITY_ZONE_BY_ID_QUERY = "select " + ID_ZONE_FIELDS + " from identity_zone " + "where id=?";
     
@@ -53,8 +52,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning {
                     ps.setTimestamp(4, new Timestamp(new Date().getTime()));
                     ps.setString(5, identityZone.getName());
                     ps.setString(6, identityZone.getHostname());
-                    ps.setString(7, identityZone.getServiceInstanceId());
-                    ps.setString(8, identityZone.getDescription());
+                    ps.setString(7, identityZone.getDescription());
                 }
             });
         } catch (DuplicateKeyException e) {
@@ -76,8 +74,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning {
             identityZone.setLastModified(rs.getTimestamp(4));
             identityZone.setName(rs.getString(5));
             identityZone.setHostname(rs.getString(6));
-            identityZone.setServiceInstanceId(rs.getString(7));
-            identityZone.setDescription(rs.getString(8));
+            identityZone.setDescription(rs.getString(7));
 
             return identityZone;
         }

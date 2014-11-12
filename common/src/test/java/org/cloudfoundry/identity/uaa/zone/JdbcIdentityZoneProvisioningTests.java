@@ -35,7 +35,6 @@ public class JdbcIdentityZoneProvisioningTests {
 
         IdentityZone createdIdZone = db.create(identityZone);
 
-        assertEquals(identityZone.getServiceInstanceId(), createdIdZone.getServiceInstanceId());
         assertEquals(identityZone.getHostname(), createdIdZone.getHostname());
         assertEquals(identityZone.getName(), createdIdZone.getName());
         assertEquals(identityZone.getDescription(), createdIdZone.getDescription());
@@ -57,7 +56,6 @@ public class JdbcIdentityZoneProvisioningTests {
     private IdentityZone getIdentityZone(String serviceInstanceId) {
         IdentityZone identityZone = new IdentityZone();
         identityZone.setHostname("hostname-" + serviceInstanceId);
-        identityZone.setServiceInstanceId(serviceInstanceId);
         identityZone.setName("The Twiglet Zone");
         identityZone.setDescription("Like the Twilight Zone but tastier.");
         return identityZone;

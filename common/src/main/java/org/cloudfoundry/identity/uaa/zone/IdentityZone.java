@@ -17,7 +17,6 @@ public class IdentityZone {
     @JsonProperty("hostname")
     private String hostname;
 
-    private String serviceInstanceId;
 
     @NotNull
     private String name;
@@ -70,14 +69,6 @@ public class IdentityZone {
 
     public void setId(String id) {
         this.id = id;
-    }
-
-    public String getServiceInstanceId() {
-        return serviceInstanceId;
-    }
-
-    public void setServiceInstanceId(String serviceInstanceId) {
-        this.serviceInstanceId = serviceInstanceId;
     }
 
     public String getDescription() {
