@@ -16,11 +16,13 @@ import java.util.UUID;
 
 public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning {
 
-    public static final String ID_ZONE_FIELDS = "id,version,created,lastModified,name,subdomain,service_instance_id,description";
+    public static final String ID_ZONE_FIELDS = "id,version,created,lastModified,name,hostname,service_instance_id,description";
 
     public static final String CREATE_IDENTITY_ZONE_SQL = "insert into identity_zone(" + ID_ZONE_FIELDS + ") values (?,?,?,?,?,?,?,?)";
 
     public static final String IDENTITY_ZONE_BY_ID_QUERY = "select " + ID_ZONE_FIELDS + " from identity_zone " + "where id=?";
+    
+    public static final String IDENTITY_ZONE_BY_SUBDOMAIN_QUERY = "select " + ID_ZONE_FIELDS + " from identity_zone " + "where subdomain=?";
 
     protected final JdbcTemplate jdbcTemplate;
 
@@ -50,7 +52,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning {
                     ps.setTimestamp(3, new Timestamp(new Date().getTime()));
                     ps.setTimestamp(4, new Timestamp(new Date().getTime()));
                     ps.setString(5, identityZone.getName());
-                    ps.setString(6, identityZone.getSubDomain());
+                    ps.setString(6, identityZone.getHostname());
                     ps.setString(7, identityZone.getServiceInstanceId());
                     ps.setString(8, identityZone.getDescription());
                 }
@@ -73,7 +75,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning {
             identityZone.setCreated(rs.getTimestamp(3));
             identityZone.setLastModified(rs.getTimestamp(4));
             identityZone.setName(rs.getString(5));
-            identityZone.setSubDomain(rs.getString(6));
+            identityZone.setHostname(rs.getString(6));
             identityZone.setServiceInstanceId(rs.getString(7));
             identityZone.setDescription(rs.getString(8));
 

@@ -58,7 +58,7 @@ public class IdentityZoneEndpointsMockMvcTests {
 
         IdentityZone createdIdentityZone = new ObjectMapper().readValue(result.getResponse().getContentAsString(), IdentityZone.class);
         assertEquals(identityZone.getServiceInstanceId(), createdIdentityZone.getServiceInstanceId());
-        assertEquals(identityZone.getSubDomain(), createdIdentityZone.getSubDomain());
+        assertEquals(identityZone.getHostname(), createdIdentityZone.getHostname());
         assertEquals(identityZone.getName(), createdIdentityZone.getName());
         assertEquals(identityZone.getDescription(), createdIdentityZone.getDescription());
         UUID.fromString(createdIdentityZone.getId());
@@ -66,7 +66,7 @@ public class IdentityZoneEndpointsMockMvcTests {
 
     private IdentityZone getIdentityZone(String salt) {
         IdentityZone identityZone = new IdentityZone();
-        identityZone.setSubDomain("subdomain-" + salt);
+        identityZone.setHostname("hostname-" + salt);
         identityZone.setServiceInstanceId("a-service-instance-id");
         identityZone.setName("The Twiglet Zone");
         identityZone.setDescription("Like the Twilight Zone but tastier.");
@@ -87,7 +87,7 @@ public class IdentityZoneEndpointsMockMvcTests {
     @Test
     public void testCreateDuplicateZone() throws Exception {
         IdentityZone identityZone = new IdentityZone();
-        identityZone.setSubDomain("other-subdomain");
+        identityZone.setHostname("other-hostname");
         identityZone.setName("The Twiglet Zone 2");
 
         mockMvc.perform(post("/identity-zones")
