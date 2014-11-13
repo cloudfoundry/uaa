@@ -84,6 +84,7 @@
         <constructor-arg ref="authzAuthenticationMgr" />
         <constructor-arg ref="authorizationRequestManager"/>
         <property name="authenticationDetailsSource" ref="authenticationDetailsSource" />
+        <property name="authenticationEntryPoint" ref="basicAuthenticationEntryPoint" />
     </bean>
 
     <authentication-manager id="clientAuthenticationManager" xmlns="http://www.springframework.org/schema/security">

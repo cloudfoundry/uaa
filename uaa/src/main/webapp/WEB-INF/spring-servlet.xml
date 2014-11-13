@@ -85,7 +85,10 @@
     <bean id="basicAuthenticationEntryPoint" class="org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint">
         <property name="realmName" value="UAA/client" />
         <property name="typeName" value="Basic" />
+        <property name="exceptionTranslator" ref="accountNotVerifiedExceptionTranslator" />
     </bean>
+
+    <bean id="accountNotVerifiedExceptionTranslator" class="org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedExceptionTranslator"/>
 
     <bean id="accessDecisionManager" class="org.springframework.security.access.vote.UnanimousBased">
         <constructor-arg>
