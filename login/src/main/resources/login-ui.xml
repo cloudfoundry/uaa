@@ -303,6 +303,8 @@
                 <bean class="org.thymeleaf.spring4.view.ThymeleafViewResolver">
                     <property name="templateEngine" ref="webTemplateEngine" />
                 </bean>
+                <bean class="org.cloudfoundry.identity.uaa.web.ForwardAwareInternalResourceViewResolver">
+                </bean>
                 <bean class="org.springframework.web.servlet.view.BeanNameViewResolver" />
             </list>
         </property>

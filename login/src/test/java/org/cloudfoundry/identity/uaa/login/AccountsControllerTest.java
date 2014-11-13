@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.login;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -63,10 +64,15 @@ public class AccountsControllerTest {
 
     @Before
     public void setUp() throws Exception {
+        SecurityContextHolder.clearContext();
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .build();
     }
 
+    @After
+    public void tearDown() throws Exception {
+        SecurityContextHolder.clearContext();
+    }
     @Test
     public void testNewAccountPage() throws Exception {
         mockMvc.perform(get("/create_account").param("client_id", "app"))

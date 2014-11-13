@@ -28,7 +28,7 @@ dependencies {
   testCompile group: 'dumbster', name: 'dumbster', version:'1.6'
 }
 
-test.dependsOn identityCommon.instrumentedJar
+test.dependsOn identityCommon.instrumentedJar, identityScim.instrumentedJar
 
 processResources {
     filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}','cloudfoundry-identity-login') : line }

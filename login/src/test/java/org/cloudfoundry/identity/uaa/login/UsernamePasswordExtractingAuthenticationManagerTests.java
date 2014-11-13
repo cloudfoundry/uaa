@@ -15,6 +15,8 @@ package org.cloudfoundry.identity.uaa.login;
 
 import static org.junit.Assert.assertSame;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Matchers;
 import org.mockito.Mockito;
@@ -23,6 +25,7 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 /**
  * @author Dave Syer
@@ -34,6 +37,16 @@ public class UsernamePasswordExtractingAuthenticationManagerTests {
 
     private UsernamePasswordExtractingAuthenticationManager manager = new UsernamePasswordExtractingAuthenticationManager(
                     delegate);
+
+    @Before
+    public void setUp() {
+        SecurityContextHolder.clearContext();
+    }
+
+    @After
+    public void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
 
     @Test
     public void testAuthenticate() {

@@ -49,6 +49,7 @@ import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextIn
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.MediaType;
@@ -121,6 +122,10 @@ public class ScimGroupEndpointsMockMvcTests {
 
     @Test
     public void testDBisDownDuringCreate() throws Exception {
+        for (String s  : webApplicationContext.getEnvironment().getActiveProfiles()) {
+            Assume.assumeFalse("Does not run during MySQL", "mysql".equals(s));
+            Assume.assumeFalse("Does not run during PostgreSQL", "postgresql".equals(s));
+        }
         String externalGroup = "cn=developers,ou=scopes,dc=test,dc=com";
         String displayName ="internal.read";
         DataSource ds = webApplicationContext.getBean(DataSource.class);

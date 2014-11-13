@@ -13,9 +13,11 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.error.UaaException;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -38,6 +40,7 @@ public class ResetPasswordControllerTest {
 
     @Before
     public void setUp() throws Exception {
+        SecurityContextHolder.clearContext();
         resetPasswordService = Mockito.mock(ResetPasswordService.class);
         ResetPasswordController controller = new ResetPasswordController(resetPasswordService);
 
@@ -48,6 +51,11 @@ public class ResetPasswordControllerTest {
                 .standaloneSetup(controller)
                 .setViewResolvers(viewResolver)
                 .build();
+    }
+
+    @After
+    public void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test

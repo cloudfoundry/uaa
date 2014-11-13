@@ -516,7 +516,7 @@ public class ScimGroupEndpointsIntegrationTests {
         response = serverRunning.getForString(result.getHeaders().getLocation().toString(), headers);
         if (response.getStatusCode() == HttpStatus.OK) {
             // The grant access page should be returned
-            assertTrue(response.getBody().contains("Do you authorize"));
+            assertTrue(response.getBody().contains("<h1>Application Authorization</h1>"));
 
             formData.clear();
             formData.add("user_oauth_approval", "true");

@@ -132,6 +132,7 @@ public class LoginInfoEndpoint {
     public String prompts(HttpServletRequest request, @RequestHeader HttpHeaders headers, Model model,
                           Principal principal) throws Exception {
 
+        info(model,principal);
         // Entity ID to start the discovery
         model.addAttribute("entityID", entityID);
         model.addAttribute("idpDefinitions", idpDefinitions);

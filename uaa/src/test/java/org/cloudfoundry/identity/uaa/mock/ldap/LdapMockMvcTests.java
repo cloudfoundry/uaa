@@ -118,7 +118,10 @@ public class LdapMockMvcTests {
         tmpDir = new File(System.getProperty("java.io.tmpdir")+"/apacheds/"+new RandomValueStringGenerator().generate());
         tmpDir.deleteOnExit();
         System.out.println(tmpDir);
+        //configure properties for running against ApacheDS
         System.setProperty("ldap.base.url","ldap://localhost:33389");
+        System.setProperty("ldap.base.userDn","cn=admin,ou=Users,dc=test,dc=com");
+        System.setProperty("ldap.base.password","adminsecret");
         apacheDS = new ApacheDSContainer("dc=test,dc=com","classpath:ldap_init.ldif");
         apacheDS.setWorkingDirectory(tmpDir);
         apacheDS.setPort(33389);
@@ -153,6 +156,7 @@ public class LdapMockMvcTests {
         new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "uaa.yml,login.yml");
         webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         webApplicationContext.addBeanFactoryPostProcessor(new UaaRestTemplateBeanFactoryPostProcessor());
+        webApplicationContext.getEnvironment().addActiveProfile("ldap");
         webApplicationContext.refresh();
 
         List<String> profiles = Arrays.asList(webApplicationContext.getEnvironment().getActiveProfiles());

@@ -71,6 +71,7 @@ public class InvitationsControllerTest {
 
     @Before
     public void setUp() throws Exception {
+        SecurityContextHolder.clearContext();
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
             .build();
     }

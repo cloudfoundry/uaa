@@ -12,6 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import java.util.Arrays;
+
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -19,8 +21,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
-
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -33,14 +35,13 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.servlet.view.InternalResourceViewResolver;
 
-import java.util.Arrays;
-
 public class ChangePasswordControllerTest {
     private MockMvc mockMvc;
     private ChangePasswordService changePasswordService;
 
     @Before
     public void setUp() throws Exception {
+        SecurityContextHolder.clearContext();
         changePasswordService = Mockito.mock(ChangePasswordService.class);
         ChangePasswordController controller = new ChangePasswordController(changePasswordService);
 
@@ -51,6 +52,11 @@ public class ChangePasswordControllerTest {
                 .standaloneSetup(controller)
                 .setViewResolvers(viewResolver)
                 .build();
+    }
+
+    @After
+    public void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test
