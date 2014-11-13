@@ -22,8 +22,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 
-import java.util.List;
-
 /**
  * Chained authentication manager that works of simple conditions
  */
@@ -83,8 +81,13 @@ public class ChainedAuthenticationManager implements AuthenticationManager {
                             logger.debug("Chained authentication exception:"+x.getMessage()+" at:"+(x.getStackTrace().length>0?x.getStackTrace()[0]:"(no stack trace)"));
                         }
                         lastException = x;
-                        if (delegates[i].getStopIf()!=null && delegates[i].getStopIf().isAssignableFrom(x.getClass())) {
-                            shallContinue = false;
+                        if (delegates[i].getStopIf()!=null) {
+                            for (Class<? extends AuthenticationException> exceptionClass : delegates[i].getStopIf()) {
+                                if (exceptionClass.isAssignableFrom(x.getClass())) {
+                                    shallContinue = false;
+                                    break;
+                                }
+                            }
                         }
                     }
                     lastResult = thisAuth != null && thisAuth.isAuthenticated();
@@ -114,13 +117,13 @@ public class ChainedAuthenticationManager implements AuthenticationManager {
     public static class AuthenticationManagerConfiguration {
         private AuthenticationManager authenticationManager;
         private String required = null;
-        private Class<? extends AuthenticationException> stopIf;
+        private Class<? extends AuthenticationException>[] stopIf;
 
-        public Class<? extends AuthenticationException> getStopIf() {
+        public Class<? extends AuthenticationException>[] getStopIf() {
             return stopIf;
         }
 
-        public void setStopIf(Class<? extends AuthenticationException> stopIf) {
+        public void setStopIf(Class<? extends AuthenticationException>... stopIf) {
             this.stopIf = stopIf;
         }
 

@@ -203,7 +203,12 @@
                 <list>
                     <bean class="org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager$AuthenticationManagerConfiguration">
                         <property name="authenticationManager" ref="uaaAuthenticationMgr"/>
-                        <property name="stopIf" value="org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException"/>
+                        <property name="stopIf">
+                            <list value-type="java.lang.Class">
+                                <value>org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException</value>
+                                <value>org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException</value>
+                            </list>
+                        </property>
                     </bean>
                     <bean class="org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager$AuthenticationManagerConfiguration">
                         <property name="required" value="ifPreviousFalse"/>
@@ -226,7 +231,12 @@
                 <list>
                     <bean class="org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager$AuthenticationManagerConfiguration">
                         <property name="authenticationManager" ref="uaaAuthenticationMgr"/>
-                        <property name="stopIf" value="org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException"/>
+                        <property name="stopIf">
+                            <list value-type="java.lang.Class">
+                                <value>org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException</value>
+                                <value>org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException</value>
+                            </list>
+                        </property>
                     </bean>
                     <bean class="org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager$AuthenticationManagerConfiguration">
                         <property name="required" value="ifPreviousFalse"/>
