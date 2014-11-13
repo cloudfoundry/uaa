@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -223,7 +224,7 @@ public class JdbcScimUserProvisioningTests {
         assertEquals(JOE_ID, joe.getId());
         assertNull(joe.getGroups());
     }
-    
+
     @Test
     public void updateWithEmptyPhoneListWorks() {
         ScimUser jo = new ScimUser(null, "josephine", "Jo", "NewUser");
@@ -574,7 +575,11 @@ public class JdbcScimUserProvisioningTests {
 
     @Test
     public void canRetrieveUsersWithGroupsFilter() {
-        assertEquals(2 + existingUserCount, db.query("groups.display co \"uaa.user\"").size());
+        List<ScimUser> users = db.query("groups.display co \"uaa.user\"");
+        assertEquals(2 + existingUserCount, users.size());
+        for (int i=0; i<users.size(); i++) {
+            assertNotNull(users.get(i));
+        }
     }
 
     @Test
