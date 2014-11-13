@@ -3,11 +3,11 @@ CREATE TABLE `identity_zone` (
   `created` TIMESTAMP default current_timestamp not null,
   `lastModified` TIMESTAMP null,
   `version` BIGINT default 0 not null,
-  `hostname` varchar(255) NOT NULL,
+  `subdomain` varchar(255) NOT NULL,
   `name` varchar(255) NOT NULL,
   `description` longtext,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `hostname` (`hostname`)
+  UNIQUE KEY `subdomain` (`subdomain`)
 );
 
 CREATE TABLE `identity_provider` (

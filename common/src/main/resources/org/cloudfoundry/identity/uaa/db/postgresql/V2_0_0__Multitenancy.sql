@@ -3,12 +3,12 @@ CREATE TABLE identity_zone (
   created TIMESTAMP default current_timestamp,
   lastModified TIMESTAMP default current_timestamp,
   version BIGINT default 0,
-  hostname varchar(255) NOT NULL,
+  subdomain varchar(255) NOT NULL,
   name varchar(255) NOT NULL,
   description TEXT
 );
 
-CREATE UNIQUE INDEX hostname ON identity_zone (hostname);
+CREATE UNIQUE INDEX subdomain ON identity_zone (subdomain);
 
 CREATE TABLE identity_provider (
   id CHAR(36) NOT NULL PRIMARY KEY,

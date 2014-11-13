@@ -51,12 +51,12 @@ public class IdentityZoneEndpointsIntegrationTests {
     @Test
     public void testCreateZone() {
         IdentityZone idZone = new IdentityZone();
-        idZone.setHostname("subdomain.domain.io");
+        idZone.setSubDomain("subdomain.domain.io");
         idZone.setName("twiglet service");
 
         ResponseEntity<IdentityZone> responseEntity = client.postForEntity(serverRunning.getUrl("/identity-zones"), idZone, IdentityZone.class);
 
-        assertEquals("subdomain.domain.io", responseEntity.getBody().getHostname());
+        assertEquals("subdomain.domain.io", responseEntity.getBody().getSubDomain());
         assertEquals("twiglet service", responseEntity.getBody().getName());
         assertNotNull(responseEntity.getBody().getId());
     }
