@@ -54,6 +54,7 @@ dependencies {
   }
   providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version:'3.0.1'
   providedCompile group: 'javax.servlet.jsp', name: 'jsp-api', version:'2.1'
+  testCompile group: 'dumbster', name: 'dumbster', version:'1.6'
 }
 
 test {

@@ -88,7 +88,7 @@ public class ResetPasswordController {
         try {
             Map<String,String> resetResponse = resetPasswordService.resetPassword(code, password);
 
-            UaaPrincipal uaaPrincipal = new UaaPrincipal(resetResponse.get("user_id"), resetResponse.get("username"), resetResponse.get("username"), Origin.UAA, null);
+            UaaPrincipal uaaPrincipal = new UaaPrincipal(resetResponse.get("user_id"), resetResponse.get("username"), resetResponse.get("email"), Origin.UAA, null);
             UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, UaaAuthority.USER_AUTHORITIES);
             SecurityContextHolder.getContext().setAuthentication(token);
 

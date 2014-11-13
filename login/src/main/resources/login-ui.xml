@@ -371,7 +371,7 @@
     <bean id="resetPasswordService" class="org.cloudfoundry.identity.uaa.login.EmailResetPasswordService">
         <constructor-arg ref="mailTemplateEngine"/>
         <constructor-arg ref="messageService"/>
-        <constructor-arg ref="loginAuthorizationTemplate"/>
+        <constructor-arg ref="passwordResetEndpoints"/>
         <constructor-arg ref="uaaUrl"/>
         <constructor-arg value="${login.brand:oss}"/>
     </bean>

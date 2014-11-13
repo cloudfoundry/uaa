@@ -12,8 +12,14 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpoints;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Before;
@@ -22,11 +28,17 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.http.client.MockClientHttpResponse;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.web.client.MockRestServiceServer;
@@ -35,12 +47,20 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.thymeleaf.spring4.SpringTemplateEngine;
+import scala.actors.threadpool.Arrays;
 
 import java.io.IOException;
+import java.sql.Timestamp;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.contains;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -55,63 +75,63 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 public class EmailResetPasswordServiceTests {
 
     private EmailResetPasswordService emailResetPasswordService;
-    private MockRestServiceServer mockUaaServer;
     private MessageService messageService;
 
     @Autowired
     @Qualifier("mailTemplateEngine")
     SpringTemplateEngine templateEngine;
+    private PasswordResetEndpoints passwordResetEndpoints;
+    private ExpiringCodeStore codeStore;
+    private ScimUserProvisioning scimUserProvisioning;
 
     @Before
     public void setUp() throws Exception {
-        RestTemplate uaaTemplate = new RestTemplate();
-        mockUaaServer = MockRestServiceServer.createServer(uaaTemplate);
-        messageService = Mockito.mock(EmailService.class);
-        emailResetPasswordService = new EmailResetPasswordService(templateEngine, messageService, uaaTemplate, "http://uaa.example.com/uaa", "pivotal");
+        messageService = mock(EmailService.class);
+        scimUserProvisioning = mock(ScimUserProvisioning.class);
+        codeStore = mock(ExpiringCodeStore.class);
+        passwordResetEndpoints = new PasswordResetEndpoints(new ObjectMapper(), scimUserProvisioning, codeStore);
+        emailResetPasswordService = new EmailResetPasswordService(templateEngine, messageService, passwordResetEndpoints, "http://uaa.example.com/uaa", "pivotal");
     }
 
     @Test
     public void testForgotPasswordWhenAResetCodeIsReturnedByTheUaa() throws Exception {
-        mockUaaServer.expect(requestTo("http://uaa.example.com/uaa/password_resets"))
-                .andExpect(method(POST))
-                .andRespond(withSuccess("{\"code\":\"the_secret_code\",\"user_id\":\"user-id-001\"}", APPLICATION_JSON));
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setProtocol("http");
         request.setContextPath("/login");
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 
+        ScimUser user = new ScimUser("user-id-001","user@example.com","firstName","lastName");
+        user.setPrimaryEmail("user@example.com");
+        when(scimUserProvisioning.query(contains("origin"))).thenReturn(Arrays.asList(new ScimUser[]{user}));
+        when(codeStore.generateCode(anyString(), any(Timestamp.class))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()),"user-id-001"));
         emailResetPasswordService.forgotPassword("user@example.com");
 
-        mockUaaServer.verify();
+
 
         Mockito.verify(messageService).sendMessage(eq("user-id-001"),
             eq("user@example.com"),
             eq(MessageType.PASSWORD_RESET),
             eq("Pivotal account password reset request"),
-            contains("<a href=\"http://localhost/login/reset_password?code=the_secret_code&amp;email=user%40example.com\">Reset your password</a>")
+            contains("<a href=\"http://localhost/login/reset_password?code=code&amp;email=user%40example.com\">Reset your password</a>")
         );
     }
 
     @Test
     public void testForgotPasswordWhenConflictIsReturnedByTheUaa() throws Exception {
-        mockUaaServer.expect(requestTo("http://uaa.example.com/uaa/password_resets"))
-                .andExpect(method(POST))
-                .andRespond(new ResponseCreator() {
-                    @Override
-                    public ClientHttpResponse createResponse(ClientHttpRequest request) throws IOException {
-                        return new MockClientHttpResponse("{\"user_id\":\"user-id-001\"}".getBytes(), CONFLICT);
-                    }
-                });
-
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setProtocol("http");
         request.setContextPath("/login");
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 
-        emailResetPasswordService.forgotPassword("user@example.com");
+        ScimUser user = new ScimUser("user-id-001","user@example.com","firstName","lastName");
+        user.setPrimaryEmail("user@example.com");
+        when(scimUserProvisioning.query(contains("origin"))).thenReturn(Arrays.asList(new ScimUser[]{}));
+        when(scimUserProvisioning.query(eq("userName eq \"user@example.com\""))).thenReturn(Arrays.asList(new ScimUser[]{user}));
+        when(codeStore.generateCode(anyString(), any(Timestamp.class))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), "user-id-001"));
+        when(codeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()),"user-id-001"));
 
-        mockUaaServer.verify();
+        emailResetPasswordService.forgotPassword("user@example.com");
 
         Mockito.verify(messageService).sendMessage(eq("user-id-001"),
             eq("user@example.com"),
@@ -123,31 +143,57 @@ public class EmailResetPasswordServiceTests {
 
     @Test
     public void testForgotPasswordWhenTheCodeIsDenied() throws Exception {
-        mockUaaServer.expect(requestTo("http://uaa.example.com/uaa/password_resets"))
-                .andExpect(method(POST))
-                .andRespond(withBadRequest());
-
         emailResetPasswordService.forgotPassword("user@example.com");
-
-        mockUaaServer.verify();
 
         Mockito.verifyZeroInteractions(messageService);
     }
 
     @Test
     public void testResetPassword() throws Exception {
-        mockUaaServer.expect(requestTo("http://uaa.example.com/uaa/password_change"))
-                .andExpect(method(POST))
-                .andExpect(jsonPath("$.code").value("secret_code"))
-                .andExpect(jsonPath("$.new_password").value("new_secret"))
-                .andRespond(withSuccess("{" +
-                    "  \"user_id\":\"usermans-id\"," +
-                    "  \"username\":\"userman\"" +
-                    "}", APPLICATION_JSON));
+        ScimUser user = new ScimUser("usermans-id","userman","firstName","lastName");
+        user.setPrimaryEmail("user@example.com");
+        when(scimUserProvisioning.retrieve(eq("usermans-id"))).thenReturn(user);
+        when(codeStore.retrieveCode(eq("secret_code"))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), "usermans-id"));
+        SecurityContext securityContext = mock(SecurityContext.class);
+        when(securityContext.getAuthentication()).thenReturn(new Authentication() {
+            @Override
+            public Collection<? extends GrantedAuthority> getAuthorities() {
+                return null;
+            }
+
+            @Override
+            public Object getCredentials() {
+                return null;
+            }
+
+            @Override
+            public Object getDetails() {
+                return null;
+            }
+
+            @Override
+            public Object getPrincipal() {
+                return null;
+            }
+
+            @Override
+            public boolean isAuthenticated() {
+                return false;
+            }
+
+            @Override
+            public void setAuthenticated(boolean isAuthenticated) throws IllegalArgumentException {
+
+            }
+
+            @Override
+            public String getName() {
+                return null;
+            }
+        });
+        SecurityContextHolder.setContext(securityContext);
 
         Map<String,String> userInfo = emailResetPasswordService.resetPassword("secret_code", "new_secret");
-
-        mockUaaServer.verify();
 
         Assert.assertThat(userInfo, Matchers.hasEntry("user_id", "usermans-id"));
         Assert.assertThat(userInfo, Matchers.hasEntry("username", "userman"));
@@ -155,12 +201,6 @@ public class EmailResetPasswordServiceTests {
 
     @Test(expected = UaaException.class)
     public void testResetPasswordWhenTheCodeIsDenied() throws Exception {
-        mockUaaServer.expect(requestTo("http://uaa.example.com/uaa/password_change"))
-                .andExpect(method(POST))
-                .andRespond(withBadRequest());
-
         emailResetPasswordService.resetPassword("b4d_k0d3z", "new_password");
-
-        mockUaaServer.verify();
     }
 }

@@ -16,6 +16,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.error.UaaException;
+import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpoints;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
 import org.springframework.core.ParameterizedTypeReference;
@@ -41,14 +42,14 @@ public class EmailResetPasswordService implements ResetPasswordService {
 
     private final TemplateEngine templateEngine;
     private final MessageService messageService;
-    private final RestTemplate uaaTemplate;
+    private final PasswordResetEndpoints passwordResetEndpoints;
     private final String uaaBaseUrl;
     private final String brand;
 
-    public EmailResetPasswordService(TemplateEngine templateEngine, MessageService messageService, RestTemplate uaaTemplate, String uaaBaseUrl, String brand) {
+    public EmailResetPasswordService(TemplateEngine templateEngine, MessageService messageService, PasswordResetEndpoints passwordResetEndpoints, String uaaBaseUrl, String brand) {
         this.templateEngine = templateEngine;
         this.messageService = messageService;
-        this.uaaTemplate = uaaTemplate;
+        this.passwordResetEndpoints = passwordResetEndpoints;
         this.uaaBaseUrl = uaaBaseUrl;
         this.brand = brand;
     }
@@ -59,10 +60,17 @@ public class EmailResetPasswordService implements ResetPasswordService {
         String htmlContent = null;
         String userId = null;
         try {
-            ResponseEntity<Map<String,String>> response = uaaTemplate.exchange(uaaBaseUrl + "/password_resets", HttpMethod.POST, new HttpEntity<>(email), new ParameterizedTypeReference<Map<String, String>>() {
-            });
-            htmlContent = getCodeSentEmailHtml(response.getBody().get("code"), email);
-            userId = response.getBody().get("user_id");
+            ResponseEntity<Map<String,String>> response = passwordResetEndpoints.resetPassword(email);
+            if (response.getStatusCode()==HttpStatus.CONFLICT) {
+                //TODO - file story to refactor and not swallow all errors below
+                htmlContent = getResetUnavailableEmailHtml(email);
+                userId = response.getBody().get("user_id");
+            } else if (response.getStatusCode()==HttpStatus.NOT_FOUND) {
+                //TODO noop - previous implementation just logged an error
+            } else {
+                userId = response.getBody().get("user_id");
+                htmlContent = getCodeSentEmailHtml(response.getBody().get("code"), email);
+            }
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode() == HttpStatus.CONFLICT) {
                 htmlContent = getResetUnavailableEmailHtml(email);
@@ -77,7 +85,7 @@ public class EmailResetPasswordService implements ResetPasswordService {
             } else {
                 logger.info("Exception raised while creating password reset for " + email, e);
             }
-        } catch (RestClientException e) {
+        } catch (IOException e) {
             logger.error("Exception raised while creating password reset for " + email, e);
         }
 
@@ -92,22 +100,15 @@ public class EmailResetPasswordService implements ResetPasswordService {
 
     @Override
     public Map<String, String> resetPassword(String code, String newPassword) {
-        Map<String, String> uriVariables = new HashMap<>();
-        uriVariables.put("baseUrl", uaaBaseUrl);
-
-        Map<String, String> formData = new HashMap<>();
-        formData.put("code", code);
-        formData.put("new_password", newPassword);
 
         try {
-            ResponseEntity<Map<String, String>> responseEntity = uaaTemplate.exchange(
-                "{baseUrl}/password_change",
-                HttpMethod.POST,
-                new HttpEntity<>(formData),
-                new ParameterizedTypeReference<Map<String, String>>() {
-                },
-                uriVariables
-            );
+            PasswordResetEndpoints.PasswordChange change = new PasswordResetEndpoints.PasswordChange();
+            change.setCode(code);
+            change.setNewPassword(newPassword);
+            ResponseEntity<Map<String, String>> responseEntity = passwordResetEndpoints.changePassword(change);
+            if (responseEntity.getStatusCode()==HttpStatus.BAD_REQUEST) {
+                throw new UaaException("Invalid password reset request.");
+            }
             return responseEntity.getBody();
         } catch (RestClientException e) {
             throw new UaaException(e.getMessage());
