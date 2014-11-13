@@ -14,6 +14,7 @@ import org.springframework.security.oauth2.client.test.OAuth2ContextSetup;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
+import java.util.UUID;
 
 import static org.junit.Assert.*;
 
@@ -51,6 +52,8 @@ public class IdentityZoneEndpointsIntegrationTests {
     @Test
     public void testCreateZone() {
         IdentityZone idZone = new IdentityZone();
+        String id = UUID.randomUUID().toString();
+        idZone.setId(id);
         idZone.setSubDomain("subdomain.domain.io");
         idZone.setName("twiglet service");
 
@@ -58,6 +61,6 @@ public class IdentityZoneEndpointsIntegrationTests {
 
         assertEquals("subdomain.domain.io", responseEntity.getBody().getSubDomain());
         assertEquals("twiglet service", responseEntity.getBody().getName());
-        assertNotNull(responseEntity.getBody().getId());
+        assertEquals(id,responseEntity.getBody().getId());
     }
 }
