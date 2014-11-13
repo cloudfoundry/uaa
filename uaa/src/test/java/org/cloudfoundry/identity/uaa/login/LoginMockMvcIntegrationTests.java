@@ -12,6 +12,23 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+
+import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
+import org.junit.After;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.security.web.FilterChainProxy;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.web.WebAppConfiguration;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.support.XmlWebApplicationContext;
+
+import java.util.Arrays;
+import java.util.Map;
+
 import static org.hamcrest.Matchers.hasEntry;
 import static org.springframework.http.MediaType.TEXT_HTML;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -20,44 +37,32 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
 
-import org.cloudfoundry.identity.uaa.login.test.DefaultTestConfig;
-import org.cloudfoundry.identity.uaa.login.test.DefaultTestConfigContextLoader;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.security.web.FilterChainProxy;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.test.context.web.WebAppConfiguration;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.WebApplicationContext;
-
-import java.util.Arrays;
-import java.util.Map;
-
-@RunWith(SpringJUnit4ClassRunner.class)
-@WebAppConfiguration
-@ContextConfiguration(classes = DefaultTestConfig.class, loader = DefaultTestConfigContextLoader.class)
 public class LoginMockMvcIntegrationTests {
 
-    @Autowired
-    WebApplicationContext webApplicationContext;
+    XmlWebApplicationContext webApplicationContext;
 
-    @Autowired
-    @Qualifier("springSecurityFilterChain")
-    FilterChainProxy filterChainProxy;
+    FilterChainProxy springSecurityFilterChain;
 
     private MockMvc mockMvc;
 
     @Before
     public void setUp() throws Exception {
+        webApplicationContext = new XmlWebApplicationContext();
+        new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "login.yml,uaa.yml");
+        webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        webApplicationContext.refresh();
+        springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
+        XFrameOptionsFilter xFrameOptionsFilter = webApplicationContext.getBean(XFrameOptionsFilter.class);
+
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
-                .addFilter(filterChainProxy)
-                .build();
+            .addFilter(springSecurityFilterChain)
+            .addFilter(xFrameOptionsFilter)
+            .build();
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        webApplicationContext.destroy();
     }
 
     @Test

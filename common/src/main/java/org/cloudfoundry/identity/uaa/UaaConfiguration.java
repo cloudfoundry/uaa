@@ -80,7 +80,11 @@ public class UaaConfiguration {
     @Valid
     public Map<String,Object> notifications;
     @Valid
+    public Map<String,Object> uaa;
+    @Valid
     public String assetBaseUrl;
+    @Valid
+    public String LOGIN_SECRET;
 
     public static class CloudController {
         @Valid

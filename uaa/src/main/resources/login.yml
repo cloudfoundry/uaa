@@ -31,7 +31,7 @@
 links:
   # Custom external create account link
   #signup: http://some-oauth-client.example.com/signup
-  passwd: http://localhost:8080/login/forgot_password
+  passwd: http://localhost:8080/uaa/forgot_password
 
 #notifications:
 #  url: http://localhost:3001

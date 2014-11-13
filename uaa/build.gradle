@@ -42,8 +42,11 @@ dependencies {
     exclude(module: 'commons-logging')
   }
   runtime group: 'postgresql', name: 'postgresql', version:parent.postgresqlVersion
+
   testCompile identityCommon.configurations.testCompile.dependencies
   testCompile identityCommon.sourceSets.test.output
+  testCompile identityLogin.sourceSets.test.output
+
   testCompile(group: 'org.apache.directory.server', name: 'apacheds-core', version:'1.5.5') {
     exclude(module: 'slf4j-api')
     exclude(module: 'slf4j-log4j12')

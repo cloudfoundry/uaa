@@ -16,6 +16,7 @@ import java.util.Set;
 
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.test.DefaultIntegrationTestConfig;
+import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,32 +28,27 @@ import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
+import org.springframework.web.context.support.XmlWebApplicationContext;
 
 public class CheckDefaultAuthoritiesMvcMockTests {
 
-    AnnotationConfigWebApplicationContext webApplicationContext;
+    XmlWebApplicationContext webApplicationContext;
     ClientRegistrationService clientRegistrationService;
     private MockMvc mockMvc;
     private Set<String> defaultAuthorities;
 
     @Before
     public void setUp() throws Exception {
-        MockServletContext context = new MockServletContext();
-        MockServletConfig config = new MockServletConfig(context);
-        config.addInitParameter("environmentConfigDefaults", "uaa.yml,login.yml");
-
-        webApplicationContext = new AnnotationConfigWebApplicationContext();
-        webApplicationContext.setServletContext(context);
-        webApplicationContext.setServletConfig(config);
-        new YamlServletProfileInitializer().initialize(webApplicationContext);
-        webApplicationContext.register(DefaultIntegrationTestConfig.class);
+        webApplicationContext = new XmlWebApplicationContext();
+        webApplicationContext.setServletContext(new MockServletContext());
+        new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "uaa.yml,login.yml");
+        webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         webApplicationContext.refresh();
-        webApplicationContext.registerShutdownHook();
         FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
-        clientRegistrationService = (ClientRegistrationService) webApplicationContext.getBean("clientRegistrationService");
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
-            .addFilter(springSecurityFilterChain)
+
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).addFilter(springSecurityFilterChain)
             .build();
+        clientRegistrationService = (ClientRegistrationService) webApplicationContext.getBean("clientRegistrationService");
 
         defaultAuthorities = (Set<String>) webApplicationContext.getBean("defaultUserAuthorities");
     }

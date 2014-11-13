@@ -66,6 +66,7 @@ public class AccountsControllerIntegrationTest {
             .build();
 
         userEmail = "user" +new RandomValueStringGenerator().generate()+ "@example.com";
+        Assert.assertNotNull(webApplicationContext.getBean("messageService"));
     }
 
     @After
