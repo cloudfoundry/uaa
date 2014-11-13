@@ -114,7 +114,7 @@ public class BootstrapTests {
         System.setProperty("login.idpMetadataFile", "./src/test/resources/test.saml.metadata");
         System.setProperty("login.idpEntityAlias", "testIDPFile");
         System.setProperty("login.saml.metadataTrustCheck", "false");
-        context = getServletContext("saml,fileMetadata", "./src/main/resources/login.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        context = getServletContext("default,saml,fileMetadata", "./src/main/resources/login.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         assertNotNull(context.getBean("viewResolver", ViewResolver.class));
         assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
         assertFalse(context.getBean(IdentityProviderConfigurator.class).isLegacyMetadataTrustCheck());
@@ -128,7 +128,7 @@ public class BootstrapTests {
         String metadataString = new Scanner(new File("./src/main/resources/sample-okta-localhost.xml")).useDelimiter("\\Z").next();
         System.setProperty("login.idpMetadata", metadataString);
         System.setProperty("login.idpEntityAlias", "testIDPData");
-        context = getServletContext("saml,configMetadata", "./src/main/resources/login.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        context = getServletContext("default,saml,configMetadata", "./src/main/resources/login.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         assertEquals(
             IdentityProviderDefinition.MetadataLocation.DATA,
             context.getBean(IdentityProviderConfigurator.class).getIdentityProviderDefinitions().get(0).getType());
@@ -176,6 +176,7 @@ public class BootstrapTests {
     }
 
     private GenericXmlApplicationContext getServletContext(String profiles, String loginYmlPath, String... resources) {
+        System.setProperty("environmentYamlKey", loginYmlPath);
         GenericXmlApplicationContext context = new GenericXmlApplicationContext();
 
         if (profiles != null) {
