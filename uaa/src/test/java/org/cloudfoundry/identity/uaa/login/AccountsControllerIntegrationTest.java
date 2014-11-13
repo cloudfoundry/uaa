@@ -1,10 +1,13 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import com.dumbster.smtp.SimpleSmtpServer;
+import com.googlecode.flyway.core.Flyway;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.login.test.UaaRestTemplateBeanFactoryPostProcessor;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
@@ -14,6 +17,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.client.MockRestServiceServer;
@@ -25,6 +29,7 @@ import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -38,6 +43,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -48,8 +54,8 @@ public class AccountsControllerIntegrationTest {
     XmlWebApplicationContext webApplicationContext;
 
     private MockMvc mockMvc;
-    private MockRestServiceServer mockUaaServer;
     private static SimpleSmtpServer mailServer;
+    private String userEmail;
 
     @BeforeClass
     public static void startMailServer() throws Exception {
@@ -61,7 +67,7 @@ public class AccountsControllerIntegrationTest {
         webApplicationContext = new XmlWebApplicationContext();
         webApplicationContext.setEnvironment(new MockEnvironment());
         new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "uaa.yml,login.yml");
-        webApplicationContext.setConfigLocation("file:../uaa/src/main/webapp/WEB-INF/spring-servlet.xml");
+        webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         webApplicationContext.addBeanFactoryPostProcessor(new UaaRestTemplateBeanFactoryPostProcessor());
         webApplicationContext.refresh();
         FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
@@ -70,7 +76,13 @@ public class AccountsControllerIntegrationTest {
             .addFilter(springSecurityFilterChain)
             .build();
 
-        mockUaaServer = MockRestServiceServer.createServer(webApplicationContext.getBean("authorizationTemplate", RestTemplate.class));
+        userEmail = "user" +new RandomValueStringGenerator().generate()+ "@example.com";
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        Flyway flyway = webApplicationContext.getBean(Flyway.class);
+        flyway.clean();
     }
 
     @AfterClass
@@ -120,53 +132,12 @@ public class AccountsControllerIntegrationTest {
 
     @Test
     public void testCreatingAnAccount() throws Exception {
-        String scimUserJSONString = "{" +
-            "\"userName\": \"user@example.com\"," +
-            "\"id\": \"newly-created-user-id\"," +
-            "\"emails\": [{\"value\":\"user@example.com\"}]" +
-            "}";
-        mockUaaServer.expect(requestTo("http://localhost:8080/uaa/Users"))
-            .andExpect(method(POST))
-            .andExpect(jsonPath("$.userName").value("user@example.com"))
-            .andExpect(jsonPath("$.password").value("secret"))
-            .andExpect(jsonPath("$.origin").value("uaa"))
-            .andExpect(jsonPath("$.verified").value(false))
-            .andExpect(jsonPath("$.emails[0].value").value("user@example.com"))
-            .andRespond(withSuccess(scimUserJSONString, APPLICATION_JSON));
-
-        mockUaaServer.expect(requestTo("http://localhost:8080/uaa/Codes"))
-                .andExpect(method(HttpMethod.POST))
-                .andRespond(withSuccess("{\"code\":\"the_secret_code\"," +
-                                "\"expiresAt\":1406152741265," +
-                                "\"data\":\"{\\\"user_id\\\":\\\"newly-created-user-id\\\",\\\"client_id\\\":\\\"app\\\"}\"}",
-                        APPLICATION_JSON));
-
-        String uaaResponseJson = "{" +
-            "    \"code\":\"the_secret_code\"," +
-            "    \"expiresAt\":1406152741265," +
-            "    \"data\":\"{\\\"user_id\\\":\\\"newly-created-user-id\\\",\\\"client_id\\\":\\\"app\\\"}\"" +
-            "}";
-        mockUaaServer.expect(requestTo("http://localhost:8080/uaa/Codes/the_secret_code"))
-            .andExpect(method(GET))
-            .andRespond(withSuccess(uaaResponseJson, APPLICATION_JSON));
-
-        mockUaaServer.expect(requestTo("http://localhost:8080/uaa/Users/newly-created-user-id/verify"))
-            .andExpect(method(GET))
-            .andRespond(withSuccess(scimUserJSONString, APPLICATION_JSON));
-
-        Map<String,Object> additionalInformation = new HashMap<>();
-        additionalInformation.put("signup_redirect_url", "http://example.com/redirect");
-
-        String clientDetails = "{" +
-            "\"client_id\": \"app\"," +
-            "\"signup_redirect_url\": \"http://example.com/redirect\"" +
-            "}";
-        mockUaaServer.expect(requestTo("http://localhost:8080/uaa/oauth/clients/app"))
-            .andExpect(method(GET))
-            .andRespond(withSuccess(clientDetails, APPLICATION_JSON));
+        PredictableGenerator generator = new PredictableGenerator();
+        JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
+        store.setGenerator(generator);
 
         mockMvc.perform(post("/create_account.do")
-                    .param("email", "user@example.com")
+                    .param("email", userEmail)
                     .param("password", "secret")
                     .param("password_confirmation", "secret")
                     .param("client_id", "app"))
@@ -174,17 +145,25 @@ public class AccountsControllerIntegrationTest {
                 .andExpect(redirectedUrl("accounts/email_sent"));
 
         MvcResult mvcResult = mockMvc.perform(get("/verify_user")
-                .param("code", "the_secret_code"))
+                .param("code", "test"+generator.counter.get()))
+            .andDo(print())
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("http://example.com/redirect"))
+            .andExpect(redirectedUrl("http://localhost:8080/app/"))
             .andReturn();
 
         SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
         Authentication authentication = securityContext.getAuthentication();
         Assert.assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
-        Assert.assertThat(principal.getId(), equalTo("newly-created-user-id"));
-        Assert.assertThat(principal.getEmail(), equalTo("user@example.com"));
+        Assert.assertThat(principal.getEmail(), equalTo(userEmail));
         Assert.assertThat(principal.getOrigin(), equalTo(Origin.UAA));
+    }
+
+    public static class PredictableGenerator extends RandomValueStringGenerator {
+        public AtomicInteger counter = new AtomicInteger(1);
+        @Override
+        public String generate() {
+            return  "test"+counter.incrementAndGet();
+        }
     }
 }

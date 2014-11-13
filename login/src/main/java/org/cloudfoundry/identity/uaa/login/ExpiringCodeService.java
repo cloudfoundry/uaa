@@ -9,7 +9,7 @@ public interface ExpiringCodeService {
     <T> T verifyCode(Class<T> clazz, String code) throws CodeNotFoundException, IOException;
     Map<String, String> verifyCode(String code) throws CodeNotFoundException, IOException;
     
-    public class CodeNotFoundException extends Exception {
+    public static class CodeNotFoundException extends Exception {
 
         public CodeNotFoundException() {
             super();
