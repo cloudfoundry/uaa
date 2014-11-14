@@ -48,10 +48,12 @@ dependencies {
   testCompile identityLogin.sourceSets.test.output
 
   testCompile(group: 'org.apache.directory.server', name: 'apacheds-core', version:'1.5.5') {
+    exclude(module: 'bcprov-jdk15')
     exclude(module: 'slf4j-api')
     exclude(module: 'slf4j-log4j12')
   }
   testCompile(group: 'org.apache.directory.server', name: 'apacheds-protocol-ldap', version:'1.5.5') {
+    exclude(module: 'bcprov-jdk15')
     exclude(module: 'slf4j-api')
     exclude(module: 'slf4j-log4j12')
   }
