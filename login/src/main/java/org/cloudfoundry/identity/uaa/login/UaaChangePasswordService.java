@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpoints;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
@@ -19,21 +20,18 @@ import java.util.Map;
 
 public class UaaChangePasswordService implements ChangePasswordService {
 
-    private final RestTemplate uaaTemplate;
-    private final String uaaBaseUrl;
+    private final PasswordResetEndpoints passwordResetEndpoints;
 
-    public UaaChangePasswordService(RestTemplate authorizationTemplate, String uaaBaseUrl) {
-        this.uaaTemplate = authorizationTemplate;
-        this.uaaBaseUrl = uaaBaseUrl;
+    public UaaChangePasswordService(PasswordResetEndpoints passwordResetEndpoints) {
+        this.passwordResetEndpoints= passwordResetEndpoints;
     }
 
     @Override
     public void changePassword(String username, String currentPassword, String newPassword) {
-        Map<String, String> formData = new HashMap<String, String>();
-        formData.put("username", username);
-        formData.put("current_password", currentPassword);
-        formData.put("new_password", newPassword);
-
-        uaaTemplate.postForObject(uaaBaseUrl + "/password_change", formData, String.class);
+        PasswordResetEndpoints.PasswordChange change = new PasswordResetEndpoints.PasswordChange();
+        change.setUsername(username);
+        change.setCurrentPassword(currentPassword);
+        change.setNewPassword(newPassword);
+        passwordResetEndpoints.changePassword(change);
     }
 }

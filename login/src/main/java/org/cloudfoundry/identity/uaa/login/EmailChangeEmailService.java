@@ -1,34 +1,29 @@
 package org.cloudfoundry.identity.uaa.login;
 
-import org.cloudfoundry.identity.uaa.error.UaaException;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-import org.thymeleaf.TemplateEngine;
-import org.thymeleaf.context.Context;
-
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.springframework.http.HttpMethod.POST;
+import org.cloudfoundry.identity.uaa.error.UaaException;
+import org.cloudfoundry.identity.uaa.scim.endpoints.ChangeEmailEndpoints;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
 
 public class EmailChangeEmailService implements ChangeEmailService {
 
     private final TemplateEngine templateEngine;
     private final MessageService messageService;
-    private final RestTemplate uaaTemplate;
-    private final String uaaBaseUrl;
     private final String brand;
+    private final ChangeEmailEndpoints endpoints;
 
-    public EmailChangeEmailService(TemplateEngine templateEngine, MessageService messageService, RestTemplate uaaTemplate, String uaaBaseUrl, String brand) {
+    public EmailChangeEmailService(TemplateEngine templateEngine, MessageService messageService, String brand, ChangeEmailEndpoints endpoints) {
         this.templateEngine = templateEngine;
         this.messageService = messageService;
-        this.uaaTemplate = uaaTemplate;
-        this.uaaBaseUrl = uaaBaseUrl;
         this.brand = brand;
+        this.endpoints = endpoints;
     }
 
     @Override
@@ -37,30 +32,43 @@ public class EmailChangeEmailService implements ChangeEmailService {
         request.put("userId", userId);
         request.put("email", newEmail);
         request.put("client_id", clientId);
-        String expiringCode;
-        try {
-            expiringCode = uaaTemplate.postForObject(uaaBaseUrl + "/email_verifications", request, String.class);
-        } catch (HttpClientErrorException e) {
-            throw new UaaException(e.getStatusText(), e.getStatusCode().value());
+        ChangeEmailEndpoints.EmailChange change = new ChangeEmailEndpoints.EmailChange();
+        change.setClientId(clientId);
+        change.setEmail(newEmail);
+        change.setUserId(userId);
+        ResponseEntity<String> result = endpoints.generateEmailVerificationCode(change);
+        String htmlContent = null;
+        if (result.getStatusCode()== HttpStatus.CONFLICT) {
+            throw new UaaException("Conflict", 409);
+        } else if (result.getStatusCode()==HttpStatus.CREATED) {
+            htmlContent = getEmailChangeEmailHtml(email, newEmail, result.getBody());
         }
-        String subject = getSubjectText();
-        String htmlContent = getEmailChangeEmailHtml(email, newEmail, expiringCode);
 
         if(htmlContent != null) {
+            String subject = getSubjectText();
             messageService.sendMessage(null, newEmail, MessageType.CHANGE_EMAIL, subject, htmlContent);
         }
     }
 
     @Override
     public Map<String, String> completeVerification(String code) {
-        ResponseEntity<Map<String, String>> responseEntity;
+        ResponseEntity<ChangeEmailEndpoints.EmailChangeResponse> responseEntity;
+        ChangeEmailEndpoints.EmailChangeResponse response = null;
         try {
-            responseEntity = uaaTemplate.exchange(uaaBaseUrl + "/email_changes", POST, new HttpEntity<>(code), new ParameterizedTypeReference<Map<String, String>>() {
-                });
-        } catch (HttpClientErrorException e) {
-            throw new UaaException(e.getStatusText(), e.getStatusCode().value());
+            responseEntity = endpoints.changeEmail(code);
+            if (responseEntity.getStatusCode()==HttpStatus.OK) {
+                response = responseEntity.getBody();
+            } else {
+                throw new UaaException("Error",responseEntity.getStatusCode().value());
+            }
+        } catch (IOException e) {
+            throw new UaaException(e.getMessage(), e);
         }
-        return responseEntity.getBody();
+        Map<String,String> result = new HashMap<>();
+        result.put("userId", response.getUserId());
+        result.put("username", response.getUsername());
+        result.put("email",response.getEmail());
+        return result;
     }
 
     private String getSubjectText() {

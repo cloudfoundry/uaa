@@ -24,6 +24,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.client.SocialClientUserDetails;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -46,44 +47,18 @@ public class AutologinAuthenticationManager implements AuthenticationManager {
 
     private Log logger = LogFactory.getLog(getClass());
 
-    private RestTemplate authorizationTemplate;
-    private String uaaBaseUrl;
+    private ExpiringCodeStore codeStore;
 
-    public String getUaaBaseUrl() {
-        return uaaBaseUrl;
+    public ExpiringCodeStore getExpiringCodeStore() {
+        return codeStore;
     }
 
-    public void setUaaBaseUrl(String uaaBaseUrl) {
-        this.uaaBaseUrl = uaaBaseUrl;
-    }
-
-    public RestTemplate getAuthorizationTemplate() {
-        return authorizationTemplate;
-    }
-
-    public void setAuthorizationTemplate(RestTemplate authorizationTemplate) {
-        this.authorizationTemplate = authorizationTemplate;
+    public void setExpiringCodeStore(ExpiringCodeStore expiringCodeStore) {
+        this.codeStore= expiringCodeStore;
     }
 
     public ExpiringCode doRetrieveCode(String code) {
-        HttpHeaders requestHeaders = new HttpHeaders();
-        requestHeaders.add("Accept", MediaType.APPLICATION_JSON_VALUE);
-
-        HttpEntity<ExpiringCode> requestEntity = new HttpEntity<ExpiringCode>(null, requestHeaders);
-
-        ResponseEntity<ExpiringCode> response = authorizationTemplate.exchange(getUaaBaseUrl() + "/Codes/" + code,
-                        HttpMethod.GET,
-                        requestEntity, ExpiringCode.class);
-
-        if (response.getStatusCode().equals(HttpStatus.NOT_FOUND)) {
-            return null;
-        } else if (response.getStatusCode() != HttpStatus.OK) {
-            logger.warn("Request failed: " + requestEntity);
-            // TODO throw exception with the correct error
-            throw new RuntimeException(String.valueOf(response.getStatusCode()));
-        }
-
-        return response.getBody();
+        return codeStore.retrieveCode(code);
     }
 
     @Override

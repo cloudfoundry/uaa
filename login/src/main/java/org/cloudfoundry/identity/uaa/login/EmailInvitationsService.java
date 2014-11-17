@@ -5,7 +5,9 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.login.AccountCreationService.ExistingUserResponse;
 import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
+import org.cloudfoundry.identity.uaa.oauth.ClientAdminEndpoints;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -32,15 +34,17 @@ public class EmailInvitationsService implements InvitationsService {
 
     private final SpringTemplateEngine templateEngine;
     private final MessageService messageService;
-    private final String uaaBaseUrl;
+
+    @Autowired
+    private ScimUserProvisioning scimUserProvisioning;
+
 
     private String brand;
 
-    public EmailInvitationsService(SpringTemplateEngine templateEngine, MessageService messageService, String brand, String uaaBaseUrl) {
+    public EmailInvitationsService(SpringTemplateEngine templateEngine, MessageService messageService, String brand) {
         this.templateEngine = templateEngine;
         this.messageService = messageService;
         this.brand = brand;
-        this.uaaBaseUrl = uaaBaseUrl;
     }
 
     public void setBrand(String brand) {
@@ -54,7 +58,7 @@ public class EmailInvitationsService implements InvitationsService {
     private ExpiringCodeService expiringCodeService;
 
     @Autowired
-    private RestTemplate authorizationTemplate;
+    private ClientAdminEndpoints clientAdminEndpoints;
 
     private void sendInvitationEmail(String email, String userId, String currentUser, String code) {
         String subject = getSubjectText();
@@ -111,16 +115,22 @@ public class EmailInvitationsService implements InvitationsService {
 
     @Override
     public String acceptInvitation(String userId, String email, String password, String clientId) {
-        authorizationTemplate.getForEntity(uaaBaseUrl + "/Users/" + userId + "/verify",Object.class);
+        ScimUser user = scimUserProvisioning.retrieve(userId);
+        scimUserProvisioning.verifyUser(user.getId(), user.getVersion());
 
         PasswordChangeRequest request = new PasswordChangeRequest();
         request.setPassword(password);
-        authorizationTemplate.put(uaaBaseUrl + "/Users/" + userId + "/password", request);
+
+        scimUserProvisioning.changePassword(userId, null, password);
 
         String redirectLocation = null;
         if (clientId != null && !clientId.equals("")) {
-            ClientDetails clientDetails = authorizationTemplate.getForObject(uaaBaseUrl + "/oauth/clients/" + clientId, BaseClientDetails.class);
-            redirectLocation = (String) clientDetails.getAdditionalInformation().get(INVITATION_REDIRECT_URL);
+            try {
+                ClientDetails clientDetails = clientAdminEndpoints.getClientDetails(clientId);
+                redirectLocation = (String) clientDetails.getAdditionalInformation().get(INVITATION_REDIRECT_URL);
+            }catch (Exception x) {
+                throw new RuntimeException(x);
+            }
         }
 
         return redirectLocation;

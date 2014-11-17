@@ -9,22 +9,18 @@ import java.util.Map;
 
 public class NotificationsService implements MessageService {
     private final RestTemplate notificationsTemplate;
-    private final RestTemplate uaaTemplate;
     private final String notificationsUrl;
     private final Map<MessageType,HashMap<String, Object>> notifications;
-    private final String uaaUrl;
 
     private Boolean isNotificationsRegistered = false;
     public Boolean getIsNotificationsRegistered() {
         return isNotificationsRegistered;
     }
 
-    public NotificationsService(RestTemplate notificationsTemplate, String notificationsUrl, Map<MessageType, HashMap<String, Object>> notifications, RestTemplate uaaTemplate, String uaaUrl) {
+    public NotificationsService(RestTemplate notificationsTemplate, String notificationsUrl, Map<MessageType, HashMap<String, Object>> notifications) {
         this.notificationsTemplate = notificationsTemplate;
         this.notificationsUrl = notificationsUrl;
         this.notifications = notifications;
-        this.uaaTemplate = uaaTemplate;
-        this.uaaUrl = uaaUrl;
     }
 
     @Override

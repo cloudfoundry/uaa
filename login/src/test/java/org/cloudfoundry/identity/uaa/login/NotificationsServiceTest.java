@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.login;
 
+import org.cloudfoundry.identity.uaa.codestore.InMemoryExpiringCodeStore;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -43,7 +44,7 @@ public class NotificationsServiceTest {
         passwordResetNotification.put("critical", true);
         notifications.put(MessageType.PASSWORD_RESET, passwordResetNotification);
 
-        notificationsService = new NotificationsService(notificationsTemplate, "http://notifications.example.com", notifications, uaaTemplate, "http://uaa.com");
+        notificationsService = new NotificationsService(notificationsTemplate, "http://notifications.example.com", notifications);
 
         response = new HashMap<>();
         List<Map<String, String>> resources = new ArrayList<>();

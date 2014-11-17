@@ -33,9 +33,6 @@
     <oauth:resource id="uaa" access-token-uri="${uaa.token.url:http://localhost:8080/uaa/oauth/token}"
                     client-id="login" client-secret="${LOGIN_SECRET:loginsecret}" type="client_credentials" />
     <oauth:rest-template id="notificationsTemplate" resource="uaa" />
-    <oauth:rest-template id="authorizationTemplate" resource="uaa" />
-    <oauth:rest-template id="loginAuthorizationTemplate" resource="uaa" />
-    <oauth:rest-template id="remoteAuthManagerAuthorizationTemplate" resource="uaa" />
 
     <context:annotation-config />
 
@@ -234,8 +231,7 @@
     </bean>
 
     <bean id="autologinAuthenticationManager" class="org.cloudfoundry.identity.uaa.login.AutologinAuthenticationManager">
-        <property name="uaaBaseUrl" ref="uaaUrl" />
-        <property name="authorizationTemplate" ref="loginAuthorizationTemplate" />
+        <property name="expiringCodeStore" ref="codeStore" />
     </bean>
 
     <!-- Pattern: /oauth/authorize parameters:{response_type=code,code=?} -->
@@ -336,8 +332,6 @@
         <constructor-arg ref="notificationsTemplate"/>
         <constructor-arg ref="notificationsUrl"/>
         <constructor-arg ref="notifications"/>
-        <constructor-arg ref="loginAuthorizationTemplate"/>
-        <constructor-arg ref="uaaUrl"/>
     </bean>
 
     <bean id="accountCreationService" class="org.cloudfoundry.identity.uaa.login.EmailAccountCreationService">
@@ -358,12 +352,10 @@
         <constructor-arg ref="mailTemplateEngine"/>
         <constructor-arg ref="messageService"/>
         <constructor-arg value="${login.brand:oss}"/>
-        <constructor-arg value="${uaa.url:http://localhost:8080/uaa}"/>
     </bean>
 
     <bean id="changePasswordService" class="org.cloudfoundry.identity.uaa.login.UaaChangePasswordService">
-        <constructor-arg ref="loginAuthorizationTemplate"/>
-        <constructor-arg ref="uaaUrl"/>
+        <constructor-arg ref="passwordResetEndpoints"/>
     </bean>
 
     <bean id="changePasswordController" class="org.cloudfoundry.identity.uaa.login.ChangePasswordController">
@@ -381,8 +373,7 @@
     <bean id="changeEmailService" class="org.cloudfoundry.identity.uaa.login.EmailChangeEmailService">
         <constructor-arg ref="mailTemplateEngine"/>
         <constructor-arg ref="messageService"/>
-        <constructor-arg ref="loginAuthorizationTemplate"/>
-        <constructor-arg ref="uaaUrl"/>
+        <constructor-arg ref="changeEmailEndpoints"/>
         <constructor-arg value="${login.brand:oss}"/>
     </bean>
 
@@ -395,8 +386,7 @@
     </bean>
     
     <bean class="org.cloudfoundry.identity.uaa.login.UaaExpiringCodeService">
-        <constructor-arg ref="loginAuthorizationTemplate"/>
-        <constructor-arg value="${uaa.url:http://localhost:8080/uaa}"/>
+        <constructor-arg ref="codeStore"/>
     </bean>
 
 </beans>

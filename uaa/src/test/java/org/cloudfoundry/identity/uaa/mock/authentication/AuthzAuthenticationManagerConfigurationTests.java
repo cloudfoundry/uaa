@@ -15,26 +15,20 @@
 
 package org.cloudfoundry.identity.uaa.mock.authentication;
 
-import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
-import org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager;
-import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
-import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
-import org.cloudfoundry.identity.uaa.login.test.UaaRestTemplateBeanFactoryPostProcessor;
-import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
-import org.junit.Before;
-import org.junit.Test;
-import org.springframework.mock.env.MockEnvironment;
-import org.springframework.mock.web.MockServletContext;
-import org.springframework.security.web.FilterChainProxy;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.support.XmlWebApplicationContext;
-
 import java.util.Arrays;
 import java.util.List;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
+import org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager;
+import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
+import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.mock.env.MockEnvironment;
+import org.springframework.web.context.support.XmlWebApplicationContext;
 
 public class AuthzAuthenticationManagerConfigurationTests {
 
@@ -48,7 +42,6 @@ public class AuthzAuthenticationManagerConfigurationTests {
         webApplicationContext.setEnvironment(environment);
         new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "uaa.yml,login.yml");
         webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
-        webApplicationContext.addBeanFactoryPostProcessor(new UaaRestTemplateBeanFactoryPostProcessor());
     }
     /**
      * We have a condition in the AutzhAuthenticationManager that automatically
