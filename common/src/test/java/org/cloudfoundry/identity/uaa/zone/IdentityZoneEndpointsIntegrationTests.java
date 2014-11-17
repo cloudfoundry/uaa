@@ -6,6 +6,10 @@ import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.security.oauth2.client.http.OAuth2ErrorHandler;
@@ -35,7 +39,7 @@ public class IdentityZoneEndpointsIntegrationTests {
 
     @Before
     public void createRestTemplate() throws Exception {
-        client = (RestTemplate)serverRunning.getRestTemplate();
+        client = (RestTemplate) serverRunning.getRestTemplate();
         client.setErrorHandler(new OAuth2ErrorHandler(context.getResource()) {
             // Pass errors through in response entity for status code analysis
             @Override
@@ -54,13 +58,14 @@ public class IdentityZoneEndpointsIntegrationTests {
         IdentityZone idZone = new IdentityZone();
         String id = UUID.randomUUID().toString();
         idZone.setId(id);
-        idZone.setSubDomain("subdomain.domain.io");
+        idZone.setSubDomain("subdomain");
         idZone.setName("twiglet service");
-
-        ResponseEntity<IdentityZone> responseEntity = client.postForEntity(serverRunning.getUrl("/identity-zones"), idZone, IdentityZone.class);
-
-        assertEquals("subdomain.domain.io", responseEntity.getBody().getSubDomain());
-        assertEquals("twiglet service", responseEntity.getBody().getName());
-        assertEquals(id,responseEntity.getBody().getId());
+        ResponseEntity<Void> response = client.exchange(
+                serverRunning.getUrl("/identity-zones/{id}"), 
+                HttpMethod.PUT,
+                new HttpEntity<IdentityZone>(idZone), 
+                new ParameterizedTypeReference<Void>() {}, 
+                id);
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
     }
 }
