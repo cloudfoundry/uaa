@@ -20,6 +20,8 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning {
     public static final String CREATE_IDENTITY_ZONE_SQL = "insert into identity_zone(" + ID_ZONE_FIELDS + ") values (?,?,?,?,?,?,?)";
 
     public static final String IDENTITY_ZONE_BY_ID_QUERY = "select " + ID_ZONE_FIELDS + " from identity_zone " + "where id=?";
+    
+    public static final String IDENTITY_ZONE_BY_SUBDOMAIN_QUERY = "select " + ID_ZONE_FIELDS + " from identity_zone " + "where subdomain=?";
 
     protected final JdbcTemplate jdbcTemplate;
 
@@ -33,6 +35,12 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning {
     @Override
     public IdentityZone retrieve(String id) {
         IdentityZone identityZone = jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_ID_QUERY, mapper, id);
+        return identityZone;
+    }
+
+    @Override
+    public IdentityZone retrieveBySubdomain(String subdomain) {
+        IdentityZone identityZone = jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_SUBDOMAIN_QUERY, mapper, subdomain);
         return identityZone;
     }
 
@@ -76,4 +84,5 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning {
             return identityZone;
         }
     }
+
 }

@@ -45,7 +45,7 @@ public class MultitenantMigrator implements InitializingBean {
                 protected void doInTransactionWithoutResult(TransactionStatus status) {
                     String uaaZoneId = "uaa";
                     String tempZoneId = "temp";
-                    jdbcTemplate.update("insert into identity_zone VALUES (?,?,?,0,'uaa','uaa','The system zone')", uaaZoneId, t, t);
+                    jdbcTemplate.update("insert into identity_zone VALUES (?,?,?,0,'','uaa','The system zone')", uaaZoneId, t, t);
                     jdbcTemplate.update("insert into identity_zone VALUES (?,?,?,0,'temp','temp','temp')", tempZoneId, t, t);
                     String uaaIdpId = UUID.randomUUID().toString();
                     jdbcTemplate.update("insert into identity_provider VALUES (?,?,?,0,?,'uaa_internal','uaa','INTERNAL',null)", uaaIdpId, t, t, uaaZoneId);

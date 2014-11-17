@@ -72,7 +72,14 @@
               </entry>
             </map>
         </property>
+        <property name="additionalFilters">
+        	<map>
+        		<entry key="1" value-ref="identityZoneResolvingFilter"/>
+        	</map>
+        </property>
     </bean>
+    
+    <bean id="identityZoneResolvingFilter" class="org.cloudfoundry.identity.uaa.zone.IdentityZoneResolvingFilter"/>
 
 
     <import resource="spring/oauth-clients.xml" />

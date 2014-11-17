@@ -68,4 +68,5 @@ public class IdentityZoneEndpointsIntegrationTests {
                 id);
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
     }
+    
 }
