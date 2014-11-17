@@ -18,7 +18,7 @@ import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -46,26 +46,21 @@ public class IdentityZoneEndpointsMockMvcTests {
 
     @Test
     public void testCreateZone() throws Exception {
-        IdentityZone identityZone = getIdentityZone(UUID.randomUUID().toString());
+        IdentityZone identityZone = getIdentityZone("mysubdomain");
+        String id = UUID.randomUUID().toString();
 
-        MvcResult result = mockMvc.perform(post("/identity-zones")
-                                            .contentType(APPLICATION_JSON)
-                                            .accept(APPLICATION_JSON)
-                                            .content(new ObjectMapper().writeValueAsString(identityZone)))
+        mockMvc.perform(put("/identity-zones/" + id)
+                                    .contentType(APPLICATION_JSON)
+                                    .content(new ObjectMapper().writeValueAsString(identityZone)))
                                     .andExpect(status().isCreated())
-                                    .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
+                                    .andExpect(content().string(""))
                                     .andReturn();
 
-        IdentityZone createdIdentityZone = new ObjectMapper().readValue(result.getResponse().getContentAsString(), IdentityZone.class);
-        assertEquals(identityZone.getSubDomain(), createdIdentityZone.getSubDomain());
-        assertEquals(identityZone.getName(), createdIdentityZone.getName());
-        assertEquals(identityZone.getDescription(), createdIdentityZone.getDescription());
-        UUID.fromString(createdIdentityZone.getId());
     }
 
-    private IdentityZone getIdentityZone(String salt) {
+    private IdentityZone getIdentityZone(String subdomain) {
         IdentityZone identityZone = new IdentityZone();
-        identityZone.setSubDomain("subdomain-" + salt);
+        identityZone.setSubDomain(subdomain);
         identityZone.setName("The Twiglet Zone");
         identityZone.setDescription("Like the Twilight Zone but tastier.");
         return identityZone;
@@ -74,30 +69,35 @@ public class IdentityZoneEndpointsMockMvcTests {
     @Test
     public void testCreateInvalidZone() throws Exception {
         IdentityZone identityZone = new IdentityZone();
+        String id = UUID.randomUUID().toString();
 
-        mockMvc.perform(post("/identity-zones")
+        mockMvc.perform(put("/identity-zones/" + id)
             .contentType(APPLICATION_JSON)
-            .accept(APPLICATION_JSON)
             .content(new ObjectMapper().writeValueAsString(identityZone)))
-        .andExpect(status().isBadRequest());
+            .andExpect(status().isBadRequest());
     }
+    
+    // update a zone with a subdomain that already exists
+    // update a zone in place  with different data (happy)
+    // update a zone with exactly the same data (happy)
 
     @Test
-    public void testCreateDuplicateZone() throws Exception {
+    public void testCreatesZonesWithDuplicateSubdomains() throws Exception {
         IdentityZone identityZone = new IdentityZone();
         identityZone.setSubDomain("other-subdomain");
         identityZone.setName("The Twiglet Zone 2");
 
-        mockMvc.perform(post("/identity-zones")
+        mockMvc.perform(put("/identity-zones/" + UUID.randomUUID().toString())
                         .contentType(APPLICATION_JSON)
                         .accept(APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(identityZone)))
-                  .andExpect(status().isCreated());
+                        .andExpect(status().isCreated());
 
-        mockMvc.perform(post("/identity-zones")
+        mockMvc.perform(put("/identity-zones/" + UUID.randomUUID().toString())
                         .contentType(APPLICATION_JSON)
                         .accept(APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(identityZone)))
-                  .andExpect(status().isConflict());
+                        .andExpect(status().isConflict());
     }
+    
 }

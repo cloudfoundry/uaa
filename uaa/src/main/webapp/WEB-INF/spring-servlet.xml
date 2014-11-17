@@ -133,10 +133,10 @@
         <property name="identityZoneProvisioning" ref="identityZoneProvisioning" />
     </bean>
 
-    <http pattern="/identity-zones" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
+    <http pattern="/identity-zones/**" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
           entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="userAccessDecisionManager"
           xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/identity-zones" method="POST" />
+        <intercept-url pattern="/identity-zones/**" method="PUT" />
         <custom-filter ref="resourceAgnosticAuthenticationFilter" position="PRE_AUTH_FILTER" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
     </http>

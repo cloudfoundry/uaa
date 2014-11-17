@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.zone;
 
-import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
@@ -33,19 +32,18 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning {
 
     @Override
     public IdentityZone retrieve(String id) {
-            IdentityZone identityZone = jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_ID_QUERY, mapper, id);
-            return identityZone;
+        IdentityZone identityZone = jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_ID_QUERY, mapper, id);
+        return identityZone;
     }
 
     @Override
     public IdentityZone create(final IdentityZone identityZone) {
-        final String id = UUID.randomUUID().toString();
 
         try {
             jdbcTemplate.update(CREATE_IDENTITY_ZONE_SQL, new PreparedStatementSetter() {
                 @Override
                 public void setValues(PreparedStatement ps) throws SQLException {
-                    ps.setString(1, id);
+                    ps.setString(1, identityZone.getId());
                     ps.setInt(2, identityZone.getVersion());
                     ps.setTimestamp(3, new Timestamp(new Date().getTime()));
                     ps.setTimestamp(4, new Timestamp(new Date().getTime()));
@@ -58,7 +56,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning {
             throw new ZoneAlreadyExistsException(e.getMostSpecificCause().getMessage());
         }
 
-        return retrieve(id);
+        return retrieve(identityZone.getId());
     }
 
     private static final class IdentityZoneRowMapper implements RowMapper<IdentityZone> {
