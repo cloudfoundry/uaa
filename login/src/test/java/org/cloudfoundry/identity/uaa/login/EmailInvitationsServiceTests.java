@@ -39,6 +39,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
@@ -76,6 +77,12 @@ public class EmailInvitationsServiceTests {
 
     @Autowired
     MessageService messageService;
+
+    @Autowired
+    ScimUserProvisioning scimUserProvisioning;
+
+    @Autowired
+    ClientAdminEndpoints clientAdminEndpoints;
 
     @Before
     public void setUp() throws Exception {
@@ -208,48 +215,27 @@ public class EmailInvitationsServiceTests {
     @Test
     public void testAcceptInvitation() throws Exception {
 
-//        mockUaaServer.expect(requestTo("http://uaa.example.com/Users/user-id-001/verify"))
-//            .andExpect(method(GET))
-//            .andRespond(withSuccess("{}",APPLICATION_JSON));
-//
-//        String clientDetails = "{" +
-//            "\"client_id\": \"app\"," +
-//            "\"invitation_redirect_url\": \"http://example.com/redirect\"" +
-//            "}";
-//
-//        mockUaaServer.expect(requestTo("http://uaa.example.com/Users/user-id-001/password"))
-//            .andExpect(method(PUT))
-//            .andExpect(jsonPath("$.password").value("secret"))
-//            .andRespond(withSuccess());
-//
-//        mockUaaServer.expect(requestTo("http://uaa.example.com/oauth/clients/app"))
-//            .andExpect(method(GET))
-//            .andRespond(withSuccess(clientDetails, APPLICATION_JSON));
-//
-//        String redirectLocation = emailInvitationsService.acceptInvitation("user-id-001", "user@example.com", "secret", "app");
-//
-//        mockUaaServer.verify();
-//        Mockito.verifyZeroInteractions(expiringCodeService);
-//        assertEquals("http://example.com/redirect", redirectLocation);
+
+        ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
+        BaseClientDetails clientDetails = new BaseClientDetails("app", null, null, null, null, "http://example.com/redirect");
+        clientDetails.addAdditionalInformation("invitation_redirect_url", "http://example.com/redirect");
+        when(scimUserProvisioning.retrieve(eq("user-id-001"))).thenReturn(user);
+        when(clientAdminEndpoints.getClientDetails(eq("app"))).thenReturn(clientDetails);
+        String redirectLocation = emailInvitationsService.acceptInvitation("user-id-001", "user@example.com", "secret", "app");
+
+        Mockito.verifyZeroInteractions(expiringCodeService);
+        assertEquals("http://example.com/redirect", redirectLocation);
     }
 
     @Test
     public void testAcceptInvitationWithNoClientRedirect() throws Exception {
 
-//        mockUaaServer.expect(requestTo("http://uaa.example.com/Users/user-id-001/verify"))
-//            .andExpect(method(GET))
-//            .andRespond(withSuccess("{}",APPLICATION_JSON));
-//
-//        mockUaaServer.expect(requestTo("http://uaa.example.com/Users/user-id-001/password"))
-//            .andExpect(method(PUT))
-//            .andExpect(jsonPath("$.password").value("secret"))
-//            .andRespond(withSuccess());
-//
-//        String redirectLocation = emailInvitationsService.acceptInvitation("user-id-001", "user@example.com", "secret", "");
-//
-//        mockUaaServer.verify();
-//        Mockito.verifyZeroInteractions(expiringCodeService);
-//        assertNull(redirectLocation);
+        ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
+        when(scimUserProvisioning.retrieve(eq("user-id-001"))).thenReturn(user);
+
+        String redirectLocation = emailInvitationsService.acceptInvitation("user-id-001", "user@example.com", "secret", "");
+        Mockito.verifyZeroInteractions(expiringCodeService);
+        assertNull(redirectLocation);
     }
 
     @Configuration
