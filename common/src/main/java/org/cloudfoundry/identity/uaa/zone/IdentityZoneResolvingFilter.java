@@ -1,6 +1,9 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -9,14 +12,13 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 public class IdentityZoneResolvingFilter extends OncePerRequestFilter {
 
     private IdentityZoneProvisioning dao;
 
-    private String uaaHostname;
+    private Set<String> internalHostnames = new HashSet<>();
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -44,11 +46,13 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter {
     }
 
     private String getSubdomain(String hostname) {
-        if (hostname.equals(uaaHostname)) {
+        if (internalHostnames.contains(hostname)) {
             return "";
         }
-        if (hostname.endsWith("." + uaaHostname)) {
-            return hostname.substring(0, hostname.length() - uaaHostname.length() - 1);
+        for (String internalHostname : internalHostnames) {
+            if (hostname.endsWith("." + internalHostname)) {
+                return hostname.substring(0, hostname.length() - internalHostname.length() - 1);
+            }
         }
         return null;
     }
@@ -58,9 +62,10 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter {
         this.dao = dao;
     }
 
-    @Value("${uaaHostname:localhost}")
-    public void setUaaHostname(String uaaHostname) {
-        this.uaaHostname = uaaHostname;
+    @Value("${internalHostnames:localhost}")
+    public void setInternalHostnames(String hostnames) {
+        this.internalHostnames.clear();
+        this.internalHostnames.addAll(Arrays.asList(hostnames.split("[ ,]+")));
     }
 
 }
