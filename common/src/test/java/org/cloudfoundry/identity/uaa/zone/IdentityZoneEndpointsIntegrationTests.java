@@ -71,8 +71,7 @@ public class IdentityZoneEndpointsIntegrationTests {
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
     }
     
-    private static class IdentityClient extends ClientCredentialsResourceDetails {
-        @SuppressWarnings("unused")
+    static class IdentityClient extends ClientCredentialsResourceDetails {
         public IdentityClient(Object target) {
             IdentityZoneEndpointsIntegrationTests test = (IdentityZoneEndpointsIntegrationTests) target;
             ClientCredentialsResourceDetails resource = test.testAccounts.getClientCredentialsResource(
