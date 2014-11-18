@@ -186,7 +186,7 @@ public class AuditCheckMvcMockTests {
             testAccounts.getAdminClientSecret(),
             "uaa.admin,scim.write");
 
-        ScimUser molly = createUser(adminToken, "molly", "Molly", "Collywobble", "molly@example.com", "wobble");
+        ScimUser molly = createUser(adminToken, "molly", "Molly", "Collywobble", "molly@example.com", "wobble", false);
         String mollyId = molly.getId();
 
         MockHttpServletRequestBuilder loginPost = post("/authenticate")
@@ -230,7 +230,7 @@ public class AuditCheckMvcMockTests {
             testAccounts.getAdminClientSecret(),
             "uaa.admin,scim.write");
 
-        ScimUser jacob = createUser(adminToken, "jacob", "Jacob", "Gyllenhammer", "jacob@gyllenhammer.non", null);
+        ScimUser jacob = createUser(adminToken, "jacob", "Jacob", "Gyllenhammer", "jacob@gyllenhammer.non", null, true);
         String jacobId = jacob.getId();
 
         MockHttpServletRequestBuilder loginPost = post("/authenticate")
@@ -667,9 +667,9 @@ public class AuditCheckMvcMockTests {
             testAccounts.getAdminClientSecret(),
             "uaa.admin,scim.write");
 
-        ScimUser jacob = createUser(adminToken, "jacob", "Jacob", "Gyllenhammer", "jacob@gyllenhammer.non", null);
-        ScimUser emily = createUser(adminToken, "emily", "Emily", "Gyllenhammer", "emily@gyllenhammer.non", null);
-        ScimUser jonas = createUser(adminToken, "jonas", "Jonas", "Gyllenhammer", "jonas@gyllenhammer.non", null);
+        ScimUser jacob = createUser(adminToken, "jacob", "Jacob", "Gyllenhammer", "jacob@gyllenhammer.non", null, true);
+        ScimUser emily = createUser(adminToken, "emily", "Emily", "Gyllenhammer", "emily@gyllenhammer.non", null, true);
+        ScimUser jonas = createUser(adminToken, "jonas", "Jonas", "Gyllenhammer", "jonas@gyllenhammer.non", null, true);
 
 
         ScimGroup group = new ScimGroup("testgroup");
@@ -756,12 +756,13 @@ public class AuditCheckMvcMockTests {
 
     }
 
-    private ScimUser createUser(String adminToken, String username, String firstname, String lastname, String email, String password) throws Exception {
+    private ScimUser createUser(String adminToken, String username, String firstname, String lastname, String email, String password, Boolean verified) throws Exception {
         ScimUser user = new ScimUser();
         user.setUserName(username);
         user.setName(new ScimUser.Name(firstname, lastname));
         user.addEmail(email);
         user.setPassword(password);
+        user.setVerified(verified);
 
         MockHttpServletRequestBuilder userPost = post("/Users")
             .accept(MediaType.APPLICATION_JSON_VALUE)
