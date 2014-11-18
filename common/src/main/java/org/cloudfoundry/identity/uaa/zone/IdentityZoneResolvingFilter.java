@@ -12,6 +12,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 public class IdentityZoneResolvingFilter extends OncePerRequestFilter {
@@ -29,7 +30,9 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter {
         if (subdomain != null) {
             try {
                 identityZone = dao.retrieveBySubdomain(subdomain);
+            } catch (EmptyResultDataAccessException ex) {
             } catch (Exception ex) {
+                throw ex;
             }
         }
         if (identityZone == null) {
