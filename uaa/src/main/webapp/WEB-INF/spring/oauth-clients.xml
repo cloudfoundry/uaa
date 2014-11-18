@@ -117,6 +117,15 @@
                             <entry key="authorities" value="cloud_controller.admin,scim.read" />
                         </map>
                     </entry>
+                    <entry key="identity">
+                        <map>
+                            <entry key="id" value="identity" />
+                            <entry key="secret" value="identitysecret" />
+                            <entry key="authorized-grant-types" value="client_credentials" />
+                            <entry key="scope" value="uaa.none" />
+                            <entry key="authorities" value="zones.create" />
+                        </map>
+                    </entry>
                 </map>
             </property>
         </bean>

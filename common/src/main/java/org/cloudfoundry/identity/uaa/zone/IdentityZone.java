@@ -14,8 +14,7 @@ public class IdentityZone {
     private String id;
 
     @NotNull
-    @JsonProperty("sub_domain")
-    private String subDomain;
+    private String subdomain;
 
 
     @NotNull
@@ -62,12 +61,12 @@ public class IdentityZone {
         this.name = name;
     }
 
-    public String getSubDomain() {
-        return subDomain;
+    public String getSubdomain() {
+        return subdomain;
     }
 
-    public void setSubDomain(String subDomain) {
-        this.subDomain = subDomain;
+    public void setSubdomain(String subdomain) {
+        this.subdomain = subdomain;
     }
 
     public String getId() {

@@ -56,7 +56,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning {
                     ps.setTimestamp(3, new Timestamp(new Date().getTime()));
                     ps.setTimestamp(4, new Timestamp(new Date().getTime()));
                     ps.setString(5, identityZone.getName());
-                    ps.setString(6, identityZone.getSubDomain());
+                    ps.setString(6, identityZone.getSubdomain());
                     ps.setString(7, identityZone.getDescription());
                 }
             });
@@ -78,7 +78,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning {
             identityZone.setCreated(rs.getTimestamp(3));
             identityZone.setLastModified(rs.getTimestamp(4));
             identityZone.setName(rs.getString(5));
-            identityZone.setSubDomain(rs.getString(6));
+            identityZone.setSubdomain(rs.getString(6));
             identityZone.setDescription(rs.getString(7));
 
             return identityZone;

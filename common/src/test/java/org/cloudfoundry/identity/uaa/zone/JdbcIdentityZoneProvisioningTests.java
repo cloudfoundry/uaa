@@ -37,7 +37,7 @@ public class JdbcIdentityZoneProvisioningTests {
         IdentityZone createdIdZone = db.create(identityZone);
 
         assertEquals(identityZone.getId(), createdIdZone.getId());
-        assertEquals(identityZone.getSubDomain(), createdIdZone.getSubDomain());
+        assertEquals(identityZone.getSubdomain(), createdIdZone.getSubdomain());
         assertEquals(identityZone.getName(), createdIdZone.getName());
         assertEquals(identityZone.getDescription(), createdIdZone.getDescription());
     }
@@ -57,7 +57,7 @@ public class JdbcIdentityZoneProvisioningTests {
 
     private IdentityZone getIdentityZone(String subdomain) {
         IdentityZone identityZone = new IdentityZone();
-        identityZone.setSubDomain(subdomain);
+        identityZone.setSubdomain(subdomain);
         identityZone.setName("The Twiglet Zone");
         identityZone.setDescription("Like the Twilight Zone but tastier.");
         return identityZone;

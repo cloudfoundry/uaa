@@ -50,7 +50,7 @@ public class IdentityZoneResolvingFilterTest {
         filter.setUaaHostname(uaaHostname);
         
         IdentityZone identityZone = new IdentityZone();
-        identityZone.setSubDomain(incomingSubdomain);
+        identityZone.setSubdomain(incomingSubdomain);
         Mockito.when(dao.retrieveBySubdomain(Mockito.eq(incomingSubdomain))).thenReturn(identityZone);
         
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -60,7 +60,7 @@ public class IdentityZoneResolvingFilterTest {
             @Override
             public void doFilter(ServletRequest request, ServletResponse response) throws IOException, ServletException {
                 assertNotNull(IdentityZoneHolder.get());
-                assertEquals(incomingSubdomain, IdentityZoneHolder.get().getSubDomain());
+                assertEquals(incomingSubdomain, IdentityZoneHolder.get().getSubdomain());
                 wasFilterExecuted = true;
             }
         };
@@ -84,7 +84,7 @@ public class IdentityZoneResolvingFilterTest {
         filter.setUaaHostname(uaaHostname);
         
         IdentityZone identityZone = new IdentityZone();
-        identityZone.setSubDomain(incomingSubdomain);
+        identityZone.setSubdomain(incomingSubdomain);
         Mockito.when(dao.retrieveBySubdomain(Mockito.eq(incomingSubdomain))).thenThrow(new EmptyResultDataAccessException(1));
         
         MockHttpServletRequest request = new MockHttpServletRequest();
