@@ -47,6 +47,7 @@ import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextIn
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assume;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -74,8 +75,7 @@ import org.springframework.web.context.support.XmlWebApplicationContext;
 @RunWith(Parameterized.class)
 public class LdapMockMvcTests {
 
-    public static final String SPRING_PROFILES_ACTIVE = "spring.profiles.active";
-    private static String originalProfile;
+    private MockEnvironment mockEnvironment;
 
     @Parameters
     public static Collection<Object[]> data() {
@@ -97,26 +97,15 @@ public class LdapMockMvcTests {
 
     @AfterClass
     public static void afterClass() {
-        if (originalProfile==null || originalProfile.trim().length()==0) {
-            System.getProperties().remove(SPRING_PROFILES_ACTIVE);
-        } else {
-            System.setProperty(SPRING_PROFILES_ACTIVE, originalProfile);
-        }
         apacheDS.stop();
     }
 
     @BeforeClass
     public static void startApacheDS() throws Exception {
-        originalProfile = System.getProperty(SPRING_PROFILES_ACTIVE);
-        System.setProperty(SPRING_PROFILES_ACTIVE, "ldap,default");
-        System.out.println("LdapMockMvcTests Profile:"+System.getProperty(SPRING_PROFILES_ACTIVE));
         tmpDir = new File(System.getProperty("java.io.tmpdir")+"/apacheds/"+new RandomValueStringGenerator().generate());
         tmpDir.deleteOnExit();
         System.out.println(tmpDir);
         //configure properties for running against ApacheDS
-        System.setProperty("ldap.base.url","ldap://localhost:33389");
-        System.setProperty("ldap.base.userDn","cn=admin,ou=Users,dc=test,dc=com");
-        System.setProperty("ldap.base.password","adminsecret");
         apacheDS = new ApacheDSContainer("dc=test,dc=com","classpath:ldap_init.ldif");
         apacheDS.setWorkingDirectory(tmpDir);
         apacheDS.setPort(33389);
@@ -140,17 +129,26 @@ public class LdapMockMvcTests {
         this.ldapProfile = ldapProfile;
     }
 
+    @Before
+    public void createMockEnvironment() {
+        mockEnvironment = new MockEnvironment();
+    }
+
     public void setUp() throws Exception {
-        System.setProperty("ldap.profile.file", "ldap/"+ldapProfile);
-        System.setProperty("ldap.groups.file", "ldap/"+ldapGroup);
-        System.setProperty("ldap.group.maxSearchDepth", "10");
-        System.setProperty("allowUnverifiedUsers", "false");
+        mockEnvironment.setProperty("spring.profiles.active", "ldap,default");
+        mockEnvironment.setProperty("ldap.profile.file", "ldap/" + ldapProfile);
+        mockEnvironment.setProperty("ldap.groups.file", "ldap/" + ldapGroup);
+        mockEnvironment.setProperty("ldap.group.maxSearchDepth", "10");
+        mockEnvironment.setProperty("ldap.base.url","ldap://localhost:33389");
+        mockEnvironment.setProperty("ldap.base.userDn","cn=admin,ou=Users,dc=test,dc=com");
+        mockEnvironment.setProperty("ldap.base.password","adminsecret");
 
         webApplicationContext = new XmlWebApplicationContext();
+        webApplicationContext.setEnvironment(mockEnvironment);
         webApplicationContext.setServletContext(new MockServletContext());
         new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "uaa.yml,login.yml");
         webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
-        webApplicationContext.getEnvironment().addActiveProfile("ldap");
+        webApplicationContext.getEnvironment().addActiveProfile("default");
         webApplicationContext.refresh();
 
         List<String> profiles = Arrays.asList(webApplicationContext.getEnvironment().getActiveProfiles());
@@ -269,7 +267,7 @@ public class LdapMockMvcTests {
 
     @Test
     public void validateCustomEmailForLdapUser() throws Exception {
-        System.setProperty("ldap.base.mailSubstitute", "{0}@ldaptest.org");
+        mockEnvironment.setProperty("ldap.base.mailSubstitute", "{0}@ldaptest.org");
         setUp();
         String username = "marissa7";
         String password = "ldap7";
