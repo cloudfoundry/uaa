@@ -313,7 +313,7 @@ public final class ScimUser extends ScimCore {
 
     private boolean active = true;
 
-    private boolean verified = true;
+    private boolean verified = false;
 
     private String origin = "";
 

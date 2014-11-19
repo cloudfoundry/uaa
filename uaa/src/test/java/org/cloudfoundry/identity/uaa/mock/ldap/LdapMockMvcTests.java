@@ -500,7 +500,6 @@ public class LdapMockMvcTests {
         ScimUser user = new ScimUser();
         user.setUserName("user@example.com");
         user.addEmail("user@example.com");
-        user.setVerified(false);
         user = uDB.createUser(user, "n1cel0ngp455w0rd");
         assertNotNull(user.getId());
 

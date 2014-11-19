@@ -69,7 +69,6 @@ public class PasswordGrantIntegrationTests {
         ScimUser user = new ScimUser();
         user.setUserName(userName);
         user.setPassword("secret");
-        user.setVerified(false);
         user.addEmail(userEmail);
 
         ResponseEntity<ScimUser> result = restTemplate.postForEntity(serverRunning.getUrl("/Users"), user, ScimUser.class);

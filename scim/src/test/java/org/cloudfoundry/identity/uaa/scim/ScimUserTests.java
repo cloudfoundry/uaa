@@ -233,9 +233,9 @@ public class ScimUserTests {
         roz.setNickName("NickName");
         assertEquals("NickName", roz.getNickName());
 
-        assertTrue(roz.isVerified());
-        roz.setVerified(false);
         assertFalse(roz.isVerified());
+        roz.setVerified(true);
+        assertTrue(roz.isVerified());
 
 
     }
