@@ -152,7 +152,7 @@
   <mvc:default-servlet-handler />
 
   <util:map id="links">
-    <entry key="passwd" value="${links.passwd:}" />
+    <entry key="passwd" value="${links.passwd:/forgot_password}" />
     <entry key="register" value="${links.signup:/create_account}" />
   </util:map>
 

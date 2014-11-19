@@ -29,19 +29,20 @@
 #    image-hover: /resources/pivotal/images/partners-logo-teal.png
 
 links:
-  # Custom external create account link
+  # Custom self service links (will only be displayed if selfServiceLinksEnabled is true)
+  # If selfServiceLinksEnabled is true and these custom links are not provided then the Login Server
+  # will use internal links.
   #signup: http://some-oauth-client.example.com/signup
-  passwd: http://localhost:8080/uaa/forgot_password
+  #passwd: http://some-other-self-service-server.com/forgot_password
 
 #notifications:
 #  url: http://localhost:3001
 
 login:
-  # Enable create account on the Login Server (enabled by default)
-  # - links.signup will still be used if present
-  #signupsEnabled: false
+  # Enable create account and forgot password links on the Login Server (enabled by default)
+  #selfServiceLinksEnabled: true
   # Enable sending invitations on the Login Server (disabled by default)
-  # invitationsEnabled: true
+  #invitationsEnabled: true
   # the brand to use for password reset emails and page titles
   # (defaults to oss)
   #brand: pivotal

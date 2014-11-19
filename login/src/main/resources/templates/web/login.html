@@ -28,8 +28,8 @@
             </div>
             <span class="left">
                 <a th:unless="${#strings.isEmpty(createAccountLink)}" href="/create_account" th:href="@{${createAccountLink}}" class="link-lowlight">Create account</a>
-            </span><span class="right" th:unless="${#strings.isEmpty(links.get('passwd'))}">
-                <a href="/forgot_password" th:href="${links.get('passwd')}" class="link-lowlight">Reset password</a>
+            </span><span class="right" th:unless="${#strings.isEmpty(forgotPasswordLink)}">
+                <a href="/forgot_password" th:href="@{${forgotPasswordLink}}" class="link-lowlight">Reset password</a>
             </span>
         </div>
     </div>

@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.authentication.login;
 
 import javax.servlet.http.HttpServletRequest;
+
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
@@ -25,6 +26,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -33,6 +35,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
@@ -52,6 +55,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.providers.ExpiringUsernameAuthenticationToken;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -128,46 +132,37 @@ public class LoginInfoEndpoint {
         this.prompts = prompts;
     }
 
+    /**
+     * This was the handler for the branded login page in login-server
+     * @param model
+     * @param principal
+     * @return
+     */
     @RequestMapping(value = { "/info", "/login" }, method = RequestMethod.GET, produces = APPLICATION_JSON_VALUE, headers = "Accept=application/json")
     public String prompts(HttpServletRequest request, @RequestHeader HttpHeaders headers, Model model,
                           Principal principal) throws Exception {
 
-        info(model,principal);
+        populatePrompts(model, Collections.<String>emptyList());
         // Entity ID to start the discovery
         model.addAttribute("entityID", entityID);
         model.addAttribute("idpDefinitions", idpDefinitions);
-        for (IdentityProviderDefinition idp : idpDefinitions) {
-            if(idp.isShowSamlLink()) {
-                model.addAttribute("showSamlLoginLinks", true);
-                break;
-            }
-        }
         model.addAttribute("links", getLinksInfo());
         setCommitInfo(model);
         if (principal == null) {
-            String customSignupLink = environment.getProperty("links.signup");
-            if (customSignupLink != null) {
-                model.addAttribute("createAccountLink", customSignupLink);
-            } else {
-                boolean localSignupsEnabled = !"false".equalsIgnoreCase(environment.getProperty("login.signupsEnabled"));
-                if (localSignupsEnabled) {
-                    model.addAttribute("createAccountLink", "/create_account");
-                }
-            }
             return "login";
         }
         return "home";
     }
 
-    @RequestMapping(value = {"/login" })
+    /**
+     * This was the handler for the unbranded login page in UAA
+     * @param model
+     * @param principal
+     * @return
+     */
+    @RequestMapping(value = {"/login", "/info" })
     public String login(Model model, Principal principal) {
-        Map<String, String[]> map = new LinkedHashMap<String, String[]>();
-        for (Prompt prompt : prompts) {
-            map.put(prompt.getName(), prompt.getDetails());
-        }
-        map.remove("passcode");
-        model.addAttribute("prompts", map);
-
+        populatePrompts(model, Arrays.asList("passcode"));
         setCommitInfo(model);
         model.addAttribute("links", getLinksInfo());
 
@@ -182,6 +177,21 @@ public class LoginInfoEndpoint {
         }
 
         if (principal == null) {
+            boolean selfServiceLinksEnabled = !"false".equalsIgnoreCase(environment.getProperty("login.selfServiceLinksEnabled"));
+            if (selfServiceLinksEnabled) {
+                String customSignupLink = environment.getProperty("links.signup");
+                String customPasswordLink = environment.getProperty("links.passwd");
+                if (StringUtils.hasText(customSignupLink)) {
+                    model.addAttribute("createAccountLink", customSignupLink);
+                } else {
+                    model.addAttribute("createAccountLink", "/create_account");
+                }
+                if (StringUtils.hasText(customPasswordLink)) {
+                    model.addAttribute("forgotPasswordLink", customPasswordLink);
+                } else {
+                    model.addAttribute("forgotPasswordLink", "/forgot_password");
+                }
+            }
             return "login";
         }
         return "home";
@@ -196,22 +206,16 @@ public class LoginInfoEndpoint {
         model.addAttribute("app", UaaStringUtils.getMapFromProperties(buildProperties, "build."));
     }
 
-    @RequestMapping("/info")
-    public String info(Model model, Principal principal) {
-        String result = login(model, principal);
-        List<Map<String, String>> list = new ArrayList<Map<String, String>>();
+
+    public void populatePrompts(Model model, List<String> exclude) {
+        Map<String, String[]> map = new LinkedHashMap<>();
         for (Prompt prompt : prompts) {
-            if (!"passcode".equals(prompt.getName())) {
-                Map<String, String> map = new LinkedHashMap<String, String>();
-                map.put("name", prompt.getName());
-                map.put("type", prompt.getDetails()[0]);
-                map.put("text", prompt.getDetails()[1]);
-                list.add(map);
+            if (!exclude.contains(prompt.getName())) {
+                map.put(prompt.getName(), prompt.getDetails());
             }
         }
 
-        model.addAttribute("prompts", list);
-        return result;
+        model.addAttribute("prompts", map);
     }
 
     @RequestMapping(value = { "/passcode" }, method = RequestMethod.GET)

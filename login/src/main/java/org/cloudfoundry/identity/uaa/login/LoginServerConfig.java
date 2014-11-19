@@ -16,7 +16,7 @@ public class LoginServerConfig {
     public static class CreateAccountCondition implements Condition {
         @Override
         public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
-            return !"false".equalsIgnoreCase(context.getEnvironment().getProperty("login.signupsEnabled"));
+            return !"false".equalsIgnoreCase(context.getEnvironment().getProperty("login.selfServiceLinksEnabled"));
         }
     }
 
