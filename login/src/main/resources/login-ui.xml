@@ -316,17 +316,19 @@
     <bean id="tileInfo" class="org.cloudfoundry.identity.uaa.login.TileInfo" />
 
     <bean id="emailService" class="org.cloudfoundry.identity.uaa.login.EmailService">
-        <constructor-arg index="0">
-            <bean class="org.springframework.mail.javamail.JavaMailSenderImpl">
-                <property name="host" value="${smtp.host:localhost}"/>
-                <property name="port" value="${smtp.port:25}"/>
-                <property name="username" value="${smtp.user:}"/>
-                <property name="password" value="${smtp.password:}"/>
-            </bean>
-        </constructor-arg>
+        <constructor-arg index="0" ref="#{T(org.springframework.util.StringUtils).hasText('${smtp.host:}') ? 'smtpJavaMailSender' : 'fakeJavaMailSender'}"/>
         <constructor-arg index="1" value="${login.url:http://localhost:8080/uaa}"/>
         <constructor-arg index="2" value="${login.brand:oss}"/>
     </bean>
+
+    <bean id="smtpJavaMailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
+        <property name="host" value="${smtp.host:localhost}"/>
+        <property name="port" value="${smtp.port:25}"/>
+        <property name="username" value="${smtp.user:}"/>
+        <property name="password" value="${smtp.password:}"/>
+    </bean>
+
+    <bean id="fakeJavaMailSender" class="org.cloudfoundry.identity.uaa.login.util.FakeJavaMailSender"/>
 
     <bean id="notificationsService" class="org.cloudfoundry.identity.uaa.login.NotificationsService">
         <constructor-arg ref="notificationsTemplate"/>
@@ -392,13 +394,4 @@
     <bean class="org.cloudfoundry.identity.uaa.login.UnverifiedUserListener">
         <property name="accountCreationService" ref="accountCreationService"/>
     </bean>
-    <beans profile="default">
-      <bean id="emailService" class="org.cloudfoundry.identity.uaa.login.EmailService">
-        <constructor-arg index="0">
-          <bean class="org.cloudfoundry.identity.uaa.login.util.FakeJavaMailSender"/>
-        </constructor-arg>
-        <constructor-arg index="1" value="${login.url:http://localhost:8080/uaa}"/>
-        <constructor-arg index="2" value="${login.brand:oss}"/>
-      </bean>
-    </beans>
 </beans>

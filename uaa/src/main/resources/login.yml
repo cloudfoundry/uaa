@@ -170,8 +170,8 @@ LOGIN_SECRET: loginsecret
 #  code: secret_code
 #  domain: example.com
 
-smtp:
-  host: localhost
-  port: 2525
-  user:
-  password:
+#smtp:
+#  host: localhost
+#  port: 2525
+#  user:
+#  password:
