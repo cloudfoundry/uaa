@@ -10,25 +10,26 @@
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-package org.cloudfoundry.identity.uaa.login.test;
+package org.cloudfoundry.identity.uaa.login.util;
 
-import org.apache.commons.io.IOUtils;
-import org.springframework.mail.MailException;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessagePreparator;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Properties;
 import javax.mail.Address;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Properties;
+
+import org.springframework.mail.MailException;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessagePreparator;
+import org.springframework.util.StreamUtils;
 
 public class FakeJavaMailSender implements JavaMailSender {
 
@@ -101,7 +102,7 @@ public class FakeJavaMailSender implements JavaMailSender {
         }
 
         public String getContentString() throws MessagingException, IOException {
-            return IOUtils.toString(mimeMessage.getDataHandler().getInputStream());
+            return StreamUtils.copyToString(mimeMessage.getDataHandler().getInputStream(), Charset.forName("UTF-8"));
         }
     }
 }

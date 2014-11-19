@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.login;
 
-import org.cloudfoundry.identity.uaa.login.test.FakeJavaMailSender;
+import org.cloudfoundry.identity.uaa.login.util.FakeJavaMailSender;
 import org.junit.Before;
 import org.junit.Test;
 

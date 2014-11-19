@@ -388,8 +388,17 @@
     <bean class="org.cloudfoundry.identity.uaa.login.UaaExpiringCodeService">
         <constructor-arg ref="codeStore"/>
     </bean>
-	
-	<bean class="org.cloudfoundry.identity.uaa.login.UnverifiedUserListener">
-	<property name="accountCreationService" ref="accountCreationService"/>
-	</bean>
+
+    <bean class="org.cloudfoundry.identity.uaa.login.UnverifiedUserListener">
+        <property name="accountCreationService" ref="accountCreationService"/>
+    </bean>
+    <beans profile="default">
+      <bean id="emailService" class="org.cloudfoundry.identity.uaa.login.EmailService">
+        <constructor-arg index="0">
+          <bean class="org.cloudfoundry.identity.uaa.login.util.FakeJavaMailSender"/>
+        </constructor-arg>
+        <constructor-arg index="1" value="${login.url:http://localhost:8080/uaa}"/>
+        <constructor-arg index="2" value="${login.brand:oss}"/>
+      </bean>
+    </beans>
 </beans>
