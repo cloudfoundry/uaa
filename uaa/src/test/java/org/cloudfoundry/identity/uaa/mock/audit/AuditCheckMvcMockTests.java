@@ -70,6 +70,7 @@ import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.http.MediaType;
 import org.springframework.mock.env.MockEnvironment;
+import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
