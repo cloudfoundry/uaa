@@ -223,10 +223,11 @@ project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
         extraClasspath = files(configurations.coberturaJar.files)
       }
 
-      if (graph.hasTask(project(':cloudfoundry-identity-uaa').integrationTest)) {
-        systemProperties {
-          property 'uaa.allowUnverifiedUsers', 'false'
-        }
+      systemProperties {
+          //property 'uaa.allowUnverifiedUsers', 'false'
+          property 'smtp.host', 'localhost'
+          property 'smtp.port', 2525
+          property 'login.invitationsEnabled', 'true'
       }
     }
   }

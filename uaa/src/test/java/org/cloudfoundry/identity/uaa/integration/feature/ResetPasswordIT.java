@@ -10,18 +10,21 @@
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-package org.cloudfoundry.identity.uaa.login.feature;
+package org.cloudfoundry.identity.uaa.integration.feature;
+
+import java.security.SecureRandom;
+import java.util.Iterator;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
-
-import org.cloudfoundry.identity.uaa.login.test.DefaultIntegrationTestConfig;
-import org.cloudfoundry.identity.uaa.login.test.IntegrationTestRule;
+import com.dumbster.smtp.SimpleSmtpServer;
+import com.dumbster.smtp.SmtpMessage;
 import org.cloudfoundry.identity.uaa.login.test.LoginServerClassRunner;
-import org.cloudfoundry.identity.uaa.login.test.TestClient;
 import org.cloudfoundry.identity.uaa.login.test.UnlessProfileActive;
 import org.hamcrest.Matchers;
+import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -32,11 +35,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.web.client.RestTemplate;
-
-import com.dumbster.smtp.SimpleSmtpServer;
-import com.dumbster.smtp.SmtpMessage;
-import java.security.SecureRandom;
-import java.util.Iterator;
 
 @RunWith(LoginServerClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -73,6 +71,12 @@ public class ResetPasswordIT {
         String scimAccessToken = testClient.getOAuthAccessToken(scimClientId, "scimsecret", "client_credentials", "scim.read scim.write password.write");
         userEmail = "user" + randomInt + "@example.com";
         testClient.createUser(scimAccessToken, userEmail, userEmail, "secret", true);
+        webDriver.get(baseUrl + "/logout.do");
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        webDriver.get(baseUrl + "/logout.do");
     }
 
     @Test
@@ -80,9 +84,9 @@ public class ResetPasswordIT {
 
         // Go to Forgot Password page
         webDriver.get(baseUrl + "/login");
-        assertEquals("Cloud Foundry", webDriver.getTitle());
+        Assert.assertEquals("Cloud Foundry", webDriver.getTitle());
         webDriver.findElement(By.linkText("Reset password")).click();
-        assertEquals("Reset Password", webDriver.findElement(By.tagName("h1")).getText());
+        Assert.assertEquals("Reset Password", webDriver.findElement(By.tagName("h1")).getText());
 
         // Enter an invalid email address
         webDriver.findElement(By.name("email")).sendKeys("notAnEmail");
@@ -94,7 +98,7 @@ public class ResetPasswordIT {
 
         webDriver.findElement(By.name("email")).sendKeys(userEmail);
         webDriver.findElement(By.xpath("//input[@value='Send reset password link']")).click();
-        assertEquals("Instructions Sent", webDriver.findElement(By.tagName("h1")).getText());
+        Assert.assertEquals("Instructions Sent", webDriver.findElement(By.tagName("h1")).getText());
 
         // Check email
         assertEquals(receivedEmailSize + 1, simpleSmtpServer.getReceivedEmailSize());
@@ -104,7 +108,7 @@ public class ResetPasswordIT {
         assertEquals(userEmail, message.getHeaderValue("To"));
         assertThat(message.getBody(), containsString("Reset your password"));
 
-        assertEquals("Please check your email for a reset password link.", webDriver.findElement(By.cssSelector(".instructions-sent")).getText());
+        Assert.assertEquals("Please check your email for a reset password link.", webDriver.findElement(By.cssSelector(".instructions-sent")).getText());
 
         // Click link in email
         String link = testClient.extractLink(message.getBody());
@@ -148,18 +152,18 @@ public class ResetPasswordIT {
     @Test
     public void resettingAPasswordForANonExistentUser() throws Exception {
         webDriver.get(baseUrl + "/login");
-        assertEquals("Cloud Foundry", webDriver.getTitle());
+        Assert.assertEquals("Cloud Foundry", webDriver.getTitle());
 
         webDriver.findElement(By.linkText("Reset password")).click();
 
-        assertEquals("Reset Password", webDriver.findElement(By.tagName("h1")).getText());
+        Assert.assertEquals("Reset Password", webDriver.findElement(By.tagName("h1")).getText());
 
         int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
 
         webDriver.findElement(By.name("email")).sendKeys("nonexistent@example.com");
         webDriver.findElement(By.xpath("//input[@value='Send reset password link']")).click();
 
-        assertEquals("Instructions Sent", webDriver.findElement(By.tagName("h1")).getText());
+        Assert.assertEquals("Instructions Sent", webDriver.findElement(By.tagName("h1")).getText());
 
         assertEquals(receivedEmailSize, simpleSmtpServer.getReceivedEmailSize());
     }

@@ -23,9 +23,6 @@ dependencies {
   compile group: 'org.thymeleaf.extras', name: 'thymeleaf-extras-springsecurity3', version:'2.1.1.RELEASE'
   compile group: 'javax.mail', name: 'mail', version:'1.4.7'
 
-  testCompile group: 'org.seleniumhq.selenium', name: 'selenium-java', version:'2.42.2'
-  testCompile group: 'com.github.detro.ghostdriver', name: 'phantomjsdriver', version:'1.1.0'
-  testCompile group: 'dumbster', name: 'dumbster', version:'1.6'
 }
 
 test.dependsOn identityCommon.instrumentedJar, identityScim.instrumentedJar

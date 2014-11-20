@@ -35,6 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import com.googlecode.flyway.core.Flyway;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager;
 import org.cloudfoundry.identity.uaa.ldap.ExtendedLdapUserMapper;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
@@ -149,6 +150,7 @@ public class LdapMockMvcTests {
         new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "uaa.yml,login.yml");
         webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         webApplicationContext.getEnvironment().addActiveProfile("default");
+        webApplicationContext.getEnvironment().addActiveProfile("ldap");
         webApplicationContext.refresh();
 
         List<String> profiles = Arrays.asList(webApplicationContext.getEnvironment().getActiveProfiles());
@@ -202,7 +204,7 @@ public class LdapMockMvcTests {
         mockMvc.perform(post("/login.do").accept(TEXT_HTML_VALUE)
                         .param("username", "marissa2")
                         .param("password", "ldap"))
-                .andExpect(status().isFound())
+            .andExpect(status().isFound())
                 .andExpect(redirectedUrl("/"));
     }
 
@@ -225,7 +227,7 @@ public class LdapMockMvcTests {
             post("/authenticate")
                 .accept(MediaType.APPLICATION_JSON)
                 .param("username",username)
-                .param("password",password);
+                .param("password", password);
         mockMvc.perform(post)
             .andExpect(status().isUnauthorized());
     }
@@ -406,8 +408,8 @@ public class LdapMockMvcTests {
         String[] list = new String[] {
                 "test.read",
                 "test.write",
-                "test.everything",
-            };
+            "test.everything",
+        };
         assertThat(list, arrayContainingInAnyOrder(getAuthorities(auth.getAuthorities())));
     }
 
@@ -496,16 +498,18 @@ public class LdapMockMvcTests {
     @Test
     public void testStopIfException() throws Exception {
         Assume.assumeTrue(ldapProfile.equals("ldap-simple-bind.xml") && ldapGroup.equals("ldap-groups-null.xml")); // Only run once
-
         setUp();
-
         ScimUser user = new ScimUser();
         user.setUserName("user@example.com");
         user.addEmail("user@example.com");
         user = uDB.createUser(user, "n1cel0ngp455w0rd");
         assertNotNull(user.getId());
+        performAuthentication("user@example.com", "n1cel0ngp455w0rd", HttpStatus.OK);
 
+        AuthzAuthenticationManager authzAuthenticationManager = webApplicationContext.getBean(AuthzAuthenticationManager.class);
+        authzAuthenticationManager.setAllowUnverifiedUsers(false);
         performAuthentication("user@example.com", "n1cel0ngp455w0rd", HttpStatus.FORBIDDEN);
+
     }
 
     public void doTestNestedLdapGroupsMappedToScopesWithDefaultScopes(String username, String password, String[] expected) throws Exception {

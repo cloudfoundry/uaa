@@ -47,7 +47,7 @@ login:
   # (defaults to oss)
   #brand: pivotal
   #base URL that the login server can be reached at
-  url: http://localhost:8080/login
+  url: http://localhost:8080/uaa
 
   # SAML Key Configuration
   # The location and credentials of the certificate for this SP

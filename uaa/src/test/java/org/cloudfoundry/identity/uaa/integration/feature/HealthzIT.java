@@ -10,29 +10,22 @@
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-package org.cloudfoundry.identity.uaa.login.feature;
+package org.cloudfoundry.identity.uaa.integration.feature;
 
-import org.cloudfoundry.identity.uaa.login.test.DefaultIntegrationTestConfig;
-import org.cloudfoundry.identity.uaa.login.test.IntegrationTestRule;
+import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.web.client.RestOperations;
-
-import java.util.List;
-
-import static org.hamcrest.Matchers.contains;
-import static org.junit.Assert.assertThat;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
-public class XFrameOptionsIT {
+public class HealthzIT {
 
     @Autowired @Rule
     public IntegrationTestRule integrationTestRule;
@@ -40,16 +33,12 @@ public class XFrameOptionsIT {
     @Autowired
     WebDriver webDriver;
 
-    @Autowired
-    RestOperations restOperations;
-
     @Value("${integration.test.base_url}")
     String baseUrl;
 
     @Test
-    public void testHeaderOnLogin() throws Exception {
-        ResponseEntity<Void> response = restOperations.getForEntity(baseUrl + "/login", Void.class);
-        List<String> xFrameOptionsHeaders = response.getHeaders().get("X-Frame-Options");
-        assertThat(xFrameOptionsHeaders, contains("DENY"));
+    public void testHealthz() throws Exception {
+        webDriver.get(baseUrl + "/healthz");
+        Assert.assertEquals("ok", webDriver.findElement(By.tagName("body")).getText());
     }
 }

@@ -1,10 +1,14 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.junit.Assert.assertSame;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -17,13 +21,17 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.error.UaaException;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
@@ -35,12 +43,13 @@ public class ChangeEmailControllerTest {
 
     private MockMvc mockMvc;
     private ChangeEmailService changeEmailService;
+    private ChangeEmailController controller;
 
     @Before
     public void setUp() throws Exception {
         SecurityContextHolder.clearContext();
-        changeEmailService = Mockito.mock(ChangeEmailService.class);
-        ChangeEmailController controller = new ChangeEmailController(changeEmailService);
+        changeEmailService = mock(ChangeEmailService.class);
+        controller = new ChangeEmailController(changeEmailService);
 
         InternalResourceViewResolver viewResolver = new InternalResourceViewResolver();
         viewResolver.setPrefix("/WEB-INF/jsp");
@@ -146,6 +155,13 @@ public class ChangeEmailControllerTest {
 
     @Test
     public void testVerifyEmail() throws Exception {
+        UaaUserDatabase userDatabase = mock(UaaUserDatabase.class);
+        UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, Origin.UAA, null, true);
+        when(userDatabase.retrieveUserById(anyString())).thenReturn(user);
+
+        controller.setUaaUserDatabase(userDatabase);
+        assertSame(userDatabase, controller.getUaaUserDatabase());
+
         Map<String,String> response = new HashMap<>();
         response.put("userId", "user-id-001");
         response.put("username", "new@example.com");
@@ -168,6 +184,13 @@ public class ChangeEmailControllerTest {
 
     @Test
     public void testVerifyEmailWithRedirectUrl() throws Exception {
+        UaaUserDatabase userDatabase = mock(UaaUserDatabase.class);
+        UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, Origin.UAA, null, true);
+        when(userDatabase.retrieveUserById(anyString())).thenReturn(user);
+
+        controller.setUaaUserDatabase(userDatabase);
+        assertSame(userDatabase, controller.getUaaUserDatabase());
+
         Map<String,String> response = new HashMap<>();
         response.put("userId", "user-id-001");
         response.put("username", "new@example.com");

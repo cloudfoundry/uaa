@@ -10,13 +10,12 @@
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-package org.cloudfoundry.identity.uaa.login.feature;
+package org.cloudfoundry.identity.uaa.integration.feature;
+
+import java.security.SecureRandom;
 
 import static org.hamcrest.Matchers.containsString;
-
-import org.cloudfoundry.identity.uaa.login.test.DefaultIntegrationTestConfig;
-import org.cloudfoundry.identity.uaa.login.test.IntegrationTestRule;
-import org.cloudfoundry.identity.uaa.login.test.TestClient;
+import com.dumbster.smtp.SimpleSmtpServer;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -30,9 +29,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.client.RestTemplate;
-
-import com.dumbster.smtp.SimpleSmtpServer;
-import java.security.SecureRandom;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -105,6 +101,7 @@ public class ChangePasswordIT {
     }
 
     private void signIn(String userName, String password) {
+        webDriver.get(baseUrl + "/logout.do");
         webDriver.get(baseUrl + "/login");
         webDriver.findElement(By.name("username")).sendKeys(userName);
         webDriver.findElement(By.name("password")).sendKeys(password);

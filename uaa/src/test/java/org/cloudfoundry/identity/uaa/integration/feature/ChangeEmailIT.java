@@ -1,10 +1,16 @@
-package org.cloudfoundry.identity.uaa.login.feature;
+package org.cloudfoundry.identity.uaa.integration.feature;
 
+import java.net.URI;
+import java.security.SecureRandom;
+import java.util.Iterator;
+
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.springframework.http.HttpStatus.FOUND;
 import com.dumbster.smtp.SimpleSmtpServer;
 import com.dumbster.smtp.SmtpMessage;
-import org.cloudfoundry.identity.uaa.login.test.DefaultIntegrationTestConfig;
-import org.cloudfoundry.identity.uaa.login.test.IntegrationTestRule;
-import org.cloudfoundry.identity.uaa.login.test.TestClient;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -17,15 +23,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.client.RestTemplate;
-
-import java.net.URI;
-import java.security.SecureRandom;
-import java.util.Iterator;
-
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.springframework.http.HttpStatus.FOUND;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -63,15 +60,24 @@ public class ChangeEmailIT {
     }
 
     @Test
-    public void testChangeEmail() throws Exception {
+    public void testChangeEmailWithLogout() throws Exception {
+        testChangeEmail(true);
+    }
+
+    @Test
+    public void testChangeEmailWithoutLogout() throws Exception {
+        testChangeEmail(false);
+    }
+
+    public void testChangeEmail(boolean logout) throws Exception {
         signIn(userEmail, "secret");
         int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
 
         webDriver.get(baseUrl + "/profile");
-        assertEquals(userEmail, webDriver.findElement(By.cssSelector(".profile .email")).getText());
+        Assert.assertEquals(userEmail, webDriver.findElement(By.cssSelector(".profile .email")).getText());
         webDriver.findElement(By.linkText("Change Email")).click();
 
-        assertEquals("Current Email Address: " + userEmail, webDriver.findElement(By.cssSelector(".email-display")).getText());
+        Assert.assertEquals("Current Email Address: " + userEmail, webDriver.findElement(By.cssSelector(".email-display")).getText());
         String newEmail = userEmail.replace("user", "new");
         webDriver.findElement(By.name("newEmail")).sendKeys(newEmail);
         webDriver.findElement(By.xpath("//input[@value='Send Verification Link']")).click();
@@ -87,6 +93,10 @@ public class ChangeEmailIT {
         assertThat(message.getBody(), containsString("Verify your email"));
 
         String link = testClient.extractLink(message.getBody());
+        if (logout) {
+            webDriver.get(baseUrl + "/logout.do");
+        }
+
         webDriver.get(link);
 
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Account Settings"));
@@ -118,6 +128,7 @@ public class ChangeEmailIT {
     }
 
     private void signIn(String userName, String password) {
+        webDriver.get(baseUrl + "/logout.do");
         webDriver.get(baseUrl + "/login");
         webDriver.findElement(By.name("username")).sendKeys(userName);
         webDriver.findElement(By.name("password")).sendKeys(password);

@@ -183,6 +183,7 @@
 
     <!--Basic application beans. -->
     <bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.authentication.login.LoginInfoEndpoint">
+        <property name="authenticationManager" ref="authzAuthenticationMgr"/>
         <property name="uaaBaseUrl" value="${uaa.url:http://localhost:8080/uaa}" />
         <property name="links" ref="links" />
         <property name="idpDefinitions">

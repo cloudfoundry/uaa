@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.login;
 import java.io.IOException;
 import java.util.Arrays;
 
+import org.cloudfoundry.identity.uaa.util.LinkedMaskingMultiValueMap;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.MediaType;

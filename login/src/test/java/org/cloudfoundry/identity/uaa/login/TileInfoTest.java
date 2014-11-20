@@ -1,11 +1,11 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import com.google.inject.internal.Lists;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.core.env.AbstractEnvironment;
 import org.springframework.mock.env.MockPropertySource;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

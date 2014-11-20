@@ -1,15 +1,21 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.hibernate.validator.constraints.Email;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -19,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import java.util.Map;
@@ -28,6 +35,16 @@ import java.util.Map;
 public class ChangeEmailController {
 
     private final ChangeEmailService changeEmailService;
+
+    private UaaUserDatabase uaaUserDatabase;
+
+    public UaaUserDatabase getUaaUserDatabase() {
+        return uaaUserDatabase;
+    }
+
+    public void setUaaUserDatabase(UaaUserDatabase uaaUserDatabase) {
+        this.uaaUserDatabase = uaaUserDatabase;
+    }
 
     public ChangeEmailController(ChangeEmailService changeEmailService) {
         this.changeEmailService = changeEmailService;
@@ -75,7 +92,7 @@ public class ChangeEmailController {
     }
 
     @RequestMapping(value = "/verify_email", method = RequestMethod.GET)
-    public String verifyEmail(Model model, @RequestParam("code") String code, RedirectAttributes redirectAttributes, HttpServletResponse httpServletResponse) {
+    public String verifyEmail(Model model, @RequestParam("code") String code, RedirectAttributes redirectAttributes, HttpServletResponse httpServletResponse, HttpServletRequest request) {
         Map<String,String> response;
 
         try {
@@ -91,9 +108,16 @@ public class ChangeEmailController {
             }
         }
 
-        UaaPrincipal uaaPrincipal = new UaaPrincipal(response.get("userId"), response.get("username"), response.get("email"), Origin.UAA, null);
-        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, UaaAuthority.USER_AUTHORITIES);
-        SecurityContextHolder.getContext().setAuthentication(token);
+        UaaUser user;
+        try {
+            user = uaaUserDatabase.retrieveUserById(response.get("userId"));
+        } catch (UsernameNotFoundException e) {
+            return "redirect:profile?error_message_code=email_change.invalid_code";
+        }
+
+        UaaAuthenticationDetails details = new UaaAuthenticationDetails(request);
+        Authentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(), details);
+        SecurityContextHolder.getContext().setAuthentication(success);
 
         String redirectLocation = response.get("redirect_url");
         if (redirectLocation == null) {

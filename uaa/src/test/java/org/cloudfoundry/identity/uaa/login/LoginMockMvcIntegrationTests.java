@@ -13,24 +13,23 @@
 package org.cloudfoundry.identity.uaa.login;
 
 
-import static org.hamcrest.Matchers.*;
-import static org.springframework.http.MediaType.*;
+import java.util.Arrays;
+
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.http.MediaType.TEXT_HTML;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.login.LoginInfoEndpoint;
 import org.cloudfoundry.identity.uaa.authentication.login.Prompt;
-import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
@@ -41,7 +40,6 @@ import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
@@ -51,9 +49,9 @@ import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.support.XmlWebApplicationContext;
-import org.springframework.web.servlet.view.InternalResourceViewResolver;
 
 public class LoginMockMvcIntegrationTests {
 
@@ -162,7 +160,6 @@ public class LoginMockMvcIntegrationTests {
             .principal(principal);
         mockMvc.perform(get)
                 .andExpect(status().isOk())
-                .andDo(print())
                 .andExpect(forwardedUrl("/oauth/confirm_access"));
 
 //                .andExpect(model().attributeExists("client_id"))
@@ -227,18 +224,35 @@ public class LoginMockMvcIntegrationTests {
         Prompt second = new Prompt("where", "password", "Where does that highway go to?");
         controller.setPrompts(Arrays.asList(first, second));
         
-        mockMvc.perform(get("/login").accept(APPLICATION_JSON))
+        mockMvc.perform(get("/login").accept(TEXT_HTML))
                 .andExpect(status().isOk())
                 .andExpect(view().name("login"))
                 .andExpect(model().attribute("prompts", hasKey("how")))
                 .andExpect(model().attribute("prompts", hasKey("where")))
                 .andExpect(model().attribute("prompts", not(hasKey("password"))));
     }
-    
+
+    @Test
+    public void testLoginWithExplicitJsonPrompts() throws Exception {
+        LoginInfoEndpoint controller = webApplicationContext.getBean(LoginInfoEndpoint.class);
+        Prompt first = new Prompt("how", "text", "How did I get here?");
+        Prompt second = new Prompt("where", "password", "Where does that highway go to?");
+        controller.setPrompts(Arrays.asList(first, second));
+
+        mockMvc.perform(get("/login")
+            .accept(APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(view().name("login"))
+            .andExpect(model().attribute("prompts", hasKey("how")))
+            .andExpect(model().attribute("prompts", hasKey("where")))
+            .andExpect(model().attribute("prompts", not(hasKey("password"))));
+    }
+
+
     @Test
     public void testLoginWithRemoteUaaPrompts() throws Exception {
-        mockMvc.perform(get("/login").accept(TEXT_HTML))
-                .andDo(print())
+        mockMvc.perform(get("/login")
+            .accept(TEXT_HTML))
                 .andExpect(status().isOk())
                 .andExpect(view().name("login"))
                 .andExpect(model().attribute("prompts", hasKey("username")))
@@ -248,12 +262,35 @@ public class LoginMockMvcIntegrationTests {
 
     @Test
     public void testLoginWithRemoteUaaJsonPrompts() throws Exception {
-        mockMvc.perform(get("/login").accept(APPLICATION_JSON))
-            .andDo(print())
+        mockMvc.perform(get("/login")
+            .accept(APPLICATION_JSON))
             .andExpect(status().isOk())
             .andExpect(view().name("login"))
             .andExpect(model().attribute("prompts", hasKey("username")))
             .andExpect(model().attribute("prompts", hasKey("passcode")))
+            .andExpect(model().attribute("prompts", hasKey("password")));
+    }
+
+    @Test
+    public void testInfoWithRemoteUaaJsonPrompts() throws Exception {
+        mockMvc.perform(get("/info")
+            .accept(APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(view().name("login"))
+            .andExpect(MockMvcResultMatchers.jsonPath("$.prompts[0].name").value("username"))
+            .andExpect(MockMvcResultMatchers.jsonPath("$.prompts[1].name").value("password"))
+            .andExpect(MockMvcResultMatchers.jsonPath("$.prompts[2].name").value("passcode"));
+
+    }
+
+    @Test
+    public void testInfoWithRemoteUaaHtmlPrompts() throws Exception {
+        mockMvc.perform(get("/info")
+            .accept(TEXT_HTML))
+            .andExpect(status().isOk())
+            .andExpect(view().name("login"))
+            .andExpect(model().attribute("prompts", hasKey("username")))
+            .andExpect(model().attribute("prompts", not(hasKey("passcode"))))
             .andExpect(model().attribute("prompts", hasKey("password")));
     }
 

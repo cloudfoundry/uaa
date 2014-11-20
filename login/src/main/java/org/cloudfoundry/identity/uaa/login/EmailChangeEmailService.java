@@ -8,6 +8,7 @@ import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ChangeEmailEndpoints;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
@@ -68,6 +69,9 @@ public class EmailChangeEmailService implements ChangeEmailService {
         result.put("userId", response.getUserId());
         result.put("username", response.getUsername());
         result.put("email",response.getEmail());
+        if (StringUtils.hasText(response.getRedirectUrl())) {
+            result.put("redirect_url", response.getRedirectUrl());
+        }
         return result;
     }
 

@@ -150,8 +150,15 @@ public class EmailAccountCreationService implements AccountCreationService {
         scimUser.setEmails(Arrays.asList(email));
         scimUser.setOrigin(Origin.UAA);
         scimUser.setPassword(password);
-        ScimUser userResponse = scimUserProvisioning.createUser(scimUser, password);
-        return userResponse;
+        try {
+            ScimUser userResponse = scimUserProvisioning.createUser(scimUser, password);
+            return userResponse;
+        } catch (RuntimeException x) {
+            if (x instanceof ScimResourceAlreadyExistsException) {
+                throw x;
+            }
+            throw new UaaException("Couldn't create user:"+username, x);
+        }
     }
     
     private String getSubjectText() {

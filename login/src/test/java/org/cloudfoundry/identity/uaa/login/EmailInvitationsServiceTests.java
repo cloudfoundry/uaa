@@ -10,6 +10,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -20,17 +21,23 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
+
+import com.sun.corba.se.impl.orb.ORBConfiguratorImpl;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.oauth.ClientAdminEndpoints;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -103,22 +110,17 @@ public class EmailInvitationsServiceTests {
         request.setContextPath("/login");
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 
-        ScimUser user = new ScimUser();
-        user.setId("user-id-001");
-
-        when(accountCreationService.createUser("user@example.com", null)).thenReturn(user);
-
         ArgumentCaptor<Map<String,String>> captor = ArgumentCaptor.forClass((Class)Map.class);
 
         when(expiringCodeService.generateCode(captor.capture(), anyInt(), eq(TimeUnit.DAYS))).thenReturn("the_secret_code");
         emailInvitationsService.inviteUser("user@example.com", "current-user");
 
         Map<String,String> data = captor.getValue();
-        assertEquals("user-id-001", data.get("user_id"));
+        assertEquals("existing-user-id", data.get("user_id"));
 
         ArgumentCaptor<String> emailBodyArgument = ArgumentCaptor.forClass(String.class);
         Mockito.verify(messageService).sendMessage(
-            eq("user-id-001"),
+            eq("existing-user-id"),
             eq("user@example.com"),
             eq(MessageType.INVITATION),
             eq("Invitation to join Pivotal"),
@@ -137,10 +139,8 @@ public class EmailInvitationsServiceTests {
         request.setProtocol("http");
         request.setContextPath("/login");
 
-        byte[] errorResponse = "{\"error\":\"invalid_user\",\"message\":\"error message\",\"user_id\":\"existing-user-id\",\"verified\":true,\"active\":true}".getBytes();
-        when(accountCreationService.createUser("user@example.com", null)).thenThrow(new HttpClientErrorException(HttpStatus.CONFLICT,"invalid user",errorResponse,Charset.forName("UTF-8")));
 
-        emailInvitationsService.inviteUser("user@example.com", "current-user");
+        emailInvitationsService.inviteUser("alreadyverified@example.com", "current-user");
     }
     
     @Test
@@ -185,21 +185,17 @@ public class EmailInvitationsServiceTests {
         request.setContextPath("/login");
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 
-        ScimUser user = new ScimUser();
-        user.setId("user-id-001");
-
-        when(accountCreationService.createUser("user@example.com", null)).thenReturn(user);
         ArgumentCaptor<Map<String,String>> captor = ArgumentCaptor.forClass((Class)Map.class);
 
         when(expiringCodeService.generateCode(captor.capture(), anyInt(), eq(TimeUnit.DAYS))).thenReturn("the_secret_code");
         emailInvitationsService.inviteUser("user@example.com", "current-user");
 
         Map<String,String> data = captor.getValue();
-        assertEquals("user-id-001", data.get("user_id"));
+        assertEquals("existing-user-id", data.get("user_id"));
 
         ArgumentCaptor<String> emailBodyArgument = ArgumentCaptor.forClass(String.class);
         Mockito.verify(messageService).sendMessage(
-            eq("user-id-001"),
+            eq("existing-user-id"),
             eq("user@example.com"),
             eq(MessageType.INVITATION),
             eq("Invitation to join Cloud Foundry"),
@@ -262,7 +258,9 @@ public class EmailInvitationsServiceTests {
 
         @Bean
         AccountCreationService accountCreationService() {
-            return mock(AccountCreationService.class);
+            AccountCreationService svc =  mock(AccountCreationService.class);
+            when(svc.createUser(anyString(), anyString())).thenAnswer(createUserArgs());
+            return svc;
         }
 
         @Bean
@@ -280,5 +278,20 @@ public class EmailInvitationsServiceTests {
             return mock(ScimUserProvisioning.class);
         }
 
+    }
+    private static Answer<ScimUser> createUserArgs() {
+        return new Answer<ScimUser>() {
+            @Override
+            public ScimUser answer(InvocationOnMock invocation) throws Throwable {
+                String email = invocation.getArguments()[0].toString();
+                ScimUser user = new ScimUser("existing-user-id", email, "fname", "lname");
+                user.setOrigin(Origin.UAA);
+                user.setPrimaryEmail(user.getUserName());
+                if (email.contains("alreadyverified")) {
+                    throw new UaaException("exists");
+                }
+                return user;
+            }
+        };
     }
 }

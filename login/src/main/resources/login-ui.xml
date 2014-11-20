@@ -44,7 +44,16 @@
         <constructor-arg value="${notifications.url:}"/>
     </bean>
 
-    <!-- Pattern:/autologin -->
+    <!-- Pattern: /oauth/authorize parameters:{response_type=code,code=?} -->
+    <http request-matcher-ref="autologinAuthorizeRequestMatcher" entry-point-ref="loginEntryPoint"
+          xmlns="http://www.springframework.org/schema/security">
+        <!-- TODO: add entry point that can redirect back to client app? -->
+        <anonymous enabled="false" />
+        <custom-filter ref="autologinAuthenticationFilter" position="FORM_LOGIN_FILTER" />
+    </http>
+
+
+  <!-- Pattern:/autologin -->
     <http name="autologinSecurity" pattern="/autologin" create-session="stateless" entry-point-ref="basicAuthenticationEntryPoint"
         xmlns="http://www.springframework.org/schema/security" authentication-manager-ref="emptyAuthenticationManager">
         <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
@@ -385,6 +394,7 @@
 
     <bean id="changeEmailController" class="org.cloudfoundry.identity.uaa.login.ChangeEmailController">
         <constructor-arg ref="changeEmailService"/>
+        <property name="uaaUserDatabase" ref="userDatabase"/>
     </bean>
     
     <bean class="org.cloudfoundry.identity.uaa.login.UaaExpiringCodeService">

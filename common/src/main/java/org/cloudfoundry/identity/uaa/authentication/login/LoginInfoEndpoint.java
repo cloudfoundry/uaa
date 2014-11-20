@@ -19,6 +19,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
+import java.nio.charset.Charset;
 import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.sql.Timestamp;
@@ -30,19 +31,26 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
+import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.client.SocialClientUserDetails;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.login.AutologinRequest;
+import org.cloudfoundry.identity.uaa.login.AutologinResponse;
 import org.cloudfoundry.identity.uaa.login.PasscodeInformation;
 import org.cloudfoundry.identity.uaa.login.SamlUserDetails;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.saml.LoginSamlAuthenticationToken;
+import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -51,14 +59,16 @@ import org.springframework.core.env.Environment;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.providers.ExpiringUsernameAuthenticationToken;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * Controller that sends login info (e.g. prompts) to clients wishing to
@@ -87,6 +97,8 @@ public class LoginInfoEndpoint {
 
     private long codeExpirationMillis = 5 * 60 * 1000;
 
+    private AuthenticationManager authenticationManager;
+
     private ExpiringCodeStore expiringCodeStore;
 
     public void setExpiringCodeStore(ExpiringCodeStore expiringCodeStore) {
@@ -103,6 +115,14 @@ public class LoginInfoEndpoint {
 
     public void setIdpDefinitions(List<IdentityProviderDefinition> idpDefinitions) {
         this.idpDefinitions = idpDefinitions;
+    }
+
+    public AuthenticationManager getAuthenticationManager() {
+        return authenticationManager;
+    }
+
+    public void setAuthenticationManager(AuthenticationManager authenticationManager) {
+        this.authenticationManager = authenticationManager;
     }
 
     public void setEnvironment(Environment environment) {
@@ -132,37 +152,28 @@ public class LoginInfoEndpoint {
         this.prompts = prompts;
     }
 
-    /**
-     * This was the handler for the branded login page in login-server
-     * @param model
-     * @param principal
-     * @return
-     */
-    @RequestMapping(value = { "/info", "/login" }, method = RequestMethod.GET, produces = APPLICATION_JSON_VALUE, headers = "Accept=application/json")
-    public String prompts(HttpServletRequest request, @RequestHeader HttpHeaders headers, Model model,
-                          Principal principal) throws Exception {
-
-        populatePrompts(model, Collections.<String>emptyList());
-        // Entity ID to start the discovery
-        model.addAttribute("entityID", entityID);
-        model.addAttribute("idpDefinitions", idpDefinitions);
-        model.addAttribute("links", getLinksInfo());
-        setCommitInfo(model);
-        if (principal == null) {
-            return "login";
-        }
-        return "home";
+    @RequestMapping(value = {"/login" }, headers = "Accept=application/json")
+    public String loginForJson(Model model, Principal principal) {
+        return login(model, principal, Collections.<String>emptyList(), false);
     }
 
-    /**
-     * This was the handler for the unbranded login page in UAA
-     * @param model
-     * @param principal
-     * @return
-     */
-    @RequestMapping(value = {"/login", "/info" })
-    public String login(Model model, Principal principal) {
-        populatePrompts(model, Arrays.asList("passcode"));
+    @RequestMapping(value = {"/info" }, headers = "Accept=application/json")
+    public String infoForJson(Model model, Principal principal) {
+        return login(model, principal, Collections.<String>emptyList(), true);
+    }
+
+    @RequestMapping(value = {"/info" }, headers = "Accept=text/html, */*")
+    public String infoForHtml(Model model, Principal principal) {
+        return login(model, principal, Arrays.asList("passcode"), false);
+    }
+
+    @RequestMapping(value = {"/login" }, headers = "Accept=text/html, */*")
+    public String loginForHtml(Model model, Principal principal) {
+        return login(model, principal, Arrays.asList("passcode"), false);
+    }
+
+    public String login(Model model, Principal principal, List<String> excludedPrompts, boolean nonHtml) {
+        populatePrompts(model, excludedPrompts, nonHtml);
         setCommitInfo(model);
         model.addAttribute("links", getLinksInfo());
 
@@ -178,7 +189,7 @@ public class LoginInfoEndpoint {
 
         if (principal == null) {
             boolean selfServiceLinksEnabled = !"false".equalsIgnoreCase(environment.getProperty("login.selfServiceLinksEnabled"));
-            if (selfServiceLinksEnabled) {
+            if (selfServiceLinksEnabled && (!nonHtml)) {
                 String customSignupLink = environment.getProperty("links.signup");
                 String customPasswordLink = environment.getProperty("links.passwd");
                 if (StringUtils.hasText(customSignupLink)) {
@@ -207,15 +218,74 @@ public class LoginInfoEndpoint {
     }
 
 
-    public void populatePrompts(Model model, List<String> exclude) {
+    public void populatePrompts(Model model, List<String> exclude, boolean nonHtml) {
         Map<String, String[]> map = new LinkedHashMap<>();
+        List<Map<String,String>> list = new LinkedList<>();
         for (Prompt prompt : prompts) {
             if (!exclude.contains(prompt.getName())) {
-                map.put(prompt.getName(), prompt.getDetails());
+                if (nonHtml) {
+                    Map<String, String> promptmap = new LinkedHashMap<>();
+                    promptmap.put("name", prompt.getName());
+                    promptmap.put("type", prompt.getDetails()[0]);
+                    promptmap.put("text", prompt.getDetails()[1]);
+                    list.add(promptmap);
+                } else {
+                    map.put(prompt.getName(), prompt.getDetails());
+                }
+            }
+        }
+        if (nonHtml) {
+            model.addAttribute("prompts", list);
+        } else {
+            model.addAttribute("prompts", map);
+        }
+
+    }
+
+
+    @RequestMapping(value = "/autologin", method = RequestMethod.POST)
+    @ResponseBody
+    public AutologinResponse generateAutologinCode(@RequestBody AutologinRequest request,
+                                                   @RequestHeader(value = "Authorization", required = false) String auth) throws Exception {
+        if (auth == null || (!auth.startsWith("Basic"))) {
+            throw new BadCredentialsException("No basic authorization client information in request");
+        }
+
+        String username = request.getUsername();
+        if (username == null) {
+            throw new BadCredentialsException("No username in request");
+        }
+        Authentication userAuthentication = null;
+        if (authenticationManager != null) {
+            String password = request.getPassword();
+            if (!StringUtils.hasText(password)) {
+                throw new BadCredentialsException("No password in request");
+            }
+            userAuthentication = authenticationManager.authenticate(new AuthzAuthenticationRequest(username, password, null));
+        }
+
+        String base64Credentials = auth.substring("Basic".length()).trim();
+        String credentials = new String(new Base64().decode(base64Credentials.getBytes()), Charset.forName("UTF-8"));
+        // credentials = username:password
+        final String[] values = credentials.split(":", 2);
+        if (values == null || values.length == 0) {
+            throw new BadCredentialsException("Invalid authorization header.");
+        }
+        String clientId = values[0];
+        SocialClientUserDetails user = new SocialClientUserDetails(username, UaaAuthority.USER_AUTHORITIES);
+        Map<String,String> details = new HashMap<>();
+        details.put("client_id", clientId);
+        user.setDetails(details);
+        if (userAuthentication!=null && userAuthentication.getPrincipal() instanceof UaaPrincipal) {
+            UaaPrincipal p = (UaaPrincipal)userAuthentication.getPrincipal();
+            if (p!=null) {
+                details.put(Origin.ORIGIN, p.getOrigin());
+                details.put("user_id",p.getId());
             }
         }
 
-        model.addAttribute("prompts", map);
+        ExpiringCode response = doGenerateCode(user);
+        return new AutologinResponse(response.getCode());
     }
 
     @RequestMapping(value = { "/passcode" }, method = RequestMethod.GET)

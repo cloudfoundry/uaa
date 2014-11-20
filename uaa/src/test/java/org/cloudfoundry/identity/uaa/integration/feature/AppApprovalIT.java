@@ -10,10 +10,12 @@
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-package org.cloudfoundry.identity.uaa.login.feature;
+package org.cloudfoundry.identity.uaa.integration.feature;
 
-import org.cloudfoundry.identity.uaa.login.test.DefaultIntegrationTestConfig;
-import org.cloudfoundry.identity.uaa.login.test.IntegrationTestRule;
+import static org.junit.Assert.assertEquals;
+import org.cloudfoundry.identity.uaa.integration.ServerRunning;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
@@ -24,12 +26,31 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.client.test.OAuth2ContextConfiguration;
+import org.springframework.security.oauth2.client.test.OAuth2ContextSetup;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.web.client.RestOperations;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
+@OAuth2ContextConfiguration(OAuth2ContextConfiguration.ClientCredentials.class)
 public class AppApprovalIT {
+
+    @Rule
+    public ServerRunning serverRunning = ServerRunning.isRunning();
+
+    UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
+
+    @Rule
+    public OAuth2ContextSetup context = OAuth2ContextSetup.withTestAccounts(serverRunning, testAccounts);
+
+    @Rule
+    public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
+
 
     @Autowired @Rule
     public IntegrationTestRule integrationTestRule;
@@ -43,18 +64,18 @@ public class AppApprovalIT {
     @Value("${integration.test.app_url}")
     String appUrl;
     
-    private UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
-
     @Test
     public void testApprovingAnApp() throws Exception {
+        ScimUser user = createUnapprovedUser();
+
         webDriver.get(baseUrl + "/logout.do");
 
         // Visit app
         webDriver.get(appUrl);
 
         // Sign in to login server
-        webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
-        webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
+        webDriver.findElement(By.name("username")).sendKeys(user.getUserName());
+        webDriver.findElement(By.name("password")).sendKeys(user.getPassword());
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
 
         // Authorize the app for some scopes
@@ -101,4 +122,24 @@ public class AppApprovalIT {
 
         Assert.assertThat(webDriver.findElements(By.xpath("//input[@value='app-password.write']")), Matchers.empty());
     }
+
+    private ScimUser createUnapprovedUser() throws Exception {
+        String userName = "bob-" + new RandomValueStringGenerator().generate();
+        String userEmail = userName + "@example.com";
+
+        RestOperations restTemplate = serverRunning.getRestTemplate();
+
+        ScimUser user = new ScimUser();
+        user.setUserName(userName);
+        user.setPassword("secret");
+        user.addEmail(userEmail);
+        user.setActive(true);
+        user.setVerified(true);
+
+        ResponseEntity<ScimUser> result = restTemplate.postForEntity(serverRunning.getUrl("/Users"), user, ScimUser.class);
+        assertEquals(HttpStatus.CREATED, result.getStatusCode());
+
+        return user;
+    }
+
 }

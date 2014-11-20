@@ -10,6 +10,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.stereotype.Service;
@@ -87,7 +88,7 @@ public class EmailInvitationsService implements InvitationsService {
     @Override
     public void inviteUser(String email, String currentUser) {
         try {
-            ScimUser user = accountCreationService.createUser(email, null);
+            ScimUser user = accountCreationService.createUser(email, new RandomValueStringGenerator().generate());
             Map<String,String> data = new HashMap<>();
             data.put("user_id", user.getId());
             data.put("email", email);
