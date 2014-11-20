@@ -32,9 +32,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -141,6 +143,7 @@ public class LdapMockMvcTests {
         System.setProperty("ldap.profile.file", "ldap/"+ldapProfile);
         System.setProperty("ldap.groups.file", "ldap/"+ldapGroup);
         System.setProperty("ldap.group.maxSearchDepth", "10");
+        System.setProperty("uaa.allowUnverifiedUsers", "false");
 
         webApplicationContext = new AnnotationConfigWebApplicationContext();
         webApplicationContext.setServletContext(new MockServletContext());
@@ -493,7 +496,7 @@ public class LdapMockMvcTests {
 
     @Test
     public void testStopIfException() throws Exception {
-        Assume.assumeTrue(ldapProfile.equals("ldap-simple-bind.xml") && ldapGroup.equals("ldap-groups-null.xml"));
+        Assume.assumeTrue(ldapProfile.equals("ldap-simple-bind.xml") && ldapGroup.equals("ldap-groups-null.xml")); // Only run once
 
         setUp();
 

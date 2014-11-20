@@ -54,6 +54,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.http.MediaType;
+import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -95,7 +96,10 @@ public class AuditCheckMvcMockTests {
 
     @Before
     public void setUp() throws Exception {
+        MockEnvironment mockEnvironment = new MockEnvironment();
+
         webApplicationContext = new AnnotationConfigWebApplicationContext();
+        webApplicationContext.setEnvironment(mockEnvironment);
         webApplicationContext.setServletContext(new MockServletContext());
         new YamlServletProfileInitializer().initialize(webApplicationContext);
         webApplicationContext.register(DefaultIntegrationTestConfig.class);
@@ -181,13 +185,17 @@ public class AuditCheckMvcMockTests {
 
     @Test
     public void unverifiedUserAuthenticationTest() throws Exception {
+        ((MockEnvironment) webApplicationContext.getEnvironment()).setProperty("uaa.allowUnverifiedUsers", "false");
+        webApplicationContext.refresh();
+        webApplicationContext.addApplicationListener(listener);
+        webApplicationContext.addApplicationListener(testListener);
+
         String adminToken = testClient.getClientCredentialsOAuthAccessToken(
             testAccounts.getAdminClientId(),
             testAccounts.getAdminClientSecret(),
             "uaa.admin,scim.write");
 
         ScimUser molly = createUser(adminToken, "molly", "Molly", "Collywobble", "molly@example.com", "wobble");
-        String mollyId = molly.getId();
 
         MockHttpServletRequestBuilder loginPost = post("/authenticate")
             .accept(MediaType.APPLICATION_JSON_VALUE)
