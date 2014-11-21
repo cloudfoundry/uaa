@@ -47,7 +47,6 @@ import org.junit.Test;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -59,11 +58,9 @@ public class AuthzAuthenticationManagerTests {
     private AuthzAuthenticationManager mgr;
     private UaaUserDatabase db;
     private ApplicationEventPublisher publisher;
-    // "password"
-    private static final String PASSWORD = "$2a$10$HoWPAUn9zqmmb0b.2TBZWe6cjQcxyo8TDwTX.5G46PBL347N3/0zO";
+    private static final String PASSWORD = "$2a$10$HoWPAUn9zqmmb0b.2TBZWe6cjQcxyo8TDwTX.5G46PBL347N3/0zO"; // "password"
     private UaaUser user = null;
     private BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-    private UaaUser loginServerUser = null;
     private String loginServerUserName="loginServerUser".toLowerCase();
 
     @Before
@@ -98,14 +95,12 @@ public class AuthzAuthenticationManagerTests {
 
     @Test(expected = BadCredentialsException.class)
     public void unsuccessfulLoginServerUserAuthentication() throws Exception {
-        loginServerUser = new UaaUser(loginServerUserName,encoder.encode(""), "loginserveruser@blah.com", "Login", "User");
         when(db.retrieveUserByName(loginServerUserName,Origin.UAA)).thenReturn(null);
         mgr.authenticate(createAuthRequest(loginServerUserName, ""));
     }
 
     @Test(expected = BadCredentialsException.class)
     public void unsuccessfulLoginServerUserWithPasswordAuthentication() throws Exception {
-        loginServerUser = new UaaUser(loginServerUserName,encoder.encode(""), "loginserveruser@blah.com", "Login", "User");
         when(db.retrieveUserByName(loginServerUserName,Origin.UAA)).thenReturn(null);
         mgr.authenticate(createAuthRequest(loginServerUserName, "dadas"));
     }
@@ -173,7 +168,17 @@ public class AuthzAuthenticationManagerTests {
     }
 
     @Test
-    public void unverifiedAuthenticationFail() throws Exception {
+    public void unverifiedAuthenticationSucceedsWhenAllowed() throws Exception {
+        user.setVerified(false);
+        when(db.retrieveUserByName("auser", Origin.UAA)).thenReturn(user);
+        Authentication result = mgr.authenticate(createAuthRequest("auser", "password"));
+        assertEquals("auser", result.getName());
+        assertEquals("auser", ((UaaPrincipal) result.getPrincipal()).getName());
+        }
+
+    @Test
+    public void unverifiedAuthenticationFailsWhenNotAllowed() throws Exception {
+        mgr.setAllowUnverifiedUsers(false);
         user.setVerified(false);
         when(db.retrieveUserByName("auser", Origin.UAA)).thenReturn(user);
         try {

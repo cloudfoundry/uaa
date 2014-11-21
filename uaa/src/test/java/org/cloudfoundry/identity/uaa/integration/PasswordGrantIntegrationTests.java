@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.integration;
 
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Rule;
@@ -15,14 +14,10 @@ import org.springframework.security.oauth2.client.test.OAuth2ContextConfiguratio
 import org.springframework.security.oauth2.client.test.OAuth2ContextSetup;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
-import java.security.SecureRandom;
 import java.util.Arrays;
 
-import static org.cloudfoundry.identity.uaa.test.HasStatusCode.hasStatusCode;
 import static org.junit.Assert.assertEquals;
 
 @OAuth2ContextConfiguration(OAuth2ContextConfiguration.ClientCredentials.class)
@@ -47,34 +42,6 @@ public class PasswordGrantIntegrationTests {
         ResponseEntity<Void> responseEntity = makePasswordGrantRequest(testAccounts.getUserName(), testAccounts.getPassword());
 
         assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
-    }
-
-    @Test
-    public void testUnverifiedUserLoginViaPasswordGrant() throws Exception {
-        ScimUser unverifiedUser = createUnverifiedUser();
-
-        expectedException.expect(HttpClientErrorException.class);
-        expectedException.expect(hasStatusCode(HttpStatus.FORBIDDEN));
-
-        makePasswordGrantRequest(unverifiedUser.getUserName(), unverifiedUser.getPassword());
-    }
-
-    private ScimUser createUnverifiedUser() throws Exception {
-        int randomInt = new SecureRandom().nextInt();
-        String userName = "bob-" + randomInt;
-        String userEmail = userName + "@example.com";
-
-        RestOperations restTemplate = serverRunning.getRestTemplate();
-
-        ScimUser user = new ScimUser();
-        user.setUserName(userName);
-        user.setPassword("secret");
-        user.addEmail(userEmail);
-
-        ResponseEntity<ScimUser> result = restTemplate.postForEntity(serverRunning.getUrl("/Users"), user, ScimUser.class);
-        assertEquals(HttpStatus.CREATED, result.getStatusCode());
-
-        return user;
     }
 
     private ResponseEntity<Void> makePasswordGrantRequest(String userName, String password) {
