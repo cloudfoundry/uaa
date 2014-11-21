@@ -210,7 +210,7 @@ public class AuditCheckMvcMockTests {
 
     @Test
     public void unverifiedUserAuthenticationWhenNotAllowedTest() throws Exception {
-        ((MockEnvironment) webApplicationContext.getEnvironment()).setProperty("uaa.allowUnverifiedUsers", "false");
+        ((MockEnvironment) webApplicationContext.getEnvironment()).setProperty("allowUnverifiedUsers", "false");
         webApplicationContext.refresh();
         webApplicationContext.addApplicationListener(listener);
         webApplicationContext.addApplicationListener(testListener);

@@ -103,8 +103,7 @@ oauth:
       - oauth.approvals
 
 # Allow unverified users to log in. Defaults to true
-#uaa:
-#  allowUnverifiedUsers: false
+#allowUnverifiedUsers: false
 
 # Default token signing key. Each installation MUST provide a unique key
 # in order for tokens to be usable only on that installation.

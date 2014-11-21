@@ -143,7 +143,7 @@ public class LdapMockMvcTests {
         System.setProperty("ldap.profile.file", "ldap/"+ldapProfile);
         System.setProperty("ldap.groups.file", "ldap/"+ldapGroup);
         System.setProperty("ldap.group.maxSearchDepth", "10");
-        System.setProperty("uaa.allowUnverifiedUsers", "false");
+        System.setProperty("allowUnverifiedUsers", "false");
 
         webApplicationContext = new AnnotationConfigWebApplicationContext();
         webApplicationContext.setServletContext(new MockServletContext());

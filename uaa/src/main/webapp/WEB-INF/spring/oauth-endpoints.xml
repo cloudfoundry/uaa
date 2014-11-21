@@ -269,7 +269,7 @@
         <constructor-arg ref="userDatabase"/>
         <property name="accountLoginPolicy" ref="periodLockoutPolicy"/>
         <property name="origin" value="uaa"/>
-        <property name="allowUnverifiedUsers" value="${uaa.allowUnverifiedUsers:true}"/>
+        <property name="allowUnverifiedUsers" value="${allowUnverifiedUsers:true}"/>
     </bean>
 
     <bean id="uaaAuthenticationMgr" parent="abstractAuthzAuthenticationMgr"/>
