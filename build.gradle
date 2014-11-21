@@ -222,12 +222,6 @@ project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
       if (runningWithCoverage()) {
         extraClasspath = files(configurations.coberturaJar.files)
       }
-
-      if (graph.hasTask(project(':cloudfoundry-identity-uaa').integrationTest)) {
-        systemProperties {
-          property 'uaa.allowUnverifiedUsers', 'false'
-        }
-      }
     }
   }
 

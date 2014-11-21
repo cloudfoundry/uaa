@@ -93,6 +93,7 @@ public class AuditCheckMvcMockTests {
     private TestClient testClient;
     private UaaTestAccounts testAccounts;
     private TestApplicationEventListener<AbstractUaaEvent> testListener;
+    private ApplicationListener<UserAuthenticationSuccessEvent> authSuccessListener;
 
     @Before
     public void setUp() throws Exception {
@@ -108,7 +109,9 @@ public class AuditCheckMvcMockTests {
         FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
         clientRegistrationService = (ClientRegistrationService)webApplicationContext.getBean("clientRegistrationService");
         listener = mock(new DefaultApplicationListener<AbstractUaaEvent>() {}.getClass());
+        authSuccessListener = mock(new DefaultApplicationListener<UserAuthenticationSuccessEvent>(){}.getClass());
         webApplicationContext.addApplicationListener(listener);
+        webApplicationContext.addApplicationListener(authSuccessListener);
         testListener = TestApplicationEventListener.forEventClass(AbstractUaaEvent.class);
         webApplicationContext.addApplicationListener(testListener);
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
@@ -184,7 +187,29 @@ public class AuditCheckMvcMockTests {
     }
 
     @Test
-    public void unverifiedUserAuthenticationTest() throws Exception {
+    public void unverifiedUserAuthenticationWhenAllowedTest() throws Exception {
+        String adminToken = testClient.getClientCredentialsOAuthAccessToken(
+                testAccounts.getAdminClientId(),
+                testAccounts.getAdminClientSecret(),
+                "uaa.admin,scim.write");
+
+        ScimUser molly = createUser(adminToken, "molly", "Molly", "Collywobble", "molly@example.com", "wobble");
+
+        MockHttpServletRequestBuilder loginPost = post("/authenticate")
+                .accept(MediaType.APPLICATION_JSON_VALUE)
+                .param("username", molly.getUserName())
+                .param("password", "wobble");
+        mockMvc.perform(loginPost)
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<UserAuthenticationSuccessEvent> captor  = ArgumentCaptor.forClass(UserAuthenticationSuccessEvent.class);
+        verify(authSuccessListener, times(1)).onApplicationEvent(captor.capture());
+        UserAuthenticationSuccessEvent event = captor.getValue();
+        assertEquals("molly", event.getUser().getUsername());
+    }
+
+    @Test
+    public void unverifiedUserAuthenticationWhenNotAllowedTest() throws Exception {
         ((MockEnvironment) webApplicationContext.getEnvironment()).setProperty("uaa.allowUnverifiedUsers", "false");
         webApplicationContext.refresh();
         webApplicationContext.addApplicationListener(listener);
