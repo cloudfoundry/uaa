@@ -29,3 +29,4 @@ build/
 /classes/
 uaa/src/main/resources/build.properties
 uaa/src/main/resources/git.properties
+bin

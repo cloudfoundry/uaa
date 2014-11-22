@@ -17,7 +17,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
@@ -32,12 +31,12 @@ import org.springframework.security.oauth2.common.exceptions.InvalidClientExcept
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
+import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.oauth2.provider.TokenRequest;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.request.DefaultOAuth2RequestFactory;
 
 /**
@@ -293,6 +292,9 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
 
     private Set<String> getResourceIds(ClientDetails clientDetails, Set<String> scopes) {
         Set<String> resourceIds = new LinkedHashSet<String>();
+        //at a minimum - the resourceIds should contain the client this is intended for
+        //http://openid.net/specs/openid-connect-core-1_0.html#IDToken
+        resourceIds.add(clientDetails.getClientId());
         for (String scope : scopes) {
             if (scopeToResource.containsKey(scope)) {
                 resourceIds.add(scopeToResource.get(scope));
@@ -378,9 +380,11 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
 
     public class UaaTokenRequest extends TokenRequest {
         private Set<String> resourceIds;
+        Set<String> responseTypes;
         public UaaTokenRequest(Map<String, String> requestParameters, String clientId, Collection<String> scope, String grantType, Set<String> resourceIds) {
             super(requestParameters, clientId, scope, grantType);
             this.resourceIds = resourceIds;
+            this.responseTypes = OAuth2Utils.parseParameterList(requestParameters.get(OAuth2Utils.RESPONSE_TYPE));
         }
 
         @Override
@@ -393,7 +397,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
                 true, request.getScope(),
                 resourceIds,
                 request.getRedirectUri(),
-                request.getResponseTypes(),
+                responseTypes,
                 request.getExtensions());
         }
     }

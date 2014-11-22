@@ -39,6 +39,15 @@
         <oauth:password authentication-manager-ref="compositeAuthenticationManager" />
     </oauth:authorization-server>
 
+    <bean id="uaaAuthorizationEndpoint" class="org.cloudfoundry.identity.uaa.authorization.UaaAuthorizationEndpoint">
+        <property name="authorizationCodeServices" ref="authorizationCodeServices"/>
+        <property name="OAuth2RequestValidator" ref="oauth2RequestValidator"/>
+        <property name="userApprovalHandler" ref="userManagedApprovalHandler"/>
+        <property name="tokenGranter" ref="oauth2TokenGranter"/> <!--this bean create by oauth:authorization-server -->
+        <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
+        <property name="OAuth2RequestFactory" ref="authorizationRequestManager"/>
+    </bean>
+
     <!--/oauth/token with any match -->
     <http name="tokenEndpointSecurity" create-session="stateless" authentication-manager-ref="clientAuthenticationManager"
         pattern="/oauth/token/**" entry-point-ref="basicAuthenticationEntryPoint" xmlns="http://www.springframework.org/schema/security">
@@ -75,11 +84,12 @@
         <constructor-arg ref="authzAuthenticationMgr" />
         <constructor-arg ref="authorizationRequestManager"/>
         <property name="authenticationDetailsSource" ref="authenticationDetailsSource" />
+        <property name="authenticationEntryPoint" ref="basicAuthenticationEntryPoint" />
     </bean>
 
     <authentication-manager id="clientAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
         <authentication-provider user-service-ref="clientDetailsUserService">
-            <password-encoder ref="bcryptPasswordEncoder" />
+            <password-encoder ref="cachingPasswordEncoder" />
         </authentication-provider>
     </authentication-manager>
 
@@ -95,9 +105,11 @@
         </aop:aspect>
     </aop:config>
 
+
+
     <bean id="clientDetailsUserService" class="org.springframework.security.oauth2.provider.client.ClientDetailsUserDetailsService">
         <constructor-arg ref="jdbcClientDetailsService" />
-        <property name="passwordEncoder" ref="bcryptPasswordEncoder" />
+        <property name="passwordEncoder" ref="cachingPasswordEncoder" />
     </bean>
 
     <bean id="oauthAuthorizeRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
@@ -257,7 +269,9 @@
         <constructor-arg ref="userDatabase"/>
         <property name="accountLoginPolicy" ref="periodLockoutPolicy"/>
         <property name="origin" value="uaa"/>
+        <property name="allowUnverifiedUsers" value="${allowUnverifiedUsers:true}"/>
     </bean>
+
     <bean id="uaaAuthenticationMgr" parent="abstractAuthzAuthenticationMgr"/>
 
     <bean id="authzAuthenticationMgr" parent="abstractAuthzAuthenticationMgr"/>

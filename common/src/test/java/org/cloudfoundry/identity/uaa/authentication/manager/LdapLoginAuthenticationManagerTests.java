@@ -158,6 +158,7 @@ public class LdapLoginAuthenticationManagerTests  {
             new Date(),
             new Date(),
             Origin.ORIGIN,
-            EXTERNAL_ID);
+            EXTERNAL_ID,
+            false);
     }
 }

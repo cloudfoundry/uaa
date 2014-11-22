@@ -578,7 +578,9 @@ public final class ScimUser extends ScimCore {
      * @param newPhoneNumber
      */
     public void addPhoneNumber(String newPhoneNumber) {
-        Assert.hasText(newPhoneNumber);
+        if (newPhoneNumber==null || newPhoneNumber.trim().length()==0) {
+            return;
+        }
 
         if (phoneNumbers == null) {
             phoneNumbers = new ArrayList<PhoneNumber>(1);

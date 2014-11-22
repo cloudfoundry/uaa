@@ -23,18 +23,19 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
 import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.authentication.event.UnverifiedUserAuthenticationEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserNotFoundEvent;
@@ -57,11 +58,9 @@ public class AuthzAuthenticationManagerTests {
     private AuthzAuthenticationManager mgr;
     private UaaUserDatabase db;
     private ApplicationEventPublisher publisher;
-    // "password"
-    private static final String PASSWORD = "$2a$10$HoWPAUn9zqmmb0b.2TBZWe6cjQcxyo8TDwTX.5G46PBL347N3/0zO";
+    private static final String PASSWORD = "$2a$10$HoWPAUn9zqmmb0b.2TBZWe6cjQcxyo8TDwTX.5G46PBL347N3/0zO"; // "password"
     private UaaUser user = null;
     private BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-    private UaaUser loginServerUser = null;
     private String loginServerUserName="loginServerUser".toLowerCase();
 
     @Before
@@ -76,7 +75,8 @@ public class AuthzAuthenticationManagerTests {
             new Date(),
             new Date(),
             Origin.UAA,
-            null);
+            null,
+            true);
         db = mock(UaaUserDatabase.class);
         publisher = mock(ApplicationEventPublisher.class);
         mgr = new AuthzAuthenticationManager(db, encoder);
@@ -95,14 +95,12 @@ public class AuthzAuthenticationManagerTests {
 
     @Test(expected = BadCredentialsException.class)
     public void unsuccessfulLoginServerUserAuthentication() throws Exception {
-        loginServerUser = new UaaUser(loginServerUserName,encoder.encode(""), "loginserveruser@blah.com", "Login", "User");
         when(db.retrieveUserByName(loginServerUserName,Origin.UAA)).thenReturn(null);
         mgr.authenticate(createAuthRequest(loginServerUserName, ""));
     }
 
     @Test(expected = BadCredentialsException.class)
     public void unsuccessfulLoginServerUserWithPasswordAuthentication() throws Exception {
-        loginServerUser = new UaaUser(loginServerUserName,encoder.encode(""), "loginserveruser@blah.com", "Login", "User");
         when(db.retrieveUserByName(loginServerUserName,Origin.UAA)).thenReturn(null);
         mgr.authenticate(createAuthRequest(loginServerUserName, "dadas"));
     }
@@ -165,10 +163,33 @@ public class AuthzAuthenticationManagerTests {
 
     @Test(expected = BadCredentialsException.class)
     public void originAuthenticationFail() throws Exception {
-        when(db.retrieveUserByName("auser","anything")).thenReturn(user);
+        when(db.retrieveUserByName("auser", "not UAA")).thenReturn(user);
         mgr.authenticate(createAuthRequest("auser", "password"));
     }
 
+    @Test
+    public void unverifiedAuthenticationSucceedsWhenAllowed() throws Exception {
+        user.setVerified(false);
+        when(db.retrieveUserByName("auser", Origin.UAA)).thenReturn(user);
+        Authentication result = mgr.authenticate(createAuthRequest("auser", "password"));
+        assertEquals("auser", result.getName());
+        assertEquals("auser", ((UaaPrincipal) result.getPrincipal()).getName());
+        }
+
+    @Test
+    public void unverifiedAuthenticationFailsWhenNotAllowed() throws Exception {
+        mgr.setAllowUnverifiedUsers(false);
+        user.setVerified(false);
+        when(db.retrieveUserByName("auser", Origin.UAA)).thenReturn(user);
+        try {
+            mgr.authenticate(createAuthRequest("auser", "password"));
+
+            fail("Expected AccountNotVerifiedException");
+        } catch (AccountNotVerifiedException e) {
+            // woo hoo
+        }
+        verify(publisher).publishEvent(isA(UnverifiedUserAuthenticationEvent.class));
+    }
 
     AuthzAuthenticationRequest createAuthRequest(String username, String password) {
         Map<String, String> userdata = new HashMap<String, String>();

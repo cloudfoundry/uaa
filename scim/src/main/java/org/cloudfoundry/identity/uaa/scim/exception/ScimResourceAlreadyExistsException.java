@@ -14,6 +14,8 @@ package org.cloudfoundry.identity.uaa.scim.exception;
 
 import org.springframework.http.HttpStatus;
 
+import java.util.Map;
+
 /**
  * Unchecked exception signalling that a user account already exists.
  * 
@@ -27,6 +29,10 @@ public class ScimResourceAlreadyExistsException extends ScimException {
      */
     public ScimResourceAlreadyExistsException(String message) {
         super(message, HttpStatus.CONFLICT);
+    }
+
+    public ScimResourceAlreadyExistsException(String message, Map<String,Object> extraInformation) {
+        super(message, HttpStatus.CONFLICT, extraInformation);
     }
 
 }

@@ -12,6 +12,11 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import java.lang.reflect.Field;
+import java.math.BigInteger;
+import java.security.interfaces.RSAPublicKey;
+
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.InitializingBean;
@@ -27,9 +32,7 @@ import org.springframework.util.Assert;
 /**
  * A class that knows how to provide the signing and verification keys
  * 
- * @author Joel D'sa
- * @author Luke Taylor
- * 
+ *
  */
 public class SignerProvider implements InitializingBean {
 
@@ -37,10 +40,12 @@ public class SignerProvider implements InitializingBean {
     private String verifierKey = new RandomValueStringGenerator().generate();
     private String signingKey = verifierKey;
     private Signer signer = new MacSigner(verifierKey);
+    private String type = "MAC";
 
     @Override
     public void afterPropertiesSet() throws Exception {
         if (signer instanceof RsaSigner) {
+            type = "RSA";
             RsaVerifier verifier;
             try {
                 verifier = new RsaVerifier(verifierKey);
@@ -71,6 +76,10 @@ public class SignerProvider implements InitializingBean {
      */
     public String getVerifierKey() {
         return verifierKey;
+    }
+
+    public String getType() {
+        return type;
     }
 
     /**
@@ -146,5 +155,7 @@ public class SignerProvider implements InitializingBean {
         }
         this.verifierKey = verifierKey;
     }
+
+
 
 }

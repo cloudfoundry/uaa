@@ -13,7 +13,6 @@
 
 package org.cloudfoundry.identity.uaa.password.event;
 
-import java.security.Principal;
 import java.util.Date;
 import java.util.List;
 
@@ -70,7 +69,7 @@ public class PasswordChangeEventPublisher implements ApplicationEventPublisherAw
             if (scimUser != null) {
                 return new UaaUser(scimUser.getId(), scimUser.getUserName(), "N/A", getEmail(scimUser), null,
                                 scimUser.getGivenName(),
-                                scimUser.getFamilyName(), today, today, scimUser.getOrigin(), scimUser.getExternalId());
+                                scimUser.getFamilyName(), today, today, scimUser.getOrigin(), scimUser.getExternalId(), scimUser.isVerified());
             }
         } catch (ScimResourceNotFoundException e) {
             // ignore

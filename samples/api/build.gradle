@@ -1,4 +1,12 @@
 apply plugin: 'war'
+apply plugin: 'eclipse-wtp'
+eclipse {
+	wtp {
+	    component {
+	      contextPath = 'api'
+	    }
+	}
+}
 
 description = 'Sample resource server for Cloudfoundry Identity Services'
 dependencies {

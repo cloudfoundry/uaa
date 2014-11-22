@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.scim.bootstrap;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import java.util.*;
 
@@ -97,6 +98,19 @@ public class ScimUserBootstrapTests {
         bootstrap.afterPropertiesSet();
         Collection<ScimUser> users = db.retrieveAll();
         assertEquals(2, users.size());
+    }
+
+    @Test
+    public void addedUsersAreVerified() throws Exception {
+        UaaUser uaaJoe = new UaaUser("joe", "password", "joe@test.org", "Joe", "User");
+        ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(uaaJoe));
+
+        bootstrap.afterPropertiesSet();
+
+        List<ScimUser> users = db.retrieveAll();
+
+        ScimUser scimJoe = users.get(0);
+        assertTrue(scimJoe.isVerified());
     }
 
     @Test
@@ -329,7 +343,8 @@ public class ScimUserBootstrapTests {
                 new Date(),
                 new Date(),
                 origin,
-                externalId);
+                externalId,
+                false);
     }
 
     @Test

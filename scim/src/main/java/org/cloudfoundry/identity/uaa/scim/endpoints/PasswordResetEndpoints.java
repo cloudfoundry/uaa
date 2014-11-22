@@ -147,6 +147,9 @@ public class PasswordResetEndpoints implements ApplicationEventPublisherAware {
         String userId = expiringCode.getData();
         ScimUser user = scimUserProvisioning.retrieve(userId);
         try {
+            if (!user.isVerified()) {
+                scimUserProvisioning.verifyUser(userId, -1);
+            }
             scimUserProvisioning.changePassword(userId, null, passwordChange.getNewPassword());
             publish(new PasswordChangeEvent("Password changed", getUaaUser(user), SecurityContextHolder.getContext().getAuthentication()));
             Map<String,String> userInfo = new HashMap<>();
@@ -170,7 +173,7 @@ public class PasswordResetEndpoints implements ApplicationEventPublisherAware {
         return new UaaUser(scimUser.getId(), scimUser.getUserName(), "N/A", scimUser.getPrimaryEmail(), null,
             scimUser.getGivenName(),
             scimUser.getFamilyName(), today, today,
-            scimUser.getOrigin(), scimUser.getExternalId());
+            scimUser.getOrigin(), scimUser.getExternalId(), scimUser.isVerified());
     }
 
     public static class PasswordChange {

@@ -2,8 +2,6 @@ Project identityCommon = parent.subprojects.find { it.name.equals('cloudfoundry-
 
 description = 'CloudFoundry Identity SCIM'
 
-configurations { providedCompile }
-
 dependencies {
   compile identityCommon
   compile group: 'eu.tekul', name: 'szxcvbn_2.8.2', version:'0.2'
@@ -12,15 +10,11 @@ dependencies {
     exclude(module: 'commons-logging')
   }
 
-  providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version:'3.0.1'
+  provided group: 'javax.servlet', name: 'javax.servlet-api', version:'3.0.1'
 
   testCompile identityCommon.configurations.testCompile.dependencies
   testCompile identityCommon.sourceSets.test.output
 }
-
-sourceSets.main.compileClasspath += configurations.providedCompile
-sourceSets.test.compileClasspath += configurations.providedCompile
-sourceSets.test.runtimeClasspath += configurations.providedCompile
 
 test.dependsOn identityCommon.instrumentedJar
 

@@ -167,6 +167,32 @@ public class PasswordResetEndpointsTest {
     }
 
     @Test
+    public void testChangingAPasswordForUnverifiedUser() throws Exception {
+        Mockito.when(expiringCodeStore.retrieveCode("secret_code"))
+                .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis()), "eyedee"));
+
+        ScimUser scimUser = new ScimUser("eyedee", "user@example.com", "User", "Man");
+        scimUser.addEmail("user@example.com");
+        scimUser.setVerified(false);
+        Mockito.when(scimUserProvisioning.retrieve("eyedee")).thenReturn(scimUser);
+
+        MockHttpServletRequestBuilder post = post("/password_change")
+                .contentType(APPLICATION_JSON)
+                .content("{\"code\":\"secret_code\",\"new_password\":\"new_secret\"}")
+                .accept(APPLICATION_JSON);
+
+        SecurityContextHolder.getContext().setAuthentication(new MockAuthentication());
+
+        mockMvc.perform(post)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.user_id").value("eyedee"))
+                .andExpect(jsonPath("$.username").value("user@example.com"));
+
+        Mockito.verify(scimUserProvisioning).changePassword("eyedee", null, "new_secret");
+        Mockito.verify(scimUserProvisioning).verifyUser(scimUser.getId(), -1);
+    }
+
+    @Test
     public void testChangingAPasswordWithAUsernameAndPassword() throws Exception {
         ScimUser user = new ScimUser("id001", "user@example.com", null, null);
         user.addEmail("user@example.com");

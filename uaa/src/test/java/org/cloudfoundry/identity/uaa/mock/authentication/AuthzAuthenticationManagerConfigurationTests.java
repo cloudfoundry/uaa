@@ -32,7 +32,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
-public class AuthzAuthenticationManagerVerificationMockMvcTests {
+public class AuthzAuthenticationManagerConfigurationTests {
 
     private XmlWebApplicationContext webApplicationContext;
     private MockEnvironment environment;

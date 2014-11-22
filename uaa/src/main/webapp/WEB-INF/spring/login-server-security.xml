@@ -184,13 +184,6 @@
         <constructor-arg ref="dataSource" />
     </bean>
 
-    <bean id="codeStoreEndpoints" class="org.cloudfoundry.identity.uaa.codestore.CodeStoreEndpoints">
-        <property name="expiringCodeStore" ref="codeStore" />
-        <property name="messageConverters">
-            <bean class="org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter" />
-        </property>
-    </bean>
-
     <bean id="objectMapper" class="org.codehaus.jackson.map.ObjectMapper"/>
 
     <bean id="passwordResetEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpoints">
@@ -206,31 +199,8 @@
         <constructor-arg ref="clientDetailsService"/>
     </bean>
 
-    <bean id="createAccountEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.CreateAccountEndpoints">
-        <constructor-arg ref="objectMapper"/>
-        <constructor-arg ref="clientDetailsService"/>
-        <constructor-arg ref="scimUserProvisioning"/>
-        <constructor-arg ref="codeStore"/>
-    </bean>
-
-    <http create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="emptyAuthenticationManager"
-        access-decision-manager-ref="accessDecisionManager" pattern="/Codes/**" xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/**" access="scope=oauth.login" />
-        <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
-        <anonymous enabled="false" />
-        <access-denied-handler ref="oauthAccessDeniedHandler" />
-    </http>
-
     <http create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="emptyAuthenticationManager"
         access-decision-manager-ref="accessDecisionManager" pattern="/password_*" xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/**" access="scope=oauth.login" />
-        <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
-        <anonymous enabled="false" />
-        <access-denied-handler ref="oauthAccessDeniedHandler" />
-    </http>
-
-    <http create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="emptyAuthenticationManager"
-        access-decision-manager-ref="accessDecisionManager" pattern="/create_account" xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="scope=oauth.login" />
         <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
         <anonymous enabled="false" />

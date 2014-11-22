@@ -51,7 +51,6 @@ import org.springframework.security.oauth2.client.token.DefaultAccessTokenReques
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.util.Assert;
-import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestOperations;
 
 /**
@@ -215,7 +214,7 @@ public class TestAccountSetup extends TestWatchman {
         @SuppressWarnings("unchecked")
         Collection<Map<String, String>> groups = (Collection<Map<String, String>>) map.get("groups");
         return new UaaUser(id, userName, "<N/A>", email, extractAuthorities(groups), givenName, familyName, new Date(),
-                        new Date(), Origin.UAA, "externalId");
+                        new Date(), Origin.UAA, "externalId", false);
     }
 
     private List<? extends GrantedAuthority> extractAuthorities(Collection<Map<String, String>> groups) {

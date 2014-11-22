@@ -2,4 +2,5 @@
 
 cd `dirname $0`/..
 
-sed -i -E "s/^version=.+$/version=$1/" gradle.properties
+sed -e "s/^version=.*/version=$1/" gradle.properties > gradle.properties.new
+mv gradle.properties.new gradle.properties

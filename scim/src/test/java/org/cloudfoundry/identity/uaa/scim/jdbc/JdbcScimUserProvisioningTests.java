@@ -18,12 +18,14 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -41,7 +43,6 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
-import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.junit.After;
 import org.junit.Before;
@@ -49,12 +50,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.test.annotation.IfProfileValue;
-import org.springframework.test.annotation.ProfileValueSourceConfiguration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -64,9 +64,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  */
 @ContextConfiguration(locations = { "classpath:spring/env.xml", "classpath:spring/data-source.xml" })
 @RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "", "test,postgresql", "hsqldb", "test,mysql",
-                "test,oracle" })
-@ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class JdbcScimUserProvisioningTests {
 
     @Autowired
@@ -133,7 +130,10 @@ public class JdbcScimUserProvisioningTests {
     public void clear() throws Exception {
         template.execute("delete from users where id = '" + JOE_ID + "'");
         template.execute("delete from users where id = '" + MABEL_ID + "'");
-        template.execute("delete from users where userName = 'JO@FOO.COM'");
+        template.execute("delete from users where upper(userName) = 'JO@FOO.COM'");
+        template.execute("delete from users where upper(userName) = 'JONAH@FOO.COM'");
+        template.execute("delete from users where upper(userName) = 'RO''GALLAGHER@EXAMPLE.COM'");
+        template.execute("delete from users where upper(userName) = 'USER@EXAMPLE.COM'");
     }
 
     @Test
@@ -181,16 +181,23 @@ public class JdbcScimUserProvisioningTests {
 
     @Test
     public void canCreateUserWithoutGivenNameAndFamilyName() {
-        ScimUser user = new ScimUser(null, "jo@foo.com", null, null);
+        ScimUser user = new ScimUser(null, "jonah@foo.com", null, null);
         user.addEmail("jo@blah.com");
         ScimUser created = db.createUser(user, "j7hyqpassX");
-        assertEquals("jo@foo.com", created.getUserName());
+        assertEquals("jonah@foo.com", created.getUserName());
         assertNotNull(created.getId());
         assertNotSame(user.getId(), created.getId());
         Map<String, Object> map = template.queryForMap("select * from users where id=?", created.getId());
         assertEquals(user.getUserName(), map.get("userName"));
         assertEquals(user.getUserType(), map.get(UaaAuthority.UAA_USER.getUserType()));
         assertNull(created.getGroups());
+    }
+
+    @Test
+    public void canCreateUserWithSingleQuoteInEmailAndUsername() {
+        ScimUser user = new ScimUser(null, "ro'gallagher@example.com", "Rob", "O'Gallagher");
+        user.addEmail("ro'gallagher@example.com");
+        db.createUser(user, "j7hyqpassX");
     }
 
     @Test(expected = InvalidScimResourceException.class)
@@ -217,7 +224,7 @@ public class JdbcScimUserProvisioningTests {
         assertEquals(JOE_ID, joe.getId());
         assertNull(joe.getGroups());
     }
-    
+
     @Test
     public void updateWithEmptyPhoneListWorks() {
         ScimUser jo = new ScimUser(null, "josephine", "Jo", "NewUser");
@@ -399,6 +406,30 @@ public class JdbcScimUserProvisioningTests {
     }
 
     @Test
+    public void testCreateUserWithDuplicateUsername() throws Exception {
+        addUser("cba09242-aa43-4247-9aa0-b5c75c281f94", "user@example.com", "password", "user@example.com", "first", "user", "90438");
+        ScimUser scimUser = new ScimUser("user-id-2", "user@example.com", "User", "Example");
+        ScimUser.Email email = new ScimUser.Email();
+        email.setValue("user@example.com");
+        scimUser.setEmails(Arrays.asList(email));
+        scimUser.setPassword("password");
+
+        try {
+            db.create(scimUser);
+            fail("Should have thrown an exception");
+        } catch (ScimResourceAlreadyExistsException e) {
+            Map<String,Object> userDetails = new HashMap<>();
+            userDetails.put("active", true);
+            userDetails.put("verified", false);
+            userDetails.put("user_id", "cba09242-aa43-4247-9aa0-b5c75c281f94");
+            assertEquals(HttpStatus.CONFLICT, e.getStatus());
+            assertEquals("Username already in use: user@example.com", e.getMessage());
+            assertEquals(userDetails, e.getExtraInfo());
+        }
+    }
+
+
+    @Test
     public void testUpdatedUserVerified() {
         String tmpUserIdString = createUserForDelete();
         boolean verified = template.queryForObject(verifyUserSqlFormat, Boolean.class, tmpUserIdString);
@@ -524,12 +555,12 @@ public class JdbcScimUserProvisioningTests {
 
     @Test
     public void canRetrieveUsersWithFilterContains() {
-        assertEquals(2 + existingUserCount, db.query("username co \"e\"").size());
+        assertEquals(2, db.query("username co \"e\"").size());
     }
 
     @Test
     public void canRetrieveUsersWithFilterStartsWith() {
-        assertEquals(1 + existingUserCount, db.query("username sw \"joe\"").size());
+        assertEquals(1, db.query("username sw \"joe\"").size());
     }
 
     @Test
@@ -544,7 +575,11 @@ public class JdbcScimUserProvisioningTests {
 
     @Test
     public void canRetrieveUsersWithGroupsFilter() {
-        assertEquals(2, db.query("groups.display co \"uaa.user\"").size());
+        List<ScimUser> users = db.query("groups.display co \"uaa.user\"");
+        assertEquals(2 + existingUserCount, users.size());
+        for (int i=0; i<users.size(); i++) {
+            assertNotNull(users.get(i));
+        }
     }
 
     @Test
@@ -579,12 +614,12 @@ public class JdbcScimUserProvisioningTests {
 
     @Test
     public void canRetrieveUsersWithFilterBooleanAnd() {
-        assertEquals(2 + existingUserCount, db.query("username pr and emails.value co \".com\"").size());
+        assertEquals(2, db.query("username pr and emails.value co \".com\"").size());
     }
 
     @Test
     public void canRetrieveUsersWithFilterBooleanOr() {
-        assertEquals(2 + existingUserCount, db.query("username eq \"joe\" or emails.value co \".com\"").size());
+        assertEquals(2, db.query("username eq \"joe\" or emails.value co \".com\"").size());
     }
 
     @Test

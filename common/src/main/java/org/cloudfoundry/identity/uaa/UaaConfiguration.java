@@ -51,6 +51,7 @@ public class UaaConfiguration {
     public boolean dump_requests;
     public boolean require_https;
     public boolean loginAddnew;
+    public boolean allowUnverifiedUsers;
     @Valid
     public PasswordPolicy passwordPolicy;
     @Valid

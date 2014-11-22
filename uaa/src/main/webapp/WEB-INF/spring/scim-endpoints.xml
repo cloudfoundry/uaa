@@ -32,7 +32,7 @@
         </property>
         <property name="queryConverter" ref="scimUserQueryConverter" />
         <property name="deactivateOnDelete" value="${scim.delete.deactivate:false}" />
-        <property name="usernamePattern" value="${scim.username_pattern:[a-zA-Z0-9+\-_.@]+}" />
+        <property name="usernamePattern" value="${scim.username_pattern:[a-zA-Z0-9+\-_.@']+}" />
     </bean>
 
     <bean id="scimEventPublisher" class="org.cloudfoundry.identity.uaa.scim.event.ScimEventPublisher"/>
@@ -231,7 +231,7 @@
     <http pattern="/Users/**" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
         entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="userAccessDecisionManager"
         xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/Users/*/verify" access="scope=scim.write" method="GET" />
+        <intercept-url pattern="/Users/*/verify" access="scope=scim.write,scope=scim.create" method="GET" />
         <intercept-url pattern="/Users/**" access="scope=scim.read,user=self" method="GET" />
         <intercept-url pattern="/Users/*" access="scope=scim.write" method="DELETE" />
         <intercept-url pattern="/Users/*" access="scope=scim.write,user=self" method="PUT" />
@@ -254,6 +254,9 @@
 
     <oauth:resource-server id="scimResourceAuthenticationFilter" token-services-ref="tokenServices"
         resource-id="scim" entry-point-ref="oauthAuthenticationEntryPoint" />
+
+    <oauth:resource-server id="resourceAgnosticAuthenticationFilter" token-services-ref="tokenServices"
+                           entry-point-ref="oauthAuthenticationEntryPoint" />
 
     <!--TODO What is this resource-server actually guarding? -->
     <oauth:resource-server id="idsResourceAuthenticationFilter" token-services-ref="tokenServices"

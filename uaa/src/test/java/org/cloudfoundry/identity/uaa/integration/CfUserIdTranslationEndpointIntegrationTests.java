@@ -86,6 +86,7 @@ public class CfUserIdTranslationEndpointIntegrationTests {
         user.setName(new ScimUser.Name("Joe", "User"));
         user.addEmail("joe@blah.com");
         user.setGroups(Arrays.asList(new Group(null, "uaa.user"), new Group(null, "orgs.foo")));
+        user.setVerified(true);
 
         ResponseEntity<ScimUser> newuser = client.postForEntity(serverRunning.getUrl(userEndpoint), user,
                         ScimUser.class);
