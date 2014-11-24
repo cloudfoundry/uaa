@@ -60,8 +60,8 @@ public class IdentityZoneEndpointsIntegrationTests {
         IdentityZone idZone = new IdentityZone();
         String id = UUID.randomUUID().toString();
         idZone.setId(id);
-        idZone.setSubdomain("subdomain");
-        idZone.setName("twiglet service");
+        idZone.setSubdomain(id);
+        idZone.setName("testCreateZone() "+id);
         ResponseEntity<Void> response = client.exchange(
                 serverRunning.getUrl("/identity-zones/{id}"), 
                 HttpMethod.PUT,

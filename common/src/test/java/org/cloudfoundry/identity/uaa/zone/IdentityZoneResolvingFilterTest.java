@@ -22,6 +22,12 @@ public class IdentityZoneResolvingFilterTest {
     private boolean wasFilterExecuted = false;
     
     @Test
+    public void holderIsSetWithDefaultIdentityZone() {
+        IdentityZoneHolder.clear();
+        assertEquals(IdentityZone.getUaa(), IdentityZoneHolder.get());
+    }
+    
+    @Test
     public void holderIsSetWithMatchingIdentityZone() throws Exception {
         assertFindsCorrectSubdomain("myzone", "myzone.uaa.mycf.com", "uaa.mycf.com,login.mycf.com");
     }
@@ -63,7 +69,7 @@ public class IdentityZoneResolvingFilterTest {
         filter.doFilter(request, response, filterChain);
         assertTrue(wasFilterExecuted);
         Mockito.verify(dao).retrieveBySubdomain(Mockito.eq(expectedSubdomain));
-        assertNull(IdentityZoneHolder.get());
+        assertEquals(IdentityZone.getUaa(), IdentityZoneHolder.get());
     }
     
     @Test
@@ -88,7 +94,7 @@ public class IdentityZoneResolvingFilterTest {
         
         filter.doFilter(request, response, chain);
         assertEquals(HttpServletResponse.SC_NOT_FOUND, response.getStatus());
-        assertNull(IdentityZoneHolder.get());
+        assertEquals(IdentityZone.getUaa(), IdentityZoneHolder.get());
         Mockito.verifyZeroInteractions(chain);
     }
 

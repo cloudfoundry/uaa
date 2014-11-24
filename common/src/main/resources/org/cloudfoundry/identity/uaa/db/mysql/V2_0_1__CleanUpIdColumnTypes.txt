@@ -26,13 +26,13 @@ INSERT INTO `uuid_validate` SELECT `id` FROM `identity_provider`;
 INSERT INTO `uuid_validate` SELECT `identity_zone_id` FROM `identity_provider`; 
 
 INSERT INTO `uuid_validate` SELECT `id` FROM `identity_zone`; 
-INSERT INTO `uuid_validate` SELECT `service_instance_id` FROM `identity_zone`; 
 
 INSERT INTO `uuid_validate` SELECT `client_id` FROM `oauth_client_details`; 
 INSERT INTO `uuid_validate` SELECT `identity_zone_id` FROM `oauth_client_details`; 
 
 INSERT INTO `uuid_validate` SELECT `id` FROM `users`; 
 INSERT INTO `uuid_validate` SELECT `identity_provider_id` FROM `users`; 
+INSERT INTO `uuid_validate` SELECT `identity_zone_id` FROM `users`; 
 
 DROP TABLE uuid_validate;
 
@@ -61,8 +61,7 @@ MODIFY COLUMN `id` CHAR(36) CHARACTER SET ascii,
 MODIFY COLUMN `identity_zone_id` CHAR(36) CHARACTER SET ascii;
 
 ALTER TABLE `identity_zone` 
-MODIFY COLUMN `id` CHAR(36) CHARACTER SET ascii,
-MODIFY COLUMN `service_instance_id` CHAR(36) CHARACTER SET ascii;
+MODIFY COLUMN `id` CHAR(36) CHARACTER SET ascii;
 
 ALTER TABLE `oauth_client_details` 
 MODIFY COLUMN `client_id` CHAR(36) CHARACTER SET ascii,
@@ -70,6 +69,7 @@ MODIFY COLUMN `identity_zone_id` CHAR(36) CHARACTER SET ascii;
 
 ALTER TABLE `users` 
 MODIFY COLUMN `id` CHAR(36) CHARACTER SET ascii,
-MODIFY COLUMN `identity_provider_id` CHAR(36) CHARACTER SET ascii;
+MODIFY COLUMN `identity_provider_id` CHAR(36) CHARACTER SET ascii,
+MODIFY COLUMN `identity_zone_id` CHAR(36) CHARACTER SET ascii;
 
 

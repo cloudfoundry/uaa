@@ -45,6 +45,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.expression.spel.SpelEvaluationException;
@@ -258,6 +259,10 @@ public class ScimUserEndpoints implements InitializingBean {
         List<ScimUser> input = new ArrayList<ScimUser>();
         List<ScimUser> result;
         try {
+            if (StringUtils.hasText(filter)) {
+                filter += " and";
+            }
+            filter += " identity_zone_id eq \""+IdentityZoneHolder.get().getId()+"\"";
             result = dao.query(filter, sortBy, sortOrder.equals("ascending"));
             for (ScimUser user : UaaPagingUtils.subList(result, startIndex, count)) {
                 if(attributesCommaSeparated == null || attributesCommaSeparated.matches("(?i)groups") || attributesCommaSeparated.isEmpty()) {

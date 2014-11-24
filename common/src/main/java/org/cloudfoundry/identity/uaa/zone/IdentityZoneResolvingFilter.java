@@ -15,6 +15,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+/**
+ * This filter ensures that all requests are targeting a specific identity zone
+ * by hostname. If the hostname doesn't match an identity zone, a 404 error is
+ * sent.
+ * 
+ * @author wtran@pivotal.io
+ * @author rszumlakowski@pivotal.io
+ *
+ */
 public class IdentityZoneResolvingFilter extends OncePerRequestFilter {
 
     private IdentityZoneProvisioning dao;
@@ -36,8 +45,7 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter {
             }
         }
         if (identityZone == null) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Cannot find identity zone for subdomain "
-                    + subdomain);
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Cannot find identity zone for subdomain " + subdomain);
             return;
         }
         try {
