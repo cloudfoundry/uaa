@@ -24,9 +24,4 @@
         <expression-handler ref="oauthWebExpressionHandler" />
     </http>
     
-    
-    <bean id="org.cloudfoundry.identity.uaa.db.MultitenantMigrator" class="org.cloudfoundry.identity.uaa.db.MultitenantMigrator">
-    	<property name="jdbcTemplate" ref="jdbcTemplate"/>
-    	<property name="txManager" ref="transactionManager"/>
-    </bean>
 </beans>

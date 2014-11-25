@@ -34,6 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import com.googlecode.flyway.core.Flyway;
+
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager;
@@ -45,6 +46,7 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
+import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assume;
@@ -166,6 +168,7 @@ public class LdapMockMvcTests {
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter);
         gDB = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
         uDB = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory);
+        IdentityProvider.addIdentityProvider(jdbcTemplate,Origin.LDAP);
     }
 
     @After
@@ -338,7 +341,7 @@ public class LdapMockMvcTests {
     }
 
     private String getEmail(String username) {
-        return jdbcTemplate.queryForObject("select email from users where username='"+username+"' and origin='"+Origin.LDAP+"'", String.class);
+        return jdbcTemplate.queryForObject("select email from users where username='" + username + "' and origin='" + Origin.LDAP + "'", String.class);
     }
 
     private MvcResult performAuthentication(String username, String password) throws Exception {
@@ -469,7 +472,7 @@ public class LdapMockMvcTests {
             "internal.everything",
             "internal.superuser"
         };
-        doTestNestedLdapGroupsMappedToScopesWithDefaultScopes(username,password,list);
+        doTestNestedLdapGroupsMappedToScopesWithDefaultScopes(username, password, list);
     }
 
     @Test

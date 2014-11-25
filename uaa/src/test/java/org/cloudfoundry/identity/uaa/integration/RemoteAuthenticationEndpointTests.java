@@ -67,7 +67,7 @@ public class RemoteAuthenticationEndpointTests {
     @Test
     public void remoteAuthenticationSucceedsAndCreatesUser() throws Exception {
         String username = new RandomValueStringGenerator().generate();
-        String origin =  new RandomValueStringGenerator().generate();
+        String origin = Origin.LOGIN_SERVER;
         Map<String,Object> info = new HashMap<>();
         info.put("source", "login");
         info.put("add_new", "true");

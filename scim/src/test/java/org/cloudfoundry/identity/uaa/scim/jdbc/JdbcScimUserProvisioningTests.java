@@ -41,6 +41,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundExceptio
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -131,6 +132,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     @Test
     public void validateOriginAndExternalIDDuringCreateAndUpdate() {
         String origin = "test";
+        IdentityProvider.addIdentityProvider(template,origin);
         String externalId = "testId";
         ScimUser user = new ScimUser(null, "jo@foo.com", "Jo", "User");
         user.setOrigin(origin);
@@ -147,6 +149,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertEquals(origin, created.getOrigin());
         assertEquals(externalId, created.getExternalId());
         String origin2 = "test2";
+        IdentityProvider.addIdentityProvider(template,origin2);
         String externalId2 = "testId2";
         created.setOrigin(origin2);
         created.setExternalId(externalId2);

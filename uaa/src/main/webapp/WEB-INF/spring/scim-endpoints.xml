@@ -21,7 +21,7 @@
 		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
 		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.0.xsd">
 
-    <bean id="scimUserProvisioning" class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning" depends-on="multitenantMigrator">
+    <bean id="scimUserProvisioning" class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning">
         <constructor-arg ref="jdbcTemplate" />
         <constructor-arg name="pagingListFactory" ref="jdbcPagingListFactory" />
         <!-- Password validation turned off to match cloud controller policies -->

@@ -67,7 +67,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
     public static final String CREATE_USER_SQL = "insert into users (" + USER_FIELDS
                     + ",password) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
-    public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, userName=?, email=?, givenName=?, familyName=?, active=?, phoneNumber=?, verified=?, origin=?, external_id=? where id=? and version=?";
+    public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, userName=?, email=?, givenName=?, familyName=?, active=?, phoneNumber=?, verified=?, origin=?, external_id=?, identity_provider_id = ? where id=? and version=?";
 
     public static final String DEACTIVATE_USER_SQL = "update users set active=? where id=?";
 
@@ -142,7 +142,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
         final String id = UUID.randomUUID().toString();
         final String identityZoneId = IdentityZoneHolder.get().getId();
         final String origin = StringUtils.hasText(user.getOrigin()) ? user.getOrigin() : Origin.UAA;
-        final String identityProviderId = jdbcTemplate.queryForObject("select id from identity_provider where origin_key = ? and identity_zone_id = ?", String.class, origin, identityZoneId);
+        final String identityProviderId = getIdentityProviderId(identityZoneId, origin);
         
         try {
             jdbcTemplate.update(CREATE_USER_SQL, new PreparedStatementSetter() {
@@ -186,6 +186,16 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
         return retrieve(id);
     }
 
+    private String getIdentityProviderId(final String identityZoneId, final String origin) {
+        final String identityProviderId;
+        try {
+            identityProviderId = jdbcTemplate.queryForObject("select id from identity_provider where origin_key = ? and identity_zone_id = ?", String.class, origin, identityZoneId);
+        } catch (Exception e) {
+            throw new IllegalStateException("No IdentityProvider could be found for identity_zone_id = "+identityZoneId+" origin="+origin,e);
+        }
+        return identityProviderId;
+    }
+
     @Override
     public ScimUser createUser(ScimUser user, final String password) throws InvalidPasswordException,
                     InvalidScimResourceException {
@@ -215,6 +225,9 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
     public ScimUser update(final String id, final ScimUser user) throws InvalidScimResourceException {
         validate(user);
         logger.debug("Updating user " + user.getUserName());
+        final String identityZoneId = IdentityZoneHolder.get().getId();
+        final String origin = StringUtils.hasText(user.getOrigin()) ? user.getOrigin() : Origin.UAA;
+        final String identityProviderId = getIdentityProviderId(identityZoneId, origin);
 
         int updated = jdbcTemplate.update(UPDATE_USER_SQL, new PreparedStatementSetter() {
             @Override
@@ -229,8 +242,9 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
                 ps.setBoolean(pos++, user.isActive());
                 ps.setString(pos++, extractPhoneNumber(user));
                 ps.setBoolean(pos++, user.isVerified());
-                ps.setString(pos++, StringUtils.hasText(user.getOrigin())?user.getOrigin():Origin.UAA);
+                ps.setString(pos++, origin);
                 ps.setString(pos++, StringUtils.hasText(user.getExternalId())?user.getExternalId():null);
+                ps.setString(pos++, identityProviderId);
                 ps.setString(pos++, id);
                 ps.setInt(pos++, user.getVersion());
             }

@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock.audit;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static org.hamcrest.Matchers.containsString;
@@ -29,7 +30,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import com.googlecode.flyway.core.Flyway;
+
 import junit.framework.Assert;
+
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
@@ -69,6 +72,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.core.Authentication;
@@ -80,7 +84,6 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.support.XmlWebApplicationContext;
-import scala.actors.threadpool.Arrays;
 
 public class AuditCheckMvcMockTests {
 
@@ -91,6 +94,7 @@ public class AuditCheckMvcMockTests {
     private TestClient testClient;
     private UaaTestAccounts testAccounts;
     private TestApplicationEventListener<AbstractUaaEvent> testListener;
+    private JdbcTemplate jdbcTemplate;
     private ApplicationListener<UserAuthenticationSuccessEvent> authSuccessListener;
 
     @Before
@@ -110,7 +114,8 @@ public class AuditCheckMvcMockTests {
             .build();
 
         clientRegistrationService = (ClientRegistrationService)webApplicationContext.getBean("clientRegistrationService");
-        listener = mock(new DefaultApplicationListener<AbstractUaaEvent>() {}.getClass());
+        listener = mock(new DefaultApplicationListener<AbstractUaaEvent>() {
+        }.getClass());
         authSuccessListener = mock(new DefaultApplicationListener<UserAuthenticationSuccessEvent>(){}.getClass());
         webApplicationContext.addApplicationListener(listener);
         webApplicationContext.addApplicationListener(authSuccessListener);
@@ -119,10 +124,11 @@ public class AuditCheckMvcMockTests {
 
         testClient = new TestClient(mockMvc);
         testAccounts = UaaTestAccounts.standard(null);
+        jdbcTemplate = webApplicationContext.getBean(JdbcTemplate.class);
     }
 
     @After
-    public void tearDown() throws Exception{
+    public void tearDown() throws Exception {
         Flyway flyway = webApplicationContext.getBean(Flyway.class);
         flyway.clean();
         webApplicationContext.destroy();
@@ -539,7 +545,6 @@ public class AuditCheckMvcMockTests {
             "login",
             "loginsecret",
             "oauth.login");
-
         MockHttpServletRequestBuilder userPost = post("/oauth/authorize")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .contentType(MediaType.APPLICATION_JSON)
@@ -708,7 +713,7 @@ public class AuditCheckMvcMockTests {
         ScimGroupMember mjacob = new ScimGroupMember(
             jacob.getId(),
             ScimGroupMember.Type.USER,
-            Arrays.asList(new ScimGroupMember.Role[] {ScimGroupMember.Role.MEMBER}));
+            Arrays.asList(new ScimGroupMember.Role[]{ScimGroupMember.Role.MEMBER}));
 
         ScimGroupMember memily = new ScimGroupMember(
             emily.getId(),

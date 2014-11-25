@@ -36,7 +36,6 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.db.MultitenantMigrator;
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
@@ -74,7 +73,6 @@ import org.springframework.http.converter.HttpMessageConversionException;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabase;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -122,11 +120,6 @@ public class ScimUserEndpointsTests {
         flyway.setLocations("classpath:/org/cloudfoundry/identity/uaa/db/hsqldb/");
         flyway.setDataSource(database);
         flyway.migrate();
-        
-        MultitenantMigrator migrator = new MultitenantMigrator();        
-        migrator.setTxManager(new DataSourceTransactionManager(database));
-        migrator.setJdbcTemplate(new JdbcTemplate(database));
-        migrator.afterPropertiesSet();
     }
 
     @Before
