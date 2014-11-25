@@ -24,6 +24,7 @@ import java.sql.Timestamp;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.test.TestClient;
+import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -50,10 +51,10 @@ public class ExpiringCodeStoreMockMvcTests {
     public static void setUp() throws Exception {
         webApplicationContext = new XmlWebApplicationContext();
         webApplicationContext.setServletContext(new MockServletContext());
-        new YamlServletProfileInitializer().initialize(webApplicationContext);
+        new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "uaa.yml,login.yml");
         webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         webApplicationContext.refresh();
-        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean(FilterChainProxy.class);
+        FilterChainProxy springSecurityFilterChain = (FilterChainProxy)webApplicationContext.getBean("org.springframework.security.filterChainProxy");
 
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).addFilter(springSecurityFilterChain)
                         .build();

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorator="layouts/main">
+<head>
+</head>
+<body>
+    <div class="island" layout:fragment="page-content">
+        <h1>Welcome!</h1>
+        <div class="island-content">
+            <form th:action="@{/login.do}" method="post" novalidate="novalidate">
+                <div th:if="${param.error}" class="alert alert-error">
+                    <p th:text="#{'login.' + ${param.error[0]}}">Error Message</p>
+                </div>
+                <input th:each="prompt,iter : ${prompts}"
+                       th:name="${prompt.key}"
+                       th:type="${prompt.value[0]}"
+                       th:placeholder="${prompt.value[1]}"
+                       th:autocomplete="${prompt.value[0] != 'password'}"
+                       th:autofocus="${iter.index} == 0"
+                       class="form-control"/>
+                <input type="submit" value="Sign in" class="island-button"/>
+            </form>
+
+            <div class="saml-login">
+                <p th:if="${showSamlLoginLinks}">or Sign in with: </p>
+                <div th:each="idp : ${idpDefinitions}" th:if="${idp.showSamlLink}">
+                    <a href="" th:href="@{saml/discovery(returnIDParam=idp,entityID=${entityID},idp=${idp.idpEntityAlias},isPassive=true)}" th:text="${idp.linkText}" class="saml-login-link">Use your corporate credentials</a>
+                </div>
+            </div>
+            <span class="left">
+                <a th:unless="${#strings.isEmpty(createAccountLink)}" href="/create_account" th:href="@{${createAccountLink}}" class="link-lowlight">Create account</a>
+            </span><span class="right" th:unless="${#strings.isEmpty(forgotPasswordLink)}">
+                <a href="/forgot_password" th:href="@{${forgotPasswordLink}}" class="link-lowlight">Reset password</a>
+            </span>
+        </div>
+    </div>
+</body>
+</html>

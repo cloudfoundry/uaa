@@ -60,7 +60,7 @@ public class IntegrationTestContextLoader implements SmartContextLoader {
     }
 
     protected String environmentConfigDefaults() {
-        return "uaa.yml";
+        return "uaa.yml,login.yml";
     }
 
     protected void configureWebResources(AnnotationConfigWebApplicationContext context,

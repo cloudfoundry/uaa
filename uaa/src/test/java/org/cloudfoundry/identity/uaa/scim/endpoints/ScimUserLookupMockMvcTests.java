@@ -25,23 +25,22 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import com.googlecode.flyway.core.Flyway;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
-import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.test.DefaultIntegrationTestConfig;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.springframework.mock.web.MockServletContext;
+import org.springframework.mock.env.MockEnvironment;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
+import org.springframework.web.context.support.XmlWebApplicationContext;
 
 public class ScimUserLookupMockMvcTests {
 
@@ -51,7 +50,7 @@ public class ScimUserLookupMockMvcTests {
     private static String username = UaaTestAccounts.standard(null).getUserName();
     private static String password = UaaTestAccounts.standard(null).getPassword();
 
-    private static AnnotationConfigWebApplicationContext webApplicationContext;
+    private static XmlWebApplicationContext webApplicationContext;
     private static MockMvc mockMvc;
     private static String scimLookupIdUserToken;
     private static String adminToken;
@@ -64,13 +63,13 @@ public class ScimUserLookupMockMvcTests {
     @BeforeClass
     public static void setUp() throws Exception {
         System.setProperty("scim.userids_enabled", "true");
-        webApplicationContext = new AnnotationConfigWebApplicationContext();
-        webApplicationContext.setServletContext(new MockServletContext());
-        new YamlServletProfileInitializer().initialize(webApplicationContext);
-        webApplicationContext.register(DefaultIntegrationTestConfig.class);
+        webApplicationContext = new XmlWebApplicationContext();
+        webApplicationContext.setEnvironment(new MockEnvironment());
+        new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "uaa.yml,login.yml");
+        webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         webApplicationContext.refresh();
-        webApplicationContext.registerShutdownHook();
         FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
+
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
             .addFilter(springSecurityFilterChain)
             .build();

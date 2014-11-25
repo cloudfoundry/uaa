@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.DefaultIntegrationTestConfig;
 import org.cloudfoundry.identity.uaa.test.TestClient;
+import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.After;
 import org.junit.Before;
@@ -31,6 +32,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
+import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -38,7 +40,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 public class ScimUserEndpointsMockMvcTests {
 
-    private AnnotationConfigWebApplicationContext webApplicationContext;
+    private XmlWebApplicationContext webApplicationContext;
     private MockMvc mockMvc;
     private String scimReadWriteToken;
     private String scimCreateToken;
@@ -46,17 +48,16 @@ public class ScimUserEndpointsMockMvcTests {
 
     @Before
     public void setUp() throws Exception {
-        webApplicationContext = new AnnotationConfigWebApplicationContext();
-        webApplicationContext.setServletContext(new MockServletContext());
-        new YamlServletProfileInitializer().initialize(webApplicationContext);
-        webApplicationContext.register(DefaultIntegrationTestConfig.class);
+        webApplicationContext = new XmlWebApplicationContext();
+        new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "login.yml,uaa.yml");
+        webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         webApplicationContext.refresh();
-        webApplicationContext.registerShutdownHook();
 
         FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
+
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
-                .addFilter(springSecurityFilterChain)
-                .build();
+            .addFilter(springSecurityFilterChain)
+            .build();
 
         TestClient testClient = new TestClient(mockMvc);
         String adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret",

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorator="layouts/main">
+<head>
+    <th:block layout:include="nav :: head"></th:block>
+    <link rel="stylesheet" href="/resources/font-awesome/css/font-awesome.min.css" th:href="@{/resources/font-awesome/css/font-awesome.min.css}" />
+</head>
+<body>
+<div class="header" layout:fragment="page-header">
+    <th:block layout:include="nav :: nav"></th:block>
+</div>
+<div class="island" layout:fragment="page-content">
+    <h1>Invite sent</h1>
+    <div class="island-content">
+        <i class="fa fa-envelope-o"></i>
+    </div>
+</div>
+</body>
+</html>

@@ -39,6 +39,52 @@
         <oauth:password authentication-manager-ref="compositeAuthenticationManager" />
     </oauth:authorization-server>
 
+    <!-- Owner password flow for external authentication (SAML) -->
+    <!-- Pattern: /oauth/token parameters:{grant_type=password,passcode= -->
+    <http name="tokenEndpointSecurityForPasscodes" request-matcher-ref="passcodeTokenMatcher" create-session="stateless"
+          entry-point-ref="basicAuthenticationEntryPoint" xmlns="http://www.springframework.org/schema/security"  authentication-manager-ref="emptyAuthenticationManager">
+        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+        <anonymous enabled="false" />
+        <custom-filter ref="backwardsCompatibleScopeParameter" position="FIRST"/>
+        <custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
+        <custom-filter ref="passcodeAuthenticationFilter" after="BASIC_AUTH_FILTER" />
+        <access-denied-handler ref="oauthAccessDeniedHandler" />
+    </http>
+
+    <bean id="passcodeAuthenticationFilter" class="org.cloudfoundry.identity.uaa.login.PasscodeAuthenticationFilter">
+        <constructor-arg ref="userDatabase" />
+        <constructor-arg ref="authzAuthenticationMgr" />
+        <constructor-arg ref="authorizationRequestManager"/>
+        <constructor-arg ref="codeStore"/>
+        <property name="authenticationDetailsSource" ref="authenticationDetailsSource" />
+        <property name="parameterNames">
+            <list>
+                <value>username</value>
+                <value>password</value>
+                <value>passcode</value>
+                <value>credentials</value>
+                <value>origin</value>
+                <value>user_id</value>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="passcodeTokenMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
+        <constructor-arg value="/oauth/token" />
+        <property name="accept">
+            <list>
+                <value>application/json</value>
+                <value>application/x-www-form-urlencoded</value>
+            </list>
+        </property>
+        <property name="parameters">
+            <map>
+                <entry key="grant_type" value="password" />
+                <entry key="passcode" value="" />
+            </map>
+        </property>
+    </bean>
+
     <bean id="uaaAuthorizationEndpoint" class="org.cloudfoundry.identity.uaa.authorization.UaaAuthorizationEndpoint">
         <property name="authorizationCodeServices" ref="authorizationCodeServices"/>
         <property name="OAuth2RequestValidator" ref="oauth2RequestValidator"/>

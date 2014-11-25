@@ -51,6 +51,7 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.DefaultIntegrationTestConfig;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
@@ -83,13 +84,15 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
+import org.springframework.web.context.support.XmlWebApplicationContext;
+
 public class TokenMvcMockTests {
 
     private static String SECRET = "secret";
     private static String GRANT_TYPES = "password,implicit,client_credentials,authorization_code";
     private static String TEST_REDIRECT_URI = "http://test.example.org/redirect";
 
-    AnnotationConfigWebApplicationContext webApplicationContext;
+    XmlWebApplicationContext webApplicationContext;
     ClientRegistrationService clientRegistrationService;
     private MockMvc mockMvc;
     private TestClient testClient;
@@ -105,10 +108,10 @@ public class TokenMvcMockTests {
 
     @Before
     public void setUp() throws Exception {
-        webApplicationContext = new AnnotationConfigWebApplicationContext();
+        webApplicationContext = new XmlWebApplicationContext();
         webApplicationContext.setServletContext(new MockServletContext());
-        new YamlServletProfileInitializer().initialize(webApplicationContext);
-        webApplicationContext.register(DefaultIntegrationTestConfig.class);
+        new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "uaa.yml,login.yml");
+        webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         webApplicationContext.refresh();
         webApplicationContext.registerShutdownHook();
         FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
