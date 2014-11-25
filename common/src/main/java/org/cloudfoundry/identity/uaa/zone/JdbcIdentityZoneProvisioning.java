@@ -51,7 +51,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning {
             jdbcTemplate.update(CREATE_IDENTITY_ZONE_SQL, new PreparedStatementSetter() {
                 @Override
                 public void setValues(PreparedStatement ps) throws SQLException {
-                    ps.setString(1, identityZone.getId());
+                    ps.setString(1, identityZone.getId().trim());
                     ps.setInt(2, identityZone.getVersion());
                     ps.setTimestamp(3, new Timestamp(new Date().getTime()));
                     ps.setTimestamp(4, new Timestamp(new Date().getTime()));
@@ -73,7 +73,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning {
 
             IdentityZone identityZone = new IdentityZone();
 
-            identityZone.setId(rs.getString(1));
+            identityZone.setId(rs.getString(1).trim());
             identityZone.setVersion(rs.getInt(2));
             identityZone.setCreated(rs.getTimestamp(3));
             identityZone.setLastModified(rs.getTimestamp(4));
