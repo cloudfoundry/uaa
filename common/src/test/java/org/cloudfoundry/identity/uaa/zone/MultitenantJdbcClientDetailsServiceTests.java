@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -12,6 +13,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -26,7 +28,7 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import com.googlecode.flyway.core.Flyway;
 
-public class MultitentantJdbcClientDetailsServiceTests {
+public class MultitenantJdbcClientDetailsServiceTests {
 	private MultitenantJdbcClientDetailsService service;
 
 	private JdbcTemplate jdbcTemplate;
@@ -38,7 +40,7 @@ public class MultitentantJdbcClientDetailsServiceTests {
 	private static final String INSERT_SQL = "insert into oauth_client_details (client_id, client_secret, resource_ids, scope, authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, refresh_token_validity, autoapprove) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
 //	private static final String CUSTOM_INSERT_SQL = "insert into ClientDetails (appId, appSecret, resourceIds, scope, grantTypes, redirectUrl, authorities) values (?, ?, ?, ?, ?, ?, ?)";
-
+	private IdentityZone otherIdentityZone;
 	@Before
 	public void setUp() throws Exception {
 		// creates a HSQL in-memory db populated from default scripts
@@ -53,11 +55,16 @@ public class MultitentantJdbcClientDetailsServiceTests {
         
 		jdbcTemplate = new JdbcTemplate(db);
 		service = new MultitenantJdbcClientDetailsService(db);
+		otherIdentityZone = new IdentityZone();
+		otherIdentityZone.setId("testzone");
+		otherIdentityZone.setName("testzone");
+		otherIdentityZone.setSubdomain("testzone");
 	}
 
 	@After
 	public void tearDown() throws Exception {
 		db.shutdown();
+		IdentityZoneHolder.clear();
 	}
 
 	@Test(expected = NoSuchClientException.class)
@@ -338,5 +345,45 @@ public class MultitentantJdbcClientDetailsServiceTests {
 
 		assertEquals(1, count);
 	}
+	
+	@Test
+	public void testLoadingClientInOtherZoneFromOtherZone() {
+	    IdentityZoneHolder.set(otherIdentityZone);
+	    BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId("clientInOtherZone");
+        service.addClientDetails(clientDetails);
+        assertNotNull(service.loadClientByClientId("clientInOtherZone"));
+	}
+	
+	@Test(expected = NoSuchClientException.class)
+    public void testLoadingClientInOtherZoneFromDefaultZoneFails() {
+        IdentityZoneHolder.set(otherIdentityZone);
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId("clientInOtherZone");
+        service.addClientDetails(clientDetails);
+        IdentityZoneHolder.clear();
+        service.loadClientByClientId("clientInOtherZone");
+    }
+	
+	@Test
+	public void testAddingClientToOtherIdentityZoneShouldHaveOtherIdentityZoneId() {
+	    IdentityZoneHolder.set(otherIdentityZone);
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        String clientId = "clientInOtherZone";
+        clientDetails.setClientId(clientId);
+        service.addClientDetails(clientDetails);
+        String identityZoneId = jdbcTemplate.queryForObject("select identity_zone_id from oauth_client_details where client_id = ?", String.class,clientId);
+        assertEquals(otherIdentityZone.getId(), identityZoneId.trim());
+	}
+	
+	@Test
+    public void testAddingClientToDefaultIdentityZoneShouldHaveAnIdentityZoneId() {
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        String clientId = "clientInDefaultZone";
+        clientDetails.setClientId(clientId);
+        service.addClientDetails(clientDetails);
+        String identityZoneId = jdbcTemplate.queryForObject("select identity_zone_id from oauth_client_details where client_id = ?", String.class,clientId);
+        assertEquals(IdentityZone.getUaa().getId(), identityZoneId.trim());
+    }
 
 }

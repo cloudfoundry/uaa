@@ -15,7 +15,7 @@
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
     xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
 
-    <bean id="jdbcClientDetailsService" class="org.springframework.security.oauth2.provider.client.JdbcClientDetailsService">
+    <bean id="jdbcClientDetailsService" class="org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService">
         <constructor-arg ref="dataSource" />
         <property name="passwordEncoder" ref="cachingPasswordEncoder" />
     </bean>
@@ -26,13 +26,8 @@
         <constructor-arg name="pagingListFactory" ref="jdbcPagingListFactory" />
     </bean>
 
-    <bean id="clientRegistrationService" class="org.springframework.security.oauth2.provider.client.JdbcClientDetailsService">
-        <constructor-arg ref="dataSource" />
-        <property name="passwordEncoder" ref="cachingPasswordEncoder" />
-    </bean>
-
     <bean id="clientAdminBootstrap" class="org.cloudfoundry.identity.uaa.oauth.ClientAdminBootstrap">
-        <property name="clientRegistrationService" ref="clientRegistrationService" />
+        <property name="clientRegistrationService" ref="clientDetailsService" />
         <property name="defaultOverride" value="${oauth.client.override:true}" />
         <property name="clients" value="#{@config['oauth']==null ? null : @config['oauth']['clients']}" />
         <property name="autoApproveClients"
@@ -50,7 +45,7 @@
 
     <beans profile="default">
         <bean class="org.cloudfoundry.identity.uaa.oauth.ClientAdminBootstrap">
-            <property name="clientRegistrationService" ref="clientRegistrationService" />
+            <property name="clientRegistrationService" ref="clientDetailsService" />
             <property name="clients">
                 <map>
                     <entry key="admin">

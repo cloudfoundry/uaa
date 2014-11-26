@@ -52,7 +52,7 @@
         resource-id="clients" entry-point-ref="oauthAuthenticationEntryPoint" />
 
     <bean id="clientAdminEndpoints" class="org.cloudfoundry.identity.uaa.oauth.ClientAdminEndpoints">
-        <property name="clientRegistrationService" ref="clientRegistrationService" />
+        <property name="clientRegistrationService" ref="clientDetailsService" />
         <property name="clientDetailsService" ref="clientDetailsService" />
         <property name="approvalStore" ref="approvalStore"/>
         <property name="authenticationManager" ref="clientAuthenticationManager"/>

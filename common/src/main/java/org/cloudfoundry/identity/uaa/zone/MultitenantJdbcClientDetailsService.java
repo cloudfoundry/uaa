@@ -70,10 +70,10 @@ public class MultitenantJdbcClientDetailsService extends JdbcClientDetailsServic
 
     private static final String DEFAULT_FIND_STATEMENT = BASE_FIND_STATEMENT + " order by client_id";
 
-    private static final String DEFAULT_SELECT_STATEMENT = BASE_FIND_STATEMENT + " where client_id = ?";
+    private static final String DEFAULT_SELECT_STATEMENT = BASE_FIND_STATEMENT + " where client_id = ? and identity_zone_id = ?";
 
     private static final String DEFAULT_INSERT_STATEMENT = "insert into oauth_client_details (" + CLIENT_FIELDS
-            + ", client_id) values (?,?,?,?,?,?,?,?,?,?,?)";
+            + ", client_id, identity_zone_id) values (?,?,?,?,?,?,?,?,?,?,?,?)";
 
     private static final String DEFAULT_UPDATE_STATEMENT = "update oauth_client_details " + "set "
             + CLIENT_FIELDS_FOR_UPDATE.replaceAll(", ", "=?, ") + "=? where client_id = ?";
@@ -121,7 +121,7 @@ public class MultitenantJdbcClientDetailsService extends JdbcClientDetailsServic
     public ClientDetails loadClientByClientId(String clientId) throws InvalidClientException {
         ClientDetails details;
         try {
-            details = jdbcTemplate.queryForObject(selectClientDetailsSql, new ClientDetailsRowMapper(), clientId);
+            details = jdbcTemplate.queryForObject(selectClientDetailsSql, new ClientDetailsRowMapper(), clientId, IdentityZoneHolder.get().getId());
         } catch (EmptyResultDataAccessException e) {
             throw new NoSuchClientException("No client with requested id: " + clientId);
         }
@@ -190,7 +190,7 @@ public class MultitenantJdbcClientDetailsService extends JdbcClientDetailsServic
                 clientDetails.getAuthorities() != null ? StringUtils.collectionToCommaDelimitedString(clientDetails
                         .getAuthorities()) : null, clientDetails.getAccessTokenValiditySeconds(),
                 clientDetails.getRefreshTokenValiditySeconds(), json, getAutoApproveScopes(clientDetails),
-                clientDetails.getClientId() };
+                clientDetails.getClientId(), IdentityZoneHolder.get().getId() };
     }
 
     private String getAutoApproveScopes(ClientDetails clientDetails) {

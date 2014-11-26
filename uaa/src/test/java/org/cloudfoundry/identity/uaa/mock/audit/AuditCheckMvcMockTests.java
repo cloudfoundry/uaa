@@ -113,7 +113,7 @@ public class AuditCheckMvcMockTests {
             .addFilter(springSecurityFilterChain)
             .build();
 
-        clientRegistrationService = (ClientRegistrationService)webApplicationContext.getBean("clientRegistrationService");
+        clientRegistrationService = webApplicationContext.getBean(ClientRegistrationService.class);
         listener = mock(new DefaultApplicationListener<AbstractUaaEvent>() {
         }.getClass());
         authSuccessListener = mock(new DefaultApplicationListener<UserAuthenticationSuccessEvent>(){}.getClass());
