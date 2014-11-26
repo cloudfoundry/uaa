@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -40,7 +41,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     public static final String USER_FIELDS = "id,username,password,email,givenName,familyName,created,lastModified,authorities,origin,external_id,verified ";
 
     public static final String DEFAULT_USER_BY_USERNAME_QUERY = "select " + USER_FIELDS + "from users "
-                    + "where lower(username) = ? and active=? and origin=?";
+                    + "where lower(username) = ? and active=? and origin=? and identity_zone_id=?";
 
     public static final String DEFAULT_USER_BY_ID_QUERY = "select " + USER_FIELDS + "from users "
         + "where id = ? and active=?";
@@ -75,7 +76,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     @Override
     public UaaUser retrieveUserByName(String username, String origin) throws UsernameNotFoundException {
         try {
-            return jdbcTemplate.queryForObject(userByUserNameQuery, mapper, username.toLowerCase(Locale.US), true, origin);
+            return jdbcTemplate.queryForObject(userByUserNameQuery, mapper, username.toLowerCase(Locale.US), true, origin, IdentityZoneHolder.get().getId());
         } catch (EmptyResultDataAccessException e) {
             throw new UsernameNotFoundException(username);
         }
