@@ -11,9 +11,14 @@
     <bean id="identityZoneProvisioning" class="org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning">
         <constructor-arg ref="jdbcTemplate" />
     </bean>
+    
+    <bean id="identityProviderProvisioning" class="org.cloudfoundry.identity.uaa.zone.JdbcIdentityProviderProvisioning">
+        <constructor-arg ref="jdbcTemplate" />
+    </bean>
 
     <bean id="identityZoneEndpoints"  class="org.cloudfoundry.identity.uaa.zone.IdentityZoneEndpoints">
         <property name="identityZoneProvisioning" ref="identityZoneProvisioning" />
+        <property name="identityProviderProvisioning" ref="identityProviderProvisioning"/>
     </bean>
 
     <http name="identityZoneSecurity" pattern="/identity-zones/**" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"

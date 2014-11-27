@@ -31,7 +31,7 @@ public class JdbcIdentityZoneProvisioningTests {
 
     @Test
     public void testCreateIdentityZone() throws Exception {
-        IdentityZone identityZone = getIdentityZone(UUID.randomUUID().toString());
+        IdentityZone identityZone = MultitenancyFixture.identityZone(UUID.randomUUID().toString(),UUID.randomUUID().toString());
         identityZone.setId(UUID.randomUUID().toString());
 
         IdentityZone createdIdZone = db.create(identityZone);
@@ -44,7 +44,7 @@ public class JdbcIdentityZoneProvisioningTests {
 
     @Test
     public void testCreateDuplicateIdentityZone() throws Exception {
-        IdentityZone identityZone = getIdentityZone("there-can-be-only-one");
+        IdentityZone identityZone = MultitenancyFixture.identityZone("there-can-be-only-one","there-can-be-only-one");
         identityZone.setId(UUID.randomUUID().toString());
         db.create(identityZone);
         try {
@@ -55,11 +55,4 @@ public class JdbcIdentityZoneProvisioningTests {
         }
     }
 
-    private IdentityZone getIdentityZone(String subdomain) {
-        IdentityZone identityZone = new IdentityZone();
-        identityZone.setSubdomain(subdomain);
-        identityZone.setName("The Twiglet Zone");
-        identityZone.setDescription("Like the Twilight Zone but tastier.");
-        return identityZone;
-    }
 }
