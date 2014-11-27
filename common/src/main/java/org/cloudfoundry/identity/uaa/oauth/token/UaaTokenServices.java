@@ -24,6 +24,7 @@ import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
 import org.springframework.beans.factory.InitializingBean;
@@ -59,7 +60,10 @@ import org.springframework.security.oauth2.provider.token.AuthorizationServerTok
 import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -122,6 +126,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private ApprovalStore approvalStore = null;
 
     private ApplicationEventPublisher applicationEventPublisher;
+    private String host;
 
     @Override
     public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
@@ -356,8 +361,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             response.put(EXP, token.getExpiration().getTime() / 1000);
         }
 
-        if (tokenEndpoint != null) {
-            response.put(ISS, tokenEndpoint);
+        if (getTokenEndpoint() != null) {
+            response.put(ISS, getTokenEndpoint());
         }
 
         // TODO: different values for audience in the AT and RT. Need to sync
@@ -536,8 +541,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
 
         response.put(CID, clientId);
-        if (tokenEndpoint != null) {
-            response.put(ISS, tokenEndpoint);
+        if (getTokenEndpoint() != null) {
+            response.put(ISS, getTokenEndpoint());
         }
 
         if (null != grantType) {
@@ -585,6 +590,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         Assert.notNull(clientDetailsService, "clientDetailsService must be set");
         Assert.notNull(issuer, "issuer must be set");
         Assert.notNull(approvalStore, "approvalStore must be set");
+        URI uri = new URI(issuer);
+        host = uri.getHost();
     }
 
     public void setUserDatabase(UaaUserDatabase userDatabase) {
@@ -763,7 +770,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             throw new IllegalStateException("Cannot read token claims", e);
         }
 
-        if (tokenEndpoint!=null && !tokenEndpoint.equals(claims.get(ISS))) {
+        if (getTokenEndpoint()!=null && !getTokenEndpoint().equals(claims.get(ISS))) {
             throw new InvalidTokenException("Invalid issuer for token:"+claims.get(ISS));
         }
 
@@ -781,15 +788,18 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     public void setIssuer(String issuer) {
         this.issuer = issuer;
-        if (issuer==null) {
-            tokenEndpoint = null;
-        } else {
-            tokenEndpoint = issuer + "/oauth/token";
-        }
     }
 
     public String getTokenEndpoint() {
-        return tokenEndpoint;
+        if (issuer==null) {
+            return null;
+        } else {
+            String hostToUse = host;
+            if (StringUtils.hasText(IdentityZoneHolder.get().getSubdomain())) {
+                hostToUse = IdentityZoneHolder.get().getSubdomain() + "." + host;
+            }
+            return UriComponentsBuilder.fromUriString(issuer).host(hostToUse).pathSegment("oauth/token").build().toUriString();
+        }
     }
 
     public void setClientDetailsService(ClientDetailsService clientDetailsService) {
