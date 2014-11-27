@@ -37,7 +37,7 @@ public class MultitenantJdbcClientDetailsServiceTests {
 
 	private static final String SELECT_SQL = "select client_id, client_secret, resource_ids, scope, authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, refresh_token_validity from oauth_client_details where client_id=?";
 
-	private static final String INSERT_SQL = "insert into oauth_client_details (client_id, client_secret, resource_ids, scope, authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, refresh_token_validity, autoapprove) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+	private static final String INSERT_SQL = "insert into oauth_client_details (client_id, client_secret, resource_ids, scope, authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, refresh_token_validity, autoapprove, identity_zone_id) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
 //	private static final String CUSTOM_INSERT_SQL = "insert into ClientDetails (appId, appSecret, resourceIds, scope, grantTypes, redirectUrl, authorities) values (?, ?, ?, ?, ?, ?, ?)";
 	private IdentityZone otherIdentityZone;
@@ -74,8 +74,10 @@ public class MultitenantJdbcClientDetailsServiceTests {
 
 	@Test
 	public void testLoadingClientIdWithNoDetails() {
-		jdbcTemplate.update(INSERT_SQL, "clientIdWithNoDetails", null, null,
-				null, null, null, null, null, null, null);
+		int rowsInserted = jdbcTemplate.update(INSERT_SQL, "clientIdWithNoDetails", null, null,
+				null, null, null, null, null, null, null, IdentityZoneHolder.get().getId());
+		
+		assertEquals(1, rowsInserted);
 
 		ClientDetails clientDetails = service
 				.loadClientByClientId("clientIdWithNoDetails");
@@ -95,7 +97,7 @@ public class MultitenantJdbcClientDetailsServiceTests {
 	@Test
 	public void testLoadingClientIdWithAdditionalInformation() {
 		jdbcTemplate.update(INSERT_SQL, "clientIdWithAddInfo", null, null,
-				null, null, null, null, null, null, null);
+				null, null, null, null, null, null, null, IdentityZoneHolder.get().getId());
 		jdbcTemplate
 				.update("update oauth_client_details set additional_information=? where client_id=?",
 						"{\"foo\":\"bar\"}", "clientIdWithAddInfo");
@@ -112,7 +114,7 @@ public class MultitenantJdbcClientDetailsServiceTests {
 	public void testLoadingClientIdWithSingleDetails() {
 		jdbcTemplate.update(INSERT_SQL, "clientIdWithSingleDetails",
 				"mySecret", "myResource", "myScope", "myAuthorizedGrantType",
-				"myRedirectUri", "myAuthority", 100, 200, "true");
+				"myRedirectUri", "myAuthority", 100, 200, "true", IdentityZoneHolder.get().getId());
 
 		ClientDetails clientDetails = service
 				.loadClientByClientId("clientIdWithSingleDetails");
@@ -182,7 +184,7 @@ public class MultitenantJdbcClientDetailsServiceTests {
 				"mySecret", "myResource1,myResource2", "myScope1,myScope2",
 				"myAuthorizedGrantType1,myAuthorizedGrantType2",
 				"myRedirectUri1,myRedirectUri2", "myAuthority1,myAuthority2",
-				100, 200, "read,write");
+				100, 200, "read,write", IdentityZoneHolder.get().getId());
 
 		ClientDetails clientDetails = service
 				.loadClientByClientId("clientIdWithMultipleDetails");

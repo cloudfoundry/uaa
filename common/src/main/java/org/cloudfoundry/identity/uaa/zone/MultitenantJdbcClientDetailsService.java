@@ -76,7 +76,7 @@ public class MultitenantJdbcClientDetailsService extends JdbcClientDetailsServic
             + ", client_id, identity_zone_id) values (?,?,?,?,?,?,?,?,?,?,?,?)";
 
     private static final String DEFAULT_UPDATE_STATEMENT = "update oauth_client_details " + "set "
-            + CLIENT_FIELDS_FOR_UPDATE.replaceAll(", ", "=?, ") + "=? where client_id = ?";
+            + CLIENT_FIELDS_FOR_UPDATE.replaceAll(", ", "=?, ") + "=? where client_id = ? and identity_zone_id = ?";
 
     private static final String DEFAULT_UPDATE_SECRET_STATEMENT = "update oauth_client_details "
             + "set client_secret = ? where client_id = ?";

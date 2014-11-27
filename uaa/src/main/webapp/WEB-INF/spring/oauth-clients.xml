@@ -27,7 +27,7 @@
     </bean>
 
     <bean id="clientAdminBootstrap" class="org.cloudfoundry.identity.uaa.oauth.ClientAdminBootstrap">
-        <property name="clientRegistrationService" ref="clientDetailsService" />
+        <property name="clientRegistrationService" ref="jdbcClientDetailsService" />
         <property name="defaultOverride" value="${oauth.client.override:true}" />
         <property name="clients" value="#{@config['oauth']==null ? null : @config['oauth']['clients']}" />
         <property name="autoApproveClients"
@@ -45,7 +45,7 @@
 
     <beans profile="default">
         <bean class="org.cloudfoundry.identity.uaa.oauth.ClientAdminBootstrap">
-            <property name="clientRegistrationService" ref="clientDetailsService" />
+            <property name="clientRegistrationService" ref="jdbcClientDetailsService" />
             <property name="clients">
                 <map>
                     <entry key="admin">
