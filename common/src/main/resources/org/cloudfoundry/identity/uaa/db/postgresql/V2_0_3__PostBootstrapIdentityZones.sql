@@ -1,0 +1,1 @@
+ALTER TABLE oauth_client_details ALTER COLUMN identity_zone_id SET NOT NULL;
