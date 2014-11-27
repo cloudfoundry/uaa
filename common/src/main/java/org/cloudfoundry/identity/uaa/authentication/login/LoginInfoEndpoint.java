@@ -56,6 +56,7 @@ import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
@@ -175,6 +176,7 @@ public class LoginInfoEndpoint {
     public String login(Model model, Principal principal, List<String> excludedPrompts, boolean nonHtml) {
         populatePrompts(model, excludedPrompts, nonHtml);
         setCommitInfo(model);
+        model.addAttribute("zone_name", IdentityZoneHolder.get().getName());
         model.addAttribute("links", getLinksInfo());
 
         // Entity ID to start the discovery

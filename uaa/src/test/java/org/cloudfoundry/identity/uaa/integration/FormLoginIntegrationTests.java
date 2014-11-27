@@ -57,20 +57,6 @@ public class FormLoginIntegrationTests {
         assertTrue(location.contains("/login"));
     }
 
-    public void testUnauthenticatedHomeRedirect() throws Exception {
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.TEXT_HTML, MediaType.ALL));
-
-        String location = "/home";
-        ResponseEntity<Void> result = serverRunning.getForResponse(location, headers);
-        // should be directed to the login screen...
-        assertEquals(HttpStatus.FOUND, result.getStatusCode());
-
-        location = result.getHeaders().getLocation().toString();
-        assertTrue(location.contains("/login"));
-    }
-
     @Test
     public void testSuccessfulAuthenticationFlow() throws Exception {
 
@@ -87,8 +73,9 @@ public class FormLoginIntegrationTests {
         assertTrue(response.getBody().contains("/login.do"));
         assertTrue(response.getBody().contains("username"));
         assertTrue(response.getBody().contains("password"));
+        assertTrue(response.getBody().contains("zone \"uaa\""));
 
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("username", testAccounts.getUserName());
         formData.add("password", testAccounts.getPassword());
 
