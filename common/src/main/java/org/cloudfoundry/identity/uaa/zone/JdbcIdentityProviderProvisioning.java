@@ -40,7 +40,7 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
 
     @Override
     public IdentityProvider retrieveByOrigin(String origin) {
-        IdentityProvider identityProvider = jdbcTemplate.queryForObject(IDENTITY_PROVIDER_BY_ORIGIN_QUERY, mapper, origin,IdentityZoneHolder.get().getId());
+        IdentityProvider identityProvider = jdbcTemplate.queryForObject(IDENTITY_PROVIDER_BY_ORIGIN_QUERY, mapper, origin, IdentityZoneHolder.get().getId());
         return identityProvider;
     }
 

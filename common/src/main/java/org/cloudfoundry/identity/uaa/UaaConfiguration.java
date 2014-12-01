@@ -85,6 +85,8 @@ public class UaaConfiguration {
     public String assetBaseUrl;
     @Valid
     public String LOGIN_SECRET;
+    @Valid
+    public OAuth multitenant;
 
     public static class CloudController {
         @Valid

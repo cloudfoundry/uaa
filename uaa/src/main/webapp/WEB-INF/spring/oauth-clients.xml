@@ -33,7 +33,7 @@
         <property name="autoApproveClients"
             value="#{@applicationProperties.containsKey('oauth.client.autoapprove')?@config['oauth']['client']['autoapprove']:'cf'}" />
     </bean>
-
+    
     <beans profile="cloud">
         <bean id="clientDetailsService" class="org.cloudfoundry.identity.uaa.oauth.JitClientDetailsService">
             <constructor-arg name="delegate" ref="jdbcClientDetailsService" />

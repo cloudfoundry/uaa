@@ -105,13 +105,7 @@ public class IdentityZone {
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + ((created == null) ? 0 : created.hashCode());
-        result = prime * result + ((description == null) ? 0 : description.hashCode());
         result = prime * result + ((id == null) ? 0 : id.hashCode());
-        result = prime * result + ((lastModified == null) ? 0 : lastModified.hashCode());
-        result = prime * result + ((name == null) ? 0 : name.hashCode());
-        result = prime * result + ((subdomain == null) ? 0 : subdomain.hashCode());
-        result = prime * result + version;
         return result;
     }
 
@@ -124,38 +118,13 @@ public class IdentityZone {
         if (getClass() != obj.getClass())
             return false;
         IdentityZone other = (IdentityZone) obj;
-        if (created == null) {
-            if (other.created != null)
-                return false;
-        } else if (!created.equals(other.created))
-            return false;
-        if (description == null) {
-            if (other.description != null)
-                return false;
-        } else if (!description.equals(other.description))
-            return false;
         if (id == null) {
             if (other.id != null)
                 return false;
         } else if (!id.equals(other.id))
             return false;
-        if (lastModified == null) {
-            if (other.lastModified != null)
-                return false;
-        } else if (!lastModified.equals(other.lastModified))
-            return false;
-        if (name == null) {
-            if (other.name != null)
-                return false;
-        } else if (!name.equals(other.name))
-            return false;
-        if (subdomain == null) {
-            if (other.subdomain != null)
-                return false;
-        } else if (!subdomain.equals(other.subdomain))
-            return false;
-        if (version != other.version)
-            return false;
         return true;
     }
+    
+   
 }

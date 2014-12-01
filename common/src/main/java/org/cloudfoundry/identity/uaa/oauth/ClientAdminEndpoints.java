@@ -208,7 +208,7 @@ public class ClientAdminEndpoints implements InitializingBean {
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     public ClientDetails createClientDetails(@RequestBody BaseClientDetails client) throws Exception {
-        ClientDetails details = validateClient(client, true);
+        ClientDetails details = validateClient(client, true, true);
         clientRegistrationService.addClientDetails(details);
         return removeSecret(client);
     }
@@ -223,7 +223,7 @@ public class ClientAdminEndpoints implements InitializingBean {
         }
         ClientDetails[] results = new ClientDetails[clients.length];
         for (int i=0; i<clients.length; i++) {
-            results[i] = validateClient(clients[i], true);
+            results[i] = validateClient(clients[i], true, true);
         }
         return doInsertClientDetails(results);
     }
@@ -253,7 +253,7 @@ public class ClientAdminEndpoints implements InitializingBean {
             } else {
                 details[i] = syncWithExisting(existing, client);
             }
-            details[i] = validateClient(details[i], false);
+            details[i] = validateClient(details[i], false, true);
         }        
         return doProcessUpdates(details);
     }
@@ -290,7 +290,7 @@ public class ClientAdminEndpoints implements InitializingBean {
         } catch (Exception e) {
             logger.warn("Couldn't fetch client config for client_id: " + clientId, e);
         }
-        details = validateClient(details, false);
+        details = validateClient(details, false, true);
         clientRegistrationService.updateClientDetails(details);
         clientUpdates.incrementAndGet();
         return removeSecret(client);
@@ -325,7 +325,7 @@ public class ClientAdminEndpoints implements InitializingBean {
         ClientDetailsModification[] result = new ClientDetailsModification[details.length];
         for (int i=0; i<result.length; i++) {
             if (ClientDetailsModification.ADD.equals(details[i].getAction())) {
-                ClientDetails client = validateClient(details[i], true);
+                ClientDetails client = validateClient(details[i], true, true);
                 clientRegistrationService.addClientDetails(client);
                 clientUpdates.incrementAndGet();
                 result[i] = new ClientDetailsModification(clientDetailsService.retrieve(details[i].getClientId()));
@@ -354,7 +354,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 
     private ClientDetailsModification updateClientNotSecret(ClientDetailsModification c) {
         ClientDetailsModification result = new ClientDetailsModification(clientDetailsService.retrieve(c.getClientId()));
-        ClientDetails client = validateClient(c, false);
+        ClientDetails client = validateClient(c, false, true);
         clientRegistrationService.updateClientDetails(client);
         clientUpdates.incrementAndGet();
         return result;
@@ -519,7 +519,7 @@ public class ClientAdminEndpoints implements InitializingBean {
         value.incrementAndGet();
     }
 
-    private ClientDetails validateClient(ClientDetails prototype, boolean create) {
+    public ClientDetails validateClient(ClientDetails prototype, boolean create, boolean checkAdmin) {
 
         BaseClientDetails client = new BaseClientDetails(prototype);
 
@@ -550,7 +550,7 @@ public class ClientAdminEndpoints implements InitializingBean {
             requestedGrantTypes.add("refresh_token");
         }
 
-        if (!securityContextAccessor.isAdmin()) {
+        if (checkAdmin && !securityContextAccessor.isAdmin()) {
 
             // Not admin, so be strict with grant types and scopes
             for (String grant : requestedGrantTypes) {

@@ -128,6 +128,10 @@ public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper 
     public void setHostName(String hostName) {
         this.hostName = hostName;
     }
+    
+    public String getHostName() {
+    	return hostName;
+    }
 
     /**
      * The context root in the application, e.g. "/uaa" for a local deployment.
