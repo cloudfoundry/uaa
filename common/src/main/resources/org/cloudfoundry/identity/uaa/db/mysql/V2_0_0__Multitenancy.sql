@@ -37,7 +37,8 @@ ALTER TABLE group_membership ADD COLUMN identity_provider_id varchar(36) DEFAULT
 ALTER TABLE group_membership ADD KEY `identity_provider_id` (`identity_provider_id`);
 
 ALTER TABLE oauth_client_details ADD COLUMN `identity_zone_id` varchar(36) DEFAULT NULL;
-ALTER TABLE oauth_client_details ADD KEY `identity_zone_id` (`identity_zone_id`);
+ALTER TABLE oauth_client_details DROP PRIMARY KEY;
+ALTER TABLE oauth_client_details ADD PRIMARY KEY (`client_id`,`identity_zone_id`);
 
 CREATE TABLE `client_idp` (
   `client_id` varchar(255) NOT NULL,

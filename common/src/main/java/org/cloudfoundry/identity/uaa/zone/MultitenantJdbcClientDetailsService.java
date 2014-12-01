@@ -79,9 +79,9 @@ public class MultitenantJdbcClientDetailsService extends JdbcClientDetailsServic
             + CLIENT_FIELDS_FOR_UPDATE.replaceAll(", ", "=?, ") + "=? where client_id = ? and identity_zone_id = ?";
 
     private static final String DEFAULT_UPDATE_SECRET_STATEMENT = "update oauth_client_details "
-            + "set client_secret = ? where client_id = ?";
+            + "set client_secret = ? where client_id = ? and identity_zone_id = ?";
 
-    private static final String DEFAULT_DELETE_STATEMENT = "delete from oauth_client_details where client_id = ?";
+    private static final String DEFAULT_DELETE_STATEMENT = "delete from oauth_client_details where client_id = ? and identity_zone_id = ?";
 
     private RowMapper<ClientDetails> rowMapper = new ClientDetailsRowMapper();
 
@@ -140,19 +140,19 @@ public class MultitenantJdbcClientDetailsService extends JdbcClientDetailsServic
     public void updateClientDetails(ClientDetails clientDetails) throws NoSuchClientException {
         int count = jdbcTemplate.update(updateClientDetailsSql, getFieldsForUpdate(clientDetails));
         if (count != 1) {
-            throw new NoSuchClientException("No client found with id = " + clientDetails.getClientId());
+            throw new NoSuchClientException("No client found with id = " + clientDetails.getClientId() + " in identity zone "+IdentityZoneHolder.get().getName());
         }
     }
 
     public void updateClientSecret(String clientId, String secret) throws NoSuchClientException {
-        int count = jdbcTemplate.update(updateClientSecretSql, passwordEncoder.encode(secret), clientId);
+        int count = jdbcTemplate.update(updateClientSecretSql, passwordEncoder.encode(secret), clientId, IdentityZoneHolder.get().getId());
         if (count != 1) {
             throw new NoSuchClientException("No client found with id = " + clientId);
         }
     }
 
     public void removeClientDetails(String clientId) throws NoSuchClientException {
-        int count = jdbcTemplate.update(deleteClientDetailsSql, clientId);
+        int count = jdbcTemplate.update(deleteClientDetailsSql, clientId, IdentityZoneHolder.get().getId());
         if (count != 1) {
             throw new NoSuchClientException("No client found with id = " + clientId);
         }
