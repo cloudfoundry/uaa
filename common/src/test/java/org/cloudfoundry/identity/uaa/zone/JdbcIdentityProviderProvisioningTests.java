@@ -41,7 +41,7 @@ public class JdbcIdentityProviderProvisioningTests {
 
     @Test
     public void testCreateIdentityProviderInDefaultZone() throws Exception {
-        String originKey = RandomStringUtils.random(6);
+        String originKey = RandomStringUtils.randomAlphabetic(6);
         IdentityProvider idp = MultitenancyFixture.identityProvider(originKey);
 
         IdentityProvider createdIdp = db.create(idp);
@@ -62,7 +62,7 @@ public class JdbcIdentityProviderProvisioningTests {
     @Test
     public void testCreateIdentityProviderInOtherZone() throws Exception {
         IdentityZoneHolder.set(MultitenancyFixture.identityZone(UUID.randomUUID().toString(),"myzone"));
-        String originKey = RandomStringUtils.random(6);
+        String originKey = RandomStringUtils.randomAlphabetic(6);
         IdentityProvider idp = MultitenancyFixture.identityProvider(originKey);
 
         IdentityProvider createdIdp = db.create(idp);
@@ -82,7 +82,7 @@ public class JdbcIdentityProviderProvisioningTests {
     
     @Test(expected=IdpAlreadyExistsException.class)
     public void testCreateIdentityProviderWithNonUniqueOriginKeyInDefaultZone() throws Exception {
-        String originKey = RandomStringUtils.random(6);
+        String originKey = RandomStringUtils.randomAlphabetic(6);
         IdentityProvider idp = MultitenancyFixture.identityProvider(originKey);
         db.create(idp);
         db.create(idp);
@@ -91,7 +91,7 @@ public class JdbcIdentityProviderProvisioningTests {
     @Test(expected=IdpAlreadyExistsException.class)
     public void testCreateIdentityProviderWithNonUniqueOriginKeyInOtherZone() throws Exception {
         IdentityZoneHolder.set(MultitenancyFixture.identityZone(UUID.randomUUID().toString(),"myzone"));
-        String originKey = RandomStringUtils.random(6);
+        String originKey = RandomStringUtils.randomAlphabetic(6);
         IdentityProvider idp = MultitenancyFixture.identityProvider(originKey);
         db.create(idp);
         db.create(idp);
@@ -99,7 +99,7 @@ public class JdbcIdentityProviderProvisioningTests {
     
     @Test
     public void testCreateIdentityProvidersWithSameOriginKeyInBothZones() throws Exception {
-        String originKey = RandomStringUtils.random(6);
+        String originKey = RandomStringUtils.randomAlphabetic(6);
         IdentityProvider idp = MultitenancyFixture.identityProvider(originKey);
         db.create(idp);
         IdentityZoneHolder.set(MultitenancyFixture.identityZone(UUID.randomUUID().toString(),"myzone"));
@@ -108,23 +108,26 @@ public class JdbcIdentityProviderProvisioningTests {
     
     @Test
     public void testRetrieveIdentityProviderById() {
-        String originKey = RandomStringUtils.random(6);
-        String identityZoneId = RandomStringUtils.random(6);
-        String idpId = RandomStringUtils.random(6);
+        String originKey = RandomStringUtils.randomAlphabetic(6);
+        String identityZoneId = RandomStringUtils.randomAlphabetic(6);
+        String idpId = RandomStringUtils.randomAlphabetic(6);
         IdentityProvider idp = MultitenancyFixture.identityProvider(originKey);
         idp.setId(idpId);
         int rowsAdded = template.update(JdbcIdentityProviderProvisioning.CREATE_IDENTITY_PROVIDER_SQL, idp.getId(), idp.getVersion(), idp.getCreated(), idp.getLastModified(), idp.getName(), idp.getOriginKey(), idp.getType(), idp.getConfig(), identityZoneId);
         assertEquals(1, rowsAdded);
         
         IdentityProvider retrievedIdp = db.retrieve(idpId);
-        assertEquals(idp, retrievedIdp);
+        assertEquals(idp.getId(), retrievedIdp.getId());
+        assertEquals(idp.getConfig(), retrievedIdp.getConfig());
+        assertEquals(idp.getName(), retrievedIdp.getName());
+        assertEquals(idp.getOriginKey(), retrievedIdp.getOriginKey());
     }
     
     @Test
     public void testRetrieveIdentityProviderByOriginInSameZone() {
-        String originKey = RandomStringUtils.random(6);
-        String identityZoneId = RandomStringUtils.random(6);
-        String idpId = RandomStringUtils.random(6);
+        String originKey = RandomStringUtils.randomAlphabetic(6);
+        String identityZoneId = RandomStringUtils.randomAlphabetic(6);
+        String idpId = RandomStringUtils.randomAlphabetic(6);
         IdentityZone identityZone = MultitenancyFixture.identityZone(identityZoneId, "myzone");
         IdentityZoneHolder.set(identityZone);
         IdentityProvider idp = MultitenancyFixture.identityProvider(originKey);
@@ -133,15 +136,18 @@ public class JdbcIdentityProviderProvisioningTests {
         assertEquals(1, rowsAdded);
         
         IdentityProvider retrievedIdp = db.retrieveByOrigin(idp.getOriginKey());
-        assertEquals(idp, retrievedIdp);
+        assertEquals(idp.getId(), retrievedIdp.getId());
+        assertEquals(idp.getConfig(), retrievedIdp.getConfig());
+        assertEquals(idp.getName(), retrievedIdp.getName());
+        assertEquals(idp.getOriginKey(), retrievedIdp.getOriginKey());
     }
     
     @Test(expected = EmptyResultDataAccessException.class)
     public void testRetrieveIdentityProviderByOriginInDifferentZone() {
-        String originKey = RandomStringUtils.random(6);
-        String identityZoneId1 = RandomStringUtils.random(6);
-        String identityZoneId2 = RandomStringUtils.random(6);
-        String idpId = RandomStringUtils.random(6);
+        String originKey = RandomStringUtils.randomAlphabetic(6);
+        String identityZoneId1 = RandomStringUtils.randomAlphabetic(6);
+        String identityZoneId2 = RandomStringUtils.randomAlphabetic(6);
+        String idpId = RandomStringUtils.randomAlphabetic(6);
         IdentityZone identityZone1 = MultitenancyFixture.identityZone(identityZoneId1, "myzone1");
         IdentityZone identityZone2 = MultitenancyFixture.identityZone(identityZoneId2, "myzone2");
         IdentityZoneHolder.set(identityZone1);
