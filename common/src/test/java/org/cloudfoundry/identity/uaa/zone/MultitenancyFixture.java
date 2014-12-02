@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.zone;
 
 
 public class MultitenancyFixture {
+
     public static IdentityZone identityZone(String id, String subdomain) {
         IdentityZone identityZone = new IdentityZone();
         identityZone.setId(id);
