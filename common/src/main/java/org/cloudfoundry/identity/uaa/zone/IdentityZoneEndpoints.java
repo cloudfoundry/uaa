@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.oauth.ClientAdminEndpoints;
+import org.cloudfoundry.identity.uaa.oauth.ClientDetailsValidator;
 import org.cloudfoundry.identity.uaa.oauth.InvalidClientDetailsException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,15 +35,15 @@ public class IdentityZoneEndpoints {
     private final IdentityZoneProvisioning zoneDao;
     private final IdentityProviderProvisioning idpDao;
     private final ClientRegistrationService clientRegistrationService;
-    private final ClientAdminEndpoints clientAdminEndpoints;
+    private final ClientDetailsValidator clientDetailsValidator;
     
     
-    public IdentityZoneEndpoints(IdentityZoneProvisioning zoneDao, IdentityProviderProvisioning idpDao, ClientRegistrationService clientRegistrationService, ClientAdminEndpoints clientAdminEndpoints) {
+    public IdentityZoneEndpoints(IdentityZoneProvisioning zoneDao, IdentityProviderProvisioning idpDao, ClientRegistrationService clientRegistrationService, ClientDetailsValidator clientDetailsValidator) {
         super();
         this.zoneDao = zoneDao;
         this.idpDao = idpDao;
         this.clientRegistrationService = clientRegistrationService;
-        this.clientAdminEndpoints = clientAdminEndpoints;
+        this.clientDetailsValidator = clientDetailsValidator;
     }
 
     
@@ -55,7 +56,9 @@ public class IdentityZoneEndpoints {
         	List<ClientDetails> clients = new ArrayList<ClientDetails>();
         	if (body.getClientDetails() != null) {
         		for (BaseClientDetails clientDetails : body.getClientDetails()) {
-					clients.add(validateClient(clientDetails));
+        			if (clientDetails != null) {
+        				clients.add(clientDetailsValidator.validate(clientDetails, true, false));
+        			}
 				}
         	}
         	body.getIdentityZone().setId(id);
@@ -76,15 +79,7 @@ public class IdentityZoneEndpoints {
             IdentityZoneHolder.set(previous);
         }
     }
-
-    private ClientDetails validateClient(BaseClientDetails clientDetails) {
-		if (clientDetails == null) {
-			return null;
-		}
-		return clientAdminEndpoints.validateClient(clientDetails, true, false);
-	}
-
-
+    
 	@ExceptionHandler(ZoneAlreadyExistsException.class)
     public ResponseEntity<ZoneAlreadyExistsException> handleZoneAlreadyExistsException(ZoneAlreadyExistsException e) {
         return new ResponseEntity<>(e,CONFLICT);

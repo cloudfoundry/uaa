@@ -70,6 +70,11 @@
                 </constructor-arg>
             </bean>
         </property>
+        <property name="clientDetailsValidator" ref="clientDetailsValidator"/>
+    </bean>
+    
+    <bean id="clientDetailsValidator" class="org.cloudfoundry.identity.uaa.oauth.ClientDetailsValidator">
+        <property name="clientDetailsService" ref="clientDetailsService" />
     </bean>
 
     <bean id="clientAdminEventPublisher" class="org.cloudfoundry.identity.uaa.oauth.event.ClientAdminEventPublisher">

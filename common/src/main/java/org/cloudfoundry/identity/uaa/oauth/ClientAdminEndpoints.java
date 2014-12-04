@@ -91,13 +91,6 @@ public class ClientAdminEndpoints implements InitializingBean {
 
     private final Log logger = LogFactory.getLog(getClass());
 
-    private static final Set<String> VALID_GRANTS = new HashSet<String>(Arrays.asList("implicit", "password",
-                    "client_credentials", "authorization_code", "refresh_token"));
-
-    private static final Collection<String> NON_ADMIN_INVALID_GRANTS = new HashSet<String>(Arrays.asList("password"));
-
-    private static final Collection<String> NON_ADMIN_VALID_AUTHORITIES = new HashSet<String>(Arrays.asList("uaa.none"));
-
     private ClientRegistrationService clientRegistrationService;
 
     private QueryableResourceManager<ClientDetails> clientDetailsService;
@@ -115,7 +108,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 
     private AtomicInteger clientSecretChanges = new AtomicInteger();
 
-    private Set<String> reservedClientIds = StringUtils.commaDelimitedListToSet("uaa");
+    private ClientDetailsValidator clientDetailsValidator;
 
     private ApprovalStore approvalStore;
 
@@ -188,6 +181,7 @@ public class ClientAdminEndpoints implements InitializingBean {
     public void afterPropertiesSet() throws Exception {
         Assert.state(clientRegistrationService != null, "A ClientRegistrationService must be provided");
         Assert.state(clientDetailsService != null, "A ClientDetailsService must be provided");
+        Assert.state(clientDetailsValidator != null, "A ClientDetailsValidator must be provided");
     }
 
     @RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.GET)
@@ -208,7 +202,7 @@ public class ClientAdminEndpoints implements InitializingBean {
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     public ClientDetails createClientDetails(@RequestBody BaseClientDetails client) throws Exception {
-        ClientDetails details = validateClient(client, true, true);
+        ClientDetails details = clientDetailsValidator.validate(client, true);
         clientRegistrationService.addClientDetails(details);
         return removeSecret(client);
     }
@@ -223,7 +217,7 @@ public class ClientAdminEndpoints implements InitializingBean {
         }
         ClientDetails[] results = new ClientDetails[clients.length];
         for (int i=0; i<clients.length; i++) {
-            results[i] = validateClient(clients[i], true, true);
+            results[i] = clientDetailsValidator.validate(clients[i], true);
         }
         return doInsertClientDetails(results);
     }
@@ -253,7 +247,7 @@ public class ClientAdminEndpoints implements InitializingBean {
             } else {
                 details[i] = syncWithExisting(existing, client);
             }
-            details[i] = validateClient(details[i], false, true);
+            details[i] = clientDetailsValidator.validate(details[i], false);
         }        
         return doProcessUpdates(details);
     }
@@ -290,7 +284,7 @@ public class ClientAdminEndpoints implements InitializingBean {
         } catch (Exception e) {
             logger.warn("Couldn't fetch client config for client_id: " + clientId, e);
         }
-        details = validateClient(details, false, true);
+        details = clientDetailsValidator.validate(details, false);
         clientRegistrationService.updateClientDetails(details);
         clientUpdates.incrementAndGet();
         return removeSecret(client);
@@ -325,7 +319,7 @@ public class ClientAdminEndpoints implements InitializingBean {
         ClientDetailsModification[] result = new ClientDetailsModification[details.length];
         for (int i=0; i<result.length; i++) {
             if (ClientDetailsModification.ADD.equals(details[i].getAction())) {
-                ClientDetails client = validateClient(details[i], true, true);
+                ClientDetails client = clientDetailsValidator.validate(details[i], true);
                 clientRegistrationService.addClientDetails(client);
                 clientUpdates.incrementAndGet();
                 result[i] = new ClientDetailsModification(clientDetailsService.retrieve(details[i].getClientId()));
@@ -354,7 +348,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 
     private ClientDetailsModification updateClientNotSecret(ClientDetailsModification c) {
         ClientDetailsModification result = new ClientDetailsModification(clientDetailsService.retrieve(c.getClientId()));
-        ClientDetails client = validateClient(c, false, true);
+        ClientDetails client = clientDetailsValidator.validate(c, false);
         clientRegistrationService.updateClientDetails(client);
         clientUpdates.incrementAndGet();
         return result;
@@ -519,137 +513,7 @@ public class ClientAdminEndpoints implements InitializingBean {
         value.incrementAndGet();
     }
 
-    public ClientDetails validateClient(ClientDetails prototype, boolean create, boolean checkAdmin) {
 
-        BaseClientDetails client = new BaseClientDetails(prototype);
-
-        client.setAdditionalInformation(prototype.getAdditionalInformation());
-
-        String clientId = client.getClientId();
-        if (create && reservedClientIds.contains(clientId)) {
-            throw new InvalidClientDetailsException("Not allowed: " + clientId + " is a reserved client_id");
-        }
-
-        Set<String> requestedGrantTypes = client.getAuthorizedGrantTypes();
-
-        if (requestedGrantTypes.isEmpty()) {
-            throw new InvalidClientDetailsException("An authorized grant type must be provided. Must be one of: "
-                            + VALID_GRANTS.toString());
-        }
-        for (String grant : requestedGrantTypes) {
-            if (!VALID_GRANTS.contains(grant)) {
-                throw new InvalidClientDetailsException(grant + " is not an allowed grant type. Must be one of: "
-                                + VALID_GRANTS.toString());
-            }
-        }
-
-        if ((requestedGrantTypes.contains("authorization_code") || requestedGrantTypes.contains("password"))
-                        && !requestedGrantTypes.contains("refresh_token")) {
-            logger.debug("requested grant type missing refresh_token: " + clientId);
-
-            requestedGrantTypes.add("refresh_token");
-        }
-
-        if (checkAdmin && !securityContextAccessor.isAdmin()) {
-
-            // Not admin, so be strict with grant types and scopes
-            for (String grant : requestedGrantTypes) {
-                if (NON_ADMIN_INVALID_GRANTS.contains(grant)) {
-                    throw new InvalidClientDetailsException(grant
-                                    + " is not an allowed grant type for non-admin caller.");
-                }
-            }
-
-            if (requestedGrantTypes.contains("implicit") && requestedGrantTypes.contains("authorization_code")) {
-                throw new InvalidClientDetailsException(
-                                "Not allowed: implicit grant type is not allowed together with authorization_code");
-            }
-
-            String callerId = securityContextAccessor.getClientId();
-            if (callerId != null) {
-
-                // New scopes are allowed if they are for the caller or the new
-                // client.
-                String callerPrefix = callerId + ".";
-                String clientPrefix = clientId + ".";
-
-                ClientDetails caller = clientDetailsService.retrieve(callerId);
-                Set<String> validScope = caller.getScope();
-                for (String scope : client.getScope()) {
-                    if (scope.startsWith(callerPrefix) || scope.startsWith(clientPrefix)) {
-                        // Allowed
-                        continue;
-                    }
-                    if (!validScope.contains(scope)) {
-                        throw new InvalidClientDetailsException(scope + " is not an allowed scope for caller="
-                                        + callerId + ". Must have prefix in [" + callerPrefix + "," + clientPrefix
-                                        + "] or be one of: " + validScope.toString());
-                    }
-                }
-
-            }
-            else { // No client caller. Shouldn't happen in practice, but let's
-                   // be defensive
-
-                // New scopes are allowed if they are for the caller or the new
-                // client.
-                String clientPrefix = clientId + ".";
-
-                for (String scope : client.getScope()) {
-                    if (!scope.startsWith(clientPrefix)) {
-                        throw new InvalidClientDetailsException(scope
-                                        + " is not an allowed scope for null caller and client_id=" + clientId
-                                        + ". Must start with '" + clientPrefix + "'");
-                    }
-                }
-            }
-
-            Set<String> validAuthorities = new HashSet<String>(NON_ADMIN_VALID_AUTHORITIES);
-            if (requestedGrantTypes.contains("client_credentials")) {
-                // If client_credentials is used then the client might be a
-                // resource server
-                validAuthorities.add("uaa.resource");
-            }
-
-            for (String authority : AuthorityUtils.authorityListToSet(client.getAuthorities())) {
-                if (!validAuthorities.contains(authority)) {
-                    throw new InvalidClientDetailsException(authority + " is not an allowed authority for caller="
-                                    + callerId + ". Must be one of: " + validAuthorities.toString());
-                }
-            }
-
-        }
-
-        if (client.getAuthorities().isEmpty()) {
-            client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none"));
-        }
-
-        // The UAA does not allow or require resource ids to be registered
-        // because they are determined dynamically
-        client.setResourceIds(Collections.singleton("none"));
-
-        if (client.getScope().isEmpty()) {
-            client.setScope(Collections.singleton("uaa.none"));
-        }
-
-        if (requestedGrantTypes.contains("implicit")) {
-            if (StringUtils.hasText(client.getClientSecret())) {
-                throw new InvalidClientDetailsException("Implicit grant should not have a client_secret");
-            }
-        }
-        if (create) {
-            // Only check for missing secret if client is being created.
-            if ((requestedGrantTypes.contains("client_credentials") || requestedGrantTypes
-                            .contains("authorization_code"))
-                            && !StringUtils.hasText(client.getClientSecret())) {
-                throw new InvalidClientDetailsException(
-                                "Client secret is required for client_credentials and authorization_code grant types");
-            }
-        }
-
-        return client;
-
-    }
 
     private void checkPasswordChangeIsAllowed(ClientDetails clientDetails, String oldSecret) {
 
@@ -756,5 +620,9 @@ public class ClientAdminEndpoints implements InitializingBean {
 
         return details;
     }
+
+	public void setClientDetailsValidator(ClientDetailsValidator clientDetailsValidator) {
+		this.clientDetailsValidator = clientDetailsValidator;
+	}
 
 }
