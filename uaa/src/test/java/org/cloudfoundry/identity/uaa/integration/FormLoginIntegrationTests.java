@@ -73,7 +73,7 @@ public class FormLoginIntegrationTests {
         assertTrue(response.getBody().contains("/login.do"));
         assertTrue(response.getBody().contains("username"));
         assertTrue(response.getBody().contains("password"));
-        assertTrue(response.getBody().contains("zone \"<span>uaa</span>\""));
+        
 
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("username", testAccounts.getUserName());

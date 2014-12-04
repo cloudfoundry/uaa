@@ -15,7 +15,7 @@
 </head>
 <body>
 <div class="content">
-    <div class="header" th:style="|background-image: url(@{${assetBaseUrl}+'/images/logo.png'});|" layout:fragment="page-header"></div>
+    <div class="header" th:style="${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).uaa} ? |background-image: url(@{${assetBaseUrl}+'/images/logo.png'});|" layout:fragment="page-header"></div>
     <div layout:fragment="page-content"></div>
     <div class="footer-spacer"></div>
 </div>
