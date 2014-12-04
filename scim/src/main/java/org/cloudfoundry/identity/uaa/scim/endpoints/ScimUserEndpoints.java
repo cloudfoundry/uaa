@@ -259,10 +259,6 @@ public class ScimUserEndpoints implements InitializingBean {
         List<ScimUser> input = new ArrayList<ScimUser>();
         List<ScimUser> result;
         try {
-            if (StringUtils.hasText(filter)) {
-                filter += " and";
-            }
-            filter += " identity_zone_id eq \""+IdentityZoneHolder.get().getId()+"\"";
             result = dao.query(filter, sortBy, sortOrder.equals("ascending"));
             for (ScimUser user : UaaPagingUtils.subList(result, startIndex, count)) {
                 if(attributesCommaSeparated == null || attributesCommaSeparated.matches("(?i)groups") || attributesCommaSeparated.isEmpty()) {

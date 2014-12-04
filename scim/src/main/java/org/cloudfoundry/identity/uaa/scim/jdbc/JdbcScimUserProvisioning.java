@@ -131,6 +131,10 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
 
     @Override
     public List<ScimUser> query(String filter, String sortBy, boolean ascending) {
+        if (StringUtils.hasText(filter)) {
+            filter += " and";
+        }
+        filter += " identity_zone_id eq \""+IdentityZoneHolder.get().getId()+"\"";
         return super.query(filter, sortBy, ascending);
     }
 
