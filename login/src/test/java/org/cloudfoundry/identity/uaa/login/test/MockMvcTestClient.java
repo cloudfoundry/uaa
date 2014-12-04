@@ -22,6 +22,10 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.web.util.HtmlUtils;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MockMvcTestClient {
 
@@ -54,5 +58,13 @@ public class MockMvcTestClient {
 
         public OAuthToken() {
         }
+    }
+
+    public String extractLink(String messageBody) {
+        Pattern linkPattern = Pattern.compile("<a href=\"(.*?)\">.*?</a>");
+        Matcher matcher = linkPattern.matcher(messageBody);
+        matcher.find();
+        String encodedLink = matcher.group(1);
+        return HtmlUtils.htmlUnescape(encodedLink);
     }
 }

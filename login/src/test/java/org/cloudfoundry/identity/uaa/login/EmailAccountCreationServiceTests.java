@@ -37,6 +37,7 @@ import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -64,7 +65,7 @@ public class EmailAccountCreationServiceTests {
     private ExpiringCode code = null;
     private ClientDetails details = null;
 
-        @Autowired
+    @Autowired
     @Qualifier("mailTemplateEngine")
     SpringTemplateEngine templateEngine;
 

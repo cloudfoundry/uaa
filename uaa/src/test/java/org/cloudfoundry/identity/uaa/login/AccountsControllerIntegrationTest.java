@@ -1,41 +1,55 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import com.dumbster.smtp.SimpleSmtpServer;
+import com.dumbster.smtp.SmtpMessage;
 import com.googlecode.flyway.core.Flyway;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.login.test.MockMvcTestClient;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneCreationRequest;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.springframework.http.MediaType;
 import org.springframework.mock.env.MockEnvironment;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
+import java.util.Arrays;
+import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertFalse;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
+import static org.springframework.util.StringUtils.isEmpty;
 
 public class AccountsControllerIntegrationTest {
 
@@ -44,6 +58,7 @@ public class AccountsControllerIntegrationTest {
     private MockMvc mockMvc;
     private static SimpleSmtpServer mailServer;
     private String userEmail;
+    private MockMvcTestClient mockMvcTestClient;
 
     @BeforeClass
     public static void startMailServer() throws Exception {
@@ -53,7 +68,10 @@ public class AccountsControllerIntegrationTest {
     @Before
     public void setUp() throws Exception {
         webApplicationContext = new XmlWebApplicationContext();
-        webApplicationContext.setEnvironment(new MockEnvironment());
+        MockEnvironment environment = new MockEnvironment();
+        environment.setProperty("smtp.host", "localhost");
+        environment.setProperty("smtp.port", "2525");
+        webApplicationContext.setEnvironment(environment);
         new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "uaa.yml,login.yml");
         webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         webApplicationContext.refresh();
@@ -65,6 +83,8 @@ public class AccountsControllerIntegrationTest {
 
         userEmail = "user" +new RandomValueStringGenerator().generate()+ "@example.com";
         Assert.assertNotNull(webApplicationContext.getBean("messageService"));
+
+        mockMvcTestClient = new MockMvcTestClient(mockMvc);
     }
 
     @After
@@ -119,7 +139,7 @@ public class AccountsControllerIntegrationTest {
     }
 
     @Test
-    public void testCreatingAnAccount() throws Exception {
+    public void testCreatingAnAccountWithClientRedirect() throws Exception {
         PredictableGenerator generator = new PredictableGenerator();
         JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
         store.setGenerator(generator);
@@ -147,11 +167,83 @@ public class AccountsControllerIntegrationTest {
         Assert.assertThat(principal.getOrigin(), equalTo(Origin.UAA));
     }
 
+    @Test
+    public void testCreatingAnAccountInAnotherZoneWithClientRedirect() throws Exception {
+        PredictableGenerator generator = new PredictableGenerator();
+        JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
+        store.setGenerator(generator);
+
+        IdentityZone identityZone = new IdentityZone();
+        identityZone.setSubdomain("mysubdomain");
+        identityZone.setName("myzonename");
+
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId("myzoneclient");
+        clientDetails.setClientSecret("myzoneclientsecret");
+        clientDetails.setAuthorizedGrantTypes(Arrays.asList("client_credentials"));
+        clientDetails.addAdditionalInformation("signup_redirect_url", "http://myzoneclient.example.com");
+
+        IdentityZoneCreationRequest zoneCreationRequest = new IdentityZoneCreationRequest();
+        zoneCreationRequest.setIdentityZone(identityZone);
+        zoneCreationRequest.setClientDetails(Arrays.asList(clientDetails));
+
+        String zonesCreateToken = mockMvcTestClient.getOAuthAccessToken("identity", "identitysecret", "client_credentials", "zones.create");
+        mockMvc.perform(put("/identity-zones/myzoneid")
+                    .header("Authorization", "Bearer " + zonesCreateToken)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(new ObjectMapper().writeValueAsString(zoneCreationRequest)))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/create_account.do")
+                    .with(new SetServerNameRequestPostProcessor("mysubdomain.localhost"))
+                    .param("email", userEmail)
+                    .param("password", "secret")
+                    .param("password_confirmation", "secret")
+                    .param("client_id", "myzoneclient"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("accounts/email_sent"));
+
+        Iterator receivedEmail = mailServer.getReceivedEmail();
+        SmtpMessage message = (SmtpMessage) receivedEmail.next();
+        String link = mockMvcTestClient.extractLink(message.getBody());
+        assertFalse(isEmpty(link));
+
+        MvcResult mvcResult = mockMvc.perform(get("/verify_user")
+                    .param("code", "test" + generator.counter.get())
+                    .with(new SetServerNameRequestPostProcessor("mysubdomain.localhost")))
+                .andDo(print())
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("http://myzoneclient.example.com"))
+                .andReturn();
+
+        SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        Authentication authentication = securityContext.getAuthentication();
+        Assert.assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
+        UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
+        Assert.assertThat(principal.getEmail(), equalTo(userEmail));
+        Assert.assertThat(principal.getOrigin(), equalTo(Origin.UAA));
+    }
+
     public static class PredictableGenerator extends RandomValueStringGenerator {
         public AtomicInteger counter = new AtomicInteger(1);
         @Override
         public String generate() {
             return  "test"+counter.incrementAndGet();
+        }
+    }
+
+    public static class SetServerNameRequestPostProcessor implements RequestPostProcessor {
+
+        private final String serverName;
+
+        public SetServerNameRequestPostProcessor(String serverName) {
+            this.serverName = serverName;
+        }
+
+        @Override
+        public MockHttpServletRequest postProcessRequest(MockHttpServletRequest request) {
+            request.setServerName(serverName);
+            return request;
         }
     }
 }
