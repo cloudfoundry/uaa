@@ -440,5 +440,13 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
             return user;
         }
     }
+    
+    public int getRowCount() {
+    	Integer count = jdbcTemplate.queryForObject("select count(*) from users",Integer.class);
+    	if (count == null) {
+    		return 0;
+    	}
+    	return count;
+    }
 
 }

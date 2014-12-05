@@ -115,6 +115,8 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         jdbcTemplate.execute("delete from users where upper(userName) = 'JONAH@FOO.COM'");
         jdbcTemplate.execute("delete from users where upper(userName) = 'RO''GALLAGHER@EXAMPLE.COM'");
         jdbcTemplate.execute("delete from users where upper(userName) = 'USER@EXAMPLE.COM'");
+        jdbcTemplate.execute("delete from identity_provider where identity_zone_id = 'my-zone-id'");
+        jdbcTemplate.execute("delete from identity_zone where id = 'my-zone-id'");
         IdentityZoneHolder.clear();
     }
 
@@ -152,6 +154,19 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertEquals(Origin.UAA, created.getOrigin());
         assertEquals("my-zone-id", map.get("identity_zone_id"));
         assertEquals(idpId, map.get("identity_provider_id"));
+    }
+    
+    @Test
+    public void countUsersAcrossAllZones() {
+    	IdentityZoneHolder.clear();
+    	int beginningCount = db.getRowCount();
+    	canCreateUserInDefaultIdentityZone();
+    	IdentityZoneHolder.clear();
+    	assertEquals(beginningCount+1, db.getRowCount());
+    	canCreateUserInOtherIdentityZone();
+    	IdentityZoneHolder.clear();
+    	assertEquals(beginningCount+2, db.getRowCount());
+    	
     }
 
     private void createOtherIdentityZone(String zoneId) {

@@ -43,6 +43,8 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -90,7 +92,7 @@ public class ScimUserEndpoints implements InitializingBean {
     public static final String E_TAG = "ETag";
 
     private ScimUserProvisioning dao;
-
+    
     private ScimGroupMembershipManager membershipManager;
 
     private ApprovalStore approvalStore;
@@ -135,7 +137,11 @@ public class ScimUserEndpoints implements InitializingBean {
 
     @ManagedMetric(metricType = MetricType.COUNTER, displayName = "Total Users")
     public int getTotalUsers() {
-        return dao.retrieveAll().size();
+    	try {
+    		return ((JdbcScimUserProvisioning)dao).getRowCount();
+    	} catch (ClassCastException e) {
+    		return dao.retrieveAll().size();
+    	}
     }
 
     @ManagedMetric(metricType = MetricType.COUNTER, displayName = "User Account Update Count (Since Startup)")
