@@ -101,9 +101,13 @@ oauth:
       - uaa.user
       - approvals.me
       - oauth.approvals
+# When using the hybrid flow to get a id_token, suppress the exception if the client doesn't have the implicit grant. Defaults to false.
+  #openid:
+    #fallbackToAuthcode: false
 
 # Allow unverified users to log in. Defaults to true
 #allowUnverifiedUsers: false
+
 
 # Default token signing key. Each installation MUST provide a unique key
 # in order for tokens to be usable only on that installation.

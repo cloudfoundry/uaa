@@ -15,16 +15,8 @@ package org.cloudfoundry.identity.uaa.mock.token;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLDecoder;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
-import static org.cloudfoundry.identity.uaa.oauth.Claims.ISS;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -33,7 +25,7 @@ import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
+
 import com.googlecode.flyway.core.Flyway;
 import junit.framework.Assert;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
@@ -59,6 +51,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.http.MediaType;
+import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -71,6 +64,7 @@ import org.springframework.security.jwt.JwtHelper;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -102,10 +96,14 @@ public class TokenMvcMockTests {
     private Set<String> defaultAuthorities;
     private SignerProvider signerProvider;
     private UaaTokenServices uaaTokenServices;
+    private MockEnvironment mockEnvironment;
+
 
     @Before
     public void setUp() throws Exception {
+        mockEnvironment = new MockEnvironment();
         webApplicationContext = new AnnotationConfigWebApplicationContext();
+        webApplicationContext.setEnvironment(mockEnvironment);
         webApplicationContext.setServletContext(new MockServletContext());
         new YamlServletProfileInitializer().initialize(webApplicationContext);
         webApplicationContext.register(DefaultIntegrationTestConfig.class);
@@ -129,12 +127,12 @@ public class TokenMvcMockTests {
         uaaTokenServices = webApplicationContext.getBean(UaaTokenServices.class);
     }
 
-    protected void setUpClients(String id, String authorities, String scopes, String grantTypes) {
+    protected void setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove) {
         BaseClientDetails c = new BaseClientDetails(id, "", scopes, grantTypes, authorities);
         c.setClientSecret(SECRET);
         c.setRegisteredRedirectUri(new HashSet<String>(Arrays.asList(TEST_REDIRECT_URI)));
         Map<String,String> additional = new HashMap<>();
-        additional.put("autoapprove","true");
+        additional.put("autoapprove",autoapprove.toString());
         c.setAdditionalInformation(additional);
         clientDetailsService.addClientDetails(c);
     }
@@ -183,10 +181,178 @@ public class TokenMvcMockTests {
     }
 
     @Test
+    public void testOpenIdTokenHybridFlowWithNoImplicitGrantWhenLenient() throws Exception {
+        mockEnvironment.setProperty("oauth.openid.fallbackToAuthcode", "true");
+        webApplicationContext.refresh();
+
+        String clientId = "testclient";
+        String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,openid";
+        setUpClients(clientId, scopes, scopes, "authorization_code", true);
+        String username = "testuser";
+        String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
+        ScimUser developer = setUpUser(username, userScopes);
+
+        UaaPrincipal p = new UaaPrincipal(developer.getId(),developer.getUserName(),developer.getPrimaryEmail(), Origin.UAA,"");
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(p, "", UaaAuthority.USER_AUTHORITIES);
+        Assert.assertTrue(auth.isAuthenticated());
+
+        SecurityContextHolder.getContext().setAuthentication(auth);
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute(
+                HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+                new MockSecurityContext(auth)
+        );
+
+        String state = new RandomValueStringGenerator().generate();
+
+        MockHttpServletRequestBuilder oauthTokenPost = get("/oauth/authorize")
+                .session(session)
+                .param(OAuth2Utils.RESPONSE_TYPE, "code id_token")
+                .param(OAuth2Utils.SCOPE, "openid")
+                .param(OAuth2Utils.STATE, state)
+                .param(OAuth2Utils.CLIENT_ID, clientId)
+                .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
+
+        MvcResult result = mockMvc.perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
+        URL url = new URL(result.getResponse().getHeader("Location").replace("redirect#","redirect?"));
+        Map query = splitQuery(url);
+        assertNotNull(query.get("code"));
+        String code = ((List<String>) query.get("code")).get(0);
+        assertNotNull(code);
+    }
+
+    @Test
+    public void testOpenIdTokenHybridFlowWithNoImplicitGrantWhenStrict() throws Exception {
+        mockEnvironment.setProperty("oauth.openid.fallbackToAuthcode", "false");
+        webApplicationContext.refresh();
+
+        String clientId = "testclient";
+        String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,openid";
+        setUpClients(clientId, scopes, scopes, "authorization_code", true);
+        String username = "testuser";
+        String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
+        ScimUser developer = setUpUser(username, userScopes);
+
+        UaaPrincipal p = new UaaPrincipal(developer.getId(),developer.getUserName(),developer.getPrimaryEmail(), Origin.UAA,"");
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(p, "", UaaAuthority.USER_AUTHORITIES);
+        Assert.assertTrue(auth.isAuthenticated());
+
+        SecurityContextHolder.getContext().setAuthentication(auth);
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute(
+                HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+                new MockSecurityContext(auth)
+        );
+
+        String state = new RandomValueStringGenerator().generate();
+
+        MockHttpServletRequestBuilder oauthTokenPost = get("/oauth/authorize")
+                .session(session)
+                .param(OAuth2Utils.RESPONSE_TYPE, "code id_token")
+                .param(OAuth2Utils.SCOPE, "openid")
+                .param(OAuth2Utils.STATE, state)
+                .param(OAuth2Utils.CLIENT_ID, clientId)
+                .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
+
+        MvcResult result = mockMvc.perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
+        URL url = new URL(result.getResponse().getHeader("Location").replace("redirect#","redirect?"));
+        Map query = splitQuery(url);
+        assertEquals("invalid_client", ((List<String>) query.get("error")).get(0));
+        assertEquals("Unauthorized grant type: implicit", ((List<String>) query.get("error_description")).get(0));
+    }
+
+    @Test
+    public void testOpenIdTokenHybridFlowWithNoImplicitGrantWhenLenientWhenAppNotApproved() throws Exception {
+        mockEnvironment.setProperty("oauth.openid.fallbackToAuthcode", "true");
+        webApplicationContext.refresh();
+
+        String clientId = "testclient";
+        String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,openid";
+        setUpClients(clientId, scopes, scopes, "authorization_code", false);
+        String username = "testuser";
+        String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
+        ScimUser developer = setUpUser(username, userScopes);
+
+        UaaPrincipal p = new UaaPrincipal(developer.getId(),developer.getUserName(),developer.getPrimaryEmail(), Origin.UAA,"");
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(p, "", UaaAuthority.USER_AUTHORITIES);
+        Assert.assertTrue(auth.isAuthenticated());
+
+        SecurityContextHolder.getContext().setAuthentication(auth);
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute(
+                HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+                new MockSecurityContext(auth)
+        );
+
+        String state = new RandomValueStringGenerator().generate();
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest();
+        authorizationRequest.setClientId(clientId);
+        authorizationRequest.setRedirectUri(TEST_REDIRECT_URI);
+        authorizationRequest.setScope(new ArrayList<>(Arrays.asList("openid")));
+        authorizationRequest.setResponseTypes(new TreeSet<>(Arrays.asList("code id_token")));
+        authorizationRequest.setState(state);
+
+        session.setAttribute("authorizationRequest", authorizationRequest);
+
+        MvcResult result  = mockMvc.perform(post("/oauth/authorize")
+                .session(session)
+                .param(OAuth2Utils.USER_OAUTH_APPROVAL, "true")).andExpect(status().is3xxRedirection()).andReturn();
+
+        URL url = new URL(result.getResponse().getHeader("Location").replace("redirect#","redirect?"));
+        Map query = splitQuery(url);
+        assertNotNull(query.get("code"));
+        String code = ((List<String>) query.get("code")).get(0);
+        assertNotNull(code);
+    }
+
+    @Test
+    public void testOpenIdTokenHybridFlowWithNoImplicitGrantWhenStrictWhenAppNotApproved() throws Exception {
+        mockEnvironment.setProperty("oauth.openid.fallbackToAuthcode", "false");
+        webApplicationContext.refresh();
+
+        String clientId = "testclient";
+        String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,openid";
+        setUpClients(clientId, scopes, scopes, "authorization_code", false);
+        String username = "testuser";
+        String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
+        ScimUser developer = setUpUser(username, userScopes);
+
+        UaaPrincipal p = new UaaPrincipal(developer.getId(),developer.getUserName(),developer.getPrimaryEmail(), Origin.UAA,"");
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(p, "", UaaAuthority.USER_AUTHORITIES);
+        Assert.assertTrue(auth.isAuthenticated());
+
+        SecurityContextHolder.getContext().setAuthentication(auth);
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute(
+                HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+                new MockSecurityContext(auth)
+        );
+
+        String state = new RandomValueStringGenerator().generate();
+
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest();
+        authorizationRequest.setClientId(clientId);
+        authorizationRequest.setRedirectUri(TEST_REDIRECT_URI);
+        authorizationRequest.setScope(new ArrayList<>(Arrays.asList("openid")));
+        authorizationRequest.setResponseTypes(new TreeSet<>(Arrays.asList("code", "id_token")));
+        authorizationRequest.setState(state);
+        session.setAttribute("authorizationRequest", authorizationRequest);
+
+        MvcResult result  = mockMvc.perform(post("/oauth/authorize")
+                .session(session)
+                .param(OAuth2Utils.USER_OAUTH_APPROVAL, "true")).andExpect(status().is3xxRedirection()).andReturn();
+
+        URL url = new URL(result.getResponse().getHeader("Location").replace("redirect#","redirect?"));
+        Map query = splitQuery(url);
+        assertEquals("invalid_client", ((List<String>) query.get("error")).get(0));
+        assertEquals("Unauthorized grant type: implicit", ((List<String>) query.get("error_description")).get(0));
+    }
+
+    @Test
     public void testOpenIdToken() throws Exception {
         String clientId = "testclient";
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,openid";
-        setUpClients(clientId, scopes, scopes, GRANT_TYPES);
+        setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
         String username = "testuser";
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
         ScimUser developer = setUpUser(username, userScopes);
@@ -430,7 +596,7 @@ public class TokenMvcMockTests {
     public void testWildcardPasswordGrant() throws Exception {
         String clientId = "testclient";
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
-        setUpClients(clientId, scopes, scopes, GRANT_TYPES);
+        setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
         String userId = "testuser";
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three";
         ScimUser developer = setUpUser(userId, userScopes);
@@ -523,7 +689,7 @@ public class TokenMvcMockTests {
     public void testLoginAuthenticationFilter() throws Exception {
         String clientId = "testclient" + new RandomValueStringGenerator().generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
-        setUpClients(clientId, scopes, scopes, GRANT_TYPES);
+        setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
         String userId = "testuser" + new RandomValueStringGenerator().generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three";
         ScimUser developer = setUpUser(userId, userScopes);
@@ -722,12 +888,12 @@ public class TokenMvcMockTests {
     public void testOtherOauthResourceLoginAuthenticationFilter() throws Exception {
         String clientId = "testclient" + new RandomValueStringGenerator().generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
-        setUpClients(clientId, scopes, scopes, GRANT_TYPES);
+        setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
 
 
         String oauthClientId = "testclient" + new RandomValueStringGenerator().generate();
         String oauthScopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,oauth.something";
-        setUpClients(oauthClientId, oauthScopes, oauthScopes, GRANT_TYPES);
+        setUpClients(oauthClientId, oauthScopes, oauthScopes, GRANT_TYPES, true);
 
 
         String userId = "testuser" + new RandomValueStringGenerator().generate();
@@ -896,12 +1062,12 @@ public class TokenMvcMockTests {
     public void testOtherClientAuthenticationMethods() throws Exception {
         String clientId = "testclient" + new RandomValueStringGenerator().generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
-        setUpClients(clientId, scopes, scopes, GRANT_TYPES);
+        setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
 
 
         String oauthClientId = "testclient" + new RandomValueStringGenerator().generate();
         String oauthScopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,oauth.something";
-        setUpClients(oauthClientId, oauthScopes, oauthScopes, GRANT_TYPES);
+        setUpClients(oauthClientId, oauthScopes, oauthScopes, GRANT_TYPES, true);
 
 
         String userId = "testuser" + new RandomValueStringGenerator().generate();
