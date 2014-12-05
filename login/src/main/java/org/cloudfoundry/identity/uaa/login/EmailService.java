@@ -2,6 +2,8 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -28,7 +30,12 @@ public class EmailService implements MessageService {
 
     private Address[] getSenderAddresses() throws AddressException, UnsupportedEncodingException {
         String host = UriComponentsBuilder.fromHttpUrl(loginUrl).build().getHost();
-        String name = brand.equals("pivotal") ? "Pivotal" : "Cloud Foundry";
+        String name = null;
+        if (IdentityZoneHolder.get().equals(IdentityZone.getUaa())) {
+            name = brand.equals("pivotal") ? "Pivotal" : "Cloud Foundry";
+        } else {
+            name = IdentityZoneHolder.get().getName();
+        }
         return new Address[]{new InternetAddress("admin@" + host, name)};
     }
 

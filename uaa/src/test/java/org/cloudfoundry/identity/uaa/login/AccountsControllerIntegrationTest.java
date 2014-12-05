@@ -41,6 +41,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -85,6 +86,11 @@ public class AccountsControllerIntegrationTest {
         Assert.assertNotNull(webApplicationContext.getBean("messageService"));
 
         mockMvcTestClient = new MockMvcTestClient(mockMvc);
+
+        for (Iterator i = mailServer.getReceivedEmail(); i.hasNext();) {
+            i.next();
+            i.remove();
+        }
     }
 
     @After
@@ -139,6 +145,63 @@ public class AccountsControllerIntegrationTest {
     }
 
     @Test
+    public void testCreatingAnAccount() throws Exception {
+        PredictableGenerator generator = new PredictableGenerator();
+        JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
+        store.setGenerator(generator);
+
+        mockMvc.perform(post("/create_account.do")
+                .param("email", userEmail)
+                .param("password", "secret")
+                .param("password_confirmation", "secret"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("accounts/email_sent"));
+
+        MvcResult mvcResult = mockMvc.perform(get("/verify_user")
+                .param("code", "test"+generator.counter.get()))
+                .andDo(print())
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("http://localhost:8080/uaa/home"))
+                .andReturn();
+
+        SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        Authentication authentication = securityContext.getAuthentication();
+        Assert.assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
+        UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
+        Assert.assertThat(principal.getEmail(), equalTo(userEmail));
+        Assert.assertThat(principal.getOrigin(), equalTo(Origin.UAA));
+    }
+
+    @Test
+    public void testCreatingAnAccountWithAnEmptyClientId() throws Exception {
+        PredictableGenerator generator = new PredictableGenerator();
+        JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
+        store.setGenerator(generator);
+
+        mockMvc.perform(post("/create_account.do")
+                .param("email", userEmail)
+                .param("password", "secret")
+                .param("password_confirmation", "secret")
+                .param("client_id", ""))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("accounts/email_sent"));
+
+        MvcResult mvcResult = mockMvc.perform(get("/verify_user")
+                .param("code", "test"+generator.counter.get()))
+                .andDo(print())
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("http://localhost:8080/uaa/home"))
+                .andReturn();
+
+        SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        Authentication authentication = securityContext.getAuthentication();
+        Assert.assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
+        UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
+        Assert.assertThat(principal.getEmail(), equalTo(userEmail));
+        Assert.assertThat(principal.getOrigin(), equalTo(Origin.UAA));
+    }
+
+    @Test
     public void testCreatingAnAccountWithClientRedirect() throws Exception {
         PredictableGenerator generator = new PredictableGenerator();
         JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
@@ -152,12 +215,71 @@ public class AccountsControllerIntegrationTest {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("accounts/email_sent"));
 
+        Iterator receivedEmail = mailServer.getReceivedEmail();
+        SmtpMessage message = (SmtpMessage) receivedEmail.next();
+        assertTrue(message.getBody().contains("Cloud Foundry"));
+        assertTrue(message.getHeaderValue("From").contains("Cloud Foundry"));
+
         MvcResult mvcResult = mockMvc.perform(get("/verify_user")
                 .param("code", "test"+generator.counter.get()))
             .andDo(print())
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("http://localhost:8080/app/"))
             .andReturn();
+
+        SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        Authentication authentication = securityContext.getAuthentication();
+        Assert.assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
+        UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
+        Assert.assertThat(principal.getEmail(), equalTo(userEmail));
+        Assert.assertThat(principal.getOrigin(), equalTo(Origin.UAA));
+    }
+
+    @Test
+    public void testCreatingAnAccountInAnotherZoneWithNoClientRedirect() throws Exception {
+        PredictableGenerator generator = new PredictableGenerator();
+        JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
+        store.setGenerator(generator);
+
+        IdentityZone identityZone = new IdentityZone();
+        identityZone.setSubdomain("mysubdomain");
+        identityZone.setName("myzonename");
+
+        IdentityZoneCreationRequest zoneCreationRequest = new IdentityZoneCreationRequest();
+        zoneCreationRequest.setIdentityZone(identityZone);
+
+        String zonesCreateToken = mockMvcTestClient.getOAuthAccessToken("identity", "identitysecret", "client_credentials", "zones.create");
+        mockMvc.perform(put("/identity-zones/myzoneid")
+                .header("Authorization", "Bearer " + zonesCreateToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(new ObjectMapper().writeValueAsString(zoneCreationRequest)))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/create_account.do")
+                .with(new SetServerNameRequestPostProcessor("mysubdomain.localhost"))
+                .param("email", userEmail)
+                .param("password", "secret")
+                .param("password_confirmation", "secret"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("accounts/email_sent"));
+
+        Iterator receivedEmail = mailServer.getReceivedEmail();
+        SmtpMessage message = (SmtpMessage) receivedEmail.next();
+        String link = mockMvcTestClient.extractLink(message.getBody());
+        assertTrue(message.getBody().contains("myzonename"));
+        assertTrue(message.getHeaderValue("From").contains("myzonename"));
+        assertFalse(message.getBody().contains("Cloud Foundry"));
+        assertFalse(message.getBody().contains("Pivotal"));
+        assertFalse(isEmpty(link));
+        assertTrue(link.contains("mysubdomain.localhost"));
+
+        MvcResult mvcResult = mockMvc.perform(get("/verify_user")
+                .param("code", "test" + generator.counter.get())
+                .with(new SetServerNameRequestPostProcessor("mysubdomain.localhost")))
+                .andDo(print())
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("http://mysubdomain.localhost:8080/uaa/home"))
+                .andReturn();
 
         SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
         Authentication authentication = securityContext.getAuthentication();
@@ -207,6 +329,7 @@ public class AccountsControllerIntegrationTest {
         SmtpMessage message = (SmtpMessage) receivedEmail.next();
         String link = mockMvcTestClient.extractLink(message.getBody());
         assertFalse(isEmpty(link));
+        assertTrue(link.contains("mysubdomain.localhost"));
 
         MvcResult mvcResult = mockMvc.perform(get("/verify_user")
                     .param("code", "test" + generator.counter.get())

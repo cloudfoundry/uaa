@@ -17,19 +17,15 @@ import org.codehaus.jackson.type.TypeReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring4.SpringTemplateEngine;
 
 import java.io.IOException;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -128,10 +124,35 @@ public class EmailAccountCreationService implements AccountCreationService {
         Map<String, String> data = objectMapper.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
         ScimUser user = scimUserProvisioning.retrieve(data.get("user_id"));
         user = scimUserProvisioning.verifyUser(user.getId(), user.getVersion());
-        ClientDetails clientDetails = clientDetailsService.loadClientByClientId(data.get("client_id"));
-        String redirectLocation = (String) clientDetails.getAdditionalInformation().get(SIGNUP_REDIRECT_URL);
+
+        String clientId = data.get("client_id");
+        String redirectLocation;
+        if (clientId != null) {
+            try {
+                ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId);
+                redirectLocation = (String) clientDetails.getAdditionalInformation().get(SIGNUP_REDIRECT_URL);
+            }
+            catch (NoSuchClientException e) {
+                redirectLocation = getDefaultRedirect();
+            }
+        } else {
+            redirectLocation = getDefaultRedirect();
+        }
 
         return new AccountCreationResponse(user.getId(), user.getUserName(), user.getUserName(), redirectLocation);
+    }
+
+    private String getDefaultRedirect() throws IOException {
+        String redirectLocation;
+        try {
+            URIBuilder builder = new URIBuilder(baseUrl);
+            String subdomain = IdentityZoneHolder.get().getSubdomain();
+            builder.setHost((StringUtils.isEmpty(subdomain) ? "" : subdomain + ".") + builder.getHost());
+            redirectLocation = builder.toString() + "/home";
+        } catch (URISyntaxException e) {
+            throw new IOException(e);
+        }
+        return redirectLocation;
     }
 
     @Override
@@ -144,8 +165,7 @@ public class EmailAccountCreationService implements AccountCreationService {
             logger.error("Exception raised while resending activation email for " + email, e);
         }
     }
-    
-    
+
     @Override
     public ScimUser createUser(String username, String password) {
         ScimUser scimUser = new ScimUser();
@@ -185,7 +205,11 @@ public class EmailAccountCreationService implements AccountCreationService {
         }
 
         final Context ctx = new Context();
-        ctx.setVariable("serviceName", brand.equals("pivotal") ? "Pivotal" : "Cloud Foundry");
+        if (IdentityZoneHolder.get().equals(IdentityZone.getUaa())) {
+            ctx.setVariable("serviceName", brand.equals("pivotal") ? "Pivotal" : "Cloud Foundry");
+        } else {
+            ctx.setVariable("serviceName", IdentityZoneHolder.get().getName());
+        }
         ctx.setVariable("servicePhrase", brand.equals("pivotal") ? "a Pivotal ID" : "an account");
         ctx.setVariable("code", code);
         ctx.setVariable("email", email);
