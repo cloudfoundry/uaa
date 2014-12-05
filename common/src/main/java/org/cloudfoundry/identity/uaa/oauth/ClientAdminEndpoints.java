@@ -14,19 +14,17 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.servlet.http.HttpServletRequest;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.message.SimpleMessage;
@@ -34,6 +32,7 @@ import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.rest.AttributeNameMapper;
 import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
+import org.cloudfoundry.identity.uaa.rest.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.rest.SearchResults;
 import org.cloudfoundry.identity.uaa.rest.SearchResultsFactory;
 import org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper;
@@ -53,14 +52,13 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.common.exceptions.BadClientCredentialsException;
 import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
@@ -75,8 +73,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * Controller for listing and manipulating OAuth2 clients.
@@ -94,6 +90,8 @@ public class ClientAdminEndpoints implements InitializingBean {
     private ClientRegistrationService clientRegistrationService;
 
     private QueryableResourceManager<ClientDetails> clientDetailsService;
+    
+    private ResourceMonitor<ClientDetails> clientDetailsResourceMonitor;
 
     private AttributeNameMapper attributeNameMapper = new SimpleAttributeNameMapper(
                     Collections.<String, String> emptyMap());
@@ -154,7 +152,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 
     @ManagedMetric(metricType = MetricType.COUNTER, displayName = "Client Registration Count")
     public int getTotalClients() {
-        return clientRegistrationService.listClientDetails().size();
+        return clientDetailsResourceMonitor.getTotalCount();
     }
 
     @ManagedMetric(metricType = MetricType.COUNTER, displayName = "Client Update Count (Since Startup)")
@@ -624,5 +622,9 @@ public class ClientAdminEndpoints implements InitializingBean {
 	public void setClientDetailsValidator(ClientDetailsValidator clientDetailsValidator) {
 		this.clientDetailsValidator = clientDetailsValidator;
 	}
+
+    public void setClientDetailsResourceMonitor(ResourceMonitor<ClientDetails> clientDetailsResourceMonitor) {
+        this.clientDetailsResourceMonitor = clientDetailsResourceMonitor;
+    }
 
 }

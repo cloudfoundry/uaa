@@ -28,6 +28,7 @@ import javax.sql.DataSource;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.rest.ResourceMonitor;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -50,10 +51,10 @@ import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
 
 /**
- * Basic, JDBC implementation of the client details service.
+ * A copy of JdbcClientDetailsService but with IdentityZone awareness
  */
 public class MultitenantJdbcClientDetailsService extends JdbcClientDetailsService implements ClientDetailsService,
-        ClientRegistrationService {
+        ClientRegistrationService, ResourceMonitor<ClientDetails> {
 
     private static final Log logger = LogFactory.getLog(MultitenantJdbcClientDetailsService.class);
 
@@ -68,7 +69,7 @@ public class MultitenantJdbcClientDetailsService extends JdbcClientDetailsServic
     private static final String BASE_FIND_STATEMENT = "select client_id, " + CLIENT_FIELDS
             + " from oauth_client_details";
 
-    private static final String DEFAULT_FIND_STATEMENT = BASE_FIND_STATEMENT + " order by client_id";
+    private static final String DEFAULT_FIND_STATEMENT = BASE_FIND_STATEMENT + " where identity_zone_id = :identityZoneId order by client_id";
 
     private static final String DEFAULT_SELECT_STATEMENT = BASE_FIND_STATEMENT + " where client_id = ? and identity_zone_id = ?";
 
@@ -159,7 +160,7 @@ public class MultitenantJdbcClientDetailsService extends JdbcClientDetailsServic
     }
 
     public List<ClientDetails> listClientDetails() {
-        return listFactory.getList(findClientDetailsSql, Collections.<String, Object> emptyMap(), rowMapper);
+        return listFactory.getList(findClientDetailsSql, Collections.<String, Object> singletonMap("identityZoneId",IdentityZoneHolder.get().getId()), rowMapper);
     }
 
     private Object[] getFields(ClientDetails clientDetails) {
@@ -322,6 +323,15 @@ public class MultitenantJdbcClientDetailsService extends JdbcClientDetailsServic
             throw new UnsupportedOperationException(
                     "Neither Jackson 1 nor 2 is available so JSON conversion cannot be done");
         }
+    }
+
+    @Override
+    public int getTotalCount() {
+        Integer count = jdbcTemplate.queryForObject("select count(*) from oauth_client_details", Integer.class);
+        if (count != null) {
+            return count;
+        }
+        return 0;
     }
 
 }

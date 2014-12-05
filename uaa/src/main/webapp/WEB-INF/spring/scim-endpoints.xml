@@ -105,6 +105,7 @@
 
     <bean id="scimUserEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints">
         <property name="scimUserProvisioning" ref="scimUserProvisioning" />
+        <property name="scimUserResourceMonitor" ref="scimUserProvisioning"/>
         <property name="scimGroupMembershipManager" ref="groupMembershipManager" />
         <property name="approvalStore" ref="approvalStore" />
         <property name="statuses" ref="exceptionToStatusMap" />

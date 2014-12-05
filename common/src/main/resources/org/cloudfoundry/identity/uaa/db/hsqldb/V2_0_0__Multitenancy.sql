@@ -36,7 +36,8 @@ ALTER TABLE group_membership ADD COLUMN identity_provider_id CHAR(36) DEFAULT NU
 CREATE INDEX identity_provider_id ON group_membership (identity_provider_id);
 
 ALTER TABLE oauth_client_details ADD COLUMN identity_zone_id CHAR(36) DEFAULT NULL;
-CREATE INDEX identity_zone_id ON oauth_client_details (identity_zone_id);
+ALTER TABLE oauth_client_details DROP PRIMARY KEY;
+ALTER TABLE oauth_client_details ADD PRIMARY KEY (client_id,identity_zone_id);
 
 CREATE TABLE client_idp (
   client_id varchar(255) NOT NULL,

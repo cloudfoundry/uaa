@@ -33,6 +33,7 @@ import org.cloudfoundry.identity.uaa.error.ExceptionReport;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.rest.AttributeNameMapper;
+import org.cloudfoundry.identity.uaa.rest.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.rest.SearchResults;
 import org.cloudfoundry.identity.uaa.rest.SearchResultsFactory;
 import org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper;
@@ -43,11 +44,8 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException;
-import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
-import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.expression.spel.SpelEvaluationException;
@@ -93,6 +91,8 @@ public class ScimUserEndpoints implements InitializingBean {
 
     private ScimUserProvisioning dao;
     
+    private ResourceMonitor<ScimUser> scimUserResourceMonitor;
+    
     private ScimGroupMembershipManager membershipManager;
 
     private ApprovalStore approvalStore;
@@ -137,11 +137,7 @@ public class ScimUserEndpoints implements InitializingBean {
 
     @ManagedMetric(metricType = MetricType.COUNTER, displayName = "Total Users")
     public int getTotalUsers() {
-    	try {
-    		return ((JdbcScimUserProvisioning)dao).getRowCount();
-    	} catch (ClassCastException e) {
-    		return dao.retrieveAll().size();
-    	}
+        return scimUserResourceMonitor.getTotalCount();
     }
 
     @ManagedMetric(metricType = MetricType.COUNTER, displayName = "User Account Update Count (Since Startup)")
@@ -391,5 +387,9 @@ public class ScimUserEndpoints implements InitializingBean {
 
     private void addETagHeader(HttpServletResponse httpServletResponse, ScimUser scimUser) {
         httpServletResponse.setHeader(E_TAG, "\"" + scimUser.getVersion() + "\"");
+    }
+
+    public void setScimUserResourceMonitor(ResourceMonitor<ScimUser> scimUserResourceMonitor) {
+        this.scimUserResourceMonitor = scimUserResourceMonitor;
     }
 }

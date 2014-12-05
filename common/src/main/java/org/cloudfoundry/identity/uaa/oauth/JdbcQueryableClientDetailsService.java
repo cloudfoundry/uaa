@@ -22,12 +22,14 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.rest.jdbc.AbstractQueryable;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.JdbcClientDetailsService;
+import org.springframework.util.StringUtils;
 
 public class JdbcQueryableClientDetailsService extends AbstractQueryable<ClientDetails> implements
                 QueryableResourceManager<ClientDetails> {
@@ -62,8 +64,12 @@ public class JdbcQueryableClientDetailsService extends AbstractQueryable<ClientD
     }
 
     @Override
-    public List<ClientDetails> query(String filter) {
-        return super.query(filter);
+    public List<ClientDetails> query(String filter, String sortBy, boolean ascending) {
+    	if (StringUtils.hasText(filter)) {
+            filter += " and";
+        }
+        filter += " identity_zone_id eq \""+IdentityZoneHolder.get().getId()+"\"";
+    	return super.query(filter, sortBy, ascending);
     }
 
     @Override

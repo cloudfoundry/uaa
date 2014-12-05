@@ -54,6 +54,7 @@
     <bean id="clientAdminEndpoints" class="org.cloudfoundry.identity.uaa.oauth.ClientAdminEndpoints">
         <property name="clientRegistrationService" ref="jdbcClientDetailsService" />
         <property name="clientDetailsService" ref="clientDetailsService" />
+        <property name="clientDetailsResourceMonitor" ref="jdbcClientDetailsService"/>
         <property name="approvalStore" ref="approvalStore"/>
         <property name="authenticationManager" ref="clientAuthenticationManager"/>
         <property name="attributeNameMapper">

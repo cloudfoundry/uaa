@@ -31,6 +31,7 @@ import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.ldap.extension.ExtendedLdapUserImpl;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
+import org.cloudfoundry.identity.uaa.rest.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.rest.SearchResults;
 import org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
@@ -86,11 +87,14 @@ public class ClientAdminEndpointsTests {
     @Rule
     public ExpectedException expected = ExpectedException.none();
 
+    private ResourceMonitor<ClientDetails> clientDetailsResourceMonitor;
+
     @Before
     public void setUp() throws Exception {
         endpoints = new ClientAdminEndpoints();
         
         clientDetailsService = Mockito.mock(QueryableResourceManager.class);
+        clientDetailsResourceMonitor = Mockito.mock(ResourceMonitor.class);
         securityContextAccessor = Mockito.mock(SecurityContextAccessor.class);
         clientRegistrationService = Mockito.mock(ClientRegistrationService.class);
         authenticationManager = Mockito.mock(AuthenticationManager.class);
@@ -105,6 +109,7 @@ public class ClientAdminEndpointsTests {
         endpoints.setAuthenticationManager(authenticationManager);
         endpoints.setApprovalStore(approvalStore);
         endpoints.setClientDetailsValidator(clientDetailsValidator);
+        endpoints.setClientDetailsResourceMonitor(clientDetailsResourceMonitor);
 
         Map<String, String> attributeNameMap = new HashMap<String, String>();
         attributeNameMap.put("client_id", "clientId");

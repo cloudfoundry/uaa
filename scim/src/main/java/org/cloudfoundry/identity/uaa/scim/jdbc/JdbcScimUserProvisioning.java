@@ -27,6 +27,7 @@ import java.util.regex.Pattern;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.rest.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.rest.jdbc.AbstractQueryable;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
@@ -58,7 +59,7 @@ import org.springframework.util.StringUtils;
  * @author Luke Taylor
  * @author Dave Syer
  */
-public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implements ScimUserProvisioning {
+public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implements ScimUserProvisioning, ResourceMonitor<ScimUser> {
 
     private final Log logger = LogFactory.getLog(getClass());
 
@@ -441,7 +442,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
         }
     }
     
-    public int getRowCount() {
+    @Override
+    public int getTotalCount() {
     	Integer count = jdbcTemplate.queryForObject("select count(*) from users",Integer.class);
     	if (count == null) {
     		return 0;
