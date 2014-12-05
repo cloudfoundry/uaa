@@ -99,6 +99,12 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
 
     private Object implicitLock = new Object();
 
+    private Boolean fallbackToAuthcode = false;
+
+    public void setFallbackToAuthcode(Boolean fallbackToAuthcode) {
+        this.fallbackToAuthcode = fallbackToAuthcode;
+    }
+
     public void setSessionAttributeStore(SessionAttributeStore sessionAttributeStore) {
         this.sessionAttributeStore = sessionAttributeStore;
     }
@@ -160,7 +166,10 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
             // Validation is all done, so we can check for auto approval...
             if (authorizationRequest.isApproved()) {
                 if (responseTypes.contains("token") || responseTypes.contains("id_token")) {
-                    return getImplicitGrantResponse(authorizationRequest, (Authentication) principal);
+                    ModelAndView modelAndView = getImplicitGrantResponse(authorizationRequest, (Authentication) principal);
+                    if (modelAndView != null) {
+                        return modelAndView;
+                    }
                 }
                 if (responseTypes.contains("code")) {
                     return new ModelAndView(getAuthorizationCodeResponse(authorizationRequest,
@@ -220,7 +229,10 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
             }
 
             if (responseTypes.contains("token") || responseTypes.contains("id_token")) {
-                return getImplicitGrantResponse(authorizationRequest, (Authentication) principal).getView();
+                ModelAndView modelAndView = getImplicitGrantResponse(authorizationRequest, (Authentication) principal);
+                if (modelAndView != null) {
+                    return modelAndView.getView();
+                }
             }
 
             return getAuthorizationCodeResponse(authorizationRequest, (Authentication) principal);
@@ -240,19 +252,23 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
 
     // We can grant a token and return it with implicit approval.
     private ModelAndView getImplicitGrantResponse(AuthorizationRequest authorizationRequest, Authentication authentication) {
+        OAuth2AccessToken accessToken;
         try {
             TokenRequest tokenRequest = getOAuth2RequestFactory().createTokenRequest(authorizationRequest, "implicit");
             OAuth2Request storedOAuth2Request = getOAuth2RequestFactory().createOAuth2Request(authorizationRequest);
-            OAuth2AccessToken accessToken = getAccessTokenForImplicitGrant(tokenRequest, storedOAuth2Request);
+            accessToken = getAccessTokenForImplicitGrant(tokenRequest, storedOAuth2Request);
             if (accessToken == null) {
                 throw new UnsupportedResponseTypeException("Unsupported response type: token");
             }
             return new ModelAndView(new RedirectView(appendAccessToken(authorizationRequest, accessToken, authentication), false, true,
                 false));
         } catch (OAuth2Exception e) {
-            return new ModelAndView(new RedirectView(getUnsuccessfulRedirect(authorizationRequest, e, true), false,
-                true, false));
+            if (authorizationRequest.getResponseTypes().contains("token") || fallbackToAuthcode == false) {
+                return new ModelAndView(new RedirectView(getUnsuccessfulRedirect(authorizationRequest, e, true), false,
+                        true, false));
+           }
         }
+       return null;
     }
 
     private OAuth2AccessToken getAccessTokenForImplicitGrant(TokenRequest tokenRequest,
