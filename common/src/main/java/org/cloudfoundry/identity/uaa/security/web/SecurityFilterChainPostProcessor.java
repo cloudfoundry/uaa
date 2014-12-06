@@ -119,7 +119,11 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
             fc.getFilters().add(0, uaaFilter);
             if (additionalFilters != null) {
                 for (Entry<Integer, Filter> entry : additionalFilters.entrySet()) {
-                    fc.getFilters().add(entry.getKey(),entry.getValue());
+                    if (entry.getKey() > fc.getFilters().size()) {
+                        fc.getFilters().add(entry.getValue());
+                    } else {
+                        fc.getFilters().add(entry.getKey(),entry.getValue());
+                    }
                 }
             }
         }
@@ -160,6 +164,12 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
         this.ignore = ignore;
     }
 
+    /**
+     * Additional filters to add to the chain after either HttpsEnforcementFilter or UaaLoggingFilter
+     * has been added to the head of the chain. Filters will be inserted in Map iteration order,
+     * at the position given by the entry key (or the end of the chain if the key > size).
+     * @param additionalFilters
+     */
     public void setAdditionalFilters(Map<Integer,Filter> additionalFilters) {
         this.additionalFilters = additionalFilters;
     }

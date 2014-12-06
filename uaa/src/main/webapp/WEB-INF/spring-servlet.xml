@@ -68,6 +68,7 @@
                   <bean class="org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor$ReasonPhrase">
                       <constructor-arg index="0" value="503"/>
                       <constructor-arg index="1" value="Database unavailable. Retry later."/>
+                      
                   </bean>
               </entry>
             </map>
@@ -75,11 +76,13 @@
         <property name="additionalFilters">
         	<map>
         		<entry key="1" value-ref="identityZoneResolvingFilter"/>
+        		<entry key="100" value-ref="identityZoneSwitchingFilter"/>
         	</map>
         </property>
     </bean>
     
     <bean id="identityZoneResolvingFilter" class="org.cloudfoundry.identity.uaa.zone.IdentityZoneResolvingFilter"/>
+    <bean id="identityZoneSwitchingFilter" class="org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter"/>
 
 
     <import resource="spring/oauth-clients.xml" />
