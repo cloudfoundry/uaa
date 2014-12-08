@@ -92,6 +92,7 @@
         <property name="tokenGranter" ref="oauth2TokenGranter"/> <!--this bean create by oauth:authorization-server -->
         <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
         <property name="OAuth2RequestFactory" ref="authorizationRequestManager"/>
+        <property name="fallbackToAuthcode" value="${oauth.openid.fallbackToAuthcode:false}"/>
     </bean>
 
     <!--/oauth/token with any match -->
