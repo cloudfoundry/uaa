@@ -50,8 +50,7 @@ import org.springframework.util.ReflectionUtils;
 
 @ContextConfiguration(locations = { "classpath:spring/env.xml", "classpath:spring/data-source.xml" })
 @RunWith(Parameterized.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "", "test,postgresql", "hsqldb", "test,mysql",
-                "test,oracle" })
+@IfProfileValue(name = "spring.profiles.active", values = { "", "default", "hsqldb", "test,postgresql", "test,mysql","test,oracle" })
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class ExpiringCodeStoreTests {
 
