@@ -12,11 +12,9 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
-import javax.sql.DataSource;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
@@ -34,40 +32,23 @@ import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.rest.jdbc.SimpleSearchQueryConverter;
-import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
+import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.test.annotation.ProfileValueSourceConfiguration;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@ContextConfiguration(locations = {"classpath:spring/env.xml", "classpath:spring/data-source.xml"})
-@RunWith(SpringJUnit4ClassRunner.class)
-@ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
-public class UserManagedAuthzApprovalHandlerTests {
+public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
 
     private final UserManagedAuthzApprovalHandler handler = new UserManagedAuthzApprovalHandler();
     private UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
-
-    @Autowired
-    private DataSource dataSource;
-
-    private JdbcTemplate template;
-
-    @Autowired
-    private LimitSqlAdapter limitSqlAdapter;
 
     private ApprovalStore approvalStore = null;
 
@@ -75,11 +56,11 @@ public class UserManagedAuthzApprovalHandlerTests {
     private TestAuthentication userAuthentication;
 
     @Before
-    public void setup() {
-        template = new JdbcTemplate(dataSource);
+    public void initUserManagedAuthzApprovalHandlerTests() {
+        limitSqlAdapter = webApplicationContext.getBean(LimitSqlAdapter.class);
         approvalStore = new JdbcApprovalStore(
-            template, 
-            new JdbcPagingListFactory(template, limitSqlAdapter),
+            jdbcTemplate,
+            new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter),
             new SimpleSearchQueryConverter()
         );
         handler.setApprovalStore(approvalStore);
@@ -459,7 +440,7 @@ public class UserManagedAuthzApprovalHandlerTests {
     @After
     public void cleanupDataSource() throws Exception {
         TestUtils.deleteFrom(dataSource, "authz_approvals");
-        assertEquals(0, template.queryForInt("select count(*) from authz_approvals"));
+        assertEquals(0, jdbcTemplate.queryForInt("select count(*) from authz_approvals"));
     }
 
     @SuppressWarnings("serial")

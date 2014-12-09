@@ -12,50 +12,22 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
 import java.util.Arrays;
 import java.util.List;
 
-import javax.sql.DataSource;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
-import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
-import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
-import org.junit.After;
+import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.annotation.IfProfileValue;
-import org.springframework.test.annotation.ProfileValueSourceConfiguration;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.util.StringUtils;
 
-@ContextConfiguration(locations = { "classpath:spring/env.xml", "classpath:spring/data-source.xml" })
-@RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "", "default", "hsqldb", "test,postgresql", "test,mysql","test,oracle" })
-@ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
-public class JdbcScimGroupProvisioningTests {
-
-    Log logger = LogFactory.getLog(getClass());
-
-    @Autowired
-    private DataSource dataSource;
-
-    private JdbcTemplate template;
-
-    @Autowired
-    private LimitSqlAdapter limitSqlAdapter;
+public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
 
     private JdbcScimGroupProvisioning dao;
 
@@ -66,11 +38,8 @@ public class JdbcScimGroupProvisioningTests {
     private int existingGroupCount = -1;
 
     @Before
-    public void createDatasource() {
-
-        template = new JdbcTemplate(dataSource);
-
-        dao = new JdbcScimGroupProvisioning(template, new JdbcPagingListFactory(template, limitSqlAdapter));
+    public void initJdbcScimGroupProvisioningTests() {
+        dao = new JdbcScimGroupProvisioning(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter));
 
         addGroup("g1", "uaa.user");
         addGroup("g2", "uaa.admin");
@@ -78,18 +47,8 @@ public class JdbcScimGroupProvisioningTests {
 
         validateGroupCount(3);
     }
-
-    @After
-    public void cleanupDataSource() throws Exception {
-        TestUtils.deleteFrom(dataSource, "groups");
-        validateGroupCount(0);
-
-        TestUtils.deleteFrom(dataSource, "group_membership");
-        assertEquals(0, template.queryForInt("select count(*) from group_membership"));
-    }
-
     private void validateGroupCount(int expected) {
-        existingGroupCount = template.queryForInt("select count(id) from groups");
+        existingGroupCount = jdbcTemplate.queryForInt("select count(id) from groups");
         assertEquals(expected, existingGroupCount);
     }
 
@@ -105,7 +64,6 @@ public class JdbcScimGroupProvisioningTests {
     @Test
     public void canRetrieveGroups() throws Exception {
         List<ScimGroup> groups = dao.retrieveAll();
-        logger.debug(groups);
         assertEquals(3, groups.size());
         for (ScimGroup g : groups) {
             validateGroup(g, null);
@@ -175,7 +133,6 @@ public class JdbcScimGroupProvisioningTests {
         ScimGroupMember m2 = new ScimGroupMember("m2", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN);
         g.setMembers(Arrays.asList(m1, m2));
         g = dao.create(g);
-        logger.debug(g);
         validateGroupCount(4);
         validateGroup(g, "test.1");
     }
@@ -201,7 +158,6 @@ public class JdbcScimGroupProvisioningTests {
     @Test
     public void canUpdateGroup() throws Exception {
         ScimGroup g = dao.retrieve("g1");
-        logger.debug(g);
         assertEquals("uaa.user", g.getDisplayName());
 
         ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER);
@@ -222,8 +178,8 @@ public class JdbcScimGroupProvisioningTests {
     }
 
     private void addGroup(String id, String name) {
-        TestUtils.assertNoSuchUser(template, "id", id);
-        template.execute(String.format(addGroupSqlFormat, id, name));
+        TestUtils.assertNoSuchUser(jdbcTemplate, "id", id);
+        jdbcTemplate.execute(String.format(addGroupSqlFormat, id, name));
     }
 
     @Test(expected = IllegalArgumentException.class)

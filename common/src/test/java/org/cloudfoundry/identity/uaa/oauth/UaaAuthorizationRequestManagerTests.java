@@ -13,11 +13,6 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -26,37 +21,24 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.cloudfoundry.identity.uaa.authorization.ExternalGroupMappingAuthorizationManager;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.StubSecurityContextAccessor;
-import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
-import org.springframework.test.annotation.IfProfileValue;
-import org.springframework.test.annotation.ProfileValueSourceConfiguration;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.util.StringUtils;
 
-/**
- * @author Dave Syer
- * 
- */
-
-@ContextConfiguration(locations = { "classpath:spring/env.xml", "classpath:spring/data-source.xml" })
-@RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "", "default", "hsqldb", "test,postgresql", "test,mysql","test,oracle" })
-@ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class UaaAuthorizationRequestManagerTests {
 
     private UaaAuthorizationRequestManager factory;
@@ -68,7 +50,7 @@ public class UaaAuthorizationRequestManagerTests {
     private BaseClientDetails client = new BaseClientDetails();
 
     @Before
-    public void init() {
+    public void initUaaAuthorizationRequestManagerTests() {
         parameters.put("client_id", "foo");
         factory = new UaaAuthorizationRequestManager(clientDetailsService);
         factory.setSecurityContextAccessor(new StubSecurityContextAccessor());

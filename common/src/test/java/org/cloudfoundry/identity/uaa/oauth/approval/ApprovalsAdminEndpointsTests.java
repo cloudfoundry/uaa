@@ -12,6 +12,9 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth.approval;
 
+import java.util.Collections;
+import java.util.List;
+
 import static org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus.APPROVED;
 import static org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus.DENIED;
 import static org.junit.Assert.assertEquals;
@@ -19,19 +22,12 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
-import java.util.Collections;
-import java.util.List;
-
-import javax.sql.DataSource;
-
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
-import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.rest.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
-import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
+import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.user.MockUaaUserDatabase;
@@ -40,31 +36,13 @@ import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.client.InMemoryClientDetailsService;
-import org.springframework.test.annotation.IfProfileValue;
-import org.springframework.test.annotation.ProfileValueSourceConfiguration;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@ContextConfiguration(locations = { "classpath:spring/env.xml", "classpath:spring/data-source.xml" })
-@RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "", "default", "hsqldb", "test,postgresql", "test,mysql","test,oracle" })
-@ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
-public class ApprovalsAdminEndpointsTests {
+public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
     private UaaTestAccounts testAccounts = null;
     
-    @Autowired
-    private DataSource dataSource;
-
-    private JdbcTemplate template;
-
-    @Autowired
-    private LimitSqlAdapter limitSqlAdapter;
-
     private JdbcApprovalStore dao;
 
     private UaaUserDatabase userDao = null;
@@ -74,15 +52,15 @@ public class ApprovalsAdminEndpointsTests {
     private ApprovalsAdminEndpoints endpoints;
 
     @Before
-    public void createDatasource() {
+    public void initApprovalsAdminEndpointsTests() {
         testAccounts = UaaTestAccounts.standard(null);
         String userId = testAccounts.getUserWithRandomID().getId();
         userDao = new MockUaaUserDatabase(userId, testAccounts.getUserName(), "marissa@test.com", "Marissa", "Bloggs");
-        template = new JdbcTemplate(dataSource);
+        jdbcTemplate = new JdbcTemplate(dataSource);
         marissa = userDao.retrieveUserById(userId);
         assertNotNull(marissa);
 
-        dao = new JdbcApprovalStore(template, new JdbcPagingListFactory(template, limitSqlAdapter),
+        dao = new JdbcApprovalStore(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter),
                         new SimpleSearchQueryConverter());
         endpoints = new ApprovalsAdminEndpoints();
         endpoints.setApprovalStore(dao);
@@ -114,8 +92,8 @@ public class ApprovalsAdminEndpointsTests {
     public void cleanupDataSource() throws Exception {
         TestUtils.deleteFrom(dataSource, "authz_approvals");
         TestUtils.deleteFrom(dataSource, "users");
-        assertEquals(0, template.queryForInt("select count(*) from authz_approvals"));
-        assertEquals(0, template.queryForInt("select count(*) from users"));
+        assertEquals(0, jdbcTemplate.queryForInt("select count(*) from authz_approvals"));
+        assertEquals(0, jdbcTemplate.queryForInt("select count(*) from users"));
     }
 
     @Test
