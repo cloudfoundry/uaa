@@ -18,11 +18,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
 import org.springframework.security.oauth2.client.http.OAuth2ErrorHandler;
@@ -65,22 +61,20 @@ public class IdentityZoneEndpointsIntegrationTests {
 
     @Test
     public void testCreateZone() {
-        IdentityZone idZone = new IdentityZone();
         String id = UUID.randomUUID().toString();
-        idZone.setId(id);
-        idZone.setSubdomain(id);
-        idZone.setName("testCreateZone() "+id);
-        IdentityZoneCreationRequest request = new IdentityZoneCreationRequest();
-        request.setIdentityZone(idZone);
+        String requestBody = "{\"identity_zone\":{\"id\":\""+id+"\", \"subdomain\":\""+id+"\", \"name\":\"testCreateZone() "+id+"\"}}";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
+
         ResponseEntity<Void> response = client.exchange(
                 serverRunning.getUrl("/identity-zones/{id}"), 
                 HttpMethod.PUT,
-                new HttpEntity<IdentityZoneCreationRequest>(request), 
+                new HttpEntity<>(requestBody, headers),
                 new ParameterizedTypeReference<Void>() {}, 
                 id);
+
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        
-        
     }
     
     @Test

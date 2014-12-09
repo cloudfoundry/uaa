@@ -4,6 +4,7 @@ import java.util.List;
 
 import javax.validation.Valid;
 
+import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.map.annotate.JsonDeserialize;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
@@ -11,7 +12,10 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 public class IdentityZoneCreationRequest {
 	
 	@Valid
+	@JsonProperty("identity_zone")
 	private IdentityZone identityZone;
+
+	@JsonProperty("client_details")
 	private List<BaseClientDetails> clientDetails;
 	
 	public IdentityZone getIdentityZone() {
