@@ -72,6 +72,19 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
         ServletConfig servletConfig = applicationContext.getServletConfig();
         String locations = servletConfig == null ? null : servletConfig.getInitParameter(PROFILE_CONFIG_FILE_LOCATIONS);
         List<Resource> resources = new ArrayList<>();
+
+        //add default locations first
+        Set<String> defaultLocation = StringUtils.commaDelimitedListToSet(servletConfig == null ? null : servletConfig.getInitParameter(PROFILE_CONFIG_FILE_DEFAULT));
+        if (defaultLocation != null && defaultLocation.size()>0) {
+            for (String s : defaultLocation) {
+                Resource defaultResource = new ClassPathResource(s);
+                if (defaultResource.exists()) {
+                    resources.add(defaultResource);
+                }
+            }
+        }
+
+
         resources.addAll(getResource(servletContext, applicationContext, locations));
 
         if (resources.isEmpty()) {
@@ -84,18 +97,6 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
             servletContext.log("Loading YAML environment properties from location: " + resources.toString());
             YamlMapFactoryBean factory = new YamlMapFactoryBean();
             factory.setResolutionMethod(ResolutionMethod.OVERRIDE_AND_IGNORE);
-
-
-
-            Set<String> defaultLocation = StringUtils.commaDelimitedListToSet(servletConfig == null ? null : servletConfig.getInitParameter(PROFILE_CONFIG_FILE_DEFAULT));
-            if (defaultLocation != null && defaultLocation.size()>0) {
-                for (String s : defaultLocation) {
-                    Resource defaultResource = new ClassPathResource(s);
-                    if (defaultResource.exists()) {
-                        resources.add(defaultResource);
-                    }
-                }
-            }
 
             factory.setResources(resources.toArray(new Resource[resources.size()]));
 

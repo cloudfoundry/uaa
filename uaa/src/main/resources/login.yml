@@ -87,7 +87,7 @@ login:
 
   # SAML - The entity base url is the location of this application
   # (The host and port of the application that will accept assertions)
-  entityBaseURL: http://localhost:8080/login
+  entityBaseURL: http://localhost:8080/uaa
   # The entityID of this SP
   entityID: cloudfoundry-saml-login
   saml:
@@ -151,7 +151,7 @@ login:
 #END SAML PROVIDERS
 
   authorize:
-    url: http://localhost:8080/login/oauth/authorize
+    url: http://localhost:8080/uaa/oauth/authorize
 
 uaa:
   # The hostname of the UAA that this login server will connect to
