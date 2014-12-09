@@ -12,40 +12,18 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.audit;
 
+import java.sql.Timestamp;
+import java.util.List;
+
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.PasswordChangeSuccess;
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserAuthenticationFailure;
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserAuthenticationSuccess;
 import static org.junit.Assert.assertEquals;
-
-import java.sql.Timestamp;
-import java.util.List;
-
-import javax.sql.DataSource;
-
-import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
+import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.annotation.IfProfileValue;
-import org.springframework.test.annotation.ProfileValueSourceConfiguration;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-/**
- * @author Luke Taylor
- */
-@ContextConfiguration(locations = { "classpath:spring/env.xml", "classpath:spring/data-source.xml" })
-@RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "", "default", "hsqldb", "test,postgresql", "test,mysql","test,oracle" })
-@ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
-public class JdbcFailedLoginCountingAuditServiceTests {
-
-    @Autowired
-    private DataSource dataSource;
-
-    private JdbcTemplate template;
+public class JdbcFailedLoginCountingAuditServiceTests extends JdbcTestBase {
 
     private JdbcFailedLoginCountingAuditService auditService;
 
@@ -53,9 +31,8 @@ public class JdbcFailedLoginCountingAuditServiceTests {
 
     @Before
     public void createService() throws Exception {
-        template = new JdbcTemplate(dataSource);
         auditService = new JdbcFailedLoginCountingAuditService(dataSource);
-        template.execute("DELETE FROM sec_audit WHERE principal_id='1' or principal_id='clientA' or principal_id='clientB'");
+        jdbcTemplate.execute("DELETE FROM sec_audit WHERE principal_id='1' or principal_id='clientA' or principal_id='clientB'");
         authDetails = "1.1.1.1";
     }
 
@@ -75,27 +52,27 @@ public class JdbcFailedLoginCountingAuditServiceTests {
     public void userAuthenticationFailureDeletesOldData() throws Exception {
         long now = System.currentTimeMillis();
         auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"));
-        assertEquals(1, template.queryForInt("select count(*) from sec_audit where principal_id='1'"));
+        assertEquals(1, jdbcTemplate.queryForInt("select count(*) from sec_audit where principal_id='1'"));
         // Set the created column to 3 hours past
-        template.update("update sec_audit set created=?", new Timestamp(now - 3 * 3600 * 1000));
+        jdbcTemplate.update("update sec_audit set created=?", new Timestamp(now - 3 * 3600 * 1000));
         auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"));
-        assertEquals(1, template.queryForInt("select count(*) from sec_audit where principal_id='1'"));
+        assertEquals(1, jdbcTemplate.queryForInt("select count(*) from sec_audit where principal_id='1'"));
     }
 
     @Test
     public void userAuthenticationSuccessResetsData() throws Exception {
         auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"));
-        assertEquals(1, template.queryForInt("select count(*) from sec_audit where principal_id='1'"));
+        assertEquals(1, jdbcTemplate.queryForInt("select count(*) from sec_audit where principal_id='1'"));
         auditService.log(getAuditEvent(UserAuthenticationSuccess, "1", "joe"));
-        assertEquals(0, template.queryForInt("select count(*) from sec_audit where principal_id='1'"));
+        assertEquals(0, jdbcTemplate.queryForInt("select count(*) from sec_audit where principal_id='1'"));
     }
 
     @Test
     public void userPasswordChangeSuccessResetsData() throws Exception {
         auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"));
-        assertEquals(1, template.queryForInt("select count(*) from sec_audit where principal_id='1'"));
+        assertEquals(1, jdbcTemplate.queryForInt("select count(*) from sec_audit where principal_id='1'"));
         auditService.log(getAuditEvent(PasswordChangeSuccess, "1", "joe"));
-        assertEquals(0, template.queryForInt("select count(*) from sec_audit where principal_id='1'"));
+        assertEquals(0, jdbcTemplate.queryForInt("select count(*) from sec_audit where principal_id='1'"));
     }
 
     @Test
@@ -103,7 +80,7 @@ public class JdbcFailedLoginCountingAuditServiceTests {
         long now = System.currentTimeMillis();
         auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"));
         // Set the created column to one hour past
-        template.update("update sec_audit set created=?", new Timestamp(now - 3600 * 1000));
+        jdbcTemplate.update("update sec_audit set created=?", new Timestamp(now - 3600 * 1000));
         auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"));
         auditService.log(getAuditEvent(UserAuthenticationFailure, "2", "joe"));
         // Find events within last 2 mins

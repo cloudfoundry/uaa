@@ -12,44 +12,29 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.codestore;
 
+import java.sql.Timestamp;
+import java.util.Arrays;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
-import java.sql.Timestamp;
-import java.util.Arrays;
-
-import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
+import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.test.annotation.IfProfileValue;
-import org.springframework.test.annotation.ProfileValueSourceConfiguration;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@ContextConfiguration(locations = { "classpath:spring/env.xml", "classpath:spring/data-source.xml" })
-@RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "", "default", "hsqldb", "test,postgresql", "test,mysql","test,oracle" })
-@ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
-public class CodeStoreEndpointsTests {
+public class CodeStoreEndpointsTests extends JdbcTestBase {
 
     private CodeStoreEndpoints codeStoreEndpoints;
 
     private ExpiringCodeStore expiringCodeStore;
 
-    @Autowired
-    JdbcTemplate jdbcTemplate;
-
     @Before
-    public void setUp() throws Exception {
+    public void initCodeStoreTests() throws Exception {
         codeStoreEndpoints = new CodeStoreEndpoints();
         expiringCodeStore = new JdbcExpiringCodeStore(jdbcTemplate.getDataSource());
         codeStoreEndpoints.setExpiringCodeStore(expiringCodeStore);
