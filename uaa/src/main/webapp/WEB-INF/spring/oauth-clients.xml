@@ -122,6 +122,25 @@
                             <entry key="autoapprove" value="true" />
                         </map>
                     </entry>
+                    <entry key="oauth_showcase_authorization_code">
+                        <map>
+                            <entry key="id" value="oauth_showcase_authorization_code" />
+                            <entry key="secret" value="secret" />
+                            <entry key="authorized-grant-types" value="authorization_code" />
+                            <entry key="scope" value="uaa.none" />
+                            <entry key="authorities" value="uaa.resource" />
+                        </map>
+                    </entry>
+                    <entry key="oauth_showcase_client_credentials">
+                        <map>
+                            <entry key="id" value="oauth_showcase_client_credentials" />
+                            <entry key="secret" value="secret" />
+                            <entry key="authorized-grant-types" value="client_credentials" />
+                            <entry key="scope" value="uaa.none" />
+                            <entry key="authorities" value="uaa.resource,clients.read" />
+                        </map>
+                    </entry>
+                    
                 </map>
             </property>
         </bean>

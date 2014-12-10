@@ -2,7 +2,7 @@
 # if any of these exist: 
 # [$UAA_CONFIG_URL, $UAA_CONFIG_PATH/uaa.yml, $CLOUDFOUNDRY_CONFIG_PATH/uaa.yml]
 
-#spring_profiles: mysql,default
+spring_profiles: mysql,default
 #spring_profiles: postgresql,default
 #spring_profiles: ldap,default,hsqldb
 #spring_profiles: saml
@@ -25,11 +25,11 @@
 #create database uaa;
 #create user root with superuser password 'changeme';
 
-#database:
+database:
 #  driverClassName: org.mariadb.jdbc.Driver
 #  url: jdbc:mysql://localhost:3306/uaa
 #  username: root
-#  password:
+  password:
 
 #mysql commands that were run
 #create database uaa;
