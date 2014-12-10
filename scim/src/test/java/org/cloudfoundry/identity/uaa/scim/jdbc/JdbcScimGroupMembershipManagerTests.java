@@ -47,7 +47,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
 
     private JdbcScimGroupMembershipManager dao;
 
-    private static final String addUserSqlFormat = "insert into users (id, username, password, email, givenName, familyName, phoneNumber, authorities) values ('%s','%s','%s','%s','%s','%s','%s', '%s')";
+    private static final String addUserSqlFormat = "insert into users (id, username, password, email, givenName, familyName, phoneNumber, authorities, identity_provider_id ,identity_zone_id) values ('%s','%s','%s','%s','%s','%s','%s','%s','%s','%s')";
 
     private static final String addGroupSqlFormat = "insert into groups (id, displayName) values ('%s','%s')";
 
@@ -92,7 +92,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
 
     private void addUser(String id, String password) {
         TestUtils.assertNoSuchUser(jdbcTemplate, "id", id);
-        jdbcTemplate.execute(String.format(addUserSqlFormat, id, id, password, id, id, id, id, ""));
+        jdbcTemplate.execute(String.format(addUserSqlFormat, id, id, password, id, id, id, id, "", "uaa", "uaa"));
     }
 
     private void validateCount(int expected) {
