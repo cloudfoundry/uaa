@@ -27,8 +27,6 @@ CREATE TABLE `identity_provider` (
 ALTER TABLE users ADD COLUMN identity_provider_id varchar(36) DEFAULT NULL;
 ALTER TABLE users ADD COLUMN identity_zone_id varchar(36) DEFAULT NULL;
 
-DROP INDEX users_unique_key ON users;
-ALTER TABLE users ADD UNIQUE KEY `username_in_idp` (`identity_provider_id`,`username`);
 ALTER TABLE users ADD KEY `user_identity_zone` (`identity_zone_id`);
 -- we would do this later, when we're ready to remove users.origin
 -- ALTER TABLE users drop key users_unique_key; ALTER TABLE users DROP COLUMN `origin`;
@@ -37,8 +35,6 @@ ALTER TABLE group_membership ADD COLUMN identity_provider_id varchar(36) DEFAULT
 ALTER TABLE group_membership ADD KEY `identity_provider_id` (`identity_provider_id`);
 
 ALTER TABLE oauth_client_details ADD COLUMN `identity_zone_id` varchar(36) DEFAULT NULL;
-ALTER TABLE oauth_client_details DROP PRIMARY KEY;
-ALTER TABLE oauth_client_details ADD PRIMARY KEY (`client_id`,`identity_zone_id`);
 
 CREATE TABLE `client_idp` (
   `client_id` varchar(255) NOT NULL,
