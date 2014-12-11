@@ -11,7 +11,7 @@
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
 
-package org.cloudfoundry.identity.api.web;
+package org.cloudfoundry.identity.uaa.web;
 
 import java.io.IOException;
 

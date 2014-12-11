@@ -149,6 +149,15 @@
                             <entry key="authorities" value="uaa.resource,clients.read" />
                         </map>
                     </entry>
+                    <entry key="oauth_showcase_implicit_grant">
+                        <map>
+                            <entry key="id" value="oauth_showcase_implicit_grant" />
+                            <entry key="secret" value="secret" />
+                            <entry key="authorized-grant-types" value="implicit" />
+                            <entry key="scope" value="openid" />
+                            <entry key="authorities" value="uaa.resource" />
+                        </map>
+                    </entry>
                     
                 </map>
             </property>

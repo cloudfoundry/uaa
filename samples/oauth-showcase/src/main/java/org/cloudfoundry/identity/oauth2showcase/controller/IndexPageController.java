@@ -12,6 +12,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.client.OAuth2ClientContext;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
 import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordResourceDetails;
+import org.springframework.security.web.util.UrlUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -56,8 +57,9 @@ public class IndexPageController {
     }
 
     @RequestMapping("/")
-    public String index(HttpServletRequest request) {
+    public String index(HttpServletRequest request, Model model) {
         request.getSession().invalidate();
+        model.addAttribute("thisUrl", UrlUtils.buildFullRequestUrl(request));
         return "index";
     }
 
@@ -69,7 +71,7 @@ public class IndexPageController {
         return "authorization_code";
     }
     
-    @RequestMapping({"/password","implicit"})
+    @RequestMapping("/password")
     
     public String showPasswordPage() {
         return "password";
@@ -83,8 +85,7 @@ public class IndexPageController {
         model.addAttribute("response", jsonFromUaa);
         addTokenToModel(model);
         return "after_password";
-    }
-    
+    }  
 
     public void addTokenToModel(Model model) {
         try {
