@@ -127,7 +127,7 @@
                             <entry key="id" value="oauth_showcase_authorization_code" />
                             <entry key="secret" value="secret" />
                             <entry key="authorized-grant-types" value="authorization_code" />
-                            <entry key="scope" value="uaa.none" />
+                            <entry key="scope" value="openid" />
                             <entry key="authorities" value="uaa.resource" />
                         </map>
                     </entry>
@@ -137,6 +137,15 @@
                             <entry key="secret" value="secret" />
                             <entry key="authorized-grant-types" value="client_credentials" />
                             <entry key="scope" value="uaa.none" />
+                            <entry key="authorities" value="uaa.resource,clients.read" />
+                        </map>
+                    </entry>
+                    <entry key="oauth_showcase_password_grant">
+                        <map>
+                            <entry key="id" value="oauth_showcase_password_grant" />
+                            <entry key="secret" value="secret" />
+                            <entry key="authorized-grant-types" value="password" />
+                            <entry key="scope" value="openid" />
                             <entry key="authorities" value="uaa.resource,clients.read" />
                         </map>
                     </entry>

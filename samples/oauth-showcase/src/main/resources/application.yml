@@ -24,8 +24,8 @@ oauth2:
     tokenUri: ${uaa.location}/oauth/token
     authorizationUri: ${uaa.location}/oauth/authorize
     accessTokenUri: ${oauth2.client.tokenUri}
-    clientId: ${UAA_CLIENT_ID:app}
-    clientSecret: ${UAA_CLIENT_SECRET:appclientsecret}
+    clientId: oauth_showcase_authorization_code
+    clientSecret: secret
   resource:
     tokenInfoUri: ${uaa.location}/check_token
     id: openid
@@ -36,5 +36,11 @@ oauth_clients:
     tokenUri: ${oauth2.client.tokenUri}
     authorizationUri: ${oauth2.client.authorizationUri}
     accessTokenUri: ${oauth2.client.tokenUri}
-    clientId: oauth-showcase-client-credentials
+    clientId: oauth_showcase_client_credentials
+    clientSecret: secret
+  password_grant:
+    tokenUri: ${oauth2.client.tokenUri}
+    authorizationUri: ${oauth2.client.authorizationUri}
+    accessTokenUri: ${oauth2.client.tokenUri}
+    clientId: oauth_showcase_password_grant
     clientSecret: secret
