@@ -70,7 +70,6 @@
                   <bean class="org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor$ReasonPhrase">
                       <constructor-arg index="0" value="503"/>
                       <constructor-arg index="1" value="Database unavailable. Retry later."/>
-                      
                   </bean>
               </entry>
             </map>
