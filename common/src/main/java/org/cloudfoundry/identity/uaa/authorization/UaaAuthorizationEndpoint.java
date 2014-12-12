@@ -41,6 +41,7 @@ import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientRegistrationException;
+import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.OAuth2RequestValidator;
@@ -120,7 +121,12 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
         // Pull out the authorization request first, using the OAuth2RequestFactory. All further logic should
         // query off of the authorization request instead of referring back to the parameters map. The contents of the
         // parameters map will be stored without change in the AuthorizationRequest object once it is created.
-        AuthorizationRequest authorizationRequest = getOAuth2RequestFactory().createAuthorizationRequest(parameters);
+        AuthorizationRequest authorizationRequest;
+        try {
+            authorizationRequest = getOAuth2RequestFactory().createAuthorizationRequest(parameters);
+        } catch (NoSuchClientException x) {
+            throw new InvalidClientException(x.getMessage());
+        }
 
         Set<String> responseTypes = authorizationRequest.getResponseTypes();
 
