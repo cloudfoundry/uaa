@@ -86,6 +86,7 @@
                 <!-- Zone switcher goes *after* class OAuth2AuthenticationProcessingFilter as it requires a token to be present to work -->
                 <entry value-ref="identityZoneSwitchingFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(@oauth2TokenParseFilter)}"/>
+                <entry value-ref="xFrameOptionsFilter" key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(101)}"/>
         	</map>
         </property>
     </bean>
