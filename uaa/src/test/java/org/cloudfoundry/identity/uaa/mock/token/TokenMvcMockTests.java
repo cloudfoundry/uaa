@@ -29,6 +29,9 @@ import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
+import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
+import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
@@ -68,10 +71,23 @@ import org.springframework.web.context.support.XmlWebApplicationContext;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLDecoder;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -98,6 +114,8 @@ public class TokenMvcMockTests {
     private MockEnvironment mockEnvironment;
 
     private IdentityZoneProvisioning identityZoneProvisioning;
+    private JdbcScimUserProvisioning jdbcScimUserProvisioning;
+    private IdentityProviderProvisioning identityProviderProvisioning;
 
     @Before
     public void setUp() throws Exception {
@@ -126,6 +144,8 @@ public class TokenMvcMockTests {
         signerProvider = webApplicationContext.getBean(SignerProvider.class);
         uaaTokenServices = webApplicationContext.getBean(UaaTokenServices.class);
         identityZoneProvisioning = webApplicationContext.getBean(IdentityZoneProvisioning.class);
+        jdbcScimUserProvisioning = webApplicationContext.getBean(JdbcScimUserProvisioning.class);
+        identityProviderProvisioning = webApplicationContext.getBean(IdentityProviderProvisioning.class);
     }
     
     private IdentityZone setupIdentityZone(String subdomain) {
@@ -136,6 +156,15 @@ public class TokenMvcMockTests {
         zone.setDescription(subdomain);
         identityZoneProvisioning.create(zone);
         return zone;
+    }
+
+    private IdentityProvider setupIdentityProvider() {
+        IdentityProvider defaultIdp = new IdentityProvider();
+        defaultIdp.setName("internal");
+        defaultIdp.setType("internal");
+        defaultIdp.setOriginKey(Origin.UAA);
+        identityProviderProvisioning.create(defaultIdp);
+        return  defaultIdp;
     }
 
     protected void setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove) {
@@ -1193,6 +1222,88 @@ public class TokenMvcMockTests {
             .param("client_id", clientId)
             .param("client_secret", SECRET))
             .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    public void testGetPasswordGrantTokenForOtherZone() throws Exception {
+        IdentityZone testZone = setupIdentityZone("testzone");
+        IdentityZoneHolder.set(testZone);
+        setupIdentityProvider();
+        String clientId = "testclient" + new RandomValueStringGenerator().generate();
+        String scopes = "cloud_controller.read";
+        setUpClients(clientId, scopes, scopes, "password,client_credentials", true);
+
+        setUpUser();
+
+        IdentityZoneHolder.clear();
+
+        mockMvc.perform(post("/oauth/token")
+                .with(new SetServerNameRequestPostProcessor("testzone.localhost"))
+                .param("username", "user@example.com")
+                .param("password", "secret")
+                .header("Authorization", "Basic "+new String(Base64.encode((clientId  + ":" + SECRET).getBytes())))
+                .param(OAuth2Utils.RESPONSE_TYPE,"token")
+                .param(OAuth2Utils.GRANT_TYPE, "password")
+                .param(OAuth2Utils.CLIENT_ID, clientId)).andExpect(status().isOk());
+    }
+
+    @Test
+    public void testGetPasswordGrantForDefaultIdentityZoneFromOtherZoneFails() throws Exception {
+        String clientId = "testclient" + new RandomValueStringGenerator().generate();
+        String scopes = "cloud_controller.read";
+        setUpClients(clientId, scopes, scopes, "password,client_credentials", true);
+
+        setUpUser();
+
+        IdentityZone testZone = setupIdentityZone("testzone");
+        IdentityZoneHolder.set(testZone);
+        setupIdentityProvider();
+
+        IdentityZoneHolder.clear();
+
+        mockMvc.perform(post("/oauth/token")
+                .with(new SetServerNameRequestPostProcessor("testzone.localhost"))
+                .param("username", "user@example.com")
+                .param("password", "secret")
+                .header("Authorization", "Basic "+new String(Base64.encode((clientId  + ":" + SECRET).getBytes())))
+                .param(OAuth2Utils.RESPONSE_TYPE,"token")
+                .param(OAuth2Utils.GRANT_TYPE, "password")
+                .param(OAuth2Utils.CLIENT_ID, clientId)).andExpect(status().isUnauthorized());
+
+    }
+
+    @Test
+    public void testGetPasswordGrantForOtherIdentityZoneFromDefaultZoneFails() throws Exception {
+        IdentityZone testZone = setupIdentityZone("testzone");
+        IdentityZoneHolder.set(testZone);
+        setupIdentityProvider();
+
+        String clientId = "testclient" + new RandomValueStringGenerator().generate();
+        String scopes = "cloud_controller.read";
+        setUpClients(clientId, scopes, scopes, "password,client_credentials", true);
+
+        setUpUser();
+
+        IdentityZoneHolder.clear();
+
+        mockMvc.perform(post("/oauth/token")
+                .param("username", "user@example.com")
+                .param("password", "secret")
+                .header("Authorization", "Basic "+new String(Base64.encode((clientId  + ":" + SECRET).getBytes())))
+                .param(OAuth2Utils.RESPONSE_TYPE,"token")
+                .param(OAuth2Utils.GRANT_TYPE, "password")
+                .param(OAuth2Utils.CLIENT_ID, clientId)).andExpect(status().isUnauthorized());
+
+    }
+
+    private void setUpUser() {
+        ScimUser scimUser = new ScimUser();
+        scimUser.setUserName("user@example.com");
+        ScimUser.Email email = new ScimUser.Email();
+        email.setValue("user@example.com");
+        scimUser.setEmails(Arrays.asList(email));
+
+        jdbcScimUserProvisioning.createUser(scimUser, "secret");
     }
 
     public static class MockSecurityContext implements SecurityContext {

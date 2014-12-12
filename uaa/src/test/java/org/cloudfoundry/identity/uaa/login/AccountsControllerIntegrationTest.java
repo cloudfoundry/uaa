@@ -8,6 +8,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.login.test.MockMvcTestClient;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
+import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneCreationRequest;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -352,21 +353,6 @@ public class AccountsControllerIntegrationTest {
         @Override
         public String generate() {
             return  "test"+counter.incrementAndGet();
-        }
-    }
-
-    public static class SetServerNameRequestPostProcessor implements RequestPostProcessor {
-
-        private final String serverName;
-
-        public SetServerNameRequestPostProcessor(String serverName) {
-            this.serverName = serverName;
-        }
-
-        @Override
-        public MockHttpServletRequest postProcessRequest(MockHttpServletRequest request) {
-            request.setServerName(serverName);
-            return request;
         }
     }
 }
