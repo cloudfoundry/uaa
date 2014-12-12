@@ -37,10 +37,22 @@
         <filter-class>org.cloudfoundry.identity.uaa.login.XFrameOptionsFilter</filter-class>
     </filter>
 
+    <!-- After we merge in epic/multitenancy, we can add this to the post process of the security filter -->
+    <filter-mapping>
+        <filter-name>backwardsCompatibleScopeParameter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+
+    <filter>
+        <filter-name>backwardsCompatibleScopeParameter</filter-name>
+        <filter-class>org.cloudfoundry.identity.uaa.oauth.BackwardsCompatibleScopeParsingFilter</filter-class>
+    </filter>
+
     <filter-mapping>
         <filter-name>xFrameOptionsFilter</filter-name>
         <url-pattern>/*</url-pattern>
     </filter-mapping>
+
 
     <servlet>
         <servlet-name>spring</servlet-name>
