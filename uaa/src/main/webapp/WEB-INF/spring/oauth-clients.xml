@@ -146,7 +146,7 @@
                             <entry key="secret" value="secret" />
                             <entry key="authorized-grant-types" value="password" />
                             <entry key="scope" value="openid" />
-                            <entry key="authorities" value="uaa.resource,clients.read" />
+                            <entry key="authorities" value="uaa.resource" />
                         </map>
                     </entry>
                     <entry key="oauth_showcase_implicit_grant">

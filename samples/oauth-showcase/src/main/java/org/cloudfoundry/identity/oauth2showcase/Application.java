@@ -32,31 +32,6 @@ public class Application {
     }
 
     @Bean
-    @ConfigurationProperties(prefix = "oauth_clients.client_credentials")
-    ClientCredentialsResourceDetails clientCredentialsResourceDetails() {
-        return new ClientCredentialsResourceDetails();
-    }
-
-    @Bean
-    public OAuth2RestTemplate uaaClientCredentialsRestTemplate(OAuth2ClientContext oauth2Context) {
-        OAuth2RestTemplate restTemplate = new OAuth2RestTemplate(clientCredentialsResourceDetails(), oauth2Context);
-        return restTemplate;
-    }
-    
-    @Bean
-    @Scope(value=WebApplicationContext.SCOPE_REQUEST,proxyMode=ScopedProxyMode.TARGET_CLASS)
-    @ConfigurationProperties(prefix = "oauth_clients.password_grant")
-    ResourceOwnerPasswordResourceDetails passwordGrantResourceDetails() {
-        return new ResourceOwnerPasswordResourceDetails();
-    }
-
-    @Bean
-    public OAuth2RestTemplate uaaPasswordGrantRestTemplate(OAuth2ClientContext oauth2Context) {
-        OAuth2RestTemplate restTemplate = new OAuth2RestTemplate(passwordGrantResourceDetails(), oauth2Context);
-        return restTemplate;
-    }
-
-    @Bean
     OAuth2SsoConfigurerAdapter oAuth2SsoConfigurerAdapter() {
         return new OAuth2SsoConfigurerAdapter() {
             @Override
@@ -68,25 +43,6 @@ public class Application {
                 http.authorizeRequests()
                     .antMatchers("/").permitAll();
             }
-//            public void match(RequestMatchers matchers) {
-//                matchers.antMatchers("/dashboard/**");
-//            }
-//
-//            @Override
-//            public void configure(HttpSecurity http) throws Exception {
-//                http.authorizeRequests().anyRequest().authenticated();
-//            }
         };
     }
-
-//        @Configuration
-//        protected static class ApplicationSecurity extends WebSecurityConfigurerAdapter {
-//    
-//            @Override
-//            protected void configure(HttpSecurity http) throws Exception {
-//                http.authorizeRequests().antMatchers("/anonymous").permitAll();
-//            }
-//    
-//        }
-
 }

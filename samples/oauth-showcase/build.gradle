@@ -4,7 +4,7 @@ buildscript {
         mavenLocal()
     }
     dependencies {
-        classpath("org.springframework.boot:spring-boot-gradle-plugin:1.2.0.RC2")
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:1.2.0.RELEASE")
         classpath 'org.springframework.build.gradle:propdeps-plugin:0.0.7'
         classpath 'org.springframework:springloaded:1.2.0.RELEASE'
     }

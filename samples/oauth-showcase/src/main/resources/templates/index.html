@@ -27,7 +27,7 @@
 				<a href="/password">Use the Resource Owner Password Grant and see the response from /userinfo</a>
 			</li>
 			<li>
-				<a target="uaa" th:href="@{{uaa}/oauth/authorize(uaa=${@environment.getProperty('uaa.location')},client_id='oauth_showcase_implicit_grant',response_type='token',redirect_uri=|${thisUrl}/implicit.html|) }">Use the Implicit Grant and see the response from /userinfo</a>
+				<a th:href="@{{uaa}/oauth/authorize(uaa=${@environment.getProperty('uaa.location')},client_id='oauth_showcase_implicit_grant',response_type='token',redirect_uri=|${thisUrl}/implicit.html#uaaLocation=${@environment.getProperty('uaa.location')}|) }">Use the Implicit Grant and see the response from /userinfo</a>
 			</li>
 		</ul>
 		

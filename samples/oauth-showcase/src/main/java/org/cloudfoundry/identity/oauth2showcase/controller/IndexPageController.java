@@ -11,13 +11,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.client.OAuth2ClientContext;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
-import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordResourceDetails;
 import org.springframework.security.web.util.UrlUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -33,28 +30,10 @@ public class IndexPageController {
     @Autowired
     @Qualifier("oauth2RestTemplate")
     private OAuth2RestTemplate authcodeRestTemplate;
-
-    @Autowired
-    @Qualifier("uaaClientCredentialsRestTemplate")
-    private OAuth2RestTemplate clientCredentialsRestTemplate;
+    
     
     @Autowired
-    @Qualifier("uaaPasswordGrantRestTemplate")
-    private OAuth2RestTemplate passwordGrantRestTemplate;
-    @Autowired
-    private ResourceOwnerPasswordResourceDetails passwordGrantResourceDetails;
-
-    @Autowired
     private OAuth2ClientContext clientContext;
-
-    @RequestMapping("/client_credentials")
-    public String clientCredentials(Model model) throws Exception {
-        Object clientResponse = clientCredentialsRestTemplate.getForObject("{uaa}/oauth/clients", Object.class,
-                uaaLocation);
-        model.addAttribute("clients", clientResponse);
-        addTokenToModel(model);
-        return "client_credentials";
-    }
 
     @RequestMapping("/")
     public String index(HttpServletRequest request, Model model) {
@@ -71,22 +50,7 @@ public class IndexPageController {
         return "authorization_code";
     }
     
-    @RequestMapping("/password")
     
-    public String showPasswordPage() {
-        return "password";
-    }
-    
-    @RequestMapping(value = "/password",method = RequestMethod.POST)
-    public String doPasswordLogin(@RequestParam String username, @RequestParam String password, Model model) {
-        passwordGrantResourceDetails.setUsername(username);
-        passwordGrantResourceDetails.setPassword(password);
-        String jsonFromUaa = getJsonFromUaa(passwordGrantRestTemplate, "userinfo");
-        model.addAttribute("response", jsonFromUaa);
-        addTokenToModel(model);
-        return "after_password";
-    }  
-
     public void addTokenToModel(Model model) {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
