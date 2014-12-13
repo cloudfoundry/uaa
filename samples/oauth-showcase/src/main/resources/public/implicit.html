@@ -17,8 +17,9 @@
 	   		var tokenJsonString = atob(tokenBase64);
 	   		var prettyToken = JSON.stringify(JSON.parse(tokenJsonString),null,'  ');
 	   		$('#token').text(prettyToken);
-	   		
-	   		$.ajax('http://localhost:8080/uaa/userinfo',{
+
+			var uaaLocation = /uaaLocation=([^&]+)/.exec(window.location.hash)[1];
+	   		$.ajax(uaaLocation + '/userinfo',{
 	   			headers:{
 	   				"Authorization": "Bearer "+fullTokenBase64		
 	   			},
@@ -27,8 +28,9 @@
 	   				$('#userinfo').text(prettyUserinfo);
 	   			}
 	   		});
-	   		
-	   		
+			$('#profile').attr('href',uaaLocation+'/profile');
+			$('#logout').attr('href',uaaLocation+'/logout.do');
+
 	   	});
 	    
 	    </script>
@@ -42,6 +44,12 @@
 		<pre id="token"></pre>
 		<h2>What do you want to do?</h2>
 		<ul>
+			<li>
+				<a id="profile" target="uaa" href="#">See your account profile on UAA (so you can de-authorize this client)</a>
+			</li>
+			<li>
+				<a id="logout" target="uaa" href="#">Log out of UAA</a>
+			</li>
 			<li>
 				<a href="/">Try a different flow</a>
 			</li>
