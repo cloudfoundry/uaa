@@ -1,68 +1,68 @@
 language: java
 branches:
   except:
-    - /^travis-success-.*$/
+  - /^travis-success-.*$/
 env:
   global:
-    - secure: "Ubdyw9qc/AVX61ZTehLm90NG5q+qCIPljY5nYNmmkjvNKRIpx1bYIDjFflfXbSKn+opqBdpo5qQJwLQwO1xCvWfDsAO9YlriiqIZQuYXynAqe0hCqKkMn7OqTDR+rZuA+jl7t7LVwWhwbQ4+IiAC44d6CKIa1WPhmgy5dHxBKac="
+  - secure: Ubdyw9qc/AVX61ZTehLm90NG5q+qCIPljY5nYNmmkjvNKRIpx1bYIDjFflfXbSKn+opqBdpo5qQJwLQwO1xCvWfDsAO9YlriiqIZQuYXynAqe0hCqKkMn7OqTDR+rZuA+jl7t7LVwWhwbQ4+IiAC44d6CKIa1WPhmgy5dHxBKac=
   matrix:
-    - TESTENV=default
-    - TESTENV=mysql,default
-    - TESTENV=postgresql,default
-    - TESTENV=ldap,default
-#    - TESTENV=keystone,default
+  - TESTENV=default
+  - TESTENV=mysql,default
+  - TESTENV=postgresql,default
+  - TESTENV=ldap,default
 cache:
   apt: true
   directories:
-    - $HOME/.gradle
+  - $HOME/.gradle
 services:
-  - mysql
-  - postgresql
+- mysql
+- postgresql
 before_install:
-  - cp $TRAVIS_BUILD_DIR/scripts/travis/init.gradle $HOME/.gradle
-  - git pull --unshallow
-  - psql -c 'drop database if exists uaa;' -U postgres
-  - psql -c 'create database uaa;' -U postgres
-  - psql -c "drop user if exists root;" --dbname=uaa -U postgres
-  - psql -c "create user root with superuser password 'changeme';" --dbname=uaa -U postgres
-  - mysql -e 'drop database if exists uaa;'
-  - mysql -e 'create database uaa;'
-  - mysql -e "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('changeme');"
-  - mysql -e "SET PASSWORD FOR 'root'@'127.0.0.1' = PASSWORD('changeme');"
+- cp $TRAVIS_BUILD_DIR/scripts/travis/init.gradle $HOME/.gradle
+- git pull --unshallow
+- psql -c 'drop database if exists uaa;' -U postgres
+- psql -c 'create database uaa;' -U postgres
+- psql -c "drop user if exists root;" --dbname=uaa -U postgres
+- psql -c "create user root with superuser password 'changeme';" --dbname=uaa -U postgres
+- mysql -e 'drop database if exists uaa;'
+- mysql -e 'create database uaa;'
+- mysql -e "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('changeme');"
+- mysql -e "SET PASSWORD FOR 'root'@'127.0.0.1' = PASSWORD('changeme');"
 install:
-  - if [ "$TESTENV" = "ldap,default" ]; then ./scripts/ldap/install-ldap.sh; fi
-  - if [ "$TESTENV" = "keystone,default" ]; then ./scripts/keystone/install-keystone.sh; fi
-  - $TRAVIS_BUILD_DIR/scripts/travis/apply_spring_profiles_to_uaa_yaml.sh $TESTENV
-  - $TRAVIS_BUILD_DIR/scripts/travis/apply_spring_profiles_to_login_yaml.sh $TESTENV
-  - if [ "$TESTENV" = "ldap,default" ]; then ./scripts/ldap/configure-manifest.sh; fi
-  - if [ "$TESTENV" = "keystone,default" ]; then ./scripts/keystone/configure-manifest.sh; fi
+- if [ "$TESTENV" = "ldap,default" ]; then ./scripts/ldap/install-ldap.sh; fi
+- if [ "$TESTENV" = "keystone,default" ]; then ./scripts/keystone/install-keystone.sh;
+  fi
+- $TRAVIS_BUILD_DIR/scripts/travis/apply_spring_profiles_to_uaa_yaml.sh $TESTENV
+- $TRAVIS_BUILD_DIR/scripts/travis/apply_spring_profiles_to_login_yaml.sh $TESTENV
+- if [ "$TESTENV" = "ldap,default" ]; then ./scripts/ldap/configure-manifest.sh; fi
+- if [ "$TESTENV" = "keystone,default" ]; then ./scripts/keystone/configure-manifest.sh;
+  fi
 script:
-  - ./gradlew -Dspring.profiles.active=$TESTENV cobertura
+- ./gradlew -Dspring.profiles.active=$TESTENV cobertura
 after_success:
-  - ./gradlew coveralls
-  - python scripts/travis/travis_after_all.py
-  - export $(cat .to_export_back)
-  - |
-      if [ "$BUILD_LEADER" = "YES" ]; then
-        if [ "$BUILD_AGGREGATE_STATUS" = "others_succeeded" ]; then
-          echo "All Succeeded!"
-          if [ "$TRAVIS_BRANCH" = "develop" ]; then
-            curl https://api.github.com/repos/cloudfoundry/uaa/git/refs -H "Content-Type:application/json" -H "Authorization: token $GH_TOKEN" -d "{\"ref\":\"refs/tags/travis-success-$TRAVIS_BUILD_NUMBER\",\"sha\":\"$TRAVIS_COMMIT\"}"
-          fi
-        else
-          echo "Some Failed"
-        fi
-      fi
+- ./gradlew coveralls
+- python scripts/travis/travis_after_all.py
+- export $(cat .to_export_back)
+- ! "if [ \"$BUILD_LEADER\" = \"YES\" ]; then\n  if [ \"$BUILD_AGGREGATE_STATUS\"
+  = \"others_succeeded\" ]; then\n    echo \"All Succeeded!\"\n    if [ \"$TRAVIS_BRANCH\"
+  = \"develop\" ]; then\n      curl https://api.github.com/repos/cloudfoundry/uaa/git/refs
+  -H \"Content-Type:application/json\" -H \"Authorization: token $GH_TOKEN\" -d \"{\\\"ref\\\":\\\"refs/tags/travis-success-$TRAVIS_BUILD_NUMBER\\\",\\\"sha\\\":\\\"$TRAVIS_COMMIT\\\"}\"\n
+  \   fi\n  else\n    echo \"Some Failed\"\n  fi\nfi\n"
 after_failure:
-  - python scripts/travis/travis_after_all.py
-  - export $(cat .to_export_back)
-  - |
-      if [ "$BUILD_LEADER" = "YES" ]; then
-        if [ "$BUILD_AGGREGATE_STATUS" = "others_failed" ]; then
-          echo "All Failed"
-        else
-          echo "Some Failed"
-        fi
-      fi
+- python scripts/travis/travis_after_all.py
+- export $(cat .to_export_back)
+- ! "if [ \"$BUILD_LEADER\" = \"YES\" ]; then\n  if [ \"$BUILD_AGGREGATE_STATUS\"
+  = \"others_failed\" ]; then\n    echo \"All Failed\"\n  else\n    echo \"Some Failed\"\n
+  \ fi\nfi\n"
 after_script:
-  - echo leader=$BUILD_LEADER status=$BUILD_AGGREGATE_STATUS
+- echo leader=$BUILD_LEADER status=$BUILD_AGGREGATE_STATUS
+addons:
+  artifacts:
+    key:
+      secure: yRJd/NtH3uwSCtHLiJKt+X3ZPb57euSZA+gMG4/HkOTdkB0NuZnZaYb0GjKaLRbTAelqottjqPf5LVJXebBvjIAVH5R9C6yC1ghRYBPtHR3AJaod8ZTSUs+mLijvvhwfksKId4aZaF/GgNfPgFnC4IPybh21vTcAfrX4qS9FmN4=
+    secret:
+      secure: poV5WnsiLoks4bkd72cBOf/xbgWtD55e9tCodY5V8DFvdKUqxi8ty8ZrUbl54vsHcLcndP4Q0ByQqitkQ+xh+CbyTiBMqRK6mzn/HPuAmTjBXd8Lrc7PieXzKoPxrh0vMl1HtfBy/jii5zVPf2j5C2BxrDxlZCAGnZv+JSaOCKY=
+    bucket: cf-id-travis-failure-logs
+    debug: true
+    paths:
+    - $(ls $HOME/build/cloudfoundry/uaa/*/build/reports | tr "\n" ":")
