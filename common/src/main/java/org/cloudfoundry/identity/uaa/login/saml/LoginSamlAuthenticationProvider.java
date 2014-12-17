@@ -58,9 +58,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         SAMLMessageContext context = token.getCredentials();
         String alias = context.getPeerExtendedMetadata().getAlias();
         ExpiringUsernameAuthenticationToken result = (ExpiringUsernameAuthenticationToken)super.authenticate(authentication);
-        //create the SAML user by invoking remote authentication manager
         UaaPrincipal principal = createIfMissing(new UaaPrincipal(Origin.NotANumber, result.getName(), null, alias, result.getName()));
-        //TODO - Consolidate the different authentication objects we actually store in memory
         return new LoginSamlAuthenticationToken(principal, result);
     }
 
@@ -78,7 +76,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
             // Register new users automatically
             publish(new NewUserAuthenticatedEvent(getUser(principal)));
             try {
-                user = userDatabase.retrieveUserByName(user.getUsername(), user.getOrigin());
+                user = userDatabase.retrieveUserByName(principal.getName(), principal.getOrigin());
             } catch (UsernameNotFoundException ex) {
                 throw new BadCredentialsException("Unable to establish shadow user for SAML user:"+principal.getName());
             }

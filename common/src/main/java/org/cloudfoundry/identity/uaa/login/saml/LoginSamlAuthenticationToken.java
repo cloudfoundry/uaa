@@ -23,7 +23,7 @@ public class LoginSamlAuthenticationToken extends ExpiringUsernameAuthentication
     private final UaaPrincipal uaaPrincipal;
 
     public LoginSamlAuthenticationToken(UaaPrincipal uaaPrincipal, ExpiringUsernameAuthenticationToken token) {
-        super(token.getTokenExpiration(), token.getPrincipal(), token.getCredentials(), token.getAuthorities());
+        super(token.getTokenExpiration(), uaaPrincipal, token.getCredentials(), token.getAuthorities());
         this.uaaPrincipal = uaaPrincipal;
 
     }
