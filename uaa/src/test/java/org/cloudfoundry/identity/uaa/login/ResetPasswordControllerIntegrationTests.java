@@ -23,6 +23,7 @@ import static org.junit.Assert.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.googlecode.flyway.core.Flyway;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
@@ -30,6 +31,7 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.core.Authentication;
@@ -61,6 +63,13 @@ public class ResetPasswordControllerIntegrationTests {
             .addFilter(springSecurityFilterChain)
             .build();
         codeStore = webApplicationContext.getBean(ExpiringCodeStore.class);
+    }
+
+    @After
+    public void cleanUpAfterPasswordReset() throws Exception {
+        Flyway flyway = webApplicationContext.getBean(Flyway.class);
+        flyway.clean();
+        webApplicationContext.destroy();
     }
 
     @Test
