@@ -48,7 +48,7 @@ public class CheckDefaultAuthoritiesMvcMockTests {
 
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).addFilter(springSecurityFilterChain)
             .build();
-        clientRegistrationService = (ClientRegistrationService) webApplicationContext.getBean("clientRegistrationService");
+        clientRegistrationService = webApplicationContext.getBean(ClientRegistrationService.class);
 
         defaultAuthorities = (Set<String>) webApplicationContext.getBean("defaultUserAuthorities");
     }

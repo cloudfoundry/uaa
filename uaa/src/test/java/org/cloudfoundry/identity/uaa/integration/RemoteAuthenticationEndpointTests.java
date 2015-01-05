@@ -26,10 +26,10 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.codec.binary.Base64;
+import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2ErrorHandler;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.http.HttpEntity;
@@ -67,7 +67,7 @@ public class RemoteAuthenticationEndpointTests {
     @Test
     public void remoteAuthenticationSucceedsAndCreatesUser() throws Exception {
         String username = new RandomValueStringGenerator().generate();
-        String origin =  new RandomValueStringGenerator().generate();
+        String origin = Origin.LOGIN_SERVER;
         Map<String,Object> info = new HashMap<>();
         info.put("source", "login");
         info.put("add_new", "true");

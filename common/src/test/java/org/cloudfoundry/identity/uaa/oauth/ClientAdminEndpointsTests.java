@@ -31,6 +31,7 @@ import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.ldap.extension.ExtendedLdapUserImpl;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
+import org.cloudfoundry.identity.uaa.rest.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.rest.SearchResults;
 import org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
@@ -81,24 +82,34 @@ public class ClientAdminEndpointsTests {
 
     private ApprovalStore approvalStore = null;
 
+    private ClientDetailsValidator clientDetailsValidator = null;
+    
     @Rule
     public ExpectedException expected = ExpectedException.none();
+
+    private ResourceMonitor<ClientDetails> clientDetailsResourceMonitor;
 
     @Before
     public void setUp() throws Exception {
         endpoints = new ClientAdminEndpoints();
         
         clientDetailsService = Mockito.mock(QueryableResourceManager.class);
+        clientDetailsResourceMonitor = Mockito.mock(ResourceMonitor.class);
         securityContextAccessor = Mockito.mock(SecurityContextAccessor.class);
         clientRegistrationService = Mockito.mock(ClientRegistrationService.class);
         authenticationManager = Mockito.mock(AuthenticationManager.class);
         approvalStore = mock(ApprovalStore.class);
+        clientDetailsValidator = new ClientDetailsValidator();
+        clientDetailsValidator.setClientDetailsService(clientDetailsService);
+        clientDetailsValidator.setSecurityContextAccessor(securityContextAccessor);
         
         endpoints.setClientDetailsService(clientDetailsService);
         endpoints.setClientRegistrationService(clientRegistrationService);
         endpoints.setSecurityContextAccessor(securityContextAccessor);
         endpoints.setAuthenticationManager(authenticationManager);
         endpoints.setApprovalStore(approvalStore);
+        endpoints.setClientDetailsValidator(clientDetailsValidator);
+        endpoints.setClientDetailsResourceMonitor(clientDetailsResourceMonitor);
 
         Map<String, String> attributeNameMap = new HashMap<String, String>();
         attributeNameMap.put("client_id", "clientId");
@@ -139,6 +150,11 @@ public class ClientAdminEndpointsTests {
 
         
         endpoints.afterPropertiesSet();
+    }
+    
+    private void setSecurityContextAccessor(SecurityContextAccessor securityContextAccessor) {
+    	endpoints.setSecurityContextAccessor(securityContextAccessor);
+    	clientDetailsValidator.setSecurityContextAccessor(securityContextAccessor);
     }
 
     @Test
@@ -381,7 +397,7 @@ public class ClientAdminEndpointsTests {
         SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
         when(sca.getClientId()).thenReturn(detail.getClientId());
         when(sca.isClient()).thenReturn(true);
-        endpoints.setSecurityContextAccessor(sca);
+        setSecurityContextAccessor(sca);
 
         SecretChangeRequest change = new SecretChangeRequest();
         change.setOldSecret(detail.getClientSecret());
@@ -399,7 +415,7 @@ public class ClientAdminEndpointsTests {
         SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
         when(sca.getClientId()).thenReturn(detail.getClientId());
         when(sca.isClient()).thenReturn(false);
-        endpoints.setSecurityContextAccessor(sca);
+        setSecurityContextAccessor(sca);
 
         SecretChangeRequest change = new SecretChangeRequest();
         change.setOldSecret(detail.getClientSecret());
@@ -419,7 +435,7 @@ public class ClientAdminEndpointsTests {
         when(sca.getClientId()).thenReturn("bar");
         when(sca.isClient()).thenReturn(true);
         when(sca.isAdmin()).thenReturn(false);
-        endpoints.setSecurityContextAccessor(sca);
+        setSecurityContextAccessor(sca);
 
         SecretChangeRequest change = new SecretChangeRequest();
         change.setSecret("newpassword");
@@ -442,7 +458,7 @@ public class ClientAdminEndpointsTests {
         when(sca.getClientId()).thenReturn(detail.getClientId());
         when(sca.isClient()).thenReturn(true);
         when(sca.isAdmin()).thenReturn(false);
-        endpoints.setSecurityContextAccessor(sca);
+        setSecurityContextAccessor(sca);
 
         SecretChangeRequest change = new SecretChangeRequest();
         change.setSecret("newpassword");
@@ -461,7 +477,7 @@ public class ClientAdminEndpointsTests {
         when(sca.getClientId()).thenReturn(detail.getClientId());
         when(sca.isClient()).thenReturn(true);
         when(sca.isAdmin()).thenReturn(true);
-        endpoints.setSecurityContextAccessor(sca);
+        setSecurityContextAccessor(sca);
 
         SecretChangeRequest change = new SecretChangeRequest();
         change.setSecret("newpassword");
@@ -480,7 +496,7 @@ public class ClientAdminEndpointsTests {
         when(sca.getClientId()).thenReturn("admin");
         when(sca.isClient()).thenReturn(true);
         when(sca.isAdmin()).thenReturn(true);
-        endpoints.setSecurityContextAccessor(sca);
+        setSecurityContextAccessor(sca);
 
         SecretChangeRequest change = new SecretChangeRequest();
         change.setOldSecret(detail.getClientSecret());
@@ -504,7 +520,7 @@ public class ClientAdminEndpointsTests {
         BaseClientDetails caller = new BaseClientDetails("caller", null, "none", "client_credentials,implicit",
                         "uaa.none");
         when(clientDetailsService.retrieve("caller")).thenReturn(caller);
-        endpoints.setSecurityContextAccessor(new StubSecurityContextAccessor() {
+        setSecurityContextAccessor(new StubSecurityContextAccessor() {
             @Override
             public String getClientId() {
                 return "caller";
@@ -519,7 +535,7 @@ public class ClientAdminEndpointsTests {
         BaseClientDetails caller = new BaseClientDetails("caller", null, "none", "client_credentials,implicit",
                         "uaa.none");
         when(clientDetailsService.retrieve("caller")).thenReturn(caller);
-        endpoints.setSecurityContextAccessor(new StubSecurityContextAccessor() {
+        setSecurityContextAccessor(new StubSecurityContextAccessor() {
             @Override
             public String getClientId() {
                 return "caller";
@@ -534,7 +550,7 @@ public class ClientAdminEndpointsTests {
         BaseClientDetails caller = new BaseClientDetails("caller", null, "none", "client_credentials,implicit",
                         "uaa.none");
         when(clientDetailsService.retrieve("caller")).thenReturn(caller);
-        endpoints.setSecurityContextAccessor(new StubSecurityContextAccessor() {
+        setSecurityContextAccessor(new StubSecurityContextAccessor() {
             @Override
             public String getClientId() {
                 return "caller";
@@ -549,7 +565,7 @@ public class ClientAdminEndpointsTests {
         BaseClientDetails caller = new BaseClientDetails("caller", null, "none", "client_credentials,implicit",
                         "uaa.none");
         when(clientDetailsService.retrieve("caller")).thenReturn(caller);
-        endpoints.setSecurityContextAccessor(new StubSecurityContextAccessor() {
+        setSecurityContextAccessor(new StubSecurityContextAccessor() {
             @Override
             public String getClientId() {
                 return "caller";
@@ -564,7 +580,7 @@ public class ClientAdminEndpointsTests {
         BaseClientDetails caller = new BaseClientDetails("caller", null, "uaa.none", "client_credentials,implicit",
                         "uaa.none");
         when(clientDetailsService.retrieve("caller")).thenReturn(caller);
-        endpoints.setSecurityContextAccessor(new StubSecurityContextAccessor() {
+        setSecurityContextAccessor(new StubSecurityContextAccessor() {
             @Override
             public String getClientId() {
                 return "caller";
@@ -607,7 +623,7 @@ public class ClientAdminEndpointsTests {
 
     @Test(expected = InvalidClientDetailsException.class)
     public void implicitAndAuthorizationCodeClientIsRejectedForAdmin() throws Exception {
-        endpoints.setSecurityContextAccessor(new StubSecurityContextAccessor() {
+        setSecurityContextAccessor(new StubSecurityContextAccessor() {
             @Override
             public boolean isAdmin() {
                 return true;

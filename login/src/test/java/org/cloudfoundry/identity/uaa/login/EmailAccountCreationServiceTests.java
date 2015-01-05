@@ -26,6 +26,8 @@ import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -35,6 +37,7 @@ import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -62,7 +65,7 @@ public class EmailAccountCreationServiceTests {
     private ExpiringCode code = null;
     private ClientDetails details = null;
 
-        @Autowired
+    @Autowired
     @Qualifier("mailTemplateEngine")
     SpringTemplateEngine templateEngine;
 
@@ -91,6 +94,7 @@ public class EmailAccountCreationServiceTests {
     @After
     public void tearDown() {
         SecurityContextHolder.clearContext();
+        IdentityZoneHolder.clear();
     }
 
     @Test
@@ -113,6 +117,31 @@ public class EmailAccountCreationServiceTests {
         String emailBody = emailBodyArgument.getValue();
         assertThat(emailBody, containsString("a Pivotal ID"));
         assertThat(emailBody, containsString("<a href=\"http://login.example.com/verify_user?code=the_secret_code&amp;email=user%40example.com\">Activate your account</a>"));
+        assertThat(emailBody, not(containsString("Cloud Foundry")));
+    }
+
+    @Test
+    public void testBeginActivationInOtherZone() throws Exception {
+        setUpForSuccess();
+
+        IdentityZoneHolder.set(MultitenancyFixture.identityZone("test-zone-id", "test"));
+
+        when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
+        when(codeStore.generateCode(anyString(), any(Timestamp.class))).thenReturn(code);
+        when(codeStore.retrieveCode(anyString())).thenReturn(code);
+        emailAccountCreationService.beginActivation("user@example.com", "password", "login");
+
+        ArgumentCaptor<String> emailBodyArgument = ArgumentCaptor.forClass(String.class);
+        verify(messageService).sendMessage(
+                eq("newly-created-user-id"),
+                eq("user@example.com"),
+                eq(MessageType.CREATE_ACCOUNT_CONFIRMATION),
+                eq("Activate your Pivotal ID"),
+                emailBodyArgument.capture()
+        );
+        String emailBody = emailBodyArgument.getValue();
+        assertThat(emailBody, containsString("a Pivotal ID"));
+        assertThat(emailBody, containsString("<a href=\"http://test.login.example.com/verify_user?code=the_secret_code&amp;email=user%40example.com\">Activate your account</a>"));
         assertThat(emailBody, not(containsString("Cloud Foundry")));
     }
 

@@ -33,6 +33,7 @@ import org.cloudfoundry.identity.uaa.error.ExceptionReport;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.rest.AttributeNameMapper;
+import org.cloudfoundry.identity.uaa.rest.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.rest.SearchResults;
 import org.cloudfoundry.identity.uaa.rest.SearchResultsFactory;
 import org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper;
@@ -89,7 +90,9 @@ public class ScimUserEndpoints implements InitializingBean {
     public static final String E_TAG = "ETag";
 
     private ScimUserProvisioning dao;
-
+    
+    private ResourceMonitor<ScimUser> scimUserResourceMonitor;
+    
     private ScimGroupMembershipManager membershipManager;
 
     private ApprovalStore approvalStore;
@@ -134,7 +137,7 @@ public class ScimUserEndpoints implements InitializingBean {
 
     @ManagedMetric(metricType = MetricType.COUNTER, displayName = "Total Users")
     public int getTotalUsers() {
-        return dao.retrieveAll().size();
+        return scimUserResourceMonitor.getTotalCount();
     }
 
     @ManagedMetric(metricType = MetricType.COUNTER, displayName = "User Account Update Count (Since Startup)")
@@ -384,5 +387,9 @@ public class ScimUserEndpoints implements InitializingBean {
 
     private void addETagHeader(HttpServletResponse httpServletResponse, ScimUser scimUser) {
         httpServletResponse.setHeader(E_TAG, "\"" + scimUser.getVersion() + "\"");
+    }
+
+    public void setScimUserResourceMonitor(ResourceMonitor<ScimUser> scimUserResourceMonitor) {
+        this.scimUserResourceMonitor = scimUserResourceMonitor;
     }
 }

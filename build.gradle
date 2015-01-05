@@ -219,6 +219,8 @@ project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
     }
 
     local {
+//      jvmArgs = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
+
       if (runningWithCoverage()) {
         extraClasspath = files(configurations.coberturaJar.files)
       }

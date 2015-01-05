@@ -31,6 +31,7 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.hamcrest.collection.IsArrayContainingInAnyOrder;
 import org.junit.After;
 import org.junit.Before;
@@ -43,6 +44,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 
 import com.googlecode.flyway.core.Flyway;
+
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
@@ -63,6 +65,9 @@ public class ScimUserBootstrapTests {
     private EmbeddedDatabase database;
     private Flyway flyway;
 
+    private JdbcTemplate jdbcTemplate;
+    
+
     @Before
     public void setUp() {
         EmbeddedDatabaseBuilder builder = new EmbeddedDatabaseBuilder();
@@ -72,7 +77,7 @@ public class ScimUserBootstrapTests {
         flyway.setLocations("classpath:/org/cloudfoundry/identity/uaa/db/hsqldb/");
         flyway.setDataSource(database);
         flyway.migrate();
-        JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
+        jdbcTemplate = new JdbcTemplate(database);
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, new DefaultLimitSqlAdapter());
         db = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory);
         db.setPasswordValidator(new NullPasswordValidator());
@@ -251,6 +256,7 @@ public class ScimUserBootstrapTests {
         String[] externalAuthorities = new String[] {"extTest1","extTest2","extTest3"};
         String[] userAuthorities = new String[] {"usrTest1","usrTest2","usrTest3"};
         String origin = "testOrigin";
+        IdentityProvider.addIdentityProvider(jdbcTemplate,origin);
         String email = "test@test.org";
         String firstName = "FirstName";
         String lastName = "LastName";
@@ -261,7 +267,7 @@ public class ScimUserBootstrapTests {
         UaaUser user = getUaaUser(userAuthorities, origin, email, firstName, lastName, password, externalId, userId, username);
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(user));
         bootstrap.afterPropertiesSet();
-
+        
         List<ScimUser> users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"");
         assertEquals(1, users.size());
         userId = users.get(0).getId();
@@ -305,6 +311,7 @@ public class ScimUserBootstrapTests {
         String[] externalAuthorities = new String[] {"extTest1","extTest2","extTest3"};
         String[] userAuthorities = new String[] {"usrTest1","usrTest2","usrTest3"};
         String origin = "testOrigin";
+        IdentityProvider.addIdentityProvider(jdbcTemplate,origin);
         String email = "test@test.org";
         String newEmail = "test@test2.org";
         String firstName = "FirstName";
@@ -350,6 +357,7 @@ public class ScimUserBootstrapTests {
     @Test
     public void addUsersWithSameUsername() throws Exception {
         String origin = "testOrigin";
+        IdentityProvider.addIdentityProvider(jdbcTemplate,origin);
         String email = "test@test.org";
         String firstName = "FirstName";
         String lastName = "LastName";
@@ -361,6 +369,7 @@ public class ScimUserBootstrapTests {
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(user));
         bootstrap.afterPropertiesSet();
         user = user.modifySource("newOrigin","");
+        IdentityProvider.addIdentityProvider(jdbcTemplate,"newOrigin");
         bootstrap.addUser(user);
         assertEquals(2, db.retrieveAll().size());
     }
@@ -392,4 +401,5 @@ public class ScimUserBootstrapTests {
         }
         return result;
     }
+    
 }

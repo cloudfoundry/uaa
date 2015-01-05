@@ -19,6 +19,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -31,6 +32,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneResolvingFilter;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.http.HttpStatus;
@@ -90,6 +92,7 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
     private boolean dumpRequests = false;
 
     private Map<Class<? extends Exception>, ReasonPhrase> errorMap = new HashMap<>();
+    private Map<Integer,Filter> additionalFilters;
 
     public void setErrorMap(Map<Class<? extends Exception>, ReasonPhrase> errorMap) {
         this.errorMap = errorMap;
@@ -114,6 +117,11 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
                 uaaFilter = new UaaLoggingFilter(beanName);
             }
             fc.getFilters().add(0, uaaFilter);
+            if (additionalFilters != null) {
+                for (Entry<Integer, Filter> entry : additionalFilters.entrySet()) {
+                    fc.getFilters().add(entry.getKey(),entry.getValue());
+                }
+            }
         }
 
         return bean;
@@ -150,6 +158,10 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
     public void setIgnore(List<String> ignore) {
         Assert.notNull(ignore);
         this.ignore = ignore;
+    }
+
+    public void setAdditionalFilters(Map<Integer,Filter> additionalFilters) {
+        this.additionalFilters = additionalFilters;
     }
 
     final class HttpsEnforcementFilter extends UaaLoggingFilter {

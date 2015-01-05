@@ -13,7 +13,8 @@
 package org.cloudfoundry.identity.uaa.integration.feature;
 
 import static org.junit.Assert.assertEquals;
-import org.cloudfoundry.identity.uaa.integration.ServerRunning;
+
+import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;

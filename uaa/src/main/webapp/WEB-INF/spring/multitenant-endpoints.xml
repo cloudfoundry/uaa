@@ -1,0 +1,34 @@
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
+       xmlns:sec="http://www.springframework.org/schema/security"
+       xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-2.0.xsd
+		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.2.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <bean id="identityZoneProvisioning" class="org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning">
+        <constructor-arg ref="jdbcTemplate" />
+    </bean>
+    
+    <bean id="identityProviderProvisioning" class="org.cloudfoundry.identity.uaa.zone.JdbcIdentityProviderProvisioning">
+        <constructor-arg ref="jdbcTemplate" />
+    </bean>
+
+    <bean id="identityZoneEndpoints"  class="org.cloudfoundry.identity.uaa.zone.IdentityZoneEndpoints">
+        <constructor-arg ref="identityZoneProvisioning" />
+        <constructor-arg ref="identityProviderProvisioning"/>
+        <constructor-arg ref="jdbcClientDetailsService"/>
+        <constructor-arg ref="clientDetailsValidator"/>
+    </bean>
+
+    <http name="identityZoneSecurity" pattern="/identity-zones/**" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"
+        use-expressions="true" authentication-manager-ref="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/**" access="#oauth2.hasScope('zones.create')" method="PUT" />
+        <custom-filter ref="resourceAgnosticAuthenticationFilter" before="PRE_AUTH_FILTER" />
+        <access-denied-handler ref="oauthAccessDeniedHandler" />
+        <expression-handler ref="oauthWebExpressionHandler" />
+    </http>
+    
+</beans>
