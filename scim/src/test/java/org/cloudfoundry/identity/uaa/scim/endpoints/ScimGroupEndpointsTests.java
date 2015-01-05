@@ -12,13 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -30,6 +23,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter;
@@ -51,47 +50,25 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
-import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
-import org.junit.After;
-import org.junit.AfterClass;
+import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.junit.runner.RunWith;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageConversionException;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.datasource.embedded.EmbeddedDatabase;
-import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.test.annotation.IfProfileValue;
-import org.springframework.test.annotation.ProfileValueSourceConfiguration;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.HttpMediaTypeException;
 import org.springframework.web.servlet.View;
 
-import com.googlecode.flyway.core.Flyway;
+public class ScimGroupEndpointsTests extends JdbcTestBase {
 
-@ContextConfiguration(locations = { "classpath:spring/env.xml", "classpath:spring/data-source.xml" })
-@RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "", "test,postgresql", "hsqldb", "test,mysql",
-                "test,oracle" })
-@ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
-public class ScimGroupEndpointsTests {
-
-    private static Flyway flyway;
     Log logger = LogFactory.getLog(getClass());
-
-    private static EmbeddedDatabase database;
-
-    private volatile JdbcTemplate template;
 
     private volatile JdbcScimGroupProvisioning dao;
 
@@ -116,22 +93,10 @@ public class ScimGroupEndpointsTests {
     @Rule
     public ExpectedException expectedEx = ExpectedException.none();
 
-    @BeforeClass
-    public static void setup() throws Exception {
-        EmbeddedDatabaseBuilder builder = new EmbeddedDatabaseBuilder();
-        database = builder.build();
-        flyway = new Flyway();
-        flyway.setInitVersion("1.5.2");
-        flyway.setLocations("classpath:/org/cloudfoundry/identity/uaa/db/hsqldb/");
-        flyway.setDataSource(database);
-        flyway.migrate();
-        // confirm that everything is clean prior to test.
-        TestUtils.deleteFrom(database, "users", "groups", "group_membership");
-    }
-
     @Before
-    public void setUpForTest() throws Exception {
-        template = new JdbcTemplate(database);
+    public  void initScimGroupEndpointsTests() throws Exception {
+        TestUtils.deleteFrom(dataSource, "users", "groups", "group_membership");
+        JdbcTemplate template = jdbcTemplate;
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(template, new DefaultLimitSqlAdapter());
         dao = new JdbcScimGroupProvisioning(template, pagingListFactory);
         udao = new JdbcScimUserProvisioning(template, pagingListFactory);
@@ -175,17 +140,6 @@ public class ScimGroupEndpointsTests {
         externalGroupBootstrap.setExternalGroupMap(externalGroups);
         externalGroupBootstrap.afterPropertiesSet();
     }
-
-    @After
-    public void cleanDB() throws Exception {
-        TestUtils.deleteFrom(database, "users", "groups", "group_membership", "external_group_mapping");
-    }
-
-    @AfterClass
-    public static void cleanup() throws Exception {
-        database.shutdown();
-    }
-
     private String addGroup(String name, List<ScimGroupMember> m) {
         ScimGroup g = new ScimGroup("", name);
         g = dao.create(g);

@@ -12,36 +12,31 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.db;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
+import java.util.Arrays;
 
-import javax.sql.DataSource;
-
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
+import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.junit.Assume;
+import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.annotation.IfProfileValue;
-import org.springframework.test.annotation.ProfileValueSourceConfiguration;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@ContextConfiguration(locations = { "classpath:spring/env.xml", "classpath:spring/data-source.xml" })
-@RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "postgresql", "mysql" })
-@ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
-public class TableAndColumnNormalizationTest {
+public class TableAndColumnNormalizationTest extends JdbcTestBase {
 
     private final Log logger = LogFactory.getLog(getClass());
 
-    @Autowired
-    private DataSource dataSource;
+    @Before
+    public void checkMysqlOrPostgresqlProfile() {
+        Assume.assumeTrue(
+            Arrays.asList(webApplicationContext.getEnvironment().getActiveProfiles()).contains("mysql") ||
+            Arrays.asList(webApplicationContext.getEnvironment().getActiveProfiles()).contains("postgresql")
+        );
+    }
 
     @Test
     public void checkTables() throws Exception {

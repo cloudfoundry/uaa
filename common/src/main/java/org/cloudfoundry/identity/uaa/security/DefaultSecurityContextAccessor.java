@@ -53,6 +53,10 @@ public class DefaultSecurityContextAccessor implements SecurityContextAccessor {
             return true;
         }
 
+        if (a!=null && a.getPrincipal() instanceof UaaPrincipal) {
+            return true;
+        }
+
         return false;
     }
 

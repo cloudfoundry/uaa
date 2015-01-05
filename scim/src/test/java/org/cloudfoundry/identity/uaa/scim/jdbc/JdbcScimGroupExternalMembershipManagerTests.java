@@ -12,50 +12,22 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import javax.sql.DataSource;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
-import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
-import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
-import org.junit.After;
+import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.annotation.IfProfileValue;
-import org.springframework.test.annotation.ProfileValueSourceConfiguration;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@ContextConfiguration(locations = { "classpath:spring/env.xml", "classpath:spring/data-source.xml" })
-@RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "", "test,postgresql", "hsqldb", "test,mysql",
-                "test,oracle" })
-@ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
-public class JdbcScimGroupExternalMembershipManagerTests {
-
-    Log logger = LogFactory.getLog(getClass());
-
-    @Autowired
-    private DataSource dataSource;
-
-    private JdbcTemplate template;
-
-    @Autowired
-    private LimitSqlAdapter limitSqlAdapter;
+public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
 
     private JdbcScimGroupProvisioning gdao;
 
@@ -64,9 +36,9 @@ public class JdbcScimGroupExternalMembershipManagerTests {
     private static final String addGroupSqlFormat = "insert into groups (id, displayName) values ('%s','%s')";
 
     @Before
-    public void createDatasource() {
+    public void initJdbcScimGroupExternalMembershipManagerTests() {
 
-        template = new JdbcTemplate(dataSource);
+        JdbcTemplate template = new JdbcTemplate(dataSource);
 
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(template, limitSqlAdapter);
         gdao = new JdbcScimGroupProvisioning(template, pagingListFactory);
@@ -81,21 +53,13 @@ public class JdbcScimGroupExternalMembershipManagerTests {
         validateCount(0);
     }
 
-    @After
-    public void cleanupDataSource() throws Exception {
-        TestUtils.deleteFrom(dataSource, "groups");
-        TestUtils.deleteFrom(dataSource, "external_group_mapping");
-
-        validateCount(0);
-    }
-
     private void addGroup(String id, String name) {
-        TestUtils.assertNoSuchUser(template, "id", id);
-        template.execute(String.format(addGroupSqlFormat, id, name));
+        TestUtils.assertNoSuchUser(jdbcTemplate, "id", id);
+        jdbcTemplate.execute(String.format(addGroupSqlFormat, id, name));
     }
 
     private void validateCount(int expected) {
-        int existingMemberCount = template.queryForInt("select count(*) from external_group_mapping");
+        int existingMemberCount = jdbcTemplate.queryForInt("select count(*) from external_group_mapping");
         assertEquals(expected, existingMemberCount);
     }
 

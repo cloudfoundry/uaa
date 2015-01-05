@@ -103,7 +103,7 @@ public class FormLoginIntegrationTests {
         response = serverRunning.getForString(result.getHeaders().getLocation().toString(), headers);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         // The home page should be returned
-        assertTrue(response.getBody().contains("you have authenticated"));
+        assertTrue(response.getBody().contains("Sign Out"));
 
     }
 

@@ -28,6 +28,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
+import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import java.util.Map;
 
@@ -36,9 +37,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class PasswordResetEndpointsIntegrationTest {
+public class PasswordResetEndpointsMockMvcTests {
 
-    AnnotationConfigWebApplicationContext webApplicationContext;
+    XmlWebApplicationContext webApplicationContext;
 
     private MockMvc mockMvc;
     private String loginToken;
@@ -47,9 +48,9 @@ public class PasswordResetEndpointsIntegrationTest {
 
     @Before
     public void setUp() throws Exception {
-        webApplicationContext = new AnnotationConfigWebApplicationContext();
-        new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "uaa.yml");
-        webApplicationContext.register(DefaultIntegrationTestConfig.class);
+        webApplicationContext = new XmlWebApplicationContext();
+        new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "login.yml,uaa.yml");
+        webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         webApplicationContext.refresh();
 
         FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);

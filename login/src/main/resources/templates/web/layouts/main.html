@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" dir="ltr" lang="en" th:with="assetBaseUrl=${@environment.getProperty('assetBaseUrl','/resources/oss')}">
+<head>
+    <title th:inline="text">[[${@environment.getProperty('login.brand') == 'pivotal' ? 'Pivotal' : 'Cloud Foundry'}]]</title>
+    <link href='/resources/pivotal/images/favicon.ico' th:href="@{${assetBaseUrl}+'/images/favicon.ico'}" rel='shortcut icon' />
+    <meta charset='utf-8' />
+    <meta name='author' content='Pivotal Software, Inc' />
+    <meta name='copyright' content='Copyright 2014 Pivotal Software, Inc. All Rights Reserved.' />
+    <meta name='robots' content='all' />
+    <meta name='Description' content=""/>
+    <meta name='keywords' content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link href="/vendor/font-awesome/css/font-awesome.min.css" th:href="@{/vendor/font-awesome/css/font-awesome.min.css}" rel="stylesheet"/>
+    <link href="/resources/pivotal/stylesheets/application.css" th:href="@{${assetBaseUrl}+'/stylesheets/application.css'}" rel="stylesheet"/>
+</head>
+<body>
+<div class="content">
+    <div class="header" th:style="|background-image: url(@{${assetBaseUrl}+'/images/logo.png'});|" layout:fragment="page-header"></div>
+    <div layout:fragment="page-content"></div>
+    <div class="footer-spacer"></div>
+</div>
+<div class="footer">
+    <div class="copyright"
+         th:title="|Version: ${@buildInfo.version}, Commit: ${@buildInfo.commitId}, Timestamp: ${@buildInfo.timestamp}, UAA: ${@buildInfo.uaaUrl}|"
+         th:utext="|&#169; ${#dates.year(#dates.createNow())} Pivotal Software, Inc. All Rights Reserved.|">
+        &#169; 2014 Pivotal Software, Inc. All Rights Reserved.
+    </div>
+</div>
+
+<th:block th:with="code=${@environment.getProperty('analytics.code')},domain=${@environment.getProperty('analytics.domain')}">
+    <th:block th:if="${code} and ${domain}">
+        <script>
+            (function(i, s, o, g, r, a, m) {
+                i['GoogleAnalyticsObject'] = r;
+                i[r] = i[r] || function() {
+                    (i[r].q = i[r].q || []).push(arguments)
+                }, i[r].l = 1 * new Date();
+                a = s.createElement(o), m = s.getElementsByTagName(o)[0];
+                a.async = 1;
+                a.src = g;
+                m.parentNode.insertBefore(a, m)
+            })(window, document, 'script',
+                    '//www.google-analytics.com/analytics.js', 'ga');
+        </script>
+        <script th:utext="|ga('create', '${code}','${domain}');|"></script>
+        <script>
+            ga('send', 'pageview');
+        </script>
+    </th:block>
+</th:block>
+</body>
+</html>

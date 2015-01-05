@@ -123,6 +123,16 @@ public class Approval {
     public Approval() {
     }
 
+    public Approval(Approval approval) {
+        this(approval.getUserId(),
+            approval.getClientId(),
+            approval.getScope(),
+            approval.getExpiresAt(),
+            approval.getStatus(),
+            approval.getLastUpdatedAt()
+        );
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;

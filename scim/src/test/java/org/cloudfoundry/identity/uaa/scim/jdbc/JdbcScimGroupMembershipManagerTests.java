@@ -12,13 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -26,47 +19,27 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import javax.sql.DataSource;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
-import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
-import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
+import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.annotation.IfProfileValue;
-import org.springframework.test.annotation.ProfileValueSourceConfiguration;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@ContextConfiguration(locations = { "classpath:spring/env.xml", "classpath:spring/data-source.xml" })
-@RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "", "test,postgresql", "hsqldb", "test,mysql",
-                "test,oracle" })
-@ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
-public class JdbcScimGroupMembershipManagerTests {
-
-    Log logger = LogFactory.getLog(getClass());
-
-    @Autowired
-    private DataSource dataSource;
-
-    private JdbcTemplate template;
-
-    @Autowired
-    private LimitSqlAdapter limitSqlAdapter;
+public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
 
     private JdbcScimGroupProvisioning gdao;
 
@@ -81,9 +54,9 @@ public class JdbcScimGroupMembershipManagerTests {
     private static final String addMemberSqlFormat = "insert into group_membership (group_id, member_id, member_type, authorities, origin) values ('%s', '%s', '%s', '%s', '%s')";
 
     @Before
-    public void createDatasource() {
+    public void initJdbcScimGroupMembershipManagerTests() {
 
-        template = new JdbcTemplate(dataSource);
+        JdbcTemplate template = new JdbcTemplate(dataSource);
 
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(template, limitSqlAdapter);
         udao = new JdbcScimUserProvisioning(template, pagingListFactory);
@@ -109,21 +82,21 @@ public class JdbcScimGroupMembershipManagerTests {
         addMember(gId,mId,mType,authorities,Origin.UAA);
     }
     private void addMember(String gId, String mId, String mType, String authorities, String origin) {
-        template.execute(String.format(addMemberSqlFormat, gId, mId, mType, authorities, origin));
+        jdbcTemplate.execute(String.format(addMemberSqlFormat, gId, mId, mType, authorities, origin));
     }
 
     private void addGroup(String id, String name) {
-        TestUtils.assertNoSuchUser(template, "id", id);
-        template.execute(String.format(addGroupSqlFormat, id, name));
+        TestUtils.assertNoSuchUser(jdbcTemplate, "id", id);
+        jdbcTemplate.execute(String.format(addGroupSqlFormat, id, name));
     }
 
     private void addUser(String id, String password) {
-        TestUtils.assertNoSuchUser(template, "id", id);
-        template.execute(String.format(addUserSqlFormat, id, id, password, id, id, id, id, ""));
+        TestUtils.assertNoSuchUser(jdbcTemplate, "id", id);
+        jdbcTemplate.execute(String.format(addUserSqlFormat, id, id, password, id, id, id, id, ""));
     }
 
     private void validateCount(int expected) {
-        int existingMemberCount = template.queryForInt("select count(*) from group_membership");
+        int existingMemberCount = jdbcTemplate.queryForInt("select count(*) from group_membership");
         assertEquals(expected, existingMemberCount);
     }
 

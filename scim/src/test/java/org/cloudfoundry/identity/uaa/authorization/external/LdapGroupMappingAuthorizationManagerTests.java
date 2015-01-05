@@ -12,59 +12,28 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authorization.external;
 
-import static org.hamcrest.collection.IsArrayContainingInAnyOrder.arrayContainingInAnyOrder;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-import javax.sql.DataSource;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import static org.hamcrest.collection.IsArrayContainingInAnyOrder.arrayContainingInAnyOrder;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import org.cloudfoundry.identity.uaa.ldap.extension.LdapAuthority;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
-import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimExternalGroupBootstrap;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
-import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
-import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
-import org.junit.After;
+import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.test.annotation.IfProfileValue;
-import org.springframework.test.annotation.ProfileValueSourceConfiguration;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@ContextConfiguration(locations = { "classpath:spring/env.xml", "classpath:spring/data-source.xml" })
-@RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "", "test,postgresql", "hsqldb", "test,mysql",
-                "test,oracle" })
-@ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
-public class LdapGroupMappingAuthorizationManagerTests {
-
-    Log logger = LogFactory.getLog(getClass());
-
-    @Autowired
-    private DataSource dataSource;
-
-    @Autowired
-    private LimitSqlAdapter limitSqlAdapter;
-
-    private JdbcTemplate template;
+public class LdapGroupMappingAuthorizationManagerTests extends JdbcTestBase {
 
     private JdbcScimGroupProvisioning gDB;
 
@@ -89,11 +58,10 @@ public class LdapGroupMappingAuthorizationManagerTests {
         sa3 = new SimpleGrantedAuthority("acme.notmapped");
 
     @Before
-    public void setup() throws Exception {
-        template = new JdbcTemplate(dataSource);
-        JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(template, limitSqlAdapter);
-        gDB = new JdbcScimGroupProvisioning(template, pagingListFactory);
-        eDB = new JdbcScimGroupExternalMembershipManager(template, pagingListFactory);
+    public void initLdapGroupMappingAuthorizationManagerTests() throws Exception {
+        JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter);
+        gDB = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
+        eDB = new JdbcScimGroupExternalMembershipManager(jdbcTemplate, pagingListFactory);
         ((JdbcScimGroupExternalMembershipManager) eDB).setScimGroupProvisioning(gDB);
         assertEquals(0, gDB.retrieveAll().size());
 
@@ -114,11 +82,6 @@ public class LdapGroupMappingAuthorizationManagerTests {
 
         ldapGroups = new HashSet<>(Arrays.asList(new LdapAuthority[] {la1,la2,la3}));
         nonLdapGroups = new HashSet<>(Arrays.asList(new SimpleGrantedAuthority[] {sa1,sa2,sa3}));
-    }
-
-    @After
-    public void cleanup() throws Exception {
-        TestUtils.deleteFrom(dataSource, "groups", "external_group_mapping");
     }
 
     private String getGroupId(String groupName) {

@@ -77,7 +77,7 @@ public class BootstrapTests {
     public void testRootContextDefaults() throws Exception {
         context = getServletContext("hsqldb", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         assertNotNull(context.getBean("userDatabase", JdbcUaaUserDatabase.class));
-        FilterChainProxy filterChain = context.getBean(FilterChainProxy.class);
+        FilterChainProxy filterChain = (FilterChainProxy)context.getBean("org.springframework.security.filterChainProxy");
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/Users");
         request.setServletPath("");
@@ -151,7 +151,7 @@ public class BootstrapTests {
         };
         context.setServletContext(servletContext);
         MockServletConfig servletConfig = new MockServletConfig(servletContext);
-        servletConfig.addInitParameter("environmentConfigLocations", "file:${UAA_CONFIG_PATH}/uaa.yml");
+        servletConfig.addInitParameter("environmentConfigLocations", "file:${UAA_CONFIG_PATH}/uaa.yml,login.yml");
         context.setServletConfig(servletConfig);
 
         YamlServletProfileInitializer initializer = new YamlServletProfileInitializer();

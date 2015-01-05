@@ -12,21 +12,43 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock.ldap;
 
+import java.io.File;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
+import static org.springframework.http.MediaType.TEXT_HTML_VALUE;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import com.googlecode.flyway.core.Flyway;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager;
-import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.ldap.ExtendedLdapUserMapper;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.test.DefaultIntegrationTestConfig;
 import org.cloudfoundry.identity.uaa.test.TestClient;
+import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assume;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -49,35 +71,12 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
-
-import java.io.File;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
-import static org.springframework.http.MediaType.TEXT_HTML_VALUE;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
+import org.springframework.web.context.support.XmlWebApplicationContext;
 
 @RunWith(Parameterized.class)
 public class LdapMockMvcTests {
 
-    public static final String SPRING_PROFILES_ACTIVE = "spring.profiles.active";
-    private static String originalProfile;
+    private MockEnvironment mockEnvironment;
 
     @Parameters
     public static Collection<Object[]> data() {
@@ -99,23 +98,15 @@ public class LdapMockMvcTests {
 
     @AfterClass
     public static void afterClass() {
-        if (originalProfile==null || originalProfile.trim().length()==0) {
-            System.getProperties().remove(SPRING_PROFILES_ACTIVE);
-        } else {
-            System.setProperty(SPRING_PROFILES_ACTIVE, originalProfile);
-        }
         apacheDS.stop();
     }
 
     @BeforeClass
     public static void startApacheDS() throws Exception {
-        originalProfile = System.getProperty(SPRING_PROFILES_ACTIVE);
-        System.setProperty(SPRING_PROFILES_ACTIVE, "ldap,default");
-        System.out.println("LdapMockMvcTests Profile:"+System.getProperty(SPRING_PROFILES_ACTIVE));
         tmpDir = new File(System.getProperty("java.io.tmpdir")+"/apacheds/"+new RandomValueStringGenerator().generate());
         tmpDir.deleteOnExit();
         System.out.println(tmpDir);
-        System.setProperty("ldap.base.url","ldap://localhost:33389");
+        //configure properties for running against ApacheDS
         apacheDS = new ApacheDSContainer("dc=test,dc=com","classpath:ldap_init.ldif");
         apacheDS.setWorkingDirectory(tmpDir);
         apacheDS.setPort(33389);
@@ -123,7 +114,7 @@ public class LdapMockMvcTests {
         apacheDS.start();
     }
 
-    AnnotationConfigWebApplicationContext webApplicationContext;
+    XmlWebApplicationContext webApplicationContext;
 
     MockMvc mockMvc;
     TestClient testClient;
@@ -139,18 +130,28 @@ public class LdapMockMvcTests {
         this.ldapProfile = ldapProfile;
     }
 
-    public void setUp() throws Exception {
-        System.setProperty("ldap.profile.file", "ldap/"+ldapProfile);
-        System.setProperty("ldap.groups.file", "ldap/"+ldapGroup);
-        System.setProperty("ldap.group.maxSearchDepth", "10");
-        System.setProperty("allowUnverifiedUsers", "false");
+    @Before
+    public void createMockEnvironment() {
+        mockEnvironment = new MockEnvironment();
+    }
 
-        webApplicationContext = new AnnotationConfigWebApplicationContext();
+    public void setUp() throws Exception {
+        mockEnvironment.setProperty("spring.profiles.active", "ldap,default");
+        mockEnvironment.setProperty("ldap.profile.file", "ldap/" + ldapProfile);
+        mockEnvironment.setProperty("ldap.groups.file", "ldap/" + ldapGroup);
+        mockEnvironment.setProperty("ldap.group.maxSearchDepth", "10");
+        mockEnvironment.setProperty("ldap.base.url","ldap://localhost:33389");
+        mockEnvironment.setProperty("ldap.base.userDn","cn=admin,ou=Users,dc=test,dc=com");
+        mockEnvironment.setProperty("ldap.base.password","adminsecret");
+
+        webApplicationContext = new XmlWebApplicationContext();
+        webApplicationContext.setEnvironment(mockEnvironment);
         webApplicationContext.setServletContext(new MockServletContext());
-        new YamlServletProfileInitializer().initialize(webApplicationContext);
-        webApplicationContext.register(DefaultIntegrationTestConfig.class);
+        new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "uaa.yml,login.yml");
+        webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        webApplicationContext.getEnvironment().addActiveProfile("default");
+        webApplicationContext.getEnvironment().addActiveProfile("ldap");
         webApplicationContext.refresh();
-        webApplicationContext.registerShutdownHook();
 
         List<String> profiles = Arrays.asList(webApplicationContext.getEnvironment().getActiveProfiles());
         Assume.assumeTrue(profiles.contains("ldap"));
@@ -198,12 +199,12 @@ public class LdapMockMvcTests {
                         .param("username", "marissa")
                         .param("password", "koaladsada"))
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("/login?error=true"));
+                .andExpect(redirectedUrl("/login?error=login_failure"));
 
         mockMvc.perform(post("/login.do").accept(TEXT_HTML_VALUE)
                         .param("username", "marissa2")
                         .param("password", "ldap"))
-                .andExpect(status().isFound())
+            .andExpect(status().isFound())
                 .andExpect(redirectedUrl("/"));
     }
 
@@ -226,7 +227,7 @@ public class LdapMockMvcTests {
             post("/authenticate")
                 .accept(MediaType.APPLICATION_JSON)
                 .param("username",username)
-                .param("password",password);
+                .param("password", password);
         mockMvc.perform(post)
             .andExpect(status().isUnauthorized());
     }
@@ -268,7 +269,7 @@ public class LdapMockMvcTests {
 
     @Test
     public void validateCustomEmailForLdapUser() throws Exception {
-        System.setProperty("ldap.base.mailSubstitute", "{0}@ldaptest.org");
+        mockEnvironment.setProperty("ldap.base.mailSubstitute", "{0}@ldaptest.org");
         setUp();
         String username = "marissa7";
         String password = "ldap7";
@@ -407,8 +408,8 @@ public class LdapMockMvcTests {
         String[] list = new String[] {
                 "test.read",
                 "test.write",
-                "test.everything",
-            };
+            "test.everything",
+        };
         assertThat(list, arrayContainingInAnyOrder(getAuthorities(auth.getAuthorities())));
     }
 
@@ -497,16 +498,18 @@ public class LdapMockMvcTests {
     @Test
     public void testStopIfException() throws Exception {
         Assume.assumeTrue(ldapProfile.equals("ldap-simple-bind.xml") && ldapGroup.equals("ldap-groups-null.xml")); // Only run once
-
         setUp();
-
         ScimUser user = new ScimUser();
         user.setUserName("user@example.com");
         user.addEmail("user@example.com");
         user = uDB.createUser(user, "n1cel0ngp455w0rd");
         assertNotNull(user.getId());
+        performAuthentication("user@example.com", "n1cel0ngp455w0rd", HttpStatus.OK);
 
+        AuthzAuthenticationManager authzAuthenticationManager = webApplicationContext.getBean(AuthzAuthenticationManager.class);
+        authzAuthenticationManager.setAllowUnverifiedUsers(false);
         performAuthentication("user@example.com", "n1cel0ngp455w0rd", HttpStatus.FORBIDDEN);
+
     }
 
     public void doTestNestedLdapGroupsMappedToScopesWithDefaultScopes(String username, String password, String[] expected) throws Exception {

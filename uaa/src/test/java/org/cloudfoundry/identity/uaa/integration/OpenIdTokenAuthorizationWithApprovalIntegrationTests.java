@@ -252,7 +252,7 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         response = serverRunning.getForString(location, headers);
         if (response.getStatusCode() == HttpStatus.OK) {
             // The grant access page should be returned
-            assertTrue(response.getBody().contains("Do you authorize"));
+            assertTrue(response.getBody().contains("Application Authorization</h1>"));
 
             formData.clear();
             formData.add("user_oauth_approval", "true");

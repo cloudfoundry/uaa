@@ -78,7 +78,7 @@ public class PasswordResetEndpoints implements ApplicationEventPublisherAware {
         if (results.isEmpty()) {
             results = scimUserProvisioning.query("userName eq " + jsonEmail);
             if (results.isEmpty()) {
-                return new ResponseEntity<>(BAD_REQUEST);
+                return new ResponseEntity<>(NOT_FOUND);
             } else {
                 response.put("user_id", results.get(0).getId());
                 return new ResponseEntity<>(response, CONFLICT);
@@ -155,6 +155,7 @@ public class PasswordResetEndpoints implements ApplicationEventPublisherAware {
             Map<String,String> userInfo = new HashMap<>();
             userInfo.put("user_id", user.getId());
             userInfo.put("username", user.getUserName());
+            userInfo.put("email", user.getPrimaryEmail());
             return new ResponseEntity<>(userInfo, OK);
         } catch (BadCredentialsException x) {
             publish(new PasswordChangeFailureEvent(x.getMessage(), getUaaUser(user), SecurityContextHolder.getContext().getAuthentication()));

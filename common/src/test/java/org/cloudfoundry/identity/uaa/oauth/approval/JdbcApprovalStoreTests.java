@@ -12,24 +12,20 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth.approval;
 
-import static org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus.APPROVED;
-import static org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus.DENIED;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
 
-import javax.sql.DataSource;
-
+import static org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus.APPROVED;
+import static org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus.DENIED;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import org.cloudfoundry.identity.uaa.audit.event.ApprovalModifiedEvent;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
-import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.rest.jdbc.SimpleSearchQueryConverter;
+import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.test.MockAuthentication;
-import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventPublisher;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
@@ -37,39 +33,17 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.annotation.IfProfileValue;
-import org.springframework.test.annotation.ProfileValueSourceConfiguration;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@ContextConfiguration(locations = { "classpath:spring/env.xml", "classpath:spring/data-source.xml" })
-@RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "", "test,postgresql", "hsqldb", "test,mysql",
-                "test,oracle" })
-@ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
-public class JdbcApprovalStoreTests {
-    @Autowired
-    private DataSource dataSource;
-
-    private JdbcTemplate template;
-
-    @Autowired
-    private LimitSqlAdapter limitSqlAdapter;
-
+public class JdbcApprovalStoreTests extends JdbcTestBase {
     private JdbcApprovalStore dao;
 
     private TestApplicationEventPublisher<ApprovalModifiedEvent> eventPublisher;
 
     @Before
-    public void createDatasource() {
+    public void initJdbcApprovalStoreTests() {
 
-        template = new JdbcTemplate(dataSource);
-
-        dao = new JdbcApprovalStore(template, new JdbcPagingListFactory(template, limitSqlAdapter),
+        dao = new JdbcApprovalStore(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter),
                         new SimpleSearchQueryConverter());
 
         eventPublisher = TestApplicationEventPublisher.forEventClass(ApprovalModifiedEvent.class);
@@ -90,7 +64,7 @@ public class JdbcApprovalStoreTests {
     @After
     public void cleanupDataSource() throws Exception {
         TestUtils.deleteFrom(dataSource, "authz_approvals");
-        assertEquals(0, template.queryForInt("select count(*) from authz_approvals"));
+        assertEquals(0, jdbcTemplate.queryForInt("select count(*) from authz_approvals"));
     }
 
     @Test

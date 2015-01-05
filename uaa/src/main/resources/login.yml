@@ -1,0 +1,178 @@
+---
+# Cloud Foundry 2012.02.03 Beta
+# Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved.
+#
+# This product is licensed to you under the Apache License, Version 2.0 (the "License").
+# You may not use this product except in compliance with the License.
+#
+# This product includes a number of subcomponents with
+# separate copyright notices and license terms. Your use of these
+# subcomponents is subject to the terms and conditions of the
+# subcomponent's license, as noted in the LICENSE file.
+
+# customize static asset source, provides control over visual branding
+# (defaults to /resources/oss)
+#assetBaseUrl: /resources/pivotal
+
+#tiles:
+#  - name: Pivotal Network
+#    login-link: https://network.gopivotal.com/login
+#    image: /resources/pivotal/images/network-logo-gray.png
+#    image-hover: /resources/pivotal/images/network-logo-teal.png
+#  - name: Pivotal Web Services
+#    login-link: https://console.10.244.0.34.xip.io
+#    image: /resources/pivotal/images/pws-logo-gray.png
+#    image-hover: /resources/pivotal/images/pws-logo-teal.png
+#  - name: Pivotal Partners
+#    login-link: https://partners.gopivotal.com/login
+#    image: /resources/pivotal/images/partners-logo-gray.png
+#    image-hover: /resources/pivotal/images/partners-logo-teal.png
+
+links:
+  # Custom self service links (will only be displayed if selfServiceLinksEnabled is true)
+  # If selfServiceLinksEnabled is true and these custom links are not provided then the Login Server
+  # will use internal links.
+  #signup: http://some-oauth-client.example.com/signup
+  #passwd: http://some-other-self-service-server.com/forgot_password
+
+#notifications:
+#  url: http://localhost:3001
+
+login:
+  # Enable create account and forgot password links on the Login Server (enabled by default)
+  #selfServiceLinksEnabled: true
+  # Enable sending invitations on the Login Server (disabled by default)
+  #invitationsEnabled: true
+  # the brand to use for password reset emails and page titles
+  # (defaults to oss)
+  #brand: pivotal
+  #base URL that the login server can be reached at
+  url: http://localhost:8080/uaa
+
+  # SAML Key Configuration
+  # The location and credentials of the certificate for this SP
+  # See README.md for details on how to create this.
+  serviceProviderKey: |
+    -----BEGIN RSA PRIVATE KEY-----
+    Proc-Type: 4,ENCRYPTED
+    DEK-Info: DES-EDE3-CBC,231BD428AF94D4C8
+    0Nmo90pX8byVS7ZlakMIoXdJSLlxqzi1pN0g1ye2U+9HgTLTLuMwWaPknZ/2NFtK
+    rO72ss8uc7xBAoMkOvcMTZCg5P4JDlmuQ31IabzRyOQcAxCPZedgarRnwxT6GUim
+    JtkzNPmAAgf1bfUTu/LNt2o01dW+qq+2qiwUxgUBM2xLBmadIWqqTOZbkFc9Xjvl
+    /IEnJgp/c49sNh68EpXPlsGJfW7jAh90nlA13H1fpvTsSg2/6wKbRsxxNkpVg0Nq
+    bQURQIO6htOLZBPMMpoPILp/KtKkd1zpaZJnbZGDo9AdwfAh9dUbEw8ukJwRg3Xl
+    lsptHoMGsGdvgViWZhCB/pAHYLh31G8oVMA/qPB9PNJYIK2aQZdm7yiAdf+m8Jxb
+    Do2xBH6XUeHkg2F0LWnC/FjaMRpLuliI9vvJVB7YCQKkMdgNVV0SCx39IiX0rEm5
+    8vuuoAH3b7b+maWp5+ffriNIcEFSlcmTPIgqZBboIORBNXZnHTUG7nGIML+nlOK9
+    zdvF2vAxchqOKroc6+SGFLNvNQd9S/nLH3vP+aX9iStL55G11+p2tL+bIGMWZj0h
+    Z+qqQoogtngRFbjcVoKYerFXbKG6xXzXUc4O3EbvAKvEi0HJodYccP3L7wIer1aY
+    VaMF2M05g5KedHosEfvvhU17xS9L4u2SRMZIQ3K8iLNEhZ6bOw6EnzTaKWeffrYr
+    UOjfMEgswcHfpxx1iD5T4RTwxuKOgtFhd1QM4enXPsU6uRU5PGSiB/0t6jal6ClF
+    PhtIrTwhx0vBR4rySx4raXdLClxxt5vLe826C3uwo/6HTdUsnDvIXA==
+    -----END RSA PRIVATE KEY-----
+  serviceProviderKeyPassword: password
+  serviceProviderCertificate: |
+    -----BEGIN CERTIFICATE-----
+    MIIBzzCCATgCCQDTMCX3wJYrVDANBgkqhkiG9w0BAQUFADAsMSowKAYDVQQDFCFz
+    YW1sX2xvZ2luLE9VPXRlc3QsTz12bXdhcmUsTz1jb20wHhcNMTMwNzAyMjMzOTU4
+    WhcNMTQwNzAyMjMzOTU4WjAsMSowKAYDVQQDFCFzYW1sX2xvZ2luLE9VPXRlc3Qs
+    Tz12bXdhcmUsTz1jb20wgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGBANYBRuep
+    WaoNA7/RsOUVlmOzxbhtfW8AstGXjsWbAmmg8NSruRlNuMz1WdCeESM3zBqLSyp8
+    Vf3j3ExzB2qquDbPXNA1k4EqgNya2E+6n3KsgVLCWQm4W46Pd7C6QswrR6JgUKaW
+    6KI8BgyJQ9wjL/nR8uqZouJJyRSLuIaGXIuXAgMBAAEwDQYJKoZIhvcNAQEFBQAD
+    gYEAXOojarkGv5nVZqTuY8BRM/TRt1oby3i0VRG70l0PcDlWft52aSvCd3t8ds2S
+    h92cXLz8nvHEBaBTkxTLtf2/h5x2KQhXyHoU1UU+JjOegoF+LD6KdmaVk2l35Na5
+    1V2AHsj+yDrJ9aKwt86jbBbcFkRphdkn5ivq71GCWRfcpZE=
+    -----END CERTIFICATE-----
+
+  # SAML - The entity base url is the location of this application
+  # (The host and port of the application that will accept assertions)
+  entityBaseURL: http://localhost:8080/uaa
+  # The entityID of this SP
+  entityID: cloudfoundry-saml-login
+  saml:
+    #Default nameID
+    nameID: 'urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified'
+    #Default assertionConsumerIndex
+    assertionConsumerIndex: 0
+    #Local/SP metadata - sign metadata
+    signMetaData: true
+    #Local/SP metadata - requests signed
+    signRequest: true
+    #Local/SP metadata - sign metadata
+    socket:
+      # URL metadata fetch - pool timeout
+      connectionManagerTimeout: 10000
+      # URL metadata fetch - read timeout
+      soTimeout: 10000
+#BEGIN SAML PROVIDERS
+#    providers:
+#      okta-local:
+#        idpMetadata: sample-okta-localhost.xml
+#        nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress
+#        assertionConsumerIndex: 0
+#        metadataTrustCheck: true
+#        showSamlLoginLink: true
+#        linkText: 'Okta Preview 1'
+#        iconUrl: 'http://link.to/icon.jpg'
+#      okta-local-2:
+#        idpMetadata: |
+#          <?xml version="1.0" encoding="UTF-8"?><md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" entityID="http://www.okta.com/k2lw4l5bPODCMIIDBRYZ"><md:IDPSSODescriptor WantAuthnRequestsSigned="true" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol"><md:KeyDescriptor use="signing"><ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:X509Data><ds:X509Certificate>MIICmTCCAgKgAwIBAgIGAUPATqmEMA0GCSqGSIb3DQEBBQUAMIGPMQswCQYDVQQGEwJVUzETMBEG
+#          A1UECAwKQ2FsaWZvcm5pYTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzENMAsGA1UECgwET2t0YTEU
+#          MBIGA1UECwwLU1NPUHJvdmlkZXIxEDAOBgNVBAMMB1Bpdm90YWwxHDAaBgkqhkiG9w0BCQEWDWlu
+#          Zm9Ab2t0YS5jb20wHhcNMTQwMTIzMTgxMjM3WhcNNDQwMTIzMTgxMzM3WjCBjzELMAkGA1UEBhMC
+#          VVMxEzARBgNVBAgMCkNhbGlmb3JuaWExFjAUBgNVBAcMDVNhbiBGcmFuY2lzY28xDTALBgNVBAoM
+#          BE9rdGExFDASBgNVBAsMC1NTT1Byb3ZpZGVyMRAwDgYDVQQDDAdQaXZvdGFsMRwwGgYJKoZIhvcN
+#          AQkBFg1pbmZvQG9rdGEuY29tMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCeil67/TLOiTZU
+#          WWgW2XEGgFZ94bVO90v5J1XmcHMwL8v5Z/8qjdZLpGdwI7Ph0CyXMMNklpaR/Ljb8fsls3amdT5O
+#          Bw92Zo8ulcpjw2wuezTwL0eC0wY/GQDAZiXL59npE6U+fH1lbJIq92hx0HJSru/0O1q3+A/+jjZL
+#          3tL/SwIDAQABMA0GCSqGSIb3DQEBBQUAA4GBAI5BoWZoH6Mz9vhypZPOJCEKa/K+biZQsA4Zqsuk
+#          vvphhSERhqk/Nv76Vkl8uvJwwHbQrR9KJx4L3PRkGCG24rix71jEuXVGZUsDNM3CUKnARx4MEab6
+#          GFHNkZ6DmoT/PFagngecHu+EwmuDtaG0rEkFrARwe+d8Ru0BN558abFb</ds:X509Certificate></ds:X509Data></ds:KeyInfo></md:KeyDescriptor><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</md:NameIDFormat><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://pivotal.oktapreview.com/app/pivotal_pivotalcfstaging_1/k2lw4l5bPODCMIIDBRYZ/sso/saml"/><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://pivotal.oktapreview.com/app/pivotal_pivotalcfstaging_1/k2lw4l5bPODCMIIDBRYZ/sso/saml"/></md:IDPSSODescriptor></md:EntityDescriptor>#      saml:
+#        nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress
+#        assertionConsumerIndex: 0
+#        metadataTrustCheck: true
+#        showSamlLoginLink: true
+#        linkText: 'Okta Preview 2'
+#      vsphere.local:
+#        idpMetadata: https://win2012-sso2.localdomain:7444/websso/SAML2/Metadata/vsphere.local
+#        nameID: urn:oasis:names:tc:SAML:2.0:nameid-format:persistent
+#        assertionConsumerIndex: 0
+#        showSamlLoginLink: true
+#        linkText: 'Log in with vCenter SSO'
+#      openam-local:
+#        idpMetadata: http://localhost:8081/openam/saml2/jsp/exportmetadata.jsp?entityid=http://localhost:8081/openam
+#        nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress
+#        assertionConsumerIndex: 0
+#        signMetaData: false
+#        signRequest: false
+#        showSamlLoginLink: true
+#        linkText: 'Log in with OpenAM'
+#END SAML PROVIDERS
+
+  authorize:
+    url: http://localhost:8080/uaa/oauth/authorize
+
+uaa:
+  # The hostname of the UAA that this login server will connect to
+  url: http://localhost:8080/uaa
+  token:
+    url: http://localhost:8080/uaa/oauth/token
+  approvals:
+    url: http://localhost:8080/uaa/approvals
+  login:
+    url: http://localhost:8080/uaa/authenticate
+
+# The secret that this login server will use to authenticate to the uaa
+LOGIN_SECRET: loginsecret
+
+# Google Analytics
+#analytics:
+#  code: secret_code
+#  domain: example.com
+
+#smtp:
+#  host: localhost
+#  port: 2525
+#  user:
+#  password:

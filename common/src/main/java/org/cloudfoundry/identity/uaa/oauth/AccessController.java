@@ -285,7 +285,7 @@ public class AccessController {
         if (object != null) {
             model.put("error", object);
         }
-        return "access_confirmation";
+        return "access_confirmation_error";
     }
 
     protected String getLocation(HttpServletRequest request, String path) {

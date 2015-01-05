@@ -1,0 +1,73 @@
+<!--
+  ~ /*******************************************************************************
+  ~      Cloud Foundry 
+  ~      Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+  ~
+  ~      This product is licensed to you under the Apache License, Version 2.0 (the "License").
+  ~      You may not use this product except in compliance with the License.
+  ~
+  ~      This product includes a number of subcomponents with
+  ~      separate copyright notices and license terms. Your use of these
+  ~      subcomponents is subject to the terms and conditions of the
+  ~      subcomponent's license, as noted in the LICENSE file.
+  ~ ********************************************************************************/
+  -->
+
+<EntitiesDescriptor xmlns="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:vmes="http://vmware.com/schemas/attr-names/2012/04/Extensions" Name="vsphere.local" validUntil="2014-05-15T19:05:47Z">
+    <Extensions>
+        <vmes:ExportedOn>2014-05-14T19:05:47Z</vmes:ExportedOn>
+        <vmes:ExportedBy>Exported by VMware Identity Server (c) 2012</vmes:ExportedBy>
+    </Extensions>
+    <EntityDescriptor entityID="https://win2012-sso2.localdomain:7444/websso/SAML2/Metadata/vsphere.local">
+        <IDPSSODescriptor WantAuthnRequestsSigned="false" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
+            <KeyDescriptor xmlns:ds="http://www.w3.org/2000/09/xmldsig#" use="signing">
+                <ds:KeyInfo>
+                    <ds:X509Data>
+                        <ds:X509Certificate>MIIDMDCCAhigAwIBAgIJAMEIUKk4K5cQMA0GCSqGSIb3DQEBCwUAMEAxMTAvBgNVBAMTKENBLCBD
+                            Tj13aW4yMDEyLXNzbzIsIGRjPXZzcGhlcmUsZGM9bG9jYWwxCzAJBgNVBAYTAlVTMB4XDTE0MDEw
+                            MzA2MjkyNVoXDTI0MDEwMTA2MjkyNVowOTEqMCgGA1UEAxMhc3Nvc2VydmVyU2lnbixkYz12c3Bo
+                            ZXJlLGRjPWxvY2FsMQswCQYDVQQGEwJVUzCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEB
+                            ANJxS8rqX5H4J49v9rMuOx0YSb3HnPDiHV5P16xBtnSUVnFfhqS8oOirnETsKROVLMlud0jH/0G1
+                            hcAqF6MgKogpHQrP9gnQOs+W7rgsEDt8kCC6CMbuhEOks22jRWyU0o24F+JYIJviJxPpmMUJp+yL
+                            WDT/uwZ8O0PuaW42yyKcnAUdGbgLVukTe+Q0EcQDe3xBZnI0nrEjCCu1MGmb74sDhQMY+CcYGc6c
+                            Cf03fDvt3RgGQCqNRztGOw1r3cwSvKma4XZOR8vlZsVk+s5t0QoUJVm452rDyyrj7EN1tIKjV8mL
+                            dz2nBBo6mM6YIdeNQiG12qEW2xQj/6zxUl2RZykCAwEAAaM0MDIwCwYDVR0PBAQDAgTwMCMGA1Ud
+                            EQQcMBqCGHdpbjIwMTItc3NvMi5sb2NhbGRvbWFpbjANBgkqhkiG9w0BAQsFAAOCAQEAUvcs2S0S
+                            TmUjqpjdr9xJzPDHnwVodmkxdVLFSTsu6pCdadX654im07uRjUpoa4AAKpj7T7beUavM30yIgskE
+                            3XCT/e5bht7oeh5dtNmm2Dj0CGsnbqVfO82aT2/v4N8zc94fGtz3Cb23l3D/z0jf9cg+Q/fgBx6X
+                            ZrgQLPVYGh65BMvXq8o3AOBV5+WfPTlLCgE70ayISpgp3C/8pi2zaUSSR56nkbK/z9660cRaAjP/
+                            6HV9E8na81gIG+O4OideyzuHDEyjEAWN5EUsobYCSSUG7A6F1vH5Bu2o/5HwBm2D4S2Qm+cfu/3U
+                            gfxRJIOvd3al3XL/nzI8IhX1lWIj3Q==</ds:X509Certificate>
+                        <ds:X509Certificate>MIIDJjCCAg6gAwIBAgIJAPwKvFMGehwIMA0GCSqGSIb3DQEBCwUAMEAxMTAvBgNVBAMTKENBLCBD
+                            Tj13aW4yMDEyLXNzbzIsIGRjPXZzcGhlcmUsZGM9bG9jYWwxCzAJBgNVBAYTAlVTMB4XDTE0MDEw
+                            MzA2MjkxNVoXDTI0MDEwMTA2MjkxNVowQDExMC8GA1UEAxMoQ0EsIENOPXdpbjIwMTItc3NvMiwg
+                            ZGM9dnNwaGVyZSxkYz1sb2NhbDELMAkGA1UEBhMCVVMwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAw
+                            ggEKAoIBAQD44ne1tQH3IskIC3f0z07KBIDREvGkyIIaBBs8ArtIhSVZeWGftX7RaEqrVe+qOdGh
+                            ubOHQdv7Z+meq9jWaJ4mrGERWeKJM6ctGm0razJrxyo1Xw8sQZQAc84Q8dneFfd9pTA5hqCovYp5
+                            Hyv0guS8Xzhc64wQIRAELiPDh1xmjeOYway1x5zmYF3MJMmrHUTxnmkVn3H8oJ1FpvAzDN5FW1D6
+                            nr7L2CsmWujqOrupC/Rt4TVmfZw5Raxf3NnYLk0Ec9LgR/Iqg/fpOfRzBGKt37AJH5GUGav85+O2
+                            hXro1HqWr4d0QLfl9sfdIXYPiUNZB2fWrrykMEB8xfWj8e9XAgMBAAGjIzAhMA4GA1UdDwEB/wQE
+                            AwICBDAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAi7fVQM3Bzm3IsxPDw8tC/
+                            k9nDyjt1vh1vYPw5qjZ0R+tnF992Y4WO97nYvLispbTzh6d84V7vS/vG3PipBdLoFtu41dfG4pmR
+                            mzHyAu1iNJ+YtmOHrU3l1J3xcM9QKEyhlSz2ZKC+ZQ7FNTbb+HF4OEdAXatksFS/AThwiVWOMV79
+                            mVIcizl+PpfGxqChlusdiGRrWdcg8u4O2ysOvsy9cRWUlhrDhHEI39mYSqfvLcgsbsaob3h/NJis
+                            GA2/KCiZWwsCmjYq0W+7CgtonmYJPhRSWAASq7AarSiTy6gpFGdIXcvM7CE5gj5KAKV9eil3S3P9
+                            Vz/wY3LzufrcD22h</ds:X509Certificate>
+                    </ds:X509Data>
+                </ds:KeyInfo>
+            </KeyDescriptor>
+            <SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://win2012-sso2.localdomain:7444/websso/SAML2/SLO/vsphere.local"/>
+            <SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:SOAP" Location="https://win2012-sso2.localdomain:7444/websso/SAML2/SLO/vsphere.local"/>
+            <NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</NameIDFormat>
+            <NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:persistent</NameIDFormat>
+            <SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://win2012-sso2.localdomain:7444/websso/SAML2/SSO/vsphere.local"/>
+            <saml:Attribute FriendlyName="Groups" Name="http://rsa.com/schemas/attr-names/2009/01/GroupIdentity" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri"/>
+            <saml:Attribute FriendlyName="givenName" Name="http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri"/>
+            <saml:Attribute FriendlyName="surname" Name="http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri"/>
+            <saml:Attribute FriendlyName="Subject Type" Name="http://vmware.com/schemas/attr-names/2011/07/isSolution" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri"/>
+            <saml:Attribute FriendlyName="userPrincipalName" Name="http://schemas.xmlsoap.org/claims/UPN" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri"/>
+            <saml:Attribute FriendlyName="email" Name="http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri"/>
+        </IDPSSODescriptor>
+    </EntityDescriptor>
+</EntitiesDescriptor>
+

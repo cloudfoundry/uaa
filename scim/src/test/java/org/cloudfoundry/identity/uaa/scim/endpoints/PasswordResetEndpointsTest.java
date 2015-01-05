@@ -85,7 +85,7 @@ public class PasswordResetEndpointsTest {
                 .accept(APPLICATION_JSON);
 
         mockMvc.perform(post)
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isNotFound());
     }
 
     @Test

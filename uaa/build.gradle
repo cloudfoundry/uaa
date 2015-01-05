@@ -1,9 +1,9 @@
 Project identityCommon = parent.subprojects.find { it.name.equals('cloudfoundry-identity-common') }
 Project identityScim = parent.subprojects.find { it.name.equals('cloudfoundry-identity-scim') }
+Project identityLogin = parent.subprojects.find { it.name.equals('cloudfoundry-identity-login') }
 
 apply plugin: 'war'
 
-apply from: file('build_properties.gradle')
 processResources {
   //maven replaces project.artifactId in the log4j.properties file
   //https://www.pivotaltracker.com/story/show/74344574
@@ -26,8 +26,15 @@ eclipse {
 
 description = 'UAA'
 dependencies {
-  compile identityCommon
-  compile identityScim
+  compile(identityCommon) {
+    exclude(module: 'jna')
+  }
+  compile(identityScim) {
+    exclude(module: 'jna')
+  }
+  compile(identityLogin) {
+    exclude(module: 'jna')
+  }
   compile group: 'cglib', name: 'cglib', version:'2.2.2'
   runtime group: 'org.springframework.security', name: 'spring-security-config', version:parent.springSecurityVersion
   runtime group: 'org.springframework.security', name: 'spring-security-jwt', version:'1.0.1.RELEASE'
@@ -41,24 +48,34 @@ dependencies {
     exclude(module: 'commons-logging')
   }
   runtime group: 'postgresql', name: 'postgresql', version:parent.postgresqlVersion
+
   testCompile identityCommon.configurations.testCompile.dependencies
   testCompile identityCommon.sourceSets.test.output
+  testCompile identityLogin.sourceSets.test.output
+
   testCompile(group: 'org.apache.directory.server', name: 'apacheds-core', version:'1.5.5') {
+    exclude(module: 'bcprov-jdk15')
     exclude(module: 'slf4j-api')
     exclude(module: 'slf4j-log4j12')
   }
   testCompile(group: 'org.apache.directory.server', name: 'apacheds-protocol-ldap', version:'1.5.5') {
+    exclude(module: 'bcprov-jdk15')
     exclude(module: 'slf4j-api')
     exclude(module: 'slf4j-log4j12')
   }
   providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version:'3.0.1'
   providedCompile group: 'javax.servlet.jsp', name: 'jsp-api', version:'2.1'
+  testCompile group: 'org.seleniumhq.selenium', name: 'selenium-java', version:'2.42.2'
+  testCompile group: 'com.github.detro.ghostdriver', name: 'phantomjsdriver', version:'1.1.0'
+  testCompile group: 'dumbster', name: 'dumbster', version:'1.6'
+
+
 }
 
 test {
-  dependsOn identityCommon.instrumentedJar, identityScim.instrumentedJar
-
+  dependsOn identityCommon.instrumentedJar, identityScim.instrumentedJar, identityLogin.instrumentedJar
   exclude 'org/cloudfoundry/identity/uaa/integration/*.class'
+  exclude '**/*IT.class'
 }
 
 task integrationTest(type: Test) {
@@ -68,12 +85,14 @@ task integrationTest(type: Test) {
 
   filter {
     includeTestsMatching "org.cloudfoundry.identity.uaa.integration.*"
+    includeTestsMatching "*IT"
   }
 }
 
 task instrumentedWar(type: War, dependsOn: instrument) {
   dependsOn identityCommon.tasks.findByName('instrumentedJar'),
-            identityScim.tasks.findByName('instrumentedJar')
+            identityScim.tasks.findByName('instrumentedJar'),
+            identityLogin.tasks.findByName('instrumentedJar')
 
   destinationDir = file("$buildDir/instrumented_libs")
   classpath = war.classpath
