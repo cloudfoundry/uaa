@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.login;
 
 
 import java.util.Arrays;
+import java.util.List;
 
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasKey;
@@ -22,6 +23,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.TEXT_HTML;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -37,9 +39,12 @@ import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
@@ -55,18 +60,21 @@ import org.springframework.web.context.support.XmlWebApplicationContext;
 
 public class LoginMockMvcIntegrationTests {
 
-    XmlWebApplicationContext webApplicationContext;
+    private static MockEnvironment mockEnvironment = new MockEnvironment();
 
-    FilterChainProxy springSecurityFilterChain;
+    private static XmlWebApplicationContext webApplicationContext;
 
-    private MockMvc mockMvc;
-    
-    private UaaTestAccounts testAccounts;
+    private static FilterChainProxy springSecurityFilterChain;
 
-    @Before
-    public void setUp() throws Exception {
+    private static MockMvc mockMvc;
+
+    private static UaaTestAccounts testAccounts;
+
+    @BeforeClass
+    public static void setUpContext() throws Exception {
         SecurityContextHolder.clearContext();
         webApplicationContext = new XmlWebApplicationContext();
+        webApplicationContext.setEnvironment(mockEnvironment);
         new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "login.yml,uaa.yml");
         webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         webApplicationContext.refresh();
@@ -79,14 +87,8 @@ public class LoginMockMvcIntegrationTests {
             .build();
     }
 
-    @After
-    public void tearDown() throws Exception {
-        for (String s : System.getProperties().stringPropertyNames()) {
-            if (s.startsWith("login.") || s.startsWith("links.")) {
-                System.clearProperty(s);
-            }
-        }
-        System.clearProperty("assetBaseUrl");
+    @AfterClass
+    public static void tearDown() throws Exception {
         SecurityContextHolder.clearContext();
         webApplicationContext.destroy();
     }
@@ -112,26 +114,22 @@ public class LoginMockMvcIntegrationTests {
 
     @Test
     public void testLoginWithAnalytics() throws Exception {
-        System.setProperty("analytics.code", "secret_code");
-        System.setProperty("analytics.domain", "example.com");
+        mockEnvironment.setProperty("analytics.code", "secret_code");
+        mockEnvironment.setProperty("analytics.domain", "example.com");
 
         mockMvc.perform(get("/login").accept(TEXT_HTML))
                 .andExpect(status().isOk())
                 .andExpect(xpath("//body/script[contains(text(),'example.com')]").exists());
     }
     
-    // the following tests came from https://github.com/cloudfoundry/login-server/blob/89ced7999c98297b746330499cfec0b0177a76ed/src/test/java/org/cloudfoundry/identity/uaa/login/RemoteUaaControllerViewTests.java
     @Test
-    public void testDefaultBranding() throws Exception {
+    public void testDefaultAndExternalizedBranding() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/login"))
-                .andExpect(xpath("//head/link[@rel='shortcut icon']/@href").string("/resources/oss/images/favicon.ico"))
-                .andExpect(xpath("//head/link[@href='/resources/oss/stylesheets/application.css']").exists())
-                .andExpect(xpath("//div[@class='header' and contains(@style,'/resources/oss/images/logo.png')]").exists());
-    }
+            .andExpect(xpath("//head/link[@rel='shortcut icon']/@href").string("/resources/oss/images/favicon.ico"))
+            .andExpect(xpath("//head/link[@href='/resources/oss/stylesheets/application.css']").exists())
+            .andExpect(xpath("//div[@class='header' and contains(@style,'/resources/oss/images/logo.png')]").exists());
 
-    @Test
-    public void testExternalizedBranding() throws Exception {
-        System.setProperty("assetBaseUrl", "//cdn.example.com/pivotal");
+        mockEnvironment.setProperty("assetBaseUrl", "//cdn.example.com/pivotal");
 
         mockMvc.perform(MockMvcRequestBuilders.get("/login"))
                 .andExpect(xpath("//head/link[@rel='shortcut icon']/@href").string("//cdn.example.com/pivotal/images/favicon.ico"))
@@ -177,7 +175,7 @@ public class LoginMockMvcIntegrationTests {
 
     @Test
     public void testSignupsAndResetPasswordEnabled() throws Exception {
-        System.setProperty("login.selfServiceLinksEnabled", "true");
+        mockEnvironment.setProperty("login.selfServiceLinksEnabled", "true");
 
         mockMvc.perform(MockMvcRequestBuilders.get("/login"))
             .andExpect(xpath("//a[text()='Create account']").exists())
@@ -186,7 +184,7 @@ public class LoginMockMvcIntegrationTests {
 
     @Test
     public void testSignupsAndResetPasswordDisabledWithNoLinksConfigured() throws Exception {
-        System.setProperty("login.selfServiceLinksEnabled", "false");
+        mockEnvironment.setProperty("login.selfServiceLinksEnabled", "false");
 
         mockMvc.perform(MockMvcRequestBuilders.get("/login"))
             .andExpect(xpath("//a[text()='Create account']").doesNotExist())
@@ -195,9 +193,9 @@ public class LoginMockMvcIntegrationTests {
 
     @Test
     public void testSignupsAndResetPasswordDisabledWithSomeLinksConfigured() throws Exception {
-        System.setProperty("login.selfServiceLinksEnabled", "false");
-        System.setProperty("links.signup", "http://example.com/signup");
-        System.setProperty("links.passwd", "http://example.com/reset_passwd");
+        mockEnvironment.setProperty("login.selfServiceLinksEnabled", "false");
+        mockEnvironment.setProperty("links.signup", "http://example.com/signup");
+        mockEnvironment.setProperty("links.passwd", "http://example.com/reset_passwd");
 
         mockMvc.perform(MockMvcRequestBuilders.get("/login"))
             .andExpect(xpath("//a[text()='Create account']").doesNotExist())
@@ -206,9 +204,9 @@ public class LoginMockMvcIntegrationTests {
     
     @Test
     public void testSignupsAndResetPasswordEnabledWithCustomLinks() throws Exception {
-        System.setProperty("login.selfServiceLinksEnabled", "true");
-        System.setProperty("links.signup", "http://example.com/signup");
-        System.setProperty("links.passwd", "http://example.com/reset_passwd");
+        mockEnvironment.setProperty("login.selfServiceLinksEnabled", "true");
+        mockEnvironment.setProperty("links.signup", "http://example.com/signup");
+        mockEnvironment.setProperty("links.passwd", "http://example.com/reset_passwd");
 
         mockMvc.perform(MockMvcRequestBuilders.get("/login"))
             .andExpect(xpath("//a[text()='Create account']/@href").string("http://example.com/signup"))
@@ -220,32 +218,42 @@ public class LoginMockMvcIntegrationTests {
     @Test
     public void testLoginWithExplicitPrompts() throws Exception {
         LoginInfoEndpoint controller = webApplicationContext.getBean(LoginInfoEndpoint.class);
-        Prompt first = new Prompt("how", "text", "How did I get here?");
-        Prompt second = new Prompt("where", "password", "Where does that highway go to?");
-        controller.setPrompts(Arrays.asList(first, second));
-        
-        mockMvc.perform(get("/login").accept(TEXT_HTML))
-                .andExpect(status().isOk())
-                .andExpect(view().name("login"))
-                .andExpect(model().attribute("prompts", hasKey("how")))
-                .andExpect(model().attribute("prompts", hasKey("where")))
-                .andExpect(model().attribute("prompts", not(hasKey("password"))));
+        List<Prompt> original = controller.getPrompts();
+        try {
+            Prompt first = new Prompt("how", "text", "How did I get here?");
+            Prompt second = new Prompt("where", "password", "Where does that highway go to?");
+            controller.setPrompts(Arrays.asList(first, second));
+
+            mockMvc.perform(get("/login").accept(TEXT_HTML))
+                    .andExpect(status().isOk())
+                    .andExpect(view().name("login"))
+                    .andExpect(model().attribute("prompts", hasKey("how")))
+                    .andExpect(model().attribute("prompts", hasKey("where")))
+                    .andExpect(model().attribute("prompts", not(hasKey("password"))));
+        } finally {
+            controller.setPrompts(original);
+        }
     }
 
     @Test
     public void testLoginWithExplicitJsonPrompts() throws Exception {
         LoginInfoEndpoint controller = webApplicationContext.getBean(LoginInfoEndpoint.class);
-        Prompt first = new Prompt("how", "text", "How did I get here?");
-        Prompt second = new Prompt("where", "password", "Where does that highway go to?");
-        controller.setPrompts(Arrays.asList(first, second));
+        List<Prompt> original = controller.getPrompts();
+        try {
+            Prompt first = new Prompt("how", "text", "How did I get here?");
+            Prompt second = new Prompt("where", "password", "Where does that highway go to?");
+            controller.setPrompts(Arrays.asList(first, second));
 
-        mockMvc.perform(get("/login")
-            .accept(APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andExpect(view().name("login"))
-            .andExpect(model().attribute("prompts", hasKey("how")))
-            .andExpect(model().attribute("prompts", hasKey("where")))
-            .andExpect(model().attribute("prompts", not(hasKey("password"))));
+            mockMvc.perform(get("/login")
+                .accept(APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(view().name("login"))
+                .andExpect(model().attribute("prompts", hasKey("how")))
+                .andExpect(model().attribute("prompts", hasKey("where")))
+                .andExpect(model().attribute("prompts", not(hasKey("password"))));
+        } finally {
+            controller.setPrompts(original);
+        }
     }
 
 
@@ -296,15 +304,11 @@ public class LoginMockMvcIntegrationTests {
 
 
     @Test
-    public void testDefaultSignupLink() throws Exception {
+    public void testDefaultAndCustomSignupLink() throws Exception {
         mockMvc.perform(get("/login").accept(TEXT_HTML))
-                .andExpect(status().isOk())
-                .andExpect(model().attribute("createAccountLink", "/create_account"));
-    }
-    
-    @Test
-    public void testCustomSignupLink() throws Exception {
-        System.setProperty("links.signup", "http://www.example.com/signup");
+            .andExpect(status().isOk())
+            .andExpect(model().attribute("createAccountLink", "/create_account"));
+        mockEnvironment.setProperty("links.signup", "http://www.example.com/signup");
         mockMvc.perform(get("/login").accept(TEXT_HTML))
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("createAccountLink", "http://www.example.com/signup"));
@@ -312,7 +316,7 @@ public class LoginMockMvcIntegrationTests {
     
     @Test
     public void testLocalSignupDisabled() throws Exception {
-        System.setProperty("login.selfServiceLinksEnabled", "false");
+        mockEnvironment.setProperty("login.selfServiceLinksEnabled", "false");
         mockMvc.perform(get("/login").accept(TEXT_HTML))
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("createAccountLink", nullValue()));
@@ -320,8 +324,8 @@ public class LoginMockMvcIntegrationTests {
 
     @Test
     public void testCustomSignupLinkWithLocalSignupDisabled() throws Exception {
-        System.setProperty("login.selfServiceLinksEnabled", "false");
-        System.setProperty("links.signup", "http://www.example.com/signup");
+        mockEnvironment.setProperty("login.selfServiceLinksEnabled", "false");
+        mockEnvironment.setProperty("links.signup", "http://www.example.com/signup");
         mockMvc.perform(get("/login").accept(TEXT_HTML))
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("createAccountLink", nullValue()));

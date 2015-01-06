@@ -153,6 +153,10 @@ public class LoginInfoEndpoint {
         this.prompts = prompts;
     }
 
+    public List<Prompt> getPrompts() {
+        return prompts;
+    }
+
     @RequestMapping(value = {"/login" }, headers = "Accept=application/json")
     public String loginForJson(Model model, Principal principal) {
         return login(model, principal, Collections.<String>emptyList(), false);

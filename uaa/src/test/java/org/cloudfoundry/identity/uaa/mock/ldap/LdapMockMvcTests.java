@@ -78,7 +78,7 @@ public class LdapMockMvcTests {
 
     private MockEnvironment mockEnvironment;
 
-    @Parameters
+    @Parameters(name = "{index}: auth[{0}]; group[{1}]")
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
             {"ldap-simple-bind.xml", "ldap-groups-null.xml"},
@@ -179,17 +179,54 @@ public class LdapMockMvcTests {
         }
     }
 
+    private void deleteLdapUsers() {
+        jdbcTemplate.update("delete from users where origin='" + Origin.LDAP + "'");
+    }
+
     @Test
-    public void printProfileType() throws Exception {
+    public void runLdapTestblock() throws Exception {
         setUp();
+        printProfileType();
+        testLogin();
+        deleteLdapUsers();
+        testAuthenticate();
+        deleteLdapUsers();
+        testAuthenticateFailure();
+        deleteLdapUsers();
+        validateOriginForNonLdapUser();
+        deleteLdapUsers();
+        validateOriginAndEmailForLdapUser();
+        deleteLdapUsers();
+        validateEmailMissingForLdapUser();
+        deleteLdapUsers();
+        testLdapScopes();
+        deleteLdapUsers();
+        testLdapScopesFromChainedAuth();
+        deleteLdapUsers();
+        testNestedLdapScopes();
+        deleteLdapUsers();
+        testNestedLdapGroupsMappedToScopes();
+        deleteLdapUsers();
+        testNestedLdapGroupsMappedToScopes2();
+        deleteLdapUsers();
+        testNestedLdapGroupsMappedToScopes3();
+        deleteLdapUsers();
+        testNestedLdapGroupsMappedToScopesWithDefaultScopes();
+        deleteLdapUsers();
+        testNestedLdapGroupsMappedToScopesWithDefaultScopes2();
+        deleteLdapUsers();
+        testNestedLdapGroupsMappedToScopesWithDefaultScopes3();
+        deleteLdapUsers();
+        testStopIfException();
+        deleteLdapUsers();
+    }
+
+    public void printProfileType() throws Exception {
         assertEquals(ldapProfile, webApplicationContext.getBean("testLdapProfile"));
         assertEquals(ldapGroup, webApplicationContext.getBean("testLdapGroup"));
     }
 
-    @Test
     public void testLogin() throws Exception {
-
-        setUp();
         mockMvc.perform(get("/login"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("login"))
@@ -208,9 +245,7 @@ public class LdapMockMvcTests {
                 .andExpect(redirectedUrl("/"));
     }
 
-    @Test
     public void testAuthenticate() throws Exception {
-        setUp();
         String username = "marissa3";
         String password = "ldap3";
         MvcResult result = performAuthentication(username, password);
@@ -218,9 +253,7 @@ public class LdapMockMvcTests {
         assertThat(result.getResponse().getContentAsString(), containsString("\"email\":\"marissa3@test.com\""));
     }
 
-    @Test
     public void testAuthenticateFailure() throws Exception {
-        setUp();
         String username = "marissa3";
         String password = "ldapsadadasas";
         MockHttpServletRequestBuilder post =
@@ -232,9 +265,7 @@ public class LdapMockMvcTests {
             .andExpect(status().isUnauthorized());
     }
 
-    @Test
     public void validateOriginForNonLdapUser() throws Exception {
-        setUp();
         String username = "marissa";
         String password = "koala";
         MvcResult result = performAuthentication(username, password);
@@ -243,9 +274,7 @@ public class LdapMockMvcTests {
         assertEquals(Origin.UAA, getOrigin(username));
     }
 
-    @Test
     public void validateOriginAndEmailForLdapUser() throws Exception {
-        setUp();
         String username = "marissa3";
         String password = "ldap3";
         MvcResult result = performAuthentication(username, password);
@@ -255,9 +284,7 @@ public class LdapMockMvcTests {
         assertEquals("marissa3@test.com",getEmail(username));
     }
 
-    @Test
     public void validateEmailMissingForLdapUser() throws Exception {
-        setUp();
         String username = "marissa7";
         String password = "ldap7";
         MvcResult result = performAuthentication(username, password);
@@ -269,6 +296,7 @@ public class LdapMockMvcTests {
 
     @Test
     public void validateCustomEmailForLdapUser() throws Exception {
+        Assume.assumeTrue(ldapGroup.equals("ldap-groups-null.xml")); //this only pertains to auth
         mockEnvironment.setProperty("ldap.base.mailSubstitute", "{0}@ldaptest.org");
         setUp();
         String username = "marissa7";
@@ -357,10 +385,11 @@ public class LdapMockMvcTests {
             .andReturn();
     }
 
-    @Test
+
     public void testLdapScopes() throws Exception {
-        Assume.assumeTrue(ldapGroup.equals("ldap-groups-as-scopes.xml"));
-        setUp();
+        if (!ldapGroup.equals("ldap-groups-as-scopes.xml")) {
+            return;
+        }
         AuthenticationManager manager = (AuthenticationManager)webApplicationContext.getBean("ldapAuthenticationManager");
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("marissa3","ldap3");
         Authentication auth = manager.authenticate(token);
@@ -372,10 +401,10 @@ public class LdapMockMvcTests {
         assertThat(list, arrayContainingInAnyOrder(getAuthorities(auth.getAuthorities())));
     }
 
-    @Test
     public void testLdapScopesFromChainedAuth() throws Exception {
-        Assume.assumeTrue(ldapGroup.equals("ldap-groups-as-scopes.xml"));
-        setUp();
+        if (!ldapGroup.equals("ldap-groups-as-scopes.xml")) {
+            return;
+        }
         AuthenticationManager manager = (AuthenticationManager)webApplicationContext.getBean("authzAuthenticationMgr");
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("marissa3","ldap3");
         Authentication auth = manager.authenticate(token);
@@ -397,10 +426,10 @@ public class LdapMockMvcTests {
     }
 
 
-    @Test
     public void testNestedLdapScopes() throws Exception {
-        Assume.assumeTrue(ldapGroup.equals("ldap-groups-as-scopes.xml"));
-        setUp();
+        if (!ldapGroup.equals("ldap-groups-as-scopes.xml")) {
+            return;
+        }
         AuthenticationManager manager = (AuthenticationManager)webApplicationContext.getBean("ldapAuthenticationManager");
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("marissa4","ldap4");
         Authentication auth = manager.authenticate(token);
@@ -414,8 +443,9 @@ public class LdapMockMvcTests {
     }
 
     public void doTestNestedLdapGroupsMappedToScopes(String username, String password, String[] expected) throws Exception {
-        Assume.assumeTrue(ldapGroup.equals("ldap-groups-map-to-scopes.xml"));
-        setUp();
+        if (!ldapGroup.equals("ldap-groups-map-to-scopes.xml")) {
+            return;
+        }
         Set<String> externalGroupSet = new HashSet<String>();
         externalGroupSet.add("internal.superuser|cn=superusers,ou=scopes,dc=test,dc=com");
         externalGroupSet.add("internal.everything|cn=superusers,ou=scopes,dc=test,dc=com");
@@ -430,7 +460,6 @@ public class LdapMockMvcTests {
 
     }
 
-    @Test
     public void testNestedLdapGroupsMappedToScopes() throws Exception {
         String[] list = new String[] {
             "internal.read",
@@ -441,7 +470,6 @@ public class LdapMockMvcTests {
         doTestNestedLdapGroupsMappedToScopes("marissa4","ldap4",list);
     }
 
-    @Test
     public void testNestedLdapGroupsMappedToScopes2() throws Exception {
         String[] list = new String[] {
             "internal.read",
@@ -450,7 +478,6 @@ public class LdapMockMvcTests {
         doTestNestedLdapGroupsMappedToScopes("marissa5","ldap5",list);
     }
 
-    @Test
     public void testNestedLdapGroupsMappedToScopes3() throws Exception {
         String[] list = new String[] {
             "internal.read",
@@ -458,9 +485,7 @@ public class LdapMockMvcTests {
         doTestNestedLdapGroupsMappedToScopes("marissa6","ldap6",list);
     }
 
-    @Test
     public void testNestedLdapGroupsMappedToScopesWithDefaultScopes() throws Exception {
-
         String username = "marissa4";
         String password = "ldap4";
         String[] list = new String[] {
@@ -472,7 +497,6 @@ public class LdapMockMvcTests {
         doTestNestedLdapGroupsMappedToScopesWithDefaultScopes(username, password, list);
     }
 
-    @Test
     public void testNestedLdapGroupsMappedToScopesWithDefaultScopes2() throws Exception {
 
         String username = "marissa5";
@@ -484,7 +508,6 @@ public class LdapMockMvcTests {
         doTestNestedLdapGroupsMappedToScopesWithDefaultScopes(username,password,list);
     }
 
-    @Test
     public void testNestedLdapGroupsMappedToScopesWithDefaultScopes3() throws Exception {
 
         String username = "marissa6";
@@ -495,26 +518,25 @@ public class LdapMockMvcTests {
         doTestNestedLdapGroupsMappedToScopesWithDefaultScopes(username,password,list);
     }
 
-    @Test
     public void testStopIfException() throws Exception {
-        Assume.assumeTrue(ldapProfile.equals("ldap-simple-bind.xml") && ldapGroup.equals("ldap-groups-null.xml")); // Only run once
-        setUp();
-        ScimUser user = new ScimUser();
-        user.setUserName("user@example.com");
-        user.addEmail("user@example.com");
-        user = uDB.createUser(user, "n1cel0ngp455w0rd");
-        assertNotNull(user.getId());
-        performAuthentication("user@example.com", "n1cel0ngp455w0rd", HttpStatus.OK);
+        if (ldapProfile.equals("ldap-simple-bind.xml") && ldapGroup.equals("ldap-groups-null.xml")) {
+            ScimUser user = new ScimUser();
+            user.setUserName("user@example.com");
+            user.addEmail("user@example.com");
+            user = uDB.createUser(user, "n1cel0ngp455w0rd");
+            assertNotNull(user.getId());
+            performAuthentication("user@example.com", "n1cel0ngp455w0rd", HttpStatus.OK);
 
-        AuthzAuthenticationManager authzAuthenticationManager = webApplicationContext.getBean(AuthzAuthenticationManager.class);
-        authzAuthenticationManager.setAllowUnverifiedUsers(false);
-        performAuthentication("user@example.com", "n1cel0ngp455w0rd", HttpStatus.FORBIDDEN);
-
+            AuthzAuthenticationManager authzAuthenticationManager = webApplicationContext.getBean(AuthzAuthenticationManager.class);
+            authzAuthenticationManager.setAllowUnverifiedUsers(false);
+            performAuthentication("user@example.com", "n1cel0ngp455w0rd", HttpStatus.FORBIDDEN);
+        }
     }
 
     public void doTestNestedLdapGroupsMappedToScopesWithDefaultScopes(String username, String password, String[] expected) throws Exception {
-        Assume.assumeTrue(ldapGroup.equals("ldap-groups-map-to-scopes.xml"));
-        setUp();
+        if (!ldapGroup.equals("ldap-groups-map-to-scopes.xml")) {
+            return;
+        }
         Set<String> externalGroupSet = new HashSet<>();
         externalGroupSet.add("internal.superuser|cn=superusers,ou=scopes,dc=test,dc=com");
         externalGroupSet.add("internal.everything|cn=superusers,ou=scopes,dc=test,dc=com");
