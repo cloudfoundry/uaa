@@ -4,8 +4,6 @@ import com.googlecode.flyway.core.Flyway;
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.cloudfoundry.identity.uaa.scim.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
@@ -37,7 +35,6 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.XmlWebApplicationContext;
-import scala.actors.threadpool.Arrays;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -51,7 +48,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -84,7 +80,6 @@ public class IdentityZoneEndpointsMockMvcTests {
             "admin",
             "adminsecret",
             "");
-
     }
 
     @AfterClass
@@ -93,6 +88,7 @@ public class IdentityZoneEndpointsMockMvcTests {
         flyway.clean();
         webApplicationContext.close();
     }
+
     @Before
     public void before() {
         IdentityZoneHolder.clear();
@@ -186,7 +182,7 @@ public class IdentityZoneEndpointsMockMvcTests {
     @Test
     public void testUpdateNonExistentReturns403() throws Exception {
         String id = generator.generate();
-        //zone doesn't exist and we don't have the token scop
+        //zone doesn't exist and we don't have the token scope
         updateZone(id, HttpStatus.FORBIDDEN, identityAdminToken);
     }
 
@@ -276,9 +272,9 @@ public class IdentityZoneEndpointsMockMvcTests {
             .andExpect(status().isBadRequest());
     }
 
-    // update a zone with a subdomain that already exists
-    // update a zone in place  with different data (happy)
-    // update a zone with exactly the same data (happy)
+    // TODO: update a zone with a subdomain that already exists
+    // TODO: update a zone in place  with different data (happy)
+    // TODO: update a zone with exactly the same data (happy)
 
     @Test
     public void testCreatesZonesWithDuplicateSubdomains() throws Exception {
@@ -312,7 +308,7 @@ public class IdentityZoneEndpointsMockMvcTests {
         identityZone.setId(id);
         IdentityZoneCreationRequest creationRequest = new IdentityZoneCreationRequest();
         creationRequest.setIdentityZone(identityZone);
-        List<BaseClientDetails> clientDetails = new ArrayList<BaseClientDetails>();
+        List<BaseClientDetails> clientDetails = new ArrayList<>();
         BaseClientDetails client1 = new BaseClientDetails("client1", null,null, "client_credentials", "clients.admin,scim.read,scim.write");
         client1.setClientSecret("client1Secret");
         clientDetails.add(client1);
@@ -490,5 +486,4 @@ public class IdentityZoneEndpointsMockMvcTests {
         final String base64Creds = new String(base64CredsBytes);
         return "Basic "+base64Creds;
     }
-
 }
