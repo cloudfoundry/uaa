@@ -323,31 +323,17 @@ public class IdentityZoneEndpointsMockMvcTests {
             .content(new ObjectMapper().writeValueAsString(creationRequest)))
             .andExpect(status().isCreated());
         mockMvc.perform(get("/oauth/token?grant_type=client_credentials")
-            .header("Authorization", getBasicAuthHeaderValue(client1.getClientId(), client1.getClientSecret()))
-            .with(new RequestPostProcessor() {
-                @Override
-                public MockHttpServletRequest postProcessRequest(
-                    MockHttpServletRequest request) {
-                    request.setServerName(id+".localhost");
-                    return request;
-                }
-            }))
-            .andExpect(status().isOk())
-            .andReturn();
+                    .header("Authorization", getBasicAuthHeaderValue(client1.getClientId(), client1.getClientSecret()))
+                    .with(new SetServerNameRequestPostProcessor(id+".localhost")))
+                .andExpect(status().isOk())
+                .andReturn();
 
         mockMvc.perform(get("/oauth/token?grant_type=client_credentials")
-            .header("Authorization", getBasicAuthHeaderValue(client2.getClientId(), client2.getClientSecret()))
-            .with(new RequestPostProcessor() {
-                @Override
-                public MockHttpServletRequest postProcessRequest(
-                    MockHttpServletRequest request) {
-                    request.setServerName(id+".localhost");
-                    return request;
-                }
-            }))
-            .andExpect(status().isOk())
-            .andReturn();
-
+                    .header("Authorization", getBasicAuthHeaderValue(client2.getClientId(), client2.getClientSecret()))
+                    .with(new SetServerNameRequestPostProcessor(id+".localhost")))
+                .andExpect(status().isOk())
+                .andReturn();
+        
     }
 
     @Test
