@@ -113,12 +113,12 @@ public class ScimGroupEndpointsMockMvcTests {
 
         TestClient testClient = new TestClient(mockMvc);
         String adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret",
-                "clients.read clients.write clients.secret");
+                "clients.read clients.write clients.secret", null);
         String clientId = generator.generate().toLowerCase();
         String clientSecret = generator.generate().toLowerCase();
         createScimClient(adminToken, clientId, clientSecret);
-        scimReadToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret,"scim.read password.write");
-        scimWriteToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret,"scim.write password.write");
+        scimReadToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret,"scim.read password.write", null);
+        scimWriteToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret,"scim.write password.write", null);
 
         defaultExternalMembers = new LinkedList<>(originalDefaultExternalMembers);
         databaseExternalMembers = new LinkedList<>(originalDatabaseExternalMembers);

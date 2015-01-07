@@ -58,7 +58,7 @@ public class ExpiringCodeStoreMockMvcTests {
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).addFilter(springSecurityFilterChain)
                         .build();
         testClient = new TestClient(mockMvc);
-        loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", null);
+        loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", null, null);
     }
 
     @AfterClass
@@ -93,7 +93,7 @@ public class ExpiringCodeStoreMockMvcTests {
         Timestamp ts = new Timestamp(System.currentTimeMillis() + 60000);
         ExpiringCode code = new ExpiringCode(null, ts, "{}");
         TestClient testClient = new TestClient(mockMvc);
-        String loginToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "scim.read");
+        String loginToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "scim.read", null);
 
         String requestBody = new ObjectMapper().writeValueAsString(code);
         MockHttpServletRequestBuilder post = post("/Codes")

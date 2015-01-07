@@ -138,7 +138,7 @@ public class AuditCheckMvcMockTests {
         String adminToken = testClient.getClientCredentialsOAuthAccessToken(
             testAccounts.getAdminClientId(),
             testAccounts.getAdminClientSecret(),
-            "uaa.admin,scim.write");
+            "uaa.admin,scim.write", null);
         testUser = createUser(adminToken, "testUser", "Test", "User", "testuser@test.com", testPassword);
 
         listener = mock(new DefaultApplicationListener<AbstractUaaEvent>() {}.getClass());
@@ -219,7 +219,7 @@ public class AuditCheckMvcMockTests {
         String adminToken = testClient.getClientCredentialsOAuthAccessToken(
                 testAccounts.getAdminClientId(),
                 testAccounts.getAdminClientSecret(),
-                "uaa.admin,scim.write");
+                "uaa.admin,scim.write", null);
 
         ScimUser molly = createUser(adminToken, "molly", "Molly", "Collywobble", "molly@example.com", "wobble");
 
@@ -243,10 +243,10 @@ public class AuditCheckMvcMockTests {
                 mgr.getValue().setAllowUnverifiedUsers(false);
             }
 
-            String adminToken = testClient.getClientCredentialsOAuthAccessToken(
-                testAccounts.getAdminClientId(),
-                testAccounts.getAdminClientSecret(),
-                "uaa.admin,scim.write");
+        String adminToken = testClient.getClientCredentialsOAuthAccessToken(
+            testAccounts.getAdminClientId(),
+            testAccounts.getAdminClientSecret(),
+            "uaa.admin,scim.write", null);
 
             ScimUser molly = createUser(adminToken, "molly", "Molly", "Collywobble", "molly@example.com", "wobble");
 
@@ -294,7 +294,7 @@ public class AuditCheckMvcMockTests {
         String adminToken = testClient.getClientCredentialsOAuthAccessToken(
             testAccounts.getAdminClientId(),
             testAccounts.getAdminClientSecret(),
-            "uaa.admin,scim.write");
+            "uaa.admin,scim.write", null);
 
         ScimUser jacob = createUser(adminToken, "jacob", "Jacob", "Gyllenhammer", "jacob@gyllenhammer.non", null);
         String jacobId = jacob.getId();
@@ -422,7 +422,7 @@ public class AuditCheckMvcMockTests {
 
     @Test
     public void loginServerPasswordChange() throws Exception {
-        String loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "oauth.login");
+        String loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "oauth.login", null);
 
         PasswordResetEndpoints.PasswordChange pwch = new PasswordResetEndpoints.PasswordChange();
         pwch.setUsername(testUser.getUserName());
@@ -460,7 +460,7 @@ public class AuditCheckMvcMockTests {
 
     @Test
     public void loginServerInvalidPasswordChange() throws Exception {
-        String loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "oauth.login");
+        String loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "oauth.login", null);
 
         PasswordResetEndpoints.PasswordChange pwch = new PasswordResetEndpoints.PasswordChange();
         pwch.setUsername(testUser.getUserName());
@@ -486,7 +486,7 @@ public class AuditCheckMvcMockTests {
     @Test
     public void clientAuthenticationSuccess() throws Exception {
         ArgumentCaptor<AbstractUaaEvent> captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
-        testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "oauth.login");
+        testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "oauth.login", null);
         verify(listener, times(2)).onApplicationEvent(captor.capture());
         ClientAuthenticationSuccessEvent event = (ClientAuthenticationSuccessEvent)captor.getAllValues().get(0);
         assertEquals("login", event.getClientId());
@@ -552,7 +552,7 @@ public class AuditCheckMvcMockTests {
         String adminToken = testClient.getClientCredentialsOAuthAccessToken(
             testAccounts.getAdminClientId(),
             testAccounts.getAdminClientSecret(),
-            "uaa.admin,scim.write");
+            "uaa.admin,scim.write", null);
 
         String username = "jacob"+new RandomValueStringGenerator().generate(), firstName = "Jacob", lastName = "Gyllenhammar", email = "jacob@gyllenhammar.non";
         ScimUser user = new ScimUser();
@@ -586,7 +586,7 @@ public class AuditCheckMvcMockTests {
         String loginToken = testClient.getClientCredentialsOAuthAccessToken(
             "login",
             "loginsecret",
-            "oauth.login");
+            "oauth.login", null);
         MockHttpServletRequestBuilder userPost = post("/oauth/authorize")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .contentType(MediaType.APPLICATION_JSON)
@@ -622,7 +622,7 @@ public class AuditCheckMvcMockTests {
         String adminToken = testClient.getClientCredentialsOAuthAccessToken(
             testAccounts.getAdminClientId(),
             testAccounts.getAdminClientSecret(),
-            "uaa.admin,scim.write");
+            "uaa.admin,scim.write", null);
 
         String username = "jacob"+new RandomValueStringGenerator().generate(), firstName = "Jacob", lastName = "Gyllenhammar", email = "jacob@gyllenhammar.non";
         String modifiedFirstName = firstName+lastName;
@@ -683,7 +683,7 @@ public class AuditCheckMvcMockTests {
         String adminToken = testClient.getClientCredentialsOAuthAccessToken(
             testAccounts.getAdminClientId(),
             testAccounts.getAdminClientSecret(),
-            "uaa.admin,scim.write");
+            "uaa.admin,scim.write", null);
 
         String username = "jacob", firstName = "Jacob", lastName = "Gyllenhammar", email = "jacob@gyllenhammar.non";
         ScimUser user = new ScimUser();
@@ -720,7 +720,7 @@ public class AuditCheckMvcMockTests {
 
     @Test
     public void passwordResetRequestEvent() throws Exception {
-        String loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "oauth.login");
+        String loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "oauth.login", null);
 
         testListener.clearEvents();
         MockHttpServletRequestBuilder changePasswordPost = post("/password_resets")
@@ -744,7 +744,7 @@ public class AuditCheckMvcMockTests {
         String adminToken = testClient.getClientCredentialsOAuthAccessToken(
             testAccounts.getAdminClientId(),
             testAccounts.getAdminClientSecret(),
-            "uaa.admin,scim.write");
+            "uaa.admin,scim.write", null);
 
         ScimUser jacob = createUser(adminToken, "jacob", "Jacob", "Gyllenhammer", "jacob@gyllenhammer.non", null);
         ScimUser emily = createUser(adminToken, "emily", "Emily", "Gyllenhammer", "emily@gyllenhammer.non", null);

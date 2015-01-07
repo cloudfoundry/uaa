@@ -76,7 +76,7 @@ public class ScimUserLookupMockMvcTests {
 
         testClient = new TestClient(mockMvc);
 
-        adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "clients.read clients.write clients.secret scim.read scim.write");
+        adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "clients.read clients.write clients.secret scim.read scim.write", null);
 
         createScimClient(adminToken, clientId, clientSecret);
         scimLookupIdUserToken = testClient.getUserOAuthAccessToken(clientId, clientSecret, username, password, "scim.userids");

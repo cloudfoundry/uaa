@@ -58,7 +58,7 @@ public class PasswordResetEndpointsMockMvcTests {
                 .build();
 
         TestClient testClient = new TestClient(mockMvc);
-        loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "oauth.login");
+        loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "oauth.login", null);
     }
 
     @After
