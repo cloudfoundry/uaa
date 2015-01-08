@@ -12,27 +12,40 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
+import org.apache.commons.lang.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
+import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneCreationRequest;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class ScimUserEndpointsMockMvcTests {
 
@@ -41,6 +54,7 @@ public class ScimUserEndpointsMockMvcTests {
     private String scimReadWriteToken;
     private String scimCreateToken;
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
+    private TestClient testClient;
 
     @Before
     public void setUp() throws Exception {
@@ -55,41 +69,54 @@ public class ScimUserEndpointsMockMvcTests {
             .addFilter(springSecurityFilterChain)
             .build();
 
-        TestClient testClient = new TestClient(mockMvc);
+        testClient = new TestClient(mockMvc);
         String adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret",
                 "clients.read clients.write clients.secret", null);
         String clientId = generator.generate().toLowerCase();
         String clientSecret = generator.generate().toLowerCase();
         createScimClient(adminToken, clientId, clientSecret);
-        scimReadWriteToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret,"scim.read scim.write password.write", null);
-        scimCreateToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret,"scim.create", null);
+        scimReadWriteToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret, "scim.read scim.write password.write", null);
+        scimCreateToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret, "scim.create", null);
     }
-    
+
     @After
     public void tearDown() {
         webApplicationContext.destroy();
     }
 
-    private void createUser(String token) throws Exception {
-        String email = "joe@"+generator.generate().toLowerCase()+".com";
-        ScimUser user = new ScimUser();
-        user.setUserName(email);
-        user.setName(new ScimUser.Name("Joe", "User"));
-        user.addEmail(email);
+    private ScimUser createUser(String token) throws Exception {
+        return createUser(token, null);
+    }
+
+    private ScimUser createUser(String token, String subdomain) throws Exception {
+        ScimUser user = getScimUser();
 
         byte[] requestBody = new ObjectMapper().writeValueAsBytes(user);
         MockHttpServletRequestBuilder post = post("/Users")
             .header("Authorization", "Bearer " + token)
             .contentType(APPLICATION_JSON)
             .content(requestBody);
+        if (subdomain != null && !subdomain.equals("")) post.with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"));
 
-        mockMvc.perform(post)
-            .andExpect(status().isCreated())
-            .andExpect(header().string("ETag", "\"0\""))
-            .andExpect(jsonPath("$.userName").value(email))
-            .andExpect(jsonPath("$.emails[0].value").value(email))
-            .andExpect(jsonPath("$.name.familyName").value("User"))
-            .andExpect(jsonPath("$.name.givenName").value("Joe"));
+        MvcResult result = mockMvc.perform(post)
+                .andExpect(status().isCreated())
+                .andExpect(header().string("ETag", "\"0\""))
+                .andExpect(jsonPath("$.userName").value(user.getUserName()))
+                .andExpect(jsonPath("$.emails[0].value").value(user.getUserName()))
+                .andExpect(jsonPath("$.name.familyName").value(user.getFamilyName()))
+                .andExpect(jsonPath("$.name.givenName").value(user.getGivenName()))
+            .andReturn();
+
+        return new ObjectMapper().readValue(result.getResponse().getContentAsString(), ScimUser.class);
+    }
+
+    private ScimUser getScimUser() {
+        String email = "joe@"+generator.generate().toLowerCase()+".com";
+        ScimUser user = new ScimUser();
+        user.setUserName(email);
+        user.setName(new ScimUser.Name("Joe", "User"));
+        user.addEmail(email);
+        return user;
     }
 
     @Test
@@ -110,6 +137,62 @@ public class ScimUserEndpointsMockMvcTests {
     @Test
     public void testVerifyUserWithScimCreateToken() throws Exception {
         verifyUser(scimCreateToken);
+    }
+
+    @Test
+    public void testCreateUserInZone() throws Exception {
+        String subdomain = RandomStringUtils.random(8);
+        createOtherIdentityZone(subdomain);
+
+        String zoneAdminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "admin-secret", "scim.write", subdomain);
+
+        createUser(zoneAdminToken, subdomain);
+    }
+
+    @Test
+    public void testCreateUserInOtherZoneIsUnauthorized() throws Exception {
+        String subdomain = RandomStringUtils.random(8);
+        createOtherIdentityZone(subdomain);
+
+        String otherSubdomain = RandomStringUtils.random(8);
+        createOtherIdentityZone(otherSubdomain);
+
+        String zoneAdminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "admin-secret", "scim.write", subdomain);
+
+        ScimUser user = getScimUser();
+
+        byte[] requestBody = new ObjectMapper().writeValueAsBytes(user);
+        MockHttpServletRequestBuilder post = post("/Users")
+                .with(new SetServerNameRequestPostProcessor(otherSubdomain + ".localhost"))
+                .header("Authorization", "Bearer " + zoneAdminToken)
+                .contentType(APPLICATION_JSON)
+                .content(requestBody);
+
+        mockMvc.perform(post).andExpect(status().isUnauthorized());
+    }
+
+    private IdentityZone createOtherIdentityZone(String subdomain) throws Exception {
+
+        String identityToken = testClient.getClientCredentialsOAuthAccessToken("identity", "identitysecret", "zones.create", null);
+
+        IdentityZone identityZone = MultitenancyFixture.identityZone(subdomain, subdomain);
+        IdentityZoneCreationRequest creationRequest = new IdentityZoneCreationRequest();
+        creationRequest.setIdentityZone(identityZone);
+
+        List<BaseClientDetails> clientDetails = new ArrayList<>();
+        BaseClientDetails client = new BaseClientDetails("admin", null,null, "client_credentials", "clients.admin,scim.read,scim.write");
+        client.setClientSecret("admin-secret");
+        clientDetails.add(client);
+        creationRequest.setClientDetails(clientDetails);
+
+        mockMvc.perform(put("/identity-zones/" + subdomain)
+                .header("Authorization", "Bearer " + identityToken)
+                .contentType(APPLICATION_JSON)
+                .accept(APPLICATION_JSON)
+                .content(new ObjectMapper().writeValueAsString(creationRequest)))
+                .andExpect(status().isCreated());
+
+        return identityZone;
     }
 
     private void verifyUser(String token) throws Exception {
