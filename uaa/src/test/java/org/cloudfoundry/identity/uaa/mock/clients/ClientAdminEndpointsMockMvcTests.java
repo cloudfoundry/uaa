@@ -46,7 +46,9 @@ import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextIn
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -66,20 +68,28 @@ import org.springframework.web.context.support.XmlWebApplicationContext;
 
 
 public class ClientAdminEndpointsMockMvcTests {
-    private XmlWebApplicationContext webApplicationContext;
-    private MockMvc mockMvc;
-    private String adminToken = null;
-    private TestClient testClient = null;
-    private String adminUserToken = null;
-    private ScimUserEndpoints scimUserEndpoints = null;
-    private ScimGroupEndpoints scimGroupEndpoints = null;
-    private ApplicationEventPublisher applicationEventPublisher = null;
-    private ArgumentCaptor<AbstractUaaEvent> captor = null;
-    private UaaUser testUser;
-    private String testPassword;
+    private static XmlWebApplicationContext webApplicationContext;
+    private static  MockMvc mockMvc;
+    private static  String adminToken = null;
+    private static  TestClient testClient = null;
+    private static  String adminUserToken = null;
+    private static  ScimUserEndpoints scimUserEndpoints = null;
+    private static  ScimGroupEndpoints scimGroupEndpoints = null;
+    private static  ApplicationEventPublisher applicationEventPublisher = null;
+    private static  ArgumentCaptor<AbstractUaaEvent> captor = null;
+    private static  UaaUser testUser;
+    private static  String testPassword;
 
     @Before
-    public void setUp() throws Exception {
+    public void createCaptor() {
+        applicationEventPublisher = mock(ApplicationEventPublisher.class);
+        ClientAdminEventPublisher eventPublisher = (ClientAdminEventPublisher)webApplicationContext.getBean("clientAdminEventPublisher");
+        eventPublisher.setApplicationEventPublisher(applicationEventPublisher);
+        captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
+    }
+
+    @BeforeClass
+    public static void setUp() throws Exception {
         webApplicationContext = new XmlWebApplicationContext();
         webApplicationContext.setEnvironment(new MockEnvironment());
         new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "uaa.yml,login.yml");
@@ -150,8 +160,8 @@ public class ClientAdminEndpointsMockMvcTests {
                                                             "uaa.admin,clients.read,clients.write");
     }
 
-    @After
-    public void tearDown() throws Exception {
+    @AfterClass
+    public static void tearDown() throws Exception {
         Flyway flyway = webApplicationContext.getBean(Flyway.class);
         flyway.clean();
         webApplicationContext.close();

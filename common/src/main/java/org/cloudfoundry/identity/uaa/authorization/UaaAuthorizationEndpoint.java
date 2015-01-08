@@ -100,10 +100,14 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
 
     private Object implicitLock = new Object();
 
-    private Boolean fallbackToAuthcode = false;
+    private boolean fallbackToAuthcode = false;
 
-    public void setFallbackToAuthcode(Boolean fallbackToAuthcode) {
+    public void setFallbackToAuthcode(boolean fallbackToAuthcode) {
         this.fallbackToAuthcode = fallbackToAuthcode;
+    }
+
+    public boolean getFallbackToAuthcode() {
+        return fallbackToAuthcode;
     }
 
     public void setSessionAttributeStore(SessionAttributeStore sessionAttributeStore) {

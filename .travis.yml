@@ -56,13 +56,13 @@ after_failure:
   \ fi\nfi\n"
 after_script:
 - echo leader=$BUILD_LEADER status=$BUILD_AGGREGATE_STATUS
-addons:
-  artifacts:
-    key:
-      secure: yRJd/NtH3uwSCtHLiJKt+X3ZPb57euSZA+gMG4/HkOTdkB0NuZnZaYb0GjKaLRbTAelqottjqPf5LVJXebBvjIAVH5R9C6yC1ghRYBPtHR3AJaod8ZTSUs+mLijvvhwfksKId4aZaF/GgNfPgFnC4IPybh21vTcAfrX4qS9FmN4=
-    secret:
-      secure: poV5WnsiLoks4bkd72cBOf/xbgWtD55e9tCodY5V8DFvdKUqxi8ty8ZrUbl54vsHcLcndP4Q0ByQqitkQ+xh+CbyTiBMqRK6mzn/HPuAmTjBXd8Lrc7PieXzKoPxrh0vMl1HtfBy/jii5zVPf2j5C2BxrDxlZCAGnZv+JSaOCKY=
-    bucket: cf-id-travis-failure-logs
-    debug: true
-    paths:
-    - $(ls $HOME/build/cloudfoundry/uaa/*/build/reports | tr "\n" ":")
+#addons:
+#  artifacts:
+#    key:
+#      secure: yRJd/NtH3uwSCtHLiJKt+X3ZPb57euSZA+gMG4/HkOTdkB0NuZnZaYb0GjKaLRbTAelqottjqPf5LVJXebBvjIAVH5R9C6yC1ghRYBPtHR3AJaod8ZTSUs+mLijvvhwfksKId4aZaF/GgNfPgFnC4IPybh21vTcAfrX4qS9FmN4=
+#    secret:
+#      secure: poV5WnsiLoks4bkd72cBOf/xbgWtD55e9tCodY5V8DFvdKUqxi8ty8ZrUbl54vsHcLcndP4Q0ByQqitkQ+xh+CbyTiBMqRK6mzn/HPuAmTjBXd8Lrc7PieXzKoPxrh0vMl1HtfBy/jii5zVPf2j5C2BxrDxlZCAGnZv+JSaOCKY=
+#    bucket: cf-id-travis-failure-logs
+#    debug: true
+#    paths:
+#    - $(ls $HOME/build/cloudfoundry/uaa/*/build/reports | tr "\n" ":")

@@ -16,6 +16,7 @@ import com.googlecode.flyway.core.Flyway;
 import junit.framework.Assert;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.authorization.UaaAuthorizationEndpoint;
 import org.cloudfoundry.identity.uaa.oauth.Claims;
 import org.cloudfoundry.identity.uaa.oauth.token.SignerProvider;
 import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenServices;
@@ -37,8 +38,9 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
-import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.http.MediaType;
 import org.springframework.mock.env.MockEnvironment;
@@ -98,27 +100,28 @@ public class TokenMvcMockTests {
     private static String GRANT_TYPES = "password,implicit,client_credentials,authorization_code";
     private static String TEST_REDIRECT_URI = "http://test.example.org/redirect";
 
-    XmlWebApplicationContext webApplicationContext;
-    ClientRegistrationService clientRegistrationService;
-    private MockMvc mockMvc;
-    private TestClient testClient;
-    private UaaTestAccounts testAccounts;
-    private JdbcClientDetailsService clientDetailsService;
-    private JdbcScimUserProvisioning userProvisioning;
-    private JdbcScimGroupProvisioning groupProvisioning;
-    private JdbcScimGroupMembershipManager groupMembershipManager;
-    private UaaTokenServices tokenServices;
-    private Set<String> defaultAuthorities;
-    private SignerProvider signerProvider;
-    private UaaTokenServices uaaTokenServices;
-    private MockEnvironment mockEnvironment;
+    private static XmlWebApplicationContext webApplicationContext;
+    private static ClientRegistrationService clientRegistrationService;
+    private static MockMvc mockMvc;
+    private static TestClient testClient;
+    private static UaaTestAccounts testAccounts;
+    private static JdbcClientDetailsService clientDetailsService;
+    private static JdbcScimUserProvisioning userProvisioning;
+    private static JdbcScimGroupProvisioning groupProvisioning;
+    private static JdbcScimGroupMembershipManager groupMembershipManager;
+    private static UaaTokenServices tokenServices;
+    private static Set<String> defaultAuthorities;
+    private static SignerProvider signerProvider;
+    private static UaaTokenServices uaaTokenServices;
+    private static MockEnvironment mockEnvironment;
 
-    private IdentityZoneProvisioning identityZoneProvisioning;
-    private JdbcScimUserProvisioning jdbcScimUserProvisioning;
-    private IdentityProviderProvisioning identityProviderProvisioning;
+    private static IdentityZoneProvisioning identityZoneProvisioning;
+    private static JdbcScimUserProvisioning jdbcScimUserProvisioning;
+    private static IdentityProviderProvisioning identityProviderProvisioning;
+    private static UaaAuthorizationEndpoint uaaAuthorizationEndpoint;
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeClass
+    public static void setUpContext() throws Exception {
         webApplicationContext = new XmlWebApplicationContext();
         mockEnvironment = new MockEnvironment();
         webApplicationContext.setEnvironment(mockEnvironment);
@@ -146,6 +149,12 @@ public class TokenMvcMockTests {
         identityZoneProvisioning = webApplicationContext.getBean(IdentityZoneProvisioning.class);
         jdbcScimUserProvisioning = webApplicationContext.getBean(JdbcScimUserProvisioning.class);
         identityProviderProvisioning = webApplicationContext.getBean(IdentityProviderProvisioning.class);
+        uaaAuthorizationEndpoint = webApplicationContext.getBean(UaaAuthorizationEndpoint.class);
+    }
+
+    @Before
+    public void setFallback() {
+        uaaAuthorizationEndpoint.setFallbackToAuthcode(false);
     }
     
     private IdentityZone setupIdentityZone(String subdomain) {
@@ -213,8 +222,8 @@ public class TokenMvcMockTests {
         }
     }
 
-    @After
-    public void tearDown() throws Exception {
+    @AfterClass
+    public static void tearDownContext() throws Exception {
         Flyway flyway = webApplicationContext.getBean(Flyway.class);
         flyway.clean();
         webApplicationContext.destroy();
@@ -222,13 +231,11 @@ public class TokenMvcMockTests {
 
     @Test
     public void testOpenIdTokenHybridFlowWithNoImplicitGrantWhenLenient() throws Exception {
-        mockEnvironment.setProperty("oauth.openid.fallbackToAuthcode", "true");
-        webApplicationContext.refresh();
-
-        String clientId = "testclient";
+        uaaAuthorizationEndpoint.setFallbackToAuthcode(true);
+        String clientId = "testclient"+new RandomValueStringGenerator().generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,openid";
         setUpClients(clientId, scopes, scopes, "authorization_code", true);
-        String username = "testuser";
+        String username = "testuser"+new RandomValueStringGenerator().generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
         ScimUser developer = setUpUser(username, userScopes);
 
@@ -263,13 +270,10 @@ public class TokenMvcMockTests {
 
     @Test
     public void testOpenIdTokenHybridFlowWithNoImplicitGrantWhenStrict() throws Exception {
-        mockEnvironment.setProperty("oauth.openid.fallbackToAuthcode", "false");
-        webApplicationContext.refresh();
-
-        String clientId = "testclient";
+        String clientId = "testclient"+new RandomValueStringGenerator().generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,openid";
         setUpClients(clientId, scopes, scopes, "authorization_code", true);
-        String username = "testuser";
+        String username = "testuser"+new RandomValueStringGenerator().generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
         ScimUser developer = setUpUser(username, userScopes);
 
@@ -303,13 +307,12 @@ public class TokenMvcMockTests {
 
     @Test
     public void testOpenIdTokenHybridFlowWithNoImplicitGrantWhenLenientWhenAppNotApproved() throws Exception {
-        mockEnvironment.setProperty("oauth.openid.fallbackToAuthcode", "true");
-        webApplicationContext.refresh();
+        uaaAuthorizationEndpoint.setFallbackToAuthcode(true);
 
-        String clientId = "testclient";
+        String clientId = "testclient"+new RandomValueStringGenerator().generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,openid";
         setUpClients(clientId, scopes, scopes, "authorization_code", false);
-        String username = "testuser";
+        String username = "testuser"+new RandomValueStringGenerator().generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
         ScimUser developer = setUpUser(username, userScopes);
 
@@ -347,13 +350,12 @@ public class TokenMvcMockTests {
 
     @Test
     public void testOpenIdTokenHybridFlowWithNoImplicitGrantWhenStrictWhenAppNotApproved() throws Exception {
-        mockEnvironment.setProperty("oauth.openid.fallbackToAuthcode", "false");
-        webApplicationContext.refresh();
+        uaaAuthorizationEndpoint.setFallbackToAuthcode(false);
 
-        String clientId = "testclient";
+        String clientId = "testclient"+new RandomValueStringGenerator().generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,openid";
         setUpClients(clientId, scopes, scopes, "authorization_code", false);
-        String username = "testuser";
+        String username = "testuser"+new RandomValueStringGenerator().generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
         ScimUser developer = setUpUser(username, userScopes);
 
@@ -390,10 +392,10 @@ public class TokenMvcMockTests {
 
     @Test
     public void testOpenIdToken() throws Exception {
-        String clientId = "testclient";
+        String clientId = "testclient"+new RandomValueStringGenerator().generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,openid";
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
-        String username = "testuser";
+        String username = "testuser"+new RandomValueStringGenerator().generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
         ScimUser developer = setUpUser(username, userScopes);
 
@@ -634,10 +636,10 @@ public class TokenMvcMockTests {
 
     @Test
     public void testWildcardPasswordGrant() throws Exception {
-        String clientId = "testclient";
+        String clientId = "testclient"+new RandomValueStringGenerator().generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
-        String userId = "testuser";
+        String userId = "testuser"+new RandomValueStringGenerator().generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three";
         ScimUser developer = setUpUser(userId, userScopes);
         Set<String> allUserScopes = new HashSet<>();
@@ -1174,15 +1176,16 @@ public class TokenMvcMockTests {
     
     @Test
     public void testGetClientCredentialsTokenForOtherIdentityZone() throws Exception {
-        IdentityZone testZone = setupIdentityZone("testzone");
+        String subdomain = "testzone"+new RandomValueStringGenerator();
+        IdentityZone testZone = setupIdentityZone(subdomain);
         IdentityZoneHolder.set(testZone);
         String clientId = "testclient" + new RandomValueStringGenerator().generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
         IdentityZoneHolder.clear();
-        mockMvc.perform(post("http://testzone.localhost/oauth/token")
+        mockMvc.perform(post("http://"+subdomain+".localhost/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
-            .header("Host", "testzone.localhost")
+            .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
             .header("Authorization", "Basic "+new String(Base64.encode((clientId  + ":" + SECRET).getBytes())))
             .param("grant_type", "client_credentials")
             .param("client_id", clientId)
@@ -1192,7 +1195,8 @@ public class TokenMvcMockTests {
     
     @Test
     public void testGetClientCredentialsTokenForOtherIdentityZoneFromDefaultZoneFails() throws Exception {
-        IdentityZone testZone = setupIdentityZone("testzone");
+        String subdomain = "testzone"+new RandomValueStringGenerator();
+        IdentityZone testZone = setupIdentityZone(subdomain);
         IdentityZoneHolder.set(testZone);
         String clientId = "testclient" + new RandomValueStringGenerator().generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
@@ -1200,7 +1204,7 @@ public class TokenMvcMockTests {
         IdentityZoneHolder.clear();
         mockMvc.perform(post("http://localhost/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
-            .header("Host", "testzone.localhost")
+            .header("Host", subdomain + ".localhost")
             .header("Authorization", "Basic "+new String(Base64.encode((clientId  + ":" + SECRET).getBytes())))
             .param("grant_type", "client_credentials")
             .param("client_id", clientId)
@@ -1213,10 +1217,11 @@ public class TokenMvcMockTests {
         String clientId = "testclient" + new RandomValueStringGenerator().generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
-        setupIdentityZone("testzone");
-        mockMvc.perform(post("http://testzone.localhost/oauth/token")
+        String subdomain = "testzone"+new RandomValueStringGenerator();
+        setupIdentityZone(subdomain);
+        mockMvc.perform(post("http://"+subdomain+".localhost/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
-            .header("Host", "testzone.localhost")
+            .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
             .header("Authorization", "Basic "+new String(Base64.encode((clientId  + ":" + SECRET).getBytes())))
             .param("grant_type", "client_credentials")
             .param("client_id", clientId)
@@ -1226,7 +1231,8 @@ public class TokenMvcMockTests {
 
     @Test
     public void testGetPasswordGrantTokenForOtherZone() throws Exception {
-        IdentityZone testZone = setupIdentityZone("testzone");
+        String subdomain = "testzone"+new RandomValueStringGenerator();
+        IdentityZone testZone = setupIdentityZone(subdomain);
         IdentityZoneHolder.set(testZone);
         setupIdentityProvider();
         String clientId = "testclient" + new RandomValueStringGenerator().generate();
@@ -1238,7 +1244,7 @@ public class TokenMvcMockTests {
         IdentityZoneHolder.clear();
 
         mockMvc.perform(post("/oauth/token")
-                .with(new SetServerNameRequestPostProcessor("testzone.localhost"))
+                .with(new SetServerNameRequestPostProcessor(subdomain+".localhost"))
                 .param("username", "user@example.com")
                 .param("password", "secret")
                 .header("Authorization", "Basic "+new String(Base64.encode((clientId  + ":" + SECRET).getBytes())))
@@ -1254,15 +1260,15 @@ public class TokenMvcMockTests {
         setUpClients(clientId, scopes, scopes, "password,client_credentials", true);
 
         setUpUser();
-
-        IdentityZone testZone = setupIdentityZone("testzone");
+        String subdomain = "testzone"+new RandomValueStringGenerator();
+        IdentityZone testZone = setupIdentityZone(subdomain);
         IdentityZoneHolder.set(testZone);
         setupIdentityProvider();
 
         IdentityZoneHolder.clear();
 
         mockMvc.perform(post("/oauth/token")
-                .with(new SetServerNameRequestPostProcessor("testzone.localhost"))
+                .with(new SetServerNameRequestPostProcessor(subdomain+".localhost"))
                 .param("username", "user@example.com")
                 .param("password", "secret")
                 .header("Authorization", "Basic "+new String(Base64.encode((clientId  + ":" + SECRET).getBytes())))
@@ -1274,7 +1280,8 @@ public class TokenMvcMockTests {
 
     @Test
     public void testGetPasswordGrantForOtherIdentityZoneFromDefaultZoneFails() throws Exception {
-        IdentityZone testZone = setupIdentityZone("testzone");
+        String subdomain = "testzone"+new RandomValueStringGenerator();
+        IdentityZone testZone = setupIdentityZone(subdomain);
         IdentityZoneHolder.set(testZone);
         setupIdentityProvider();
 

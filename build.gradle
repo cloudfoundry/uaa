@@ -72,6 +72,7 @@ allprojects {
 
 subprojects {
   apply plugin: 'java'
+  [compileJava, compileTestJava]*.options*.compilerArgs = ['-Xlint:none']
   sourceCompatibility = 1.7
   targetCompatibility = 1.7
 
@@ -266,3 +267,76 @@ cobertura {
 
 assemble.dependsOn subprojects.assemble
 test.dependsOn subprojects.test
+
+// Log timings per task.
+class TimingsListener implements TaskExecutionListener, BuildListener, org.gradle.api.tasks.testing.TestListener {
+  private Clock clock
+  private Clock testClock;
+  private timings = []
+  private testTimings = []
+  private final testLimit = 5000
+  private Task currentTask
+
+  @Override
+  void beforeExecute(Task task) {
+    clock = new org.gradle.util.Clock()
+    currentTask = task
+  }
+
+  @Override
+  void afterExecute(Task task, TaskState taskState) {
+    def ms = clock.timeInMs
+    timings.add([ms, task.path])
+    task.project.logger.warn "${task.path} took ${ms}ms"
+  }
+
+  @Override
+  void buildFinished(BuildResult result) {
+    println "Task timings:"
+    for (timing in timings) {
+      if (timing[0] >= 500) {
+        printf "%7sms  %s\n", timing
+      }
+    }
+    println "Test timings:"
+    for (timing in testTimings.sort { it[0] }) {
+      if (timing[0] >= testLimit) {
+        printf "%7sms  %s\n", timing
+      }
+    }
+  }
+
+  @Override
+  public void beforeSuite(TestDescriptor suite) {
+    testClock = new org.gradle.util.Clock()
+  }
+
+  @Override
+  public void afterSuite(TestDescriptor suite, TestResult result) {
+    def ms = testClock.timeInMs
+    testTimings.add([ms, suite.getName()])
+    currentTask.project.logger.warn "${suite.name} took ${ms}ms"
+  }
+
+  @Override
+  public void beforeTest(TestDescriptor test) {}
+
+  @Override
+  public void afterTest(TestDescriptor test, TestResult result) {}
+
+  @Override
+  void buildStarted(Gradle gradle) {}
+
+  @Override
+  void projectsEvaluated(Gradle gradle) {}
+
+  @Override
+  void projectsLoaded(Gradle gradle) {}
+
+  @Override
+  void settingsEvaluated(Settings settings) {}
+
+
+}
+
+gradle.addListener new TimingsListener()
