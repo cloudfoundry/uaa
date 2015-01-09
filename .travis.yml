@@ -66,4 +66,4 @@ addons:
     bucket: cf-id-travis-failure-logs
     debug: true
     paths:
-    - $(ls $HOME/build/cloudfoundry/uaa/*/build/reports | tr "\n" ":")
+    - $(find $HOME/build/cloudfoundry/uaa/ -name reports -type d | tr "\n" ":")
