@@ -146,6 +146,10 @@ public class BootstrapTests {
         assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
         assertFalse(context.getBean(IdentityProviderConfigurator.class).isLegacyMetadataTrustCheck());
         assertEquals(
+            1,
+            context.getBean(IdentityProviderConfigurator.class).getIdentityProviderDefinitions().size()
+        );
+        assertEquals(
             EasySSLProtocolSocketFactory.class.getName(),
             context.getBean(IdentityProviderConfigurator.class).getIdentityProviderDefinitions().get(0).getSocketFactoryClassName()
         );
@@ -153,7 +157,34 @@ public class BootstrapTests {
             IdentityProviderDefinition.MetadataLocation.URL,
             context.getBean(IdentityProviderConfigurator.class).getIdentityProviderDefinitions().get(0).getType()
         );
+
     }
+
+    @Test
+    public void testLegacySamlProfileHttpsMetaUrlWithoutPort() throws Exception {
+        System.setProperty("login.saml.metadataTrustCheck", "false");
+        System.setProperty("login.idpMetadataURL", "https://localhost/nodata");
+        System.setProperty("login.idpEntityAlias", "testIDPUrl");
+
+        context = getServletContext("default", "./src/main/resources/login.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        assertNotNull(context.getBean("viewResolver", ViewResolver.class));
+        assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
+        assertFalse(context.getBean(IdentityProviderConfigurator.class).isLegacyMetadataTrustCheck());
+        assertEquals(
+            1,
+            context.getBean(IdentityProviderConfigurator.class).getIdentityProviderDefinitions().size()
+        );
+        assertEquals(
+            EasySSLProtocolSocketFactory.class.getName(),
+            context.getBean(IdentityProviderConfigurator.class).getIdentityProviderDefinitions().get(0).getSocketFactoryClassName()
+        );
+        assertEquals(
+            IdentityProviderDefinition.MetadataLocation.URL,
+            context.getBean(IdentityProviderConfigurator.class).getIdentityProviderDefinitions().get(0).getType()
+        );
+
+    }
+
 
     @Test
     public void testMessageService() throws Exception {
