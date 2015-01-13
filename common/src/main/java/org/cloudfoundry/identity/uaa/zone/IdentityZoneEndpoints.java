@@ -1,3 +1,15 @@
+/*******************************************************************************
+ *     Cloud Foundry
+ *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *
+ *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *     You may not use this product except in compliance with the License.
+ *
+ *     This product includes a number of subcomponents with
+ *     separate copyright notices and license terms. Your use of these
+ *     subcomponents is subject to the terms and conditions of the
+ *     subcomponent's license, as noted in the LICENSE file.
+ *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
 import java.util.ArrayList;
@@ -11,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -25,6 +38,8 @@ import javax.validation.Valid;
 
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.CREATED;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.web.bind.annotation.RequestMethod.*;
 
 @RestController
@@ -47,21 +62,23 @@ public class IdentityZoneEndpoints {
     }
 
     
-    @RequestMapping(value = "{id}", method = PUT)
-    public ResponseEntity<Void> createOrUpdateIdentityZone(@RequestBody @Valid IdentityZoneCreationRequest body,
-            @PathVariable String id) {
+    @RequestMapping(value = "{id}", method = POST)
+    public ResponseEntity<IdentityZone> createIdentityZone(
+        @RequestBody @Valid IdentityZoneCreationRequest body,
+        @PathVariable String id)
+    {
         IdentityZone previous = IdentityZoneHolder.get();
         try {
      
-        	List<ClientDetails> clients = new ArrayList<ClientDetails>();
-        	if (body.getClientDetails() != null) {
-        		for (BaseClientDetails clientDetails : body.getClientDetails()) {
-        			if (clientDetails != null) {
-        				clients.add(clientDetailsValidator.validate(clientDetails, true, false));
-        			}
-				}
-        	}
-        	body.getIdentityZone().setId(id);
+            List<ClientDetails> clients = new ArrayList<ClientDetails>();
+            if (body.getClientDetails() != null) {
+                for (BaseClientDetails clientDetails : body.getClientDetails()) {
+                    if (clientDetails != null) {
+                        clients.add(clientDetailsValidator.validate(clientDetails, true, false));
+                    }
+                }
+            }
+            body.getIdentityZone().setId(id);
             IdentityZone created = zoneDao.create(body.getIdentityZone());
             IdentityZoneHolder.set(created);
             IdentityProvider defaultIdp = new IdentityProvider();
@@ -71,34 +88,70 @@ public class IdentityZoneEndpoints {
             idpDao.create(defaultIdp);
 
             for (ClientDetails validClient : clients) {
-            	clientRegistrationService.addClientDetails(validClient);
-			}
+                clientRegistrationService.addClientDetails(validClient);
+            }
             
-            return new ResponseEntity<Void>(CREATED);
+            return new ResponseEntity<>(created,CREATED);
         } finally {
             IdentityZoneHolder.set(previous);
         }
     }
-    
-	@ExceptionHandler(ZoneAlreadyExistsException.class)
+
+    @RequestMapping(value = "{id}", method = PUT)
+    public ResponseEntity<IdentityZone> updateIdentityZone(
+        @RequestBody @Valid IdentityZoneCreationRequest body,
+        @PathVariable String id)
+    {
+        IdentityZone previous = IdentityZoneHolder.get();
+        try {
+            zoneDao.retrieve(id);
+            List<ClientDetails> clients = new ArrayList<ClientDetails>();
+            if (body.getClientDetails() != null) {
+                for (BaseClientDetails clientDetails : body.getClientDetails()) {
+                    if (clientDetails != null) {
+                        clients.add(clientDetailsValidator.validate(clientDetails, true, false));
+                    }
+                }
+            }
+            body.getIdentityZone().setId(id);
+            IdentityZone updated = zoneDao.update(body.getIdentityZone());
+            IdentityZoneHolder.set(updated);
+
+            for (ClientDetails validClient : clients) {
+                try {
+                    clientRegistrationService.addClientDetails(validClient);
+                } catch (ClientAlreadyExistsException x) {}
+            }
+            return new ResponseEntity<>(updated,OK);
+        } finally {
+            IdentityZoneHolder.set(previous);
+        }
+    }
+
+    @ExceptionHandler(ZoneAlreadyExistsException.class)
     public ResponseEntity<ZoneAlreadyExistsException> handleZoneAlreadyExistsException(ZoneAlreadyExistsException e) {
         return new ResponseEntity<>(e,CONFLICT);
     }
-	
+
+    @ExceptionHandler(ZoneDoesNotExistsException.class)
+    public ResponseEntity<ZoneDoesNotExistsException> handleZoneDoesNotExistsException(ZoneDoesNotExistsException e) {
+        return new ResponseEntity<>(e,NOT_FOUND);
+    }
+
     @ExceptionHandler(InvalidClientDetailsException.class)
     public ResponseEntity<InvalidClientDetailsException> handleInvalidClientDetails(InvalidClientDetailsException e) {
-        return new ResponseEntity<InvalidClientDetailsException>(e, HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(e, HttpStatus.BAD_REQUEST);
     }
     
     @ExceptionHandler(MethodArgumentNotValidException.class) 
     public ResponseEntity<Void> handleValidationException(MethodArgumentNotValidException e) {
-    	return new ResponseEntity<Void>(HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
     }
     
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Void> handleException(Exception e) {
-    	log.error(e.getClass()+": "+e.getMessage(),e);
-    	return new ResponseEntity<Void>(HttpStatus.INTERNAL_SERVER_ERROR);
+        log.error(e.getClass()+": "+e.getMessage(),e);
+        return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
 }

@@ -29,23 +29,23 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import com.googlecode.flyway.core.Flyway;
 
 public class MultitenantJdbcClientDetailsServiceTests {
-	private MultitenantJdbcClientDetailsService service;
+    private MultitenantJdbcClientDetailsService service;
 
-	private JdbcTemplate jdbcTemplate;
+    private JdbcTemplate jdbcTemplate;
 
-	private EmbeddedDatabase db;
+    private EmbeddedDatabase db;
 
-	private static final String SELECT_SQL = "select client_id, client_secret, resource_ids, scope, authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, refresh_token_validity from oauth_client_details where client_id=?";
+    private static final String SELECT_SQL = "select client_id, client_secret, resource_ids, scope, authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, refresh_token_validity from oauth_client_details where client_id=?";
 
-	private static final String INSERT_SQL = "insert into oauth_client_details (client_id, client_secret, resource_ids, scope, authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, refresh_token_validity, autoapprove, identity_zone_id) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    private static final String INSERT_SQL = "insert into oauth_client_details (client_id, client_secret, resource_ids, scope, authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, refresh_token_validity, autoapprove, identity_zone_id) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
 //	private static final String CUSTOM_INSERT_SQL = "insert into ClientDetails (appId, appSecret, resourceIds, scope, grantTypes, redirectUrl, authorities) values (?, ?, ?, ?, ?, ?, ?)";
-	private IdentityZone otherIdentityZone;
-	@Before
-	public void setUp() throws Exception {
-		// creates a HSQL in-memory db populated from default scripts
-		// classpath:schema.sql and classpath:data.sql
-	    EmbeddedDatabaseBuilder builder = new EmbeddedDatabaseBuilder();
+    private IdentityZone otherIdentityZone;
+    @Before
+    public void setUp() throws Exception {
+        // creates a HSQL in-memory db populated from default scripts
+        // classpath:schema.sql and classpath:data.sql
+        EmbeddedDatabaseBuilder builder = new EmbeddedDatabaseBuilder();
         db = builder.build();
         Flyway flyway = new Flyway();
         flyway.setInitVersion("1.5.2");
@@ -53,311 +53,311 @@ public class MultitenantJdbcClientDetailsServiceTests {
         flyway.setDataSource(db);
         flyway.migrate();
         
-		jdbcTemplate = new JdbcTemplate(db);
-		service = new MultitenantJdbcClientDetailsService(db);
-		otherIdentityZone = new IdentityZone();
-		otherIdentityZone.setId("testzone");
-		otherIdentityZone.setName("testzone");
-		otherIdentityZone.setSubdomain("testzone");
-	}
+        jdbcTemplate = new JdbcTemplate(db);
+        service = new MultitenantJdbcClientDetailsService(db);
+        otherIdentityZone = new IdentityZone();
+        otherIdentityZone.setId("testzone");
+        otherIdentityZone.setName("testzone");
+        otherIdentityZone.setSubdomain("testzone");
+    }
 
-	@After
-	public void tearDown() throws Exception {
-		db.shutdown();
-		IdentityZoneHolder.clear();
-	}
+    @After
+    public void tearDown() throws Exception {
+        db.shutdown();
+        IdentityZoneHolder.clear();
+    }
 
-	@Test(expected = NoSuchClientException.class)
-	public void testLoadingClientForNonExistingClientId() {
-		service.loadClientByClientId("nonExistingClientId");
-	}
+    @Test(expected = NoSuchClientException.class)
+    public void testLoadingClientForNonExistingClientId() {
+        service.loadClientByClientId("nonExistingClientId");
+    }
 
-	@Test
-	public void testLoadingClientIdWithNoDetails() {
-		int rowsInserted = jdbcTemplate.update(INSERT_SQL, "clientIdWithNoDetails", null, null,
-				null, null, null, null, null, null, null, IdentityZoneHolder.get().getId());
-		
-		assertEquals(1, rowsInserted);
+    @Test
+    public void testLoadingClientIdWithNoDetails() {
+        int rowsInserted = jdbcTemplate.update(INSERT_SQL, "clientIdWithNoDetails", null, null,
+                null, null, null, null, null, null, null, IdentityZoneHolder.get().getId());
 
-		ClientDetails clientDetails = service
-				.loadClientByClientId("clientIdWithNoDetails");
+        assertEquals(1, rowsInserted);
 
-		assertEquals("clientIdWithNoDetails", clientDetails.getClientId());
-		assertFalse(clientDetails.isSecretRequired());
-		assertNull(clientDetails.getClientSecret());
-		assertFalse(clientDetails.isScoped());
-		assertEquals(0, clientDetails.getScope().size());
-		assertEquals(2, clientDetails.getAuthorizedGrantTypes().size());
-		assertNull(clientDetails.getRegisteredRedirectUri());
-		assertEquals(0, clientDetails.getAuthorities().size());
-		assertEquals(null, clientDetails.getAccessTokenValiditySeconds());
-		assertEquals(null, clientDetails.getAccessTokenValiditySeconds());
-	}
+        ClientDetails clientDetails = service
+                .loadClientByClientId("clientIdWithNoDetails");
 
-	@Test
-	public void testLoadingClientIdWithAdditionalInformation() {
-		jdbcTemplate.update(INSERT_SQL, "clientIdWithAddInfo", null, null,
-				null, null, null, null, null, null, null, IdentityZoneHolder.get().getId());
-		jdbcTemplate
-				.update("update oauth_client_details set additional_information=? where client_id=?",
-						"{\"foo\":\"bar\"}", "clientIdWithAddInfo");
+        assertEquals("clientIdWithNoDetails", clientDetails.getClientId());
+        assertFalse(clientDetails.isSecretRequired());
+        assertNull(clientDetails.getClientSecret());
+        assertFalse(clientDetails.isScoped());
+        assertEquals(0, clientDetails.getScope().size());
+        assertEquals(2, clientDetails.getAuthorizedGrantTypes().size());
+        assertNull(clientDetails.getRegisteredRedirectUri());
+        assertEquals(0, clientDetails.getAuthorities().size());
+        assertEquals(null, clientDetails.getAccessTokenValiditySeconds());
+        assertEquals(null, clientDetails.getAccessTokenValiditySeconds());
+    }
 
-		ClientDetails clientDetails = service
-				.loadClientByClientId("clientIdWithAddInfo");
+    @Test
+    public void testLoadingClientIdWithAdditionalInformation() {
+        jdbcTemplate.update(INSERT_SQL, "clientIdWithAddInfo", null, null,
+                null, null, null, null, null, null, null, IdentityZoneHolder.get().getId());
+        jdbcTemplate
+                .update("update oauth_client_details set additional_information=? where client_id=?",
+                        "{\"foo\":\"bar\"}", "clientIdWithAddInfo");
 
-		assertEquals("clientIdWithAddInfo", clientDetails.getClientId());
-		assertEquals(Collections.singletonMap("foo", "bar"),
-				clientDetails.getAdditionalInformation());
-	}
+        ClientDetails clientDetails = service
+                .loadClientByClientId("clientIdWithAddInfo");
 
-	@Test
-	public void testLoadingClientIdWithSingleDetails() {
-		jdbcTemplate.update(INSERT_SQL, "clientIdWithSingleDetails",
-				"mySecret", "myResource", "myScope", "myAuthorizedGrantType",
-				"myRedirectUri", "myAuthority", 100, 200, "true", IdentityZoneHolder.get().getId());
+        assertEquals("clientIdWithAddInfo", clientDetails.getClientId());
+        assertEquals(Collections.singletonMap("foo", "bar"),
+                clientDetails.getAdditionalInformation());
+    }
 
-		ClientDetails clientDetails = service
-				.loadClientByClientId("clientIdWithSingleDetails");
+    @Test
+    public void testLoadingClientIdWithSingleDetails() {
+        jdbcTemplate.update(INSERT_SQL, "clientIdWithSingleDetails",
+                "mySecret", "myResource", "myScope", "myAuthorizedGrantType",
+                "myRedirectUri", "myAuthority", 100, 200, "true", IdentityZoneHolder.get().getId());
 
-		assertEquals("clientIdWithSingleDetails", clientDetails.getClientId());
-		assertTrue(clientDetails.isSecretRequired());
-		assertEquals("mySecret", clientDetails.getClientSecret());
-		assertTrue(clientDetails.isScoped());
-		assertEquals(1, clientDetails.getScope().size());
-		assertEquals("myScope", clientDetails.getScope().iterator().next());
-		assertEquals(1, clientDetails.getResourceIds().size());
-		assertEquals("myResource", clientDetails.getResourceIds().iterator()
-				.next());
-		assertEquals(1, clientDetails.getAuthorizedGrantTypes().size());
-		assertEquals("myAuthorizedGrantType", clientDetails
-				.getAuthorizedGrantTypes().iterator().next());
-		assertEquals("myRedirectUri", clientDetails.getRegisteredRedirectUri()
-				.iterator().next());
-		assertEquals(1, clientDetails.getAuthorities().size());
-		assertEquals("myAuthority", clientDetails.getAuthorities().iterator()
-				.next().getAuthority());
-		assertEquals(new Integer(100),
-				clientDetails.getAccessTokenValiditySeconds());
-		assertEquals(new Integer(200),
-				clientDetails.getRefreshTokenValiditySeconds());
-	}
+        ClientDetails clientDetails = service
+                .loadClientByClientId("clientIdWithSingleDetails");
 
-	/*
-	@Test
-	public void testLoadingClientIdWithSingleDetailsInCustomTable() {
-		jdbcTemplate.update(CUSTOM_INSERT_SQL, "clientIdWithSingleDetails",
-				"mySecret", "myResource", "myScope", "myAuthorizedGrantType",
-				"myRedirectUri", "myAuthority");
+        assertEquals("clientIdWithSingleDetails", clientDetails.getClientId());
+        assertTrue(clientDetails.isSecretRequired());
+        assertEquals("mySecret", clientDetails.getClientSecret());
+        assertTrue(clientDetails.isScoped());
+        assertEquals(1, clientDetails.getScope().size());
+        assertEquals("myScope", clientDetails.getScope().iterator().next());
+        assertEquals(1, clientDetails.getResourceIds().size());
+        assertEquals("myResource", clientDetails.getResourceIds().iterator()
+                .next());
+        assertEquals(1, clientDetails.getAuthorizedGrantTypes().size());
+        assertEquals("myAuthorizedGrantType", clientDetails
+                .getAuthorizedGrantTypes().iterator().next());
+        assertEquals("myRedirectUri", clientDetails.getRegisteredRedirectUri()
+                .iterator().next());
+        assertEquals(1, clientDetails.getAuthorities().size());
+        assertEquals("myAuthority", clientDetails.getAuthorities().iterator()
+                .next().getAuthority());
+        assertEquals(new Integer(100),
+                clientDetails.getAccessTokenValiditySeconds());
+        assertEquals(new Integer(200),
+                clientDetails.getRefreshTokenValiditySeconds());
+    }
 
-		JdbcClientDetailsService customService = new JdbcClientDetailsService(
-				db);
-		customService
-				.setSelectClientDetailsSql("select appId, appSecret, resourceIds, scope, "
-						+ "grantTypes, redirectUrl, authorities, access_token_validity, refresh_token_validity, additionalInformation, autoApproveScopes from ClientDetails where appId = ?");
+    /*
+    @Test
+    public void testLoadingClientIdWithSingleDetailsInCustomTable() {
+        jdbcTemplate.update(CUSTOM_INSERT_SQL, "clientIdWithSingleDetails",
+                "mySecret", "myResource", "myScope", "myAuthorizedGrantType",
+                "myRedirectUri", "myAuthority");
 
-		ClientDetails clientDetails = customService
-				.loadClientByClientId("clientIdWithSingleDetails");
+        JdbcClientDetailsService customService = new JdbcClientDetailsService(
+                db);
+        customService
+                .setSelectClientDetailsSql("select appId, appSecret, resourceIds, scope, "
+                        + "grantTypes, redirectUrl, authorities, access_token_validity, refresh_token_validity, additionalInformation, autoApproveScopes from ClientDetails where appId = ?");
 
-		assertEquals("clientIdWithSingleDetails", clientDetails.getClientId());
-		assertTrue(clientDetails.isSecretRequired());
-		assertEquals("mySecret", clientDetails.getClientSecret());
-		assertTrue(clientDetails.isScoped());
-		assertEquals(1, clientDetails.getScope().size());
-		assertEquals("myScope", clientDetails.getScope().iterator().next());
-		assertEquals(1, clientDetails.getResourceIds().size());
-		assertEquals("myResource", clientDetails.getResourceIds().iterator()
-				.next());
-		assertEquals(1, clientDetails.getAuthorizedGrantTypes().size());
-		assertEquals("myAuthorizedGrantType", clientDetails
-				.getAuthorizedGrantTypes().iterator().next());
-		assertEquals("myRedirectUri", clientDetails.getRegisteredRedirectUri()
-				.iterator().next());
-		assertEquals(1, clientDetails.getAuthorities().size());
-		assertEquals("myAuthority", clientDetails.getAuthorities().iterator()
-				.next().getAuthority());
-	}
-	*/
+        ClientDetails clientDetails = customService
+                .loadClientByClientId("clientIdWithSingleDetails");
 
-	@Test
-	public void testLoadingClientIdWithMultipleDetails() {
-		jdbcTemplate.update(INSERT_SQL, "clientIdWithMultipleDetails",
-				"mySecret", "myResource1,myResource2", "myScope1,myScope2",
-				"myAuthorizedGrantType1,myAuthorizedGrantType2",
-				"myRedirectUri1,myRedirectUri2", "myAuthority1,myAuthority2",
-				100, 200, "read,write", IdentityZoneHolder.get().getId());
+        assertEquals("clientIdWithSingleDetails", clientDetails.getClientId());
+        assertTrue(clientDetails.isSecretRequired());
+        assertEquals("mySecret", clientDetails.getClientSecret());
+        assertTrue(clientDetails.isScoped());
+        assertEquals(1, clientDetails.getScope().size());
+        assertEquals("myScope", clientDetails.getScope().iterator().next());
+        assertEquals(1, clientDetails.getResourceIds().size());
+        assertEquals("myResource", clientDetails.getResourceIds().iterator()
+                .next());
+        assertEquals(1, clientDetails.getAuthorizedGrantTypes().size());
+        assertEquals("myAuthorizedGrantType", clientDetails
+                .getAuthorizedGrantTypes().iterator().next());
+        assertEquals("myRedirectUri", clientDetails.getRegisteredRedirectUri()
+                .iterator().next());
+        assertEquals(1, clientDetails.getAuthorities().size());
+        assertEquals("myAuthority", clientDetails.getAuthorities().iterator()
+                .next().getAuthority());
+    }
+    */
 
-		ClientDetails clientDetails = service
-				.loadClientByClientId("clientIdWithMultipleDetails");
+    @Test
+    public void testLoadingClientIdWithMultipleDetails() {
+        jdbcTemplate.update(INSERT_SQL, "clientIdWithMultipleDetails",
+                "mySecret", "myResource1,myResource2", "myScope1,myScope2",
+                "myAuthorizedGrantType1,myAuthorizedGrantType2",
+                "myRedirectUri1,myRedirectUri2", "myAuthority1,myAuthority2",
+                100, 200, "read,write", IdentityZoneHolder.get().getId());
 
-		assertEquals("clientIdWithMultipleDetails", clientDetails.getClientId());
-		assertTrue(clientDetails.isSecretRequired());
-		assertEquals("mySecret", clientDetails.getClientSecret());
-		assertTrue(clientDetails.isScoped());
-		assertEquals(2, clientDetails.getResourceIds().size());
-		Iterator<String> resourceIds = clientDetails.getResourceIds()
-				.iterator();
-		assertEquals("myResource1", resourceIds.next());
-		assertEquals("myResource2", resourceIds.next());
-		assertEquals(2, clientDetails.getScope().size());
-		Iterator<String> scope = clientDetails.getScope().iterator();
-		assertEquals("myScope1", scope.next());
-		assertEquals("myScope2", scope.next());
-		assertEquals(2, clientDetails.getAuthorizedGrantTypes().size());
-		Iterator<String> grantTypes = clientDetails.getAuthorizedGrantTypes()
-				.iterator();
-		assertEquals("myAuthorizedGrantType1", grantTypes.next());
-		assertEquals("myAuthorizedGrantType2", grantTypes.next());
-		assertEquals(2, clientDetails.getRegisteredRedirectUri().size());
-		Iterator<String> redirectUris = clientDetails
-				.getRegisteredRedirectUri().iterator();
-		assertEquals("myRedirectUri1", redirectUris.next());
-		assertEquals("myRedirectUri2", redirectUris.next());
-		assertEquals(2, clientDetails.getAuthorities().size());
-		Iterator<GrantedAuthority> authorities = clientDetails.getAuthorities()
-				.iterator();
-		assertEquals("myAuthority1", authorities.next().getAuthority());
-		assertEquals("myAuthority2", authorities.next().getAuthority());
-		assertEquals(new Integer(100),
-				clientDetails.getAccessTokenValiditySeconds());
-		assertEquals(new Integer(200),
-				clientDetails.getRefreshTokenValiditySeconds());
-		assertTrue(clientDetails.isAutoApprove("read"));
-	}
+        ClientDetails clientDetails = service
+                .loadClientByClientId("clientIdWithMultipleDetails");
 
-	@Test
-	public void testAddClientWithNoDetails() {
+        assertEquals("clientIdWithMultipleDetails", clientDetails.getClientId());
+        assertTrue(clientDetails.isSecretRequired());
+        assertEquals("mySecret", clientDetails.getClientSecret());
+        assertTrue(clientDetails.isScoped());
+        assertEquals(2, clientDetails.getResourceIds().size());
+        Iterator<String> resourceIds = clientDetails.getResourceIds()
+                .iterator();
+        assertEquals("myResource1", resourceIds.next());
+        assertEquals("myResource2", resourceIds.next());
+        assertEquals(2, clientDetails.getScope().size());
+        Iterator<String> scope = clientDetails.getScope().iterator();
+        assertEquals("myScope1", scope.next());
+        assertEquals("myScope2", scope.next());
+        assertEquals(2, clientDetails.getAuthorizedGrantTypes().size());
+        Iterator<String> grantTypes = clientDetails.getAuthorizedGrantTypes()
+                .iterator();
+        assertEquals("myAuthorizedGrantType1", grantTypes.next());
+        assertEquals("myAuthorizedGrantType2", grantTypes.next());
+        assertEquals(2, clientDetails.getRegisteredRedirectUri().size());
+        Iterator<String> redirectUris = clientDetails
+                .getRegisteredRedirectUri().iterator();
+        assertEquals("myRedirectUri1", redirectUris.next());
+        assertEquals("myRedirectUri2", redirectUris.next());
+        assertEquals(2, clientDetails.getAuthorities().size());
+        Iterator<GrantedAuthority> authorities = clientDetails.getAuthorities()
+                .iterator();
+        assertEquals("myAuthority1", authorities.next().getAuthority());
+        assertEquals("myAuthority2", authorities.next().getAuthority());
+        assertEquals(new Integer(100),
+                clientDetails.getAccessTokenValiditySeconds());
+        assertEquals(new Integer(200),
+                clientDetails.getRefreshTokenValiditySeconds());
+        assertTrue(clientDetails.isAutoApprove("read"));
+    }
 
-		BaseClientDetails clientDetails = new BaseClientDetails();
-		clientDetails.setClientId("addedClientIdWithNoDetails");
+    @Test
+    public void testAddClientWithNoDetails() {
 
-		service.addClientDetails(clientDetails);
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId("addedClientIdWithNoDetails");
 
-		Map<String, Object> map = jdbcTemplate.queryForMap(SELECT_SQL,
-				"addedClientIdWithNoDetails");
+        service.addClientDetails(clientDetails);
 
-		assertEquals("addedClientIdWithNoDetails", map.get("client_id"));
-		assertTrue(map.containsKey("client_secret"));
-		assertEquals(null, map.get("client_secret"));
-	}
+        Map<String, Object> map = jdbcTemplate.queryForMap(SELECT_SQL,
+                "addedClientIdWithNoDetails");
 
-	@Test(expected = ClientAlreadyExistsException.class)
-	public void testInsertDuplicateClient() {
+        assertEquals("addedClientIdWithNoDetails", map.get("client_id"));
+        assertTrue(map.containsKey("client_secret"));
+        assertEquals(null, map.get("client_secret"));
+    }
 
-		BaseClientDetails clientDetails = new BaseClientDetails();
-		clientDetails.setClientId("duplicateClientIdWithNoDetails");
+    @Test(expected = ClientAlreadyExistsException.class)
+    public void testInsertDuplicateClient() {
 
-		service.addClientDetails(clientDetails);
-		service.addClientDetails(clientDetails);
-	}
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId("duplicateClientIdWithNoDetails");
 
-	@Test
-	public void testUpdateClientSecret() {
+        service.addClientDetails(clientDetails);
+        service.addClientDetails(clientDetails);
+    }
 
-		BaseClientDetails clientDetails = new BaseClientDetails();
-		clientDetails.setClientId("newClientIdWithNoDetails");
+    @Test
+    public void testUpdateClientSecret() {
 
-		service.setPasswordEncoder(new PasswordEncoder() {
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId("newClientIdWithNoDetails");
 
-			public boolean matches(CharSequence rawPassword,
-					String encodedPassword) {
-				return true;
-			}
+        service.setPasswordEncoder(new PasswordEncoder() {
 
-			public String encode(CharSequence rawPassword) {
-				return "BAR";
-			}
-		});
-		service.addClientDetails(clientDetails);
-		service.updateClientSecret(clientDetails.getClientId(), "foo");
+            public boolean matches(CharSequence rawPassword,
+                    String encodedPassword) {
+                return true;
+            }
 
-		Map<String, Object> map = jdbcTemplate.queryForMap(SELECT_SQL,
-				"newClientIdWithNoDetails");
+            public String encode(CharSequence rawPassword) {
+                return "BAR";
+            }
+        });
+        service.addClientDetails(clientDetails);
+        service.updateClientSecret(clientDetails.getClientId(), "foo");
 
-		assertEquals("newClientIdWithNoDetails", map.get("client_id"));
-		assertTrue(map.containsKey("client_secret"));
-		assertEquals("BAR", map.get("client_secret"));
-	}
+        Map<String, Object> map = jdbcTemplate.queryForMap(SELECT_SQL,
+                "newClientIdWithNoDetails");
 
-	@Test
-	public void testUpdateClientRedirectURI() {
+        assertEquals("newClientIdWithNoDetails", map.get("client_id"));
+        assertTrue(map.containsKey("client_secret"));
+        assertEquals("BAR", map.get("client_secret"));
+    }
 
-		BaseClientDetails clientDetails = new BaseClientDetails();
-		clientDetails.setClientId("newClientIdWithNoDetails");
+    @Test
+    public void testUpdateClientRedirectURI() {
 
-		service.addClientDetails(clientDetails);
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId("newClientIdWithNoDetails");
 
-		String[] redirectURI = { "http://localhost:8080",
-				"http://localhost:9090" };
-		clientDetails.setRegisteredRedirectUri(new HashSet<String>(Arrays
-				.asList(redirectURI)));
+        service.addClientDetails(clientDetails);
 
-		service.updateClientDetails(clientDetails);
+        String[] redirectURI = { "http://localhost:8080",
+                "http://localhost:9090" };
+        clientDetails.setRegisteredRedirectUri(new HashSet<String>(Arrays
+                .asList(redirectURI)));
 
-		Map<String, Object> map = jdbcTemplate.queryForMap(SELECT_SQL,
-				"newClientIdWithNoDetails");
+        service.updateClientDetails(clientDetails);
 
-		assertEquals("newClientIdWithNoDetails", map.get("client_id"));
-		assertTrue(map.containsKey("web_server_redirect_uri"));
-		assertEquals("http://localhost:8080,http://localhost:9090",
-				map.get("web_server_redirect_uri"));
-	}
+        Map<String, Object> map = jdbcTemplate.queryForMap(SELECT_SQL,
+                "newClientIdWithNoDetails");
 
-	@Test(expected = NoSuchClientException.class)
-	public void testUpdateNonExistentClient() {
+        assertEquals("newClientIdWithNoDetails", map.get("client_id"));
+        assertTrue(map.containsKey("web_server_redirect_uri"));
+        assertEquals("http://localhost:8080,http://localhost:9090",
+                map.get("web_server_redirect_uri"));
+    }
 
-		BaseClientDetails clientDetails = new BaseClientDetails();
-		clientDetails.setClientId("nosuchClientIdWithNoDetails");
+    @Test(expected = NoSuchClientException.class)
+    public void testUpdateNonExistentClient() {
 
-		service.updateClientDetails(clientDetails);
-	}
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId("nosuchClientIdWithNoDetails");
 
-	@Test
-	public void testRemoveClient() {
+        service.updateClientDetails(clientDetails);
+    }
 
-		BaseClientDetails clientDetails = new BaseClientDetails();
-		clientDetails.setClientId("deletedClientIdWithNoDetails");
+    @Test
+    public void testRemoveClient() {
 
-		service.addClientDetails(clientDetails);
-		service.removeClientDetails(clientDetails.getClientId());
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId("deletedClientIdWithNoDetails");
 
-		int count = jdbcTemplate.queryForObject(
-				"select count(*) from oauth_client_details where client_id=?",
-				Integer.class, "deletedClientIdWithNoDetails");
+        service.addClientDetails(clientDetails);
+        service.removeClientDetails(clientDetails.getClientId());
 
-		assertEquals(0, count);
-	}
+        int count = jdbcTemplate.queryForObject(
+                "select count(*) from oauth_client_details where client_id=?",
+                Integer.class, "deletedClientIdWithNoDetails");
 
-	@Test(expected = NoSuchClientException.class)
-	public void testRemoveNonExistentClient() {
+        assertEquals(0, count);
+    }
 
-		BaseClientDetails clientDetails = new BaseClientDetails();
-		clientDetails.setClientId("nosuchClientIdWithNoDetails");
+    @Test(expected = NoSuchClientException.class)
+    public void testRemoveNonExistentClient() {
 
-		service.removeClientDetails(clientDetails.getClientId());
-	}
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId("nosuchClientIdWithNoDetails");
 
-	@Test
-	public void testFindClients() {
+        service.removeClientDetails(clientDetails.getClientId());
+    }
 
-		BaseClientDetails clientDetails = new BaseClientDetails();
-		clientDetails.setClientId("aclient");
+    @Test
+    public void testFindClients() {
 
-		service.addClientDetails(clientDetails);
-		int count = service.listClientDetails().size();
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId("aclient");
 
-		assertEquals(1, count);
-	}
-	
-	@Test
-	public void testLoadingClientInOtherZoneFromOtherZone() {
-	    IdentityZoneHolder.set(otherIdentityZone);
-	    BaseClientDetails clientDetails = new BaseClientDetails();
+        service.addClientDetails(clientDetails);
+        int count = service.listClientDetails().size();
+
+        assertEquals(1, count);
+    }
+
+    @Test
+    public void testLoadingClientInOtherZoneFromOtherZone() {
+        IdentityZoneHolder.set(otherIdentityZone);
+        BaseClientDetails clientDetails = new BaseClientDetails();
         clientDetails.setClientId("clientInOtherZone");
         service.addClientDetails(clientDetails);
         assertNotNull(service.loadClientByClientId("clientInOtherZone"));
-	}
-	
-	@Test(expected = NoSuchClientException.class)
+    }
+
+    @Test(expected = NoSuchClientException.class)
     public void testLoadingClientInOtherZoneFromDefaultZoneFails() {
         IdentityZoneHolder.set(otherIdentityZone);
         BaseClientDetails clientDetails = new BaseClientDetails();
@@ -366,19 +366,19 @@ public class MultitenantJdbcClientDetailsServiceTests {
         IdentityZoneHolder.clear();
         service.loadClientByClientId("clientInOtherZone");
     }
-	
-	@Test
-	public void testAddingClientToOtherIdentityZoneShouldHaveOtherIdentityZoneId() {
-	    IdentityZoneHolder.set(otherIdentityZone);
+
+    @Test
+    public void testAddingClientToOtherIdentityZoneShouldHaveOtherIdentityZoneId() {
+        IdentityZoneHolder.set(otherIdentityZone);
         BaseClientDetails clientDetails = new BaseClientDetails();
         String clientId = "clientInOtherZone";
         clientDetails.setClientId(clientId);
         service.addClientDetails(clientDetails);
         String identityZoneId = jdbcTemplate.queryForObject("select identity_zone_id from oauth_client_details where client_id = ?", String.class,clientId);
         assertEquals(otherIdentityZone.getId(), identityZoneId.trim());
-	}
-	
-	@Test
+    }
+
+    @Test
     public void testAddingClientToDefaultIdentityZoneShouldHaveAnIdentityZoneId() {
         BaseClientDetails clientDetails = new BaseClientDetails();
         String clientId = "clientInDefaultZone";

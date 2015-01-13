@@ -12,29 +12,15 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
-public class IdentityZoneHolder {
+import org.cloudfoundry.identity.uaa.error.UaaException;
 
-    private static final ThreadLocal<IdentityZone> THREADLOCAL = new InheritableThreadLocal<IdentityZone>() {
-        @Override
-        protected IdentityZone initialValue() {
-            return IdentityZone.getUaa();
-        }
-    };
+public class ZoneDoesNotExistsException extends UaaException {
 
-    public static IdentityZone get() {
-        return THREADLOCAL.get();
+    public ZoneDoesNotExistsException(String msg) {
+        super("zone_not_found", msg, 404);
     }
 
-    public static void set(IdentityZone zone) {
-        THREADLOCAL.set(zone);
+    public ZoneDoesNotExistsException(String msg, Throwable cause) {
+        super(cause, "zone_not_found", msg, 404);
     }
-
-    public static void clear() {
-        THREADLOCAL.remove();
-    }
-    
-    public static boolean isUaa() {
-    	return THREADLOCAL.get().getId().equals(IdentityZone.getUaa().getId());
-    }
-
 }

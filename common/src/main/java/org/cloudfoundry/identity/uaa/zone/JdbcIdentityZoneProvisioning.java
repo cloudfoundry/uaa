@@ -1,6 +1,19 @@
+/*******************************************************************************
+ *     Cloud Foundry
+ *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *
+ *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *     You may not use this product except in compliance with the License.
+ *
+ *     This product includes a number of subcomponents with
+ *     separate copyright notices and license terms. Your use of these
+ *     subcomponents is subject to the terms and conditions of the
+ *     subcomponent's license, as noted in the LICENSE file.
+ *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
@@ -17,7 +30,11 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning {
 
     public static final String ID_ZONE_FIELDS = "id,version,created,lastModified,name,subdomain,description";
 
+    public static final String ID_ZONE_UPDATE_FIELDS = ID_ZONE_FIELDS.substring(3).replace(",","=?,")+"=?";
+
     public static final String CREATE_IDENTITY_ZONE_SQL = "insert into identity_zone(" + ID_ZONE_FIELDS + ") values (?,?,?,?,?,?,?)";
+
+    public static final String UPDATE_IDENTITY_ZONE_SQL = "update identity_zone set " + ID_ZONE_UPDATE_FIELDS + " where id=?";
     
     public static final String IDENTITY_ZONES_QUERY = "select " + ID_ZONE_FIELDS + " from identity_zone ";
 
@@ -36,8 +53,12 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning {
 
     @Override
     public IdentityZone retrieve(String id) {
-        IdentityZone identityZone = jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_ID_QUERY, mapper, id);
-        return identityZone;
+        try {
+            IdentityZone identityZone = jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_ID_QUERY, mapper, id);
+            return identityZone;
+        } catch (EmptyResultDataAccessException x) {
+            throw new ZoneDoesNotExistsException("Zone["+id+"] not found.", x);
+        }
     }
     
     @Override
@@ -68,9 +89,32 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning {
                 }
             });
         } catch (DuplicateKeyException e) {
-            throw new ZoneAlreadyExistsException(e.getMostSpecificCause().getMessage());
+            throw new ZoneAlreadyExistsException(e.getMostSpecificCause().getMessage(), e);
         }
 
+        return retrieve(identityZone.getId());
+    }
+
+    @Override
+    public IdentityZone update(final IdentityZone identityZone) {
+
+        try {
+            jdbcTemplate.update(UPDATE_IDENTITY_ZONE_SQL, new PreparedStatementSetter() {
+                @Override
+                public void setValues(PreparedStatement ps) throws SQLException {
+                    ps.setInt(1, identityZone.getVersion());
+                    ps.setTimestamp(2, new Timestamp(new Date().getTime()));
+                    ps.setTimestamp(3, new Timestamp(new Date().getTime()));
+                    ps.setString(4, identityZone.getName());
+                    ps.setString(5, identityZone.getSubdomain());
+                    ps.setString(6, identityZone.getDescription());
+                    ps.setString(7, identityZone.getId().trim());
+                }
+            });
+        } catch (DuplicateKeyException e) {
+            //duplicate subdomain
+            throw new ZoneAlreadyExistsException(e.getMostSpecificCause().getMessage(), e);
+        }
         return retrieve(identityZone.getId());
     }
 

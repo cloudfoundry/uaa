@@ -1,4 +1,4 @@
-package org.cloudfoundry.identity.uaa.zone;
+package org.cloudfoundry.identity.uaa.integration;
 
 import static org.junit.Assert.assertEquals;
 
@@ -13,6 +13,8 @@ import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneCreationRequest;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -69,7 +71,7 @@ public class IdentityZoneEndpointsIntegrationTests {
 
         ResponseEntity<Void> response = client.exchange(
                 serverRunning.getUrl("/identity-zones/{id}"), 
-                HttpMethod.PUT,
+                HttpMethod.POST,
                 new HttpEntity<>(requestBody, headers),
                 new ParameterizedTypeReference<Void>() {}, 
                 id);
@@ -86,19 +88,19 @@ public class IdentityZoneEndpointsIntegrationTests {
         idZone.setName("testCreateZone() "+id);
         IdentityZoneCreationRequest request = new IdentityZoneCreationRequest();
         request.setIdentityZone(idZone);
-    	BaseClientDetails clientDetails = new BaseClientDetails("test123", null,null, "client_credentials", "clients.admin,scim.read,scim.write");
-    	clientDetails.setClientSecret("testSecret");
-    	request.setClientDetails(Collections.singletonList(clientDetails));
+        BaseClientDetails clientDetails = new BaseClientDetails("test123", null,null, "client_credentials", "clients.admin,scim.read,scim.write");
+        clientDetails.setClientSecret("testSecret");
+        request.setClientDetails(Collections.singletonList(clientDetails));
         ResponseEntity<Void> response = client.exchange(
                 serverRunning.getUrl("/identity-zones/{id}"), 
-                HttpMethod.PUT,
-                new HttpEntity<IdentityZoneCreationRequest>(request), 
+                HttpMethod.POST,
+                new HttpEntity<>(request),
                 new ParameterizedTypeReference<Void>() {}, 
                 id);
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         
-		ResponseEntity<String> tokenResponse = getClientCredentialsToken(idZone.getSubdomain(), clientDetails.getClientId(), clientDetails.getClientSecret());
-		assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
+        ResponseEntity<String> tokenResponse = getClientCredentialsToken(idZone.getSubdomain(), clientDetails.getClientId(), clientDetails.getClientSecret());
+        assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
     }
     
     @Test
@@ -110,42 +112,42 @@ public class IdentityZoneEndpointsIntegrationTests {
         idZone.setName("testCreateZone() "+id);
         IdentityZoneCreationRequest request = new IdentityZoneCreationRequest();
         request.setIdentityZone(idZone);
-        List<BaseClientDetails> clientDetails = new ArrayList<BaseClientDetails>();
-    	BaseClientDetails client1 = new BaseClientDetails("client1", null,null, "client_credentials", "clients.admin,scim.read,scim.write");
-    	client1.setClientSecret("client1Secret");
-    	clientDetails.add(client1);
-    	BaseClientDetails client2 = new BaseClientDetails("client2", null,null, "client_credentials", "clients.admin,scim.read,scim.write");
-    	client2.setClientSecret("client2Secret");
-    	clientDetails.add(client2);
-    	request.setClientDetails(clientDetails);
+        List<BaseClientDetails> clientDetails = new ArrayList<>();
+        BaseClientDetails client1 = new BaseClientDetails("client1", null,null, "client_credentials", "clients.admin,scim.read,scim.write");
+        client1.setClientSecret("client1Secret");
+        clientDetails.add(client1);
+        BaseClientDetails client2 = new BaseClientDetails("client2", null,null, "client_credentials", "clients.admin,scim.read,scim.write");
+        client2.setClientSecret("client2Secret");
+        clientDetails.add(client2);
+        request.setClientDetails(clientDetails);
         ResponseEntity<Void> response = client.exchange(
                 serverRunning.getUrl("/identity-zones/{id}"), 
-                HttpMethod.PUT,
-                new HttpEntity<IdentityZoneCreationRequest>(request), 
+                HttpMethod.POST,
+                new HttpEntity<>(request),
                 new ParameterizedTypeReference<Void>() {}, 
                 id);
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         
-		ResponseEntity<String> tokenResponse = getClientCredentialsToken(idZone.getSubdomain(), client1.getClientId(), client1.getClientSecret());
-		assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
-		tokenResponse = getClientCredentialsToken(idZone.getSubdomain(), client2.getClientId(), client2.getClientSecret());
-		assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
+        ResponseEntity<String> tokenResponse = getClientCredentialsToken(idZone.getSubdomain(), client1.getClientId(), client1.getClientSecret());
+        assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
+        tokenResponse = getClientCredentialsToken(idZone.getSubdomain(), client2.getClientId(), client2.getClientSecret());
+        assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
     }
     
     private ResponseEntity<String> getClientCredentialsToken(String subdomain, String clientId, String clientSecret) throws IOException {
-    	final String plainCreds = clientId+":"+clientSecret;
-    	final byte[] plainCredsBytes = plainCreds.getBytes();
-    	final byte[] base64CredsBytes = Base64.encodeBase64(plainCredsBytes);
-    	final String base64Creds = new String(base64CredsBytes);
-    	HttpHeaders headers = new HttpHeaders();
-    	headers.add("Authorization", "Basic "+base64Creds);
-    	headers.add("Host", subdomain+"."+serverRunning.getHostName());
-		return serverRunning.getForString("oauth/token?grant_type=client_credentials", headers);
-	}
+        final String plainCreds = clientId+":"+clientSecret;
+        final byte[] plainCredsBytes = plainCreds.getBytes();
+        final byte[] base64CredsBytes = Base64.encodeBase64(plainCredsBytes);
+        final String base64Creds = new String(base64CredsBytes);
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Authorization", "Basic "+base64Creds);
+        headers.add("Host", subdomain+"."+serverRunning.getHostName());
+        return serverRunning.getForString("oauth/token?grant_type=client_credentials", headers);
+    }
 
-	@Test
+    @Test
     public void testCreateZoneWithNonUniqueSubdomain() {
-		IdentityZone idZone1 = new IdentityZone();
+        IdentityZone idZone1 = new IdentityZone();
         String id1 = UUID.randomUUID().toString();
         idZone1.setId(id1);
         idZone1.setSubdomain(id1+"non-unique");
@@ -154,8 +156,8 @@ public class IdentityZoneEndpointsIntegrationTests {
         request1.setIdentityZone(idZone1);
         ResponseEntity<Void> response1 = client.exchange(
                 serverRunning.getUrl("/identity-zones/{id}"), 
-                HttpMethod.PUT,
-                new HttpEntity<IdentityZoneCreationRequest>(request1), 
+                HttpMethod.POST,
+                new HttpEntity<>(request1),
                 new ParameterizedTypeReference<Void>() {}, 
                 id1);
         assertEquals(HttpStatus.CREATED, response1.getStatusCode());
@@ -169,8 +171,8 @@ public class IdentityZoneEndpointsIntegrationTests {
         request2.setIdentityZone(idZone2);
         ResponseEntity<Map<String,String>> response2 = client.exchange(
                 serverRunning.getUrl("/identity-zones/{id}"), 
-                HttpMethod.PUT,
-                new HttpEntity<IdentityZoneCreationRequest>(request2), 
+                HttpMethod.POST,
+                new HttpEntity<>(request2),
                 new ParameterizedTypeReference<Map<String,String>>() {}, 
                 id2);
         assertEquals(HttpStatus.CONFLICT, response2.getStatusCode());
