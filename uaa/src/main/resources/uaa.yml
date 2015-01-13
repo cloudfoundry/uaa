@@ -36,6 +36,10 @@
 #SET PASSWORD FOR 'root'@'localhost' = PASSWORD('changeme');
 #SET PASSWORD FOR 'root'@'127.0.0.1' = PASSWORD('changeme');
 
+# A comprehensive list of hostnames routed to the UAA. The UAA uses this to resolve subdomains for Identity Zones.
+# Defaults to 'localhost'
+#internalHostnames: localhost,uaa.example.com,login.example.com
+
 #authentication:
 #  policy:
 #    lockoutAfterFailures: 5
