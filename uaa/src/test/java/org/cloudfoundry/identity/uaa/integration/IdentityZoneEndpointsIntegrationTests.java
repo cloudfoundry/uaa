@@ -70,11 +70,10 @@ public class IdentityZoneEndpointsIntegrationTests {
         headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
 
         ResponseEntity<Void> response = client.exchange(
-                serverRunning.getUrl("/identity-zones/{id}"), 
+                serverRunning.getUrl("/identity-zones"),
                 HttpMethod.POST,
                 new HttpEntity<>(requestBody, headers),
-                new ParameterizedTypeReference<Void>() {}, 
-                id);
+                new ParameterizedTypeReference<Void>() {});
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
     }
@@ -92,7 +91,7 @@ public class IdentityZoneEndpointsIntegrationTests {
         clientDetails.setClientSecret("testSecret");
         request.setClientDetails(Collections.singletonList(clientDetails));
         ResponseEntity<Void> response = client.exchange(
-                serverRunning.getUrl("/identity-zones/{id}"), 
+                serverRunning.getUrl("/identity-zones"),
                 HttpMethod.POST,
                 new HttpEntity<>(request),
                 new ParameterizedTypeReference<Void>() {}, 
@@ -121,7 +120,7 @@ public class IdentityZoneEndpointsIntegrationTests {
         clientDetails.add(client2);
         request.setClientDetails(clientDetails);
         ResponseEntity<Void> response = client.exchange(
-                serverRunning.getUrl("/identity-zones/{id}"), 
+                serverRunning.getUrl("/identity-zones"),
                 HttpMethod.POST,
                 new HttpEntity<>(request),
                 new ParameterizedTypeReference<Void>() {}, 
@@ -155,7 +154,7 @@ public class IdentityZoneEndpointsIntegrationTests {
         IdentityZoneCreationRequest request1 = new IdentityZoneCreationRequest();
         request1.setIdentityZone(idZone1);
         ResponseEntity<Void> response1 = client.exchange(
-                serverRunning.getUrl("/identity-zones/{id}"), 
+                serverRunning.getUrl("/identity-zones"),
                 HttpMethod.POST,
                 new HttpEntity<>(request1),
                 new ParameterizedTypeReference<Void>() {}, 
@@ -170,7 +169,7 @@ public class IdentityZoneEndpointsIntegrationTests {
         IdentityZoneCreationRequest request2 = new IdentityZoneCreationRequest();
         request2.setIdentityZone(idZone2);
         ResponseEntity<Map<String,String>> response2 = client.exchange(
-                serverRunning.getUrl("/identity-zones/{id}"), 
+                serverRunning.getUrl("/identity-zones"),
                 HttpMethod.POST,
                 new HttpEntity<>(request2),
                 new ParameterizedTypeReference<Map<String,String>>() {}, 

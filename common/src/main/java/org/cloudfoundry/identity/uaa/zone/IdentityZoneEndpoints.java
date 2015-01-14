@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.oauth.ClientAdminEndpoints;
 import org.cloudfoundry.identity.uaa.oauth.ClientDetailsValidator;
 import org.cloudfoundry.identity.uaa.oauth.InvalidClientDetailsException;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -27,6 +28,7 @@ import org.springframework.security.oauth2.provider.ClientAlreadyExistsException
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -62,14 +64,14 @@ public class IdentityZoneEndpoints {
     }
 
     
-    @RequestMapping(value = "{id}", method = POST)
-    public ResponseEntity<IdentityZone> createIdentityZone(
-        @RequestBody @Valid IdentityZoneCreationRequest body,
-        @PathVariable String id)
+    @RequestMapping(method = POST)
+    public ResponseEntity<IdentityZone> createIdentityZone(@RequestBody @Valid IdentityZoneCreationRequest body)
     {
+        if (body.getIdentityZone()==null || !StringUtils.hasText(body.getIdentityZone().getId())) {
+            return new ResponseEntity<>(body.getIdentityZone(), HttpStatus.BAD_REQUEST);
+        }
         IdentityZone previous = IdentityZoneHolder.get();
         try {
-     
             List<ClientDetails> clients = new ArrayList<ClientDetails>();
             if (body.getClientDetails() != null) {
                 for (BaseClientDetails clientDetails : body.getClientDetails()) {
@@ -78,7 +80,6 @@ public class IdentityZoneEndpoints {
                     }
                 }
             }
-            body.getIdentityZone().setId(id);
             IdentityZone created = zoneDao.create(body.getIdentityZone());
             IdentityZoneHolder.set(created);
             IdentityProvider defaultIdp = new IdentityProvider();

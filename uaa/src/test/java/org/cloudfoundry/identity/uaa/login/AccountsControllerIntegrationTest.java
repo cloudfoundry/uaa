@@ -241,12 +241,13 @@ public class AccountsControllerIntegrationTest {
         IdentityZone identityZone = new IdentityZone();
         identityZone.setSubdomain("mysubdomain");
         identityZone.setName("myzonename");
+        identityZone.setId(new RandomValueStringGenerator().generate());
 
         IdentityZoneCreationRequest zoneCreationRequest = new IdentityZoneCreationRequest();
         zoneCreationRequest.setIdentityZone(identityZone);
 
         String zonesCreateToken = mockMvcTestClient.getOAuthAccessToken("identity", "identitysecret", "client_credentials", "zones.create");
-        mockMvc.perform(post("/identity-zones/myzoneid")
+        mockMvc.perform(post("/identity-zones")
                 .header("Authorization", "Bearer " + zonesCreateToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(new ObjectMapper().writeValueAsString(zoneCreationRequest)))
@@ -295,6 +296,7 @@ public class AccountsControllerIntegrationTest {
         IdentityZone identityZone = new IdentityZone();
         identityZone.setSubdomain("mysubdomain");
         identityZone.setName("myzonename");
+        identityZone.setId(new RandomValueStringGenerator().generate());
 
         BaseClientDetails clientDetails = new BaseClientDetails();
         clientDetails.setClientId("myzoneclient");
@@ -307,7 +309,7 @@ public class AccountsControllerIntegrationTest {
         zoneCreationRequest.setClientDetails(Arrays.asList(clientDetails));
 
         String zonesCreateToken = mockMvcTestClient.getOAuthAccessToken("identity", "identitysecret", "client_credentials", "zones.create");
-        mockMvc.perform(post("/identity-zones/myzoneid")
+        mockMvc.perform(post("/identity-zones")
                     .header("Authorization", "Bearer " + zonesCreateToken)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(new ObjectMapper().writeValueAsString(zoneCreationRequest)))

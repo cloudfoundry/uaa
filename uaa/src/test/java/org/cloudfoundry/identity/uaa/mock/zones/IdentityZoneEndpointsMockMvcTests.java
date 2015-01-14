@@ -153,9 +153,10 @@ public class IdentityZoneEndpointsMockMvcTests {
 
     public MvcResult createZone(String id, HttpStatus expect, String token) throws Exception {
         IdentityZone identityZone = getIdentityZone(id);
+        identityZone.setId(id);
         IdentityZoneCreationRequest creationRequest = new IdentityZoneCreationRequest();
         creationRequest.setIdentityZone(identityZone);
-        return mockMvc.perform(post("/identity-zones/" + id)
+        return mockMvc.perform(post("/identity-zones")
             .header("Authorization", "Bearer " + token)
             .contentType(APPLICATION_JSON)
             .content(new ObjectMapper().writeValueAsString(creationRequest)))
@@ -184,12 +185,10 @@ public class IdentityZoneEndpointsMockMvcTests {
         IdentityZoneCreationRequest creationRequest = new IdentityZoneCreationRequest();
         String id = UUID.randomUUID().toString();
         IdentityZone identityZone = getIdentityZone(id);
-        // this needs to be set because we're setting the IdentityZoneHolder with this identityZone
-        // and code that uses the IdentityZoneHolder expects there to be an id in the zone
         identityZone.setId(id);
         creationRequest.setIdentityZone(identityZone);
         
-        mockMvc.perform(post("/identity-zones/" + id)
+        mockMvc.perform(post("/identity-zones")
             .header("Authorization", "Bearer "+identityAdminToken)
             .contentType(APPLICATION_JSON)
             .content(new ObjectMapper().writeValueAsString(creationRequest)))
@@ -216,10 +215,9 @@ public class IdentityZoneEndpointsMockMvcTests {
     @Test
     public void testCreateInvalidZone() throws Exception {
         IdentityZone identityZone = new IdentityZone();
-        String id = UUID.randomUUID().toString();
         IdentityZoneCreationRequest creationRequest = new IdentityZoneCreationRequest();
         creationRequest.setIdentityZone(identityZone);
-        mockMvc.perform(post("/identity-zones/" + id)
+        mockMvc.perform(post("/identity-zones")
                         .header("Authorization", "Bearer "+identityAdminToken)
                         .contentType(APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(creationRequest)))
@@ -239,7 +237,7 @@ public class IdentityZoneEndpointsMockMvcTests {
         IdentityZone identityZone2 = MultitenancyFixture.identityZone(id2, subdomain);
         IdentityZoneCreationRequest creationRequest = new IdentityZoneCreationRequest();
         creationRequest.setIdentityZone(identityZone1);
-        mockMvc.perform(post("/identity-zones/" + UUID.randomUUID().toString())
+        mockMvc.perform(post("/identity-zones")
                         .header("Authorization", "Bearer "+identityAdminToken)
                         .contentType(APPLICATION_JSON)
                         .accept(APPLICATION_JSON)
@@ -247,7 +245,7 @@ public class IdentityZoneEndpointsMockMvcTests {
                         .andExpect(status().isCreated());
         
         creationRequest.setIdentityZone(identityZone2);
-        mockMvc.perform(post("/identity-zones/" + UUID.randomUUID().toString())
+        mockMvc.perform(post("/identity-zones")
                         .header("Authorization", "Bearer "+identityAdminToken)
                         .contentType(APPLICATION_JSON)
                         .accept(APPLICATION_JSON)
@@ -259,6 +257,7 @@ public class IdentityZoneEndpointsMockMvcTests {
     public void testCreateZoneAndClients() throws Exception {
         final String id = UUID.randomUUID().toString();
         IdentityZone identityZone = getIdentityZone(id);
+        identityZone.setId(id);
         IdentityZoneCreationRequest creationRequest = new IdentityZoneCreationRequest();
         creationRequest.setIdentityZone(identityZone);
         List<BaseClientDetails> clientDetails = new ArrayList<BaseClientDetails>();
@@ -270,7 +269,7 @@ public class IdentityZoneEndpointsMockMvcTests {
         clientDetails.add(client2);
         creationRequest.setClientDetails(clientDetails);
         
-        mockMvc.perform(post("/identity-zones/" + id)
+        mockMvc.perform(post("/identity-zones")
                         .header("Authorization", "Bearer "+identityAdminToken)
                         .contentType(APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(creationRequest)))
