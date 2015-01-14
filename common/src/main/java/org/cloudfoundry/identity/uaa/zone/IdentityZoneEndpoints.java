@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.oauth.ClientAdminEndpoints;
@@ -67,8 +68,11 @@ public class IdentityZoneEndpoints {
     @RequestMapping(method = POST)
     public ResponseEntity<IdentityZone> createIdentityZone(@RequestBody @Valid IdentityZoneCreationRequest body)
     {
-        if (body.getIdentityZone()==null || !StringUtils.hasText(body.getIdentityZone().getId())) {
+        if (body.getIdentityZone()==null) {
             return new ResponseEntity<>(body.getIdentityZone(), HttpStatus.BAD_REQUEST);
+        }
+        if (!StringUtils.hasText(body.getIdentityZone().getId())) {
+            body.getIdentityZone().setId(UUID.randomUUID().toString());
         }
         IdentityZone previous = IdentityZoneHolder.get();
         try {

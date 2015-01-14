@@ -8,6 +8,7 @@ import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -131,6 +132,14 @@ public class IdentityZoneEndpointsMockMvcTests {
     }
 
     @Test
+    public void testCreateZoneWithoutID() throws Exception {
+        String id = "";
+        MvcResult result = createZone(id, HttpStatus.CREATED, identityAdminToken);
+        IdentityZone zone = new ObjectMapper().readValue(result.getResponse().getContentAsByteArray(), IdentityZone.class);
+        assertTrue(StringUtils.hasText(zone.getId()));
+    }
+
+    @Test
     public void testCreateDuplicateZoneReturns409() throws Exception {
         String id = new RandomValueStringGenerator().generate();
         createZone(id, HttpStatus.CREATED, identityAdminToken);
@@ -163,8 +172,6 @@ public class IdentityZoneEndpointsMockMvcTests {
                 .andExpect(status().is(expect.value()))
                 .andReturn();
     }
-
-
 
     public MvcResult updateZone(String id, HttpStatus expect, String token) throws Exception {
         IdentityZone identityZone = getIdentityZone(id);
@@ -206,7 +213,7 @@ public class IdentityZoneEndpointsMockMvcTests {
 
     private IdentityZone getIdentityZone(String subdomain) {
         IdentityZone identityZone = new IdentityZone();
-        identityZone.setSubdomain(subdomain);
+        identityZone.setSubdomain(StringUtils.hasText(subdomain)?subdomain:new RandomValueStringGenerator().generate());
         identityZone.setName("The Twiglet Zone");
         identityZone.setDescription("Like the Twilight Zone but tastier.");
         return identityZone;
