@@ -36,13 +36,19 @@ public class UaaConfigurationTests {
     @Test
     public void validYamlIsOk() throws Exception {
         createValidator(
-        "name: uaa\n" +
-                        "issuer.uri: http://foo.com\n" +
-                        "oauth:\n" +
-                        "  clients:\n" +
-                        "    cf:\n" +
-                        "      id: cf\n" +
-                        "      authorized-grant-types: implicit\n");
+            "name: uaa\n" +
+            "issuer.uri: http://foo.com\n" +
+            "oauth:\n" +
+            "  clients:\n" +
+            "    cf:\n" +
+            "      id: cf\n" +
+            "      authorized-grant-types: implicit\n" +
+            "  user:\n" +
+            "    authorities:\n" +
+            "      - openid\n" +
+            "      - scim.me\n" +
+            "  openid:\n" +
+            "    fallbackToAuthcode: false");
     }
 
     @Test
