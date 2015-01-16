@@ -15,7 +15,6 @@ package org.cloudfoundry.identity.uaa.mock.audit;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
