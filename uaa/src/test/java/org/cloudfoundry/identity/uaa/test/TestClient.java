@@ -17,6 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.apache.commons.codec.binary.Base64;
+import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -34,7 +35,7 @@ public class TestClient {
         objectMapper = new ObjectMapper();
     }
 
-    public String getClientCredentialsOAuthAccessToken(String username, String password, String scope)
+    public String getClientCredentialsOAuthAccessToken(String username, String password, String scope, String subdomain)
                     throws Exception {
         String basicDigestHeaderValue = "Basic "
                         + new String(Base64.encodeBase64((username + ":" + password).getBytes()));
@@ -43,8 +44,8 @@ public class TestClient {
                         .param("grant_type", "client_credentials")
                         .param("client_id", username)
                         .param("scope", scope);
+        if (subdomain != null && !subdomain.equals("")) oauthTokenPost.with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"));
         MvcResult result = mockMvc.perform(oauthTokenPost)
-            //.andDo(print())
             .andExpect(status().isOk())
             .andReturn();
         OAuthToken oauthToken = objectMapper.readValue(result.getResponse().getContentAsByteArray(), OAuthToken.class);

@@ -72,7 +72,7 @@ public class IdentityZoneEndpointsMockMvcTests {
         identityAdminToken = testClient.getClientCredentialsOAuthAccessToken(
                 "identity",
                 "identitysecret",
-                "zones.create");
+                "zones.create", null);
     }
 
     @AfterClass
