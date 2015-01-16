@@ -4,6 +4,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.Arrays;
@@ -152,10 +153,11 @@ public class IdentityZoneSwitchingFilterMockMvcTest {
     private String createZone(String accessToken) throws Exception {
         final String zoneId = UUID.randomUUID().toString();
         IdentityZone identityZone = MultitenancyFixture.identityZone(zoneId, zoneId);
+
         IdentityZoneCreationRequest creationRequest = new IdentityZoneCreationRequest();
         creationRequest.setIdentityZone(identityZone);
 
-        mockMvc.perform(put("/identity-zones/" + zoneId)
+        mockMvc.perform(post("/identity-zones")
                 .header("Authorization", "Bearer " + accessToken)
                 .contentType(APPLICATION_JSON)
                 .content(new ObjectMapper().writeValueAsString(creationRequest)))
@@ -173,6 +175,7 @@ public class IdentityZoneSwitchingFilterMockMvcTest {
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
                 .content(new ObjectMapper().writeValueAsString(client)))
-                .andExpect(statusMatcher);
+            .andDo(print())
+            .andExpect(statusMatcher);
     }
 }

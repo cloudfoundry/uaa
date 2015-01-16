@@ -16,6 +16,7 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.expression.OAuth2ExpressionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -41,7 +42,10 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
     
     protected boolean isAuthorizedToSwitchToIdentityZone(String identityZoneId) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return OAuth2ExpressionUtils.hasAnyScope(authentication,new String[] {"zones."+identityZoneId+".admin","zones.admin"});
+        boolean hasScope = OAuth2ExpressionUtils.hasAnyScope(authentication,new String[] {"zones."+identityZoneId+".admin","zones.admin"});
+        boolean isUaa = IdentityZoneHolder.isUaa();
+        boolean isTokenAuth = (authentication instanceof OAuth2Authentication);
+        return isTokenAuth && isUaa && hasScope;
     }
 
     @Override
@@ -60,6 +64,7 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
                 IdentityZone identityZone = null;
                 try {
                     identityZone = dao.retrieve(identityZoneId);
+                } catch (ZoneDoesNotExistsException ex) {
                 } catch (EmptyResultDataAccessException ex) {
                 } catch (Exception ex) {
                     throw ex;
