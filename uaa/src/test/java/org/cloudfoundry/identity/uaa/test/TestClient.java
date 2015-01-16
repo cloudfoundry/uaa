@@ -35,6 +35,10 @@ public class TestClient {
         objectMapper = new ObjectMapper();
     }
 
+    public String getClientCredentialsOAuthAccessToken(String username, String password, String scope) throws Exception {
+        return getClientCredentialsOAuthAccessToken(username, password, scope, null);
+    }
+
     public String getClientCredentialsOAuthAccessToken(String username, String password, String scope, String subdomain)
                     throws Exception {
         String basicDigestHeaderValue = "Basic "

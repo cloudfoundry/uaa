@@ -75,11 +75,11 @@ public class IdentityZoneEndpointsMockMvcTests {
         identityAdminToken = testClient.getClientCredentialsOAuthAccessToken(
                 "identity",
                 "identitysecret",
-                "zones.create", null);
+                "zones.create");
         adminToken = testClient.getClientCredentialsOAuthAccessToken(
             "admin",
             "adminsecret",
-            "uaa.admin", null);
+            "uaa.admin");
 
     }
 
@@ -395,20 +395,20 @@ public class IdentityZoneEndpointsMockMvcTests {
         String subdomain = generator.generate();
         createOtherIdentityZone(subdomain);
 
-        String zoneAdminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "scim.write,scim.read", null);
+        String defaultZoneAdminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "scim.write,scim.read");
 
         ScimUser user = getScimUser();
 
         byte[] requestBody = new ObjectMapper().writeValueAsBytes(user);
         MockHttpServletRequestBuilder post = post("/Users")
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
-            .header("Authorization", "Bearer " + zoneAdminToken)
+            .header("Authorization", "Bearer " + defaultZoneAdminToken)
             .contentType(APPLICATION_JSON)
             .content(requestBody);
 
         mockMvc.perform(post).andExpect(status().isUnauthorized());
 
-        MockHttpServletRequestBuilder get = get("/Users").header("Authorization", "Bearer " + zoneAdminToken);
+        MockHttpServletRequestBuilder get = get("/Users").header("Authorization", "Bearer " + defaultZoneAdminToken);
         if (subdomain != null && !subdomain.equals("")) get.with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"));
 
         mockMvc.perform(get).andExpect(status().isUnauthorized()).andReturn();
@@ -416,7 +416,7 @@ public class IdentityZoneEndpointsMockMvcTests {
 
     @Test
     public void testModifyandDeleteUserInOtherZoneIsUnauthorized() throws Exception {
-        String defaultZoneAdminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "scim.write", null);
+        String defaultZoneAdminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "scim.write");
         ScimUser user = createUser(defaultZoneAdminToken, null);
 
         String subdomain = generator.generate();
@@ -447,7 +447,7 @@ public class IdentityZoneEndpointsMockMvcTests {
 
     private IdentityZone createOtherIdentityZone(String subdomain) throws Exception {
 
-        String identityToken = testClient.getClientCredentialsOAuthAccessToken("identity", "identitysecret", "zones.create", null);
+        String identityToken = testClient.getClientCredentialsOAuthAccessToken("identity", "identitysecret", "zones.create");
 
         IdentityZone identityZone = MultitenancyFixture.identityZone(subdomain, subdomain);
         IdentityZoneCreationRequest creationRequest = new IdentityZoneCreationRequest();
