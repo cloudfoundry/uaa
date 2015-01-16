@@ -116,7 +116,7 @@
                         <map>
                             <entry key="id" value="identity" />
                             <entry key="secret" value="identitysecret" />
-                            <entry key="authorized-grant-types" value="authorization_code,client_credentials,refresh_token" />
+                            <entry key="authorized-grant-types" value="authorization_code,client_credentials,refresh_token,password" />
                             <entry key="scope" value="zones.*.admin,openid,clients.read,clients.write,clients.secret,clients.admin" />
                             <entry key="authorities" value="zones.create,zones.admin,clients.write,uaa.resource" />
                             <entry key="autoapprove" value="true" />
