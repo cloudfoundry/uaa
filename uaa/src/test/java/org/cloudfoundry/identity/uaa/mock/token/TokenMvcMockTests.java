@@ -735,7 +735,7 @@ public class TokenMvcMockTests {
         String userId = "testuser" + new RandomValueStringGenerator().generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three";
         ScimUser developer = setUpUser(userId, userScopes);
-        String loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "");
+        String loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "", null);
 
         //the login server is matched by providing
         //1. Bearer token (will be authenticated for oauth.login scope)
@@ -941,7 +941,7 @@ public class TokenMvcMockTests {
         String userId = "testuser" + new RandomValueStringGenerator().generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three";
         ScimUser developer = setUpUser(userId, userScopes);
-        String loginToken = testClient.getClientCredentialsOAuthAccessToken(oauthClientId, SECRET, "");
+        String loginToken = testClient.getClientCredentialsOAuthAccessToken(oauthClientId, SECRET, "", null);
 
         //failure - success only if token has oauth.login
         mockMvc.perform(post("/oauth/token")
@@ -1114,7 +1114,7 @@ public class TokenMvcMockTests {
         String userId = "testuser" + new RandomValueStringGenerator().generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three";
         ScimUser developer = setUpUser(userId, userScopes);
-        String loginToken = testClient.getClientCredentialsOAuthAccessToken(oauthClientId, SECRET, "");
+        String loginToken = testClient.getClientCredentialsOAuthAccessToken(oauthClientId, SECRET, "", null);
 
         //success - regular password grant but client is authenticated using POST parameters
         mockMvc.perform(post("/oauth/token")
