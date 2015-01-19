@@ -53,13 +53,16 @@
 
         <!-- Entry point to initialize authentication, default values taken from
             properties file -->
-        <bean id="samlEntryPoint" class="org.springframework.security.saml.SAMLEntryPoint">
+        <bean id="samlEntryPoint" class="org.cloudfoundry.identity.uaa.login.saml.LoginSamlEntryPoint">
             <property name="defaultProfileOptions">
                 <bean class="org.springframework.security.saml.websso.WebSSOProfileOptions">
                     <property name="includeScoping" value="false" />
                     <property name="nameID" value="${login.saml.nameID:urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified}" />
                     <property name="assertionConsumerIndex" value="${login.saml.assertionConsumerIndex:0}" />
                 </bean>
+            </property>
+            <property name="providerDefinitionList">
+                <bean factory-bean="metaDataProviders" factory-method="getIdentityProviderDefinitions"/>
             </property>
         </bean>
 
@@ -73,7 +76,7 @@
 
         <bean id="extendedMetaData" class="org.springframework.security.saml.metadata.ExtendedMetadata">
             <property name="idpDiscoveryEnabled" value="true" />
-            <property name="alias" value="${login.entityID:'unit-test-sp'}" />
+            <property name="alias" value="${login.saml.entityIDAlias:unit-test-sp}" />
             <property name="signMetadata" value="${login.saml.signMetaData:true}" />
         </bean>
 
@@ -84,8 +87,8 @@
                     <property name="extendedMetadata" ref="extendedMetaData"/>
                     <property name="requestSigned" value="${login.saml.signRequest:true}" />
                     <property name="wantAssertionSigned" value="${login.saml.wantAssertionSigned:false}" />
-                    <property name="entityBaseURL" value="${login.entityBaseURL:'http://localhost:8080/uaa}" />
-                    <property name="entityId" value="${login.entityID:'unit-test-sp'}" />
+                    <property name="entityBaseURL" value="${login.entityBaseURL:http://localhost:8080/uaa}" />
+                    <property name="entityId" value="${login.entityID:unit-test-sp}" />
                 </bean>
             </constructor-arg>
         </bean>
