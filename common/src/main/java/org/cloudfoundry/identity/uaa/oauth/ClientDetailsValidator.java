@@ -117,14 +117,20 @@ public class ClientDetailsValidator implements InitializingBean {
             }
 
             String callerId = securityContextAccessor.getClientId();
-            if (callerId != null) {
+            ClientDetails caller = null;
+            try {
+                caller = clientDetailsService.retrieve(callerId);
+            } catch (Exception e) {
+                // best effort to get the caller, but the caller might not belong to this zone.
+            }
+            if (callerId != null && caller != null) {
 
                 // New scopes are allowed if they are for the caller or the new
                 // client.
                 String callerPrefix = callerId + ".";
                 String clientPrefix = clientId + ".";
 
-                ClientDetails caller = clientDetailsService.retrieve(callerId);
+                
                 Set<String> validScope = caller.getScope();
                 for (String scope : client.getScope()) {
                     if (scope.startsWith(callerPrefix) || scope.startsWith(clientPrefix)) {
@@ -139,9 +145,7 @@ public class ClientDetailsValidator implements InitializingBean {
                 }
 
             }
-            else { // No client caller. Shouldn't happen in practice, but let's
-                   // be defensive
-
+            else { 
                 // New scopes are allowed if they are for the caller or the new
                 // client.
                 String clientPrefix = clientId + ".";
