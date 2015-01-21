@@ -92,16 +92,15 @@ login:
   entityID: cloudfoundry-saml-login
   saml:
     #Entity ID Alias to login at /saml/SSO/alias/{login.saml.entityIDAlias}
-    entityIDAlias: cloudfoundry-saml-login
-    #Default nameID
+    #entityIDAlias: cloudfoundry-saml-login
+    #Default nameID if IDP nameID is not set
     nameID: 'urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified'
-    #Default assertionConsumerIndex
+    #Default assertionConsumerIndex if IDP value is not set
     assertionConsumerIndex: 0
     #Local/SP metadata - sign metadata
     signMetaData: true
     #Local/SP metadata - requests signed
     signRequest: true
-    #Local/SP metadata - sign metadata
     socket:
       # URL metadata fetch - pool timeout
       connectionManagerTimeout: 10000
