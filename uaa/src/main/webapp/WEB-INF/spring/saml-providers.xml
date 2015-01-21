@@ -73,10 +73,12 @@
         <!-- IDP Discovery Service -->
         <bean id="samlIDPDiscovery" class="org.cloudfoundry.identity.uaa.login.saml.LoginSamlDiscovery"/>
 
-
+        <bean id="samlSPAlias" class="java.lang.String">
+            <constructor-arg value="${login.saml.entityIDAlias:${login.entityID:unit-test-sp}}"/>
+        </bean>
         <bean id="extendedMetaData" class="org.springframework.security.saml.metadata.ExtendedMetadata">
             <property name="idpDiscoveryEnabled" value="true" />
-            <property name="alias" value="${login.saml.entityIDAlias:unit-test-sp}" />
+            <property name="alias" value="#{T(org.cloudfoundry.identity.uaa.util.UaaStringUtils).getHostIfArgIsURL(@samlSPAlias)}" />
             <property name="signMetadata" value="${login.saml.signMetaData:true}" />
         </bean>
 

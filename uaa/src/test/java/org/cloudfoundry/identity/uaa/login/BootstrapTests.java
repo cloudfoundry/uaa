@@ -185,6 +185,25 @@ public class BootstrapTests {
 
     }
 
+    @Test
+    public void testSamlProfileWithEntityIDAsURL() throws Exception {
+        System.setProperty("login.entityID", "http://some.other.hostname:8080/saml");
+        context = getServletContext("default", "./src/main/resources/login.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        assertNotNull(context.getBean("extendedMetaData", org.springframework.security.saml.metadata.ExtendedMetadata.class));
+        assertEquals("http://some.other.hostname:8080/saml", context.getBean("samlSPAlias", String.class));
+        assertEquals("some.other.hostname", context.getBean("extendedMetaData", org.springframework.security.saml.metadata.ExtendedMetadata.class).getAlias());
+
+    }
+
+    @Test
+    public void testSamlProfileWithEntityIDAsURLButAliasSet() throws Exception {
+        System.setProperty("login.entityID", "http://some.other.hostname:8080/saml");
+        System.setProperty("login.saml.entityIDAlias", "spalias");
+        context = getServletContext("default", "./src/main/resources/login.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        assertNotNull(context.getBean("extendedMetaData", org.springframework.security.saml.metadata.ExtendedMetadata.class));
+        assertEquals("spalias", context.getBean("samlSPAlias", String.class));
+        assertEquals("spalias", context.getBean("extendedMetaData", org.springframework.security.saml.metadata.ExtendedMetadata.class).getAlias());
+    }
 
     @Test
     public void testMessageService() throws Exception {
