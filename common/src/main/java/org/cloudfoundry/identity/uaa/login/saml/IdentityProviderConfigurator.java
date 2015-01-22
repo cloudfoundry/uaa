@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.login.saml;
 
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.protocol.ProtocolSocketFactory;
+import org.apache.http.client.utils.URIBuilder;
 import org.cloudfoundry.identity.uaa.login.ConfigMetadataProvider;
 import org.cloudfoundry.identity.uaa.login.ssl.FixedHttpMetaDataProvider;
 import org.cloudfoundry.identity.uaa.login.util.FileLocator;
@@ -25,6 +26,8 @@ import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -136,12 +139,14 @@ public class IdentityProviderConfigurator {
             socketFactory = (Class<ProtocolSocketFactory>) Class.forName(def.getSocketFactoryClassName());
             ExtendedMetadata extendedMetadata = new ExtendedMetadata();
             extendedMetadata.setAlias(def.getIdpEntityAlias());
-            FixedHttpMetaDataProvider fixedHttpMetaDataProvider = new FixedHttpMetaDataProvider(getMetadataFetchingHttpClientTimer(), getHttpClient(), def.getMetaDataLocation());
+            FixedHttpMetaDataProvider fixedHttpMetaDataProvider = new FixedHttpMetaDataProvider(getMetadataFetchingHttpClientTimer(), getHttpClient(), adjustURIForPort(def.getMetaDataLocation()));
             fixedHttpMetaDataProvider.setParserPool(getParserPool());
             fixedHttpMetaDataProvider.setSocketFactory(socketFactory.newInstance());
             ExtendedMetadataDelegate delegate = new ExtendedMetadataDelegate(fixedHttpMetaDataProvider, extendedMetadata);
             delegate.setMetadataTrustCheck(def.isMetadataTrustCheck());
             return delegate;
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException("Invalid socket factory(invalid URI):"+def.getMetaDataLocation(), e);
         } catch (ClassNotFoundException e) {
             throw new IllegalArgumentException("Invalid socket factory:"+def.getSocketFactoryClassName(), e);
         } catch (InstantiationException e) {
@@ -152,6 +157,19 @@ public class IdentityProviderConfigurator {
             throw new IllegalArgumentException("Invalid meta data", e);
         }
     }
+
+    protected String adjustURIForPort(String uri) throws URISyntaxException {
+        URI metadataURI = new URI(uri);
+        if (metadataURI.getPort()<0) {
+            switch (metadataURI.getScheme()) {
+                case "https" : return new URIBuilder(uri).setPort(443).build().toString();
+                case "http"  : return new URIBuilder(uri).setPort(80).build().toString();
+                default: return uri;
+            }
+        }
+        return uri;
+    }
+
 
     public void setIdentityProviders(Map<String, Map<String, Object>> providers) {
         identityProviders.clear();
