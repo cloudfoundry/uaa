@@ -15,21 +15,33 @@ package org.cloudfoundry.identity.uaa.login;
 import org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory;
 import org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory;
 import org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean;
+import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
+import org.springframework.beans.factory.xml.ResourceEntityResolver;
+import org.springframework.beans.factory.xml.XmlBeanDefinitionReader;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.support.GenericXmlApplicationContext;
 import org.springframework.core.env.PropertiesPropertySource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
+import org.springframework.mock.web.MockRequestDispatcher;
+import org.springframework.mock.web.MockServletConfig;
+import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.saml.log.SAMLDefaultLogger;
 import org.springframework.util.StringUtils;
+import org.springframework.web.context.support.AbstractRefreshableWebApplicationContext;
 import org.springframework.web.servlet.ViewResolver;
 
+import javax.servlet.RequestDispatcher;
 import java.io.File;
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Scanner;
@@ -46,7 +58,7 @@ import static org.junit.Assert.assertNull;
  */
 public class BootstrapTests {
 
-    private GenericXmlApplicationContext context;
+    private ConfigurableApplicationContext context;
 
     @Before
     public void setup() throws Exception {
@@ -72,7 +84,7 @@ public class BootstrapTests {
 
     @Test
     public void testRootContextDefaults() throws Exception {
-        context = getServletContext(null, "./src/main/resources/login.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        context = getServletContext(null, "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         assertNotNull(context.getBean("viewResolver", ViewResolver.class));
         assertNotNull(context.getBean("resetPasswordController", ResetPasswordController.class));
     }
@@ -80,7 +92,7 @@ public class BootstrapTests {
     @Test
     public void testSamlProfileNoData() throws Exception {
         System.setProperty("login.saml.metadataTrustCheck", "false");
-        context = getServletContext("default", "./src/main/resources/login.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        context = getServletContext("default", "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         Assume.assumeTrue(context.getEnvironment().getProperty("login.idpMetadataURL")==null);
         assertNotNull(context.getBean("viewResolver", ViewResolver.class));
         assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
@@ -94,7 +106,7 @@ public class BootstrapTests {
         System.setProperty("login.idpMetadataURL", "http://localhost:9696/nodata");
         System.setProperty("login.idpEntityAlias", "testIDPFile");
 
-        context = getServletContext("default", "./src/main/resources/login.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        context = getServletContext("default", "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         assertNotNull(context.getBean("viewResolver", ViewResolver.class));
         assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
         assertFalse(context.getBean(IdentityProviderConfigurator.class).isLegacyMetadataTrustCheck());
@@ -114,7 +126,7 @@ public class BootstrapTests {
         System.setProperty("login.idpMetadataFile", "./src/test/resources/test.saml.metadata");
         System.setProperty("login.idpEntityAlias", "testIDPFile");
         System.setProperty("login.saml.metadataTrustCheck", "false");
-        context = getServletContext("default,saml,fileMetadata", "./src/main/resources/login.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        context = getServletContext("default,saml,fileMetadata", "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         assertNotNull(context.getBean("viewResolver", ViewResolver.class));
         assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
         assertFalse(context.getBean(IdentityProviderConfigurator.class).isLegacyMetadataTrustCheck());
@@ -128,7 +140,7 @@ public class BootstrapTests {
         String metadataString = new Scanner(new File("./src/main/resources/sample-okta-localhost.xml")).useDelimiter("\\Z").next();
         System.setProperty("login.idpMetadata", metadataString);
         System.setProperty("login.idpEntityAlias", "testIDPData");
-        context = getServletContext("default,saml,configMetadata", "./src/main/resources/login.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        context = getServletContext("default,saml,configMetadata", "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         assertEquals(
             IdentityProviderDefinition.MetadataLocation.DATA,
             context.getBean(IdentityProviderConfigurator.class).getIdentityProviderDefinitions().get(0).getType());
@@ -141,7 +153,7 @@ public class BootstrapTests {
         System.setProperty("login.idpMetadataURL", "https://localhost:9696/nodata");
         System.setProperty("login.idpEntityAlias", "testIDPUrl");
 
-        context = getServletContext("default", "./src/main/resources/login.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        context = getServletContext("default", "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         assertNotNull(context.getBean("viewResolver", ViewResolver.class));
         assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
         assertFalse(context.getBean(IdentityProviderConfigurator.class).isLegacyMetadataTrustCheck());
@@ -166,7 +178,7 @@ public class BootstrapTests {
         System.setProperty("login.idpMetadataURL", "https://localhost/nodata");
         System.setProperty("login.idpEntityAlias", "testIDPUrl");
 
-        context = getServletContext("default", "./src/main/resources/login.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        context = getServletContext("default", "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         assertNotNull(context.getBean("viewResolver", ViewResolver.class));
         assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
         assertFalse(context.getBean(IdentityProviderConfigurator.class).isLegacyMetadataTrustCheck());
@@ -188,7 +200,7 @@ public class BootstrapTests {
     @Test
     public void testSamlProfileWithEntityIDAsURL() throws Exception {
         System.setProperty("login.entityID", "http://some.other.hostname:8080/saml");
-        context = getServletContext("default", "./src/main/resources/login.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        context = getServletContext("default", "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         assertNotNull(context.getBean("extendedMetaData", org.springframework.security.saml.metadata.ExtendedMetadata.class));
         assertEquals("http://some.other.hostname:8080/saml", context.getBean("samlSPAlias", String.class));
         assertEquals("some.other.hostname", context.getBean("extendedMetaData", org.springframework.security.saml.metadata.ExtendedMetadata.class).getAlias());
@@ -199,7 +211,7 @@ public class BootstrapTests {
     public void testSamlProfileWithEntityIDAsURLButAliasSet() throws Exception {
         System.setProperty("login.entityID", "http://some.other.hostname:8080/saml");
         System.setProperty("login.saml.entityIDAlias", "spalias");
-        context = getServletContext("default", "./src/main/resources/login.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        context = getServletContext("default", "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         assertNotNull(context.getBean("extendedMetaData", org.springframework.security.saml.metadata.ExtendedMetadata.class));
         assertEquals("spalias", context.getBean("samlSPAlias", String.class));
         assertEquals("spalias", context.getBean("extendedMetaData", org.springframework.security.saml.metadata.ExtendedMetadata.class).getAlias());
@@ -207,40 +219,76 @@ public class BootstrapTests {
 
     @Test
     public void testMessageService() throws Exception {
-        context = getServletContext("default", "./src/main/resources/login.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        context = getServletContext("default", "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         Object messageService = context.getBean("messageService");
         assertNotNull(messageService);
         assertEquals(EmailService.class, messageService.getClass());
 
-        System.setProperty("notifications.url", "");
-        context = getServletContext("default", "./src/main/resources/login.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+            System.setProperty("notifications.url", "");
+        context = getServletContext("default", "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         messageService = context.getBean("messageService");
         assertNotNull(messageService);
         assertEquals(EmailService.class, messageService.getClass());
 
         System.setProperty("notifications.url", "example.com");
-        context = getServletContext("default", "./src/main/resources/login.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        context = getServletContext("default", "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         messageService = context.getBean("messageService");
         assertNotNull(messageService);
         assertEquals(NotificationsService.class, messageService.getClass());
     }
 
-    private GenericXmlApplicationContext getServletContext(String profiles, String loginYmlPath, String... resources) {
-        System.setProperty("environmentYamlKey", loginYmlPath);
-        GenericXmlApplicationContext context = new GenericXmlApplicationContext();
+    private ConfigurableApplicationContext getServletContext(String profiles, String loginYmlPath, String uaaYamlPath, String... resources) {
+        String[] resourcesToLoad = resources;
+        if (!resources[0].endsWith(".xml")) {
+            resourcesToLoad = new String[resources.length - 1];
+            System.arraycopy(resources, 1, resourcesToLoad, 0, resourcesToLoad.length);
+        }
+
+        final String[] configLocations = resourcesToLoad;
+
+        AbstractRefreshableWebApplicationContext context = new AbstractRefreshableWebApplicationContext() {
+
+            @Override
+            protected void loadBeanDefinitions(DefaultListableBeanFactory beanFactory) throws BeansException,
+                    IOException {
+                XmlBeanDefinitionReader beanDefinitionReader = new XmlBeanDefinitionReader(beanFactory);
+
+                // Configure the bean definition reader with this context's
+                // resource loading environment.
+                beanDefinitionReader.setEnvironment(this.getEnvironment());
+                beanDefinitionReader.setResourceLoader(this);
+                beanDefinitionReader.setEntityResolver(new ResourceEntityResolver(this));
+
+                if (configLocations != null) {
+                    for (String configLocation : configLocations) {
+                        beanDefinitionReader.loadBeanDefinitions(configLocation);
+                    }
+                }
+            }
+
+        };
 
         if (profiles != null) {
             context.getEnvironment().setActiveProfiles(StringUtils.commaDelimitedListToStringArray(profiles));
         }
 
-        context.load(resources);
+        MockServletContext servletContext = new MockServletContext() {
+            @Override
+            public RequestDispatcher getNamedDispatcher(String path) {
+                return new MockRequestDispatcher("/");
+            }
+        };
+        context.setServletContext(servletContext);
+        MockServletConfig servletConfig = new MockServletConfig(servletContext);
+        servletConfig.addInitParameter("environmentConfigLocations", loginYmlPath+","+uaaYamlPath);
+        context.setServletConfig(servletConfig);
 
-        // Simulate what happens in the webapp when the
-        // YamlServletProfileInitializer kicks in
-        YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
-        factory.setResources(new Resource[] { new FileSystemResource(loginYmlPath) });
-        context.getEnvironment().getPropertySources()
-                        .addLast(new PropertiesPropertySource("servletProperties", factory.getObject()));
+        YamlServletProfileInitializer initializer = new YamlServletProfileInitializer();
+        initializer.initialize(context);
+
+        if (profiles != null) {
+            context.getEnvironment().setActiveProfiles(StringUtils.commaDelimitedListToStringArray(profiles));
+        }
 
         context.refresh();
 
