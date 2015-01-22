@@ -43,6 +43,7 @@ import javax.servlet.RequestDispatcher;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
@@ -51,6 +52,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author Dave Syer
@@ -110,15 +112,15 @@ public class BootstrapTests {
         assertNotNull(context.getBean("viewResolver", ViewResolver.class));
         assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
         assertFalse(context.getBean(IdentityProviderConfigurator.class).isLegacyMetadataTrustCheck());
+        List<IdentityProviderDefinition> defs = context.getBean(IdentityProviderConfigurator.class).getIdentityProviderDefinitions();
         assertEquals(
-            DefaultProtocolSocketFactory.class.getName(),
-            context.getBean(IdentityProviderConfigurator.class).getIdentityProviderDefinitions().get(0).getSocketFactoryClassName()
+                DefaultProtocolSocketFactory.class.getName(),
+                defs.get(defs.size() - 1).getSocketFactoryClassName()
         );
         assertEquals(
             IdentityProviderDefinition.MetadataLocation.URL,
-            context.getBean(IdentityProviderConfigurator.class).getIdentityProviderDefinitions().get(0).getType()
+            defs.get(defs.size() - 1).getType()
         );
-
     }
 
     @Test
@@ -130,9 +132,10 @@ public class BootstrapTests {
         assertNotNull(context.getBean("viewResolver", ViewResolver.class));
         assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
         assertFalse(context.getBean(IdentityProviderConfigurator.class).isLegacyMetadataTrustCheck());
+        List<IdentityProviderDefinition> defs = context.getBean(IdentityProviderConfigurator.class).getIdentityProviderDefinitions();
         assertEquals(
             IdentityProviderDefinition.MetadataLocation.FILE,
-            context.getBean(IdentityProviderConfigurator.class).getIdentityProviderDefinitions().get(0).getType());
+            defs.get(defs.size() - 1).getType());
     }
 
     @Test
@@ -141,9 +144,10 @@ public class BootstrapTests {
         System.setProperty("login.idpMetadata", metadataString);
         System.setProperty("login.idpEntityAlias", "testIDPData");
         context = getServletContext("default,saml,configMetadata", "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        List<IdentityProviderDefinition> defs = context.getBean(IdentityProviderConfigurator.class).getIdentityProviderDefinitions();
         assertEquals(
             IdentityProviderDefinition.MetadataLocation.DATA,
-            context.getBean(IdentityProviderConfigurator.class).getIdentityProviderDefinitions().get(0).getType());
+            defs.get(defs.size() - 1).getType());
     }
 
 
@@ -157,17 +161,14 @@ public class BootstrapTests {
         assertNotNull(context.getBean("viewResolver", ViewResolver.class));
         assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
         assertFalse(context.getBean(IdentityProviderConfigurator.class).isLegacyMetadataTrustCheck());
-        assertEquals(
-            1,
-            context.getBean(IdentityProviderConfigurator.class).getIdentityProviderDefinitions().size()
-        );
+        List<IdentityProviderDefinition> defs = context.getBean(IdentityProviderConfigurator.class).getIdentityProviderDefinitions();
         assertEquals(
             EasySSLProtocolSocketFactory.class.getName(),
-            context.getBean(IdentityProviderConfigurator.class).getIdentityProviderDefinitions().get(0).getSocketFactoryClassName()
+            defs.get(defs.size() - 1).getSocketFactoryClassName()
         );
         assertEquals(
             IdentityProviderDefinition.MetadataLocation.URL,
-            context.getBean(IdentityProviderConfigurator.class).getIdentityProviderDefinitions().get(0).getType()
+            defs.get(defs.size() - 1).getType()
         );
 
     }
@@ -182,17 +183,17 @@ public class BootstrapTests {
         assertNotNull(context.getBean("viewResolver", ViewResolver.class));
         assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
         assertFalse(context.getBean(IdentityProviderConfigurator.class).isLegacyMetadataTrustCheck());
-        assertEquals(
-            1,
-            context.getBean(IdentityProviderConfigurator.class).getIdentityProviderDefinitions().size()
+        List<IdentityProviderDefinition> defs = context.getBean(IdentityProviderConfigurator.class).getIdentityProviderDefinitions();
+        assertFalse(
+                context.getBean(IdentityProviderConfigurator.class).getIdentityProviderDefinitions().isEmpty()
         );
         assertEquals(
             EasySSLProtocolSocketFactory.class.getName(),
-            context.getBean(IdentityProviderConfigurator.class).getIdentityProviderDefinitions().get(0).getSocketFactoryClassName()
+            defs.get(defs.size() - 1).getSocketFactoryClassName()
         );
         assertEquals(
             IdentityProviderDefinition.MetadataLocation.URL,
-            context.getBean(IdentityProviderConfigurator.class).getIdentityProviderDefinitions().get(0).getType()
+            defs.get(defs.size() - 1).getType()
         );
 
     }
@@ -224,7 +225,7 @@ public class BootstrapTests {
         assertNotNull(messageService);
         assertEquals(EmailService.class, messageService.getClass());
 
-            System.setProperty("notifications.url", "");
+        System.setProperty("notifications.url", "");
         context = getServletContext("default", "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         messageService = context.getBean("messageService");
         assertNotNull(messageService);
