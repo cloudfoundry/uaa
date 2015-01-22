@@ -229,41 +229,6 @@
         <!-- XML parser pool needed for OpenSAML parsing -->
         <bean id="parserPool" class="org.opensaml.xml.parse.BasicParserPool" scope="singleton" />
 
-        <!--<bean id="abstractRemoteUaaController" abstract="true">-->
-          <!--<constructor-arg ref="environment" />-->
-          <!--<constructor-arg>-->
-            <!--<bean class="org.springframework.web.client.RestTemplate" />-->
-          <!--</constructor-arg>-->
-          <!--<property name="links" ref="links" />-->
-          <!--<property name="codeExpirationMillis" value="300000" />-->
-        <!--</bean>-->
-
-        <!--<bean id="uaaController" class="org.cloudfoundry.identity.uaa.login.SamlRemoteUaaController" parent="abstractRemoteUaaController">-->
-            <!--<property name="prompts">-->
-                <!--<util:list>-->
-                    <!--<bean class="org.cloudfoundry.identity.uaa.authentication.login.Prompt">-->
-                        <!--<constructor-arg name="name" value="username" />-->
-                        <!--<constructor-arg name="text" value="Email" />-->
-                        <!--<constructor-arg name="type" value="text" />-->
-                    <!--</bean>-->
-                    <!--<bean class="org.cloudfoundry.identity.uaa.authentication.login.Prompt">-->
-                        <!--<constructor-arg name="name" value="password" />-->
-                        <!--<constructor-arg name="text" value="Password" />-->
-                        <!--<constructor-arg name="type" value="password" />-->
-                    <!--</bean>-->
-                    <!--<bean class="org.cloudfoundry.identity.uaa.authentication.login.Prompt">-->
-                        <!--<constructor-arg name="name" value="passcode" />-->
-                        <!--<constructor-arg name="text"-->
-                                         <!--value="One Time Code (Get one at ${login.url:http://localhost:8080/uaa}/passcode)" />-->
-                        <!--<constructor-arg name="type" value="password" />-->
-                    <!--</bean>-->
-                <!--</util:list>-->
-            <!--</property>-->
-            <!--<property name="idpDefinitions">-->
-                <!--<bean factory-bean="metaDataProviders" factory-method="getIdentityProviderDefinitions"/>-->
-            <!--</property>-->
-        <!--</bean>-->
-
         <bean id="metaDataUrl" class="java.lang.String">
             <constructor-arg value="${login.idpMetadataURL:null}"/>
         </bean>
