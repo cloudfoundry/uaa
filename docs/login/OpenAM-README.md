@@ -48,12 +48,13 @@ Setup OpenAM as an Identity Provider (IDP)
 
 
 ###Step 5
-Configure and start login-server/UAA
+Configure and start UAA
 
   - a) Configure login.yml
-  - b) uncomment the OpenAM section under '# Local OpenAM configuration'
-  - c) make sure you have 'spring_profiles: saml,default'
-  - d) Start UAA/Login server on port 8080 (./gradlew run)
+  - b) uncomment '#providers:' under login.saml
+  - c) uncomment the OpenAM section under 'openam-local'
+  - d) make sure you have 'spring_profiles: saml,default'
+  - e) Start UAA server on port 8080 (./gradlew run)
 
         DEBUG --- MetadataManager: Initializing provider data org.cloudfoundry.identity.uaa.login.ssl.FixedHttpMetaDataProvider@41f4a18b
         DEBUG --- MetadataManager: Found metadata EntityDescriptor with ID
@@ -62,10 +63,10 @@ Configure and start login-server/UAA
         DEBUG --- MetadataManager: Reloading metadata was finished
 
 ###Step 6
-Configure OpenAM to have login-server as a service that wishes to authenticate
+Configure OpenAM to have UAA as a service that wishes to authenticate
 
   - a) Click 'register a service provider'
-  - b) Put the 'http://localhost:8080/login/saml/metadata' as the URL
+  - b) Put the 'http://localhost:8080/uaa/saml/metadata' as the URL
   - c) Click 'Configure'
 
 ###Step 7
@@ -82,6 +83,6 @@ Create a SAML user
 ###Step 8
 Test SAML Authentication
 
-  - a) Go to http://localhost:8080/login
-  - b) Click "Use your corporate credentials"
+  - a) Go to http://localhost:8080/uaa
+  - b) Click "Use your corporate credentials" (or the link name you configured in login.yml)
   - c) Sign in with the user you created
