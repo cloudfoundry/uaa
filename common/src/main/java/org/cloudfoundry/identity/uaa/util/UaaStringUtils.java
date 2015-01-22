@@ -13,6 +13,8 @@
 
 package org.cloudfoundry.identity.uaa.util;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -166,6 +168,16 @@ public class UaaStringUtils {
             }
         }
         return result;
+    }
+
+    public static String getHostIfArgIsURL(String arg) {
+
+        try {
+            URL uri = new URL(arg);
+            return uri.getHost();
+        } catch (MalformedURLException e) {
+        }
+        return arg;
     }
 
     private static boolean isPassword(String key) {
