@@ -49,11 +49,9 @@ public class XFrameOptionsTheories {
         webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         webApplicationContext.refresh();
         FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
-        XFrameOptionsFilter xFrameOptionsFilter = webApplicationContext.getBean(XFrameOptionsFilter.class);
 
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
             .addFilter(springSecurityFilterChain)
-            .addFilter(xFrameOptionsFilter)
             .build();
     }
 

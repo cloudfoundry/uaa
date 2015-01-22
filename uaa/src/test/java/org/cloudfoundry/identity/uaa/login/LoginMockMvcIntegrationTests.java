@@ -79,11 +79,9 @@ public class LoginMockMvcIntegrationTests {
         webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         webApplicationContext.refresh();
         springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
-        XFrameOptionsFilter xFrameOptionsFilter = webApplicationContext.getBean(XFrameOptionsFilter.class);
         testAccounts = UaaTestAccounts.standard(null);
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
             .addFilter(springSecurityFilterChain)
-            .addFilter(xFrameOptionsFilter)
             .build();
     }
 

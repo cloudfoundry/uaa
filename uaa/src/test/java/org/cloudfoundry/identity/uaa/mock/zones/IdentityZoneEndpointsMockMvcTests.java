@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.mock.zones;
 
-
 import com.googlecode.flyway.core.Flyway;
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
