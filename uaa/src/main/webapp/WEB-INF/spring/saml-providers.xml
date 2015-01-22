@@ -171,7 +171,9 @@
         </bean>
 
         <!-- SAML 2.0 WebSSO Assertion Consumer -->
-        <bean id="webSSOprofileConsumer" class="org.springframework.security.saml.websso.WebSSOProfileConsumerImpl" />
+        <bean id="webSSOprofileConsumer" class="org.springframework.security.saml.websso.WebSSOProfileConsumerImpl">
+            <property name="maxAuthenticationAge" value="${login.saml.maxAuthenticationAge:#{T(java.lang.Integer).MAX_VALUE}}" />
+        </bean>
 
         <!-- SAML 2.0 Holder-of-Key WebSSO Assertion Consumer -->
         <bean id="hokWebSSOprofileConsumer" class="org.springframework.security.saml.websso.WebSSOProfileConsumerHoKImpl" />
