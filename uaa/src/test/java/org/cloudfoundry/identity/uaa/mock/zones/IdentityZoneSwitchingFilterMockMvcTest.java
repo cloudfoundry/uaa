@@ -24,6 +24,7 @@ import java.util.UUID;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.RandomStringUtils;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -111,25 +112,15 @@ public class IdentityZoneSwitchingFilterMockMvcTest {
 
     @Test
     public void testSwitchingZonesWithoutAuthority() throws Exception {
-        String identityTokenWithoutZonesAdmin = testClient.getClientCredentialsOAuthAccessToken(
-                "identity",
-                "identitysecret",
-                "zones.create,clients.write");
-
+        String identityTokenWithoutZonesAdmin = testClient.getClientCredentialsOAuthAccessToken("identity","identitysecret","zones.create,clients.write");
         final String zoneId = createZone(identityTokenWithoutZonesAdmin);
-
         createClientInOtherZone(identityTokenWithoutZonesAdmin, zoneId, status().isForbidden());
     }
 
     @Test
     public void testSwitchingZonesWithAUser() throws Exception {
         final String zoneId = createZone(identityToken);
-
-        String adminToken = testClient.getClientCredentialsOAuthAccessToken(
-                "admin",
-                "adminsecret",
-                "scim.write");
-
+        String adminToken = testClient.getClientCredentialsOAuthAccessToken("admin","adminsecret","scim.write");
         // Create a User
         String username = RandomStringUtils.randomAlphabetic(8) + "@example.com";
         ScimUser user = new ScimUser();
@@ -138,44 +129,19 @@ public class IdentityZoneSwitchingFilterMockMvcTest {
         user.setPassword("secret");
         user.setVerified(true);
         user.setZoneId(IdentityZone.getUaa().getId());
-
-        MvcResult userResult = mockMvc.perform(post("/Users")
-                .header("Authorization", "Bearer " + adminToken)
-                .contentType(APPLICATION_JSON)
-                .content(new ObjectMapper().writeValueAsBytes(user)))
-                .andExpect(status().isCreated()).andReturn();
-
+        ScimUser createdUser = MockMvcUtils.utils().createUser(mockMvc, adminToken, user);
         // Create the zones.<zone_id>.admin Group
         // Add User to the zones.<zone_id>.admin Group
         ScimGroup group = new ScimGroup("zones." + zoneId + ".admin");
-        ScimUser createdUser = new ObjectMapper().readValue(userResult.getResponse().getContentAsString(), ScimUser.class);
         group.setMembers(Arrays.asList(new ScimGroupMember(createdUser.getId())));
-        mockMvc.perform(post("/Groups")
-                .header("Authorization", "Bearer " + adminToken)
-                .contentType(APPLICATION_JSON)
-                .content(new ObjectMapper().writeValueAsBytes(group)))
-                .andExpect(status().isCreated());
-
+        group = MockMvcUtils.utils().createGroup(mockMvc, adminToken, group);
         // Add User to the clients.create Group
-
         String userToken = testClient.getUserOAuthAccessToken("identity", "identitysecret", createdUser.getUserName(), "secret", "zones." + zoneId + ".admin");
-
         createClientInOtherZone(userToken, zoneId, status().isCreated());
     }
 
     private String createZone(String accessToken) throws Exception {
-        final String zoneId = UUID.randomUUID().toString();
-        IdentityZone identityZone = MultitenancyFixture.identityZone(zoneId, zoneId);
-
-        IdentityZoneCreationRequest creationRequest = new IdentityZoneCreationRequest();
-        creationRequest.setIdentityZone(identityZone);
-
-        mockMvc.perform(post("/identity-zones")
-                .header("Authorization", "Bearer " + accessToken)
-                .contentType(APPLICATION_JSON)
-                .content(new ObjectMapper().writeValueAsString(creationRequest)))
-                .andExpect(status().isCreated());
-        return zoneId;
+        return MockMvcUtils.utils().createZoneUsingWebRequest(mockMvc, accessToken).getId();
     }
 
     private void createClientInOtherZone(String accessToken, String zoneId, ResultMatcher statusMatcher) throws Exception {
