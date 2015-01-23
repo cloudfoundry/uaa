@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth.expression;
 
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.core.Authentication;
@@ -19,6 +20,9 @@ import org.springframework.security.oauth2.provider.expression.OAuth2SecurityExp
 
 public class ContextSensitiveOAuth2SecurityExpressionMethods extends OAuth2SecurityExpressionMethods {
     public static final String ZONE_ID = "{zone.id}";
+
+    private final IdentityZone identityZone;
+    private final Authentication authentication;
 
     private String replaceContext(String role) {
         IdentityZone zone = IdentityZoneHolder.get();
@@ -37,7 +41,13 @@ public class ContextSensitiveOAuth2SecurityExpressionMethods extends OAuth2Secur
     }
 
     public ContextSensitiveOAuth2SecurityExpressionMethods(Authentication authentication) {
+        this(authentication, null);
+    }
+
+    public ContextSensitiveOAuth2SecurityExpressionMethods(Authentication authentication, IdentityZone authenticationZone) {
         super(authentication);
+        this.authentication = authentication;
+        this.identityZone = authenticationZone;
     }
 
     @Override
@@ -68,5 +78,15 @@ public class ContextSensitiveOAuth2SecurityExpressionMethods extends OAuth2Secur
     @Override
     public boolean hasAnyScopeMatching(String... scopesRegex) {
         return super.hasAnyScopeMatching(replaceContext(scopesRegex));
+    }
+
+    public boolean hasScopeInAuthZone(String scope) {
+        boolean hasScope = hasScope(scope);
+        hasScope = hasScope && authentication.getPrincipal() instanceof UaaPrincipal;
+        if (hasScope) {
+            UaaPrincipal principal = (UaaPrincipal)authentication.getPrincipal();
+            hasScope = identityZone != null && identityZone.getId().equals(principal.getZoneId());
+        }
+        return hasScope;
     }
 }
