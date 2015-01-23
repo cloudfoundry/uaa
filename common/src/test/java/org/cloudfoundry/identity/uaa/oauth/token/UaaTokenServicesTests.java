@@ -124,7 +124,8 @@ public class UaaTokenServicesTests {
             new Date(System.currentTimeMillis() - 15000), 
             Origin.UAA, 
             externalId,
-            false);
+            false,
+            IdentityZoneHolder.get().getId());
     
     // Need to create a user with a modified time slightly in the past because
     // the token IAT is in seconds and the token

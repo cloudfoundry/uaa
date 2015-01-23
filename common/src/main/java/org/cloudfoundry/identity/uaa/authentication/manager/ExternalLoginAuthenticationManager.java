@@ -24,6 +24,7 @@ import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSucc
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.BeanNameAware;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
@@ -188,7 +189,8 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
             new Date(),
             origin,
             details.getUsername(),
-            false);
+            false,
+            IdentityZoneHolder.get().getId());
     }
 
     @Override

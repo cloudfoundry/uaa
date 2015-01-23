@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.user;
 
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -13,7 +14,7 @@ import static org.junit.Assert.assertSame;
 
 public class InMemoryUaaUserDatabaseTests {
 
-    UaaUser user = new UaaUser("test-id","username","password","email",UaaAuthority.USER_AUTHORITIES,"givenname","familyname", new Date(), new Date(), Origin.UAA,"externalID", false);
+    UaaUser user = new UaaUser("test-id","username","password","email",UaaAuthority.USER_AUTHORITIES,"givenname","familyname", new Date(), new Date(), Origin.UAA,"externalID", false, IdentityZoneHolder.get().getId());
     InMemoryUaaUserDatabase db;
     @Before
     public void setUp() {
@@ -63,7 +64,8 @@ public class InMemoryUaaUserDatabaseTests {
             user.getModified(),
             user.getOrigin(),
             user.getExternalId(),
-            false);
+            false,
+            user.getZoneId());
         db.updateUser(user.getId(), newUser);
         assertSame(newUser, db.retrieveUserById(user.getId()));
     }

@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -118,7 +119,7 @@ public class ChangeEmailControllerTest {
     @Test
     public void testNonUAAOriginUser() throws Exception {
         Authentication authentication = new UaaAuthentication(
-            new UaaPrincipal("user-id-001", "bob", "user@example.com", "NON-UAA-origin ", null),
+            new UaaPrincipal("user-id-001", "bob", "user@example.com", "NON-UAA-origin ", null, IdentityZoneHolder.get().getId()),
             Arrays.asList(UaaAuthority.UAA_USER),
             null
         );
@@ -156,7 +157,7 @@ public class ChangeEmailControllerTest {
     @Test
     public void testVerifyEmail() throws Exception {
         UaaUserDatabase userDatabase = mock(UaaUserDatabase.class);
-        UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, Origin.UAA, null, true);
+        UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, Origin.UAA, null, true, IdentityZoneHolder.get().getId());
         when(userDatabase.retrieveUserById(anyString())).thenReturn(user);
 
         controller.setUaaUserDatabase(userDatabase);
@@ -185,7 +186,7 @@ public class ChangeEmailControllerTest {
     @Test
     public void testVerifyEmailWithRedirectUrl() throws Exception {
         UaaUserDatabase userDatabase = mock(UaaUserDatabase.class);
-        UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, Origin.UAA, null, true);
+        UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, Origin.UAA, null, true, IdentityZoneHolder.get().getId());
         when(userDatabase.retrieveUserById(anyString())).thenReturn(user);
 
         controller.setUaaUserDatabase(userDatabase);
@@ -240,7 +241,7 @@ public class ChangeEmailControllerTest {
 
     private void setupSecurityContext() {
         Authentication authentication = new UaaAuthentication(
-            new UaaPrincipal("user-id-001", "bob", "user@example.com", Origin.UAA, null),
+            new UaaPrincipal("user-id-001", "bob", "user@example.com", Origin.UAA, null,IdentityZoneHolder.get().getId()),
             Arrays.asList(UaaAuthority.UAA_USER),
             null
         );

@@ -125,6 +125,7 @@ public class IdentityZoneSwitchingFilterMockMvcTest {
         user.addEmail(username);
         user.setPassword("secret");
         user.setVerified(true);
+        user.setZoneId(IdentityZone.getUaa().getId());
 
         MvcResult userResult = mockMvc.perform(post("/Users")
                 .header("Authorization", "Bearer " + adminToken)
