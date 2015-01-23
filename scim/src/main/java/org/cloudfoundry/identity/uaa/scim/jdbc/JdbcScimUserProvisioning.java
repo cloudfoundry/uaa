@@ -418,6 +418,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
             boolean verified = rs.getBoolean(11);
             String origin = rs.getString(12);
             String externalId = rs.getString(13);
+            String idpId = rs.getString(14);
+            String zoneId = rs.getString(15);
             ScimUser user = new ScimUser();
             user.setId(id);
             ScimMeta meta = new ScimMeta();
@@ -438,6 +440,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
             user.setVerified(verified);
             user.setOrigin(origin);
             user.setExternalId(externalId);
+            user.setIdpId(idpId);
+            user.setZoneId(zoneId);
             return user;
         }
     }

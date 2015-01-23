@@ -319,6 +319,10 @@ public final class ScimUser extends ScimCore {
 
     private String externalId = "";
 
+    private String zoneId = null;
+
+    private String idpId = null;
+
     @JsonProperty
     private String password;
 
@@ -493,6 +497,24 @@ public final class ScimUser extends ScimCore {
     public void setExternalId(String externalId) {
         this.externalId = externalId;
     }
+
+    public String getZoneId() {
+        return zoneId;
+    }
+
+    public void setZoneId(String zoneId) {
+        this.zoneId = zoneId;
+    }
+
+    public String getIdpId() {
+        return idpId;
+    }
+
+    public void setIdpId(String idpId) {
+        this.idpId = idpId;
+    }
+
+
 
     @JsonIgnore
     public String getPrimaryEmail() {

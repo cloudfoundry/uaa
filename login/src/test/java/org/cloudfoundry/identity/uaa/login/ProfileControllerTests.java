@@ -31,6 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -110,7 +111,7 @@ public class ProfileControllerTests {
 
     @Test
     public void testGetProfile() throws Exception {
-        UaaPrincipal uaaPrincipal = new UaaPrincipal("fake-user-id", "username", "email@example.com", Origin.UAA, null);
+        UaaPrincipal uaaPrincipal = new UaaPrincipal("fake-user-id", "username", "email@example.com", Origin.UAA, null, IdentityZoneHolder.get().getId());
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(uaaPrincipal, null);
 
         mockMvc.perform(get("/profile").principal(authentication))
@@ -128,7 +129,7 @@ public class ProfileControllerTests {
         Map<String, List<DescribedApproval>> approvalsByClientId = new HashMap<String, List<DescribedApproval>>();
         Mockito.when(approvalsService.getCurrentApprovalsByClientId()).thenReturn(approvalsByClientId);
 
-        UaaPrincipal uaaPrincipal = new UaaPrincipal("fake-user-id", "username", "email@example.com", Origin.UAA, null);
+        UaaPrincipal uaaPrincipal = new UaaPrincipal("fake-user-id", "username", "email@example.com", Origin.UAA, null, IdentityZoneHolder.get().getId());
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(uaaPrincipal, null);
 
         mockMvc.perform(get("/profile").principal(authentication))
@@ -140,7 +141,7 @@ public class ProfileControllerTests {
 
     @Test
     public void testPasswordLinkHiddenWhenUsersOriginIsNotUaa() throws Exception {
-        UaaPrincipal uaaPrincipal = new UaaPrincipal("fake-user-id", "username", "email@example.com", Origin.LDAP, "dnEntryForLdapUser");
+        UaaPrincipal uaaPrincipal = new UaaPrincipal("fake-user-id", "username", "email@example.com", Origin.LDAP, "dnEntryForLdapUser", IdentityZoneHolder.get().getId());
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(uaaPrincipal, null);
 
         mockMvc.perform(get("/profile").principal(authentication))

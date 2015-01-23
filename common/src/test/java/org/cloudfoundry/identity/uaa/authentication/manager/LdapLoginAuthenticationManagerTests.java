@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.ldap.extension.SpringSecurityLdapTemplate;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Matchers;
@@ -159,6 +160,7 @@ public class LdapLoginAuthenticationManagerTests  {
             new Date(),
             Origin.ORIGIN,
             EXTERNAL_ID,
-            false);
+            false,
+            IdentityZoneHolder.get().getId());
     }
 }

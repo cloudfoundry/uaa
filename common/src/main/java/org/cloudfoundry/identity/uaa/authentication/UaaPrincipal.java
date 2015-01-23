@@ -30,21 +30,26 @@ public class UaaPrincipal implements Principal, Serializable {
     private final String email;
     private final String origin;
     private final String externalId;
+    private final String zoneId;
 
     public UaaPrincipal(UaaUser user) {
-        this.id = user.getId();
-        this.name = user.getUsername();
-        this.email = user.getEmail();
-        this.origin = user.getOrigin();
-        this.externalId = user.getExternalId();
+        this(
+            user.getId(),
+            user.getUsername(),
+            user.getEmail(),
+            user.getOrigin(),
+            user.getExternalId(),
+            user.getZoneId()
+        );
     }
 
-    public UaaPrincipal(String id, String username, String email, String origin, String externalId) {
+    public UaaPrincipal(String id, String username, String email, String origin, String externalId, String zoneId) {
         this.id = id;
         this.name = username;
         this.email = email;
         this.origin = origin;
         this.externalId = externalId;
+        this.zoneId = zoneId;
     }
 
     public String getId() {
@@ -63,6 +68,8 @@ public class UaaPrincipal implements Principal, Serializable {
     public String getOrigin() { return origin; }
 
     public String getExternalId() { return externalId; }
+
+    public String getZoneId() { return zoneId; }
 
     /**
      * Returns {@code true} if the supplied object is a {@code UAAPrincipal}

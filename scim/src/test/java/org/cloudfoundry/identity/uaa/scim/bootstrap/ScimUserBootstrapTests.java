@@ -32,6 +32,7 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.hamcrest.collection.IsArrayContainingInAnyOrder;
 import org.junit.After;
 import org.junit.Before;
@@ -340,18 +341,20 @@ public class ScimUserBootstrapTests {
 
     private UaaUser getUaaUser(String[] userAuthorities, String origin, String email, String firstName, String lastName, String password, String externalId, String userId, String username) {
         return new UaaUser(
-                userId,
-                username,
-                password,
-                email,
-                getAuthorities(userAuthorities),
-                firstName,
-                lastName,
-                new Date(),
-                new Date(),
-                origin,
-                externalId,
-                false);
+            userId,
+            username,
+            password,
+            email,
+            getAuthorities(userAuthorities),
+            firstName,
+            lastName,
+            new Date(),
+            new Date(),
+            origin,
+            externalId,
+            false,
+            IdentityZoneHolder.get().getId()
+        );
     }
 
     @Test

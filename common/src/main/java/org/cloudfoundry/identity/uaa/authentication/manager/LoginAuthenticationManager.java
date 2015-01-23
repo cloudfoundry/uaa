@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSucc
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -174,7 +175,8 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
             new Date(),
             origin,
             name,
-            false);
+            false,
+            IdentityZoneHolder.get().getId());
 
     }
 }

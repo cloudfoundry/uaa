@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.client.SocialClientUserDetails;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -98,7 +99,7 @@ public class AutologinAuthenticationManager implements AuthenticationManager {
             clientId = map.get("client_id");
             origin = map.get(Origin.ORIGIN);
             userId = map.get("user_id");
-            principal = new UaaPrincipal(userId,user.getUsername(),null,origin,null);
+            principal = new UaaPrincipal(userId,user.getUsername(),null,origin,null, IdentityZoneHolder.get().getId());
         }
         if (clientId == null) {
             throw new BadCredentialsException("Cannot redeem provided code for user, client id missing");
