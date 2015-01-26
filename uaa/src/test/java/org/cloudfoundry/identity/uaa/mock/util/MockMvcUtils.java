@@ -20,14 +20,20 @@ import java.util.UUID;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneCreationRequest;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import scala.actors.threadpool.Arrays;
 
 public class MockMvcUtils {
 
@@ -69,4 +75,33 @@ public class MockMvcUtils {
             .andReturn().getResponse().getContentAsByteArray(),
             ScimGroup.class);
     }
+
+    public String getZoneAdminToken(MockMvc mockMvc, String adminToken, String zoneId) throws Exception {
+        ScimUser user = new ScimUser();
+        user.setUserName(new RandomValueStringGenerator().generate());
+        user.setPrimaryEmail(user.getUserName()+"@test.org");
+        user.setPassword("secret");
+        user = MockMvcUtils.utils().createUser(mockMvc, adminToken, user);
+        ScimGroup group = new ScimGroup("zones."+zoneId+".admin");
+        group.setMembers(Arrays.asList(new ScimGroupMember[]{new ScimGroupMember(user.getId())}));
+        MockMvcUtils.utils().createGroup(mockMvc, adminToken, group);
+        return getUserOAuthAccessToken(mockMvc, "identity", "identitysecret", user.getUserName(), "secret", group.getDisplayName());
+    }
+
+    public String getUserOAuthAccessToken(MockMvc mockMvc, String clientId, String clientSecret, String username, String password, String scope)
+        throws Exception {
+        String basicDigestHeaderValue = "Basic "
+            + new String(Base64.encodeBase64((clientId + ":" + clientSecret).getBytes()));
+        MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
+            .header("Authorization", basicDigestHeaderValue)
+            .param("grant_type", "password")
+            .param("client_id", clientId)
+            .param("username", username)
+            .param("password", password)
+            .param("scope", scope);
+        MvcResult result = mockMvc.perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
+        TestClient.OAuthToken oauthToken = new ObjectMapper().readValue(result.getResponse().getContentAsByteArray(), TestClient.OAuthToken.class);
+        return oauthToken.accessToken;
+    }
+
 }

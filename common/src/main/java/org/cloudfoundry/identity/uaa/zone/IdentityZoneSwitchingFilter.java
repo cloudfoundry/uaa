@@ -42,7 +42,7 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
     
     protected boolean isAuthorizedToSwitchToIdentityZone(String identityZoneId) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        boolean hasScope = OAuth2ExpressionUtils.hasAnyScope(authentication,new String[] {"zones."+identityZoneId+".admin","zones.admin"});
+        boolean hasScope = OAuth2ExpressionUtils.hasAnyScope(authentication,new String[] {"zones."+identityZoneId+".admin"});
         boolean isUaa = IdentityZoneHolder.isUaa();
         boolean isTokenAuth = (authentication instanceof OAuth2Authentication);
         return isTokenAuth && isUaa && hasScope;

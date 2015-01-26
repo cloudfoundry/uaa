@@ -3,6 +3,9 @@ package org.cloudfoundry.identity.uaa.mock.zones;
 import com.googlecode.flyway.core.Flyway;
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
@@ -34,6 +37,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.XmlWebApplicationContext;
+import scala.actors.threadpool.Arrays;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,6 +51,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -78,7 +83,7 @@ public class IdentityZoneEndpointsMockMvcTests {
         adminToken = testClient.getClientCredentialsOAuthAccessToken(
             "admin",
             "adminsecret",
-            "uaa.admin");
+            "");
 
     }
 
@@ -179,16 +184,25 @@ public class IdentityZoneEndpointsMockMvcTests {
     }
 
     @Test
+    public void testUpdateNonExistentReturns403() throws Exception {
+        String id = generator.generate();
+        //zone doesn't exist and we don't have the token scop
+        updateZone(id, HttpStatus.FORBIDDEN, identityAdminToken);
+    }
+
+    @Test
     public void testUpdateNonExistentReturns404() throws Exception {
         String id = generator.generate();
-        updateZone(id, HttpStatus.NOT_FOUND, identityAdminToken);
+        String zoneAdminToken = MockMvcUtils.utils().getZoneAdminToken(mockMvc, adminToken, id);
+        updateZone(id, HttpStatus.NOT_FOUND, zoneAdminToken);
     }
 
     @Test
     public void testUpdateExistentReturns200() throws Exception {
         String id = generator.generate();
         createZone(id, HttpStatus.CREATED, identityAdminToken);
-        updateZone(id, HttpStatus.OK, identityAdminToken);
+        String zoneAdminToken = MockMvcUtils.utils().getZoneAdminToken(mockMvc, adminToken, id);
+        updateZone(id, HttpStatus.OK, zoneAdminToken);
     }
 
 
@@ -211,6 +225,7 @@ public class IdentityZoneEndpointsMockMvcTests {
         creationRequest.setIdentityZone(identityZone);
         return mockMvc.perform(put("/identity-zones/" + id)
             .header("Authorization", "Bearer " + token)
+            .header("X-Identity-Zone-Id", id)
             .contentType(APPLICATION_JSON)
             .content(new ObjectMapper().writeValueAsString(creationRequest)))
             .andExpect(status().is(expect.value()))

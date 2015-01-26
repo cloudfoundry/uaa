@@ -18,7 +18,6 @@ import java.util.UUID;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.RandomStringUtils;
@@ -49,6 +48,7 @@ public class IdentityZoneSwitchingFilterMockMvcTest {
     private static MockMvc mockMvc;
     private static TestClient testClient;
     private static String identityToken;
+    private static String adminToken;
 
     @BeforeClass
     public static void setUp() throws Exception {
@@ -66,7 +66,12 @@ public class IdentityZoneSwitchingFilterMockMvcTest {
         identityToken = testClient.getClientCredentialsOAuthAccessToken(
                 "identity",
                 "identitysecret",
-                "zones.create,zones.admin,clients.write");
+                "zones.create,clients.write");
+
+        adminToken = testClient.getClientCredentialsOAuthAccessToken(
+            "admin",
+            "adminsecret",
+            "");
     }
 
     @AfterClass
@@ -78,7 +83,7 @@ public class IdentityZoneSwitchingFilterMockMvcTest {
     public void testSwitchingZones() throws Exception {
 
         final String zoneId = createZone(identityToken);
-
+        String zoneAdminToken = MockMvcUtils.utils().getZoneAdminToken(mockMvc,adminToken, zoneId);
         // Using Identity Client, authenticate in originating Zone
         // - Create Client using X-Identity-Zone-Id header in new Zone
         final String clientId = UUID.randomUUID().toString();
@@ -86,7 +91,7 @@ public class IdentityZoneSwitchingFilterMockMvcTest {
         client.setClientSecret("secret");
         mockMvc.perform(post("/oauth/clients")
                 .header(IdentityZoneSwitchingFilter.HEADER, zoneId)
-                .header("Authorization", "Bearer " + identityToken)
+                .header("Authorization", "Bearer " + zoneAdminToken)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
                 .content(new ObjectMapper().writeValueAsString(client)))
@@ -102,7 +107,7 @@ public class IdentityZoneSwitchingFilterMockMvcTest {
 
     @Test
     public void testSwitchingToNonExistentZone() throws Exception {
-        createClientInOtherZone(identityToken, "i-do-not-exist", status().isNotFound());
+        createClientInOtherZone(identityToken, "i-do-not-exist", status().isForbidden());
     }
 
     @Test
@@ -144,12 +149,11 @@ public class IdentityZoneSwitchingFilterMockMvcTest {
         BaseClientDetails client = new BaseClientDetails(clientId, null, null, "client_credentials", null);
         client.setClientSecret("secret");
         mockMvc.perform(post("/oauth/clients")
-                .header(IdentityZoneSwitchingFilter.HEADER, zoneId)
-                .header("Authorization", "Bearer " + accessToken)
-                .accept(APPLICATION_JSON)
-                .contentType(APPLICATION_JSON)
-                .content(new ObjectMapper().writeValueAsString(client)))
-            .andDo(print())
+            .header(IdentityZoneSwitchingFilter.HEADER, zoneId)
+            .header("Authorization", "Bearer " + accessToken)
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .content(new ObjectMapper().writeValueAsString(client)))
             .andExpect(statusMatcher);
     }
 }
