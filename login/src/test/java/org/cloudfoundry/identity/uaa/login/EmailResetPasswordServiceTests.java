@@ -16,6 +16,8 @@ import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.Map;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.contains;
@@ -29,6 +31,8 @@ import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpoints;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -36,18 +40,16 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 import org.thymeleaf.spring4.SpringTemplateEngine;
 import scala.actors.threadpool.Arrays;
 
@@ -78,39 +80,53 @@ public class EmailResetPasswordServiceTests {
     @After
     public void tearDown() {
         SecurityContextHolder.clearContext();
+        IdentityZoneHolder.clear();
     }
 
     @Test
     public void testForgotPasswordWhenAResetCodeIsReturnedByTheUaa() throws Exception {
-
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setProtocol("http");
-        request.setContextPath("/login");
-        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
-
         ScimUser user = new ScimUser("user-id-001","user@example.com","firstName","lastName");
         user.setPrimaryEmail("user@example.com");
         when(scimUserProvisioning.query(contains("origin"))).thenReturn(Arrays.asList(new ScimUser[]{user}));
         when(codeStore.generateCode(anyString(), any(Timestamp.class))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()),"user-id-001"));
         emailResetPasswordService.forgotPassword("user@example.com");
 
-
-
         Mockito.verify(messageService).sendMessage(eq("user-id-001"),
             eq("user@example.com"),
             eq(MessageType.PASSWORD_RESET),
             eq("Pivotal account password reset request"),
-            contains("<a href=\"http://localhost/login/reset_password?code=code&amp;email=user%40example.com\">Reset your password</a>")
+            contains("<a href=\"http://uaa.example.com/uaa/reset_password?code=code&amp;email=user%40example.com\">Reset your password</a>")
         );
     }
 
     @Test
-    public void testForgotPasswordWhenConflictIsReturnedByTheUaa() throws Exception {
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setProtocol("http");
-        request.setContextPath("/login");
-        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+    public void testResetPasswordInOtherZone() throws Exception {
+        ScimUser user = new ScimUser("user-id-001","user@example.com","firstName","lastName");
+        user.setPrimaryEmail("user@example.com");
+        when(scimUserProvisioning.query(contains("origin"))).thenReturn(Arrays.asList(new ScimUser[]{user}));
+        when(codeStore.generateCode(anyString(), any(Timestamp.class))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()),"user-id-001"));
 
+        IdentityZoneHolder.set(MultitenancyFixture.identityZone("test-zone-id", "test"));
+
+        emailResetPasswordService.forgotPassword("user@example.com");
+
+        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+
+        Mockito.verify(messageService).sendMessage(eq("user-id-001"),
+                eq("user@example.com"),
+                eq(MessageType.PASSWORD_RESET),
+                eq("The Twiglet Zone account password reset request"),
+                captor.capture()
+        );
+
+        String emailContent = captor.getValue();
+        assertThat(emailContent, containsString(String.format("A request has been made to reset your %s account password for %s", "The Twiglet Zone", "user@example.com")));
+        assertThat(emailContent, containsString("<a href=\"http://test.uaa.example.com/uaa/reset_password?code=code&amp;email=user%40example.com\">Reset your password</a>"));
+        assertThat(emailContent, containsString("Thank you,<br />\n    The Twiglet Zone"));
+    }
+
+    @Test
+    public void testForgotPasswordWhenConflictIsReturnedByTheUaa() throws Exception {
         ScimUser user = new ScimUser("user-id-001","user@example.com","firstName","lastName");
         user.setPrimaryEmail("user@example.com");
         when(scimUserProvisioning.query(contains("origin"))).thenReturn(Arrays.asList(new ScimUser[]{}));
@@ -120,12 +136,46 @@ public class EmailResetPasswordServiceTests {
 
         emailResetPasswordService.forgotPassword("user@example.com");
 
+        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+
         Mockito.verify(messageService).sendMessage(eq("user-id-001"),
             eq("user@example.com"),
             eq(MessageType.PASSWORD_RESET),
             eq("Pivotal account password reset request"),
-            contains("Your account credentials for localhost are managed by an external service. Please contact your administrator for password recovery requests.")
+            captor.capture()
         );
+
+        String emailContent = captor.getValue();
+        assertThat(emailContent, containsString(String.format("A request has been made to reset your %s account password for %s", "Pivotal", "user@example.com")));
+        assertThat(emailContent, containsString("Your account credentials for uaa.example.com are managed by an external service. Please contact your administrator for password recovery requests."));
+        assertThat(emailContent, containsString("Thank you,<br />\n    Pivotal"));
+    }
+
+    @Test
+    public void testForgotPasswordInOtherZoneWhenConflictIsReturnedByTheUaa() throws Exception {
+        ScimUser user = new ScimUser("user-id-001","user@example.com","firstName","lastName");
+        user.setPrimaryEmail("user@example.com");
+        when(scimUserProvisioning.query(contains("origin"))).thenReturn(Arrays.asList(new ScimUser[]{}));
+        when(scimUserProvisioning.query(eq("userName eq \"user@example.com\""))).thenReturn(Arrays.asList(new ScimUser[]{user}));
+        when(codeStore.generateCode(anyString(), any(Timestamp.class))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), "user-id-001"));
+        when(codeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()),"user-id-001"));
+
+        IdentityZoneHolder.set(MultitenancyFixture.identityZone("test-zone-id", "test"));
+
+        emailResetPasswordService.forgotPassword("user@example.com");
+
+        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+
+        Mockito.verify(messageService).sendMessage(eq("user-id-001"),
+                eq("user@example.com"),
+                eq(MessageType.PASSWORD_RESET),
+                eq("The Twiglet Zone account password reset request"),
+                captor.capture()
+        );
+
+        String emailBody = captor.getValue();
+        assertThat(emailBody, containsString("Your account credentials for test.uaa.example.com are managed by an external service. Please contact your administrator for password recovery requests."));
+        assertThat(emailBody, containsString("Thank you,<br />\n    The Twiglet Zone"));
     }
 
     @Test

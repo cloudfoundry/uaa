@@ -14,26 +14,23 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.apache.http.client.utils.URIBuilder;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpoints;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.core.env.Environment;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
 import java.io.IOException;
-import java.util.HashMap;
+import java.net.URISyntaxException;
 import java.util.Map;
 
 public class EmailResetPasswordService implements ResetPasswordService {
@@ -95,7 +92,11 @@ public class EmailResetPasswordService implements ResetPasswordService {
     }
 
     private String getSubjectText() {
-        return brand.equals("pivotal") ? "Pivotal account password reset request" : "Account password reset request";
+        String serviceName = getServiceName();
+        if (StringUtils.isEmpty(serviceName)) {
+            return "Account password reset request";
+        }
+        return serviceName + " account password reset request";
     }
 
     @Override
@@ -117,10 +118,10 @@ public class EmailResetPasswordService implements ResetPasswordService {
 
 
     private String getCodeSentEmailHtml(String code, String email) {
-        String resetUrl = ServletUriComponentsBuilder.fromCurrentContextPath().path("/reset_password").build().toUriString();
+        String resetUrl = getURIBuilder("/reset_password").toString();
 
         final Context ctx = new Context();
-        ctx.setVariable("serviceName", brand.equals("pivotal") ? "Pivotal " : "");
+        ctx.setVariable("serviceName", getServiceName());
         ctx.setVariable("code", code);
         ctx.setVariable("email", email);
         ctx.setVariable("resetUrl", resetUrl);
@@ -128,12 +129,40 @@ public class EmailResetPasswordService implements ResetPasswordService {
     }
 
     private String getResetUnavailableEmailHtml(String email) {
-        String hostname = ServletUriComponentsBuilder.fromCurrentContextPath().build().getHost();
+        String hostname = getURIBuilder().getHost();
 
         final Context ctx = new Context();
-        ctx.setVariable("serviceName", brand.equals("pivotal") ? "Pivotal " : "");
+        ctx.setVariable("serviceName", getServiceName());
         ctx.setVariable("email", email);
         ctx.setVariable("hostname", hostname);
         return templateEngine.process("reset_password_unavailable", ctx);
+    }
+
+    private URIBuilder getURIBuilder() {
+        return getURIBuilder("");
+    }
+
+    private URIBuilder getURIBuilder(String path) {
+        URIBuilder builder = null;
+        try {
+            builder = new URIBuilder(uaaBaseUrl + path);
+            String subdomain = IdentityZoneHolder.get().getSubdomain();
+            if (!StringUtils.isEmpty(subdomain)) {
+                builder.setHost(subdomain + "." + builder.getHost());
+            }
+            return builder;
+        } catch (URISyntaxException e) {
+            logger.error("Exception raised when building URI " + e);
+        }
+        return builder;
+    }
+
+    private String getServiceName() {
+        if (IdentityZoneHolder.get().equals(IdentityZone.getUaa())) {
+            return brand.equals("pivotal") ? "Pivotal" : "";
+        }
+        else {
+            return IdentityZoneHolder.get().getName();
+        }
     }
 }
