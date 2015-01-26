@@ -17,6 +17,7 @@ import java.util.Collections;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -65,7 +66,11 @@ public class DefaultSecurityContextAccessor implements SecurityContextAccessor {
         Authentication a = SecurityContextHolder.getContext().getAuthentication();
         if (isUser() && (a instanceof OAuth2Authentication)) {
             OAuth2Authentication oa = (OAuth2Authentication)a;
-            return a != null && OAuth2ExpressionUtils.hasAnyScope(oa,new String[] {"uaa.admin"});
+            return (a!=null) &&
+                OAuth2ExpressionUtils.hasAnyScope(
+                    oa,
+                    new String[] {"uaa.admin", "zones."+ IdentityZoneHolder.get().getId()+".admin"}
+                );
         } else {
             return hasUaaAdminScope(a);
         }
