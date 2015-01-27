@@ -352,9 +352,8 @@
         <constructor-arg ref="codeStore"/>
         <constructor-arg ref="scimUserProvisioning"/>
         <constructor-arg ref="jdbcClientDetailsService"/>
-        <constructor-arg ref="uaaUrl"/>
+        <constructor-arg ref="uaaUrlUtils" />
         <constructor-arg value="${login.brand:oss}"/>
-        <constructor-arg value="${login.url:http://localhost:8080/uaa}"/>
     </bean>
 
     <bean id="invitationsService" class="org.cloudfoundry.identity.uaa.login.EmailInvitationsService">

@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.client.utils.URIBuilder;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
@@ -10,6 +9,7 @@ import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -18,13 +18,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
-import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring4.SpringTemplateEngine;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -39,13 +37,12 @@ public class EmailAccountCreationService implements AccountCreationService {
 
     private final SpringTemplateEngine templateEngine;
     private final MessageService messageService;
-    private final String uaaBaseUrl;
-    private final String brand;
-    private final ObjectMapper objectMapper;
-    private final String baseUrl;
     private final ExpiringCodeStore codeStore;
     private final ScimUserProvisioning scimUserProvisioning;
     private final ClientDetailsService clientDetailsService;
+    private final String brand;
+    private final UaaUrlUtils uaaUrlUtils;
+    private final ObjectMapper objectMapper;
 
     public EmailAccountCreationService(
         ObjectMapper objectMapper,
@@ -54,9 +51,8 @@ public class EmailAccountCreationService implements AccountCreationService {
         ExpiringCodeStore codeStore,
         ScimUserProvisioning scimUserProvisioning,
         ClientDetailsService clientDetailsService,
-        String uaaBaseUrl,
-        String brand,
-        String baseUrl) {
+        UaaUrlUtils uaaUrlUtils,
+        String brand) {
 
         this.objectMapper = objectMapper;
         this.templateEngine = templateEngine;
@@ -64,9 +60,8 @@ public class EmailAccountCreationService implements AccountCreationService {
         this.codeStore= codeStore;
         this.scimUserProvisioning = scimUserProvisioning;
         this.clientDetailsService = clientDetailsService;
-        this.uaaBaseUrl = uaaBaseUrl;
+        this.uaaUrlUtils = uaaUrlUtils;
         this.brand = brand;
-        this.baseUrl = baseUrl;
     }
 
     @Override
@@ -126,33 +121,18 @@ public class EmailAccountCreationService implements AccountCreationService {
         user = scimUserProvisioning.verifyUser(user.getId(), user.getVersion());
 
         String clientId = data.get("client_id");
-        String redirectLocation;
+        String redirectLocation = null;
         if (clientId != null) {
             try {
                 ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId);
                 redirectLocation = (String) clientDetails.getAdditionalInformation().get(SIGNUP_REDIRECT_URL);
             }
             catch (NoSuchClientException e) {
-                redirectLocation = getDefaultRedirect();
+                logger.warn("Client deleted before user completed registration: " + clientId);
             }
-        } else {
-            redirectLocation = getDefaultRedirect();
         }
 
         return new AccountCreationResponse(user.getId(), user.getUserName(), user.getUserName(), redirectLocation);
-    }
-
-    private String getDefaultRedirect() throws IOException {
-        String redirectLocation;
-        try {
-            URIBuilder builder = new URIBuilder(baseUrl);
-            String subdomain = IdentityZoneHolder.get().getSubdomain();
-            builder.setHost((StringUtils.isEmpty(subdomain) ? "" : subdomain + ".") + builder.getHost());
-            redirectLocation = builder.toString() + "/home";
-        } catch (URISyntaxException e) {
-            throw new IOException(e);
-        }
-        return redirectLocation;
     }
 
     @Override
@@ -192,17 +172,7 @@ public class EmailAccountCreationService implements AccountCreationService {
     }
 
     private String getEmailHtml(String code, String email) {
-        String accountsUrl = null;
-        try {
-            URIBuilder builder = new URIBuilder(baseUrl + "/verify_user");
-            String subdomain = IdentityZoneHolder.get().getSubdomain();
-            if (!StringUtils.isEmpty(subdomain)) {
-                builder.setHost(subdomain + "." +builder.getHost());
-            }
-            accountsUrl = builder.build().toString();
-        } catch (URISyntaxException e) {
-            logger.error("Exception raised when building URI " + e);
-        }
+        String accountsUrl = uaaUrlUtils.getUaaUrl("/verify_user");
 
         final Context ctx = new Context();
         if (IdentityZoneHolder.get().equals(IdentityZone.getUaa())) {
