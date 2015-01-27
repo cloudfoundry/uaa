@@ -253,6 +253,7 @@ public class UaaTokenServicesTests {
         assertTrue(((Integer) claims.get(Claims.EXP)) > 0);
         assertTrue(((Integer) claims.get(Claims.EXP)) - ((Integer) claims.get(Claims.IAT)) == 60 * 60 * 12);
         assertNull(accessToken.getRefreshToken());
+        assertEquals(IdentityZoneHolder.get().getId(), claims.get(Claims.ZONE_ID));
 
         Assert.assertEquals(1, publisher.getEventCount());
 

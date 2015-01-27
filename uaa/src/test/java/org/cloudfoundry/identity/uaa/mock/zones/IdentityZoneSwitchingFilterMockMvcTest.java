@@ -66,7 +66,7 @@ public class IdentityZoneSwitchingFilterMockMvcTest {
         identityToken = testClient.getClientCredentialsOAuthAccessToken(
                 "identity",
                 "identitysecret",
-                "zones.create,clients.write");
+                "zones.create,scim.zones");
 
         adminToken = testClient.getClientCredentialsOAuthAccessToken(
             "admin",
@@ -112,7 +112,7 @@ public class IdentityZoneSwitchingFilterMockMvcTest {
 
     @Test
     public void testSwitchingZonesWithoutAuthority() throws Exception {
-        String identityTokenWithoutZonesAdmin = testClient.getClientCredentialsOAuthAccessToken("identity","identitysecret","zones.create,clients.write");
+        String identityTokenWithoutZonesAdmin = testClient.getClientCredentialsOAuthAccessToken("identity","identitysecret","zones.create,scim.zones");
         final String zoneId = createZone(identityTokenWithoutZonesAdmin);
         createClientInOtherZone(identityTokenWithoutZonesAdmin, zoneId, status().isForbidden());
     }

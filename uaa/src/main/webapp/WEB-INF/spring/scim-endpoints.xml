@@ -53,6 +53,10 @@
                                  pointcut="execution(* *..ScimGroupEndpoints+.updateGroup(..)) and bean(scimGroupEndpoints)" returning="group" />
             <aop:after-returning method="groupDeleted"
                                  pointcut="execution(* *..ScimGroupEndpoints+.deleteGroup(..)) and bean(scimGroupEndpoints)" returning="group" />
+            <aop:after-returning method="groupCreated"
+                                 pointcut="execution(* *..ScimGroupEndpoints+.setZoneAdmin(..)) and bean(scimGroupEndpoints)" returning="group" />
+            <aop:after-returning method="groupModified"
+                                 pointcut="execution(* *..ScimGroupEndpoints+.deleteZoneAdmin(..)) and bean(scimGroupEndpoints)" returning="group" />
         </aop:aspect>
     </aop:config>
 
@@ -167,17 +171,19 @@
         <property name="method" value="GET" />
     </bean>
 
-    <http pattern="/Groups/**" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
-        entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
-        xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/Groups/External" access="scope=scim.read" method="GET" />
-        <intercept-url pattern="/Groups/External" access="scope=scim.write" method="POST" />
-        <intercept-url pattern="/Groups/External/**" access="scope=scim.write" method="DELETE" />
-        <intercept-url pattern="/Groups/**" access="scope=scim.write" method="DELETE" />
-        <intercept-url pattern="/Groups" access="scope=scim.write" method="POST" />
-        <intercept-url pattern="/**" access="ROLE_NONEXISTENT" />
+    <http name="groupEndpointSecurity" pattern="/Groups/**" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"
+          use-expressions="true" authentication-manager-ref="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/Groups/zones" access="#oauth2.hasScopeInAuthZone('scim.zones')" />
+        <intercept-url pattern="/Groups/zones/**" access="#oauth2.hasScopeInAuthZone('scim.zones')" />
+        <intercept-url pattern="/Groups/External" access="#oauth2.hasScope('scim.read')" method="GET" />
+        <intercept-url pattern="/Groups/External" access="#oauth2.hasScope('scim.write')" method="POST" />
+        <intercept-url pattern="/Groups/External/**" access="#oauth2.hasScope('scim.write')" method="DELETE" />
+        <intercept-url pattern="/Groups/**" access="#oauth2.hasScope('scim.write')" method="DELETE" />
+        <intercept-url pattern="/Groups" access="#oauth2.hasScope('scim.write')" method="POST" />
+        <!--<intercept-url pattern="/**" access="ROLE_NONEXISTENT" />-->
         <custom-filter ref="scimResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
+        <expression-handler ref="oauthWebExpressionHandler" />
     </http>
 
     <bean id="userIdsEnabled" class="java.lang.Boolean">
