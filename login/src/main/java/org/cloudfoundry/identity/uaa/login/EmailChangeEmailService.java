@@ -1,3 +1,15 @@
+/*******************************************************************************
+ *     Cloud Foundry
+ *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *
+ *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *     You may not use this product except in compliance with the License.
+ *
+ *     This product includes a number of subcomponents with
+ *     separate copyright notices and license terms. Your use of these
+ *     subcomponents is subject to the terms and conditions of the
+ *     subcomponent's license, as noted in the LICENSE file.
+ *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
 import java.io.IOException;
@@ -6,10 +18,12 @@ import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ChangeEmailEndpoints;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
@@ -19,12 +33,14 @@ public class EmailChangeEmailService implements ChangeEmailService {
     private final MessageService messageService;
     private final String brand;
     private final ChangeEmailEndpoints endpoints;
+    private final UaaUrlUtils uaaUrlUtils;
 
-    public EmailChangeEmailService(TemplateEngine templateEngine, MessageService messageService, String brand, ChangeEmailEndpoints endpoints) {
+    public EmailChangeEmailService(TemplateEngine templateEngine, MessageService messageService, ChangeEmailEndpoints endpoints, UaaUrlUtils uaaUrlUtils, String brand) {
         this.templateEngine = templateEngine;
         this.messageService = messageService;
-        this.brand = brand;
         this.endpoints = endpoints;
+        this.uaaUrlUtils = uaaUrlUtils;
+        this.brand = brand;
     }
 
     @Override
@@ -76,15 +92,26 @@ public class EmailChangeEmailService implements ChangeEmailService {
     }
 
     private String getSubjectText() {
-        return "Email change verification";
+        if (IdentityZoneHolder.get().equals(IdentityZone.getUaa())) {
+            return brand.equals("pivotal") ? "Pivotal Email change verification" : "Account Email change verification";
+        }
+        else {
+            return IdentityZoneHolder.get().getName() + " Email change verification";
+        }
     }
 
     private String getEmailChangeEmailHtml(String email, String newEmail, String code) {
-        String verifyUrl = ServletUriComponentsBuilder.fromCurrentContextPath().path("/verify_email").build().toUriString();
+        String verifyUrl = uaaUrlUtils.getUaaUrl("/verify_email");
 
         final Context ctx = new Context();
-        ctx.setVariable("serviceName", brand.equals("pivotal") ? "Pivotal " : "Cloud Foundry");
-        ctx.setVariable("servicePhrase", brand.equals("pivotal") ? "a Pivotal ID" : "an account");
+        if (IdentityZoneHolder.get().equals(IdentityZone.getUaa())) {
+            ctx.setVariable("serviceName", brand.equals("pivotal") ? "Pivotal " : "Cloud Foundry");
+            ctx.setVariable("servicePhrase", brand.equals("pivotal") ? "a Pivotal ID" : "an account");
+        }
+        else {
+            ctx.setVariable("serviceName", IdentityZoneHolder.get().getName());
+            ctx.setVariable("servicePhrase", IdentityZoneHolder.get().getName());
+        }
         ctx.setVariable("code", code);
         ctx.setVariable("newEmail", newEmail);
         ctx.setVariable("email", email);

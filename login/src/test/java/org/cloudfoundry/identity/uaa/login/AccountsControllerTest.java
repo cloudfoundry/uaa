@@ -178,26 +178,6 @@ public class AccountsControllerTest {
         assertEquals("username", principal.getName());
         assertEquals("user@example.com", principal.getEmail());
     }
-//
-//
-//    @Test
-//    public void testCreateAccountWithExpiredActivationCode() throws Exception {
-//        Mockito.when(accountCreationService.completeActivation("expired_code", "secret"))
-//                .thenThrow(new HttpClientErrorException(BAD_REQUEST));
-//
-//        MockHttpServletRequestBuilder post = post("/accounts")
-//                .param("email", "user@example.com")
-//                .param("code", "expired_code")
-//                .param("password", "secret")
-//                .param("password_confirmation", "secret");
-//
-//        mockMvc.perform(post)
-//                .andExpect(status().isUnprocessableEntity())
-//                .andExpect(model().attribute("message_code", "code_expired"))
-//                .andExpect(view().name("accounts/new"))
-//                .andExpect(xpath("//*[@class='error-message']").string("Your activation code has expired. Please request another."));
-//    }
-
 
     @Configuration
     @EnableWebMvc

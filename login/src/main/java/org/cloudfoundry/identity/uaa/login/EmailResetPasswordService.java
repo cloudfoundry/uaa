@@ -14,9 +14,9 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.client.utils.URIBuilder;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpoints;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -30,7 +30,6 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.Map;
 
 public class EmailResetPasswordService implements ResetPasswordService {
@@ -40,14 +39,14 @@ public class EmailResetPasswordService implements ResetPasswordService {
     private final TemplateEngine templateEngine;
     private final MessageService messageService;
     private final PasswordResetEndpoints passwordResetEndpoints;
-    private final String uaaBaseUrl;
+    private final UaaUrlUtils uaaUrlUtils;
     private final String brand;
 
-    public EmailResetPasswordService(TemplateEngine templateEngine, MessageService messageService, PasswordResetEndpoints passwordResetEndpoints, String uaaBaseUrl, String brand) {
+    public EmailResetPasswordService(TemplateEngine templateEngine, MessageService messageService, PasswordResetEndpoints passwordResetEndpoints, UaaUrlUtils uaaUrlUtils, String brand) {
         this.templateEngine = templateEngine;
         this.messageService = messageService;
         this.passwordResetEndpoints = passwordResetEndpoints;
-        this.uaaBaseUrl = uaaBaseUrl;
+        this.uaaUrlUtils = uaaUrlUtils;
         this.brand = brand;
     }
 
@@ -118,7 +117,7 @@ public class EmailResetPasswordService implements ResetPasswordService {
 
 
     private String getCodeSentEmailHtml(String code, String email) {
-        String resetUrl = getURIBuilder("/reset_password").toString();
+        String resetUrl = uaaUrlUtils.getUaaUrl("/reset_password");
 
         final Context ctx = new Context();
         ctx.setVariable("serviceName", getServiceName());
@@ -129,32 +128,13 @@ public class EmailResetPasswordService implements ResetPasswordService {
     }
 
     private String getResetUnavailableEmailHtml(String email) {
-        String hostname = getURIBuilder().getHost();
+        String hostname = uaaUrlUtils.getUaaHost();
 
         final Context ctx = new Context();
         ctx.setVariable("serviceName", getServiceName());
         ctx.setVariable("email", email);
         ctx.setVariable("hostname", hostname);
         return templateEngine.process("reset_password_unavailable", ctx);
-    }
-
-    private URIBuilder getURIBuilder() {
-        return getURIBuilder("");
-    }
-
-    private URIBuilder getURIBuilder(String path) {
-        URIBuilder builder = null;
-        try {
-            builder = new URIBuilder(uaaBaseUrl + path);
-            String subdomain = IdentityZoneHolder.get().getSubdomain();
-            if (!StringUtils.isEmpty(subdomain)) {
-                builder.setHost(subdomain + "." + builder.getHost());
-            }
-            return builder;
-        } catch (URISyntaxException e) {
-            logger.error("Exception raised when building URI " + e);
-        }
-        return builder;
     }
 
     private String getServiceName() {

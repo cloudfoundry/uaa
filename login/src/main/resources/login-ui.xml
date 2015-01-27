@@ -375,14 +375,19 @@
         <constructor-arg ref="mailTemplateEngine"/>
         <constructor-arg ref="messageService"/>
         <constructor-arg ref="passwordResetEndpoints"/>
-        <constructor-arg ref="uaaUrl"/>
+        <constructor-arg ref="uaaUrlUtils"/>
         <constructor-arg value="${login.brand:oss}"/>
+    </bean>
+
+    <bean id="uaaUrlUtils" class="org.cloudfoundry.identity.uaa.util.UaaUrlUtils">
+        <constructor-arg ref="uaaUrl" />
     </bean>
 
     <bean id="changeEmailService" class="org.cloudfoundry.identity.uaa.login.EmailChangeEmailService">
         <constructor-arg ref="mailTemplateEngine"/>
         <constructor-arg ref="messageService"/>
         <constructor-arg ref="changeEmailEndpoints"/>
+        <constructor-arg ref="uaaUrlUtils"/>
         <constructor-arg value="${login.brand:oss}"/>
     </bean>
 

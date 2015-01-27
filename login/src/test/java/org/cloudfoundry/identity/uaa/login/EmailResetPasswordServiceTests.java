@@ -31,6 +31,7 @@ import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpoints;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -63,9 +64,11 @@ public class EmailResetPasswordServiceTests {
     @Autowired
     @Qualifier("mailTemplateEngine")
     SpringTemplateEngine templateEngine;
+
     private PasswordResetEndpoints passwordResetEndpoints;
     private ExpiringCodeStore codeStore;
     private ScimUserProvisioning scimUserProvisioning;
+    private UaaUrlUtils uaaUrlUtils;
 
     @Before
     public void setUp() throws Exception {
@@ -74,7 +77,8 @@ public class EmailResetPasswordServiceTests {
         scimUserProvisioning = mock(ScimUserProvisioning.class);
         codeStore = mock(ExpiringCodeStore.class);
         passwordResetEndpoints = new PasswordResetEndpoints(new ObjectMapper(), scimUserProvisioning, codeStore);
-        emailResetPasswordService = new EmailResetPasswordService(templateEngine, messageService, passwordResetEndpoints, "http://uaa.example.com/uaa", "pivotal");
+        uaaUrlUtils = new UaaUrlUtils("http://uaa.example.com/uaa");
+        emailResetPasswordService = new EmailResetPasswordService(templateEngine, messageService, passwordResetEndpoints, uaaUrlUtils, "pivotal");
     }
 
     @After
