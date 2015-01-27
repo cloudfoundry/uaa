@@ -30,6 +30,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneCreationRequest;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -74,6 +75,18 @@ public class MockMvcUtils {
             .andExpect(status().isCreated())
             .andReturn().getResponse().getContentAsByteArray(),
             ScimGroup.class);
+    }
+
+    public BaseClientDetails createClient(MockMvc mockMvc, String accessToken, BaseClientDetails clientDetails) throws Exception {
+        MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
+            .header("Authorization", "Bearer " + accessToken)
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .content(new ObjectMapper().writeValueAsString(clientDetails));
+        return new ObjectMapper().readValue(
+            mockMvc.perform(createClientPost)
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsByteArray(),BaseClientDetails.class);
     }
 
     public String getZoneAdminToken(MockMvc mockMvc, String adminToken, String zoneId) throws Exception {
