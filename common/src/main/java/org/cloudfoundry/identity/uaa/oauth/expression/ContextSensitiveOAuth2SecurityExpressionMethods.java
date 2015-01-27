@@ -12,11 +12,20 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth.expression;
 
+import java.util.Map;
+
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.oauth.Claims;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.type.TypeReference;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.jwt.Jwt;
+import org.springframework.security.jwt.JwtHelper;
+import org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationDetails;
 import org.springframework.security.oauth2.provider.expression.OAuth2SecurityExpressionMethods;
+import org.springframework.util.StringUtils;
 
 public class ContextSensitiveOAuth2SecurityExpressionMethods extends OAuth2SecurityExpressionMethods {
     public static final String ZONE_ID = "{zone.id}";
@@ -82,11 +91,39 @@ public class ContextSensitiveOAuth2SecurityExpressionMethods extends OAuth2Secur
 
     public boolean hasScopeInAuthZone(String scope) {
         boolean hasScope = hasScope(scope);
-        hasScope = hasScope && authentication.getPrincipal() instanceof UaaPrincipal;
+        String authZoneId = getAuthenticationZoneId();
+        hasScope = hasScope && StringUtils.hasText(authZoneId);
         if (hasScope) {
-            UaaPrincipal principal = (UaaPrincipal)authentication.getPrincipal();
-            hasScope = identityZone != null && identityZone.getId().equals(principal.getZoneId());
+            hasScope = identityZone != null && identityZone.getId().equals(authZoneId);
         }
         return hasScope;
+    }
+
+    private String getAuthenticationZoneId() {
+        if (authentication.getPrincipal() instanceof UaaPrincipal) {
+            return ((UaaPrincipal)authentication.getPrincipal()).getZoneId();
+        } else if (authentication.getDetails() instanceof OAuth2AuthenticationDetails) {
+            String tokenValue = ((OAuth2AuthenticationDetails)authentication.getDetails()).getTokenValue();
+            return getZoneIdFromToken(tokenValue);
+        } else {
+            return null;
+        }
+    }
+
+
+    private String getZoneIdFromToken(String token) {
+        Jwt tokenJwt = null;
+        try {
+            tokenJwt = JwtHelper.decode(token);
+        } catch (Throwable t) {
+            throw new IllegalStateException("Cannot decode token", t);
+        }
+        Map<String, Object> claims = null;
+        try {
+            claims = new ObjectMapper().readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {});
+        } catch (Exception e) {
+            throw new IllegalStateException("Cannot read token claims", e);
+        }
+        return (String)claims.get(Claims.ZONE_ID);
     }
 }

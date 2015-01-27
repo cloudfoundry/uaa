@@ -93,6 +93,7 @@ import static org.cloudfoundry.identity.uaa.oauth.Claims.SCOPE;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.SUB;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.USER_ID;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.USER_NAME;
+import static org.cloudfoundry.identity.uaa.oauth.Claims.ZONE_ID;
 
 /**
  * This class provides token services for the UAA. It handles the production and
@@ -363,6 +364,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         if (getTokenEndpoint() != null) {
             response.put(ISS, getTokenEndpoint());
+            response.put(ZONE_ID,IdentityZoneHolder.get().getId());
         }
 
         // TODO: different values for audience in the AT and RT. Need to sync
@@ -543,6 +545,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         response.put(CID, clientId);
         if (getTokenEndpoint() != null) {
             response.put(ISS, getTokenEndpoint());
+            response.put(ZONE_ID,IdentityZoneHolder.get().getId());
         }
 
         if (null != grantType) {

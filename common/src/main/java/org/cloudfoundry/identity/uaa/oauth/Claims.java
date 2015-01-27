@@ -43,4 +43,5 @@ public class Claims {
     public static final String ADDITIONAL_AZ_ATTR = "az_attr";
     public static final String AZP = "azp";
     public static final String AUTH_TIME = "auth_time";
+    public static final String ZONE_ID = "zid";
 }
