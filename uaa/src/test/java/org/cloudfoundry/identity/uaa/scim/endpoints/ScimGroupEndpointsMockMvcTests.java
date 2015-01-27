@@ -27,9 +27,12 @@ import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import com.googlecode.flyway.core.Flyway;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.rest.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -44,6 +47,7 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipMa
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -52,6 +56,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.env.MockEnvironment;
@@ -75,6 +80,7 @@ public class ScimGroupEndpointsMockMvcTests {
     private String scimWriteToken;
     private String scimReadUserToken;
     private String scimWriteUserToken;
+    private String identityClientToken;
     private ScimUser scimUser;
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
     private List<String> defaultExternalMembers;
@@ -120,7 +126,7 @@ public class ScimGroupEndpointsMockMvcTests {
         scimUser = createUser(scimWriteToken, new HashSet(Arrays.asList("scim.read", "scim.write", "scim.me")));
         scimReadUserToken = testClient.getUserOAuthAccessToken("cf","", scimUser.getUserName(), "password", "scim.read");
         scimWriteUserToken = testClient.getUserOAuthAccessToken("cf","", scimUser.getUserName(), "password", "scim.write");
-
+        identityClientToken = testClient.getClientCredentialsOAuthAccessToken("identity","identitysecret","");
     }
     
     @AfterClass
@@ -133,7 +139,77 @@ public class ScimGroupEndpointsMockMvcTests {
     }
 
     @Test
-    @Ignore
+    public void testIdentityClientManagesZoneAdmins() throws Exception {
+        IdentityZone zone = MockMvcUtils.utils().createZoneUsingWebRequest(mockMvc, identityClientToken);
+        ScimGroupMember member = new ScimGroupMember(scimUser.getId());
+        ScimGroup group = new ScimGroup("zones."+zone.getId()+".admin");
+        group.setMembers(Arrays.asList(member));
+        MockHttpServletRequestBuilder post = post("/Groups/zones")
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .header("Authorization", "Bearer " + identityClientToken)
+            .content(new ObjectMapper().writeValueAsBytes(group));
+        //create the zones.{id}.admin
+        mockMvc.perform(post)
+            .andDo(print())
+            .andExpect(status().isCreated());
+        //it is already created
+        mockMvc.perform(post)
+            .andExpect(status().isConflict());
+
+        MockHttpServletRequestBuilder delete = delete("/Groups/zones/{userId}/{zoneId}", scimUser.getId(), zone.getId())
+            .header("Authorization", "Bearer "+identityClientToken);
+        //delete the zones.{id}.admin
+        mockMvc.perform(delete).andExpect(status().isOk());
+        //the relationship is not found
+        mockMvc.perform(delete).andExpect(status().isNotFound());
+
+        //try a regular scim token
+        mockMvc.perform(post("/Groups/zones")
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .header("Authorization", "Bearer " + scimWriteToken)
+            .content(new ObjectMapper().writeValueAsBytes(group)))
+            .andExpect(status().isForbidden());
+
+        mockMvc.perform(
+            delete("/Groups/zones/{userId}/{zoneId}", scimUser.getId(), zone.getId())
+                .header("Authorization", "Bearer "+scimWriteToken))
+            .andExpect(status().isForbidden());
+
+        mockMvc.perform(
+            delete("/Groups/zones/{userId}/{zoneId}", "nonexistent", zone.getId())
+                .header("Authorization", "Bearer "+identityClientToken))
+            .andExpect(status().isNotFound());
+
+        mockMvc.perform(post("/Groups/zones")
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .header("Authorization", "Bearer " + identityClientToken)
+            .content(""))
+            .andExpect(status().isBadRequest());
+
+        //add two users to the same zone
+        for (int i=0; i<2; i++) {
+            ScimUser user = createUser(scimWriteToken, new HashSet(Arrays.asList("scim.read", "scim.write", "scim.me")));
+            member = new ScimGroupMember(user.getId());
+            group = new ScimGroup("zones."+zone.getId()+".admin");
+            group.setMembers(Arrays.asList(member));
+
+            post = post("/Groups/zones")
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .header("Authorization", "Bearer " + identityClientToken)
+                .content(new ObjectMapper().writeValueAsBytes(group));
+            //create the zones.{id}.admin
+            mockMvc.perform(post)
+                .andExpect(status().isCreated());
+        }
+    }
+
+
+    @Test
+    @Ignore //we only create DB once - so can no longer run
     public void testDBisDownDuringCreate() throws Exception {
         for (String s  : webApplicationContext.getEnvironment().getActiveProfiles()) {
             Assume.assumeFalse("Does not run during MySQL", "mysql".equals(s));

@@ -46,6 +46,7 @@ Here is a summary of the different scopes that are known to the UAA.
   * clients.write - scope required to create and modify clients. The scopes/authorities are limited to be prefixed with the scope holder's client id. For example, id:testclient authorities:client.write may create a client that has scopes/authorities that have the 'testclient.' prefix.
   * clients.read - scope to read information about clients
   * clients.secret - scope to change client secrets
+  * scim.zones - limited scope that only allows adding/removing a user to/from a group with name zones.{id}.admin under the path /Groups/zones
 
 A Note on Filtering
 =======================
@@ -1074,6 +1075,92 @@ See `SCIM - Deleting Resources <http://www.simplecloud.info/specs/draft-scim-res
         404 - Not found
 
 Deleting a group also removes the group from the 'groups' sub-attribute on users who were members of the group. 
+
+Create a Zone Administrator (add zones.{id}.admin to a user}: ``POST /Groups/zones``
+----------------------------------
+
+See `SCIM - Creating Resources`__
+
+__ http://www.simplecloud.info/specs/draft-scim-rest-api-01.html#create-resource
+
+* Request: ``POST /Groups/zones``
+* Request Headers: Authorization header containing an OAuth2_ bearer token with::
+
+        scope = scim.zones
+        aud = scim
+
+* Request Body::
+
+        {
+            "schemas":["urn:scim:schemas:core:1.0"],
+            "displayName":"zones.26d3c171-88ac-438a-ae53-e633b7b5c461.admin",
+            "members":[
+                {"origin":"uaa","type":"USER","value":"1323700f-a6e4-4d7a-9d0e-320c82db794a"}
+            ],
+        }
+
+The ``displayName`` is unique in the UAA, but is allowed to change.  Each group also has a fixed primary key which is a UUID (stored in the ``id`` field of the core schema).
+
+* Response Body::
+
+        HTTP/1.1 201 Created
+        Content-Type: application/json
+        Location: https://example.com/v1/Groups/uid=123456
+        ETag: "0"
+
+        {
+          "id": "2bfee27f-513f-436d-8cee-0ab08c21d2f3",
+          "schemas": [
+            "urn:scim:schemas:core:1.0"
+          ],
+          "displayName": "zones.MyZoneId.admin",
+          "members": [
+            {
+              "origin": "uaa",
+              "type": "USER",
+              "value": "bf7c1859-0c8b-423f-9b94-0cbf14322431"
+            }
+          ],
+          "meta": {
+            "version": 0,
+            "created": "2015-01-27T12:35:09.725Z",
+            "lastModified": "2015-01-27T12:35:09.725Z"
+          }
+        }
+
+* Response Codes::
+
+        201 - Created successfully
+        400 - Bad Request (unparseable, syntactically incorrect etc)
+        401 - Unauthorized
+        403 - Forbidden (authenticated but insufficient scopes)
+
+The members.value sub-attributes MUST refer to a valid SCIM resource id in the UAA, i.e the UUID of an existing SCIM user or group.
+
+Remove a zone administrator: ``DELETE /Groups/zones/{userId}/{zoneId}``
+-----------------------------------------
+
+See `SCIM - Deleting Resources <http://www.simplecloud.info/specs/draft-scim-rest-api-01.html#delete-resource>`_.
+
+* Request: ``DELETE /Groups/zones/{userId}/{zoneId}``
+* Request Headers:
+
+  + Authorization header containing an OAuth2_ bearer token with::
+
+        scope = scim.zones (in the default UAA zone)
+        aud = scim
+
+  + ``If-Match`` the ``ETag`` (version id) for the value to delete
+
+* Request Body: Empty
+* Response Body: Empty
+* Response Codes::
+
+        200 - Success
+        401 - Unauthorized
+        403 - Forbidden
+        404 - Not found
+
 
 
 List External Group mapping: ``GET /Groups/External``
