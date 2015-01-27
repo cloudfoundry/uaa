@@ -158,7 +158,7 @@ public class AccountsControllerIntegrationTest {
                 .param("code", "test"+generator.counter.get()))
                 .andDo(print())
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("http://localhost:8080/uaa/home"))
+                .andExpect(redirectedUrl("home"))
                 .andReturn();
 
         SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
@@ -187,7 +187,7 @@ public class AccountsControllerIntegrationTest {
                 .param("code", "test"+generator.counter.get()))
                 .andDo(print())
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("http://localhost:8080/uaa/home"))
+                .andExpect(redirectedUrl("home"))
                 .andReturn();
 
         SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
@@ -276,7 +276,7 @@ public class AccountsControllerIntegrationTest {
                 .with(new SetServerNameRequestPostProcessor("mysubdomain.localhost")))
                 .andDo(print())
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("http://mysubdomain.localhost:8080/uaa/home"))
+                .andExpect(redirectedUrl("home"))
                 .andReturn();
 
         SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
