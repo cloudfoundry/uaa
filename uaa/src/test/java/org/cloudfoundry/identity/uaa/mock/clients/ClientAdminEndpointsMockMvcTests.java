@@ -110,7 +110,7 @@ public class ClientAdminEndpointsMockMvcTests {
         adminToken = testClient.getClientCredentialsOAuthAccessToken(
             testAccounts.getAdminClientId(),
             testAccounts.getAdminClientSecret(),
-            "clients.admin clients.read clients.write clients.secret", null);
+            "clients.admin clients.read clients.write clients.secret");
 
         applicationEventPublisher = mock(ApplicationEventPublisher.class);
         ClientAdminEventPublisher eventPublisher = (ClientAdminEventPublisher)webApplicationContext.getBean("clientAdminEventPublisher");
@@ -706,7 +706,7 @@ public class ClientAdminEndpointsMockMvcTests {
             .content(toString(client));
         mockMvc.perform(createClientPost).andExpect(status().isCreated());
 
-        String clientSecretToken = testClient.getClientCredentialsOAuthAccessToken(client.getClientId(), client.getClientSecret(), "clients.secret", null);
+        String clientSecretToken = testClient.getClientCredentialsOAuthAccessToken(client.getClientId(), client.getClientSecret(), "clients.secret");
 
         SecretChangeRequest request = new SecretChangeRequest(client.getClientId(), "invalidsecret", "newsecret");
         MockHttpServletRequestBuilder modifyClientsPost = put("/oauth/clients/" + client.getClientId() + "/secret")
@@ -892,7 +892,7 @@ public class ClientAdminEndpointsMockMvcTests {
         String token = testClient.getClientCredentialsOAuthAccessToken(
             adminsClient.getClientId(),
             "secret",
-            "clients.admin", null);
+            "clients.admin");
 
         MockHttpServletRequestBuilder modifyClientsPost = post("/oauth/clients/tx/modify")
                 .header("Authorization", "Bearer " + token)
@@ -917,7 +917,7 @@ public class ClientAdminEndpointsMockMvcTests {
         String token = testClient.getClientCredentialsOAuthAccessToken(
             adminsClient.getClientId(),
             "secret",
-            "clients.write", null);
+            "clients.write");
 
         MockHttpServletRequestBuilder modifyClientsPost = post("/oauth/clients/tx/modify")
                 .header("Authorization", "Bearer " + token)
@@ -943,7 +943,7 @@ public class ClientAdminEndpointsMockMvcTests {
         String token = testClient.getClientCredentialsOAuthAccessToken(
             adminsClient.getClientId(),
             "secret",
-            "clients.admin", null);
+            "clients.admin");
 
         MockHttpServletRequestBuilder modifyClientsPost = post("/oauth/clients")
                 .header("Authorization", "Bearer " + token)
@@ -968,7 +968,7 @@ public class ClientAdminEndpointsMockMvcTests {
         String token = testClient.getClientCredentialsOAuthAccessToken(
             adminsClient.getClientId(),
             "secret",
-            "clients.read", null);
+            "clients.read");
 
         MockHttpServletRequestBuilder modifyClientsPost = post("/oauth/clients")
                 .header("Authorization", "Bearer " + token)
@@ -993,7 +993,7 @@ public class ClientAdminEndpointsMockMvcTests {
         String token = testClient.getClientCredentialsOAuthAccessToken(
             adminsClient.getClientId(),
             "secret",
-            "clients.write", null);
+            "clients.write");
 
         MockHttpServletRequestBuilder modifyClientsPost = post("/oauth/clients")
                 .header("Authorization", "Bearer " + token)
