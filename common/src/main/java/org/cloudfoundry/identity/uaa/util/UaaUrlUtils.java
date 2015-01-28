@@ -15,7 +15,6 @@
 package org.cloudfoundry.identity.uaa.util;
 
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -23,7 +22,7 @@ public class UaaUrlUtils {
 
     private final String uaaBaseUrl;
 
-    public UaaUrlUtils(@Value("${uaaBaseUrl}") String uaaBaseUrl) {
+    public UaaUrlUtils(String uaaBaseUrl) {
         this.uaaBaseUrl = uaaBaseUrl;
     }
 
