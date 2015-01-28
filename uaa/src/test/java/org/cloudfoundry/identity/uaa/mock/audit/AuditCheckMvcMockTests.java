@@ -32,8 +32,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import com.googlecode.flyway.core.Flyway;
 
-import junit.framework.Assert;
-
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
@@ -75,7 +73,6 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.http.MediaType;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.core.Authentication;
@@ -93,12 +90,11 @@ public class AuditCheckMvcMockTests {
 
     private static XmlWebApplicationContext webApplicationContext;
     private static MockMvc mockMvc;
-    ClientRegistrationService clientRegistrationService;
+    private ClientRegistrationService clientRegistrationService;
     private ApplicationListener<AbstractUaaEvent> listener;
     private TestClient testClient;
     private UaaTestAccounts testAccounts;
     private TestApplicationEventListener<AbstractUaaEvent> testListener;
-    private JdbcTemplate jdbcTemplate;
     private ApplicationListener<UserAuthenticationSuccessEvent> authSuccessListener;
     private ScimUser testUser;
     private String testPassword = "secret";
@@ -123,31 +119,29 @@ public class AuditCheckMvcMockTests {
     @Before
     public void setUp() throws Exception {
         clientRegistrationService = webApplicationContext.getBean(ClientRegistrationService.class);
+        testClient = new TestClient(mockMvc);
+        testAccounts = UaaTestAccounts.standard(null);
+
+        testListener = TestApplicationEventListener.forEventClass(AbstractUaaEvent.class);
         listener = mock(new DefaultApplicationListener<AbstractUaaEvent>() {}.getClass());
         authSuccessListener = mock(new DefaultApplicationListener<UserAuthenticationSuccessEvent>() {
         }.getClass());
-
-        testListener = TestApplicationEventListener.forEventClass(AbstractUaaEvent.class);
-        testClient = new TestClient(mockMvc);
-        testAccounts = UaaTestAccounts.standard(null);
         webApplicationContext.addApplicationListener(listener);
         webApplicationContext.addApplicationListener(authSuccessListener);
         webApplicationContext.addApplicationListener(testListener);
 
-        jdbcTemplate = webApplicationContext.getBean(JdbcTemplate.class);
         String adminToken = testClient.getClientCredentialsOAuthAccessToken(
             testAccounts.getAdminClientId(),
             testAccounts.getAdminClientSecret(),
             "uaa.admin,scim.write");
         testUser = createUser(adminToken, "testUser", "Test", "User", "testuser@test.com", testPassword);
 
+        testListener.clearEvents();
         listener = mock(new DefaultApplicationListener<AbstractUaaEvent>() {}.getClass());
         authSuccessListener = mock(new DefaultApplicationListener<UserAuthenticationSuccessEvent>() {
         }.getClass());
-        testListener = TestApplicationEventListener.forEventClass(AbstractUaaEvent.class);
         webApplicationContext.addApplicationListener(listener);
         webApplicationContext.addApplicationListener(authSuccessListener);
-        webApplicationContext.addApplicationListener(testListener);
     }
 
     @AfterClass
@@ -541,10 +535,10 @@ public class AuditCheckMvcMockTests {
         mockMvc.perform(approvalsPut)
                 .andExpect(status().isOk());
 
-        Assert.assertEquals(1, testListener.getEventCount());
+        assertEquals(1, testListener.getEventCount());
 
         ApprovalModifiedEvent approvalModifiedEvent = (ApprovalModifiedEvent) testListener.getLatestEvent();
-        Assert.assertEquals(testUser.getUserName(), approvalModifiedEvent.getAuthentication().getName());
+        assertEquals(testUser.getUserName(), approvalModifiedEvent.getAuthentication().getName());
     }
 
     @Test
@@ -571,11 +565,11 @@ public class AuditCheckMvcMockTests {
         mockMvc.perform(userPost)
             .andExpect(status().isCreated());
 
-        Assert.assertEquals(1, testListener.getEventCount());
+        assertEquals(1, testListener.getEventCount());
 
         UserModifiedEvent userModifiedEvent = (UserModifiedEvent) testListener.getLatestEvent();
-        Assert.assertEquals(testAccounts.getAdminClientId(), userModifiedEvent.getAuthentication().getName());
-        Assert.assertEquals(username, userModifiedEvent.getUsername());
+        assertEquals(testAccounts.getAdminClientId(), userModifiedEvent.getAuthentication().getName());
+        assertEquals(username, userModifiedEvent.getUsername());
         assertEquals(AuditEventType.UserCreatedEvent, userModifiedEvent.getAuditEvent().getType());
     }
 
@@ -607,11 +601,11 @@ public class AuditCheckMvcMockTests {
         mockMvc.perform(userPost)
             .andExpect(status().isOk());
 
-        Assert.assertEquals(2, testListener.getEventCount());
+        assertEquals(2, testListener.getEventCount());
 
         UserModifiedEvent userModifiedEvent = (UserModifiedEvent) testListener.getEvents().get(0);
-        Assert.assertEquals("login", userModifiedEvent.getAuthentication().getName());
-        Assert.assertEquals(username, userModifiedEvent.getUsername());
+        assertEquals("login", userModifiedEvent.getAuthentication().getName());
+        assertEquals(username, userModifiedEvent.getUsername());
         assertEquals(AuditEventType.UserCreatedEvent, userModifiedEvent.getAuditEvent().getType());
 
     }
@@ -653,11 +647,11 @@ public class AuditCheckMvcMockTests {
 
         mockMvc.perform(userPut).andExpect(status().isOk());
 
-        Assert.assertEquals(1, testListener.getEventCount());
+        assertEquals(1, testListener.getEventCount());
 
         UserModifiedEvent userModifiedEvent = (UserModifiedEvent) testListener.getLatestEvent();
-        Assert.assertEquals(testAccounts.getAdminClientId(), userModifiedEvent.getAuthentication().getName());
-        Assert.assertEquals(username, userModifiedEvent.getUsername());
+        assertEquals(testAccounts.getAdminClientId(), userModifiedEvent.getAuthentication().getName());
+        assertEquals(username, userModifiedEvent.getUsername());
         assertEquals(AuditEventType.UserModifiedEvent, userModifiedEvent.getAuditEvent().getType());
 
         //delete the user
@@ -670,11 +664,11 @@ public class AuditCheckMvcMockTests {
 
         mockMvc.perform(userDelete).andExpect(status().isOk());
 
-        Assert.assertEquals(1, testListener.getEventCount());
+        assertEquals(1, testListener.getEventCount());
 
         userModifiedEvent = (UserModifiedEvent) testListener.getLatestEvent();
-        Assert.assertEquals(testAccounts.getAdminClientId(), userModifiedEvent.getAuthentication().getName());
-        Assert.assertEquals(username, userModifiedEvent.getUsername());
+        assertEquals(testAccounts.getAdminClientId(), userModifiedEvent.getAuthentication().getName());
+        assertEquals(username, userModifiedEvent.getUsername());
         assertEquals(AuditEventType.UserDeletedEvent, userModifiedEvent.getAuditEvent().getType());
     }
 
@@ -710,11 +704,11 @@ public class AuditCheckMvcMockTests {
 
         mockMvc.perform(verifyGet).andExpect(status().isOk());
 
-        Assert.assertEquals(1, testListener.getEventCount());
+        assertEquals(1, testListener.getEventCount());
 
         UserModifiedEvent userModifiedEvent = (UserModifiedEvent) testListener.getLatestEvent();
-        Assert.assertEquals(testAccounts.getAdminClientId(), userModifiedEvent.getAuthentication().getName());
-        Assert.assertEquals(username, userModifiedEvent.getUsername());
+        assertEquals(testAccounts.getAdminClientId(), userModifiedEvent.getAuthentication().getName());
+        assertEquals(username, userModifiedEvent.getUsername());
         assertEquals(AuditEventType.UserVerifiedEvent, userModifiedEvent.getAuditEvent().getType());
     }
 
@@ -853,11 +847,11 @@ public class AuditCheckMvcMockTests {
 
         ResultActions result = mockMvc.perform(userPost).andExpect(status().isCreated());
 
-        Assert.assertEquals(1, testListener.getEventCount());
+        assertEquals(1, testListener.getEventCount());
 
         UserModifiedEvent userModifiedEvent = (UserModifiedEvent) testListener.getLatestEvent();
-        Assert.assertEquals(testAccounts.getAdminClientId(), userModifiedEvent.getAuthentication().getName());
-        Assert.assertEquals(username, userModifiedEvent.getUsername());
+        assertEquals(testAccounts.getAdminClientId(), userModifiedEvent.getAuthentication().getName());
+        assertEquals(username, userModifiedEvent.getUsername());
         assertEquals(AuditEventType.UserCreatedEvent, userModifiedEvent.getAuditEvent().getType());
 
         return new ObjectMapper().readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
