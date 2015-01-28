@@ -14,18 +14,12 @@
  */
 package org.cloudfoundry.identity.uaa.util;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.http.client.utils.URIBuilder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.StringUtils;
-
-import java.net.URISyntaxException;
+import org.springframework.web.util.UriComponentsBuilder;
 
 public class UaaUrlUtils {
-
-    private final Log logger = LogFactory.getLog(getClass());
 
     private final String uaaBaseUrl;
 
@@ -38,24 +32,18 @@ public class UaaUrlUtils {
     }
 
     public String getUaaUrl(String path) {
-        return getURIBuilder(path).toString();
+        return getURIBuilder(path).build().toUriString();
     }
 
     public String getUaaHost() {
-        return getURIBuilder("").getHost();
+        return getURIBuilder("").build().getHost();
     }
 
-    private URIBuilder getURIBuilder(String path) {
-        URIBuilder builder = null;
-        try {
-            builder = new URIBuilder(uaaBaseUrl + path);
-            String subdomain = IdentityZoneHolder.get().getSubdomain();
-            if (!StringUtils.isEmpty(subdomain)) {
-                builder.setHost(subdomain + "." + builder.getHost());
-            }
-            return builder;
-        } catch (URISyntaxException e) {
-            logger.error("Exception raised when building URI " + e);
+    private UriComponentsBuilder getURIBuilder(String path) {
+        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(uaaBaseUrl).path(path);
+        String subdomain = IdentityZoneHolder.get().getSubdomain();
+        if (!StringUtils.isEmpty(subdomain)) {
+            builder.host(subdomain + "." + builder.build().getHost());
         }
         return builder;
     }

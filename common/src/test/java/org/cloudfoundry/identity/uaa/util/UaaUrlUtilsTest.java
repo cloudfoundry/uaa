@@ -42,6 +42,7 @@ public class UaaUrlUtilsTest {
     @Test
     public void testGetUaaUrlWithPath() throws Exception {
         assertEquals("http://uaa.example.com/login", uaaURLUtils.getUaaUrl("/login"));
+        assertEquals("http://uaa.example.com/login", uaaURLUtils.getUaaUrl("login"));
     }
 
     @Test
