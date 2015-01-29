@@ -336,8 +336,8 @@ public class LoginInfoEndpoint {
 
     protected Map<String, ?> getLinksInfo() {
         Map<String, Object> model = new HashMap<>();
-        model.put("uaa", getUaaBaseUrl());
-        model.put("login", getUaaBaseUrl().replaceAll("uaa", "login"));
+        model.put(Origin.UAA, getUaaBaseUrl());
+        model.put("login", getUaaBaseUrl().replaceAll(Origin.UAA, "login"));
         model.putAll(getLinks());
         return model;
     }

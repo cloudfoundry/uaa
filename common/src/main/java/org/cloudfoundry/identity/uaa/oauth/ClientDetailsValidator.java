@@ -20,6 +20,7 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
@@ -47,7 +48,7 @@ public class ClientDetailsValidator implements InitializingBean {
     private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
 
 
-    private Set<String> reservedClientIds = StringUtils.commaDelimitedListToSet("uaa");
+    private Set<String> reservedClientIds = StringUtils.commaDelimitedListToSet(Origin.UAA);
 
 
     /**

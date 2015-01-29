@@ -230,7 +230,7 @@ public class AccessController {
                 HashMap<String, String> map = new HashMap<String, String>();
                 String value = SCOPE_PREFIX + scope;
                 String resource = scope.substring(0, scope.lastIndexOf("."));
-                if ("uaa".equals(resource)) {
+                if (Origin.UAA.equals(resource)) {
                     // special case: don't need to prompt for internal uaa
                     // scopes
                     continue;

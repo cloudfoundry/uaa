@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.map.annotate.JsonDeserialize;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
@@ -32,8 +33,8 @@ public class IdentityZone {
         uaa.setCreated(calendar.getTime());
         uaa.setLastModified(calendar.getTime());
         uaa.setVersion(0);
-        uaa.setId("uaa");
-        uaa.setName("uaa");
+        uaa.setId(Origin.UAA);
+        uaa.setName(Origin.UAA);
         uaa.setDescription("The system zone for backwards compatibility");
         uaa.setSubdomain("");
         return uaa;
