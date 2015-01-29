@@ -26,6 +26,7 @@ import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextIn
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderModifiedEvent;
+import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
@@ -43,6 +44,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
+import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 
 import static java.util.Arrays.asList;
@@ -50,6 +52,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class IdentityProviderEndpointsMockMvcTests {
@@ -60,6 +63,7 @@ public class IdentityProviderEndpointsMockMvcTests {
     private static String identityToken;
     private static MockMvcUtils mockMvcUtils;
     private static TestApplicationEventListener<IdentityProviderModifiedEvent> eventListener;
+    private static IdentityProviderProvisioning identityProviderProvisioning;
 
     @BeforeClass
     public static void setUp() throws Exception {
@@ -86,6 +90,7 @@ public class IdentityProviderEndpointsMockMvcTests {
             "identitysecret",
             "zones.create");
         mockMvcUtils = MockMvcUtils.utils();
+        identityProviderProvisioning = webApplicationContext.getBean(IdentityProviderProvisioning.class);
     }
     
     @Before
@@ -101,33 +106,74 @@ public class IdentityProviderEndpointsMockMvcTests {
     }
 
     @Test
-    public void testCreateIdentityProvider() throws Exception {
+    public void testCreateAndUpdateIdentityProvider() throws Exception {
         BaseClientDetails client = new BaseClientDetails("test-client-id",null,"idps.write","password",null);
         client.setClientSecret("test-client-secret");
         mockMvcUtils.createClient(mockMvc, adminToken, client);
 
         ScimUser user = createAdminForZone("idps.write");
         String accessToken = mockMvcUtils.getUserOAuthAccessToken(mockMvc, client.getClientId(), client.getClientSecret(), user.getUserName(), "password", "idps.write");
+        
+        createAndUpdateIdentityProvider(accessToken,  null);
+    }
+
+    private void createAndUpdateIdentityProvider(String accessToken, String zoneId) throws Exception,
+            UnsupportedEncodingException {
         IdentityProvider identityProvider = MultitenancyFixture.identityProvider("saml");
-        MvcResult result = createIdentityProvider(null, identityProvider, accessToken, status().isCreated());
+        // create
+        MvcResult result = createIdentityProvider(zoneId, identityProvider, accessToken, status().isCreated());
+        
+        // check response
         IdentityProvider createdIDP = JsonUtils.readValue(result.getResponse().getContentAsString(), IdentityProvider.class);
         assertNotNull(createdIDP.getId());
         assertEquals(identityProvider.getName(), createdIDP.getName());
         assertEquals(identityProvider.getOriginKey(), createdIDP.getOriginKey());
+        
+        // check audit
         assertEquals(1, eventListener.getEventCount());
         IdentityProviderModifiedEvent event = eventListener.getLatestEvent();
         assertEquals(AuditEventType.IdentityProviderCreatedEvent, event.getAuditEvent().getType());
+        
+        // check db
+        IdentityProvider persisted = identityProviderProvisioning.retrieve(createdIDP.getId());
+        assertNotNull(persisted.getId());
+        assertEquals(identityProvider.getName(), persisted.getName());
+        assertEquals(identityProvider.getOriginKey(), persisted.getOriginKey());
+        
+        // update
+        String newConfig = RandomStringUtils.randomAlphanumeric(1024);
+        createdIDP.setConfig(newConfig);
+        updateIdentityProvider(null, createdIDP, accessToken, status().isOk());
+        
+        // check db
+        persisted = identityProviderProvisioning.retrieve(createdIDP.getId());
+        assertEquals(newConfig, persisted.getConfig());
+        assertEquals(createdIDP.getId(), persisted.getId());
+        assertEquals(createdIDP.getName(), persisted.getName());
+        assertEquals(createdIDP.getOriginKey(), persisted.getOriginKey());
+        
+        // check audit
+        assertEquals(2, eventListener.getEventCount());
+        event = eventListener.getLatestEvent();
+        assertEquals(AuditEventType.IdentityProviderModifiedEvent, event.getAuditEvent().getType());
     }
-
+    
     @Test
     public void testCreateIdentityProviderWithInsufficientScopes() throws Exception {
         IdentityProvider identityProvider = MultitenancyFixture.identityProvider("saml");
         createIdentityProvider(null, identityProvider, adminToken, status().isForbidden());
         assertEquals(0, eventListener.getEventCount());
     }
+    
+    @Test
+    public void testUpdateIdentityProviderWithInsufficientScopes() throws Exception {
+        IdentityProvider identityProvider = MultitenancyFixture.identityProvider("saml");
+        updateIdentityProvider(null, identityProvider, adminToken, status().isForbidden());
+        assertEquals(0, eventListener.getEventCount());
+    }
 
     @Test
-    public void testCreateIdentityProviderInOtherZone() throws Exception {
+    public void testCreateAndUpdateIdentityProviderInOtherZone() throws Exception {
         IdentityProvider identityProvider = MultitenancyFixture.identityProvider("saml");
         IdentityZone zone = mockMvcUtils.createZoneUsingWebRequest(mockMvc,identityToken);
         ScimUser user = createAdminForZone("zones." + zone.getId() + ".admin");
@@ -148,6 +194,21 @@ public class IdentityProviderEndpointsMockMvcTests {
 
     private MvcResult createIdentityProvider(String zoneId, IdentityProvider identityProvider, String token, ResultMatcher resultMatcher) throws Exception {
         MockHttpServletRequestBuilder requestBuilder = post("/identity-providers/")
+            .header("Authorization", "Bearer" + token)
+            .contentType(APPLICATION_JSON)
+            .content(JsonUtils.writeValueAsString(identityProvider));
+        if (zoneId != null) {
+            requestBuilder.header(IdentityZoneSwitchingFilter.HEADER, zoneId);
+        }
+
+        MvcResult result = mockMvc.perform(requestBuilder)
+            .andExpect(resultMatcher)
+            .andReturn();
+        return result;
+    }
+    
+    private MvcResult updateIdentityProvider(String zoneId, IdentityProvider identityProvider, String token, ResultMatcher resultMatcher) throws Exception {
+        MockHttpServletRequestBuilder requestBuilder = put("/identity-providers/"+identityProvider.getId())
             .header("Authorization", "Bearer" + token)
             .contentType(APPLICATION_JSON)
             .content(JsonUtils.writeValueAsString(identityProvider));

@@ -42,6 +42,7 @@
     <http name="identityProviderSecurity" pattern="/identity-providers/**" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"
           use-expressions="true" authentication-manager-ref="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="#oauth2.hasScope('idps.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="POST" />
+        <intercept-url pattern="/**" access="#oauth2.hasScope('idps.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="PUT" />
         <custom-filter ref="resourceAgnosticAuthenticationFilter" before="PRE_AUTH_FILTER" />
         <expression-handler ref="oauthWebExpressionHandler" />
     </http>
@@ -52,6 +53,9 @@
         <aop:aspect ref="idpEventPublisher">
             <aop:after-returning method="idpCreated"
                                  pointcut="execution(* *..IdentityProviderProvisioning+.create(..)) and bean(identityProviderProvisioning)" returning="identityProvider" />
+			<aop:after-returning method="idpModified"
+                                 pointcut="execution(* *..IdentityProviderProvisioning+.update(..)) and bean(identityProviderProvisioning)" returning="identityProvider" />
+
         </aop:aspect>
     </aop:config>
 </beans>

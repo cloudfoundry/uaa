@@ -29,6 +29,10 @@ public class IdentityProviderEventPublisher implements ApplicationEventPublisher
         publish(IdentityProviderModifiedEvent.identityProviderCreated(identityProvider));
     }
 
+    public void idpModified(IdentityProvider identityProvider) {
+        publish(IdentityProviderModifiedEvent.identityProviderModified(identityProvider));
+    }
+    
     public void publish(ApplicationEvent event) {
         if (publisher!=null) {
             publisher.publishEvent(event);

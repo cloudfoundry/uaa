@@ -30,7 +30,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning {
 
     public static final String ID_ZONE_FIELDS = "id,version,created,lastModified,name,subdomain,description";
 
-    public static final String ID_ZONE_UPDATE_FIELDS = ID_ZONE_FIELDS.substring(3).replace(",","=?,")+"=?";
+    public static final String ID_ZONE_UPDATE_FIELDS = "version,lastModified,name,subdomain,description".replace(",","=?,")+"=?";
 
     public static final String CREATE_IDENTITY_ZONE_SQL = "insert into identity_zone(" + ID_ZONE_FIELDS + ") values (?,?,?,?,?,?,?)";
 
@@ -102,13 +102,12 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning {
             jdbcTemplate.update(UPDATE_IDENTITY_ZONE_SQL, new PreparedStatementSetter() {
                 @Override
                 public void setValues(PreparedStatement ps) throws SQLException {
-                    ps.setInt(1, identityZone.getVersion());
+                    ps.setInt(1, identityZone.getVersion() + 1);
                     ps.setTimestamp(2, new Timestamp(new Date().getTime()));
-                    ps.setTimestamp(3, new Timestamp(new Date().getTime()));
-                    ps.setString(4, identityZone.getName());
-                    ps.setString(5, identityZone.getSubdomain());
-                    ps.setString(6, identityZone.getDescription());
-                    ps.setString(7, identityZone.getId().trim());
+                    ps.setString(3, identityZone.getName());
+                    ps.setString(4, identityZone.getSubdomain());
+                    ps.setString(5, identityZone.getDescription());
+                    ps.setString(6, identityZone.getId().trim());
                 }
             });
         } catch (DuplicateKeyException e) {

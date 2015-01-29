@@ -38,5 +38,9 @@ public class IdentityProviderModifiedEvent extends AbstractUaaEvent {
     public static IdentityProviderModifiedEvent identityProviderCreated(IdentityProvider identityProvider) {
         return new IdentityProviderModifiedEvent(identityProvider, getContextAuthentication(), AuditEventType.IdentityProviderCreatedEvent);
     }
+    
+    public static IdentityProviderModifiedEvent identityProviderModified(IdentityProvider identityProvider) {
+        return new IdentityProviderModifiedEvent(identityProvider, getContextAuthentication(), AuditEventType.IdentityProviderModifiedEvent);
+    }
 
 }

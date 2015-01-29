@@ -49,7 +49,8 @@ public enum AuditEventType {
     GroupDeletedEvent(25),
     EmailChangedEvent(26),
     UnverifiedUserAuthentication(27),
-    IdentityProviderCreatedEvent(28);
+    IdentityProviderCreatedEvent(28),
+    IdentityProviderModifiedEvent(29);
 
 
     private final int code;

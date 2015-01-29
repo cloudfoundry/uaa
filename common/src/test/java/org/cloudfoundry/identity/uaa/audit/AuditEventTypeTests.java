@@ -5,7 +5,7 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 
 public class AuditEventTypeTests {
-
+    
     @Test
     public void testAuditEventType() {
         int count = 0;
@@ -14,7 +14,6 @@ public class AuditEventTypeTests {
             assertEquals(type, AuditEventType.fromCode(count));
             count++;
         }
-        assertEquals(29,count);
+        assertEquals(30,count);
     }
-
 }

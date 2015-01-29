@@ -15,6 +15,8 @@ package org.cloudfoundry.identity.uaa.zone;
 public interface IdentityProviderProvisioning {
 
     public IdentityProvider create(IdentityProvider identityProvider);
+    
+    public IdentityProvider update(IdentityProvider identityProvider);
 
     public IdentityProvider retrieve(String id);
     

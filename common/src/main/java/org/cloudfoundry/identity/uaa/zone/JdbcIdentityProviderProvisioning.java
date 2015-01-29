@@ -28,8 +28,12 @@ import java.util.UUID;
 public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisioning {
 
     public static final String ID_PROVIDER_FIELDS = "id,version,created,lastModified,name,origin_key,type,config,identity_zone_id";
-
+    
     public static final String CREATE_IDENTITY_PROVIDER_SQL = "insert into identity_provider(" + ID_PROVIDER_FIELDS + ") values (?,?,?,?,?,?,?,?,?)";
+    
+    public static final String ID_PROVIDER_UPDATE_FIELDS = "version,lastModified,name,type,config".replace(",","=?,")+"=?";
+    
+    public static final String UPDATE_IDENTITY_PROVIDER_SQL = "update identity_provider set " + ID_PROVIDER_UPDATE_FIELDS + " where id=?";
 
     public static final String IDENTITY_PROVIDER_BY_ID_QUERY = "select " + ID_PROVIDER_FIELDS + " from identity_provider " + "where id=?";
     
@@ -96,6 +100,28 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
             identityProvider.setConfig(rs.getString(8));
             return identityProvider;
         }
+    }
+
+    @Override
+    public IdentityProvider update(final IdentityProvider identityProvider) {
+
+        try {
+            jdbcTemplate.update(UPDATE_IDENTITY_PROVIDER_SQL, new PreparedStatementSetter() {
+                @Override
+                public void setValues(PreparedStatement ps) throws SQLException {
+                    ps.setInt(1, identityProvider.getVersion() + 1);
+                    ps.setTimestamp(2, new Timestamp(new Date().getTime()));
+                    ps.setString(3, identityProvider.getName());
+                    ps.setString(4, identityProvider.getType());
+                    ps.setString(5, identityProvider.getConfig());
+                    ps.setString(6, identityProvider.getId().trim());
+                }
+            });
+        } catch (DuplicateKeyException e) {
+            //duplicate subdomain
+            throw new ZoneAlreadyExistsException(e.getMostSpecificCause().getMessage(), e);
+        }
+        return retrieve(identityProvider.getId());
     }
 
 }

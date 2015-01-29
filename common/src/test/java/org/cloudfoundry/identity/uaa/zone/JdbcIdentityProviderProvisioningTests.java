@@ -2,17 +2,10 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import org.apache.commons.lang.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.annotation.ProfileValueSourceConfiguration;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import java.util.Map;
 import java.util.UUID;
@@ -100,6 +93,49 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
         IdentityZoneHolder.set(MultitenancyFixture.identityZone(UUID.randomUUID().toString(),"myzone"));
         db.create(idp);
     }
+    
+    @Test
+    public void testUpdateIdentityProviderInDefaultZone() throws Exception {
+        String originKey = RandomStringUtils.randomAlphabetic(6);
+        String idpId = RandomStringUtils.randomAlphabetic(6);
+        IdentityProvider idp = MultitenancyFixture.identityProvider(originKey);
+        idp.setId(idpId);
+        int rowsAdded = jdbcTemplate.update(JdbcIdentityProviderProvisioning.CREATE_IDENTITY_PROVIDER_SQL, idp.getId(), idp.getVersion(), idp.getCreated(), idp.getLastModified(), idp.getName(), idp.getOriginKey(), idp.getType(), idp.getConfig(), IdentityZone.getUaa().getId());
+        assertEquals(1, rowsAdded);
+
+        String newConfig = RandomStringUtils.randomAlphanumeric(1024);
+        idp.setConfig(newConfig);
+        IdentityProvider updatedIdp = db.update(idp);
+        
+        Map<String, Object> rawUpdatedIdp = jdbcTemplate.queryForMap("select * from identity_provider where id = ?",updatedIdp.getId());
+        
+        assertEquals(newConfig, updatedIdp.getConfig());
+        assertEquals(newConfig, rawUpdatedIdp.get("config"));
+        assertEquals(IdentityZone.getUaa().getId(), rawUpdatedIdp.get("identity_zone_id"));
+
+    }
+    
+    @Test
+    public void testUpdateIdentityProviderInOtherZone() throws Exception {
+        IdentityZoneHolder.set(MultitenancyFixture.identityZone(UUID.randomUUID().toString(),"myzone"));
+        String originKey = RandomStringUtils.randomAlphabetic(6);
+        String idpId = RandomStringUtils.randomAlphabetic(6);
+        IdentityProvider idp = MultitenancyFixture.identityProvider(originKey);
+        idp.setId(idpId);
+        int rowsAdded = jdbcTemplate.update(JdbcIdentityProviderProvisioning.CREATE_IDENTITY_PROVIDER_SQL, idp.getId(), idp.getVersion(), idp.getCreated(), idp.getLastModified(), idp.getName(), idp.getOriginKey(), idp.getType(), idp.getConfig(), IdentityZoneHolder.get().getId());
+        assertEquals(1, rowsAdded);
+
+        String newConfig = RandomStringUtils.randomAlphanumeric(1024);
+        idp.setConfig(newConfig);
+        IdentityProvider updatedIdp = db.update(idp);
+        
+        Map<String, Object> rawUpdatedIdp = jdbcTemplate.queryForMap("select * from identity_provider where id = ?",updatedIdp.getId());
+        
+        assertEquals(newConfig, updatedIdp.getConfig());
+        assertEquals(newConfig, rawUpdatedIdp.get("config"));
+        assertEquals(IdentityZoneHolder.get().getId(), rawUpdatedIdp.get("identity_zone_id"));
+    }
+    
     
     @Test
     public void testRetrieveIdentityProviderById() {
