@@ -13,6 +13,8 @@
 package org.cloudfoundry.identity.uaa.audit.event;
 
 import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
@@ -22,6 +24,8 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 
 /**
@@ -32,7 +36,8 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
  * 
  */
 public abstract class AbstractUaaEvent extends ApplicationEvent {
-
+    
+    private static final long serialVersionUID = -7639844193401892160L;
     private static ObjectMapper mapper = new ObjectMapper();
 
     {
@@ -113,5 +118,50 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
     }
 
     public abstract AuditEvent getAuditEvent();
+    
+    protected static Authentication getContextAuthentication() {
+        Authentication a = SecurityContextHolder.getContext().getAuthentication();
+        if (a==null) {
+            a = new Authentication() {
+                private static final long serialVersionUID = 1748694836774597624L;
+                
+                ArrayList<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
+                @Override
+                public Collection<? extends GrantedAuthority> getAuthorities() {
+                    return authorities;
+                }
+
+                @Override
+                public Object getCredentials() {
+                    return null;
+                }
+
+                @Override
+                public Object getDetails() {
+                    return null;
+                }
+
+                @Override
+                public Object getPrincipal() {
+                    return "null";
+                }
+
+                @Override
+                public boolean isAuthenticated() {
+                    return false;
+                }
+
+                @Override
+                public void setAuthenticated(boolean isAuthenticated) throws IllegalArgumentException {
+                }
+
+                @Override
+                public String getName() {
+                    return "null";
+                }
+            };
+        }
+        return a;
+    }
 
 }
