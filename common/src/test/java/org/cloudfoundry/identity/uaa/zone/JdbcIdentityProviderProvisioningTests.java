@@ -7,6 +7,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.dao.EmptyResultDataAccessException;
 
+import java.sql.Date;
+import java.sql.Timestamp;
 import java.util.Map;
 import java.util.UUID;
 
@@ -28,7 +30,7 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
     }
 
     @Test
-    public void testCreateIdentityProviderInDefaultZone() throws Exception {
+    public void testCreateAndUpdateIdentityProviderInDefaultZone() throws Exception {
         String originKey = RandomStringUtils.randomAlphabetic(6);
         IdentityProvider idp = MultitenancyFixture.identityProvider(originKey);
 
@@ -45,6 +47,22 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
         assertEquals(idp.getType(), rawCreatedIdp.get("type"));
         assertEquals(idp.getConfig(), rawCreatedIdp.get("config"));
         assertEquals(IdentityZoneHolder.get().getId(), rawCreatedIdp.get("identity_zone_id").toString().trim());
+
+        idp.setId(createdIdp.getId());
+        idp.setLastModified(new Timestamp(System.currentTimeMillis()));
+        idp.setName("updated name");
+        idp.setCreated(createdIdp.getCreated());
+        idp.setConfig("new config");
+        idp.setOriginKey("new origin key");
+        idp.setType("new type");
+        createdIdp = db.update(idp);
+
+        assertEquals(idp.getName(), createdIdp.getName());
+        assertEquals(rawCreatedIdp.get("origin_key"), createdIdp.getOriginKey());
+        assertEquals(idp.getType(), createdIdp.getType());
+        assertEquals(idp.getConfig(), createdIdp.getConfig());
+        assertEquals(idp.getLastModified().getTime()/1000, createdIdp.getLastModified().getTime()/1000);
+        assertEquals(Integer.valueOf(rawCreatedIdp.get("version").toString())+1, createdIdp.getVersion());
     }
     
     @Test

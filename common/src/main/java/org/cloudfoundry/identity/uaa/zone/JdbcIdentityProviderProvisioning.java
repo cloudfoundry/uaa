@@ -28,7 +28,7 @@ import java.util.UUID;
 public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisioning {
 
     public static final String ID_PROVIDER_FIELDS = "id,version,created,lastModified,name,origin_key,type,config,identity_zone_id";
-    
+
     public static final String CREATE_IDENTITY_PROVIDER_SQL = "insert into identity_provider(" + ID_PROVIDER_FIELDS + ") values (?,?,?,?,?,?,?,?,?)";
     
     public static final String ID_PROVIDER_UPDATE_FIELDS = "version,lastModified,name,type,config".replace(",","=?,")+"=?";
@@ -67,15 +67,16 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
             jdbcTemplate.update(CREATE_IDENTITY_PROVIDER_SQL, new PreparedStatementSetter() {
                 @Override
                 public void setValues(PreparedStatement ps) throws SQLException {
-                    ps.setString(1, id);
-                    ps.setInt(2, identityProvider.getVersion());
-                    ps.setTimestamp(3, new Timestamp(new Date().getTime()));
-                    ps.setTimestamp(4, new Timestamp(new Date().getTime()));
-                    ps.setString(5, identityProvider.getName());
-                    ps.setString(6, identityProvider.getOriginKey());
-                    ps.setString(7, identityProvider.getType());
-                    ps.setString(8, identityProvider.getConfig());
-                    ps.setString(9, IdentityZoneHolder.get().getId());
+                    int pos = 1;
+                    ps.setString(pos++, id);
+                    ps.setInt(pos++, identityProvider.getVersion());
+                    ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis()));
+                    ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis()));
+                    ps.setString(pos++, identityProvider.getName());
+                    ps.setString(pos++, identityProvider.getOriginKey());
+                    ps.setString(pos++, identityProvider.getType());
+                    ps.setString(pos++, identityProvider.getConfig());
+                    ps.setString(pos++, IdentityZoneHolder.get().getId());
                 }
             });
         } catch (DuplicateKeyException e) {
@@ -88,16 +89,16 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
     private static final class IdentityProviderRowMapper implements RowMapper<IdentityProvider> {
         @Override
         public IdentityProvider mapRow(ResultSet rs, int rowNum) throws SQLException {
-
             IdentityProvider identityProvider = new IdentityProvider();
-            identityProvider.setId(rs.getString(1).trim());
-            identityProvider.setVersion(rs.getInt(2));
-            identityProvider.setCreated(rs.getTimestamp(3));
-            identityProvider.setLastModified(rs.getTimestamp(4));
-            identityProvider.setName(rs.getString(5));
-            identityProvider.setOriginKey(rs.getString(6));
-            identityProvider.setType(rs.getString(7));
-            identityProvider.setConfig(rs.getString(8));
+            int pos = 1;
+            identityProvider.setId(rs.getString(pos++).trim());
+            identityProvider.setVersion(rs.getInt(pos++));
+            identityProvider.setCreated(rs.getTimestamp(pos++));
+            identityProvider.setLastModified(rs.getTimestamp(pos++));
+            identityProvider.setName(rs.getString(pos++));
+            identityProvider.setOriginKey(rs.getString(pos++));
+            identityProvider.setType(rs.getString(pos++));
+            identityProvider.setConfig(rs.getString(pos++));
             return identityProvider;
         }
     }
@@ -105,22 +106,18 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
     @Override
     public IdentityProvider update(final IdentityProvider identityProvider) {
 
-        try {
-            jdbcTemplate.update(UPDATE_IDENTITY_PROVIDER_SQL, new PreparedStatementSetter() {
-                @Override
-                public void setValues(PreparedStatement ps) throws SQLException {
-                    ps.setInt(1, identityProvider.getVersion() + 1);
-                    ps.setTimestamp(2, new Timestamp(new Date().getTime()));
-                    ps.setString(3, identityProvider.getName());
-                    ps.setString(4, identityProvider.getType());
-                    ps.setString(5, identityProvider.getConfig());
-                    ps.setString(6, identityProvider.getId().trim());
-                }
-            });
-        } catch (DuplicateKeyException e) {
-            //duplicate subdomain
-            throw new ZoneAlreadyExistsException(e.getMostSpecificCause().getMessage(), e);
-        }
+        jdbcTemplate.update(UPDATE_IDENTITY_PROVIDER_SQL, new PreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement ps) throws SQLException {
+                int pos = 1;
+                ps.setInt(pos++, identityProvider.getVersion() + 1);
+                ps.setTimestamp(pos++, new Timestamp(new Date().getTime()));
+                ps.setString(pos++, identityProvider.getName());
+                ps.setString(pos++, identityProvider.getType());
+                ps.setString(pos++, identityProvider.getConfig());
+                ps.setString(pos++, identityProvider.getId().trim());
+            }
+        });
         return retrieve(identityProvider.getId());
     }
 
