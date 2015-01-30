@@ -22,8 +22,10 @@ public class Origin {
 
 
     public static String getUserId(Authentication authentication) {
-        String id=null;
-        if (authentication instanceof RemoteUserAuthentication) {
+        String id;
+        if (authentication.getPrincipal() instanceof UaaPrincipal) {
+            return ((UaaPrincipal)authentication.getPrincipal()).getId();
+        } else if (authentication instanceof RemoteUserAuthentication) {
             RemoteUserAuthentication remoteUserAuthentication = (RemoteUserAuthentication)authentication;
             return remoteUserAuthentication.getId();
         } else if (authentication instanceof UaaAuthentication) {
