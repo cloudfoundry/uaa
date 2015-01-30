@@ -40,6 +40,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.client.SocialClientUserDetails;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
@@ -59,6 +60,7 @@ import org.springframework.core.env.Environment;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -295,28 +297,32 @@ public class LoginInfoEndpoint {
     }
 
     @RequestMapping(value = { "/passcode" }, method = RequestMethod.GET)
-    public String generatePasscode(@RequestHeader HttpHeaders headers, Map<String, Object> model, Principal principal)
-        throws NoSuchAlgorithmException, IOException, JsonMappingException {
-        String username = null, origin = null, userId = NotANumber;
+    public String generatePasscode(Map<String, Object> model, Principal principal)
+        throws NoSuchAlgorithmException, IOException {
+        String username, origin, userId = NotANumber;
         Map<String, Object> authorizationParameters = null;
 
-        if (principal instanceof LoginSamlAuthenticationToken) {
+        if (principal instanceof UaaPrincipal) {
+            UaaPrincipal uaaPrincipal = (UaaPrincipal)principal;
+            username = uaaPrincipal.getName();
+            origin = uaaPrincipal.getOrigin();
+            userId = uaaPrincipal.getId();
+        } else if (principal instanceof UaaAuthentication) {
+            UaaPrincipal uaaPrincipal = ((UaaAuthentication)principal).getPrincipal();
+            username = uaaPrincipal.getName();
+            origin = uaaPrincipal.getOrigin();
+            userId = uaaPrincipal.getId();
+        } else if (principal instanceof LoginSamlAuthenticationToken) {
             username = principal.getName();
-            origin = ((LoginSamlAuthenticationToken)principal).getUaaPrincipal().getOrigin();
-            userId = ((LoginSamlAuthenticationToken)principal).getUaaPrincipal().getId();
-            //TODO collect authorities here?
-        } else if (principal instanceof ExpiringUsernameAuthenticationToken) {
-            username = ((SamlUserDetails) ((ExpiringUsernameAuthenticationToken) principal).getPrincipal()).getUsername();
-            origin = "login-saml";
-            Collection<GrantedAuthority> authorities = ((SamlUserDetails) (((ExpiringUsernameAuthenticationToken) principal)
-                .getPrincipal())).getAuthorities();
-            if (authorities != null) {
-                authorizationParameters = new LinkedHashMap<>();
-                authorizationParameters.put("authorities", authorities);
-            }
+            origin = ((LoginSamlAuthenticationToken) principal).getUaaPrincipal().getOrigin();
+            userId = ((LoginSamlAuthenticationToken) principal).getUaaPrincipal().getId();
+        } else if (principal instanceof Authentication && ((Authentication)principal).getPrincipal() instanceof UaaPrincipal) {
+            UaaPrincipal uaaPrincipal = (UaaPrincipal)((Authentication)principal).getPrincipal();
+            username = uaaPrincipal.getName();
+            origin = uaaPrincipal.getOrigin();
+            userId = uaaPrincipal.getId();
         } else {
-            username = principal.getName();
-            origin = "passcode";
+            throw new UnknownPrincipalException();
         }
 
         PasscodeInformation pi = new PasscodeInformation(userId, username, null, origin, authorizationParameters);
@@ -400,5 +406,8 @@ public class LoginInfoEndpoint {
         }
         return path;
     }
+
+    @ResponseStatus(value = HttpStatus.FORBIDDEN, reason = "Unknown authentication token type, unable to derive user ID.")
+    public static final class UnknownPrincipalException extends RuntimeException {}
 
 }
