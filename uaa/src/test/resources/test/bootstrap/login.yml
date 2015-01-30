@@ -1,4 +1,6 @@
-#BEGIN SAML PROVIDERS - Used by travis tests
+#BEGIN SAML PROVIDERS - Used by bootstrap tests
+login:
+  saml:
     providers:
       okta-local:
         idpMetadata: sample-okta-localhost.xml
@@ -29,13 +31,13 @@
         showSamlLoginLink: true
         linkText: 'Okta Preview 2'
       vsphere.local:
-        idpMetadata: https://win2012-sso2.localdomain:7444/websso/SAML2/Metadata/vsphere.local
+        idpMetadata: sample-okta-localhost.xml
         nameID: urn:oasis:names:tc:SAML:2.0:nameid-format:persistent
         assertionConsumerIndex: 0
         showSamlLoginLink: true
         linkText: 'Log in with vCenter SSO'
       openam-local:
-        idpMetadata: http://localhost:8081/openam/saml2/jsp/exportmetadata.jsp?entityid=http://localhost:8081/openam
+        idpMetadata: sample-okta-localhost.xml
         nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress
         assertionConsumerIndex: 0
         signMetaData: false
@@ -43,6 +45,4 @@
         showSamlLoginLink: true
         linkText: 'Log in with OpenAM'
 
-  idpEntityAlias: 'testalias'
-  idpMetadataURL: 'http://localhost:8081/test'
 #END SAML PROVIDERS

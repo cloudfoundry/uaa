@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.springframework.core.ParameterizedTypeReference;
@@ -65,7 +66,7 @@ public class RestUaaApprovalsService implements ApprovalsService {
                 clientApprovals.add(approval);
             } else {
                 String resource = scope.substring(0, scope.lastIndexOf("."));
-                if ("uaa".equals(resource)) {
+                if (Origin.UAA.equals(resource)) {
                     // special case: don't need to prompt for internal uaa
                     // scopes
                     continue;

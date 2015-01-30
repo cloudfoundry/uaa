@@ -14,10 +14,14 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory;
 import org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.config.YamlPropertiesFactoryBean;
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
@@ -44,6 +48,7 @@ import org.springframework.web.servlet.ViewResolver;
 import javax.servlet.RequestDispatcher;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -56,10 +61,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-/**
- * @author Dave Syer
- * 
- */
 public class BootstrapTests {
 
     private ConfigurableApplicationContext context;
@@ -67,6 +68,7 @@ public class BootstrapTests {
     @Before
     public void setup() throws Exception {
         System.clearProperty("spring.profiles.active");
+        IdentityZoneHolder.clear();
     }
 
     @After
@@ -84,6 +86,7 @@ public class BootstrapTests {
         for (String s : removeme) {
             System.clearProperty(s);
         }
+        IdentityZoneHolder.clear();
     }
 
     @Test
@@ -92,6 +95,32 @@ public class BootstrapTests {
         assertNotNull(context.getBean("viewResolver", ViewResolver.class));
         assertNotNull(context.getBean("resetPasswordController", ResetPasswordController.class));
         assertEquals(Integer.MAX_VALUE, context.getBean("webSSOprofileConsumer", WebSSOProfileConsumerImpl.class).getMaxAuthenticationAge());
+    }
+
+    @Test
+    public void testBootstrappedIdps() throws Exception {
+        IdentityZoneHolder.set(IdentityZone.getUaa());
+        //generate login.yml with SAML and uaa.yml with LDAP
+
+        context = getServletContext("ldap,default", true, "test/bootstrap/login.yml,login.yml","test/bootstrap/uaa.yml,uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        assertNotNull(context.getBean("viewResolver", ViewResolver.class));
+        assertNotNull(context.getBean("resetPasswordController", ResetPasswordController.class));
+        IdentityProviderConfigurator samlProviders = context.getBean("metaDataProviders", IdentityProviderConfigurator.class);
+        IdentityProviderProvisioning providerProvisioning = context.getBean("identityProviderProvisioning", IdentityProviderProvisioning.class);
+        //ensure that ldap has been loaded up
+        assertNotNull(context.getBean("ldapPooled"));
+        assertFalse(context.getBean("ldapPooled", Boolean.class).booleanValue());
+
+        //ensure we have some saml providers in login.yml
+        //we have provided 4 here, but the original login.yml may add, but not remove some
+        assertTrue(samlProviders.getIdentityProviderDefinitions().size() >= 4);
+
+        //verify that they got loaded in the DB
+        for (IdentityProviderDefinition def : samlProviders.getIdentityProviderDefinitions()) {
+            assertNotNull(providerProvisioning.retrieveByOrigin(def.getIdpEntityAlias()));
+        }
+
+        assertNotNull(providerProvisioning.retrieveByOrigin(Origin.LDAP));
     }
 
     @Test
@@ -244,6 +273,9 @@ public class BootstrapTests {
     }
 
     private ConfigurableApplicationContext getServletContext(String profiles, String loginYmlPath, String uaaYamlPath, String... resources) {
+        return getServletContext(profiles, false, loginYmlPath, uaaYamlPath, resources);
+    }
+    private ConfigurableApplicationContext getServletContext(String profiles, boolean mergeProfiles, String loginYmlPath, String uaaYamlPath, String... resources) {
         String[] resourcesToLoad = resources;
         if (!resources[0].endsWith(".xml")) {
             resourcesToLoad = new String[resources.length - 1];
@@ -275,7 +307,14 @@ public class BootstrapTests {
         };
 
         if (profiles != null) {
-            context.getEnvironment().setActiveProfiles(StringUtils.commaDelimitedListToStringArray(profiles));
+            if (mergeProfiles) {
+                String[] activeProfiles = context.getEnvironment().getActiveProfiles();
+                HashSet<String> envProfiles = new HashSet<>(Arrays.asList(activeProfiles));
+                envProfiles.addAll(Arrays.asList(StringUtils.commaDelimitedListToStringArray(profiles)));
+                context.getEnvironment().setActiveProfiles(envProfiles.toArray(new String[0]));
+            } else {
+                context.getEnvironment().setActiveProfiles(StringUtils.commaDelimitedListToStringArray(profiles));
+            }
         }
 
         MockServletContext servletContext = new MockServletContext() {

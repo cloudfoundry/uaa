@@ -242,6 +242,12 @@
     <context:annotation-config />
     <bean class="org.cloudfoundry.identity.uaa.coverage.CoverageConfig" />
 
+    <bean id="idpBootstrap" class="org.cloudfoundry.identity.uaa.config.IdentityProviderBootstrap">
+        <constructor-arg ref="identityProviderProvisioning"/>
+        <property name="ldapConfig" value="#{@config['ldap']}"/>
+        <property name="samlProviders" ref="metaDataProviders"/>
+    </bean>
+
     <beans profile="ldap">
         <import resource="spring/ldap-integration.xml"/>
 
