@@ -31,6 +31,7 @@ import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtilsTest;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -71,6 +72,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.util.ArrayList;
@@ -177,12 +179,18 @@ public class TokenMvcMockTests {
     }
 
     protected void setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove) {
+        setUpClients(id,authorities,scopes,grantTypes,autoapprove,null);
+    }
+    protected void setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri) {
         BaseClientDetails c = new BaseClientDetails(id, "", scopes, grantTypes, authorities);
         c.setClientSecret(SECRET);
-        c.setRegisteredRedirectUri(new HashSet<String>(Arrays.asList(TEST_REDIRECT_URI)));
+        c.setRegisteredRedirectUri(new HashSet<>(Arrays.asList(TEST_REDIRECT_URI)));
         Map<String,String> additional = new HashMap<>();
         additional.put("autoapprove",autoapprove.toString());
         c.setAdditionalInformation(additional);
+        if (StringUtils.hasText(redirectUri)) {
+            c.setRegisteredRedirectUri(new HashSet<>(Arrays.asList(redirectUri)));
+        }
         clientDetailsService.addClientDetails(c);
     }
 
@@ -388,6 +396,45 @@ public class TokenMvcMockTests {
         Map query = splitQuery(url);
         assertEquals("invalid_client", ((List<String>) query.get("error")).get(0));
         assertEquals("Unauthorized grant type: implicit", ((List<String>) query.get("error_description")).get(0));
+    }
+
+    @Test
+    public void testAuthorizationCodeGrantWithEncodedRedirectURL() throws Exception {
+        String redirectUri = "https://example.com/dashboard/?appGuid=app-guid&ace_config=%7B%22orgGuid%22%3A%22org-guid%22%2C%22spaceGuid%22%3A%22space-guid%22%2C%22appGuid%22%3A%22app-guid%22%2C%22redirect%22%3A%22https%3A%2F%2Fexample.com%2F%22%7D";
+        //String redirectUri = "https://example.com/dashboard/?appGuid=app-guid&ace_config=test";
+        String clientId = "authclient-"+new RandomValueStringGenerator().generate();
+        String scopes = "openid";
+        setUpClients(clientId, scopes, scopes, GRANT_TYPES, true, redirectUri);
+        String username = "authuser"+new RandomValueStringGenerator().generate();
+        String userScopes = "openid";
+        ScimUser developer = setUpUser(username, userScopes);
+        String basicDigestHeaderValue = "Basic "
+            + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes()));
+        UaaPrincipal p = new UaaPrincipal(developer.getId(),developer.getUserName(),developer.getPrimaryEmail(), Origin.UAA,"", IdentityZoneHolder.get().getId());
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(p, "", UaaAuthority.USER_AUTHORITIES);
+        Assert.assertTrue(auth.isAuthenticated());
+
+        SecurityContextHolder.getContext().setAuthentication(auth);
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute(
+            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+            new MockSecurityContext(auth)
+        );
+
+        String state = new RandomValueStringGenerator().generate();
+        MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
+            .header("Authorization", basicDigestHeaderValue)
+            .session(session)
+            .param(OAuth2Utils.RESPONSE_TYPE, "code")
+            .param(OAuth2Utils.SCOPE, "openid")
+            .param(OAuth2Utils.STATE, state)
+            .param(OAuth2Utils.CLIENT_ID, clientId)
+            .param(OAuth2Utils.REDIRECT_URI, redirectUri);
+
+        MvcResult result = mockMvc.perform(authRequest).andExpect(status().is3xxRedirection()).andReturn();
+        String location = result.getResponse().getHeader("Location");
+        location = location.substring(0,location.indexOf("&code="));
+        UaaUrlUtilsTest.uriEquals(new URI(redirectUri), new URI(location));
     }
 
     @Test
