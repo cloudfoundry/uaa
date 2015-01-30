@@ -93,6 +93,7 @@
         <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
         <property name="OAuth2RequestFactory" ref="authorizationRequestManager"/>
         <property name="fallbackToAuthcode" value="${oauth.openid.fallbackToAuthcode:false}"/>
+        <property name="uaaUrlUtils" ref="uaaUrlUtils"/>
     </bean>
 
     <!--/oauth/token with any match -->

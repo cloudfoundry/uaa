@@ -14,8 +14,13 @@
  */
 package org.cloudfoundry.identity.uaa.util;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URLDecoder;
+
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.util.StringUtils;
+import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
 public class UaaUrlUtils {
@@ -45,5 +50,33 @@ public class UaaUrlUtils {
             builder.host(subdomain + "." + builder.build().getHost());
         }
         return builder;
+    }
+
+    public UriComponentsBuilder parseAndDecodeUrl(String url) {
+        UriComponentsBuilder template = UriComponentsBuilder.fromUriString(url);
+        UriComponents components = template.build(true);
+        UriComponentsBuilder result = UriComponentsBuilder.newInstance();
+        result.uriComponents(components);
+        result.fragment(null);
+        result.replaceQuery(null);
+        for (String param : components.getQueryParams().keySet()) {
+            for (String value : components.getQueryParams().get(param)) {
+                if (value!=null) {
+                    result.queryParam(param, decode(value));
+                }
+            }
+        }
+        if (components.getFragment()!=null) {
+            result.fragment(decode(components.getFragment()));
+        }
+        return result;
+    }
+
+    public String decode(String value) {
+        try {
+            return URLDecoder.decode(value,"UTF-8");
+        } catch (UnsupportedEncodingException x) {
+            throw new IllegalStateException(x);
+        }
     }
 }

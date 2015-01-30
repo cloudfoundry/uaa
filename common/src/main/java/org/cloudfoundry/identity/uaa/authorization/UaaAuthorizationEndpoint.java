@@ -13,6 +13,9 @@
 
 package org.cloudfoundry.identity.uaa.authorization;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.net.URI;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.Date;
@@ -22,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.cloudfoundry.identity.uaa.oauth.token.OpenIdToken;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
@@ -101,6 +105,12 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
     private Object implicitLock = new Object();
 
     private boolean fallbackToAuthcode = false;
+
+    public void setUaaUrlUtils(UaaUrlUtils uaaUrlUtils) {
+        this.uaaUrlUtils = uaaUrlUtils;
+    }
+
+    private UaaUrlUtils uaaUrlUtils;
 
     public void setFallbackToAuthcode(boolean fallbackToAuthcode) {
         this.fallbackToAuthcode = fallbackToAuthcode;
@@ -392,13 +402,15 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
         }
     }
 
+
+
     private String getSuccessfulRedirect(AuthorizationRequest authorizationRequest, String authorizationCode) {
 
         if (authorizationCode == null) {
             throw new IllegalStateException("No authorization code found in the current request scope.");
         }
 
-        UriComponentsBuilder template = UriComponentsBuilder.fromUriString(authorizationRequest.getRedirectUri());
+        UriComponentsBuilder template = uaaUrlUtils.parseAndDecodeUrl(authorizationRequest.getRedirectUri());
         template.queryParam("code", authorizationCode);
 
         String state = authorizationRequest.getState();
@@ -417,8 +429,8 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
             throw new UnapprovedClientAuthenticationException("Authorization failure, and no redirect URI.", failure);
         }
 
-        UriComponentsBuilder template = UriComponentsBuilder.fromUriString(authorizationRequest.getRedirectUri());
-        Map<String, String> query = new LinkedHashMap<String, String>();
+        UriComponentsBuilder template = uaaUrlUtils.parseAndDecodeUrl(authorizationRequest.getRedirectUri());
+        Map<String, String> query = new LinkedHashMap<>();
         StringBuilder values = new StringBuilder();
 
         values.append("error={error}");
