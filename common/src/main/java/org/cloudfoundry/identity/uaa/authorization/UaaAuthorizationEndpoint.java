@@ -13,6 +13,8 @@
 
 package org.cloudfoundry.identity.uaa.authorization;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.Date;
@@ -72,6 +74,7 @@ import org.springframework.web.servlet.View;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.UriTemplate;
+import org.springframework.web.util.UriUtils;
 
 /**
  * Authorization endpoint that returns id_token's if requested.
@@ -305,68 +308,70 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
                                      OAuth2AccessToken accessToken,
                                      Authentication authUser) {
 
-        Map<String, Object> vars = new HashMap<>();
-
         String requestedRedirect = authorizationRequest.getRedirectUri();
         if (accessToken == null) {
             throw new InvalidRequestException("An implicit grant could not be made");
         }
-        StringBuilder url = new StringBuilder(requestedRedirect);
-        if (requestedRedirect.contains("#")) {
-            url.append("&");
-        } else {
-            url.append("#");
-        }
 
-        url.append("token_type={token_type}");
-        vars.put("token_type", accessToken.getTokenType());
+        boolean fragment = true;
+        if (requestedRedirect.contains("#")) {
+            fragment = false;
+        }
+        StringBuilder url = new StringBuilder();
+        url.append("token_type=").append(encode(accessToken.getTokenType()));
 
         //only append access token if grant_type is implicit
         //or token is part of the response type
         if (authorizationRequest.getResponseTypes().contains("token")) {
-            url.append("&access_token={access_token}");
-            vars.put("access_token", accessToken.getValue());
+            url.append("&access_token=").append(encode(accessToken.getValue()));
+
         }
 
         if (accessToken instanceof OpenIdToken &&
             authorizationRequest.getResponseTypes().contains(OpenIdToken.ID_TOKEN)) {
-            url.append("&").append(OpenIdToken.ID_TOKEN).append("={id_token}");
-            vars.put(OpenIdToken.ID_TOKEN, ((OpenIdToken) accessToken).getIdTokenValue());
+            url.append("&").append(OpenIdToken.ID_TOKEN).append("=").append(encode(((OpenIdToken) accessToken).getIdTokenValue()));
         }
 
         if (authorizationRequest.getResponseTypes().contains("code")) {
             String code = generateCode(authorizationRequest, authUser);
-            url.append("&code={code}");
-            vars.put("code", code);
+            url.append("&code=").append(encode(code));
         }
 
         String state = authorizationRequest.getState();
         if (state != null) {
-            url.append("&state={state}");
-            vars.put("state", state);
+            url.append("&state=").append(encode(state));
         }
         Date expiration = accessToken.getExpiration();
         if (expiration != null) {
             long expires_in = (expiration.getTime() - System.currentTimeMillis()) / 1000;
-            url.append("&expires_in={expires_in}");
-            vars.put("expires_in", expires_in);
+            url.append("&expires_in=").append(expires_in);
         }
         String originalScope = authorizationRequest.getRequestParameters().get(OAuth2Utils.SCOPE);
         if (originalScope == null || !OAuth2Utils.parseParameterList(originalScope).equals(accessToken.getScope())) {
-            url.append("&" + OAuth2Utils.SCOPE + "={scope}");
-            vars.put("scope", OAuth2Utils.formatParameterList(accessToken.getScope()));
+            url.append("&" + OAuth2Utils.SCOPE + "=").append(encode(OAuth2Utils.formatParameterList(accessToken.getScope())));
         }
         Map<String, Object> additionalInformation = accessToken.getAdditionalInformation();
         for (String key : additionalInformation.keySet()) {
             Object value = additionalInformation.get(key);
             if (value != null) {
-                url.append("&" + key + "={extra_" + key + "}");
-                vars.put("extra_" + key, value);
+                url.append("&" + encode(key) + "=" + encode(value.toString()));
             }
         }
-        UriTemplate template = new UriTemplate(url.toString());
+
+        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(requestedRedirect);
+        if (fragment) {
+            String existingFragment = builder.build(true).getFragment();
+            if (StringUtils.hasText(existingFragment)) {
+                existingFragment = existingFragment + "&" + url.toString();
+            } else {
+                existingFragment = url.toString();
+            }
+            builder.fragment(existingFragment);
+        } else {
+            builder.query(url.toString());
+        }
         // Do not include the refresh token (even if there is one)
-        return template.expand(vars).toString();
+        return builder.build(true).toUriString();
     }
 
     private String generateCode(AuthorizationRequest authorizationRequest, Authentication authentication)
@@ -392,6 +397,15 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
         }
     }
 
+    private String encode(String value) {
+        try {
+            //return URLEncoder.encode(value,"UTF-8");
+            return UriUtils.encodeQueryParam(value,"UTF-8");
+        } catch (UnsupportedEncodingException x) {
+            throw new IllegalArgumentException(x);
+        }
+    }
+
     private String getSuccessfulRedirect(AuthorizationRequest authorizationRequest, String authorizationCode) {
 
         if (authorizationCode == null) {
@@ -399,14 +413,14 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
         }
 
         UriComponentsBuilder template = UriComponentsBuilder.fromUriString(authorizationRequest.getRedirectUri());
-        template.queryParam("code", authorizationCode);
+        template.queryParam("code", encode(authorizationCode));
 
         String state = authorizationRequest.getState();
         if (state != null) {
-            template.queryParam("state", state);
+            template.queryParam("state", encode(state));
         }
 
-        return template.build().encode().toUriString();
+        return template.build(true).toUriString();
     }
 
     private String getUnsuccessfulRedirect(AuthorizationRequest authorizationRequest, OAuth2Exception failure,
@@ -418,24 +432,18 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
         }
 
         UriComponentsBuilder template = UriComponentsBuilder.fromUriString(authorizationRequest.getRedirectUri());
-        Map<String, String> query = new LinkedHashMap<String, String>();
         StringBuilder values = new StringBuilder();
 
-        values.append("error={error}");
-        query.put("error", failure.getOAuth2ErrorCode());
-
-        values.append("&error_description={error_description}");
-        query.put("error_description", failure.getMessage());
+        values.append("error="+encode(failure.getOAuth2ErrorCode()));
+        values.append("&error_description=" + encode(failure.getMessage()));
 
         if (authorizationRequest.getState() != null) {
-            values.append("&state={state}");
-            query.put("state", authorizationRequest.getState());
+            values.append("&state=" + encode(authorizationRequest.getState()));
         }
 
         if (failure.getAdditionalInformation() != null) {
             for (Map.Entry<String, String> additionalInfo : failure.getAdditionalInformation().entrySet()) {
-                values.append("&" + additionalInfo.getKey() + "={" + additionalInfo.getKey() + "}");
-                query.put(additionalInfo.getKey(), additionalInfo.getValue());
+                values.append("&" + encode(additionalInfo.getKey()) + "=" + encode(additionalInfo.getValue()));
             }
         }
 
@@ -445,7 +453,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
             template.query(values.toString());
         }
 
-        return template.build().expand(query).encode().toUriString();
+        return template.build(true).toUriString();
 
     }
 
