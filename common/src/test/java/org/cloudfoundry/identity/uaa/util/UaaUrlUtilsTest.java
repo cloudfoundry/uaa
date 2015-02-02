@@ -12,11 +12,17 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.util;
 
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+
+import org.apache.commons.httpclient.util.URIUtil;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.web.util.UriUtils;
 
 import static org.junit.Assert.*;
 
@@ -69,6 +75,16 @@ public class UaaUrlUtilsTest {
         setIdentityZone("zone1");
 
         assertEquals("zone1.uaa.example.com", uaaURLUtils.getUaaHost());
+    }
+
+    @Test
+    public void testDecodeScopes() throws Exception {
+        String xWWWFormEncodedscopes = "scim.userids+password.write+openid+cloud_controller.write+cloud_controller.read";
+        System.out.println(URLDecoder.decode(xWWWFormEncodedscopes));
+        System.out.println(URIUtil.decode(xWWWFormEncodedscopes,"UTF-8"));
+        System.out.println(UriUtils.decode(xWWWFormEncodedscopes,"UTF-8"));
+
+        //Assert.assertEquals(URLDecoder.decode(xWWWFormEncodedscopes), UriUtils.decode(xWWWFormEncodedscopes, "UTF-8"));
     }
 
     private void setIdentityZone(String subdomain) {
