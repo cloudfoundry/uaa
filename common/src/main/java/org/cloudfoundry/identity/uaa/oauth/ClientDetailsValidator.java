@@ -74,6 +74,12 @@ public class ClientDetailsValidator implements InitializingBean {
     public ClientDetails validate(ClientDetails prototype, boolean create, boolean checkAdmin) {
 
         BaseClientDetails client = new BaseClientDetails(prototype);
+        if (prototype instanceof BaseClientDetails) {
+            Set<String> scopes = ((BaseClientDetails)prototype).getAutoApproveScopes();
+            if (scopes!=null) {
+                client.setAutoApproveScopes(((BaseClientDetails) prototype).getAutoApproveScopes());
+            }
+        }
 
         client.setAdditionalInformation(prototype.getAdditionalInformation());
 

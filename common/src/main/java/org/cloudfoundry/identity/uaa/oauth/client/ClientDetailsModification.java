@@ -37,7 +37,11 @@ public class ClientDetailsModification extends BaseClientDetails {
     public ClientDetailsModification(ClientDetails prototype) {
         super(prototype);
         if (prototype instanceof BaseClientDetails) {
-            this.setAdditionalInformation(((BaseClientDetails)prototype).getAdditionalInformation());
+            BaseClientDetails baseClientDetails = (BaseClientDetails)prototype;
+            this.setAdditionalInformation(baseClientDetails.getAdditionalInformation());
+            if (baseClientDetails.getAutoApproveScopes()!=null) {
+                this.setAutoApproveScopes(baseClientDetails.getAutoApproveScopes());
+            }
         }
         if (prototype instanceof ClientDetailsModification) {
             this.setAction(((ClientDetailsModification) prototype).getAction());

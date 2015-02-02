@@ -619,9 +619,13 @@ public class ClientAdminEndpoints implements InitializingBean {
         return details;
     }
 
-	public void setClientDetailsValidator(ClientDetailsValidator clientDetailsValidator) {
-		this.clientDetailsValidator = clientDetailsValidator;
-	}
+    public void setClientDetailsValidator(ClientDetailsValidator clientDetailsValidator) {
+        this.clientDetailsValidator = clientDetailsValidator;
+    }
+
+    public ClientDetailsValidator getClientDetailsValidator() {
+        return clientDetailsValidator;
+    }
 
     public void setClientDetailsResourceMonitor(ResourceMonitor<ClientDetails> clientDetailsResourceMonitor) {
         this.clientDetailsResourceMonitor = clientDetailsResourceMonitor;
