@@ -46,7 +46,7 @@ public class JdbcQueryableClientDetailsService extends AbstractQueryable<ClientD
 
     public static final String CLIENT_DETAILS_TABLE = "oauth_client_details";
     private static final String BASE_FIND_STATEMENT = "select client_id, " + CLIENT_FIELDS
-        + " from " + CLIENT_DETAILS_TABLE;
+        + ",autoapprove from " + CLIENT_DETAILS_TABLE;
 
     public JdbcQueryableClientDetailsService(JdbcClientDetailsService delegate, JdbcTemplate jdbcTemplate,
                     JdbcPagingListFactory pagingListFactory) {
@@ -124,6 +124,10 @@ public class JdbcQueryableClientDetailsService extends AbstractQueryable<ClientD
                 } catch (Exception e) {
                     logger.warn("Could not decode JSON for additional information: " + details, e);
                 }
+            }
+            String scopes = rs.getString(11);
+            if (scopes != null) {
+                details.setAutoApproveScopes(StringUtils.commaDelimitedListToSet(scopes));
             }
             return details;
         }

@@ -67,6 +67,8 @@
                         <entry key="redirect_uri" value="registeredRedirectUri" />
                         <entry key="access_token_validity" value="accessTokenValiditySeconds" />
                         <entry key="refresh_token_validity" value="refreshTokenValiditySeconds" />
+                        <entry key="autoapprove" value="autoApproveScopes" />
+                        <entry key="additionalinformation" value="additionalInformation"/>
                     </map>
                 </constructor-arg>
             </bean>

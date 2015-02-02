@@ -82,15 +82,21 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
         Set<String> autoApprovedScopes = new HashSet<>();
         ClientDetails client = clientDetailsService.retrieve(authorizationRequest.getClientId());
         if (null != client) {
+            if (null != requestedScopes) {
+                for (String requestedScope : requestedScopes) {
+                    if (client.isAutoApprove(requestedScope)) {
+                        autoApprovedScopes.add(requestedScope);
+                    }
+                }
+            }
             Map<String, Object> additionalInfo = client.getAdditionalInformation();
             if (null != additionalInfo) {
                 Object autoApproved = additionalInfo.get("autoapprove");
-                if (autoApproved instanceof Collection<?>) {
+                if (null != autoApproved && autoApproved instanceof Collection<?>) {
                     @SuppressWarnings("unchecked")
                     Collection<? extends String> scopes = (Collection<? extends String>) autoApproved;
                     autoApprovedScopes.addAll(scopes);
-                }
-                else if (autoApproved instanceof Boolean && (Boolean) autoApproved || "true".equals(autoApproved)) {
+                } else if (null != autoApproved && autoApproved instanceof Boolean && (Boolean) autoApproved || "true".equals(autoApproved)) {
                     autoApprovedScopes.addAll(client.getScope());
                 }
             }

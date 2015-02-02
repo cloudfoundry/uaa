@@ -17,6 +17,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -25,6 +26,8 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.error.UaaException;
@@ -153,8 +156,18 @@ public class ClientAdminEndpointsTests {
     }
     
     private void setSecurityContextAccessor(SecurityContextAccessor securityContextAccessor) {
-    	endpoints.setSecurityContextAccessor(securityContextAccessor);
-    	clientDetailsValidator.setSecurityContextAccessor(securityContextAccessor);
+        endpoints.setSecurityContextAccessor(securityContextAccessor);
+        clientDetailsValidator.setSecurityContextAccessor(securityContextAccessor);
+    }
+
+    @Test
+    public void testValidateClientsTransferAutoApproveScopeSet() throws Exception {
+        List<String> scopes = Arrays.asList("scope1", "scope2");
+        input.setAutoApproveScopes(new HashSet<String>(scopes));
+        ClientDetails test = endpoints.getClientDetailsValidator().validate(input,true, false);
+        for (String scope:scopes) {
+            assertTrue("Client should have "+scope+" autoapprove.", test.isAutoApprove(scope));
+        }
     }
 
     @Test
