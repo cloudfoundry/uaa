@@ -23,6 +23,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisioning {
@@ -32,6 +33,8 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
     public static final String CREATE_IDENTITY_PROVIDER_SQL = "insert into identity_provider(" + ID_PROVIDER_FIELDS + ") values (?,?,?,?,?,?,?,?,?)";
     
     public static final String ID_PROVIDER_UPDATE_FIELDS = "version,lastModified,name,type,config".replace(",","=?,")+"=?";
+
+    public static final String IDENTITY_PROVIDERS_QUERY = "select " + ID_PROVIDER_FIELDS + " from identity_provider where identity_zone_id=?";
     
     public static final String UPDATE_IDENTITY_PROVIDER_SQL = "update identity_provider set " + ID_PROVIDER_UPDATE_FIELDS + " where id=?";
 
@@ -53,6 +56,9 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
         IdentityProvider identityProvider = jdbcTemplate.queryForObject(IDENTITY_PROVIDER_BY_ID_QUERY, mapper, id);
         return identityProvider;
     }
+
+    @Override
+    public List<IdentityProvider> retrieveAll() { return jdbcTemplate.query(IDENTITY_PROVIDERS_QUERY, mapper, IdentityZoneHolder.get().getId()); }
 
     @Override
     public IdentityProvider retrieveByOrigin(String origin) {

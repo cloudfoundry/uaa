@@ -43,6 +43,7 @@
           use-expressions="true" authentication-manager-ref="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="#oauth2.hasScope('idps.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="POST" />
         <intercept-url pattern="/**" access="#oauth2.hasScope('idps.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="PUT" />
+        <intercept-url pattern="/**" access="#oauth2.hasScope('idps.read') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="GET" />
         <custom-filter ref="resourceAgnosticAuthenticationFilter" before="PRE_AUTH_FILTER" />
         <expression-handler ref="oauthWebExpressionHandler" />
     </http>

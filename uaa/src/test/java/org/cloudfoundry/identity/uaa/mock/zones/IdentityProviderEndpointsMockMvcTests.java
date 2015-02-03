@@ -30,6 +30,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.codehaus.jackson.type.TypeReference;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -44,13 +45,15 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
-import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
+import java.util.List;
 
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -107,7 +110,8 @@ public class IdentityProviderEndpointsMockMvcTests {
 
     @Test
     public void testCreateAndUpdateIdentityProvider() throws Exception {
-        BaseClientDetails client = new BaseClientDetails("test-client-id",null,"idps.write","password",null);
+        String clientId = RandomStringUtils.randomAlphabetic(6);
+        BaseClientDetails client = new BaseClientDetails(clientId,null,"idps.write","password",null);
         client.setClientSecret("test-client-secret");
         mockMvcUtils.createClient(mockMvc, adminToken, client);
 
@@ -117,8 +121,7 @@ public class IdentityProviderEndpointsMockMvcTests {
         createAndUpdateIdentityProvider(accessToken,  null);
     }
 
-    private void createAndUpdateIdentityProvider(String accessToken, String zoneId) throws Exception,
-            UnsupportedEncodingException {
+    private void createAndUpdateIdentityProvider(String accessToken, String zoneId) throws Exception {
         IdentityProvider identityProvider = MultitenancyFixture.identityProvider("saml");
         // create
         MvcResult result = createIdentityProvider(zoneId, identityProvider, accessToken, status().isCreated());
@@ -189,6 +192,64 @@ public class IdentityProviderEndpointsMockMvcTests {
         assertEquals(1, eventListener.getEventCount());
         IdentityProviderModifiedEvent event = eventListener.getLatestEvent();
         assertEquals(AuditEventType.IdentityProviderCreatedEvent, event.getAuditEvent().getType());
+    }
+
+    @Test
+    public void testListIdpsInZone() throws Exception {
+        String clientId = RandomStringUtils.randomAlphabetic(6);
+        BaseClientDetails client = new BaseClientDetails(clientId,null,"idps.read,idps.write","password",null);
+        client.setClientSecret("test-client-secret");
+        mockMvcUtils.createClient(mockMvc, adminToken, client);
+
+        ScimUser user = createAdminForZone("idps.read,idps.write");
+        String accessToken = mockMvcUtils.getUserOAuthAccessToken(mockMvc, client.getClientId(), client.getClientSecret(), user.getUserName(), "password", "idps.read,idps.write");
+
+        int numberOfIdps = identityProviderProvisioning.retrieveAll().size();
+
+        String originKey = RandomStringUtils.randomAlphabetic(6);
+        IdentityProvider newIdp = MultitenancyFixture.identityProvider(originKey);
+        newIdp = JsonUtils.readValue(createIdentityProvider(null, newIdp, accessToken, status().isCreated()).getResponse().getContentAsString(), IdentityProvider.class);
+
+        MockHttpServletRequestBuilder requestBuilder = get("/identity-providers/")
+            .header("Authorization", "Bearer" + accessToken)
+            .contentType(APPLICATION_JSON);
+
+        MvcResult result = mockMvc.perform(requestBuilder).andExpect(status().isOk()).andReturn();
+        List<IdentityProvider> identityProviderList = JsonUtils.readValue(result.getResponse().getContentAsString(), new TypeReference<List<IdentityProvider>>() {
+        });
+        assertEquals(numberOfIdps + 1, identityProviderList.size());
+        assertTrue(identityProviderList.contains(newIdp));
+    }
+
+    @Test
+    public void testListIdpsInOtherZoneFromDefaultZone() throws Exception {
+        IdentityZone identityZone = MockMvcUtils.utils().createZoneUsingWebRequest(mockMvc, identityToken);
+        ScimUser userInDefaultZone = createAdminForZone("zones." + identityZone.getId() + ".admin");
+
+        String zoneAdminToken = MockMvcUtils.utils().getUserOAuthAccessToken(mockMvc, "identity", "identitysecret", userInDefaultZone.getUserName(), "password", "zones." + identityZone.getId() + ".admin");
+
+        String originKey = RandomStringUtils.randomAlphabetic(6);
+        IdentityProvider otherZoneIdp = MultitenancyFixture.identityProvider(originKey);
+        otherZoneIdp = JsonUtils.readValue(createIdentityProvider(identityZone.getId(), otherZoneIdp, zoneAdminToken, status().isCreated()).getResponse().getContentAsString(), IdentityProvider.class);
+
+        MockHttpServletRequestBuilder requestBuilder = get("/identity-providers/")
+            .header("Authorization", "Bearer" + zoneAdminToken)
+            .contentType(APPLICATION_JSON);
+        requestBuilder.header(IdentityZoneSwitchingFilter.HEADER, identityZone.getId());
+
+        MvcResult result = mockMvc.perform(requestBuilder).andExpect(status().isOk()).andReturn();
+        List<IdentityProvider> identityProviderList = JsonUtils.readValue(result.getResponse().getContentAsString(), new TypeReference<List<IdentityProvider>>() {
+        });
+        assertTrue(identityProviderList.contains(otherZoneIdp));
+        assertEquals(2, identityProviderList.size());
+    }
+
+    @Test
+    public void testListIdpsWithInsufficientScopes() throws Exception {
+        MockHttpServletRequestBuilder requestBuilder = get("/identity-providers/")
+            .header("Authorization", "Bearer" + adminToken)
+            .contentType(APPLICATION_JSON);
+        mockMvc.perform(requestBuilder).andExpect(status().isForbidden()).andReturn();
 
     }
 

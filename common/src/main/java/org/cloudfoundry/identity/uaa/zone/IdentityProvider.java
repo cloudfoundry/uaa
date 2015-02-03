@@ -17,6 +17,8 @@ import java.util.Date;
 import java.util.UUID;
 
 import org.codehaus.jackson.annotate.JsonProperty;
+import org.codehaus.jackson.map.annotate.JsonDeserialize;
+import org.codehaus.jackson.map.annotate.JsonSerialize;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 public class IdentityProvider {
