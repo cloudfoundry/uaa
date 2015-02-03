@@ -12,6 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
+import java.util.List;
+
 public interface IdentityProviderProvisioning {
 
     public IdentityProvider create(IdentityProvider identityProvider);
@@ -19,7 +21,9 @@ public interface IdentityProviderProvisioning {
     public IdentityProvider update(IdentityProvider identityProvider);
 
     public IdentityProvider retrieve(String id);
-    
+
+    public List<IdentityProvider> retrieveAll();
+
     public IdentityProvider retrieveByOrigin(String origin);
     
     

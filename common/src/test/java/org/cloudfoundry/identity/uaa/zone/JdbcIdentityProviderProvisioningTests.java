@@ -7,8 +7,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.dao.EmptyResultDataAccessException;
 
-import java.sql.Date;
 import java.sql.Timestamp;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -171,7 +171,28 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
         assertEquals(idp.getName(), retrievedIdp.getName());
         assertEquals(idp.getOriginKey(), retrievedIdp.getOriginKey());
     }
-    
+
+    @Test
+    public void testRetrieveAll() throws Exception {
+        List<IdentityProvider> identityProviders = db.retrieveAll();
+        int numberOfIdps =  identityProviders.size();
+        String origin = RandomStringUtils.randomAlphabetic(6);
+
+        IdentityProvider defaultZoneIdp = MultitenancyFixture.identityProvider(origin);
+        db.create(defaultZoneIdp);
+        identityProviders = db.retrieveAll();
+        assertEquals(numberOfIdps + 1, identityProviders.size());
+
+        IdentityZone otherZone = MultitenancyFixture.identityZone(UUID.randomUUID().toString(), "myzone");
+        IdentityZoneHolder.set(otherZone);
+        String originKey = RandomStringUtils.randomAlphabetic(6);
+        IdentityProvider otherZoneIdp = MultitenancyFixture.identityProvider(originKey);
+        db.create(otherZoneIdp);
+
+        identityProviders = db.retrieveAll();
+        assertEquals(1, identityProviders.size());
+    }
+
     @Test
     public void testRetrieveIdentityProviderByOriginInSameZone() {
         String originKey = RandomStringUtils.randomAlphabetic(6);

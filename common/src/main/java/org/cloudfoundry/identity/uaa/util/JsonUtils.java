@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.util;
 import java.io.IOException;
 
 import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.type.TypeReference;
 
 public class JsonUtils {
     private static ObjectMapper objectMapper = new ObjectMapper();
@@ -38,6 +39,14 @@ public class JsonUtils {
     public static <T> T readValue(String s, Class<T> clazz) throws JsonUtilException {
         try {
             return objectMapper.readValue(s, clazz);
+        } catch (IOException e) {
+            throw new JsonUtilException(e);
+        }
+    }
+
+    public static <T> T readValue(String s, TypeReference<T> typeReference) {
+        try {
+            return objectMapper.readValue(s, typeReference);
         } catch (IOException e) {
             throw new JsonUtilException(e);
         }
