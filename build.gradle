@@ -159,6 +159,8 @@ flyway {
   }
 }
 
+flywayClean.enabled = Boolean.valueOf(System.getProperty("flyway.clean", "true"))
+
 task prepareDatabase {
   dependsOn { databaseType().equals('hsqldb') ? null : flywayClean }
 }
@@ -198,6 +200,7 @@ cargo {
   local {
     systemProperties {
       property 'net.sourceforge.cobertura.datafile', integrationCoverageFile
+      property 'spring.profiles.active', System.getProperty('spring.profiles.active', 'default')
     }
 
     installer {

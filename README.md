@@ -26,6 +26,7 @@ clients, as well as various other management functions.
 If this works you are in business:
 
     $ git clone git://github.com/cloudfoundry/uaa.git
+    $ cd uaa
     $ ./gradlew run
 
 The apps all work together with the apps running on the same port
@@ -96,6 +97,41 @@ token grant on stdout, e.g.
       jti: ea2fac72-3f51-4c8f-a7a6-5ffc117af542
       user_id: ba14fea0-9d87-4f0c-b59e-32aaa8eb1434
       client_id: cf
+
+### Running local system against default MySQL and PostgreSQL settings (and Flyway migration script information)
+
+    $ ./gradlew -Dspring.profiles.active=default,mysql run
+
+This command will assume that there is a MySQL database available with the default settings for access
+and will respond to the following JDBC settings.
+
+    driver = 'org.mariadb.jdbc.Driver'
+    url = 'jdbc:mysql://localhost:3306/uaa'
+    user = 'root'
+    password = 'changeme'
+    schemas = ['uaa']
+
+In a similar fashion, should you execute the command
+
+    $ ./gradlew -Dspring.profiles.active=default,postgresql run
+
+It uses the settings defined as
+
+    driver = 'org.postgresql.Driver'
+    url = 'jdbc:postgresql:uaa'
+    user = 'root'
+    password = 'changeme'
+
+These settings are duplicated in two places for the Gradle integration.
+They are defined as defaults in the Spring XML configuration files and they are defined in the main
+build.gradle file. The reason they are in the Gradle build file, is so that during Gradle always executes the flywayClean
+task prior to launching the UAA application. If you wish to not clean the DB, you can define the variable
+
+    -Dflyway.clean=false
+
+as part of your command line. This disables the flywayClean task in the gradle script.
+Another way to disable to the flywayClean is to not specify the spring profiles on the command line,
+but set the profiles in the uaa.yml and login.yml files.
 
 ### Demo of command line usage on run.pivotal.io
 
@@ -169,12 +205,12 @@ The default uaa unit tests (./gradlew test) use hsqldb.
 To run the unit tests using postgresql:
 
     $ echo "spring_profiles: default,postgresql" > src/main/resources/uaa.yml 
-    $ ./gradlew test integrationTest
+    $ ./gradlew -Dspring.profiles.active=default,postgresql test integrationTest
 
 To run the unit tests using mysql:
 
     $ echo "spring_profiles: default,mysql" > src/main/resources/uaa.yml 
-    $ ./gradlew test integrationTest
+    $ ./gradlew -Dspring.profiles.active=default,mysql test integrationTest
 
 
 The database configuration for the common and scim modules is defaulted in 
@@ -194,6 +230,8 @@ the webapps below.
 3. `app` (sample) is a user application that uses both of the above
 
 4. `scim` [SCIM](http://www.simplecloud.info/) user management module used by UAA
+
+5. `login` This module represents the UI of the UAA. It is the code that was merged in from the former login-server project.
 
 In CloudFoundry terms
 
@@ -230,7 +268,7 @@ an access token submitted by an OAuth2 client.
 /app authenticates here), but not to meet the spec.
 
 Authentication can be performed by command line clients by submitting
-credentials directly to the `/authorize` endpoint (as described in
+credentials directly to the `/oauth/authorize` endpoint (as described in
 UAA-API doc).  There is an `ImplicitAccessTokenProvider` in Spring
 Security OAuth that can do the heavy lifting if your client is Java.
 
