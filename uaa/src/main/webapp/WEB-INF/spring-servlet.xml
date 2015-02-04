@@ -91,9 +91,25 @@
         </property>
     </bean>
     
-    <bean id="identityZoneResolvingFilter" class="org.cloudfoundry.identity.uaa.zone.IdentityZoneResolvingFilter"/>
+    <bean id="identityZoneResolvingFilter" class="org.cloudfoundry.identity.uaa.zone.IdentityZoneResolvingFilter">
+        <property name="identityZoneProvisioning" ref="identityZoneProvisioning"/>
+        <property name="internalHostnames">
+            <set>
+                <value>#{T(org.cloudfoundry.identity.uaa.util.UaaUrlUtils).getHostForURI(@uaaUrl)}</value>
+                <value>#{T(org.cloudfoundry.identity.uaa.util.UaaUrlUtils).getHostForURI(@loginUrl)}</value>
+            </set>
+
+        </property>
+    </bean>
     <bean id="identityZoneSwitchingFilter" class="org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter"/>
 
+    <bean id="uaaUrl" class="java.lang.String">
+        <constructor-arg value="${uaa.url:http://localhost:8080/uaa}"/>
+    </bean>
+
+    <bean id="loginUrl" class="java.lang.String">
+        <constructor-arg value="${login.url:http://localhost:8080/uaa}"/>
+    </bean>
 
     <import resource="spring/oauth-clients.xml" />
     <!-- The order of these imports is important because of Spring Security filter chain rules -->
@@ -208,7 +224,7 @@
     <!--Basic application beans. -->
     <bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.authentication.login.LoginInfoEndpoint">
         <property name="authenticationManager" ref="authzAuthenticationMgr"/>
-        <property name="uaaBaseUrl" value="${uaa.url:http://localhost:8080/uaa}" />
+        <property name="uaaBaseUrl" ref="uaaUrl" />
         <property name="links" ref="links" />
         <property name="idpDefinitions">
             <bean factory-bean="metaDataProviders" factory-method="getIdentityProviderDefinitions"/>

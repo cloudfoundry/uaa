@@ -36,10 +36,6 @@
 
     <context:annotation-config />
 
-    <bean id="uaaUrl" class="java.lang.String">
-        <constructor-arg value="${uaa.url:http://localhost:8080/uaa}"/>
-    </bean>
-
     <bean id="notificationsUrl" class="java.lang.String">
         <constructor-arg value="${notifications.url:}"/>
     </bean>
@@ -167,7 +163,7 @@
 
   <bean id="homeController" class="org.cloudfoundry.identity.uaa.login.HomeController">
     <constructor-arg ref="environment" />
-    <property name="uaaBaseUrl" value="${uaa.url:http://localhost:8080/uaa}" />
+    <property name="uaaBaseUrl" ref="uaaUrl" />
     <property name="links" ref="links" />
   </bean>
 
