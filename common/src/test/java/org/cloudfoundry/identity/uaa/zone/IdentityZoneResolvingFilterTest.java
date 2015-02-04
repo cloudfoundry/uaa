@@ -3,6 +3,9 @@ package org.cloudfoundry.identity.uaa.zone;
 import static org.junit.Assert.*;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.LinkedList;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -16,6 +19,7 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.util.StringUtils;
 
 public class IdentityZoneResolvingFilterTest {
     
@@ -47,8 +51,8 @@ public class IdentityZoneResolvingFilterTest {
 
         IdentityZoneResolvingFilter filter = new IdentityZoneResolvingFilter();
         IdentityZoneProvisioning dao = Mockito.mock(IdentityZoneProvisioning.class);
-        filter.setDao(dao);
-        filter.setInternalHostnames(internalHostnames); 
+        filter.setIdentityZoneProvisioning(dao);
+        filter.setInternalHostnames(new HashSet<>(Arrays.asList(StringUtils.commaDelimitedListToStringArray(internalHostnames))));
         
         IdentityZone identityZone = new IdentityZone();
         identityZone.setSubdomain(expectedSubdomain);
@@ -81,8 +85,8 @@ public class IdentityZoneResolvingFilterTest {
         IdentityZoneResolvingFilter filter = new IdentityZoneResolvingFilter();
         IdentityZoneProvisioning dao = Mockito.mock(IdentityZoneProvisioning.class);
         FilterChain chain = Mockito.mock(FilterChain.class);
-        filter.setDao(dao);
-        filter.setInternalHostnames(uaaHostname);
+        filter.setIdentityZoneProvisioning(dao);
+        filter.setInternalHostnames(new HashSet<>(new LinkedList<>(Arrays.asList(uaaHostname))));
         
         IdentityZone identityZone = new IdentityZone();
         identityZone.setSubdomain(incomingSubdomain);

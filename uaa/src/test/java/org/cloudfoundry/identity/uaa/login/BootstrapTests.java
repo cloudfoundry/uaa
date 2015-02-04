@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneResolvingFilter;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
@@ -48,6 +49,7 @@ import org.springframework.web.servlet.ViewResolver;
 import javax.servlet.RequestDispatcher;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -55,10 +57,12 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
 
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 public class BootstrapTests {
@@ -74,6 +78,8 @@ public class BootstrapTests {
     @After
     public void cleanup() throws Exception {
         System.clearProperty("spring.profiles.active");
+        System.clearProperty("uaa.url");
+        System.clearProperty("login.url");
         if (context != null) {
             context.close();
         }
@@ -95,6 +101,21 @@ public class BootstrapTests {
         assertNotNull(context.getBean("viewResolver", ViewResolver.class));
         assertNotNull(context.getBean("resetPasswordController", ResetPasswordController.class));
         assertEquals(Integer.MAX_VALUE, context.getBean("webSSOprofileConsumer", WebSSOProfileConsumerImpl.class).getMaxAuthenticationAge());
+        IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
+        Set<String> defaultHostnames = new HashSet<>(Arrays.asList("localhost"));
+        assertEquals(filter.getInternalHostnames(), defaultHostnames);
+     }
+
+    @Test
+    public void testInternalHostnames() throws Exception {
+        String uaa = "uaa.some.test.domain.com";
+        String login = uaa.replace("uaa", "login");
+        System.setProperty("uaa.url", "https://"+uaa+":555/uaa");
+        System.setProperty("login.url", "https://"+login+":555/uaa");
+        context = getServletContext(null, "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
+        Set<String> defaultHostnames = new HashSet<>(Arrays.asList(uaa,login));
+        assertEquals(filter.getInternalHostnames(), defaultHostnames);
     }
 
     @Test

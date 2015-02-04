@@ -46,7 +46,6 @@ public class UaaConfiguration {
     @Pattern(regexp = "(default|postgresql|hsqldb|mysql|oracle)")
     public String platform;
     public String spring_profiles;
-    public String internalHostnames;
     @URL(message = "issuer.uri must be a valid URL")
     public String issuerUri;
     public boolean dump_requests;

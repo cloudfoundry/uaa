@@ -47,5 +47,10 @@ public class UaaUrlUtils {
         return builder;
     }
 
+    public static String getHostForURI(String uri) {
+        UriComponentsBuilder b = UriComponentsBuilder.fromHttpUrl(uri);
+        return b.build().getHost();
+    }
+
 
 }
