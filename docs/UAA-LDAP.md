@@ -29,8 +29,8 @@ Chained authentication allows a certain number of boot strap users to
 exists within the UAA itself without the need to configure them in a potential
 read only external store. 
 
-Username's are not unique within the UAA. The combination of a username and 
-it's origin, 'ldap' for example, is unique.
+Usernames are not unique within the UAA. The combination of a username and 
+its origin, 'ldap' for example, is unique.
 
 A potential collision does exist in a chained authentication. 
 If the exact same set of credentials, username/password combination, exist in both the UAA and the LDAP 
@@ -400,7 +400,7 @@ ldap:
     searchBase: ''
     searchFilter: 'cn={0}'
   groups:
-    file: WEB-INF/spring/ldap/ldap-groups-as-scopes.xml    
+    file: ldap/ldap-groups-as-scopes.xml    
     searchBase: ou=scopes,dc=test,dc=com
     groupRoleAttribute: scopenames
     searchSubtree: true
@@ -432,7 +432,7 @@ ldap:
     searchBase: ''
     searchFilter: 'cn={0}'
   groups:
-    file: WEB-INF/spring/ldap/ldap-groups-map-to-scopes.xml    
+    file: ldap/ldap-groups-map-to-scopes.xml    
     searchBase: ou=scopes,dc=test,dc=com
     searchSubtree: true
     groupSearchFilter: member={0}
