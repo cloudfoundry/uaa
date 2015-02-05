@@ -121,18 +121,24 @@ public class EmailAccountCreationService implements AccountCreationService {
         user = scimUserProvisioning.verifyUser(user.getId(), user.getVersion());
 
         String clientId = data.get("client_id");
-        String redirectLocation = null;
+        String redirectLocation;
         if (clientId != null) {
             try {
                 ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId);
                 redirectLocation = (String) clientDetails.getAdditionalInformation().get(SIGNUP_REDIRECT_URL);
             }
             catch (NoSuchClientException e) {
-                logger.warn("Client deleted before user completed registration: " + clientId);
+                redirectLocation = getDefaultRedirect();
             }
+        } else {
+            redirectLocation = getDefaultRedirect();
         }
 
         return new AccountCreationResponse(user.getId(), user.getUserName(), user.getUserName(), redirectLocation);
+    }
+
+    private String getDefaultRedirect() throws IOException {
+        return "home";
     }
 
     @Override
