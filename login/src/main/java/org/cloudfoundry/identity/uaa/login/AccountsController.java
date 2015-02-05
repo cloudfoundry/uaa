@@ -48,14 +48,14 @@ public class AccountsController {
 
     @RequestMapping(value = "/create_account", method = GET)
     public String activationEmail(Model model,
-                                  @RequestParam(value = "client_id", defaultValue = "login") String clientId) {
+                                    @RequestParam(value = "client_id", required = false) String clientId) {
         model.addAttribute("client_id", clientId);
         return "accounts/new_activation_email";
     }
 
     @RequestMapping(value = "/create_account.do", method = POST)
     public String sendActivationEmail(Model model, HttpServletResponse response,
-                                      @RequestParam("client_id") String clientId,
+                                      @RequestParam(value = "client_id", required = false) String clientId,
                                       @Valid @ModelAttribute("email") ValidEmail email, BindingResult result,
                                       @RequestParam("password") String password,
                                       @RequestParam("password_confirmation") String passwordConfirmation) {

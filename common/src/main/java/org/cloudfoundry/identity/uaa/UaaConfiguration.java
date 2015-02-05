@@ -127,6 +127,8 @@ public class UaaConfiguration {
         @Valid
         public User user;
 
+        public OpenID openid;
+
         public static class Client {
             public String override;
             public List<String> autoapprove;
@@ -140,6 +142,10 @@ public class UaaConfiguration {
         public static class User {
             @Valid
             public Set<String> authorities;
+        }
+
+        public static class OpenID {
+            public boolean fallbackToAuthcode;
         }
     }
 

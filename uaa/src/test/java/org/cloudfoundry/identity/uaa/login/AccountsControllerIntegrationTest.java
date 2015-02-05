@@ -125,6 +125,63 @@ public class AccountsControllerIntegrationTest {
         store.setGenerator(generator);
 
         mockMvc.perform(post("/create_account.do")
+                .param("email", userEmail)
+                .param("password", "secret")
+                .param("password_confirmation", "secret"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("accounts/email_sent"));
+
+        MvcResult mvcResult = mockMvc.perform(get("/verify_user")
+                .param("code", "test"+generator.counter.get()))
+                .andDo(print())
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("home"))
+                .andReturn();
+
+        SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        Authentication authentication = securityContext.getAuthentication();
+        Assert.assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
+        UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
+        Assert.assertThat(principal.getEmail(), equalTo(userEmail));
+        Assert.assertThat(principal.getOrigin(), equalTo(Origin.UAA));
+    }
+
+    @Test
+    public void testCreatingAnAccountWithAnEmptyClientId() throws Exception {
+        PredictableGenerator generator = new PredictableGenerator();
+        JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
+        store.setGenerator(generator);
+
+        mockMvc.perform(post("/create_account.do")
+                .param("email", userEmail)
+                .param("password", "secret")
+                .param("password_confirmation", "secret")
+                .param("client_id", ""))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("accounts/email_sent"));
+
+        MvcResult mvcResult = mockMvc.perform(get("/verify_user")
+                .param("code", "test"+generator.counter.get()))
+                .andDo(print())
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("home"))
+                .andReturn();
+
+        SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        Authentication authentication = securityContext.getAuthentication();
+        Assert.assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
+        UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
+        Assert.assertThat(principal.getEmail(), equalTo(userEmail));
+        Assert.assertThat(principal.getOrigin(), equalTo(Origin.UAA));
+    }
+
+    @Test
+    public void testCreatingAnAccountWithClientRedirect() throws Exception {
+        PredictableGenerator generator = new PredictableGenerator();
+        JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
+        store.setGenerator(generator);
+
+        mockMvc.perform(post("/create_account.do")
                     .param("email", userEmail)
                     .param("password", "secret")
                     .param("password_confirmation", "secret")
