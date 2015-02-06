@@ -1436,11 +1436,11 @@ Response body   *example*::
 
 =============== ===============================================================
 
-Register Client: ``POST /oauth/clients/{client_id}``
+Register Client: ``POST /oauth/clients``
 -------------------------------------------------------
 
 ==============  ===============================================
-Request         ``POST /oauth/clients/{client_id}``
+Request         ``POST /oauth/clients``
 Request body    client details
 Response code    ``201 CREATED`` if successful
 Response body   the client details
@@ -1448,7 +1448,7 @@ Response body   the client details
 
 Example request::
 
-    POST /oauth/clients/foo
+    POST /oauth/clients
     {
       "client_id" : "foo",
       "client_secret" : "fooclientsecret", // optional for untrusted clients
