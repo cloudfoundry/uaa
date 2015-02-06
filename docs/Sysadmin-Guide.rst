@@ -41,11 +41,12 @@ appropriate token from the session and uses it to make the request.
 Login server
 ============
 
-The login server component is separate from UAA so it can present an
+The login server component used to be separate from UAA.
+It has now been merged into the UAA so it can present an
 appropriate visual rendering of the login page and authentication
-interfaces.
+interfaces. The login-server is now the login module in the UAA repository.
 
-The login server also has additional logic to support the autologin
+The login also has additional logic to support the autologin
 flow. This is to allow a client to sign in on behalf of the user using
 the client’s own credentials. This is needed when a user needs to be
 signed in after resetting his password.
@@ -77,29 +78,13 @@ Clone, build UAA server:
     cd uaa
     ./gradlew clean assemble
 
-Note the version number that you just built (e.g. look in the pom or in
-uaa/target for the version label on the WAR file).
-
-Clone, build login-server:
-
-::
-
-    git clone git@github.com:cloudfoundry/login-server.git
-    cd login-server
-    git submodule update --init --recursive
-    ./gradlew clean assemble
 
 Run Servers (using the UAA version <X> from above):
 
 ::
 
-    cd login-server && ./gradlew run 
+    ./gradlew run
 
-or to just run the UAA: 
-
-::
-
-    cd uaa && ./gradlew run
 
 Configuration
 =============

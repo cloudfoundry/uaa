@@ -35,8 +35,7 @@ import javax.servlet.http.HttpServletRequest;
 
 /**
  * Contains basic information used by the
- * login-server controllers.
- * 
+ * login controllers
  * @author fhanik
  * 
  */

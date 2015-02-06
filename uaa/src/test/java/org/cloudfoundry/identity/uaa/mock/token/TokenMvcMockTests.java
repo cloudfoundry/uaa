@@ -787,7 +787,7 @@ public class TokenMvcMockTests {
         //2. source=login
         //3. grant_type=password
         //4. add_new=<any value>
-        //without the above four parameters, it is not considered a login-server request
+        //without the above four parameters, it is not considered a external login-server request
 
         //success - contains everything we need
         mockMvc.perform(post("/oauth/token")
