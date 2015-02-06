@@ -30,7 +30,7 @@ Here is a summary of the different scopes that are known to the UAA.
   * oauth.approval - ``/approvals`` endpoint. Scope required to be able to approve/disapprove clients to act on a user's behalf. This is a default scope defined in uaa.yml.
   * approvals.me - not currently used
   * clients.secret - ``/oauth/clients/*/secret`` endpoint. Scope required to change the password of a client. Considered an admin scope.
-  * oauth.login - Scope used to indicate a login application, such as the login-server, to perform trusted operations, such as create users not authenticated in the UAA.
+  * oauth.login - Scope used to indicate a login application, such as external login servers, to perform trusted operations, such as create users not authenticated in the UAA.
   * openid - Required to access the /userinfo endpoint. Intended for OpenID clients.
   * scim.write - Admin write access to all SCIM endpoints, ``/Users``, ``/Groups/``.
   * scim.read - Admin read access to all SCIM endpoints, ``/Users``, ``/Groups/``.

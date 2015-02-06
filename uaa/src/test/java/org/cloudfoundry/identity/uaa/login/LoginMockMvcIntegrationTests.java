@@ -212,8 +212,6 @@ public class LoginMockMvcIntegrationTests {
             .andExpect(xpath("//a[text()='Reset password']/@href").string("http://example.com/reset_passwd"));
     }
     
-    // The following tests came from https://github.com/cloudfoundry/login-server/blob/89ced7999c98297b746330499cfec0b0177a76ed/src/test/java/org/cloudfoundry/identity/uaa/login/RemoteUaaControllerMockMvcTests.java
-    
     @Test
     public void testLoginWithExplicitPrompts() throws Exception {
         LoginInfoEndpoint controller = webApplicationContext.getBean(LoginInfoEndpoint.class);

@@ -1,6 +1,6 @@
 ##Introduction
 This document outlines a very simple SAML integration between the OpenAM server and the 
-Cloud Foundry login-server. 
+Cloud Foundry UAA.
 
 ###Step 1
 

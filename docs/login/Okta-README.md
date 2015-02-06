@@ -10,7 +10,7 @@ This configuration requires you to have an account on
 https://pivotal.oktapreview.com
 
 ###Step 1
-Configure and start the login-server/UAA
+Configure and start the UAA
 
    - a) Configure login.yml
    - b) uncomment '#providers:' under login.saml
@@ -54,7 +54,7 @@ Download the IDP Metadata
   - e) Save this file to a location which can be used in the login server
 
 ###Step 2
-Configure and start the login-server/UAA
+Configure and start the UAA
 
    - a) Configure login.yml
    - b) Uncomment the Okta section under '# Local Okta configuration'
@@ -63,7 +63,7 @@ Configure and start the login-server/UAA
    - e) Start the UAA/Login Server on port 8080 (./gradlew run)
 
 ###Step 3
-Configure Okta to have login-server as a service that wishes to authenticate
+Configure Okta to have UAA as a service that wishes to authenticate
 
   - a) Go to your Okta application and click on the 'General' tab
   - b) Edit the SAML settings
