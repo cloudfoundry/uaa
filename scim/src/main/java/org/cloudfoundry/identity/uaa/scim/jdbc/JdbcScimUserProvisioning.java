@@ -63,12 +63,12 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
 
     private final Log logger = LogFactory.getLog(getClass());
 
-    public static final String USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName,active,phoneNumber,verified,origin,external_id,identity_provider_id,identity_zone_id ";
+    public static final String USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName,active,phoneNumber,verified,origin,external_id,identity_zone_id ";
 
     public static final String CREATE_USER_SQL = "insert into users (" + USER_FIELDS
-                    + ",password) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                    + ",password) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
-    public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, userName=?, email=?, givenName=?, familyName=?, active=?, phoneNumber=?, verified=?, origin=?, external_id=?, identity_provider_id = ? where id=? and version=?";
+    public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, userName=?, email=?, givenName=?, familyName=?, active=?, phoneNumber=?, verified=?, origin=?, external_id=? where id=? and version=?";
 
     public static final String DEACTIVATE_USER_SQL = "update users set active=? where id=?";
 
@@ -147,8 +147,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
         final String id = UUID.randomUUID().toString();
         final String identityZoneId = IdentityZoneHolder.get().getId();
         final String origin = StringUtils.hasText(user.getOrigin()) ? user.getOrigin() : Origin.UAA;
-        final String identityProviderId = getIdentityProviderId(identityZoneId, origin);
-        
+
         try {
             jdbcTemplate.update(CREATE_USER_SQL, new PreparedStatementSetter() {
                 @Override
@@ -173,9 +172,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
                     ps.setBoolean(11, user.isVerified());
                     ps.setString(12, origin);
                     ps.setString(13, StringUtils.hasText(user.getExternalId())?user.getExternalId():null);
-                    ps.setString(14, identityProviderId);
-                    ps.setString(15, identityZoneId);
-                    ps.setString(16, user.getPassword());
+                    ps.setString(14, identityZoneId);
+                    ps.setString(15, user.getPassword());
 
                 }
 
@@ -189,16 +187,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
             throw new ScimResourceAlreadyExistsException("Username already in use: " + existingUser.getUserName(), userDetails);
         }
         return retrieve(id);
-    }
-
-    private String getIdentityProviderId(final String identityZoneId, final String origin) {
-        final String identityProviderId;
-        try {
-            identityProviderId = jdbcTemplate.queryForObject("select id from identity_provider where origin_key = ? and identity_zone_id = ?", String.class, origin, identityZoneId);
-        } catch (Exception e) {
-            throw new IllegalStateException("No IdentityProvider could be found for identity_zone_id = "+identityZoneId+" origin="+origin,e);
-        }
-        return identityProviderId;
     }
 
     @Override
@@ -232,7 +220,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
         logger.debug("Updating user " + user.getUserName());
         final String identityZoneId = IdentityZoneHolder.get().getId();
         final String origin = StringUtils.hasText(user.getOrigin()) ? user.getOrigin() : Origin.UAA;
-        final String identityProviderId = getIdentityProviderId(identityZoneId, origin);
 
         int updated = jdbcTemplate.update(UPDATE_USER_SQL, new PreparedStatementSetter() {
             @Override
@@ -249,7 +236,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
                 ps.setBoolean(pos++, user.isVerified());
                 ps.setString(pos++, origin);
                 ps.setString(pos++, StringUtils.hasText(user.getExternalId())?user.getExternalId():null);
-                ps.setString(pos++, identityProviderId);
                 ps.setString(pos++, id);
                 ps.setInt(pos++, user.getVersion());
             }
@@ -418,8 +404,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
             boolean verified = rs.getBoolean(11);
             String origin = rs.getString(12);
             String externalId = rs.getString(13);
-            String idpId = rs.getString(14);
-            String zoneId = rs.getString(15);
+            String zoneId = rs.getString(14);
             ScimUser user = new ScimUser();
             user.setId(id);
             ScimMeta meta = new ScimMeta();
@@ -440,7 +425,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
             user.setVerified(verified);
             user.setOrigin(origin);
             user.setExternalId(externalId);
-            user.setIdpId(idpId);
             user.setZoneId(zoneId);
             return user;
         }

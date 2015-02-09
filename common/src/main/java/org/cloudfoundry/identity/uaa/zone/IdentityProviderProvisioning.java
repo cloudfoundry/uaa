@@ -24,7 +24,9 @@ public interface IdentityProviderProvisioning {
 
     public List<IdentityProvider> retrieveAll();
 
+    public List<IdentityProvider> retrieveAll(boolean activeOnly);
+
     public IdentityProvider retrieveByOrigin(String origin);
-    
-    
+
+
 }

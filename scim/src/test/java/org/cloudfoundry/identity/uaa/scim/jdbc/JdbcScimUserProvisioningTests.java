@@ -27,6 +27,7 @@ import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.PhoneNumber;
+import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimUserBootstrapTests;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
@@ -58,7 +59,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
 
     private static final String SQL_INJECTION_FIELDS = "password,version,created,lastModified,username,email,givenName,familyName";
 
-    private static final String addUserSqlFormat = "insert into users (id, username, password, email, givenName, familyName, phoneNumber, identity_provider_id, identity_zone_id) values ('%s','%s','%s','%s','%s','%s', '%s', '%s', '%s')";
+    private static final String addUserSqlFormat = "insert into users (id, username, password, email, givenName, familyName, phoneNumber, identity_zone_id) values ('%s','%s','%s','%s','%s', '%s', '%s', '%s')";
 
     private static final String deleteUserSqlFormat = "delete from users where id='%s'";
 
@@ -100,7 +101,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
                          String familyName, String phoneNumber, String identityProviderId, String identityZoneId) {
         TestUtils.assertNoSuchUser(jdbcTemplate, "id", id);
         jdbcTemplate.execute(String.format(addUserSqlFormat, id, username, password, email, givenName, familyName,
-                phoneNumber, identityProviderId, identityZoneId));
+                phoneNumber, identityZoneId));
     }
 
     private void removeUser(String id) {
@@ -134,7 +135,6 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertNull(created.getGroups());
         assertEquals(Origin.UAA, created.getOrigin());
         assertEquals("uaa", map.get("identity_zone_id"));
-        assertNotNull(map.get("identity_provider_id"));
     }
 
     @Test
@@ -153,7 +153,6 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertNull(created.getGroups());
         assertEquals(Origin.UAA, created.getOrigin());
         assertEquals("my-zone-id", map.get("identity_zone_id"));
-        assertEquals(idpId, map.get("identity_provider_id"));
     }
     
     @Test
@@ -183,7 +182,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     @Test
     public void validateOriginAndExternalIDDuringCreateAndUpdate() {
         String origin = "test";
-        IdentityProvider.addIdentityProvider(jdbcTemplate,origin);
+        ScimUserBootstrapTests.addIdentityProvider(jdbcTemplate, origin);
         String externalId = "testId";
         ScimUser user = new ScimUser(null, "jo@foo.com", "Jo", "User");
         user.setOrigin(origin);
@@ -200,7 +199,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertEquals(origin, created.getOrigin());
         assertEquals(externalId, created.getExternalId());
         String origin2 = "test2";
-        IdentityProvider.addIdentityProvider(jdbcTemplate,origin2);
+        ScimUserBootstrapTests.addIdentityProvider(jdbcTemplate,origin2);
         String externalId2 = "testId2";
         created.setOrigin(origin2);
         created.setExternalId(externalId2);

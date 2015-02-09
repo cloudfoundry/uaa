@@ -28,10 +28,6 @@ public class IdentityProvider {
      * @param originKey
      */
     
-    public static void addIdentityProvider(JdbcTemplate jdbcTemplate, String originKey) {
-        jdbcTemplate.update("insert into identity_provider (id,identity_zone_id,name,origin_key,type) values (?,'uaa',?,?,'UNKNOWN')",UUID.randomUUID().toString(),originKey,originKey);
-    }
-
     private String id;
     
     @NotNull
@@ -51,6 +47,10 @@ public class IdentityProvider {
 
     @JsonProperty("last_modified")
     private Date lastModified = new Date();
+
+    private boolean active = true;
+
+    private String identityZoneId;
 
     public Date getCreated() {
         return created;
@@ -116,6 +116,22 @@ public class IdentityProvider {
         this.type = type;
     }
 
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
+    public String getIdentityZoneId() {
+        return identityZoneId;
+    }
+
+    public void setIdentityZoneId(String identityZoneId) {
+        this.identityZoneId = identityZoneId;
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -179,5 +195,4 @@ public class IdentityProvider {
             return false;
         return true;
     }
-       
 }
