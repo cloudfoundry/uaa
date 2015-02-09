@@ -20,7 +20,9 @@ import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Matchers;
 import org.mockito.Mockito;
@@ -47,7 +49,21 @@ public class YamlServletProfileInitializerTests {
 
     private ServletContext servletContext = Mockito.mock(ServletContext.class);
 
-    private String activeProfiles;
+    private static String activeProfiles;
+
+    @BeforeClass
+    public static void saveProfiles() {
+        activeProfiles = System.getProperty("spring.profiles.active");
+    }
+
+    @AfterClass
+    public static void restoreProfiles() {
+        if (activeProfiles != null) {
+            System.setProperty("spring.profiles.active", activeProfiles);
+        } else {
+            System.clearProperty("spring.profiles.active");
+        }
+    }
 
     @Before
     public void setup() {
@@ -65,7 +81,6 @@ public class YamlServletProfileInitializerTests {
             }
         }).when(servletContext).log(Matchers.anyString());
         Mockito.when(servletContext.getContextPath()).thenReturn("/context");
-        activeProfiles = System.getProperty("spring.profiles.active");
     }
 
     @After
@@ -74,12 +89,6 @@ public class YamlServletProfileInitializerTests {
         System.clearProperty("LOG_FILE");
         System.clearProperty("LOG_PATH");
         Log4jConfigurer.initLogging("classpath:log4j.properties");
-        if (activeProfiles != null) {
-            System.setProperty("spring.profiles.active", activeProfiles);
-        }
-        else {
-            System.clearProperty("spring.profiles.active");
-        }
     }
 
     @Test
