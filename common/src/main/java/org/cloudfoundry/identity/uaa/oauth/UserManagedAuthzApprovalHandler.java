@@ -32,6 +32,7 @@ import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
@@ -189,15 +190,7 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
     }
 
     protected Set<String> retainAutoApprovedScopes(Collection<String> requestedScopes, Set<String> autoApprovedScopes) {
-        HashSet<String> result = new HashSet<>();
-        Set<Pattern> autoApprovedScopePatterns = UaaStringUtils.constructWildcards(autoApprovedScopes);
-        // Don't want to approve more than what's requested
-        for (String scope : requestedScopes) {
-            if (UaaStringUtils.matches(autoApprovedScopePatterns, scope)) {
-                result.add(scope);
-            }
-        }
-        return result;
+        return UaaTokenUtils.instance().retainAutoApprovedScopes(requestedScopes, autoApprovedScopes);
     }
 
     protected String getUserId(Authentication authentication) {

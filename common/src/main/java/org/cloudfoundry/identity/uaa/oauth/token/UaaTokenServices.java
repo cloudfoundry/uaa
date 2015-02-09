@@ -24,6 +24,7 @@ import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
@@ -56,6 +57,7 @@ import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.TokenRequest;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
 import org.springframework.util.Assert;
@@ -241,8 +243,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     private void checkForApproval(String userid, String clientId, Collection<String> requestedScopes,
                     Collection<String> autoApprovedScopes, Date updateCutOff) {
-        Set<String> approvedScopes = new HashSet<String>();
-        approvedScopes.addAll(autoApprovedScopes);
+        Set<String> approvedScopes = new HashSet<>(autoApprovedScopes);
 
         // Search through the users approvals for scopes that are requested, not
         // auto approved, not expired,
@@ -742,7 +743,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         // start with scopes listed as autoapprove in client config
         Object autoApproved = client.getAdditionalInformation().get("autoapprove");
-        Set<String> autoApprovedScopes = new HashSet<String>();
+        Set<String> autoApprovedScopes = new HashSet<>();
         if (autoApproved instanceof Collection<?>) {
             @SuppressWarnings("unchecked")
             Collection<? extends String> approvedScopes = (Collection<? extends String>) autoApproved;
@@ -750,10 +751,12 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         } else if (autoApproved instanceof Boolean && (Boolean) autoApproved || "true".equals(autoApproved)) {
             autoApprovedScopes.addAll(client.getScope());
         }
+        if (client instanceof BaseClientDetails && ((BaseClientDetails)client).getAutoApproveScopes()!=null) {
+            autoApprovedScopes.addAll(((BaseClientDetails)client).getAutoApproveScopes());
+        }
 
         // retain only the requested scopes
-        autoApprovedScopes.retainAll(tokenScopes);
-        return autoApprovedScopes;
+        return UaaTokenUtils.instance().retainAutoApprovedScopes(tokenScopes, autoApprovedScopes);
     }
 
     private Map<String, Object> getClaimsForToken(String token) {
