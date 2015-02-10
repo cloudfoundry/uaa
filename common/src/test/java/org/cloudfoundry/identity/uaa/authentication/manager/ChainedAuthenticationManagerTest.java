@@ -53,6 +53,7 @@ public class ChainedAuthenticationManagerTest extends TestCase {
         when(success.isAuthenticated()).thenReturn(true);
         when(failure.isAuthenticated()).thenReturn(false);
         when(authenticateTrue.authenticate(any(Authentication.class))).thenReturn(success);
+        when(loginAuthenticationManager.authenticate(any(Authentication.class))).thenReturn(success);
         when(authenticateFalse.authenticate(any(Authentication.class))).thenReturn(failure);
         when(authenticateNull.authenticate(any(Authentication.class))).thenReturn(null);
         when(authenticateThrow.authenticate(any(Authentication.class))).thenThrow(new BadCredentialsException("mock throw"));
