@@ -52,7 +52,7 @@ public class UaaAuthorizationRequestManagerTests {
     @Before
     public void initUaaAuthorizationRequestManagerTests() {
         parameters.put("client_id", "foo");
-        factory = new UaaAuthorizationRequestManager(clientDetailsService);
+        factory = new UaaAuthorizationRequestManager(clientDetailsService, null);
         factory.setSecurityContextAccessor(new StubSecurityContextAccessor());
         Mockito.when(clientDetailsService.loadClientByClientId("foo")).thenReturn(client);
     }

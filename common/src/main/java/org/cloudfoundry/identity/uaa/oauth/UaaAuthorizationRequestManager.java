@@ -24,6 +24,7 @@ import java.util.regex.Pattern;
 
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -69,8 +70,11 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
 
     private OAuth2RequestFactory requestFactory;
 
-    public UaaAuthorizationRequestManager(ClientDetailsService clientDetailsService) {
+    private UaaUserDatabase uaaUserDatabase;
+
+    public UaaAuthorizationRequestManager(ClientDetailsService clientDetailsService, UaaUserDatabase userDatabase) {
         this.clientDetailsService = clientDetailsService;
+        this.uaaUserDatabase = userDatabase;
         this.requestFactory = new DefaultOAuth2RequestFactory(clientDetailsService);
     }
 
@@ -156,7 +160,11 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
 
         Set<String> scopesFromExternalAuthorities = null;
         if (!"client_credentials".equals(grantType) && securityContextAccessor.isUser()) {
-            scopes = checkUserScopes(scopes, securityContextAccessor.getAuthorities(), clientDetails);
+            String userId = securityContextAccessor.getUserId();
+            Collection<? extends GrantedAuthority> authorities = uaaUserDatabase != null ?
+                uaaUserDatabase.retrieveUserById(userId).getAuthorities() :
+                securityContextAccessor.getAuthorities();
+            scopes = checkUserScopes(scopes, authorities, clientDetails);
 
             // TODO: will the grantType ever contain client_credentials or
             // authorization_code
@@ -368,7 +376,11 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
     protected Set<String> getUserScopes() {
         Set<String> scopes = new HashSet<>();
         if (securityContextAccessor.isUser()) {
-            for (GrantedAuthority a : securityContextAccessor.getAuthorities()) {
+            String userId = securityContextAccessor.getUserId();
+            Collection<? extends GrantedAuthority> authorities = uaaUserDatabase != null ?
+                uaaUserDatabase.retrieveUserById(userId).getAuthorities() :
+                securityContextAccessor.getAuthorities();
+            for (GrantedAuthority a : authorities) {
                 scopes.add(a.getAuthority());
             }
         }
