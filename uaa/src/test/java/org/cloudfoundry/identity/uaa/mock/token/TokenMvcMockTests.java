@@ -13,7 +13,7 @@
 package org.cloudfoundry.identity.uaa.mock.token;
 
 import com.googlecode.flyway.core.Flyway;
-import junit.framework.Assert;
+import org.junit.Assert;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authorization.UaaAuthorizationEndpoint;
@@ -69,6 +69,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.XmlWebApplicationContext;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
@@ -92,6 +93,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class TokenMvcMockTests {
@@ -1348,14 +1350,79 @@ public class TokenMvcMockTests {
 
     }
 
-    private void setUpUser() {
-        ScimUser scimUser = new ScimUser();
-        scimUser.setUserName("user@example.com");
-        ScimUser.Email email = new ScimUser.Email();
-        email.setValue("user@example.com");
-        scimUser.setEmails(Arrays.asList(email));
+    @Test
+    public void testGetTokenScopesNotInAuthentication() throws Exception {
+        String basicDigestHeaderValue = "Basic "
+            + new String(org.apache.commons.codec.binary.Base64.encodeBase64(("identity:identitysecret").getBytes()));
 
-        jdbcScimUserProvisioning.createUser(scimUser, "secret");
+        ScimUser user = setUpUser(new RandomValueStringGenerator().generate()+"@test.org");
+
+        String zoneadmingroup = "zones."+new RandomValueStringGenerator().generate()+".admin";
+        ScimGroup group = new ScimGroup(zoneadmingroup);
+        group = groupProvisioning.create(group);
+        ScimGroupMember member = new ScimGroupMember(user.getId());
+        groupMembershipManager.addMember(group.getId(),member);
+
+        UaaPrincipal p = new UaaPrincipal(user.getId(),user.getUserName(),user.getPrimaryEmail(), Origin.UAA,"", IdentityZoneHolder.get().getId());
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(p, "", UaaAuthority.USER_AUTHORITIES);
+
+        Assert.assertTrue(auth.isAuthenticated());
+
+        SecurityContextHolder.getContext().setAuthentication(auth);
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute(
+            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+            new MockSecurityContext(auth)
+        );
+
+
+        String state = new RandomValueStringGenerator().generate();
+        MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
+            .header("Authorization", basicDigestHeaderValue)
+            .header("Accept", MediaType.APPLICATION_JSON_VALUE)
+            .session(session)
+            .param(OAuth2Utils.GRANT_TYPE, "authorization_code")
+            .param(OAuth2Utils.RESPONSE_TYPE, "code")
+            .param(OAuth2Utils.STATE, state)
+            .param(OAuth2Utils.CLIENT_ID, "identity")
+            .param(OAuth2Utils.REDIRECT_URI, "http://localhost/test");
+
+        MvcResult result = mockMvc.perform(authRequest).andExpect(status().is3xxRedirection()).andReturn();
+        String location = result.getResponse().getHeader("Location");
+        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(location);
+        String code = builder.build().getQueryParams().get("code").get(0);
+
+        authRequest = post("/oauth/token")
+            .header("Authorization", basicDigestHeaderValue)
+            .header("Accept", MediaType.APPLICATION_JSON_VALUE)
+            .param(OAuth2Utils.GRANT_TYPE, "authorization_code")
+            .param(OAuth2Utils.RESPONSE_TYPE, "token")
+            .param("code", code)
+            .param(OAuth2Utils.CLIENT_ID, "identity")
+            .param(OAuth2Utils.REDIRECT_URI, "http://localhost/test");
+        result = mockMvc.perform(authRequest).andDo(print()).andExpect(status().is2xxSuccessful()).andReturn();
+        TestClient.OAuthToken oauthToken = new ObjectMapper().readValue(result.getResponse().getContentAsByteArray(), TestClient.OAuthToken.class);
+
+        OAuth2Authentication a1 = tokenServices.loadAuthentication(oauthToken.accessToken);
+
+        assertEquals(2, a1.getOAuth2Request().getScope().size());
+        assertThat(
+            a1.getOAuth2Request().getScope(),
+            containsInAnyOrder(new String[] {zoneadmingroup, "openid"})
+        );
+
+    }
+
+    private ScimUser setUpUser() {
+        return setUpUser("user@example.com");
+    }
+    private ScimUser setUpUser(String username) {
+        ScimUser scimUser = new ScimUser();
+        scimUser.setUserName(username);
+        ScimUser.Email email = new ScimUser.Email();
+        email.setValue(username);
+        scimUser.setEmails(Arrays.asList(email));
+        return jdbcScimUserProvisioning.createUser(scimUser, "secret");
     }
 
     public static class MockSecurityContext implements SecurityContext {
