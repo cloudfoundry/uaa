@@ -34,6 +34,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.Mock;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.FilterChainProxy;
@@ -136,7 +137,8 @@ public class IdentityZoneSwitchingFilterMockMvcTest {
         group.setMembers(Arrays.asList(new ScimGroupMember(createdUser.getId())));
         group = MockMvcUtils.utils().createGroup(mockMvc, adminToken, group);
         // Add User to the clients.create Group
-        String userToken = testClient.getUserOAuthAccessToken("identity", "identitysecret", createdUser.getUserName(), "secret", "zones." + zoneId + ".admin");
+        //String userToken = testClient.getUserOAuthAccessToken("identity", "identitysecret", createdUser.getUserName(), "secret", "zones." + zoneId + ".admin");
+        String userToken = MockMvcUtils.utils().getUserOAuthAccessTokenAuthCode(mockMvc,"identity", "identitysecret", createdUser.getId(),createdUser.getUserName(), "secret", "zones." + zoneId + ".admin");
         createClientInOtherZone(userToken, zoneId, status().isCreated());
     }
 
