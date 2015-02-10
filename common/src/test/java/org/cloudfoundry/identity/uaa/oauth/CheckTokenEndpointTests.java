@@ -205,6 +205,26 @@ public class CheckTokenEndpointTests {
         accessToken = tokenServices.createAccessToken(authentication);
     }
 
+    @Test
+    public void testClientWildcard() throws Exception {
+        BaseClientDetails theclient = new BaseClientDetails("client", "zones", "zones.*.admin", "authorization_code, password",
+            "scim.read, scim.write", "http://localhost:8080/uaa");
+        theclient.setAutoApproveScopes(Arrays.asList("zones.*.admin"));
+        Map<String, ? extends ClientDetails> clientDetailsStore = Collections.singletonMap("client", theclient);
+
+        clientDetailsService.setClientDetailsStore(clientDetailsStore);
+        tokenServices.setClientDetailsService(clientDetailsService);
+
+        authorizationRequest = new AuthorizationRequest("client", Collections.singleton("zones.myzone.admin"));
+        authorizationRequest.setResourceIds(new HashSet<>(Arrays.asList("client","zones")));
+        authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(),
+            UaaAuthenticationTestFactory.getAuthentication(userId, userName, "olds@vmware.com"));
+
+        accessToken = tokenServices.createAccessToken(authentication);
+
+        endpoint.checkToken(accessToken.getValue());
+    }
+
     @Test(expected = InvalidTokenException.class)
     public void testRejectInvalidIssuer() {
         tokenServices.setIssuer("http://some.other.issuer");
