@@ -13,6 +13,8 @@
 package org.cloudfoundry.identity.uaa.mock.token;
 
 import com.googlecode.flyway.core.Flyway;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.junit.Assert;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -772,6 +774,43 @@ public class TokenMvcMockTests {
             containsInAnyOrder(expectedScopes)
         );
         return t1;
+    }
+
+    @Test
+    public void testLoginAddNewUserForOauthTokenPasswordGrant() throws Exception {
+        String loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "");
+        //the login server is matched by providing
+        //1. Bearer token (will be authenticated for oauth.login scope)
+        //2. source=login
+        //3. grant_type=password
+        //4. add_new=<any value>
+        //without the above four parameters, it is not considered a external login-server request
+        String username = new RandomValueStringGenerator().generate();
+        String email = username + "@addnew.test.org";
+        String first = "firstName";
+        String last = "lastName";
+        //success - contains everything we need
+        mockMvc.perform(post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + loginToken)
+            .param("source", "login")
+            .param("add_new", "true")
+            .param("grant_type", "password")
+            .param("client_id", "cf")
+            .param("client_secret", "")
+            .param("username", username)
+            .param("family_name", last)
+            .param("given_name", first)
+            .param("email", email)
+            .param(Origin.ORIGIN, Origin.UAA))
+            .andExpect(status().isOk());
+        UaaUserDatabase db = webApplicationContext.getBean(UaaUserDatabase.class);
+        UaaUser user = db.retrieveUserByName(username, Origin.UAA);
+        assertNotNull(user);
+        assertEquals(username, user.getUsername());
+        assertEquals(email, user.getEmail());
+        assertEquals(first, user.getGivenName());
+        assertEquals(last, user.getFamilyName());
     }
 
     @Test

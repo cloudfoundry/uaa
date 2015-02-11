@@ -15,6 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.authentication;
 
+import com.googlecode.flyway.core.util.StringUtils;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -25,17 +26,21 @@ import org.springframework.security.oauth2.provider.endpoint.TokenEndpointAuthen
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class LoginServerTokenEndpointFilter extends TokenEndpointAuthenticationFilter {
 
 
+    private List<String> parameterNames = Collections.emptyList();
     /**
      * @param authenticationManager an AuthenticationManager for the incoming request
      */
-    public LoginServerTokenEndpointFilter(AuthenticationManager authenticationManager, OAuth2RequestFactory oAuth2RequestFactory) {
+    public LoginServerTokenEndpointFilter(AuthenticationManager authenticationManager, OAuth2RequestFactory oAuth2RequestFactory, List<String> addNewUserParameters) {
         super(authenticationManager, oAuth2RequestFactory);
+        this.parameterNames = addNewUserParameters;
     }
 
     @Override
@@ -52,10 +57,12 @@ public class LoginServerTokenEndpointFilter extends TokenEndpointAuthenticationF
         String grantType = request.getParameter("grant_type");
         if (grantType != null && grantType.equals("password")) {
             Map<String,String> loginInfo = new HashMap<>();
-            loginInfo.put("username", request.getParameter("username"));
-            loginInfo.put("password", request.getParameter("password"));
-            loginInfo.put(Origin.ORIGIN, request.getParameter(Origin.ORIGIN));
-            loginInfo.put("user_id", request.getParameter("user_id"));
+            for (String p : parameterNames) {
+                String value = request.getParameter(p);
+                if (StringUtils.hasText(value)) {
+                    loginInfo.put(p, value);
+                }
+            }
             Authentication result = new AuthzAuthenticationRequest(loginInfo,new UaaAuthenticationDetails(request));
             return result;
         }
