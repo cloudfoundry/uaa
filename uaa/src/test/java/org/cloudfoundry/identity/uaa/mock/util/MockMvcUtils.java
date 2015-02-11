@@ -32,9 +32,12 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneCreationRequest;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.http.MediaType;
@@ -49,7 +52,9 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 import scala.actors.threadpool.Arrays;
 
@@ -72,6 +77,26 @@ public class MockMvcUtils {
             .content(new ObjectMapper().writeValueAsString(creationRequest)))
             .andExpect(status().isCreated()).andReturn();
         return new ObjectMapper().readValue(result.getResponse().getContentAsByteArray(), IdentityZone.class);
+    }
+
+    public IdentityProvider createIdpUsingWebRequest(MockMvc mockMvc, String zoneId, String token, IdentityProvider identityProvider, ResultMatcher resultMatcher) throws Exception {
+        MockHttpServletRequestBuilder requestBuilder = post("/identity-providers/")
+            .header("Authorization", "Bearer" + token)
+            .contentType(APPLICATION_JSON)
+            .content(JsonUtils.writeValueAsString(identityProvider));
+        if (zoneId != null) {
+            requestBuilder.header(IdentityZoneSwitchingFilter.HEADER, zoneId);
+        }
+
+        MvcResult result = mockMvc.perform(requestBuilder)
+                .andExpect(resultMatcher)
+                .andReturn();
+        if (StringUtils.hasText(result.getResponse().getContentAsString())) {
+            return JsonUtils.readValue(result.getResponse().getContentAsString(), IdentityProvider.class);
+        } else {
+            return null;
+        }
+
     }
 
     public ScimUser createUser(MockMvc mockMvc, String accessToken, ScimUser user) throws Exception {

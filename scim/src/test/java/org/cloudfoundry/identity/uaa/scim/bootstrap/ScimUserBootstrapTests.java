@@ -91,6 +91,10 @@ public class ScimUserBootstrapTests {
         userEndpoints.setScimUserProvisioning(db);
     }
 
+    public static void addIdentityProvider(JdbcTemplate jdbcTemplate, String originKey) {
+        jdbcTemplate.update("insert into identity_provider (id,identity_zone_id,name,origin_key,type) values (?,'uaa',?,?,'UNKNOWN')",UUID.randomUUID().toString(),originKey,originKey);
+    }
+
     @After
     public void shutdownDb() throws Exception {
         database.shutdown();
@@ -257,7 +261,7 @@ public class ScimUserBootstrapTests {
         String[] externalAuthorities = new String[] {"extTest1","extTest2","extTest3"};
         String[] userAuthorities = new String[] {"usrTest1","usrTest2","usrTest3"};
         String origin = "testOrigin";
-        IdentityProvider.addIdentityProvider(jdbcTemplate,origin);
+        addIdentityProvider(jdbcTemplate,origin);
         String email = "test@test.org";
         String firstName = "FirstName";
         String lastName = "LastName";
@@ -312,7 +316,7 @@ public class ScimUserBootstrapTests {
         String[] externalAuthorities = new String[] {"extTest1","extTest2","extTest3"};
         String[] userAuthorities = new String[] {"usrTest1","usrTest2","usrTest3"};
         String origin = "testOrigin";
-        IdentityProvider.addIdentityProvider(jdbcTemplate,origin);
+        addIdentityProvider(jdbcTemplate,origin);
         String email = "test@test.org";
         String newEmail = "test@test2.org";
         String firstName = "FirstName";
@@ -360,7 +364,7 @@ public class ScimUserBootstrapTests {
     @Test
     public void addUsersWithSameUsername() throws Exception {
         String origin = "testOrigin";
-        IdentityProvider.addIdentityProvider(jdbcTemplate,origin);
+        addIdentityProvider(jdbcTemplate,origin);
         String email = "test@test.org";
         String firstName = "FirstName";
         String lastName = "LastName";
@@ -372,7 +376,7 @@ public class ScimUserBootstrapTests {
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(user));
         bootstrap.afterPropertiesSet();
         user = user.modifySource("newOrigin","");
-        IdentityProvider.addIdentityProvider(jdbcTemplate,"newOrigin");
+        addIdentityProvider(jdbcTemplate,"newOrigin");
         bootstrap.addUser(user);
         assertEquals(2, db.retrieveAll().size());
     }

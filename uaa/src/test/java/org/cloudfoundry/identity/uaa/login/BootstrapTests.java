@@ -24,8 +24,10 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneResolvingFilter;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
@@ -68,6 +70,22 @@ import static org.junit.Assert.assertTrue;
 public class BootstrapTests {
 
     private ConfigurableApplicationContext context;
+
+    private static String activeProfiles;
+
+    @BeforeClass
+    public static void saveProfiles() {
+        activeProfiles = System.getProperty("spring.profiles.active");
+    }
+
+    @AfterClass
+    public static void restoreProfiles() {
+        if (activeProfiles != null) {
+            System.setProperty("spring.profiles.active", activeProfiles);
+        } else {
+            System.clearProperty("spring.profiles.active");
+        }
+    }
 
     @Before
     public void setup() throws Exception {

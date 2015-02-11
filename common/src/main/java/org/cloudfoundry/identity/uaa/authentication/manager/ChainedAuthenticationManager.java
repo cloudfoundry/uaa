@@ -95,9 +95,13 @@ public class ChainedAuthenticationManager implements AuthenticationManager {
                     if (lastResult) {
                         authenticated = true;
                         auth = thisAuth;
+                    } else {
+                        authenticated = false;
+                        auth = null;
                     }
+
                 } else {
-                    lastResult = false;
+                    shallContinue = false;
                 }
             if (logger.isDebugEnabled()) {
                 logger.debug("Chained Authentication status of "+output+ " with manager:"+delegates[i]+"; Authenticated:"+authenticated);

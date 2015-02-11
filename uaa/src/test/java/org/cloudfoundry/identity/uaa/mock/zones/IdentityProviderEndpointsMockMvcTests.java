@@ -36,6 +36,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.mock.web.MockServletContext;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.web.servlet.MockMvc;
@@ -124,10 +125,8 @@ public class IdentityProviderEndpointsMockMvcTests {
     private void createAndUpdateIdentityProvider(String accessToken, String zoneId) throws Exception {
         IdentityProvider identityProvider = MultitenancyFixture.identityProvider("saml");
         // create
-        MvcResult result = createIdentityProvider(zoneId, identityProvider, accessToken, status().isCreated());
-        
         // check response
-        IdentityProvider createdIDP = JsonUtils.readValue(result.getResponse().getContentAsString(), IdentityProvider.class);
+        IdentityProvider createdIDP = createIdentityProvider(zoneId, identityProvider, accessToken, status().isCreated());
         assertNotNull(createdIDP.getId());
         assertEquals(identityProvider.getName(), createdIDP.getName());
         assertEquals(identityProvider.getOriginKey(), createdIDP.getOriginKey());
@@ -183,8 +182,8 @@ public class IdentityProviderEndpointsMockMvcTests {
 
         String userAccessToken = MockMvcUtils.utils().getUserOAuthAccessTokenAuthCode(mockMvc,"identity", "identitysecret", user.getId(), user.getUserName(), "password", "zones." + zone.getId() + ".admin");
         eventListener.clearEvents();
-        MvcResult result = createIdentityProvider(zone.getId(), identityProvider, userAccessToken, status().isCreated());
-        IdentityProvider createdIDP = JsonUtils.readValue(result.getResponse().getContentAsString(), IdentityProvider.class);
+        IdentityProvider createdIDP = createIdentityProvider(zone.getId(), identityProvider, userAccessToken, status().isCreated());
+
 
         assertNotNull(createdIDP.getId());
         assertEquals(identityProvider.getName(), createdIDP.getName());
@@ -208,7 +207,7 @@ public class IdentityProviderEndpointsMockMvcTests {
 
         String originKey = RandomStringUtils.randomAlphabetic(6);
         IdentityProvider newIdp = MultitenancyFixture.identityProvider(originKey);
-        newIdp = JsonUtils.readValue(createIdentityProvider(null, newIdp, accessToken, status().isCreated()).getResponse().getContentAsString(), IdentityProvider.class);
+        newIdp = createIdentityProvider(null, newIdp, accessToken, status().isCreated());
 
         MockHttpServletRequestBuilder requestBuilder = get("/identity-providers/")
             .header("Authorization", "Bearer" + accessToken)
@@ -225,12 +224,9 @@ public class IdentityProviderEndpointsMockMvcTests {
     public void testListIdpsInOtherZoneFromDefaultZone() throws Exception {
         IdentityZone identityZone = MockMvcUtils.utils().createZoneUsingWebRequest(mockMvc, identityToken);
         ScimUser userInDefaultZone = createAdminForZone("zones." + identityZone.getId() + ".admin");
-
         String zoneAdminToken = MockMvcUtils.utils().getUserOAuthAccessTokenAuthCode(mockMvc, "identity", "identitysecret", userInDefaultZone.getId(), userInDefaultZone.getUserName(), "password", "zones." + identityZone.getId() + ".admin");
 
-        String originKey = RandomStringUtils.randomAlphabetic(6);
-        IdentityProvider otherZoneIdp = MultitenancyFixture.identityProvider(originKey);
-        otherZoneIdp = JsonUtils.readValue(createIdentityProvider(identityZone.getId(), otherZoneIdp, zoneAdminToken, status().isCreated()).getResponse().getContentAsString(), IdentityProvider.class);
+        IdentityProvider otherZoneIdp = MockMvcUtils.utils().createIdpUsingWebRequest(mockMvc, identityZone.getId(), zoneAdminToken, MultitenancyFixture.identityProvider(new RandomValueStringGenerator().generate()),status().isCreated());
 
         MockHttpServletRequestBuilder requestBuilder = get("/identity-providers/")
             .header("Authorization", "Bearer" + zoneAdminToken)
@@ -253,19 +249,8 @@ public class IdentityProviderEndpointsMockMvcTests {
 
     }
 
-    private MvcResult createIdentityProvider(String zoneId, IdentityProvider identityProvider, String token, ResultMatcher resultMatcher) throws Exception {
-        MockHttpServletRequestBuilder requestBuilder = post("/identity-providers/")
-            .header("Authorization", "Bearer" + token)
-            .contentType(APPLICATION_JSON)
-            .content(JsonUtils.writeValueAsString(identityProvider));
-        if (zoneId != null) {
-            requestBuilder.header(IdentityZoneSwitchingFilter.HEADER, zoneId);
-        }
-
-        MvcResult result = mockMvc.perform(requestBuilder)
-            .andExpect(resultMatcher)
-            .andReturn();
-        return result;
+    private IdentityProvider createIdentityProvider(String zoneId, IdentityProvider identityProvider, String token, ResultMatcher resultMatcher) throws Exception {
+        return mockMvcUtils.createIdpUsingWebRequest(mockMvc, zoneId, token, identityProvider, resultMatcher);
     }
     
     private MvcResult updateIdentityProvider(String zoneId, IdentityProvider identityProvider, String token, ResultMatcher resultMatcher) throws Exception {

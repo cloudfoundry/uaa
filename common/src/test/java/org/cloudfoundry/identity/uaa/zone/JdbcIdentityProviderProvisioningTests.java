@@ -118,8 +118,7 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
         String idpId = RandomStringUtils.randomAlphabetic(6);
         IdentityProvider idp = MultitenancyFixture.identityProvider(originKey);
         idp.setId(idpId);
-        int rowsAdded = jdbcTemplate.update(JdbcIdentityProviderProvisioning.CREATE_IDENTITY_PROVIDER_SQL, idp.getId(), idp.getVersion(), idp.getCreated(), idp.getLastModified(), idp.getName(), idp.getOriginKey(), idp.getType(), idp.getConfig(), IdentityZone.getUaa().getId());
-        assertEquals(1, rowsAdded);
+        idp = db.create(idp);
 
         String newConfig = RandomStringUtils.randomAlphanumeric(1024);
         idp.setConfig(newConfig);
@@ -140,8 +139,7 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
         String idpId = RandomStringUtils.randomAlphabetic(6);
         IdentityProvider idp = MultitenancyFixture.identityProvider(originKey);
         idp.setId(idpId);
-        int rowsAdded = jdbcTemplate.update(JdbcIdentityProviderProvisioning.CREATE_IDENTITY_PROVIDER_SQL, idp.getId(), idp.getVersion(), idp.getCreated(), idp.getLastModified(), idp.getName(), idp.getOriginKey(), idp.getType(), idp.getConfig(), IdentityZoneHolder.get().getId());
-        assertEquals(1, rowsAdded);
+        idp = db.create(idp);
 
         String newConfig = RandomStringUtils.randomAlphanumeric(1024);
         idp.setConfig(newConfig);
@@ -162,10 +160,9 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
         String idpId = RandomStringUtils.randomAlphabetic(6);
         IdentityProvider idp = MultitenancyFixture.identityProvider(originKey);
         idp.setId(idpId);
-        int rowsAdded = jdbcTemplate.update(JdbcIdentityProviderProvisioning.CREATE_IDENTITY_PROVIDER_SQL, idp.getId(), idp.getVersion(), idp.getCreated(), idp.getLastModified(), idp.getName(), idp.getOriginKey(), idp.getType(), idp.getConfig(), identityZoneId);
-        assertEquals(1, rowsAdded);
-        
-        IdentityProvider retrievedIdp = db.retrieve(idpId);
+        IdentityZoneHolder.set(MultitenancyFixture.identityZone(identityZoneId, identityZoneId));
+        idp = db.create(idp);
+        IdentityProvider retrievedIdp = db.retrieve(idp.getId());
         assertEquals(idp.getId(), retrievedIdp.getId());
         assertEquals(idp.getConfig(), retrievedIdp.getConfig());
         assertEquals(idp.getName(), retrievedIdp.getName());
@@ -202,8 +199,7 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
         IdentityZoneHolder.set(identityZone);
         IdentityProvider idp = MultitenancyFixture.identityProvider(originKey);
         idp.setId(idpId);
-        int rowsAdded = jdbcTemplate.update(JdbcIdentityProviderProvisioning.CREATE_IDENTITY_PROVIDER_SQL, idp.getId(), idp.getVersion(), idp.getCreated(), idp.getLastModified(), idp.getName(), idp.getOriginKey(), idp.getType(), idp.getConfig(), identityZoneId);
-        assertEquals(1, rowsAdded);
+        idp = db.create(idp);
         
         IdentityProvider retrievedIdp = db.retrieveByOrigin(idp.getOriginKey());
         assertEquals(idp.getId(), retrievedIdp.getId());
@@ -223,10 +219,9 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
         IdentityZoneHolder.set(identityZone1);
         IdentityProvider idp = MultitenancyFixture.identityProvider(originKey);
         idp.setId(idpId);
-        int rowsAdded = jdbcTemplate.update(JdbcIdentityProviderProvisioning.CREATE_IDENTITY_PROVIDER_SQL, idp.getId(), idp.getVersion(), idp.getCreated(), idp.getLastModified(), idp.getName(), idp.getOriginKey(), idp.getType(), idp.getConfig(), identityZoneId1);
-        assertEquals(1, rowsAdded);
-
+        IdentityZoneHolder.set(identityZone1);
+        IdentityProvider idp1 = db.create(idp);
         IdentityZoneHolder.set(identityZone2);
-        db.retrieveByOrigin(idp.getOriginKey());
+        db.retrieveByOrigin(idp1.getOriginKey());
     }
 }
