@@ -46,6 +46,8 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
+import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
+import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assume;
@@ -63,6 +65,7 @@ import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.ldap.server.ApacheDSContainer;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -191,6 +194,8 @@ public class LdapMockMvcTests {
         deleteLdapUsers();
         testAuthenticate();
         deleteLdapUsers();
+        testAuthenticateInactiveIdp();
+        deleteLdapUsers();
         testAuthenticateFailure();
         deleteLdapUsers();
         validateOriginForNonLdapUser();
@@ -251,6 +256,21 @@ public class LdapMockMvcTests {
         MvcResult result = performAuthentication(username, password);
         assertThat(result.getResponse().getContentAsString(), containsString("\"username\":\"" + username + "\""));
         assertThat(result.getResponse().getContentAsString(), containsString("\"email\":\"marissa3@test.com\""));
+    }
+
+    public void testAuthenticateInactiveIdp() throws Exception {
+        IdentityProviderProvisioning provisioning = webApplicationContext.getBean(IdentityProviderProvisioning.class);
+        IdentityProvider ldapProvider = provisioning.retrieveByOrigin(Origin.LDAP);
+        try {
+            ldapProvider.setActive(false);
+            ldapProvider = provisioning.update(ldapProvider);
+            String username = "marissa3";
+            String password = "ldap3";
+            performAuthentication(username, password, HttpStatus.UNAUTHORIZED);
+        } finally {
+            ldapProvider.setActive(true);
+            provisioning.update(ldapProvider);
+        }
     }
 
     public void testAuthenticateFailure() throws Exception {

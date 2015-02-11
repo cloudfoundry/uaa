@@ -316,7 +316,7 @@
                   value="${authentication.policy.lockoutPeriodSeconds:300}"/>
     </bean>
 
-    <bean id="abstractAuthzAuthenticationMgr" abstract="true"
+    <bean id="internalUaaIdpAuthenticationManager"
           class="org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager">
         <constructor-arg ref="userDatabase"/>
         <property name="accountLoginPolicy" ref="periodLockoutPolicy"/>
@@ -324,8 +324,16 @@
         <property name="allowUnverifiedUsers" value="${allowUnverifiedUsers:true}"/>
     </bean>
 
-    <bean id="uaaAuthenticationMgr" parent="abstractAuthzAuthenticationMgr"/>
+    <bean id="uaaAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.CheckIdpEnabledAuthenticationManager">
+        <constructor-arg name="delegate" ref="internalUaaIdpAuthenticationManager"/>
+        <constructor-arg name="origin" value="uaa"/>
+        <constructor-arg name="identityProviderProvisioning" ref="identityProviderProvisioning"/>
+    </bean>
 
-    <bean id="authzAuthenticationMgr" parent="abstractAuthzAuthenticationMgr"/>
+    <bean id="authzAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.CheckIdpEnabledAuthenticationManager">
+        <constructor-arg name="delegate" ref="internalUaaIdpAuthenticationManager"/>
+        <constructor-arg name="origin" value="uaa"/>
+        <constructor-arg name="identityProviderProvisioning" ref="identityProviderProvisioning"/>
+    </bean>
 
 </beans>

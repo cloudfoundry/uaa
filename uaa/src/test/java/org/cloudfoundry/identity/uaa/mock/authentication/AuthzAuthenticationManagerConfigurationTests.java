@@ -23,6 +23,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager;
+import org.cloudfoundry.identity.uaa.authentication.manager.CheckIdpEnabledAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
 import org.junit.Before;
@@ -58,7 +59,7 @@ public class AuthzAuthenticationManagerConfigurationTests {
         if (plist.contains("ldap") || plist.contains("keystone")) {
             assertEquals(ChainedAuthenticationManager.class, webApplicationContext.getBean("authzAuthenticationMgr").getClass());
         } else {
-            assertEquals(AuthzAuthenticationManager.class, webApplicationContext.getBean("authzAuthenticationMgr").getClass());
+            assertEquals(CheckIdpEnabledAuthenticationManager.class, webApplicationContext.getBean("authzAuthenticationMgr").getClass());
         }
     }
 
