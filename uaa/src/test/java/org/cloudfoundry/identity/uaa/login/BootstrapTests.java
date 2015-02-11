@@ -114,7 +114,7 @@ public class BootstrapTests {
         System.setProperty("login.url", "https://"+login+":555/uaa");
         context = getServletContext(null, "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
-        Set<String> defaultHostnames = new HashSet<>(Arrays.asList(uaa,login));
+        Set<String> defaultHostnames = new HashSet<>(Arrays.asList(uaa,login, "localhost"));
         assertEquals(filter.getInternalHostnames(), defaultHostnames);
     }
 
