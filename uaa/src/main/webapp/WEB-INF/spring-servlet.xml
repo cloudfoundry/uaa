@@ -97,6 +97,7 @@
             <set>
                 <value>#{T(org.cloudfoundry.identity.uaa.util.UaaUrlUtils).getHostForURI(@uaaUrl)}</value>
                 <value>#{T(org.cloudfoundry.identity.uaa.util.UaaUrlUtils).getHostForURI(@loginUrl)}</value>
+                <value>localhost</value>
             </set>
 
         </property>
