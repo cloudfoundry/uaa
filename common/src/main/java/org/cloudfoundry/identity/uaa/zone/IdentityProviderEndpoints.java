@@ -25,7 +25,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
-@RequestMapping("/identity-providers/")
+@RequestMapping("/identity-providers")
 @RestController
 public class IdentityProviderEndpoints {
 
@@ -37,16 +37,15 @@ public class IdentityProviderEndpoints {
 
     @RequestMapping(method = POST)
     public ResponseEntity<IdentityProvider> createIdentityProvider(@RequestBody IdentityProvider body) {
-
         IdentityProvider createdIdp = identityProviderProvisioning.create(body);
         return new ResponseEntity<>(createdIdp, HttpStatus.CREATED);
     }
     
     @RequestMapping(value = "{id}", method = PUT)
-    public ResponseEntity<Void> updateIdentityProvider(@PathVariable String id, @RequestBody IdentityProvider body) {
+    public ResponseEntity<IdentityProvider> updateIdentityProvider(@PathVariable String id, @RequestBody IdentityProvider body) {
         body.setId(id);
-        identityProviderProvisioning.update(body);
-        return new ResponseEntity<>(HttpStatus.OK);
+        IdentityProvider updatedIdp = identityProviderProvisioning.update(body);
+        return new ResponseEntity<>(updatedIdp, HttpStatus.OK);
     }
 
     @RequestMapping(method = GET)
