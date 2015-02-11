@@ -14,9 +14,11 @@
 -->
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
     xmlns:sec="http://www.springframework.org/schema/security" xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
+    xmlns:util="http://www.springframework.org/schema/util"
     xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-2.0.xsd
-		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.2.xsd
-		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
+        http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.2.xsd
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.0.xsd">
 
     <oauth:resource-server id="oauthResourceAuthenticationFilter" token-services-ref="tokenServices"
         resource-id="oauth" entry-point-ref="oauthAuthenticationEntryPoint" />
@@ -124,6 +126,7 @@
     <bean id="loginServerTokenEndpointAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.LoginServerTokenEndpointFilter">
         <constructor-arg ref="loginAuthenticationMgr" />
         <constructor-arg ref="authorizationRequestManager"/>
+        <constructor-arg ref="addNewUserParameters"/>
         <property name="authenticationDetailsSource" ref="authenticationDetailsSource" />
     </bean>
 
@@ -154,21 +157,20 @@
         </property>
     </bean>
     <!-- End support for older login servers -->
+    <util:list id="addNewUserParameters" value-type="java.lang.String">
+        <value>login</value>
+        <value>username</value>
+        <value>user_id</value>
+        <value>origin</value>
+        <value>given_name</value>
+        <value>family_name</value>
+        <value>email</value>
+        <value>authorities</value>
+    </util:list>
 
     <bean id="loginAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationFilter">
         <constructor-arg ref="loginAuthenticationMgr" />
-        <property name="parameterNames">
-            <list>
-                <value>login</value>
-                <value>username</value>
-                <value>user_id</value>
-                <value>origin</value>
-                <value>given_name</value>
-                <value>family_name</value>
-                <value>email</value>
-                <value>authorities</value>
-            </list>
-        </property>
+        <property name="parameterNames" ref="addNewUserParameters"/>
     </bean>
 
     <bean id="loginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LoginAuthenticationManager">
