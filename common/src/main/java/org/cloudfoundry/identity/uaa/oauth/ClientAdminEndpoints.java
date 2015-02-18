@@ -455,6 +455,7 @@ public class ClientAdminEndpoints implements InitializingBean {
     }
 
     @RequestMapping(value = "/oauth/clients/{client}/secret", method = RequestMethod.PUT)
+    @ResponseBody
     public SimpleMessage changeSecret(@PathVariable String client, @RequestBody SecretChangeRequest change) {
 
         ClientDetails clientDetails;
