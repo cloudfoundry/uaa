@@ -14,6 +14,6 @@ public class AuditEventTypeTests {
             assertEquals(type, AuditEventType.fromCode(count));
             count++;
         }
-        assertEquals(30,count);
+        assertEquals(32,count);
     }
 }

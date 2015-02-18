@@ -33,11 +33,24 @@
     <http name="identityZoneSecurity" pattern="/identity-zones/**" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"
         use-expressions="true" authentication-manager-ref="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="#oauth2.hasScope('zones.create')" method="POST"/>
+        <intercept-url pattern="/**" access="#oauth2.hasScope('zones.create')" method="PUT"/>
         <intercept-url pattern="/**" access="#oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"/>
         <custom-filter ref="resourceAgnosticAuthenticationFilter" before="PRE_AUTH_FILTER" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
         <expression-handler ref="oauthWebExpressionHandler" />
     </http>
+    
+    <bean id="identityZoneEventPublisher" class="org.cloudfoundry.identity.uaa.zone.event.IdentityZoneEventPublisher"/>
+
+    <aop:config proxy-target-class="true">
+        <aop:aspect ref="identityZoneEventPublisher">
+            <aop:after-returning method="identityZoneCreated"
+                                 pointcut="execution(* *..IdentityZoneProvisioning+.create(..)) and bean(identityZoneProvisioning)" returning="identityZone" />
+			<aop:after-returning method="identityZoneModified"
+                                 pointcut="execution(* *..IdentityZoneProvisioning+.update(..)) and bean(identityZoneProvisioning)" returning="identityZone" />
+
+        </aop:aspect>
+    </aop:config>
 
     <http name="identityProviderSecurity" pattern="/identity-providers/**" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"
           use-expressions="true" authentication-manager-ref="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
