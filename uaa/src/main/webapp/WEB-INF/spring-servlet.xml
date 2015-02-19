@@ -212,9 +212,10 @@
     </bean>
 
     <!--<oauth:web-expression-handler id="oauthWebExpressionHandler" />-->
+    <bean id="uaaIdentityZone" class="org.cloudfoundry.identity.uaa.zone.IdentityZone" factory-method="getUaa"/>
     <bean id="oauthWebExpressionHandler"
       class="org.cloudfoundry.identity.uaa.oauth.expression.ContextSensitiveOAuth2WebSecurityExpressionHandler">
-        <property name="identityZone" value="#{T(org.cloudfoundry.identity.uaa.zone.IdentityZone).getUaa()}"/>
+        <property name="identityZone" ref="uaaIdentityZone"/>
     </bean>
     <!--<mvc:resources location="/" mapping="/**" />-->
 

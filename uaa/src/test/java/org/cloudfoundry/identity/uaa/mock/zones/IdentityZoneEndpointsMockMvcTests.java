@@ -57,7 +57,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class IdentityZoneEndpointsMockMvcTests {
     private static XmlWebApplicationContext webApplicationContext;
     private static MockMvc mockMvc;
-    private static String identityAdminToken = null;
+    private static String identityClientToken = null;
     private static String adminToken = null;
     private static TestClient testClient = null;
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
@@ -79,7 +79,7 @@ public class IdentityZoneEndpointsMockMvcTests {
         eventListener = TestApplicationEventListener.forEventClass(IdentityZoneModifiedEvent.class);
         webApplicationContext.addApplicationListener(eventListener);
         
-        identityAdminToken = testClient.getClientCredentialsOAuthAccessToken(
+        identityClientToken = testClient.getClientCredentialsOAuthAccessToken(
                 "identity",
                 "identitysecret",
                 "zones.create");
@@ -137,14 +137,30 @@ public class IdentityZoneEndpointsMockMvcTests {
         user.addEmail(email);
         return user;
     }
-
+    
+    @Test
+    public void testGetZoneAsIdentityClient() throws Exception  {
+        String id = generator.generate();
+        IdentityZone created = createZone(id, HttpStatus.CREATED, identityClientToken);
+        IdentityZone retrieved = getIdentityZone(id, HttpStatus.OK, identityClientToken);
+        assertEquals(created.getId(), retrieved.getId());
+        assertEquals(created.getName(), retrieved.getName());
+        assertEquals(created.getSubdomain(), retrieved.getSubdomain());
+        assertEquals(created.getDescription(), retrieved.getDescription());
+    }
+    
+    @Test
+    public void testGetZoneThatDoesntExist() throws Exception  {
+        String id = generator.generate();
+        getIdentityZone(id, HttpStatus.NOT_FOUND, identityClientToken);
+    }
+    
     @Test
     public void testCreateZone() throws Exception {
         String id = generator.generate();
-        IdentityZone zone = createZone(id, HttpStatus.CREATED, identityAdminToken);
+        IdentityZone zone = createZone(id, HttpStatus.CREATED, identityClientToken);
         assertEquals(id, zone.getId());
         assertEquals(id, zone.getSubdomain());
-        
         checkAuditEventListener(1, AuditEventType.IdentityZoneCreatedEvent);
     }
 
@@ -167,7 +183,7 @@ public class IdentityZoneEndpointsMockMvcTests {
 
     @Test
     public void testCreateZoneWithoutID() throws Exception {
-        IdentityZone zone = createZone("", HttpStatus.CREATED, identityAdminToken);
+        IdentityZone zone = createZone("", HttpStatus.CREATED, identityClientToken);
         assertTrue(StringUtils.hasText(zone.getId()));
         
         checkAuditEventListener(1, AuditEventType.IdentityZoneCreatedEvent);
@@ -182,12 +198,18 @@ public class IdentityZoneEndpointsMockMvcTests {
         
         assertEquals(0, eventListener.getEventCount());
     }
+    
+    @Test
+    public void testUpdateUaaIsForbidden() throws Exception {
+        updateZone(IdentityZone.getUaa(), HttpStatus.FORBIDDEN, identityClientToken);
+        checkAuditEventListener(0, AuditEventType.IdentityZoneModifiedEvent);
+    }
 
     @Test
     public void testUpdateNonExistentReturns404() throws Exception {
         String id = generator.generate();
         IdentityZone identityZone = getIdentityZone(id);
-        updateZone(identityZone, HttpStatus.NOT_FOUND, identityAdminToken);
+        updateZone(identityZone, HttpStatus.NOT_FOUND, identityClientToken);
         
         assertEquals(0, eventListener.getEventCount());
     }
@@ -196,10 +218,10 @@ public class IdentityZoneEndpointsMockMvcTests {
     public void testUpdateWithSameDataReturns200() throws Exception {
         String id = generator.generate();
         
-        IdentityZone created = createZone(id, HttpStatus.CREATED, identityAdminToken);
+        IdentityZone created = createZone(id, HttpStatus.CREATED, identityClientToken);
         checkAuditEventListener(1, AuditEventType.IdentityZoneCreatedEvent);
         
-        updateZone(created, HttpStatus.OK, identityAdminToken);
+        updateZone(created, HttpStatus.OK, identityClientToken);
         checkAuditEventListener(2, AuditEventType.IdentityZoneModifiedEvent);
     }
     
@@ -207,11 +229,11 @@ public class IdentityZoneEndpointsMockMvcTests {
     public void testUpdateWithDifferentDataReturns200() throws Exception {
         String id = generator.generate();
         
-        IdentityZone created = createZone(id, HttpStatus.CREATED, identityAdminToken);
+        IdentityZone created = createZone(id, HttpStatus.CREATED, identityClientToken);
         
         checkAuditEventListener(1, AuditEventType.IdentityZoneCreatedEvent);
         created.setDescription("updated description");
-        IdentityZone updated = updateZone(created, HttpStatus.OK, identityAdminToken);
+        IdentityZone updated = updateZone(created, HttpStatus.OK, identityClientToken);
         assertEquals("updated description", updated.getDescription());
         checkAuditEventListener(2, AuditEventType.IdentityZoneModifiedEvent);
     }
@@ -219,15 +241,15 @@ public class IdentityZoneEndpointsMockMvcTests {
     @Test
     public void testUpdateZoneWithExistingSubdomain() throws Exception {
         String id1 = generator.generate();
-        IdentityZone created1 = createZone(id1, HttpStatus.CREATED, identityAdminToken);
+        IdentityZone created1 = createZone(id1, HttpStatus.CREATED, identityClientToken);
         checkAuditEventListener(1, AuditEventType.IdentityZoneCreatedEvent);
         
         String id2 = generator.generate();
-        IdentityZone created2 = createZone(id2, HttpStatus.CREATED, identityAdminToken);
+        IdentityZone created2 = createZone(id2, HttpStatus.CREATED, identityClientToken);
         checkAuditEventListener(2, AuditEventType.IdentityZoneCreatedEvent);
         
         created1.setSubdomain(created2.getSubdomain());
-        updateZone(created1, HttpStatus.CONFLICT, identityAdminToken);
+        updateZone(created1, HttpStatus.CONFLICT, identityClientToken);
         
         checkAuditEventListener(2, AuditEventType.IdentityZoneCreatedEvent);
     }
@@ -253,11 +275,11 @@ public class IdentityZoneEndpointsMockMvcTests {
     @Test
     public void testCreateDuplicateZoneReturns409() throws Exception {
         String id = generator.generate();
-        createZone(id, HttpStatus.CREATED, identityAdminToken);
+        createZone(id, HttpStatus.CREATED, identityClientToken);
         
         checkAuditEventListener(1, AuditEventType.IdentityZoneCreatedEvent);
         
-        createZone(id, HttpStatus.CONFLICT, identityAdminToken);
+        createZone(id, HttpStatus.CONFLICT, identityClientToken);
         
         assertEquals(1, eventListener.getEventCount());
     }
@@ -270,7 +292,7 @@ public class IdentityZoneEndpointsMockMvcTests {
         creationRequest.setIdentityZone(identityZone);
 
         mockMvc.perform(post("/identity-zones")
-            .header("Authorization", "Bearer "+identityAdminToken)
+            .header("Authorization", "Bearer "+identityClientToken)
             .contentType(APPLICATION_JSON)
             .content(new ObjectMapper().writeValueAsString(creationRequest)))
             .andExpect(status().isCreated())
@@ -302,7 +324,7 @@ public class IdentityZoneEndpointsMockMvcTests {
         IdentityZoneCreationRequest creationRequest = new IdentityZoneCreationRequest();
         creationRequest.setIdentityZone(identityZone);
         mockMvc.perform(post("/identity-zones")
-            .header("Authorization", "Bearer "+identityAdminToken)
+            .header("Authorization", "Bearer "+identityClientToken)
             .contentType(APPLICATION_JSON)
             .content(new ObjectMapper().writeValueAsString(creationRequest)))
             .andExpect(status().isBadRequest());
@@ -322,7 +344,7 @@ public class IdentityZoneEndpointsMockMvcTests {
         IdentityZoneCreationRequest creationRequest = new IdentityZoneCreationRequest();
         creationRequest.setIdentityZone(identityZone1);
         mockMvc.perform(post("/identity-zones")
-            .header("Authorization", "Bearer "+identityAdminToken)
+            .header("Authorization", "Bearer "+identityClientToken)
             .contentType(APPLICATION_JSON)
             .accept(APPLICATION_JSON)
             .content(new ObjectMapper().writeValueAsString(creationRequest)))
@@ -332,7 +354,7 @@ public class IdentityZoneEndpointsMockMvcTests {
 
         creationRequest.setIdentityZone(identityZone2);
         mockMvc.perform(post("/identity-zones")
-            .header("Authorization", "Bearer "+identityAdminToken)
+            .header("Authorization", "Bearer "+identityClientToken)
             .contentType(APPLICATION_JSON)
             .accept(APPLICATION_JSON)
             .content(new ObjectMapper().writeValueAsString(creationRequest)))
@@ -357,7 +379,7 @@ public class IdentityZoneEndpointsMockMvcTests {
         creationRequest.setClientDetails(clientDetails);
 
         mockMvc.perform(post("/identity-zones")
-            .header("Authorization", "Bearer "+identityAdminToken)
+            .header("Authorization", "Bearer "+identityClientToken)
             .contentType(APPLICATION_JSON)
             .content(new ObjectMapper().writeValueAsString(creationRequest)))
             .andExpect(status().isCreated());
@@ -490,6 +512,18 @@ public class IdentityZoneEndpointsMockMvcTests {
             .andReturn();
     }
     
+    private IdentityZone getIdentityZone(String id, HttpStatus expect, String token) throws Exception {
+        MvcResult result = mockMvc.perform(get("/identity-zones/"+id)
+            .header("Authorization", "Bearer " + token))
+            .andExpect(status().is(expect.value()))
+            .andReturn();
+        
+        if (expect.is2xxSuccessful()) {
+            return JsonUtils.readValue(result.getResponse().getContentAsString(), IdentityZone.class);
+        }
+        return null;
+    }
+    
     private IdentityZone createZone(String id, HttpStatus expect, String token) throws Exception {
         IdentityZone identityZone = getIdentityZone(id);
         IdentityZoneCreationRequest creationRequest = new IdentityZoneCreationRequest();
@@ -559,6 +593,8 @@ public class IdentityZoneEndpointsMockMvcTests {
     private void checkAuditEventListener(int eventCount, AuditEventType eventType) {
         IdentityZoneModifiedEvent event = eventListener.getLatestEvent();
         assertEquals(eventCount, eventListener.getEventCount());
-        assertEquals(eventType, event.getAuditEvent().getType());
+        if (eventCount > 0) {
+            assertEquals(eventType, event.getAuditEvent().getType());
+        }
     }
 }

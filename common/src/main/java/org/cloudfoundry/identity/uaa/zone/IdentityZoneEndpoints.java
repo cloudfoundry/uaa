@@ -17,14 +17,13 @@ import java.util.List;
 import java.util.UUID;
 
 import org.cloudfoundry.identity.uaa.authentication.Origin;
-import org.cloudfoundry.identity.uaa.oauth.ClientAdminEndpoints;
 import org.cloudfoundry.identity.uaa.oauth.ClientDetailsValidator;
 import org.cloudfoundry.identity.uaa.oauth.InvalidClientDetailsException;
-import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
@@ -64,6 +63,10 @@ public class IdentityZoneEndpoints {
         this.clientDetailsValidator = clientDetailsValidator;
     }
 
+    @RequestMapping(value="{id}", method = GET)
+    public IdentityZone getIdentityZone(@PathVariable String id) {
+        return zoneDao.retrieve(id);
+    }
     
     @RequestMapping(method = POST)
     public ResponseEntity<IdentityZone> createIdentityZone(@RequestBody @Valid IdentityZoneCreationRequest body)
@@ -118,6 +121,7 @@ public class IdentityZoneEndpoints {
                     }
                 }
             }
+            // ignore the id in the body, the id in the path is the only one that matters
             body.getIdentityZone().setId(id);
             IdentityZone updated = zoneDao.update(body.getIdentityZone());
             IdentityZoneHolder.set(updated);
@@ -151,6 +155,11 @@ public class IdentityZoneEndpoints {
     @ExceptionHandler(MethodArgumentNotValidException.class) 
     public ResponseEntity<Void> handleValidationException(MethodArgumentNotValidException e) {
         return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+    }
+    
+    @ExceptionHandler(AccessDeniedException.class) 
+    public ResponseEntity<Void> handleAccessDeniedException(MethodArgumentNotValidException e) {
+        return new ResponseEntity<>(HttpStatus.FORBIDDEN);
     }
     
     @ExceptionHandler(Exception.class)
