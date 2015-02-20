@@ -57,7 +57,7 @@
         <constructor-arg value="org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationProcessingFilter"/>
     </bean>
 	<bean id="corsFilter" class="org.cloudfoundry.identity.uaa.web.CorsFilter"/>
-	
+
     <bean class="org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor">
         <property name="requireHttps" value="${require_https:false}" />
         <property name="dumpRequests" value="${dump_requests:false}" />
@@ -90,7 +90,7 @@
         	</map>
         </property>
     </bean>
-    
+
     <bean id="identityZoneResolvingFilter" class="org.cloudfoundry.identity.uaa.zone.IdentityZoneResolvingFilter">
         <property name="identityZoneProvisioning" ref="identityZoneProvisioning"/>
         <property name="internalHostnames">
@@ -228,9 +228,8 @@
         <property name="authenticationManager" ref="authzAuthenticationMgr"/>
         <property name="uaaBaseUrl" ref="uaaUrl" />
         <property name="links" ref="links" />
-        <property name="idpDefinitions">
-            <bean factory-bean="metaDataProviders" factory-method="getIdentityProviderDefinitions"/>
-        </property>
+        <property name="entityID" ref="samlEntityID"/>
+        <property name="idpDefinitions" ref="metaDataProviders"/>
         <property name="prompts">
             <util:list>
                 <bean class="org.cloudfoundry.identity.uaa.authentication.login.Prompt">

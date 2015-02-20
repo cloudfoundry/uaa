@@ -122,7 +122,7 @@ public class BootstrapTests {
         IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
         Set<String> defaultHostnames = new HashSet<>(Arrays.asList("localhost"));
         assertEquals(filter.getInternalHostnames(), defaultHostnames);
-     }
+    }
 
     @Test
     public void testInternalHostnames() throws Exception {
@@ -186,9 +186,13 @@ public class BootstrapTests {
         assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
         assertFalse(context.getBean(IdentityProviderConfigurator.class).isLegacyMetadataTrustCheck());
         List<IdentityProviderDefinition> defs = context.getBean(IdentityProviderConfigurator.class).getIdentityProviderDefinitions();
+        assertNotNull(findProvider(defs, "testIDPFile"));
         assertEquals(
-                DefaultProtocolSocketFactory.class.getName(),
-                defs.get(defs.size() - 1).getSocketFactoryClassName()
+            IdentityProviderDefinition.MetadataLocation.URL,
+            findProvider(defs, "testIDPFile").getType());
+        assertEquals(
+            DefaultProtocolSocketFactory.class.getName(),
+            findProvider(defs, "testIDPFile").getSocketFactoryClassName()
         );
         assertEquals(
             IdentityProviderDefinition.MetadataLocation.URL,
@@ -206,9 +210,19 @@ public class BootstrapTests {
         assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
         assertFalse(context.getBean(IdentityProviderConfigurator.class).isLegacyMetadataTrustCheck());
         List<IdentityProviderDefinition> defs = context.getBean(IdentityProviderConfigurator.class).getIdentityProviderDefinitions();
+        assertNotNull(findProvider(defs, "testIDPFile"));
         assertEquals(
             IdentityProviderDefinition.MetadataLocation.FILE,
-            defs.get(defs.size() - 1).getType());
+            findProvider(defs, "testIDPFile").getType());
+    }
+
+    protected IdentityProviderDefinition findProvider(List<IdentityProviderDefinition> defs, String alias) {
+        for (IdentityProviderDefinition def : defs) {
+            if (alias.equals(def.getIdpEntityAlias())) {
+                return def;
+            }
+        }
+        return null;
     }
 
     @Test
@@ -220,7 +234,7 @@ public class BootstrapTests {
         List<IdentityProviderDefinition> defs = context.getBean(IdentityProviderConfigurator.class).getIdentityProviderDefinitions();
         assertEquals(
             IdentityProviderDefinition.MetadataLocation.DATA,
-            defs.get(defs.size() - 1).getType());
+            findProvider(defs, "testIDPData").getType());
     }
 
 
@@ -258,7 +272,7 @@ public class BootstrapTests {
         assertFalse(context.getBean(IdentityProviderConfigurator.class).isLegacyMetadataTrustCheck());
         List<IdentityProviderDefinition> defs = context.getBean(IdentityProviderConfigurator.class).getIdentityProviderDefinitions();
         assertFalse(
-                context.getBean(IdentityProviderConfigurator.class).getIdentityProviderDefinitions().isEmpty()
+            context.getBean(IdentityProviderConfigurator.class).getIdentityProviderDefinitions().isEmpty()
         );
         assertEquals(
             EasySSLProtocolSocketFactory.class.getName(),
@@ -327,7 +341,7 @@ public class BootstrapTests {
 
             @Override
             protected void loadBeanDefinitions(DefaultListableBeanFactory beanFactory) throws BeansException,
-                    IOException {
+                IOException {
                 XmlBeanDefinitionReader beanDefinitionReader = new XmlBeanDefinitionReader(beanFactory);
 
                 // Configure the bean definition reader with this context's

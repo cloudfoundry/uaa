@@ -30,6 +30,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.ProviderNotFoundException;
 import org.springframework.security.core.Authentication;
@@ -70,9 +71,13 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         SAMLAuthenticationToken token = (SAMLAuthenticationToken) authentication;
         SAMLMessageContext context = token.getCredentials();
         String alias = context.getPeerExtendedMetadata().getAlias();
-        IdentityProvider idp = identityProviderProvisioning.retrieveByOrigin(alias, IdentityZoneHolder.get().getId());
-        if (!idp.isActive()) {
-            throw new ProviderNotFoundException("Identity Provider has been disabled by administrator.");
+        try {
+            IdentityProvider idp = identityProviderProvisioning.retrieveByOrigin(alias, IdentityZoneHolder.get().getId());
+            if (!idp.isActive()) {
+                throw new ProviderNotFoundException("Identity Provider has been disabled by administrator.");
+            }
+        } catch (EmptyResultDataAccessException x) {
+            throw new ProviderNotFoundException("Not identity provider found in zone.");
         }
         ExpiringUsernameAuthenticationToken result = (ExpiringUsernameAuthenticationToken)super.authenticate(authentication);
         UaaPrincipal principal = createIfMissing(new UaaPrincipal(Origin.NotANumber, result.getName(), null, alias, result.getName(), zone.getId()));

@@ -18,6 +18,9 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+
 public class UaaUrlUtils {
 
     private final String uaaBaseUrl;
@@ -50,6 +53,29 @@ public class UaaUrlUtils {
     public static String getHostForURI(String uri) {
         UriComponentsBuilder b = UriComponentsBuilder.fromHttpUrl(uri);
         return b.build().getHost();
+    }
+
+    public static boolean isUrl(String url) {
+        try {
+            new URL(url);
+            return true;
+        } catch (MalformedURLException e) {
+            return false;
+        }
+    }
+
+    public static String addSubdomainToUrl(String url) {
+        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(url);
+        builder.host(getSubdomain() + builder.build().getHost());
+        return builder.build().toUriString();
+    }
+
+    public static String getSubdomain() {
+        String subdomain = IdentityZoneHolder.get().getSubdomain();
+        if (StringUtils.hasText(subdomain)) {
+            subdomain += ".";
+        }
+        return subdomain.trim();
     }
 
 

@@ -95,7 +95,6 @@ public class IdentityProviderBootstrap implements InitializingBean {
                 provider.setVersion(existing.getVersion());
                 provider.setLastModified(new Date(System.currentTimeMillis()));
                 provisioning.update(provider);
-
             }
         }
     }

@@ -63,12 +63,6 @@ public class IdentityProviderDefinitionTests {
         } catch (IllegalArgumentException x) {
             assertEquals(ClassNotFoundException.class, x.getCause().getClass());
         }
-        try {
-            def.setSocketFactoryClassName("java.lang.Object");
-            fail("ClassCastException is expected here");
-        } catch (IllegalArgumentException x) {
-            assertEquals(ClassCastException.class, x.getCause().getClass());
-        }
         def.setSocketFactoryClassName(StrictSSLProtocolSocketFactory.class.getName());
         assertEquals(StrictSSLProtocolSocketFactory.class.getName(), def.getSocketFactoryClassName());
 

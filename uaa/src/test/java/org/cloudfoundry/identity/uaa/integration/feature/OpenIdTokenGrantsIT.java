@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -29,6 +29,7 @@ import static org.junit.Assert.assertTrue;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
@@ -77,7 +78,7 @@ public class OpenIdTokenGrantsIT {
 
     @Autowired
     TestAccounts testAccounts;
-    
+
     @Autowired @Rule
     public IntegrationTestRule integrationTestRule;
 
@@ -105,51 +106,22 @@ public class OpenIdTokenGrantsIT {
 
     @Before
     public void setUp() throws Exception {
-        ((RestTemplate)restOperations).setRequestFactory(new StatelessRequestFactory());
+        ((RestTemplate)restOperations).setRequestFactory(new IntegrationTestUtils.StatelessRequestFactory());
         ClientCredentialsResourceDetails clientCredentials =
             getClientCredentialsResource(new String[] {"scim.write"}, testAccounts.getAdminClientId(), testAccounts.getAdminClientSecret());
-        client = new OAuth2RestTemplate(clientCredentials);
-        client.setRequestFactory(new StatelessRequestFactory());
-        client.setErrorHandler(new OAuth2ErrorHandler(clientCredentials) {
-            // Pass errors through in response entity for status code analysis
-            @Override
-            public boolean hasError(ClientHttpResponse response) throws IOException {
-                return false;
-            }
-
-            @Override
-            public void handleError(ClientHttpResponse response) throws IOException {
-            }
-        });
-        user = createUser(new RandomValueStringGenerator().generate(), "openiduser", "openidlast", "test@openid,com",true).getBody();
+        client = IntegrationTestUtils.getClientCredentialsTempate(clientCredentials);
+        user = createUser(new RandomValueStringGenerator().generate(), "openiduser", "openidlast", "test@openid,com",true);
     }
 
 
     private ClientCredentialsResourceDetails getClientCredentialsResource(String[] scope, String clientId,
                                                                          String clientSecret) {
-        ClientCredentialsResourceDetails resource = new ClientCredentialsResourceDetails();
-        resource.setClientId(clientId);
-        resource.setClientSecret(clientSecret);
-        resource.setId(clientId);
-        if (scope != null) {
-            resource.setScope(Arrays.asList(scope));
-        }
-        resource.setClientAuthenticationScheme(AuthenticationScheme.header);
-        resource.setAccessTokenUri(uaaUrl+"/oauth/token");
-        return resource;
+        return IntegrationTestUtils.getClientCredentialsResource(uaaUrl,scope,clientId,clientSecret);
     }
 
-    private ResponseEntity<ScimUser> createUser(String username, String firstName, String lastName,
+    private ScimUser createUser(String username, String firstName, String lastName,
                                                 String email, boolean verified) {
-        ScimUser user = new ScimUser();
-        user.setUserName(username);
-        user.setName(new ScimUser.Name(firstName, lastName));
-        user.addEmail(email);
-        user.setVerified(verified);
-        user.setActive(true);
-        user.setPassword("secret");
-
-        return client.postForEntity(uaaUrl+"/Users", user, ScimUser.class);
+        return IntegrationTestUtils.createUser(client, uaaUrl, username, firstName, lastName, email, verified);
     }
 
     @Test
@@ -390,14 +362,5 @@ public class OpenIdTokenGrantsIT {
         return params;
     }
 
-    private static class StatelessRequestFactory extends HttpComponentsClientHttpRequestFactory {
-        @Override
-        public HttpClient getHttpClient() {
-            return HttpClientBuilder.create()
-                .useSystemProperties()
-                .disableRedirectHandling()
-                .disableCookieManagement()
-                .build();
-        }
-    }
+
 }

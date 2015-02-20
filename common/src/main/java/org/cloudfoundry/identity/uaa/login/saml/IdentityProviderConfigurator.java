@@ -18,16 +18,21 @@ import org.apache.http.client.utils.URIBuilder;
 import org.cloudfoundry.identity.uaa.login.ConfigMetadataProvider;
 import org.cloudfoundry.identity.uaa.login.ssl.FixedHttpMetaDataProvider;
 import org.cloudfoundry.identity.uaa.login.util.FileLocator;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.opensaml.saml2.metadata.provider.FilesystemMetadataProvider;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.opensaml.xml.parse.BasicParserPool;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.config.InstantiationAwareBeanPostProcessor;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
+import org.springframework.util.StringUtils;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -35,11 +40,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
 
-public class IdentityProviderConfigurator {
-
+public class IdentityProviderConfigurator implements InitializingBean {
 
     private String legacyIdpIdentityAlias;
-    private String legacyIdpMetaData;
+    private volatile String legacyIdpMetaData;
     private String legacyNameId;
     private int legacyAssertionConsumerIndex;
     private boolean legacyMetadataTrustCheck = true;
@@ -50,6 +54,9 @@ public class IdentityProviderConfigurator {
     private BasicParserPool parserPool;
 
     public List<IdentityProviderDefinition> getIdentityProviderDefinitions() {
+        return Collections.unmodifiableList(identityProviders);
+    }
+    protected List<IdentityProviderDefinition> parseIdentityProviderDefinitions() {
         List<IdentityProviderDefinition> providerDefinitions = new LinkedList<>(identityProviders);
         if (getLegacyIdpMetaData()!=null) {
             IdentityProviderDefinition def = new IdentityProviderDefinition();
@@ -64,42 +71,96 @@ public class IdentityProviderConfigurator {
             def.setIdpEntityAlias(alias);
             def.setShowSamlLink(isLegacyShowSamlLink());
             def.setLinkText("Use your corporate credentials");
+            def.setZoneId(IdentityZone.getUaa().getId()); //legacy only has UAA zone
             providerDefinitions.add(def);
         }
         Set<String> uniqueAlias = new HashSet<>();
         for (IdentityProviderDefinition def : providerDefinitions) {
-            String alias = def.getIdpEntityAlias();
+            String alias = getUniqueAlias(def);
             if (uniqueAlias.contains(alias)) {
                 throw new IllegalStateException("Duplicate IDP alias found:"+alias);
             }
             uniqueAlias.add(alias);
         }
-        return providerDefinitions;
+        identityProviders = providerDefinitions;
+        return getIdentityProviderDefinitions();
+    }
+
+    protected String getUniqueAlias(IdentityProviderDefinition def) {
+        return getUniqueAlias(def.getIdpEntityAlias(), def.getZoneId());
+    }
+
+    protected String getUniqueAlias(String idpAlias, String zoneId) {
+        return idpAlias+"###"+zoneId;
+    }
+
+    public synchronized ExtendedMetadataDelegate addIdentityProviderDefinition(IdentityProviderDefinition providerDefinition) {
+        if (providerDefinition==null) {
+            throw new NullPointerException();
+        }
+        if (!StringUtils.hasText(providerDefinition.getIdpEntityAlias())) {
+            throw new NullPointerException("SAML IDP Alias must be set");
+        }
+        if (!StringUtils.hasText(providerDefinition.getZoneId())) {
+            throw new NullPointerException("IDP Zone Id must be set");
+        }
+        for (IdentityProviderDefinition def : getIdentityProviderDefinitions()) {
+            if (getUniqueAlias(providerDefinition).equals(getUniqueAlias(def))) {
+                identityProviders.remove(def);
+                break;
+            }
+        }
+        IdentityProviderDefinition clone = providerDefinition.clone();
+        identityProviders.add(clone);
+        return getExtendedMetadataDelegate(clone);
+    }
+
+    public synchronized List<IdentityProviderDefinition> refreshProviders(List<IdentityProviderDefinition> definitions) {
+        LinkedList newProviders = new LinkedList();
+        for (IdentityProviderDefinition def : definitions) {
+            newProviders.add(def.clone());
+        }
+        //reset the legacy data so it doesn't become an IDP. We overwrite all of them
+        legacyIdpMetaData = null;
+        identityProviders = newProviders;
+        return getIdentityProviderDefinitions();
     }
 
     public List<ExtendedMetadataDelegate> getIdentityProviders() {
+        return getIdentityProviders(null);
+    }
 
+    public List<ExtendedMetadataDelegate> getIdentityProviders(IdentityZone zone) {
         List<ExtendedMetadataDelegate> result = new LinkedList<>();
         for (IdentityProviderDefinition def : getIdentityProviderDefinitions()) {
-            switch (def.getType()) {
-                case DATA: {
-                    result.add(configureXMLMetadata(def));
-                    break;
-                }
-                case FILE: {
-                    result.add(configureFileMetadata(def));
-                    break;
-                }
-                case URL: {
-                    result.add(configureURLMetadata(def));
-                    break;
-                }
-                default: {
-                    throw new IllegalArgumentException("Invalid metadata type for alias["+def.getIdpEntityAlias()+"]:"+def.getMetaDataLocation());
-                }
+            if (zone==null || zone.getId().equals(def.getZoneId())) {
+                ExtendedMetadataDelegate metadata = getExtendedMetadataDelegate(def);
+                result.add(metadata);
             }
         }
         return result;
+    }
+
+    public ExtendedMetadataDelegate getExtendedMetadataDelegate(IdentityProviderDefinition def) {
+        ExtendedMetadataDelegate metadata;
+        switch (def.getType()) {
+            case DATA: {
+                metadata = configureXMLMetadata(def);
+                break;
+            }
+            case FILE: {
+                metadata = configureFileMetadata(def);
+                break;
+            }
+            case URL: {
+                metadata = configureURLMetadata(def);
+                break;
+            }
+            default: {
+                throw new IllegalArgumentException("Invalid metadata type for alias[" + def.getIdpEntityAlias() + "]:" + def.getMetaDataLocation());
+            }
+        }
+        return metadata;
     }
 
     protected ExtendedMetadataDelegate configureXMLMetadata(IdentityProviderDefinition def) {
@@ -141,6 +202,7 @@ public class IdentityProviderConfigurator {
             extendedMetadata.setAlias(def.getIdpEntityAlias());
             FixedHttpMetaDataProvider fixedHttpMetaDataProvider = new FixedHttpMetaDataProvider(getMetadataFetchingHttpClientTimer(), getHttpClient(), adjustURIForPort(def.getMetaDataLocation()));
             fixedHttpMetaDataProvider.setParserPool(getParserPool());
+            //TODO - we have no way of actually instantiating this object unless it has a zero arg constructor
             fixedHttpMetaDataProvider.setSocketFactory(socketFactory.newInstance());
             ExtendedMetadataDelegate delegate = new ExtendedMetadataDelegate(fixedHttpMetaDataProvider, extendedMetadata);
             delegate.setMetadataTrustCheck(def.isMetadataTrustCheck());
@@ -188,6 +250,7 @@ public class IdentityProviderConfigurator {
             String socketFactoryClassName = (String)saml.get("socketFactoryClassName");
             String linkText = (String)((Map)entry.getValue()).get("linkText");
             String iconUrl  = (String)((Map)entry.getValue()).get("iconUrl");
+            String zoneId  = (String)((Map)entry.getValue()).get("zoneId");
             IdentityProviderDefinition def = new IdentityProviderDefinition();
             if (alias==null) {
                 throw new IllegalArgumentException("Invalid IDP - alias must not be null ["+metaDataLocation+"]");
@@ -204,6 +267,7 @@ public class IdentityProviderConfigurator {
             def.setSocketFactoryClassName(socketFactoryClassName);
             def.setLinkText(linkText);
             def.setIconUrl(iconUrl);
+            def.setZoneId(StringUtils.hasText(zoneId) ? zoneId : IdentityZone.getUaa().getId());
             identityProviders.add(def);
         }
     }
@@ -286,5 +350,10 @@ public class IdentityProviderConfigurator {
 
     public void setLegacyShowSamlLink(boolean legacyShowSamlLink) {
         this.legacyShowSamlLink = legacyShowSamlLink;
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        parseIdentityProviderDefinitions();
     }
 }
