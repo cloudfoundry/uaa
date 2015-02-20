@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -148,8 +148,9 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
 
     @Test
     public void canCreateUserInOtherIdentityZone() {
-        createOtherIdentityZone("my-zone-id");
-        String idpId = createOtherIdentityProvider(Origin.UAA);
+        String otherZoneId = "my-zone-id";
+        createOtherIdentityZone(otherZoneId);
+        String idpId = createOtherIdentityProvider(Origin.UAA, otherZoneId);
         ScimUser user = new ScimUser(null, "jo@foo.com", "Jo", "User");
         user.addEmail("jo@blah.com");
         ScimUser created = db.createUser(user, "j7hyqpassX");
@@ -163,7 +164,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertEquals(Origin.UAA, created.getOrigin());
         assertEquals("my-zone-id", map.get("identity_zone_id"));
     }
-    
+
     @Test
     public void countUsersAcrossAllZones() {
     	IdentityZoneHolder.clear();
@@ -174,7 +175,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     	canCreateUserInOtherIdentityZone();
     	IdentityZoneHolder.clear();
     	assertEquals(beginningCount+2, db.getTotalCount());
-    	
+
     }
 
     private void createOtherIdentityZone(String zoneId) {
@@ -183,11 +184,11 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         IdentityZoneHolder.set(identityZone);
     }
 
-    private String createOtherIdentityProvider(String origin) {
-        IdentityProvider identityProvider = MultitenancyFixture.identityProvider(origin);
+    private String createOtherIdentityProvider(String origin, String zoneId) {
+        IdentityProvider identityProvider = MultitenancyFixture.identityProvider(origin, zoneId);
         return providerDb.create(identityProvider).getId();
     }
-    
+
     @Test
     public void validateOriginAndExternalIDDuringCreateAndUpdate() {
         String origin = "test";
@@ -471,14 +472,15 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     public void testCreateUserWithDuplicateUsernameInOtherIdp() throws Exception {
         addUser("cba09242-aa43-4247-9aa0-b5c75c281f94", "user@example.com", "password", "user@example.com", "first", "user", "90438", defaultIdentityProviderId, "uaa");
 
-        createOtherIdentityProvider("test-origin");
+        String origin = "test-origin";
+        createOtherIdentityProvider(origin, IdentityZone.getUaa().getId());
 
         ScimUser scimUser = new ScimUser(null, "user@example.com", "User", "Example");
         ScimUser.Email email = new ScimUser.Email();
         email.setValue("user@example.com");
         scimUser.setEmails(Arrays.asList(email));
         scimUser.setPassword("password");
-        scimUser.setOrigin("test-origin");
+        scimUser.setOrigin(origin);
         String userId2 = db.create(scimUser).getId();
         assertNotNull(userId2);
         assertNotEquals("cba09242-aa43-4247-9aa0-b5c75c281f94", userId2);

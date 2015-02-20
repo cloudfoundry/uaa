@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.user.MockUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityProviderProvisioning;
 import org.junit.Before;
 import org.junit.Test;
@@ -62,7 +63,7 @@ public class CheckIdpEnabledAuthenticationManagerTest extends JdbcTestBase {
 
     @Test(expected = ProviderNotFoundException.class)
     public void testAuthenticateIdpDisabled() throws Exception {
-        IdentityProvider provider = identityProviderProvisioning.retrieveByOrigin(Origin.UAA);
+        IdentityProvider provider = identityProviderProvisioning.retrieveByOrigin(Origin.UAA, IdentityZoneHolder.get().getId());
         provider.setActive(false);
         identityProviderProvisioning.update(provider);
         manager.authenticate(token);

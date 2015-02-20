@@ -27,6 +27,7 @@ import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assume;
@@ -260,7 +261,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
 
     public void testAuthenticateInactiveIdp() throws Exception {
         IdentityProviderProvisioning provisioning = webApplicationContext.getBean(IdentityProviderProvisioning.class);
-        IdentityProvider ldapProvider = provisioning.retrieveByOrigin(Origin.LDAP);
+        IdentityProvider ldapProvider = provisioning.retrieveByOrigin(Origin.LDAP, IdentityZone.getUaa().getId());
         try {
             ldapProvider.setActive(false);
             ldapProvider = provisioning.update(ldapProvider);

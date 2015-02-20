@@ -37,20 +37,22 @@ public class IdentityProviderEndpoints {
 
     @RequestMapping(method = POST)
     public ResponseEntity<IdentityProvider> createIdentityProvider(@RequestBody IdentityProvider body) {
+        body.setIdentityZoneId(IdentityZoneHolder.get().getId());
         IdentityProvider createdIdp = identityProviderProvisioning.create(body);
         return new ResponseEntity<>(createdIdp, HttpStatus.CREATED);
     }
-    
+
     @RequestMapping(value = "{id}", method = PUT)
     public ResponseEntity<IdentityProvider> updateIdentityProvider(@PathVariable String id, @RequestBody IdentityProvider body) {
         body.setId(id);
+        body.setIdentityZoneId(IdentityZoneHolder.get().getId());
         IdentityProvider updatedIdp = identityProviderProvisioning.update(body);
         return new ResponseEntity<>(updatedIdp, HttpStatus.OK);
     }
 
     @RequestMapping(method = GET)
     public ResponseEntity<List<IdentityProvider>> retrieveIdentityProviders() {
-        List<IdentityProvider> identityProviderList = identityProviderProvisioning.retrieveAll();
+        List<IdentityProvider> identityProviderList = identityProviderProvisioning.retrieveAll(IdentityZoneHolder.get().getId());
         return new ResponseEntity<>(identityProviderList, HttpStatus.OK);
     }
 }

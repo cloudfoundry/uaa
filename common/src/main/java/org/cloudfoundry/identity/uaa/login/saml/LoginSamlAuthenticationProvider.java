@@ -70,7 +70,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         SAMLAuthenticationToken token = (SAMLAuthenticationToken) authentication;
         SAMLMessageContext context = token.getCredentials();
         String alias = context.getPeerExtendedMetadata().getAlias();
-        IdentityProvider idp = identityProviderProvisioning.retrieveByOrigin(alias);
+        IdentityProvider idp = identityProviderProvisioning.retrieveByOrigin(alias, IdentityZoneHolder.get().getId());
         if (!idp.isActive()) {
             throw new ProviderNotFoundException("Identity Provider has been disabled by administrator.");
         }

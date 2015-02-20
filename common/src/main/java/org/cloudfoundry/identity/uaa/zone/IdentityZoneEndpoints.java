@@ -53,8 +53,8 @@ public class IdentityZoneEndpoints {
     private final IdentityProviderProvisioning idpDao;
     private final ClientRegistrationService clientRegistrationService;
     private final ClientDetailsValidator clientDetailsValidator;
-    
-    
+
+
     public IdentityZoneEndpoints(IdentityZoneProvisioning zoneDao, IdentityProviderProvisioning idpDao, ClientRegistrationService clientRegistrationService, ClientDetailsValidator clientDetailsValidator) {
         super();
         this.zoneDao = zoneDao;
@@ -67,7 +67,7 @@ public class IdentityZoneEndpoints {
     public IdentityZone getIdentityZone(@PathVariable String id) {
         return zoneDao.retrieve(id);
     }
-    
+
     @RequestMapping(method = POST)
     public ResponseEntity<IdentityZone> createIdentityZone(@RequestBody @Valid IdentityZoneCreationRequest body)
     {
@@ -93,12 +93,13 @@ public class IdentityZoneEndpoints {
             defaultIdp.setName("internal");
             defaultIdp.setType("internal");
             defaultIdp.setOriginKey(Origin.UAA);
+            defaultIdp.setIdentityZoneId(created.getId());
             idpDao.create(defaultIdp);
 
             for (ClientDetails validClient : clients) {
                 clientRegistrationService.addClientDetails(validClient);
             }
-            
+
             return new ResponseEntity<>(created,CREATED);
         } finally {
             IdentityZoneHolder.set(previous);
@@ -151,17 +152,17 @@ public class IdentityZoneEndpoints {
     public ResponseEntity<InvalidClientDetailsException> handleInvalidClientDetails(InvalidClientDetailsException e) {
         return new ResponseEntity<>(e, HttpStatus.BAD_REQUEST);
     }
-    
-    @ExceptionHandler(MethodArgumentNotValidException.class) 
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Void> handleValidationException(MethodArgumentNotValidException e) {
         return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
     }
-    
-    @ExceptionHandler(AccessDeniedException.class) 
+
+    @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Void> handleAccessDeniedException(MethodArgumentNotValidException e) {
         return new ResponseEntity<>(HttpStatus.FORBIDDEN);
     }
-    
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Void> handleException(Exception e) {
         log.error(e.getClass()+": "+e.getMessage(),e);

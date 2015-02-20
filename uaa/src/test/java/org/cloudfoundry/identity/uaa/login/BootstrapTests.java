@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -138,7 +138,7 @@ public class BootstrapTests {
 
     @Test
     public void testBootstrappedIdps() throws Exception {
-        IdentityZoneHolder.set(IdentityZone.getUaa());
+
         //generate login.yml with SAML and uaa.yml with LDAP
 
         context = getServletContext("ldap,default", true, "test/bootstrap/login.yml,login.yml","test/bootstrap/uaa.yml,uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
@@ -156,10 +156,10 @@ public class BootstrapTests {
 
         //verify that they got loaded in the DB
         for (IdentityProviderDefinition def : samlProviders.getIdentityProviderDefinitions()) {
-            assertNotNull(providerProvisioning.retrieveByOrigin(def.getIdpEntityAlias()));
+            assertNotNull(providerProvisioning.retrieveByOrigin(def.getIdpEntityAlias(), IdentityZone.getUaa().getId()));
         }
 
-        assertNotNull(providerProvisioning.retrieveByOrigin(Origin.LDAP));
+        assertNotNull(providerProvisioning.retrieveByOrigin(Origin.LDAP, IdentityZone.getUaa().getId()));
     }
 
     @Test

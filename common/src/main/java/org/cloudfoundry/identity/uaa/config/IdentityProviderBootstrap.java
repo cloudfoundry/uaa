@@ -79,27 +79,24 @@ public class IdentityProviderBootstrap implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        IdentityZone zone = IdentityZoneHolder.get();
-        try {
-            for (IdentityProvider provider: providers) {
-                IdentityProvider existing = null;
-                try {
-                    existing = provisioning.retrieveByOrigin(provider.getOriginKey());
-                }catch (EmptyResultDataAccessException x){
-                }
-                if (existing==null) {
-                    provisioning.create(provider);
-                } else {
-                    provider.setId(existing.getId());
-                    provider.setCreated(existing.getCreated());
-                    provider.setVersion(existing.getVersion());
-                    provider.setLastModified(new Date(System.currentTimeMillis()));
-                    provisioning.update(provider);
-
-                }
+        String zoneId = IdentityZone.getUaa().getId();
+        for (IdentityProvider provider: providers) {
+            IdentityProvider existing = null;
+            try {
+                existing = provisioning.retrieveByOrigin(provider.getOriginKey(), zoneId);
+            }catch (EmptyResultDataAccessException x){
             }
-        } finally {
-            IdentityZoneHolder.set(zone);
+            provider.setIdentityZoneId(zoneId);
+            if (existing==null) {
+                provisioning.create(provider);
+            } else {
+                provider.setId(existing.getId());
+                provider.setCreated(existing.getCreated());
+                provider.setVersion(existing.getVersion());
+                provider.setLastModified(new Date(System.currentTimeMillis()));
+                provisioning.update(provider);
+
+            }
         }
     }
 }
