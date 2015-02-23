@@ -13,8 +13,8 @@
 package org.cloudfoundry.identity.uaa.mock.zones;
 
 import com.googlecode.flyway.core.Flyway;
-
 import org.apache.commons.lang.RandomStringUtils;
+import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -58,7 +58,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class IdentityProviderEndpointsMockMvcTests {
+public class IdentityProviderEndpointsMockMvcTests extends TestClassNullifier {
     private static XmlWebApplicationContext webApplicationContext;
     private static MockMvc mockMvc;
     private static TestClient testClient = null;

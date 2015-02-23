@@ -12,25 +12,21 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock.oauth;
 
-import java.util.Set;
-
-import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
-import org.cloudfoundry.identity.uaa.test.DefaultIntegrationTestConfig;
+import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.mock.env.MockEnvironment;
-import org.springframework.mock.web.MockServletConfig;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
-public class CheckDefaultAuthoritiesMvcMockTests {
+import java.util.Set;
+
+public class CheckDefaultAuthoritiesMvcMockTests extends TestClassNullifier {
 
     XmlWebApplicationContext webApplicationContext;
     ClientRegistrationService clientRegistrationService;

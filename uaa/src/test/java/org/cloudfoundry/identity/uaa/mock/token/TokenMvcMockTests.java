@@ -13,9 +13,7 @@
 package org.cloudfoundry.identity.uaa.mock.token;
 
 import com.googlecode.flyway.core.Flyway;
-import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.junit.Assert;
+import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authorization.UaaAuthorizationEndpoint;
@@ -32,6 +30,8 @@ import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
@@ -41,6 +41,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -98,7 +99,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class TokenMvcMockTests {
+public class TokenMvcMockTests extends TestClassNullifier {
 
     private static String SECRET = "secret";
     private static String GRANT_TYPES = "password,implicit,client_credentials,authorization_code";

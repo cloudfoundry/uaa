@@ -1,26 +1,7 @@
 package org.cloudfoundry.identity.uaa.mock.clients;
 
-import javax.servlet.http.HttpServletResponse;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.Map;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import com.googlecode.flyway.core.Flyway;
+import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.oauth.InvalidClientDetailsException;
@@ -65,8 +46,29 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
+import javax.servlet.http.HttpServletResponse;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.Map;
 
-public class ClientAdminEndpointsMockMvcTests {
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+
+public class ClientAdminEndpointsMockMvcTests extends TestClassNullifier {
     private static XmlWebApplicationContext webApplicationContext;
     private static  MockMvc mockMvc;
     private static  String adminToken = null;
@@ -450,7 +452,7 @@ public class ClientAdminEndpointsMockMvcTests {
             details[i] = createBaseClient(null,null);
             details[i].setAction(ClientDetailsModification.ADD);
         }
-        
+
         String userToken = testClient.getUserOAuthAccessToken(
                 details[0].getClientId(),
                 "secret",
@@ -460,7 +462,7 @@ public class ClientAdminEndpointsMockMvcTests {
         addApprovals(userToken, details[0].getClientId());
         Approval[] approvals = getApprovals(userToken, details[0].getClientId());
         assertEquals(3, approvals.length);
-        
+
 
         String deleteId = details[5].getClientId();
         details[5].setClientId("unknown.client.id");
@@ -491,7 +493,7 @@ public class ClientAdminEndpointsMockMvcTests {
         approvals = getApprovals(userToken, details[0].getClientId());
         assertEquals(3, approvals.length);
     }
-    
+
     @Test
     public void testApprovalsAreDeleted() throws Exception {
         ClientDetails details = createClient(adminToken, new RandomValueStringGenerator().generate(), "password");
@@ -532,12 +534,12 @@ public class ClientAdminEndpointsMockMvcTests {
         assertEquals(0, approvals.length);
 
     }
-    
+
     @Test
     public void testApprovalsAreDeleted2() throws Exception {
         ClientDetails details = createClient(adminToken, new RandomValueStringGenerator().generate(), "password");
         String userToken = testClient.getUserOAuthAccessToken(
-                            details.getClientId(), 
+                            details.getClientId(),
                             "secret",
                             testUser.getUsername(),
                             testPassword,
@@ -547,7 +549,7 @@ public class ClientAdminEndpointsMockMvcTests {
         addApprovals(userToken, details.getClientId());
         approvals = getApprovals(userToken, details.getClientId());
         assertEquals(3, approvals.length);
-        
+
         MockHttpServletRequestBuilder deleteClientsPost = delete("/oauth/clients/"+details.getClientId())
                         .header("Authorization", "Bearer " + adminToken)
                         .accept(APPLICATION_JSON);
@@ -1007,7 +1009,7 @@ public class ClientAdminEndpointsMockMvcTests {
 
     private Approval[] getApprovals(String token, String clientId) throws Exception {
         String filter = "client_id eq \""+clientId+"\"";
-        
+
         MockHttpServletRequestBuilder get = get("/approvals")
                         .header("Authorization", "Bearer " + token)
                         .accept(APPLICATION_JSON)
@@ -1026,7 +1028,7 @@ public class ClientAdminEndpointsMockMvcTests {
             new Approval(null, clientId, "cloud_controller.read", expiresAt, ApprovalStatus.APPROVED,oneMinuteAgo),
             new Approval(null, clientId, "openid", expiresAt, ApprovalStatus.APPROVED,oneMinuteAgo),
             new Approval(null, clientId, "password.write", expiresAt, ApprovalStatus.APPROVED,oneMinuteAgo)};
-        
+
         MockHttpServletRequestBuilder put = put("/approvals/"+clientId)
             .header("Authorization", "Bearer " + token)
             .accept(APPLICATION_JSON)
@@ -1153,7 +1155,7 @@ public class ClientAdminEndpointsMockMvcTests {
     private ClientDetails clientFromString(String client) throws Exception {
         return (ClientDetails)fromString(client, ClientDetailsModification.class);
     }
-    
+
     private Object fromString(String body, Class<?> clazz) throws Exception {
         ObjectMapper mapper = new ObjectMapper();
         return mapper.readValue(body, clazz);
@@ -1162,11 +1164,11 @@ public class ClientAdminEndpointsMockMvcTests {
     private ClientDetails[] clientArrayFromString(String clients) throws Exception {
         return (ClientDetails[])arrayFromString(clients, ClientDetailsModification[].class);
     }
-    
+
     private Object[] arrayFromString(String body, Class<?> clazz) throws Exception {
         ObjectMapper mapper = new ObjectMapper();
         return (Object[])mapper.readValue(body, clazz);
     }
-    
+
 
 }

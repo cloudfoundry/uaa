@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.test;
 import javax.sql.DataSource;
 
 import com.googlecode.flyway.core.Flyway;
+import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
 import org.junit.After;
 import org.junit.Before;
@@ -24,7 +25,7 @@ import org.springframework.web.context.support.XmlWebApplicationContext;
 /**
  * Created by fhanik on 12/9/14.
  */
-public class JdbcTestBase {
+public class JdbcTestBase extends TestClassNullifier {
 
     protected XmlWebApplicationContext webApplicationContext;
     protected Flyway flyway;

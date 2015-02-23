@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import org.apache.commons.codec.binary.Base64;
+import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
@@ -58,7 +59,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class PasscodeMockMvcTests {
+public class PasscodeMockMvcTests extends TestClassNullifier {
 
     private XmlWebApplicationContext webApplicationContext;
     private MockMvc mockMvc;
@@ -292,7 +293,7 @@ public class PasscodeMockMvcTests {
             this.authentication = authentication;
         }
     }
-    
+
     public static class CaptureSecurityContextFilter extends GenericFilterBean {
 
         private Authentication authentication;

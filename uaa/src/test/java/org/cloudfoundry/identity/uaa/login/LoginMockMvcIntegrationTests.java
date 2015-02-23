@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -29,6 +29,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
+
+import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.login.LoginInfoEndpoint;
 import org.cloudfoundry.identity.uaa.authentication.login.Prompt;
@@ -59,7 +61,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
-public class LoginMockMvcIntegrationTests {
+public class LoginMockMvcIntegrationTests extends TestClassNullifier {
 
     private static MockEnvironment mockEnvironment = new MockEnvironment();
 
@@ -120,7 +122,7 @@ public class LoginMockMvcIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(xpath("//body/script[contains(text(),'example.com')]").exists());
     }
-    
+
     @Test
     public void testDefaultAndExternalizedBranding() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/login"))
@@ -200,7 +202,7 @@ public class LoginMockMvcIntegrationTests {
             .andExpect(xpath("//a[text()='Create account']").doesNotExist())
             .andExpect(xpath("//a[text()='Reset password']").doesNotExist());
     }
-    
+
     @Test
     public void testSignupsAndResetPasswordEnabledWithCustomLinks() throws Exception {
         mockEnvironment.setProperty("login.selfServiceLinksEnabled", "true");
@@ -211,7 +213,7 @@ public class LoginMockMvcIntegrationTests {
             .andExpect(xpath("//a[text()='Create account']/@href").string("http://example.com/signup"))
             .andExpect(xpath("//a[text()='Reset password']/@href").string("http://example.com/reset_passwd"));
     }
-    
+
     @Test
     public void testLoginWithExplicitPrompts() throws Exception {
         LoginInfoEndpoint controller = webApplicationContext.getBean(LoginInfoEndpoint.class);
@@ -310,7 +312,7 @@ public class LoginMockMvcIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("createAccountLink", "http://www.example.com/signup"));
     }
-    
+
     @Test
     public void testLocalSignupDisabled() throws Exception {
         mockEnvironment.setProperty("login.selfServiceLinksEnabled", "false");
@@ -327,5 +329,5 @@ public class LoginMockMvcIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("createAccountLink", nullValue()));
     }
-    
+
 }

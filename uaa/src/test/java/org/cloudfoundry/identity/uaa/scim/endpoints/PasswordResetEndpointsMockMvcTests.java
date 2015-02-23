@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import com.googlecode.flyway.core.Flyway;
+import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
@@ -35,13 +36,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class PasswordResetEndpointsMockMvcTests {
+public class PasswordResetEndpointsMockMvcTests extends TestClassNullifier {
 
     XmlWebApplicationContext webApplicationContext;
 
     private MockMvc mockMvc;
     private String loginToken;
-    
+
     private UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
 
     @Before

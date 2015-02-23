@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -27,6 +27,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 
 public class TestClient {
 
+    //TODO nullify fields?
     private MockMvc mockMvc;
     private final ObjectMapper objectMapper;
 
@@ -55,7 +56,7 @@ public class TestClient {
         OAuthToken oauthToken = objectMapper.readValue(result.getResponse().getContentAsByteArray(), OAuthToken.class);
         return oauthToken.accessToken;
     }
-    
+
     public String getUserOAuthAccessToken(String clientId, String clientSecret, String username, String password, String scope)
                     throws Exception {
         String basicDigestHeaderValue = "Basic "

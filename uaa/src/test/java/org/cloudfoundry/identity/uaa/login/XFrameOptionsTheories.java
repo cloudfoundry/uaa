@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
 import org.junit.Before;
 import org.junit.experimental.theories.DataPoint;
@@ -31,7 +32,7 @@ import static org.springframework.security.web.header.writers.frameoptions.XFram
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 @RunWith(Theories.class)
-public class XFrameOptionsTheories {
+public class XFrameOptionsTheories extends TestClassNullifier {
 
     @DataPoint
     public static RequestBuilder loginHtmlRequest = MockMvcRequestBuilders.get("/login").accept(MediaType.TEXT_HTML);

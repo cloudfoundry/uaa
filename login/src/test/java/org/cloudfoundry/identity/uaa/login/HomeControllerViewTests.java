@@ -1,11 +1,6 @@
 package org.cloudfoundry.identity.uaa.login;
 
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.Map;
-
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
+import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.junit.After;
 import org.junit.Before;
@@ -29,11 +24,18 @@ import org.springframework.web.servlet.config.annotation.DefaultServletHandlerCo
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
+
 @RunWith(SpringJUnit4ClassRunner.class)
 @WebAppConfiguration
 @ContextConfiguration(classes = HomeControllerViewTests.ContextConfiguration.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-public class HomeControllerViewTests {
+public class HomeControllerViewTests extends TestClassNullifier {
 
     @Autowired
     WebApplicationContext webApplicationContext;

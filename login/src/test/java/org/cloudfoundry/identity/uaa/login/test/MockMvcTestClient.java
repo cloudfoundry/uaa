@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -29,6 +29,7 @@ import java.util.regex.Pattern;
 
 public class MockMvcTestClient {
 
+    //TODO - nullify?
     private MockMvc mockMvc;
     private final ObjectMapper objectMapper;
 

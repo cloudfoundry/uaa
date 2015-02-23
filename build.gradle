@@ -6,7 +6,7 @@ buildscript {
       url 'http://repo.spring.io/plugins-release'
     }
   }
-  
+
   dependencies {
     classpath group: 'org.gradle.api.plugins', name: 'gradle-cargo-plugin', version: '1.5'
     classpath group: 'org.jfrog.buildinfo', name: 'build-info-extractor-gradle', version: '2.2.4'
@@ -49,7 +49,7 @@ allprojects {
   apply plugin: 'propdeps-eclipse'
   configurations.provided.transitive = false
   apply plugin: 'eclipse-wtp'
-  
+
   repositories {
     mavenCentral()
   }
@@ -75,8 +75,12 @@ subprojects {
   [compileJava, compileTestJava]*.options*.compilerArgs = ['-Xlint:none']
   sourceCompatibility = 1.7
   targetCompatibility = 1.7
+  test {
+    jvmArgs += [ "-XX:MaxPermSize=512m", "-Xmx2048m" ]
+  }
 
-  task packageSources(type: Jar) {
+
+    task packageSources(type: Jar) {
     classifier = 'sources'
     from sourceSets.main.allSource
 
