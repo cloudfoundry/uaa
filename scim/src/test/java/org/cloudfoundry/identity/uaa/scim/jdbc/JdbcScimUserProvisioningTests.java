@@ -12,6 +12,15 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -35,17 +44,21 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundExceptio
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
-import org.cloudfoundry.identity.uaa.zone.*;
+import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.JdbcIdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-
-import static org.junit.Assert.*;
 
 public class JdbcScimUserProvisioningTests extends JdbcTestBase {
 
@@ -60,6 +73,8 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     private static final String SQL_INJECTION_FIELDS = "password,version,created,lastModified,username,email,givenName,familyName";
 
     private static final String addUserSqlFormat = "insert into users (id, username, password, email, givenName, familyName, phoneNumber, identity_zone_id) values ('%s','%s','%s','%s','%s', '%s', '%s', '%s')";
+
+    private static final String oldAddUserSqlFormat = "insert into users (id, username, password, email, givenName, familyName, phoneNumber) values ('%s','%s','%s','%s','%s', '%s', '%s')";
 
     private static final String deleteUserSqlFormat = "delete from users where id='%s'";
 
@@ -497,6 +512,20 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         removeUser(tmpUserIdString);
     }
 
+    @Test
+    public void createUserWithNoZoneDefaultsToUAAZone() {
+        String id = UUID.randomUUID().toString();
+        jdbcTemplate.execute(String.format(oldAddUserSqlFormat, id, "test-username", "password", "test@email.com", "givenName", "familyName","1234567890"));
+        ScimUser user = db.retrieve(id);
+        assertEquals("uaa", user.getZoneId());
+    }
+    
+    @Test(expected=DuplicateKeyException.class)
+    public void createUserWithNoZoneFailsIfUserAlreadyExistsInUaaZone() {
+        addUser(UUID.randomUUID().toString(), "test-username", "password", "test@email.com", "givenName", "familyName","1234567890",defaultIdentityProviderId,"uaa");
+        jdbcTemplate.execute(String.format(oldAddUserSqlFormat, UUID.randomUUID().toString(), "test-username", "password", "test@email.com", "givenName", "familyName","1234567890"));
+    }
+    
     @Test
     public void testUpdatedVersionedUserVerified() {
         String tmpUserIdString = createUserForDelete();

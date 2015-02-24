@@ -37,7 +37,7 @@ CREATE TABLE identity_provider (
 CREATE UNIQUE INDEX key_in_zone ON identity_provider (identity_zone_id,origin_key);
 
 ALTER TABLE users ADD COLUMN identity_provider_id CHAR(36) DEFAULT NULL;
-ALTER TABLE users ADD COLUMN identity_zone_id varchar(36) DEFAULT NULL;
+ALTER TABLE users ADD COLUMN identity_zone_id varchar(36) DEFAULT 'uaa';
 
 
 -- we would do this later, when we're ready to remove users.origin
@@ -46,7 +46,7 @@ CREATE INDEX user_identity_zone ON users (identity_zone_id);
 ALTER TABLE group_membership ADD COLUMN identity_provider_id CHAR(36) DEFAULT NULL;
 CREATE INDEX identity_provider_id ON group_membership (identity_provider_id);
 
-ALTER TABLE oauth_client_details ADD COLUMN identity_zone_id CHAR(36) DEFAULT NULL;
+ALTER TABLE oauth_client_details ADD COLUMN identity_zone_id CHAR(36) DEFAULT 'uaa';
 
 CREATE TABLE client_idp (
   client_id varchar(255) NOT NULL,
