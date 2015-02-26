@@ -88,8 +88,10 @@ public class ScimUserEndpointsMockMvcTests extends TestClassNullifier {
     }
 
     private ScimUser createUser(String token, String subdomain) throws Exception {
-        ScimUser user = getScimUser();
+        return createUser(getScimUser(), token, subdomain);
+    }
 
+    private ScimUser createUser(ScimUser user, String token, String subdomain) throws Exception {
         byte[] requestBody = new ObjectMapper().writeValueAsBytes(user);
         MockHttpServletRequestBuilder post = post("/Users")
             .header("Authorization", "Bearer " + token)
@@ -116,6 +118,15 @@ public class ScimUserEndpointsMockMvcTests extends TestClassNullifier {
         user.setName(new ScimUser.Name("Joe", "User"));
         user.addEmail(email);
         return user;
+    }
+
+    @Test
+    public void testCanCreateUserWithExclamationMark() throws Exception {
+        String email = "joe!!@"+generator.generate().toLowerCase()+".com";
+        ScimUser user = getScimUser();
+        user.setUserName(email);
+        user.setPrimaryEmail(email);
+        createUser(user, scimReadWriteToken, null);
     }
 
     @Test

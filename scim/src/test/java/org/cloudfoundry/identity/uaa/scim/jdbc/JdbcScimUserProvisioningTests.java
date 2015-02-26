@@ -122,6 +122,15 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     }
 
     @Test
+    public void canCreateUserWithExclamationMarkInUsername() {
+        String userName = "jo!!@foo.com";
+        ScimUser user = new ScimUser(null, userName, "Jo", "User");
+        user.addEmail(userName);
+        ScimUser created = db.createUser(user, "j7hyqpassX");
+        assertEquals(userName, created.getUserName());
+    }
+
+    @Test
     public void canCreateUserInDefaultIdentityZone() {
         ScimUser user = new ScimUser(null, "jo@foo.com", "Jo", "User");
         user.addEmail("jo@blah.com");
