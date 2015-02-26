@@ -17,16 +17,16 @@ import java.util.List;
 public interface IdentityProviderProvisioning {
 
     public IdentityProvider create(IdentityProvider identityProvider);
-    
+
     public IdentityProvider update(IdentityProvider identityProvider);
 
     public IdentityProvider retrieve(String id);
 
-    public List<IdentityProvider> retrieveAll();
+    public List<IdentityProvider> retrieveAll(String zoneId);
 
-    public List<IdentityProvider> retrieveAll(boolean activeOnly);
+    public List<IdentityProvider> retrieveAll(boolean activeOnly, String zoneId);
 
-    public IdentityProvider retrieveByOrigin(String origin);
+    public IdentityProvider retrieveByOrigin(String origin, String zoneId);
 
 
 }

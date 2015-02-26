@@ -73,6 +73,10 @@
         <!-- IDP Discovery Service -->
         <bean id="samlIDPDiscovery" class="org.cloudfoundry.identity.uaa.login.saml.LoginSamlDiscovery"/>
 
+        <bean id="samlEntityID" class="java.lang.String">
+            <constructor-arg value="${login.entityID:unit-test-sp}"/>
+        </bean>
+
         <bean id="samlSPAlias" class="java.lang.String">
             <constructor-arg value="${login.saml.entityIDAlias:${login.entityID:unit-test-sp}}"/>
         </bean>
@@ -85,12 +89,12 @@
         <!-- Filter automatically generates default SP metadata -->
         <bean id="metadataGeneratorFilter" class="org.springframework.security.saml.metadata.MetadataGeneratorFilter">
             <constructor-arg>
-                <bean class="org.springframework.security.saml.metadata.MetadataGenerator">
+                <bean class="org.cloudfoundry.identity.uaa.login.saml.ZoneAwareMetadataGenerator">
                     <property name="extendedMetadata" ref="extendedMetaData"/>
                     <property name="requestSigned" value="${login.saml.signRequest:true}" />
                     <property name="wantAssertionSigned" value="${login.saml.wantAssertionSigned:false}" />
                     <property name="entityBaseURL" value="${login.entityBaseURL:http://localhost:8080/uaa}" />
-                    <property name="entityId" value="${login.entityID:unit-test-sp}" />
+                    <property name="entityId" ref="samlEntityID" />
                 </bean>
             </constructor-arg>
         </bean>
@@ -99,10 +103,17 @@
             and presents SP metadata there -->
         <bean id="metadataDisplayFilter" class="org.springframework.security.saml.metadata.MetadataDisplayFilter" />
 
-        <bean id="metadata" class="org.springframework.security.saml.metadata.CachingMetadataManager">
-            <constructor-arg>
-                <bean factory-bean="metaDataProviders" factory-method="getIdentityProviders"/>
-            </constructor-arg>
+        <!--<bean id="metadata" class="org.springframework.security.saml.metadata.CachingMetadataManager">-->
+            <!--<constructor-arg>-->
+                <!--<bean factory-bean="metaDataProviders" factory-method="getIdentityProviders"/>-->
+            <!--</constructor-arg>-->
+        <!--</bean>-->
+        <bean id="metadata" class="org.cloudfoundry.identity.uaa.login.saml.ZoneAwareMetadataManager" depends-on="idpBootstrap, metaDataProviders">
+            <constructor-arg name="providerDao" ref="identityProviderProvisioning"/>
+            <constructor-arg name="zoneDao" ref="identityZoneProvisioning"/>
+            <constructor-arg name="configurator" ref="metaDataProviders"/>
+            <constructor-arg name="keyManager" ref="keyManager"/>
+            <property name="refreshCheckInterval" value="${login.saml.metadataRefreshInterval:120000}"/>
         </bean>
 
         <bean name="metadataFetchingHttpClientTimer" class="java.util.Timer">
@@ -247,7 +258,12 @@
             <property name="metadataFetchingHttpClientTimer" ref="metadataFetchingHttpClientTimer" />
             <property name="httpClient" ref="metadataFetchingHttpClient" />
             <property name="parserPool" ref="parserPool"/>
+        </bean>
 
+        <bean id="providerChangeListener" class="org.cloudfoundry.identity.uaa.login.saml.ProviderChangedListener">
+            <constructor-arg name="configurator" ref="metaDataProviders"/>
+            <constructor-arg name="metadataManager" ref="metadata"/>
+            <constructor-arg name="zoneProvisioning" ref="identityZoneProvisioning"/>
         </bean>
 
         <beans profile="fileMetadata">

@@ -12,13 +12,16 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login.saml;
 
-import org.apache.commons.httpclient.protocol.ProtocolSocketFactory;
 import org.cloudfoundry.identity.uaa.login.util.FileLocator;
+import org.codehaus.jackson.annotate.JsonIgnore;
 
 import java.io.File;
 import java.io.IOException;
 
 public class IdentityProviderDefinition {
+
+    public static final String DEFAULT_HTTP_SOCKET_FACTORY = "org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory";
+    public static final String DEFAULT_HTTPS_SOCKET_FACTORY = "org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory";
 
     public static enum MetadataLocation {
         URL,
@@ -29,6 +32,7 @@ public class IdentityProviderDefinition {
 
     private String metaDataLocation;
     private String idpEntityAlias;
+    private String zoneId;
     private String nameID;
     private int assertionConsumerIndex;
     private boolean metadataTrustCheck;
@@ -37,8 +41,23 @@ public class IdentityProviderDefinition {
     private String linkText;
     private String iconUrl;
 
+    public IdentityProviderDefinition() {}
+
+    public IdentityProviderDefinition(String metaDataLocation, String idpEntityAlias, String nameID, int assertionConsumerIndex, boolean metadataTrustCheck, boolean showSamlLink, String linkText, String iconUrl, String zoneId) {
+        this.metaDataLocation = metaDataLocation;
+        this.idpEntityAlias = idpEntityAlias;
+        this.nameID = nameID;
+        this.assertionConsumerIndex = assertionConsumerIndex;
+        this.metadataTrustCheck = metadataTrustCheck;
+        this.showSamlLink = showSamlLink;
+        this.linkText = linkText;
+        this.iconUrl = iconUrl;
+        this.zoneId = zoneId;
+    }
+
+    @JsonIgnore
     public MetadataLocation getType() {
-        if (metaDataLocation.startsWith("<?xml")) {
+        if (metaDataLocation.trim().startsWith("<?xml")) {
             return MetadataLocation.DATA;
         } else if (metaDataLocation.startsWith("http")) {
             return MetadataLocation.URL;
@@ -117,9 +136,9 @@ public class IdentityProviderDefinition {
             throw new IllegalStateException("Invalid meta data URL[" + getMetaDataLocation() + "] cannot determine socket factory.");
         }
         if (getMetaDataLocation().startsWith("https")) {
-            return "org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory";
+            return DEFAULT_HTTPS_SOCKET_FACTORY;
         } else {
-            return "org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory";
+            return DEFAULT_HTTP_SOCKET_FACTORY;
         }
     }
 
@@ -127,15 +146,11 @@ public class IdentityProviderDefinition {
         this.socketFactoryClassName = socketFactoryClassName;
         if (socketFactoryClassName!=null && socketFactoryClassName.trim().length()>0) {
             try {
-                ProtocolSocketFactory test = (ProtocolSocketFactory)Class.forName(
+                Class.forName(
                     socketFactoryClassName,
                     true,
                     Thread.currentThread().getContextClassLoader()
-                ).newInstance();
-            } catch (InstantiationException e) {
-                throw new IllegalArgumentException(e);
-            } catch (IllegalAccessException e) {
-                throw new IllegalArgumentException(e);
+                );
             } catch (ClassNotFoundException e) {
                 throw new IllegalArgumentException(e);
             } catch (ClassCastException e) {
@@ -160,4 +175,51 @@ public class IdentityProviderDefinition {
         this.iconUrl = iconUrl;
     }
 
+    public String getZoneId() {
+        return zoneId;
+    }
+
+    public void setZoneId(String zoneId) {
+        this.zoneId = zoneId;
+    }
+
+    public IdentityProviderDefinition clone() {
+        return new IdentityProviderDefinition(metaDataLocation, idpEntityAlias, nameID, assertionConsumerIndex, metadataTrustCheck, showSamlLink, linkText, iconUrl, zoneId);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        IdentityProviderDefinition that = (IdentityProviderDefinition) o;
+
+        if (!idpEntityAlias.equals(that.idpEntityAlias)) return false;
+        if (!zoneId.equals(that.zoneId)) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = idpEntityAlias.hashCode();
+        result = 31 * result + zoneId.hashCode();
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return "IdentityProviderDefinition{" +
+            "idpEntityAlias='" + idpEntityAlias + '\'' +
+            ", metaDataLocation='" + metaDataLocation + '\'' +
+            ", nameID='" + nameID + '\'' +
+            ", assertionConsumerIndex=" + assertionConsumerIndex +
+            ", metadataTrustCheck=" + metadataTrustCheck +
+            ", showSamlLink=" + showSamlLink +
+            ", socketFactoryClassName='" + socketFactoryClassName + '\'' +
+            ", linkText='" + linkText + '\'' +
+            ", iconUrl='" + iconUrl + '\'' +
+            ", zoneId='" + zoneId + '\'' +
+            '}';
+    }
 }

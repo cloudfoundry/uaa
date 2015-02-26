@@ -11,13 +11,14 @@ public class MultitenancyFixture {
         identityZone.setDescription("Like the Twilight Zone but tastier.");
         return identityZone;
     }
-    
-    public static IdentityProvider identityProvider(String originKey) {
+
+    public static IdentityProvider identityProvider(String originKey, String zoneId) {
         IdentityProvider idp = new IdentityProvider();
         idp.setName(originKey+" name");
         idp.setOriginKey(originKey);
         idp.setType(originKey+" type");
         idp.setConfig(originKey+" config");
+        idp.setIdentityZoneId(zoneId);
         return idp;
     }
 }

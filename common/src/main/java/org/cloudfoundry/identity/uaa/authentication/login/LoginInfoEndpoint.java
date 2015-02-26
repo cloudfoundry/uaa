@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -49,10 +49,12 @@ import org.cloudfoundry.identity.uaa.login.AutologinRequest;
 import org.cloudfoundry.identity.uaa.login.AutologinResponse;
 import org.cloudfoundry.identity.uaa.login.PasscodeInformation;
 import org.cloudfoundry.identity.uaa.login.SamlUserDetails;
+import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
@@ -76,7 +78,7 @@ import org.springframework.web.bind.annotation.*;
 /**
  * Controller that sends login info (e.g. prompts) to clients wishing to
  * authenticate.
- * 
+ *
  * @author Dave Syer
  */
 @Controller
@@ -96,7 +98,7 @@ public class LoginInfoEndpoint {
 
     protected Environment environment;
 
-    private List<IdentityProviderDefinition> idpDefinitions;
+    private IdentityProviderConfigurator idpDefinitions;
 
     private long codeExpirationMillis = 5 * 60 * 1000;
 
@@ -116,7 +118,7 @@ public class LoginInfoEndpoint {
         this.codeExpirationMillis = codeExpirationMillis;
     }
 
-    public void setIdpDefinitions(List<IdentityProviderDefinition> idpDefinitions) {
+    public void setIdpDefinitions(IdentityProviderConfigurator idpDefinitions) {
         this.idpDefinitions = idpDefinitions;
     }
 
@@ -132,8 +134,12 @@ public class LoginInfoEndpoint {
         this.environment = environment;
     }
 
-    @Value("${login.entityID}")
-    public String entityID = "";
+
+    private String entityID = "";
+
+    public void setEntityID(String entityID) {
+        this.entityID = entityID;
+    }
 
     public LoginInfoEndpoint() {
         try {
@@ -146,6 +152,16 @@ public class LoginInfoEndpoint {
         } catch (IOException e) {
             // Ignore
         }
+    }
+
+    protected List<IdentityProviderDefinition> filterIdpsForZone() {
+        List<IdentityProviderDefinition> result = new LinkedList<>();
+        for (IdentityProviderDefinition def : idpDefinitions.getIdentityProviderDefinitions()) {
+            if (IdentityZoneHolder.get().getId().equals(def.getZoneId())) {
+                result.add(def);
+            }
+        }
+        return result;
     }
 
     private List<Prompt> prompts = Arrays.asList(new Prompt("username", "text", "Email"), new Prompt("password",
@@ -186,9 +202,10 @@ public class LoginInfoEndpoint {
         model.addAttribute("links", getLinksInfo());
 
         // Entity ID to start the discovery
-        model.addAttribute("entityID", entityID);
-        model.addAttribute("idpDefinitions", idpDefinitions);
-        for (IdentityProviderDefinition idp : idpDefinitions) {
+        model.addAttribute("entityID", UaaUrlUtils.getSubdomain() + entityID);
+        List<IdentityProviderDefinition> idps = filterIdpsForZone();
+        model.addAttribute("idpDefinitions", idps);
+        for (IdentityProviderDefinition idp : idps) {
             if(idp.isShowSamlLink()) {
                 model.addAttribute("showSamlLoginLinks", true);
                 break;

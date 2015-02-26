@@ -159,9 +159,10 @@ public class TokenMvcMockTests extends TestClassNullifier {
 
     @Before
     public void setFallback() {
+        IdentityZoneHolder.clear();
         uaaAuthorizationEndpoint.setFallbackToAuthcode(false);
     }
-    
+
     private IdentityZone setupIdentityZone(String subdomain) {
         IdentityZone zone = new IdentityZone();
         zone.setId(UUID.randomUUID().toString());
@@ -177,6 +178,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
         defaultIdp.setName("internal");
         defaultIdp.setType("internal");
         defaultIdp.setOriginKey(Origin.UAA);
+        defaultIdp.setIdentityZoneId(IdentityZoneHolder.get().getId());
         identityProviderProvisioning.create(defaultIdp);
         return  defaultIdp;
     }
@@ -235,6 +237,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
 
     @AfterClass
     public static void tearDownContext() throws Exception {
+        IdentityZoneHolder.clear();
         Flyway flyway = webApplicationContext.getBean(Flyway.class);
         flyway.clean();
         webApplicationContext.destroy();
@@ -1246,7 +1249,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .param("password", SECRET))
             .andExpect(status().isUnauthorized());
     }
-    
+
     @Test
     public void testGetClientCredentialsTokenForDefaultIdentityZone() throws Exception {
         String clientId = "testclient" + new RandomValueStringGenerator().generate();
@@ -1260,7 +1263,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .param("client_secret", SECRET))
             .andExpect(status().isOk());
     }
-    
+
     @Test
     public void testGetClientCredentialsTokenForOtherIdentityZone() throws Exception {
         String subdomain = "testzone"+new RandomValueStringGenerator();
@@ -1279,7 +1282,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .param("client_secret", SECRET))
             .andExpect(status().isOk());
     }
-    
+
     @Test
     public void testGetClientCredentialsTokenForOtherIdentityZoneFromDefaultZoneFails() throws Exception {
         String subdomain = "testzone"+new RandomValueStringGenerator();
@@ -1298,7 +1301,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .param("client_secret", SECRET))
             .andExpect(status().isUnauthorized());
     }
-    
+
     @Test
     public void testGetClientCredentialsTokenForDefaultIdentityZoneFromOtherZoneFails() throws Exception {
         String clientId = "testclient" + new RandomValueStringGenerator().generate();

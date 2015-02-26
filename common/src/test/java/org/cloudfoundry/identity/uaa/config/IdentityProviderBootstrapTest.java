@@ -27,6 +27,7 @@ import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityProviderProvisioning;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -51,7 +52,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         bootstrap.setLdapConfig(ldapConfig);
         bootstrap.afterPropertiesSet();
 
-        IdentityProvider ldapProvider = provisioning.retrieveByOrigin(Origin.LDAP);
+        IdentityProvider ldapProvider = provisioning.retrieveByOrigin(Origin.LDAP, IdentityZoneHolder.get().getId());
         assertNotNull(ldapProvider);
         assertEquals(new ObjectMapper().writeValueAsString(ldapConfig), ldapProvider.getConfig());
         assertNotNull(ldapProvider.getCreated());
@@ -79,7 +80,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         bootstrap.setSamlProviders(configurator);
         bootstrap.afterPropertiesSet();
 
-        IdentityProvider samlProvider = provisioning.retrieveByOrigin(definition.getIdpEntityAlias());
+        IdentityProvider samlProvider = provisioning.retrieveByOrigin(definition.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
         assertNotNull(samlProvider);
         assertEquals(new ObjectMapper().writeValueAsString(definition), samlProvider.getConfig());
         assertNotNull(samlProvider.getCreated());

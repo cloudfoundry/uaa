@@ -14,7 +14,7 @@
     <bean id="identityZoneProvisioning" class="org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning">
         <constructor-arg ref="jdbcTemplate" />
     </bean>
-    
+
     <bean id="identityProviderProvisioning" class="org.cloudfoundry.identity.uaa.zone.JdbcIdentityProviderProvisioning">
         <constructor-arg ref="jdbcTemplate" />
     </bean>
@@ -38,9 +38,9 @@
         <access-denied-handler ref="oauthAccessDeniedHandler" />
         <expression-handler ref="oauthWebExpressionHandler" />
     </http>
-    
+
     <bean id="denyAccessToUaaAdvice" class="org.cloudfoundry.identity.uaa.zone.DenyAccessToUaaAdvice"/>
-    
+
     <aop:config proxy-target-class="true">
         <aop:aspect ref="denyAccessToUaaAdvice">
             <aop:before method="checkIdentityZone" pointcut="execution(* *..IdentityZoneProvisioning+.update(..)) and args(identityZone)" />
@@ -48,7 +48,7 @@
             <aop:before method="checkIdentityZoneId" pointcut="execution(* *..IdentityZoneEndpoints+.updateIdentityZone(..)) and args(*,identityZoneId)" />
         </aop:aspect>
     </aop:config>
-        
+
     <bean id="identityZoneEventPublisher" class="org.cloudfoundry.identity.uaa.zone.event.IdentityZoneEventPublisher"/>
 
     <aop:config proxy-target-class="true">
@@ -69,7 +69,7 @@
         <custom-filter ref="resourceAgnosticAuthenticationFilter" before="PRE_AUTH_FILTER" />
         <expression-handler ref="oauthWebExpressionHandler" />
     </http>
-    
+
     <bean id="idpEventPublisher" class="org.cloudfoundry.identity.uaa.zone.event.IdentityProviderEventPublisher"/>
 
     <aop:config proxy-target-class="true">

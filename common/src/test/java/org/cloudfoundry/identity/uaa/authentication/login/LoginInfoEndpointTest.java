@@ -6,9 +6,11 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.InMemoryExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.oauth.RemoteUserAuthentication;
+import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
@@ -56,6 +58,7 @@ public class LoginInfoEndpointTest  {
     public void testLoginReturnsOtherZone() throws Exception {
         IdentityZone zone = new IdentityZone();
         zone.setName("some_other_zone");
+        zone.setSubdomain(zone.getName());
         IdentityZoneHolder.set(zone);
         LoginInfoEndpoint endpoint = getEndpoint();
         Model model = new ExtendedModelMap();
@@ -93,7 +96,8 @@ public class LoginInfoEndpointTest  {
     private LoginInfoEndpoint getEndpoint() {
         LoginInfoEndpoint endpoint = new LoginInfoEndpoint();
         endpoint.setBaseUrl("http://someurl");
-        endpoint.setIdpDefinitions(new ArrayList<IdentityProviderDefinition>());
+        IdentityProviderConfigurator emptyConfigurator = new IdentityProviderConfigurator();
+        endpoint.setIdpDefinitions(emptyConfigurator);
         endpoint.setEnvironment(new MockEnvironment());
         return endpoint;
     }
