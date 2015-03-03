@@ -18,7 +18,7 @@ The User Account and Authentication Service (UAA):
 
 Rather than trigger arguments about how RESTful these APIs are we'll just refer to them as JSON APIs. Most of them are defined by the specs for the OAuth2_, `OpenID Connect`_, and SCIM_ standards.
 
-.. _OAuth2: http://tools.ietf.org/id/draft-ietf-oauth-v2-26.html
+.. _OAuth2: http://tools.ietf.org/html/draft-ietf-oauth-v2-26
 .. _OpenID Connect: http://openid.net/openid-connect
 .. _SCIM: http://simplecloud.info
 
@@ -130,7 +130,7 @@ Authentication and Delegated Authorization APIs
 
 This section deals with machine interactions, not with browsers, although some of them may have browsable content for authenticated users.  All machine requests have accept headers indicating JSON (or a derived media type perhaps).
 
-The ``/userinfo``, ``/check_id``, and ``/token`` endpoints are specified in the `OpenID Connect`_ and OAuth2_ standards and should be used by web applications on a cloud foundry instance such as micro, www, support, but will not be used by flows from cf.
+The ``/userinfo``, ``/check_id``, and ``/token`` endpoints are specified in the `OpenID Connect`_ and `OAuth2`_ standards and should be used by web applications on a cloud foundry instance such as micro, www, support, but will not be used by flows from cf.
 
 A Note on OAuth Scope
 -----------------------
@@ -146,7 +146,7 @@ Resource IDs have some of the character of a scope, except that the clients them
 Authorization Code Grant
 -------------------------
 
-This is a completely vanilla as per the OAuth2_ spec, but we give a brief outline here for information purposes.
+This is a completely vanilla as per the `OAuth2`_ spec, but we give a brief outline here for information purposes.
 
 Browser Requests Code: ``GET /oauth/authorize``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -247,11 +247,11 @@ Response Body   ::
 Implicit Grant with Credentials: ``POST /oauth/authorize``
 ------------------------------------------------------------
 
-An OAuth2_ defined endpoint to provide various tokens and authorization codes.
+An `OAuth2`_ defined endpoint to provide various tokens and authorization codes.
 
 For the ``cf`` flows, we use the OAuth2 Implicit grant type (to avoid a second round trip to ``/token`` and so cf does not need to securely store a client secret or user refresh tokens). The authentication method for the user is undefined by OAuth2 but a POST to this endpoint is acceptable, although a GET must also be supported (see `OAuth2 section 3.1`_).
 
-.. _OAuth2 section 3.1: http://tools.ietf.org/id/draft-ietf-oauth-v2-26.html#rfc.section.3.1
+.. _OAuth2 section 3.1: http://tools.ietf.org/html/draft-ietf-oauth-v2-26#section-3.1
 
 Effectively this means that the endpoint is used to authenticate **and** obtain an access token in the same request.  Note the correspondence with the UI endpoints (this is similar to the ``/login`` endpoint with a different representation).
 
@@ -579,7 +579,7 @@ See `SCIM - Creating Resources`__
 __ http://www.simplecloud.info/specs/draft-scim-rest-api-01.html#create-resource
 
 * Request: ``POST /Users``
-* Request Headers: Authorization header containing an OAuth2_ bearer token with::
+* Request Headers: Authorization header containing an `OAuth2`_ bearer token with::
 
         scope = scim.write
         aud = scim
@@ -635,7 +635,7 @@ Update a User: ``PUT /Users/{id}``
 See `SCIM - Modifying with PUT <http://www.simplecloud.info/specs/draft-scim-rest-api-01.html#edit-resource-with-put>`_
 
 * Request: ``PUT /Users/{id}``
-* Request Headers: Authorization header containing an OAuth2_ bearer token with::
+* Request Headers: Authorization header containing an `OAuth2`_ bearer token with::
 
         scope = scim.write
         aud = scim
@@ -692,7 +692,7 @@ Change Password: ``PUT /Users/{id}/password``
 See `SCIM - Changing Password <http://www.simplecloud.info/specs/draft-scim-rest-api-01.html#change-password>`_
 
 * Request: ``PUT /Users/{id}/password``
-* Request Headers: Authorization header containing an OAuth2_ bearer token with::
+* Request Headers: Authorization header containing an `OAuth2`_ bearer token with::
 
         scope = password.write
         aud = password
@@ -729,7 +729,7 @@ Verify User: ``GET /Users/{id}/verify``
 
 
 * Request: ``GET /Users/{id}/verify``
-* Request Headers: Authorization header containing an OAuth2_ bearer token with::
+* Request Headers: Authorization header containing an `OAuth2`_ bearer token with::
 
         scope = scim.write
         aud = scim
@@ -768,7 +768,7 @@ Get information about a user. This is needed by to convert names and email addre
 Filters: note that, per the specification, attribute values are comma separated and the filter expressions can be combined with boolean keywords ("or" and "and").
 
 * Request: ``GET /Users?attributes={requestedAttributes}&filter={filter}``
-* Request Headers: Authorization header containing an OAuth2_ bearer token with::
+* Request Headers: Authorization header containing an `OAuth2`_ bearer token with::
 
         scope = scim.read
         aud = scim
@@ -822,7 +822,7 @@ See `SCIM - Deleting Resources <http://www.simplecloud.info/specs/draft-scim-res
 * Request: ``DELETE /Users/{id}``
 * Request Headers: 
 
-  + Authorization header containing an OAuth2_ bearer token with::
+  + Authorization header containing an `OAuth2`_ bearer token with::
 
         scope = scim.write
         aud = scim
@@ -912,7 +912,7 @@ See `SCIM - Creating Resources`__
 __ http://www.simplecloud.info/specs/draft-scim-rest-api-01.html#create-resource
 
 * Request: ``POST /Groups``
-* Request Headers: Authorization header containing an OAuth2_ bearer token with::
+* Request Headers: Authorization header containing an `OAuth2`_ bearer token with::
 
         scope = scim.write
         aud = scim
@@ -966,7 +966,7 @@ See `SCIM - Modifying with PUT <http://www.simplecloud.info/specs/draft-scim-res
 * Request: ``PUT /Groups/{id}``
 * Request Headers: 
 
-  + Authorization header containing an OAuth2_ bearer token with::
+  + Authorization header containing an `OAuth2`_ bearer token with::
 
         scope = scim.write OR groups.update
         aud = scim
@@ -1024,7 +1024,7 @@ Get information about a group, including its members and what roles they hold wi
 Filters: note that, per the specification, attribute values are comma separated and the filter expressions can be combined with boolean keywords ("or" and "and").
 
 * Request: ``GET /Groups?attributes={requestedAttributes}&filter={filter}``
-* Request Headers: Authorization header containing an OAuth2_ bearer token with::
+* Request Headers: Authorization header containing an `OAuth2`_ bearer token with::
 
         scope = scim.read
         aud = scim
@@ -1059,7 +1059,7 @@ See `SCIM - Deleting Resources <http://www.simplecloud.info/specs/draft-scim-res
 * Request: ``DELETE /Groups/{id}``
 * Request Headers: 
 
-  + Authorization header containing an OAuth2_ bearer token with::
+  + Authorization header containing an `OAuth2`_ bearer token with::
 
         scope = scim.write
         aud = scim
@@ -1170,7 +1170,7 @@ Retrieves external group mappings in the form of a search result.
 The API ``GET /Groups/External/list`` is deprecated
 
 * Request: ``GET /Groups/External``
-* Request Headers: Authorization header containing an OAuth2_ bearer token with::
+* Request Headers: Authorization header containing an `OAuth2`_ bearer token with::
 
         scope = scim.read
         aud = scim
@@ -1215,7 +1215,7 @@ Create a Group mapping: ``POST /Groups/External``
 Creates a group mapping with an internal UAA groups (scope) and an external group, for example LDAP DN.
 
 * Request: ``POST /Groups/External``
-* Request Headers: Authorization header containing an OAuth2_ bearer token with::
+* Request Headers: Authorization header containing an `OAuth2`_ bearer token with::
 
         scope = scim.write
         aud = scim
@@ -1272,7 +1272,7 @@ Removes the group mapping between an internal UAA groups (scope) and an external
 The API ``DELETE /Groups/External/id/{groupId}/{externalGroup}`` is deprecated
 
 * Request: ``DELETE /Groups/External/groupId/3ebe4bda-74a2-40c4-8b70-f771d9bc8b9f/externalGroup/cn=superusers,ou=scopes,dc=test,dc=com``
-* Request Headers: Authorization header containing an OAuth2_ bearer token with::
+* Request Headers: Authorization header containing an `OAuth2`_ bearer token with::
 
         scope = scim.write
         aud = scim
@@ -1310,7 +1310,7 @@ Removes the group mapping between an internal UAA groups (scope) and an external
 The API ``DELETE /Groups/External/{displayName}/{externalGroup}`` is deprecated
 
 * Request: ``DELETE /Groups/External/displayName/internal.everything/externalGroup/cn=superusers,ou=scopes,dc=test,dc=com``
-* Request Headers: Authorization header containing an OAuth2_ bearer token with::
+* Request Headers: Authorization header containing an `OAuth2`_ bearer token with::
 
         scope = scim.write
         aud = scim
