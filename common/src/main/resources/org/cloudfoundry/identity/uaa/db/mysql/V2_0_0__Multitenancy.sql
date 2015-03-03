@@ -37,7 +37,7 @@ CREATE TABLE `identity_provider` (
 );
 
 ALTER TABLE users ADD COLUMN identity_provider_id varchar(36) DEFAULT NULL;
-ALTER TABLE users ADD COLUMN identity_zone_id varchar(36) DEFAULT NULL;
+ALTER TABLE users ADD COLUMN identity_zone_id varchar(36) DEFAULT 'uaa';
 
 ALTER TABLE users ADD KEY `user_identity_zone` (`identity_zone_id`);
 -- we would do this later, when we're ready to remove users.origin
@@ -46,7 +46,7 @@ ALTER TABLE users ADD KEY `user_identity_zone` (`identity_zone_id`);
 ALTER TABLE group_membership ADD COLUMN identity_provider_id varchar(36) DEFAULT NULL;
 ALTER TABLE group_membership ADD KEY `identity_provider_id` (`identity_provider_id`);
 
-ALTER TABLE oauth_client_details ADD COLUMN `identity_zone_id` varchar(36) DEFAULT NULL;
+ALTER TABLE oauth_client_details ADD COLUMN `identity_zone_id` varchar(36) DEFAULT 'uaa';
 
 CREATE TABLE `client_idp` (
   `client_id` varchar(255) NOT NULL,
