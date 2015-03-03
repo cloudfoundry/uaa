@@ -324,7 +324,7 @@ authenticates in order for the user/scope relationship to be created.
 
 ## Group Mapping Configuration 
 
-The property [`ldap.groups.file`](https://github.com/cloudfoundry/uaa/blob/feature/ldap-documentation/uaa/src/main/webapp/WEB-INF/spring/ldap-integration.xml#L42-42) 
+The property [`ldap.groups.file`](https://github.com/cloudfoundry/uaa/blob/master/uaa/src/main/webapp/WEB-INF/spring/ldap-integration.xml) 
 controls what group mapping is used, and is also a reference to a Spring XML configuration file.
 The different values are
 
