@@ -72,13 +72,13 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
 
     private static final String SQL_INJECTION_FIELDS = "password,version,created,lastModified,username,email,givenName,familyName";
 
-    private static final String addUserSqlFormat = "insert into users (id, username, password, email, givenName, familyName, phoneNumber, identity_zone_id) values ('%s','%s','%s','%s','%s', '%s', '%s', '%s')";
+    private static final String ADD_USER_SQL_FORMAT = "insert into users (id, username, password, email, givenName, familyName, phoneNumber, identity_zone_id) values ('%s','%s','%s','%s','%s', '%s', '%s', '%s')";
 
-    private static final String oldAddUserSqlFormat = "insert into users (id, username, password, email, givenName, familyName, phoneNumber) values ('%s','%s','%s','%s','%s', '%s', '%s')";
+    private static final String OLD_ADD_USER_SQL_FORMAT = "insert into users (id, username, password, email, givenName, familyName, phoneNumber) values ('%s','%s','%s','%s','%s', '%s', '%s')";
 
-    private static final String deleteUserSqlFormat = "delete from users where id='%s'";
+    private static final String DELETE_USER_SQL_FORMAT = "delete from users where id='%s'";
 
-    private static final String verifyUserSqlFormat = "select verified from users where id=?";
+    private static final String VERIFY_USER_SQL_FORMAT = "select verified from users where id=?";
 
     private int existingUserCount = 0;
 
@@ -115,12 +115,12 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     private void addUser(String id, String username, String password, String email, String givenName,
                          String familyName, String phoneNumber, String identityProviderId, String identityZoneId) {
         TestUtils.assertNoSuchUser(jdbcTemplate, "id", id);
-        jdbcTemplate.execute(String.format(addUserSqlFormat, id, username, password, email, givenName, familyName,
+        jdbcTemplate.execute(String.format(ADD_USER_SQL_FORMAT, id, username, password, email, givenName, familyName,
                 phoneNumber, identityZoneId));
     }
 
     private void removeUser(String id) {
-        jdbcTemplate.execute(String.format(deleteUserSqlFormat, id));
+        jdbcTemplate.execute(String.format(DELETE_USER_SQL_FORMAT, id));
     }
 
     @After
@@ -453,7 +453,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     @Test
     public void testCreatedUserNotVerified() {
         String tmpUserIdString = createUserForDelete();
-        boolean verified = jdbcTemplate.queryForObject(verifyUserSqlFormat, Boolean.class, tmpUserIdString);
+        boolean verified = jdbcTemplate.queryForObject(VERIFY_USER_SQL_FORMAT, Boolean.class, tmpUserIdString);
         assertFalse(verified);
         ScimUser user = db.retrieve(tmpUserIdString);
         assertFalse(user.isVerified());
@@ -504,10 +504,10 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     @Test
     public void testUpdatedUserVerified() {
         String tmpUserIdString = createUserForDelete();
-        boolean verified = jdbcTemplate.queryForObject(verifyUserSqlFormat, Boolean.class, tmpUserIdString);
+        boolean verified = jdbcTemplate.queryForObject(VERIFY_USER_SQL_FORMAT, Boolean.class, tmpUserIdString);
         assertFalse(verified);
         db.verifyUser(tmpUserIdString, -1);
-        verified = jdbcTemplate.queryForObject(verifyUserSqlFormat, Boolean.class, tmpUserIdString);
+        verified = jdbcTemplate.queryForObject(VERIFY_USER_SQL_FORMAT, Boolean.class, tmpUserIdString);
         assertTrue(verified);
         removeUser(tmpUserIdString);
     }
@@ -515,7 +515,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     @Test
     public void createUserWithNoZoneDefaultsToUAAZone() {
         String id = UUID.randomUUID().toString();
-        jdbcTemplate.execute(String.format(oldAddUserSqlFormat, id, "test-username", "password", "test@email.com", "givenName", "familyName","1234567890"));
+        jdbcTemplate.execute(String.format(OLD_ADD_USER_SQL_FORMAT, id, "test-username", "password", "test@email.com", "givenName", "familyName","1234567890"));
         ScimUser user = db.retrieve(id);
         assertEquals("uaa", user.getZoneId());
     }
@@ -523,7 +523,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     @Test(expected=DuplicateKeyException.class)
     public void createUserWithNoZoneFailsIfUserAlreadyExistsInUaaZone() {
         addUser(UUID.randomUUID().toString(), "test-username", "password", "test@email.com", "givenName", "familyName","1234567890",defaultIdentityProviderId,"uaa");
-        jdbcTemplate.execute(String.format(oldAddUserSqlFormat, UUID.randomUUID().toString(), "test-username", "password", "test@email.com", "givenName", "familyName","1234567890"));
+        jdbcTemplate.execute(String.format(OLD_ADD_USER_SQL_FORMAT, UUID.randomUUID().toString(), "test-username", "password", "test@email.com", "givenName", "familyName","1234567890"));
     }
     
     @Test

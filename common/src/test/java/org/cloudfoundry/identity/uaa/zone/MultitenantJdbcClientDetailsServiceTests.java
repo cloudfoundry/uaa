@@ -39,8 +39,8 @@ public class MultitenantJdbcClientDetailsServiceTests {
 
     private static final String INSERT_SQL = "insert into oauth_client_details (client_id, client_secret, resource_ids, scope, authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, refresh_token_validity, autoapprove, identity_zone_id) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-//	private static final String CUSTOM_INSERT_SQL = "insert into ClientDetails (appId, appSecret, resourceIds, scope, grantTypes, redirectUrl, authorities) values (?, ?, ?, ?, ?, ?, ?)";
     private IdentityZone otherIdentityZone;
+    
     @Before
     public void setUp() throws Exception {
         // creates a HSQL in-memory db populated from default scripts
@@ -141,42 +141,6 @@ public class MultitenantJdbcClientDetailsServiceTests {
         assertEquals(new Integer(200),
                 clientDetails.getRefreshTokenValiditySeconds());
     }
-
-    /*
-    @Test
-    public void testLoadingClientIdWithSingleDetailsInCustomTable() {
-        jdbcTemplate.update(CUSTOM_INSERT_SQL, "clientIdWithSingleDetails",
-                "mySecret", "myResource", "myScope", "myAuthorizedGrantType",
-                "myRedirectUri", "myAuthority");
-
-        JdbcClientDetailsService customService = new JdbcClientDetailsService(
-                db);
-        customService
-                .setSelectClientDetailsSql("select appId, appSecret, resourceIds, scope, "
-                        + "grantTypes, redirectUrl, authorities, access_token_validity, refresh_token_validity, additionalInformation, autoApproveScopes from ClientDetails where appId = ?");
-
-        ClientDetails clientDetails = customService
-                .loadClientByClientId("clientIdWithSingleDetails");
-
-        assertEquals("clientIdWithSingleDetails", clientDetails.getClientId());
-        assertTrue(clientDetails.isSecretRequired());
-        assertEquals("mySecret", clientDetails.getClientSecret());
-        assertTrue(clientDetails.isScoped());
-        assertEquals(1, clientDetails.getScope().size());
-        assertEquals("myScope", clientDetails.getScope().iterator().next());
-        assertEquals(1, clientDetails.getResourceIds().size());
-        assertEquals("myResource", clientDetails.getResourceIds().iterator()
-                .next());
-        assertEquals(1, clientDetails.getAuthorizedGrantTypes().size());
-        assertEquals("myAuthorizedGrantType", clientDetails
-                .getAuthorizedGrantTypes().iterator().next());
-        assertEquals("myRedirectUri", clientDetails.getRegisteredRedirectUri()
-                .iterator().next());
-        assertEquals(1, clientDetails.getAuthorities().size());
-        assertEquals("myAuthority", clientDetails.getAuthorities().iterator()
-                .next().getAuthority());
-    }
-    */
 
     @Test
     public void testLoadingClientIdWithMultipleDetails() {
