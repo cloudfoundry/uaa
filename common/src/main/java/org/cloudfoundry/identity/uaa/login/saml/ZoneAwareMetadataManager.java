@@ -33,6 +33,7 @@ import org.opensaml.saml2.metadata.provider.ObservableMetadataProvider;
 import org.opensaml.xml.XMLObject;
 import org.opensaml.xml.security.x509.PKIXValidationInformationResolver;
 import org.opensaml.xml.signature.SignatureTrustEngine;
+import org.springframework.beans.factory.BeanNameAware;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.security.saml.key.KeyManager;
@@ -50,9 +51,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class ZoneAwareMetadataManager extends MetadataManager implements ExtendedMetadataProvider, InitializingBean, DisposableBean {
+public class ZoneAwareMetadataManager extends MetadataManager implements ExtendedMetadataProvider, InitializingBean, DisposableBean, BeanNameAware {
 
     private static final Log logger = LogFactory.getLog(ZoneAwareMetadataManager.class);
     private IdentityProviderProvisioning providerDao;
@@ -60,43 +63,78 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
     private IdentityProviderConfigurator configurator;
     private KeyManager keyManager;
     private Map<IdentityZone,ExtensionMetadataManager> metadataManagers;
+    private long refreshInterval = 30000l;
+    private long lastRefresh = 0;
+    private Timer timer;
+    private String beanName = ZoneAwareMetadataManager.class.getName()+"-"+System.identityHashCode(this);
+    private ProviderChangedListener providerChangedListener;
 
     public ZoneAwareMetadataManager(IdentityProviderProvisioning providerDao,
                                     IdentityZoneProvisioning zoneDao,
                                     IdentityProviderConfigurator configurator,
-                                    KeyManager keyManager) throws MetadataProviderException {
+                                    KeyManager keyManager,
+                                    ProviderChangedListener listener) throws MetadataProviderException {
         super(Collections.<MetadataProvider>emptyList());
         this.providerDao = providerDao;
         this.zoneDao = zoneDao;
         this.configurator = configurator;
         this.keyManager = keyManager;
         super.setKeyManager(keyManager);
+        //disable internal timer
+        super.setRefreshCheckInterval(0);
         if (metadataManagers==null) {
             metadataManagers = new ConcurrentHashMap<>();
         }
+        providerChangedListener = listener;
+    }
+
+    private class RefreshTask extends TimerTask {
+        @Override
+        public void run() {
+            try {
+                refreshAllProviders();
+            }catch (Exception x) {
+                log.error("Unable to run refresh task:", x);
+            }
+        }
+    }
+
+    @Override
+    public void setBeanName(String name) {
+        this.beanName = name;
     }
 
     @PostConstruct
-    public void checkAllProviders() {
+    public void checkAllProviders() throws MetadataProviderException {
         for (Map.Entry<IdentityZone,ExtensionMetadataManager> entry : metadataManagers.entrySet()) {
             entry.getValue().setKeyManager(keyManager);
         }
+        refreshAllProviders();
+        timer = new Timer("ZoneAwareMetadataManager.Refresh["+beanName+"]", true);
+        timer.schedule(new RefreshTask(),refreshInterval , refreshInterval);
+        providerChangedListener.setMetadataManager(this);
     }
 
     protected void refreshAllProviders() throws MetadataProviderException {
         for (IdentityZone zone : zoneDao.retrieveAll()) {
             ExtensionMetadataManager manager = getManager(zone);
+            boolean hasChanges = false;
             for (IdentityProvider provider : providerDao.retrieveAll(zone.getId())) {
-                if (Origin.SAML.equals(provider.getType())) {
+                if (Origin.SAML.equals(provider.getType()) && lastRefresh < provider.getLastModified().getTime()) {
                     try {
                         IdentityProviderDefinition definition = JsonUtils.readValue(provider.getConfig(), IdentityProviderDefinition.class);
                         manager.addMetadataProvider(configurator.addIdentityProviderDefinition(definition));
+                        hasChanges = true;
                     } catch (JsonUtils.JsonUtilException x) {
                         logger.error("Unable to load provider:"+provider, x);
                     }
                 }
             }
+            if (hasChanges) {
+                refreshZoneManager(manager);
+            }
         }
+        lastRefresh = System.currentTimeMillis();
     }
 
     protected ExtensionMetadataManager getManager(IdentityZone zone) {
@@ -251,7 +289,7 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
 
     @Override
     public void setRefreshCheckInterval(long refreshCheckInterval) {
-        getManager().setRefreshCheckInterval(refreshCheckInterval);
+        this.refreshInterval = refreshCheckInterval;
     }
 
     @Override
@@ -326,7 +364,16 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
 
     @Override
     public void destroy() {
-
+        if (timer != null) {
+            timer.cancel();
+            timer.purge();
+            timer = null;
+        }
+        for (Map.Entry<IdentityZone,ExtensionMetadataManager> manager : metadataManagers.entrySet()) {
+            manager.getValue().destroy();
+        }
+        metadataManagers.clear();
+        super.destroy();
     }
 
     @Override
@@ -334,10 +381,33 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
         return super.getExtendedMetadata(entityID);
     }
 
+    protected void refreshZoneManager(ExtensionMetadataManager manager) {
+        try {
+
+            log.trace("Executing metadata refresh task");
+
+            // Invoking getMetadata performs a refresh in case it's needed
+            // Potentially expensive operation, but other threads can still load existing cached data
+            for (MetadataProvider provider : manager.getProviders()) {
+                provider.getMetadata();
+            }
+
+            // Refresh the metadataManager if needed
+            if (manager.isRefreshRequired()) {
+                manager.refreshMetadata();
+            }
+
+        } catch (Throwable e) {
+            log.warn("Metadata refreshing has failed", e);
+        }
+    }
+
     //just so that we can override protected methods
     public static class ExtensionMetadataManager extends CachingMetadataManager {
         public ExtensionMetadataManager(List<MetadataProvider> providers) throws MetadataProviderException {
             super(providers);
+            //disable internal timers (they only get created when afterPropertiesSet)
+            setRefreshCheckInterval(0);
         }
 
         @Override

@@ -29,20 +29,21 @@ import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
 public class ProviderChangedListener implements ApplicationListener<IdentityProviderModifiedEvent> {
 
     private static final Log logger = LogFactory.getLog(ProviderChangedListener.class);
-    private final ZoneAwareMetadataManager metadataManager;
+    private ZoneAwareMetadataManager metadataManager = null;
     private final IdentityProviderConfigurator configurator;
     private final IdentityZoneProvisioning zoneProvisioning;
 
     public ProviderChangedListener(IdentityProviderConfigurator configurator,
-                                   ZoneAwareMetadataManager metadataManager,
                                    IdentityZoneProvisioning zoneProvisioning) {
         this.configurator = configurator;
-        this.metadataManager = metadataManager;
         this.zoneProvisioning = zoneProvisioning;
     }
 
     @Override
     public void onApplicationEvent(IdentityProviderModifiedEvent event) {
+        if (metadataManager==null) {
+            return;
+        }
         IdentityProvider provider = (IdentityProvider)event.getSource();
         if (Origin.SAML.equals(provider.getType())) {
             ExtendedMetadataDelegate delegate =
@@ -56,4 +57,11 @@ public class ProviderChangedListener implements ApplicationListener<IdentityProv
         }
     }
 
+    public ZoneAwareMetadataManager getMetadataManager() {
+        return metadataManager;
+    }
+
+    public void setMetadataManager(ZoneAwareMetadataManager metadataManager) {
+        this.metadataManager = metadataManager;
+    }
 }
