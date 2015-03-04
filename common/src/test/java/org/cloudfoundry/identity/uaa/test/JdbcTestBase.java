@@ -47,6 +47,7 @@ public class JdbcTestBase extends TestClassNullifier {
     @After
     public void tearDown() throws Exception {
         flyway.clean();
+        ((org.apache.tomcat.jdbc.pool.DataSource)dataSource).close(true);
         webApplicationContext.destroy();
     }
 }

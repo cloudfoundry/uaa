@@ -96,6 +96,7 @@ public class AccountsControllerIntegrationTest extends TestClassNullifier {
     public void tearDown() throws Exception {
         Flyway flyway = webApplicationContext.getBean(Flyway.class);
         flyway.clean();
+        webApplicationContext.destroy();
     }
 
     @AfterClass

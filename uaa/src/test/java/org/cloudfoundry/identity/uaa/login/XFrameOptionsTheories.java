@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.experimental.theories.DataPoint;
 import org.junit.experimental.theories.Theories;
@@ -54,6 +55,11 @@ public class XFrameOptionsTheories extends TestClassNullifier {
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
             .addFilter(springSecurityFilterChain)
             .build();
+    }
+
+    @After
+    public void tearDown() {
+        webApplicationContext.destroy();
     }
 
     @Theory

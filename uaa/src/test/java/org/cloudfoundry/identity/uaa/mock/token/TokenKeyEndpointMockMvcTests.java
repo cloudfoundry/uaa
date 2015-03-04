@@ -109,6 +109,7 @@ public class TokenKeyEndpointMockMvcTests extends TestClassNullifier {
     public void tearDown() throws Exception {
 //        System.clearProperty("jwt.token.signing-key");
 //        System.clearProperty("jwt.token.verification-key");
+        webApplicationContext.destroy();
     }
 
     @Test

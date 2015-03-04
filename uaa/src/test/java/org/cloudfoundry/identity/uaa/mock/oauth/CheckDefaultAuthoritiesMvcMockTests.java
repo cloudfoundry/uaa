@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.mock.oauth;
 
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -47,6 +48,11 @@ public class CheckDefaultAuthoritiesMvcMockTests extends TestClassNullifier {
         clientRegistrationService = webApplicationContext.getBean(ClientRegistrationService.class);
 
         defaultAuthorities = (Set<String>) webApplicationContext.getBean("defaultUserAuthorities");
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        webApplicationContext.destroy();
     }
 
     @Test

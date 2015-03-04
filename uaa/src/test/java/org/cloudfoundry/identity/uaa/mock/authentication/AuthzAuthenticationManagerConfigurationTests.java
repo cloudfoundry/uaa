@@ -26,6 +26,7 @@ import org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticatio
 import org.cloudfoundry.identity.uaa.authentication.manager.CheckIdpEnabledAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.mock.env.MockEnvironment;
@@ -43,6 +44,13 @@ public class AuthzAuthenticationManagerConfigurationTests {
         webApplicationContext.setEnvironment(environment);
         new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "uaa.yml,login.yml");
         webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        webApplicationContext.destroy();
+        webApplicationContext = null;
+        environment = null;
     }
     /**
      * We have a condition in the AutzhAuthenticationManager that automatically
