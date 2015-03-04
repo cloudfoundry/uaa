@@ -278,6 +278,7 @@ test.dependsOn subprojects.test
 class TimingsListener implements TaskExecutionListener, BuildListener, org.gradle.api.tasks.testing.TestListener {
   private Clock clock
   private Clock testClock;
+  private int beforeCount;
   private timings = []
   private testTimings = []
   private final testLimit = 5000
@@ -315,6 +316,7 @@ class TimingsListener implements TaskExecutionListener, BuildListener, org.gradl
   @Override
   public void beforeSuite(TestDescriptor suite) {
     testClock = new org.gradle.util.Clock()
+//    beforeCount = checkConnections("Before",suite);
   }
 
   @Override
@@ -322,6 +324,32 @@ class TimingsListener implements TaskExecutionListener, BuildListener, org.gradl
     def ms = testClock.timeInMs
     testTimings.add([ms, suite.getName()])
     currentTask.project.logger.warn "${suite.name} took ${ms}ms"
+//    int afterCount = checkConnections("After",suite);
+//    if (afterCount > beforeCount && beforeCount >= 0 ) {
+//      System.err.println("Connection leak["+suite.getName()+"]:"+afterCount);
+//    }
+  }
+
+  public int checkConnections(String action, TestDescriptor suite) {
+    java.sql.Connection con = null;
+    int count = -1;
+    try {
+      java.sql.Driver driver = Class.forName("org.postgresql.Driver").newInstance();
+      java.util.Properties p = new java.util.Properties();
+      p.setProperty("user","root");
+      p.setProperty("password","changeme");
+      con = driver.connect("jdbc:postgresql:uaa", p);
+      java.sql.Statement st = con.createStatement();
+      java.sql.ResultSet rs = st.executeQuery("select count(*) from pg_stat_activity");
+      rs.next();
+      count = rs.getInt(1);
+      System.err.println(action+" Connection count["+suite.getName()+"] is: "+count);
+    } finally {
+      if (con!=null) {
+        try { con.close();} catch (Exception ignore) {}
+      }
+    }
+    return count;
   }
 
   @Override
