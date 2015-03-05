@@ -15,10 +15,14 @@ package org.cloudfoundry.identity.uaa.login.saml;
 import org.apache.commons.httpclient.HttpClient;
 import org.cloudfoundry.identity.uaa.config.YamlMapFactoryBean;
 import org.cloudfoundry.identity.uaa.config.YamlProcessor;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.saml.trust.httpclient.TLSProtocolSocketFactory;
 
 import java.util.ArrayList;
@@ -27,6 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Timer;
+import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -167,6 +172,52 @@ public class IdentityProviderConfiguratorTests {
         assertEquals(IdentityProviderDefinition.DEFAULT_HTTPS_SOCKET_FACTORY, singleAdd.getSocketFactoryClassName());
         singleAdd.setSocketFactoryClassName(TLSProtocolSocketFactory.class.getName());
         assertEquals(TLSProtocolSocketFactory.class.getName(), singleAdd.getSocketFactoryClassName());
+    }
+
+    @Test
+    public void testGetIdentityProviderDefinitionsForZone() throws Exception {
+        String zoneId = UUID.randomUUID().toString();
+        IdentityZone zone = MultitenancyFixture.identityZone(zoneId, "test-zone");
+
+        IdentityProviderDefinition identityProviderDefinition = new IdentityProviderDefinition(xml, "zoneIdpAlias","sample-nameID",1,true,true,"sample-link-test","sample-icon-url",zoneId);
+        conf.addIdentityProviderDefinition(identityProviderDefinition);
+
+        List<IdentityProviderDefinition> idps = conf.getIdentityProviderDefinitionsForZone(zone);
+        assertEquals(1, idps.size());
+        assertEquals("zoneIdpAlias", idps.get(0).getIdpEntityAlias());
+    }
+
+    @Test
+    public void testGetIdentityProviderDefinititonsForClient() throws Exception {
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        List<String> clientIdpAliases = Arrays.asList("vsphere.local", "okta-local-2");
+        clientDetails.addAdditionalInformation("allowedproviders", clientIdpAliases);
+
+        conf.setIdentityProviders(data);
+        List<IdentityProviderDefinition> clientIdps = conf.getIdentityProviderDefinitionsForClient(clientIdpAliases, IdentityZoneHolder.get(), false);
+        assertEquals(2, clientIdps.size());
+        assertTrue(clientIdpAliases.contains(clientIdps.get(0).getIdpEntityAlias()));
+        assertTrue(clientIdpAliases.contains(clientIdps.get(1).getIdpEntityAlias()));
+    }
+
+    @Test
+    public void testReturnAllIdpsInZoneForClientWithNoAllowedProviders() throws Exception {
+        conf.setIdentityProviders(data);
+        IdentityProviderDefinition identityProviderDefinitionInOtherZone = new IdentityProviderDefinition(xml, "zoneIdpAlias","sample-nameID",1,true,true,"sample-link-test","sample-icon-url","other-zone-id");
+        conf.addIdentityProviderDefinition(identityProviderDefinitionInOtherZone);
+
+        List<IdentityProviderDefinition> clientIdps = conf.getIdentityProviderDefinitionsForClient(null, IdentityZoneHolder.get(), false);
+        assertEquals(5, clientIdps.size());
+    }
+
+    @Test
+    public void testReturnNoIdpsInZoneForClientWithNoAllowedProviders() throws Exception {
+        conf.setIdentityProviders(data);
+        IdentityProviderDefinition identityProviderDefinitionInOtherZone = new IdentityProviderDefinition(xml, "zoneIdpAlias","sample-nameID",1,true,true,"sample-link-test","sample-icon-url","other-zone-id");
+        conf.addIdentityProviderDefinition(identityProviderDefinitionInOtherZone);
+
+        List<IdentityProviderDefinition> clientIdps = conf.getIdentityProviderDefinitionsForClient(null, IdentityZoneHolder.get(), true);
+        assertEquals(0, clientIdps.size());
     }
 
     @Test

@@ -23,7 +23,6 @@ import org.opensaml.saml2.metadata.provider.FilesystemMetadataProvider;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.opensaml.xml.parse.BasicParserPool;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.config.InstantiationAwareBeanPostProcessor;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
 import org.springframework.util.StringUtils;
@@ -56,6 +55,31 @@ public class IdentityProviderConfigurator implements InitializingBean {
     public List<IdentityProviderDefinition> getIdentityProviderDefinitions() {
         return Collections.unmodifiableList(identityProviders);
     }
+
+    public List<IdentityProviderDefinition> getIdentityProviderDefinitionsForZone(IdentityZone zone) {
+        List<IdentityProviderDefinition> result = new LinkedList<>();
+        for (IdentityProviderDefinition def : getIdentityProviderDefinitions()) {
+            if (zone.getId().equals(def.getZoneId())) {
+                result.add(def);
+            }
+        }
+        return result;
+    }
+
+    public List<IdentityProviderDefinition> getIdentityProviderDefinitionsForClient(List<String> allowedIdps, IdentityZone zone, boolean allowEmptyDefaultIdpList) {
+        List<IdentityProviderDefinition> idpsInTheZone = getIdentityProviderDefinitionsForZone(zone);
+        if (allowedIdps != null && !allowedIdps.isEmpty()) {
+            List<IdentityProviderDefinition> result = new LinkedList<>();
+            for (IdentityProviderDefinition def : idpsInTheZone) {
+                if (allowedIdps.contains(def.getIdpEntityAlias())) {
+                    result.add(def);
+                }
+            }
+            return result;
+        }
+        return allowEmptyDefaultIdpList ? Collections.<IdentityProviderDefinition>emptyList() : idpsInTheZone;
+    }
+
     protected List<IdentityProviderDefinition> parseIdentityProviderDefinitions() {
         List<IdentityProviderDefinition> providerDefinitions = new LinkedList<>(identityProviders);
         if (getLegacyIdpMetaData()!=null) {

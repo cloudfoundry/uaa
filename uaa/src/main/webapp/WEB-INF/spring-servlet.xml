@@ -235,6 +235,7 @@
         <property name="links" ref="links" />
         <property name="entityID" ref="samlEntityID"/>
         <property name="idpDefinitions" ref="metaDataProviders"/>
+        <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
         <property name="prompts">
             <util:list>
                 <bean class="org.cloudfoundry.identity.uaa.authentication.login.Prompt">
