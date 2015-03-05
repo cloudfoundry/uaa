@@ -41,7 +41,7 @@
     <sec:http pattern="/favicon.ico" security="none" />
     <sec:http pattern="/info" security="none" />
     <sec:http pattern="/password/**" security="none" />
-    <sec:http pattern="/healthz/**" security="none" />
+    <sec:http pattern="/healthz/**" security="none" name="healthz"/>
     <sec:http pattern="/saml/web/**" security="none" />
     <sec:http pattern="/vendor/**" security="none" />
     <!--<sec:http pattern="/login" security="none" />-->
@@ -56,7 +56,7 @@
     <bean id="oauth2TokenParseFilter" class="java.lang.Class" factory-method="forName">
         <constructor-arg value="org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationProcessingFilter"/>
     </bean>
-	<bean id="corsFilter" class="org.cloudfoundry.identity.uaa.web.CorsFilter"/>
+    <bean id="corsFilter" class="org.cloudfoundry.identity.uaa.web.CorsFilter"/>
 
     <bean class="org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor">
         <property name="requireHttps" value="${require_https:false}" />
@@ -64,6 +64,11 @@
         <property name="redirectToHttps">
             <list>
                 <value>uiSecurity</value>
+            </list>
+        </property>
+        <property name="ignore">
+            <list>
+                <value>healthz</value>
             </list>
         </property>
         <property name="errorMap">
