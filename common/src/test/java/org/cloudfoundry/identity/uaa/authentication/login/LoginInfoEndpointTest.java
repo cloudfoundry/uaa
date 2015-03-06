@@ -4,6 +4,7 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.InMemoryExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfigurator;
@@ -170,7 +171,7 @@ public class LoginInfoEndpointTest  {
         // mock Client service
         BaseClientDetails clientDetails = new BaseClientDetails();
         clientDetails.setClientId("client-id");
-        clientDetails.addAdditionalInformation("allowedproviders", allowedProviders);
+        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("my-client-awesome-idp"));
         ClientDetailsService clientDetailsService = mock(ClientDetailsService.class);
         when(clientDetailsService.loadClientByClientId("client-id")).thenReturn(clientDetails);
 

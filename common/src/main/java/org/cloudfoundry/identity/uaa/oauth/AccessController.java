@@ -28,6 +28,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
@@ -114,7 +115,7 @@ public class AccessController {
 
             // Find the auto approved scopes for this clients
             Map<String, Object> additionalInfo = client.getAdditionalInformation();
-            Object autoApproved = additionalInfo.get("autoapprove");
+            Object autoApproved = additionalInfo.get(ClientConstants.AUTO_APPROVE);
             Set<String> autoApprovedScopes = new HashSet<String>();
             if (autoApproved instanceof Collection<?>) {
                 @SuppressWarnings("unchecked")

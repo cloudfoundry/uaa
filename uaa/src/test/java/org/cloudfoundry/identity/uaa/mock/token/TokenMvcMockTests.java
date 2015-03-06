@@ -17,6 +17,7 @@ import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authorization.UaaAuthorizationEndpoint;
+import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.Claims;
 import org.cloudfoundry.identity.uaa.oauth.token.SignerProvider;
 import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenServices;
@@ -187,14 +188,20 @@ public class TokenMvcMockTests extends TestClassNullifier {
         setUpClients(id,authorities,scopes,grantTypes,autoapprove,null);
     }
     protected void setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri) {
+        setUpClients(id, authorities, scopes, grantTypes, autoapprove, redirectUri, null);
+    }
+    protected void setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps) {
         BaseClientDetails c = new BaseClientDetails(id, "", scopes, grantTypes, authorities);
         c.setClientSecret(SECRET);
         c.setRegisteredRedirectUri(new HashSet<>(Arrays.asList(TEST_REDIRECT_URI)));
-        Map<String,String> additional = new HashMap<>();
-        additional.put("autoapprove",autoapprove.toString());
+        Map<String, Object> additional = new HashMap<>();
+        additional.put(ClientConstants.AUTO_APPROVE,autoapprove.toString());
         c.setAdditionalInformation(additional);
         if (StringUtils.hasText(redirectUri)) {
             c.setRegisteredRedirectUri(new HashSet<>(Arrays.asList(redirectUri)));
+        }
+        if (allowedIdps!=null && !allowedIdps.isEmpty()) {
+            additional.put(ClientConstants.ALLOWED_PROVIDERS, allowedIdps);
         }
         clientDetailsService.addClientDetails(c);
     }

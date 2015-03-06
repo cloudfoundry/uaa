@@ -23,6 +23,7 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReport;
 import org.cloudfoundry.identity.uaa.error.UaaException;
@@ -111,7 +112,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
             ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
 
             Map<String, Object> additionalInfo = client.getAdditionalInformation();
-            Object autoApproved = additionalInfo.get("autoapprove");
+            Object autoApproved = additionalInfo.get(ClientConstants.AUTO_APPROVE);
             Set<String> autoApprovedScopes = new HashSet<String>();
             if (autoApproved instanceof Collection<?>) {
                 @SuppressWarnings("unchecked")

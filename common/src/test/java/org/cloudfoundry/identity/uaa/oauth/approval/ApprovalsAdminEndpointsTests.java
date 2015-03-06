@@ -22,6 +22,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
+import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
@@ -68,7 +70,7 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
         InMemoryClientDetailsService clientDetailsService = new InMemoryClientDetailsService();
         BaseClientDetails details = new BaseClientDetails("c1", "scim,clients", "read,write",
                         "authorization_code, password, implicit, client_credentials", "update");
-        details.addAdditionalInformation("autoapprove", "true");
+        details.addAdditionalInformation(ClientConstants.AUTO_APPROVE, "true");
         clientDetailsService.setClientDetailsStore(Collections
                         .singletonMap("c1", details));
         endpoints.setClientDetailsService(clientDetailsService);

@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.test.LoginServerClassRunner;
@@ -217,7 +218,7 @@ public class SamlLoginIT {
         BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "openid", "authorization_code", "uaa.none", "http://localhost:8080/login");
         clientDetails.setClientSecret("secret");
         List<String> idps = Arrays.asList("okta-local", "okta-local-2");
-        clientDetails.addAdditionalInformation("allowedproviders", idps);
+        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, idps);
 
         testClient.createClient(adminAccessToken, clientDetails);
 

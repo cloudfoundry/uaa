@@ -28,6 +28,7 @@ import java.util.regex.Pattern;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
@@ -92,7 +93,7 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
             }
             Map<String, Object> additionalInfo = client.getAdditionalInformation();
             if (null != additionalInfo) {
-                Object autoApproved = additionalInfo.get("autoapprove");
+                Object autoApproved = additionalInfo.get(ClientConstants.AUTO_APPROVE);
                 if (null != autoApproved && autoApproved instanceof Collection<?>) {
                     @SuppressWarnings("unchecked")
                     Collection<? extends String> scopes = (Collection<? extends String>) autoApproved;

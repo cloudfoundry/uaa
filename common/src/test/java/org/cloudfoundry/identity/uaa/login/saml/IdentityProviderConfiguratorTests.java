@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.login.saml;
 
 import org.apache.commons.httpclient.HttpClient;
+import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.config.YamlMapFactoryBean;
 import org.cloudfoundry.identity.uaa.config.YamlProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -191,7 +192,7 @@ public class IdentityProviderConfiguratorTests {
     public void testGetIdentityProviderDefinititonsForAllowedProviders() throws Exception {
         BaseClientDetails clientDetails = new BaseClientDetails();
         List<String> clientIdpAliases = Arrays.asList("vsphere.local", "okta-local-2");
-        clientDetails.addAdditionalInformation("allowedproviders", clientIdpAliases);
+        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, clientIdpAliases);
 
         conf.setIdentityProviders(data);
         List<IdentityProviderDefinition> clientIdps = conf.getIdentityProviderDefinitions(clientIdpAliases, IdentityZoneHolder.get(), false);

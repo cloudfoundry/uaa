@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
@@ -742,7 +743,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
 
         // start with scopes listed as autoapprove in client config
-        Object autoApproved = client.getAdditionalInformation().get("autoapprove");
+        Object autoApproved = client.getAdditionalInformation().get(ClientConstants.AUTO_APPROVE);
         Set<String> autoApprovedScopes = new HashSet<>();
         if (autoApproved instanceof Collection<?>) {
             @SuppressWarnings("unchecked")

@@ -25,6 +25,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
+
+import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.oauth.approval.JdbcApprovalStore;
@@ -207,8 +209,8 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
                     "cloud_controller.read",
                     "cloud_controller.write", 
                     "openid"
-                }, 
-                Collections.singletonMap("autoapprove", (Object) "true")
+                    },
+                Collections.singletonMap(ClientConstants.AUTO_APPROVE, (Object) "true")
             )
         );
 
@@ -319,7 +321,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
                 "cloud_controller.write", 
                 "openid"
             },
-            Collections.singletonMap("autoapprove",(Object) Collections.singletonList("cloud_controller.write"))));
+            Collections.singletonMap(ClientConstants.AUTO_APPROVE,(Object) Collections.singletonList("cloud_controller.write"))));
 
         approvalStore.addApproval(new Approval(userId, "foo", "openid", nextWeek, APPROVED));
         approvalStore.addApproval(new Approval(userId, "foo", "cloud_controller.read",nextWeek, APPROVED));
@@ -360,7 +362,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
                 "openid",
                 "space.*.developer"
             },
-            Collections.singletonMap("autoapprove",(Object) Arrays.asList("space.*.developer", "cloud_controller.write"))));
+            Collections.singletonMap(ClientConstants.AUTO_APPROVE,(Object) Arrays.asList("space.*.developer", "cloud_controller.write"))));
 
         approvalStore.addApproval(new Approval(userId, "foo", "openid", nextWeek, APPROVED));
         approvalStore.addApproval(new Approval(userId, "foo", "cloud_controller.read",nextWeek, APPROVED));
@@ -401,7 +403,7 @@ public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
                 "openid",
                 "space.*.developer"
             },
-            Collections.singletonMap("autoapprove", (Object) "true")));
+            Collections.singletonMap(ClientConstants.AUTO_APPROVE, (Object) "true")));
 
         approvalStore.addApproval(new Approval(userId, "foo", "openid", nextWeek, APPROVED));
         approvalStore.addApproval(new Approval(userId, "foo", "cloud_controller.read",nextWeek, APPROVED));

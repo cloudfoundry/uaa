@@ -19,6 +19,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 import java.util.Collections;
 
+import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -63,8 +64,8 @@ public class UaaUserApprovalHandlerTests {
     public void testAutoApproveAll() {
         BaseClientDetails client = new BaseClientDetails("client", "none", "read,write", "authorization_code",
                         "uaa.none");
-        client.setAdditionalInformation(Collections.singletonMap("autoapprove", true));
-        Mockito.when(clientDetailsService.loadClientByClientId("client")).thenReturn(client);
+        client.setAdditionalInformation(Collections.singletonMap(ClientConstants.AUTO_APPROVE, true));
+            Mockito.when(clientDetailsService.loadClientByClientId("client")).thenReturn(client);
         assertTrue(handler.isApproved(authorizationRequest, userAuthentication));
     }
 
@@ -73,9 +74,9 @@ public class UaaUserApprovalHandlerTests {
         BaseClientDetails client = new BaseClientDetails("client", "none", "read,write", "authorization_code",
                         "uaa.none");
         Mockito.when(clientDetailsService.loadClientByClientId("client")).thenReturn(client);
-        client.setAdditionalInformation(Collections.singletonMap("autoapprove", Collections.singleton("read")));
+        client.setAdditionalInformation(Collections.singletonMap(ClientConstants.AUTO_APPROVE, Collections.singleton("read")));
         assertTrue(handler.isApproved(authorizationRequest, userAuthentication));
-        client.setAdditionalInformation(Collections.singletonMap("autoapprove", Collections.singleton("write")));
+        client.setAdditionalInformation(Collections.singletonMap(ClientConstants.AUTO_APPROVE, Collections.singleton("write")));
         assertFalse(handler.isApproved(authorizationRequest, userAuthentication));
     }
 

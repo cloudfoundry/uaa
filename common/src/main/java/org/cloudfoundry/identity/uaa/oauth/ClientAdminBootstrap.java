@@ -23,6 +23,7 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -128,7 +129,7 @@ public class ClientAdminBootstrap implements InitializingBean {
             }
             BaseClientDetails base = new BaseClientDetails(client);
             Map<String, Object> info = new HashMap<String, Object>(client.getAdditionalInformation());
-            info.put("autoapprove", true);
+            info.put(ClientConstants.AUTO_APPROVE, true);
             base.setAdditionalInformation(info);
             logger.debug("Adding autoapprove flag: " + base);
             clientRegistrationService.updateClientDetails(base);

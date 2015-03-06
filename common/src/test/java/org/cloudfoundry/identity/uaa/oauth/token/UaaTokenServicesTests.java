@@ -17,6 +17,7 @@ import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.Claims;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
@@ -83,7 +84,7 @@ public class UaaTokenServicesTests {
     public static final String CLIENT_CREDENTIALS = "client_credentials";
     public static final String AUTHORIZATION_CODE = "authorization_code";
     public static final String REFRESH_TOKEN = "refresh_token";
-    public static final String AUTOAPPROVE = "autoapprove";
+    public static final String AUTOAPPROVE = ClientConstants.AUTO_APPROVE;
     public static final String IMPLICIT = "implicit";
     public static final String UPDATE = "update";
     public static final String CANNOT_READ_TOKEN_CLAIMS = "Cannot read token claims";

@@ -13,6 +13,7 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.junit.After;
@@ -97,9 +98,9 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         map.put("authorized-grant-types", "authorization_code");
         map.put("authorities", "uaa.none");
         map.put("signup_redirect_url", "callback_url");
-        map.put("allowedproviders", idps);
+        map.put(ClientConstants.ALLOWED_PROVIDERS, idps);
         ClientDetails created = doSimpleTest(map);
-        assertEquals(idps, created.getAdditionalInformation().get("allowedproviders"));
+        assertEquals(idps, created.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS));
     }
 
     @Test
@@ -134,7 +135,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         bootstrap.afterPropertiesSet();
         verify(clientRegistrationService).addClientDetails(output);
         BaseClientDetails updated = new BaseClientDetails(output);
-        updated.setAdditionalInformation(Collections.singletonMap("autoapprove", true));
+        updated.setAdditionalInformation(Collections.singletonMap(ClientConstants.AUTO_APPROVE, true));
         verify(clientRegistrationService).updateClientDetails(updated);
     }
 
