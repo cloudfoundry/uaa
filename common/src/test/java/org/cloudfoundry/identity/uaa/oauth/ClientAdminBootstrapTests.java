@@ -33,6 +33,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
@@ -88,7 +89,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
 
     @Test
     public void testAllowedIdentityProvidersAsAdditionalInformation() throws Exception {
-        String idps = "idp1,idp1";
+        List<String> idps = Arrays.asList("idp1", "idp1");
         Map<String, Object> map = new HashMap<>();
         map.put("id", "foo");
         map.put("secret", "bar");

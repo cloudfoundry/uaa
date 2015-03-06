@@ -17,7 +17,9 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.test.LoginServerClassRunner;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
@@ -38,6 +40,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
@@ -45,9 +48,13 @@ import org.springframework.web.client.RestTemplate;
 import java.net.Inet4Address;
 import java.net.UnknownHostException;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeTrue;
@@ -73,6 +80,9 @@ public class SamlLoginIT {
     @Autowired
     TestAccounts testAccounts;
 
+    @Autowired
+    TestClient testClient;
+
     @Before
     @After
     public void clearWebDriverOfCookies() throws Exception {
@@ -83,7 +93,6 @@ public class SamlLoginIT {
         webDriver.get(baseUrl.replace("localhost", "testzone2.localhost") + "/logout.do");
         webDriver.manage().deleteAllCookies();
     }
-
 
     @Test
     public void testSamlVariations() throws Exception {
@@ -198,6 +207,24 @@ public class SamlLoginIT {
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
         webDriver.get(baseUrl + "/logout.do");
         webDriver.get(testZone1Url + "/logout.do");
+    }
+
+    @Test
+    public void testLoginPageShowsIDPsForAuthcodeClient() throws Exception {
+        String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret");
+
+        String clientId = UUID.randomUUID().toString();
+        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "openid", "authorization_code", "uaa.none", "http://localhost:8080/login");
+        clientDetails.setClientSecret("secret");
+        List<String> idps = Arrays.asList("okta-local", "okta-local-2");
+        clientDetails.addAdditionalInformation("allowedproviders", idps);
+
+        testClient.createClient(adminAccessToken, clientDetails);
+
+        webDriver.get(baseUrl + "/oauth/authorize?client_id=" + clientId + "&redirect_uri=http%3A%2F%2Flocalhost%3A8888%2Flogin&response_type=code&state=8tp0tR");
+        assertEquals(2, webDriver.findElements(By.className("saml-login-link")).size());
+        webDriver.findElement(By.xpath("//a[text()='Okta Preview 1']"));
+        webDriver.findElement(By.xpath("//a[text()='Okta Preview 2']"));
     }
 
     protected boolean doesSupportZoneDNS() {
