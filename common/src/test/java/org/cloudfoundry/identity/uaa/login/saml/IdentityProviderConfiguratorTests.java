@@ -188,13 +188,13 @@ public class IdentityProviderConfiguratorTests {
     }
 
     @Test
-    public void testGetIdentityProviderDefinititonsForClient() throws Exception {
+    public void testGetIdentityProviderDefinititonsForAllowedProviders() throws Exception {
         BaseClientDetails clientDetails = new BaseClientDetails();
         List<String> clientIdpAliases = Arrays.asList("vsphere.local", "okta-local-2");
         clientDetails.addAdditionalInformation("allowedproviders", clientIdpAliases);
 
         conf.setIdentityProviders(data);
-        List<IdentityProviderDefinition> clientIdps = conf.getIdentityProviderDefinitionsForClient(clientIdpAliases, IdentityZoneHolder.get(), false);
+        List<IdentityProviderDefinition> clientIdps = conf.getIdentityProviderDefinitions(clientIdpAliases, IdentityZoneHolder.get(), false);
         assertEquals(2, clientIdps.size());
         assertTrue(clientIdpAliases.contains(clientIdps.get(0).getIdpEntityAlias()));
         assertTrue(clientIdpAliases.contains(clientIdps.get(1).getIdpEntityAlias()));
@@ -206,7 +206,7 @@ public class IdentityProviderConfiguratorTests {
         IdentityProviderDefinition identityProviderDefinitionInOtherZone = new IdentityProviderDefinition(xml, "zoneIdpAlias","sample-nameID",1,true,true,"sample-link-test","sample-icon-url","other-zone-id");
         conf.addIdentityProviderDefinition(identityProviderDefinitionInOtherZone);
 
-        List<IdentityProviderDefinition> clientIdps = conf.getIdentityProviderDefinitionsForClient(null, IdentityZoneHolder.get(), false);
+        List<IdentityProviderDefinition> clientIdps = conf.getIdentityProviderDefinitions(null, IdentityZoneHolder.get(), false);
         assertEquals(5, clientIdps.size());
     }
 
@@ -216,8 +216,8 @@ public class IdentityProviderConfiguratorTests {
         IdentityProviderDefinition identityProviderDefinitionInOtherZone = new IdentityProviderDefinition(xml, "zoneIdpAlias","sample-nameID",1,true,true,"sample-link-test","sample-icon-url","other-zone-id");
         conf.addIdentityProviderDefinition(identityProviderDefinitionInOtherZone);
 
-        List<IdentityProviderDefinition> clientIdps = conf.getIdentityProviderDefinitionsForClient(null, IdentityZoneHolder.get(), true);
-        assertEquals(0, clientIdps.size());
+        List<IdentityProviderDefinition> clientIdps = conf.getIdentityProviderDefinitions(null, IdentityZoneHolder.get(), true);
+        assertTrue(clientIdps.isEmpty());
     }
 
     @Test

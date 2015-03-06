@@ -66,7 +66,7 @@ public class IdentityProviderConfigurator implements InitializingBean {
         return result;
     }
 
-    public List<IdentityProviderDefinition> getIdentityProviderDefinitionsForClient(List<String> allowedIdps, IdentityZone zone, boolean allowEmptyDefaultIdpList) {
+    public List<IdentityProviderDefinition> getIdentityProviderDefinitions(List<String> allowedIdps, IdentityZone zone, boolean allowEmptyDefaultIdpList) {
         List<IdentityProviderDefinition> idpsInTheZone = getIdentityProviderDefinitionsForZone(zone);
         if (allowedIdps != null && !allowedIdps.isEmpty()) {
             List<IdentityProviderDefinition> result = new LinkedList<>();

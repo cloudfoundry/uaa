@@ -11,6 +11,7 @@ import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,6 +37,7 @@ import java.util.Map;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class LoginInfoEndpointTest  {
@@ -101,7 +103,7 @@ public class LoginInfoEndpointTest  {
     }
 
     @Test
-    public void testFilterIdpsForZone() throws Exception {
+    public void testFilterIdpsForDefaultZone() throws Exception {
         // mock session and saved request
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpSession session = new MockHttpSession();
@@ -159,28 +161,24 @@ public class LoginInfoEndpointTest  {
     }
 
     @Test
-    public void testFilterIDPsForAuthcodeClient() throws Exception {
+    public void testFilterIDPsForAuthcodeClientInDefaultZone() throws Exception {
         // mock session and saved request
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        MockHttpSession session = new MockHttpSession();
-        SavedRequest savedRequest = mock(SavedRequest.class);
-        when(savedRequest.getParameterValues("client_id")).thenReturn(new String[]{"client-id"});
-        when(savedRequest.getRedirectUrl())
-            .thenReturn("http://localhost:8080/uaa/oauth/authorize?client_id=identity&redirect_uri=http%3A%2F%2Flocalhost%3A8888%2Flogin&response_type=code&state=8tp0tR");
-        session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
-        request.setSession(session);
+        MockHttpServletRequest request = getMockHttpServletRequest();
+
+        List<String> allowedProviders = Arrays.asList("my-client-awesome-idp");
+
         // mock Client service
         BaseClientDetails clientDetails = new BaseClientDetails();
         clientDetails.setClientId("client-id");
-        clientDetails.addAdditionalInformation("allowedproviders", Arrays.asList("my-client-awesome-idp"));
+        clientDetails.addAdditionalInformation("allowedproviders", allowedProviders);
         ClientDetailsService clientDetailsService = mock(ClientDetailsService.class);
         when(clientDetailsService.loadClientByClientId("client-id")).thenReturn(clientDetails);
 
         // mock IdentityProviderConfigurator
         List<IdentityProviderDefinition> clientIDPs = new LinkedList<>();
-        clientIDPs.add(getIdentityProviderDefinition("my-client-awesome-idp"));
+        clientIDPs.add(createIdentityProviderDefinition("my-client-awesome-idp", "uaa"));
         IdentityProviderConfigurator mockIDPConfigurator = mock(IdentityProviderConfigurator.class);
-        when(mockIDPConfigurator.getIdentityProviderDefinitionsForClient(Arrays.asList("my-client-awesome-idp"), IdentityZoneHolder.get(), false)).thenReturn(clientIDPs);
+        when(mockIDPConfigurator.getIdentityProviderDefinitions(allowedProviders, IdentityZoneHolder.get(), false)).thenReturn(clientIDPs);
 
         LoginInfoEndpoint endpoint = getEndpoint();
         endpoint.setClientDetailsService(clientDetailsService);
@@ -196,6 +194,43 @@ public class LoginInfoEndpointTest  {
         assertEquals(true, clientIdp.isShowSamlLink());
     }
 
+    @Test
+    public void testFilterIDPsForAuthcodeClientWithNoAllowedIDPsInOtherZone() throws Exception {
+        // mock session and saved request
+        MockHttpServletRequest request = getMockHttpServletRequest();
+
+        // mock Client service
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        ClientDetailsService clientDetailsService = mock(ClientDetailsService.class);
+        when(clientDetailsService.loadClientByClientId("client-id")).thenReturn(clientDetails);
+
+        IdentityZone zone = MultitenancyFixture.identityZone("other-zone", "other-zone");
+        IdentityZoneHolder.set(zone);
+
+        // mock IdentityProviderConfigurator
+        IdentityProviderConfigurator mockIDPConfigurator = mock(IdentityProviderConfigurator.class);
+
+        LoginInfoEndpoint endpoint = getEndpoint();
+        endpoint.setClientDetailsService(clientDetailsService);
+        endpoint.setIdpDefinitions(mockIDPConfigurator);
+        Model model = new ExtendedModelMap();
+        endpoint.loginForHtml(model, null, request);
+
+        verify(mockIDPConfigurator).getIdentityProviderDefinitions(null, zone, true);
+    }
+
+    private MockHttpServletRequest getMockHttpServletRequest() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpSession session = new MockHttpSession();
+        SavedRequest savedRequest = mock(SavedRequest.class);
+        when(savedRequest.getParameterValues("client_id")).thenReturn(new String[]{"client-id"});
+        when(savedRequest.getRedirectUrl())
+            .thenReturn("http://localhost:8080/uaa/oauth/authorize?client_id=identity&redirect_uri=http%3A%2F%2Flocalhost%3A8888%2Flogin&response_type=code&state=8tp0tR");
+        session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
+        request.setSession(session);
+        return request;
+    }
+
     private LoginInfoEndpoint getEndpoint() {
         LoginInfoEndpoint endpoint = new LoginInfoEndpoint();
         endpoint.setBaseUrl("http://someurl");
@@ -208,17 +243,17 @@ public class LoginInfoEndpointTest  {
     private List<IdentityProviderDefinition> getIdps() {
         List<IdentityProviderDefinition> idps = new LinkedList<>();
 
-        idps.add(getIdentityProviderDefinition("awesome-idp"));
-        idps.add(getIdentityProviderDefinition("my-client-awesome-idp"));
+        idps.add(createIdentityProviderDefinition("awesome-idp", "uaa"));
+        idps.add(createIdentityProviderDefinition("my-client-awesome-idp", "uaa"));
 
         return idps;
     }
 
-    private IdentityProviderDefinition getIdentityProviderDefinition(String idpEntityAlias) {
+    private IdentityProviderDefinition createIdentityProviderDefinition(String idpEntityAlias, String zoneId) {
         IdentityProviderDefinition idp1 = new IdentityProviderDefinition();
         idp1.setIdpEntityAlias(idpEntityAlias);
         idp1.setShowSamlLink(true);
-        idp1.setZoneId("uaa");
+        idp1.setZoneId(zoneId);
         return idp1;
     }
 }
