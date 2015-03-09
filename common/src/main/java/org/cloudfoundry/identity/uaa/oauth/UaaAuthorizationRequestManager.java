@@ -258,10 +258,9 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
         // Check that a token with empty scope is not going to be granted
         if (result.isEmpty() && !clientDetails.getScope().isEmpty()) {
             throw new InvalidScopeException(
-                "Invalid scope (empty) - this user is not userScopes any of the requestedScopes requestedScopes: " + requestedScopes
-                + " (either you requestedScopes a scope that was not userScopes or client '"
-                + clientDetails.getClientId()
-                + "' is not userScopes to act on behalf of this user)", allowed);
+                "Invalid scope (empty) - this user is not allowed any of the requested scopes: " + requestedScopes
+                + " (either you requested a scope that was not allowed or client '"
+                + clientDetails.getClientId() + "' is not allowed to act on behalf of this user)", allowed);
         }
 
         return result;

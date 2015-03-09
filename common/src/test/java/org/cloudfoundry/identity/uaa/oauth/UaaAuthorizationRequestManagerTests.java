@@ -177,7 +177,7 @@ public class UaaAuthorizationRequestManagerTests {
         assertEquals(StringUtils.commaDelimitedListToSet(""), new TreeSet<String>(request.getScope()));
     }
 
-    @Test(expected = InvalidScopeException.class)
+    @Test
     public void testEmptyScopeFailsClientWithScopes() {
         SecurityContextAccessor securityContextAccessor = new StubSecurityContextAccessor() {
             @Override
@@ -193,8 +193,13 @@ public class UaaAuthorizationRequestManagerTests {
         factory.setSecurityContextAccessor(securityContextAccessor);
         client.setScope(StringUtils.commaDelimitedListToSet("one,two")); // not
                                                                          // empty
-        AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
-        assertEquals(StringUtils.commaDelimitedListToSet(""), new TreeSet<String>(request.getScope()));
+        try {
+          factory.createAuthorizationRequest(parameters);
+          throw new AssertionError();
+        }
+        catch (InvalidScopeException ex) {
+          assertEquals("Invalid scope (empty) - this user is not allowed any of the requested scopes: [one, two] (either you requested a scope that was not allowed or client 'null' is not allowed to act on behalf of this user)", ex.getMessage());
+        }
     }
 
     @Test
