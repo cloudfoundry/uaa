@@ -36,6 +36,7 @@ ext {
 apply from: file('shared_versions.gradle')
 
 def uaaVersion = version
+def cargoPort = System.getenv("CARGO_PORT").toInteger() ?: 8080
 
 allprojects {
   apply plugin: 'maven'
@@ -179,7 +180,7 @@ cargoStartLocal.dependsOn assemble, prepareDatabase
 cargoRunLocal.dependsOn assemble
 
 task flushCoverageData(type: Exec) {
-  commandLine "curl", "-s", "-v", "-X", "POST", "http://localhost:8080/uaa/healthz/coverage/flush"
+  commandLine "curl", "-s", "-v", "-X", "POST", "http://localhost:"+cargoPort+"/uaa/healthz/coverage/flush"
   finalizedBy cargoStopLocal
   onlyIf { runningWithCoverage() }
 }
@@ -188,7 +189,7 @@ task run(dependsOn: cargoRunLocal)
 
 cargo {
   containerId = 'tomcat7x'
-  port = 8080
+  port = cargoPort
 
   deployable {
     file = file('samples/api/build/libs/cloudfoundry-identity-api-' + version + '.war')
