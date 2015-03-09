@@ -98,6 +98,7 @@ import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class TokenMvcMockTests extends TestClassNullifier {
@@ -175,13 +176,15 @@ public class TokenMvcMockTests extends TestClassNullifier {
     }
 
     private IdentityProvider setupIdentityProvider() {
+        return setupIdentityProvider(Origin.UAA);
+    }
+    private IdentityProvider setupIdentityProvider(String origin) {
         IdentityProvider defaultIdp = new IdentityProvider();
         defaultIdp.setName("internal");
         defaultIdp.setType("internal");
-        defaultIdp.setOriginKey(Origin.UAA);
+        defaultIdp.setOriginKey(origin);
         defaultIdp.setIdentityZoneId(IdentityZoneHolder.get().getId());
-        identityProviderProvisioning.create(defaultIdp);
-        return  defaultIdp;
+        return identityProviderProvisioning.create(defaultIdp);
     }
 
     protected void setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove) {
@@ -195,18 +198,21 @@ public class TokenMvcMockTests extends TestClassNullifier {
         c.setClientSecret(SECRET);
         c.setRegisteredRedirectUri(new HashSet<>(Arrays.asList(TEST_REDIRECT_URI)));
         Map<String, Object> additional = new HashMap<>();
-        additional.put(ClientConstants.AUTO_APPROVE,autoapprove.toString());
+        additional.put(ClientConstants.AUTO_APPROVE, autoapprove.toString());
+        if (allowedIdps!=null && !allowedIdps.isEmpty()) {
+            additional.put(ClientConstants.ALLOWED_PROVIDERS, allowedIdps);
+        }
         c.setAdditionalInformation(additional);
         if (StringUtils.hasText(redirectUri)) {
             c.setRegisteredRedirectUri(new HashSet<>(Arrays.asList(redirectUri)));
-        }
-        if (allowedIdps!=null && !allowedIdps.isEmpty()) {
-            additional.put(ClientConstants.ALLOWED_PROVIDERS, allowedIdps);
         }
         clientDetailsService.addClientDetails(c);
     }
 
     protected ScimUser setUpUser(String username, String scopes) {
+        return setUpUser(username, scopes, Origin.UAA);
+    }
+    protected ScimUser setUpUser(String username, String scopes, String origin) {
         ScimUser user = new ScimUser(null, username, "GivenName", "FamilyName");
         user.setPassword(SECRET);
         ScimUser.Email email = new ScimUser.Email();
@@ -214,6 +220,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
         email.setPrimary(true);
         user.setEmails(Arrays.asList(email));
         user.setVerified(true);
+        user.setOrigin(origin);
 
         user = userProvisioning.createUser(user, SECRET);
 
@@ -248,6 +255,154 @@ public class TokenMvcMockTests extends TestClassNullifier {
         Flyway flyway = webApplicationContext.getBean(Flyway.class);
         flyway.clean();
         webApplicationContext.destroy();
+    }
+
+    @Test
+    public void testClientIdentityProviderRestrictionInEffectInAnotherZoneForClientWithoutAllowedProvidersForPasswordGrant() throws Exception {
+        String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,openid";
+
+        //a client without allowed providers in non default zone should always be rejected
+        String subdomain = "testzone"+new RandomValueStringGenerator().generate();
+        IdentityZone testZone = setupIdentityZone(subdomain);
+        IdentityZoneHolder.set(testZone);
+        IdentityProvider provider = setupIdentityProvider(Origin.UAA);
+
+        String clientId2 = "testclient"+new RandomValueStringGenerator().generate();
+        setUpClients(clientId2, scopes, scopes, "authorization_code,password", true, TEST_REDIRECT_URI, Arrays.asList(provider.getId()));
+
+        String clientId = "testclient"+new RandomValueStringGenerator().generate();
+        setUpClients(clientId, scopes, scopes, "authorization_code,password", true, TEST_REDIRECT_URI, null);
+
+        String username = "testuser"+new RandomValueStringGenerator().generate();
+        String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
+        ScimUser developer = setUpUser(username, userScopes);
+
+        mockMvc.perform(post("/oauth/token")
+            .with(new SetServerNameRequestPostProcessor(subdomain+".localhost"))
+            .param("username", username)
+            .param("password", "secret")
+            .header("Authorization", "Basic "+new String(Base64.encode((clientId  + ":" + SECRET).getBytes())))
+            .param(OAuth2Utils.RESPONSE_TYPE,"token")
+            .param(OAuth2Utils.GRANT_TYPE, "password")
+            .param(OAuth2Utils.CLIENT_ID, clientId))
+            .andDo(print())
+            .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(post("/oauth/token")
+            .with(new SetServerNameRequestPostProcessor(subdomain+".localhost"))
+            .param("username", username)
+            .param("password", "secret")
+            .header("Authorization", "Basic "+new String(Base64.encode((clientId2  + ":" + SECRET).getBytes())))
+            .param(OAuth2Utils.RESPONSE_TYPE,"token")
+            .param(OAuth2Utils.GRANT_TYPE, "password")
+            .param(OAuth2Utils.CLIENT_ID, clientId2))
+            .andDo(print())
+            .andExpect(status().isOk());
+
+
+    }
+
+
+    @Test
+    public void testClientIdentityProviderRestrictionInEffectInAnotherZoneForClientWithoutAllowedProvidersForAuthCodeAlreadyLoggedIn() throws Exception {
+        //a client without allowed providers in non default zone should always be rejected
+        String subdomain = "testzone"+new RandomValueStringGenerator().generate();
+        IdentityZone testZone = setupIdentityZone(subdomain);
+        IdentityZoneHolder.set(testZone);
+        IdentityProvider provider = setupIdentityProvider(Origin.UAA);
+
+        String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,openid";
+
+        String clientId = "testclient"+new RandomValueStringGenerator().generate();
+        setUpClients(clientId, scopes, scopes, "authorization_code,password", true, TEST_REDIRECT_URI, null);
+
+        String clientId2 = "testclient"+new RandomValueStringGenerator().generate();
+        setUpClients(clientId2, scopes, scopes, "authorization_code,password", true, TEST_REDIRECT_URI, Arrays.asList(provider.getId()));
+
+        String username = "testuser"+new RandomValueStringGenerator().generate();
+        String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
+        ScimUser developer = setUpUser(username, userScopes);
+
+        UaaPrincipal p = new UaaPrincipal(developer.getId(),developer.getUserName(),developer.getPrimaryEmail(), Origin.UAA,"", IdentityZoneHolder.get().getId());
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(p, "", UaaAuthority.USER_AUTHORITIES);
+        Assert.assertTrue(auth.isAuthenticated());
+        SecurityContextHolder.getContext().setAuthentication(auth);
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute(
+            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+            new MockSecurityContext(auth)
+        );
+
+        String state = new RandomValueStringGenerator().generate();
+        IdentityZoneHolder.clear();
+
+        mockMvc.perform(get("/oauth/authorize")
+            .session(session)
+            .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
+            .param(OAuth2Utils.RESPONSE_TYPE, "code")
+            .param(OAuth2Utils.STATE, state)
+            .param(OAuth2Utils.CLIENT_ID, clientId)
+            .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI))
+            .andDo(print()).andExpect(status().isUnauthorized())
+            .andExpect(model().attributeExists("error"));
+
+        MvcResult result = mockMvc.perform(get("/oauth/authorize")
+            .session(session)
+            .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
+            .param(OAuth2Utils.RESPONSE_TYPE, "code")
+            .param(OAuth2Utils.STATE, state)
+            .param(OAuth2Utils.CLIENT_ID, clientId2)
+            .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI))
+            .andDo(print()).andExpect(status().isFound())
+            .andReturn();
+
+
+        URL url = new URL(result.getResponse().getHeader("Location").replace("redirect#","redirect?"));
+        Map query = splitQuery(url);
+        assertNotNull(query.get("code"));
+        String code = ((List<String>) query.get("code")).get(0);
+        assertNotNull(code);
+
+    }
+
+    @Test
+    public void testClientIdentityProviderRestrictionForPasswordGrant() throws Exception {
+        //a client with allowed providers in the default zone should be rejected if the client is not allowed
+        String clientId = "testclient"+new RandomValueStringGenerator().generate();
+        String clientId2 = "testclient"+new RandomValueStringGenerator().generate();
+        String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,openid";
+
+        String idpOrigin = "origin-"+new RandomValueStringGenerator().generate();
+        IdentityProvider provider = setupIdentityProvider(idpOrigin);
+
+        setUpClients(clientId, scopes, scopes, "authorization_code,password", true, TEST_REDIRECT_URI, Arrays.asList(provider.getId()));
+        setUpClients(clientId2, scopes, scopes, "authorization_code,password", true, TEST_REDIRECT_URI, null);
+
+        //create a user in the UAA identity provider
+        String username = "testuser"+new RandomValueStringGenerator().generate();
+        String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
+        ScimUser developer = setUpUser(username, userScopes);
+
+
+        mockMvc.perform(post("/oauth/token")
+            .param("username", username)
+            .param("password", "secret")
+            .header("Authorization", "Basic "+new String(Base64.encode((clientId  + ":" + SECRET).getBytes())))
+            .param(OAuth2Utils.RESPONSE_TYPE,"token")
+            .param(OAuth2Utils.GRANT_TYPE, "password")
+            .param(OAuth2Utils.CLIENT_ID, clientId))
+            .andDo(print())
+            .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(post("/oauth/token")
+            .param("username", username)
+            .param("password", "secret")
+            .header("Authorization", "Basic " + new String(Base64.encode((clientId2 + ":" + SECRET).getBytes())))
+            .param(OAuth2Utils.RESPONSE_TYPE, "token")
+            .param(OAuth2Utils.GRANT_TYPE, "password")
+            .param(OAuth2Utils.CLIENT_ID, clientId2))
+            .andDo(print())
+            .andExpect(status().isOk());
     }
 
     @Test
@@ -1273,7 +1428,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
 
     @Test
     public void testGetClientCredentialsTokenForOtherIdentityZone() throws Exception {
-        String subdomain = "testzone"+new RandomValueStringGenerator();
+        String subdomain = "testzone"+new RandomValueStringGenerator().generate();
         IdentityZone testZone = setupIdentityZone(subdomain);
         IdentityZoneHolder.set(testZone);
         String clientId = "testclient" + new RandomValueStringGenerator().generate();
@@ -1292,7 +1447,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
 
     @Test
     public void testGetClientCredentialsTokenForOtherIdentityZoneFromDefaultZoneFails() throws Exception {
-        String subdomain = "testzone"+new RandomValueStringGenerator();
+        String subdomain = "testzone"+new RandomValueStringGenerator().generate();
         IdentityZone testZone = setupIdentityZone(subdomain);
         IdentityZoneHolder.set(testZone);
         String clientId = "testclient" + new RandomValueStringGenerator().generate();
@@ -1314,7 +1469,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
         String clientId = "testclient" + new RandomValueStringGenerator().generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
-        String subdomain = "testzone"+new RandomValueStringGenerator();
+        String subdomain = "testzone"+new RandomValueStringGenerator().generate();
         setupIdentityZone(subdomain);
         mockMvc.perform(post("http://"+subdomain+".localhost/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
@@ -1328,13 +1483,13 @@ public class TokenMvcMockTests extends TestClassNullifier {
 
     @Test
     public void testGetPasswordGrantTokenForOtherZone() throws Exception {
-        String subdomain = "testzone"+new RandomValueStringGenerator();
+        String subdomain = "testzone"+new RandomValueStringGenerator().generate();
         IdentityZone testZone = setupIdentityZone(subdomain);
         IdentityZoneHolder.set(testZone);
-        setupIdentityProvider();
+        IdentityProvider provider = setupIdentityProvider();
         String clientId = "testclient" + new RandomValueStringGenerator().generate();
         String scopes = "cloud_controller.read";
-        setUpClients(clientId, scopes, scopes, "password,client_credentials", true);
+        setUpClients(clientId, scopes, scopes, "password,client_credentials", true, TEST_REDIRECT_URI, Arrays.asList(provider.getId()));
 
         setUpUser();
 
@@ -1357,7 +1512,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
         setUpClients(clientId, scopes, scopes, "password,client_credentials", true);
 
         setUpUser();
-        String subdomain = "testzone"+new RandomValueStringGenerator();
+        String subdomain = "testzone"+new RandomValueStringGenerator().generate();
         IdentityZone testZone = setupIdentityZone(subdomain);
         IdentityZoneHolder.set(testZone);
         setupIdentityProvider();
@@ -1377,7 +1532,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
 
     @Test
     public void testGetPasswordGrantForOtherIdentityZoneFromDefaultZoneFails() throws Exception {
-        String subdomain = "testzone"+new RandomValueStringGenerator();
+        String subdomain = "testzone"+new RandomValueStringGenerator().generate();
         IdentityZone testZone = setupIdentityZone(subdomain);
         IdentityZoneHolder.set(testZone);
         setupIdentityProvider();
