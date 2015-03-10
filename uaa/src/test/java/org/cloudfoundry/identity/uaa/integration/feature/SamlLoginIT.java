@@ -228,6 +228,32 @@ public class SamlLoginIT {
         webDriver.findElement(By.xpath("//a[text()='Okta Preview 2']"));
     }
 
+    @Test
+    public void testLoginClientIDPAuthorization() throws Exception {
+        webDriver.get(baseUrl + "/logout.do");
+        String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret");
+
+        String clientId = UUID.randomUUID().toString();
+        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "openid", "authorization_code", "uaa.none", "http://localhost:8080/login");
+        clientDetails.setClientSecret("secret");
+        List<String> idps = Arrays.asList("okta-local");
+        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, idps);
+
+        testClient.createClient(adminAccessToken, clientDetails);
+
+        webDriver.get(baseUrl + "/oauth/authorize?client_id=" + clientId + "&redirect_uri=http%3A%2F%2Flocalhost%3A8888%2Flogin&response_type=code&state=8tp0tR");
+
+        webDriver.findElement(By.name("username")).clear();
+        webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
+        webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
+        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+
+
+
+        assertThat(webDriver.findElement(By.cssSelector("p")).getText(), Matchers.containsString("The application is not authorized for your account."));
+
+    }
+
     protected boolean doesSupportZoneDNS() {
         try {
             return Arrays.equals(Inet4Address.getByName("testzone1.localhost").getAddress(), new byte[] {127,0,0,1}) &&

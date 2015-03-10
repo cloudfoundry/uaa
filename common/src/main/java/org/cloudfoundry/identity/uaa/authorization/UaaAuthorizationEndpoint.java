@@ -37,6 +37,7 @@ import org.springframework.security.oauth2.common.exceptions.InvalidRequestExcep
 import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
 import org.springframework.security.oauth2.common.exceptions.RedirectMismatchException;
 import org.springframework.security.oauth2.common.exceptions.UnapprovedClientAuthenticationException;
+import org.springframework.security.oauth2.common.exceptions.UnauthorizedClientException;
 import org.springframework.security.oauth2.common.exceptions.UnsupportedResponseTypeException;
 import org.springframework.security.oauth2.common.exceptions.UserDeniedAuthorizationException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
@@ -507,7 +508,12 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
         webRequest.getResponse().setStatus(translate.getStatusCode().value());
 
         if (e instanceof ClientAuthenticationException || e instanceof RedirectMismatchException) {
-            return new ModelAndView(errorPage, Collections.singletonMap("error", translate.getBody()));
+            Map<String, Object> map = new HashMap<>();
+            map.put("error", translate.getBody());
+            if (e instanceof UnauthorizedClientException) {
+                map.put("error_message_code", "login.invalid_idp");
+            }
+            return new ModelAndView(errorPage, map);
         }
 
         AuthorizationRequest authorizationRequest = null;

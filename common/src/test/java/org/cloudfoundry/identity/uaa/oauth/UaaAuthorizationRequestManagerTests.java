@@ -13,6 +13,25 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.security.StubSecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
+import org.springframework.security.oauth2.common.util.OAuth2Utils;
+import org.springframework.security.oauth2.provider.AuthorizationRequest;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.OAuth2Request;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.util.StringUtils;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -24,24 +43,9 @@ import java.util.TreeSet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
-
-import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
-import org.cloudfoundry.identity.uaa.security.StubSecurityContextAccessor;
-import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
-import org.springframework.security.oauth2.common.util.OAuth2Utils;
-import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
-import org.springframework.security.oauth2.provider.OAuth2Request;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.util.StringUtils;
+import static org.mockito.Mockito.when;
 
 public class UaaAuthorizationRequestManagerTests {
 
@@ -57,12 +61,16 @@ public class UaaAuthorizationRequestManagerTests {
 
     private BaseClientDetails client = new BaseClientDetails();
 
+    private UaaUser user = null;
+
     @Before
     public void initUaaAuthorizationRequestManagerTests() {
         parameters.put("client_id", "foo");
         factory = new UaaAuthorizationRequestManager(clientDetailsService, uaaUserDatabase, providerProvisioning);
         factory.setSecurityContextAccessor(new StubSecurityContextAccessor());
-        Mockito.when(clientDetailsService.loadClientByClientId("foo")).thenReturn(client);
+        when(clientDetailsService.loadClientByClientId("foo")).thenReturn(client);
+        user = new UaaUser("testid", "testuser","","test@test.org",AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz,space.1.developer,space.2.developer,space.1.admin"),"givenname", "familyname", null, null, Origin.UAA, null, true, IdentityZone.getUaa().getId());
+        when(uaaUserDatabase.retrieveUserById(anyString())).thenReturn(user);
     }
 
     @Test
@@ -178,6 +186,7 @@ public class UaaAuthorizationRequestManagerTests {
             public Collection<? extends GrantedAuthority> getAuthorities() {
                 return AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz");
             }
+
         };
         factory.setSecurityContextAccessor(securityContextAccessor);
         client.setScope(StringUtils.commaDelimitedListToSet("")); // empty
