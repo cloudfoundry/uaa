@@ -344,7 +344,8 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .param(OAuth2Utils.CLIENT_ID, clientId)
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI))
             .andDo(print()).andExpect(status().isUnauthorized())
-            .andExpect(model().attributeExists("error"));
+            .andExpect(model().attributeExists("error"))
+            .andExpect(model().attribute("error_message_code","login.invalid_idp"));
 
         MvcResult result = mockMvc.perform(get("/oauth/authorize")
             .session(session)
