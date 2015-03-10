@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -24,8 +24,12 @@ import java.util.TreeSet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.StubSecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -43,7 +47,11 @@ public class UaaAuthorizationRequestManagerTests {
 
     private UaaAuthorizationRequestManager factory;
 
-    private ClientDetailsService clientDetailsService = Mockito.mock(ClientDetailsService.class);
+    private ClientDetailsService clientDetailsService = mock(ClientDetailsService.class);
+
+    private UaaUserDatabase uaaUserDatabase = mock(UaaUserDatabase.class);
+
+    private IdentityProviderProvisioning providerProvisioning = mock(IdentityProviderProvisioning.class);
 
     private Map<String, String> parameters = new HashMap<String, String>();
 
@@ -52,7 +60,7 @@ public class UaaAuthorizationRequestManagerTests {
     @Before
     public void initUaaAuthorizationRequestManagerTests() {
         parameters.put("client_id", "foo");
-        factory = new UaaAuthorizationRequestManager(clientDetailsService, null);
+        factory = new UaaAuthorizationRequestManager(clientDetailsService, uaaUserDatabase, providerProvisioning);
         factory.setSecurityContextAccessor(new StubSecurityContextAccessor());
         Mockito.when(clientDetailsService.loadClientByClientId("foo")).thenReturn(client);
     }

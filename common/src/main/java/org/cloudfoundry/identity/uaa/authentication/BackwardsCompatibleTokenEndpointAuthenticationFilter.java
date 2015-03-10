@@ -35,6 +35,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
+import org.springframework.security.oauth2.common.exceptions.UnapprovedClientAuthenticationException;
+import org.springframework.security.oauth2.common.exceptions.UnauthorizedClientException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
@@ -140,19 +143,23 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
                 onSuccessfulAuthentication(request, response, authResult);
 
             }
-
-        }
-        catch (AuthenticationException failed) {
+        } catch (UnauthorizedClientException failed) {
+            //happens when all went well, but the client is not authorized for the identity provider
+            UnapprovedClientAuthenticationException ex = new UnapprovedClientAuthenticationException(failed.getMessage(), failed);
             SecurityContextHolder.clearContext();
-
             if (debug) {
                 logger.debug("Authentication request for failed: " + failed);
             }
-
+            onUnsuccessfulAuthentication(request, response, ex);
+            authenticationEntryPoint.commence(request, response, ex);
+            return;
+        } catch (AuthenticationException failed) {
+            SecurityContextHolder.clearContext();
+            if (debug) {
+                logger.debug("Authentication request for failed: " + failed);
+            }
             onUnsuccessfulAuthentication(request, response, failed);
-
             authenticationEntryPoint.commence(request, response, failed);
-
             return;
         }
 

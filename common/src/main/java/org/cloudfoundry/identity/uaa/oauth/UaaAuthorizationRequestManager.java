@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -18,18 +18,28 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
+import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.oauth.provider.InvalidOAuthParametersException;
 import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
+import org.springframework.security.oauth2.common.exceptions.UnauthorizedClientException;
+import org.springframework.security.oauth2.common.exceptions.UnauthorizedUserException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -39,14 +49,16 @@ import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.oauth2.provider.TokenRequest;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.request.DefaultOAuth2RequestFactory;
+import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.ModelAndViewDefiningException;
 
 /**
  * An {@link OAuth2RequestFactory} that applies various UAA-specific
  * rules to an authorization request,
  * validating it and setting the default values for requestedScopes and resource ids.
- * 
+ *
  * @author Dave Syer
- * 
+ *
  */
 public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
 
@@ -72,16 +84,21 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
 
     private UaaUserDatabase uaaUserDatabase;
 
-    public UaaAuthorizationRequestManager(ClientDetailsService clientDetailsService, UaaUserDatabase userDatabase) {
+    private IdentityProviderProvisioning providerProvisioning;
+
+    public UaaAuthorizationRequestManager(ClientDetailsService clientDetailsService,
+                                          UaaUserDatabase userDatabase,
+                                          IdentityProviderProvisioning providerProvisioning) {
         this.clientDetailsService = clientDetailsService;
         this.uaaUserDatabase = userDatabase;
         this.requestFactory = new DefaultOAuth2RequestFactory(clientDetailsService);
+        this.providerProvisioning = providerProvisioning;
     }
 
     /**
      * Default requestedScopes that are always added to a user token (and then removed if
      * the client doesn't have permission).
-     * 
+     *
      * @param defaultScopes the defaultScopes to set
      */
     public void setDefaultScopes(Collection<String> defaultScopes) {
@@ -90,7 +107,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
 
     /**
      * A helper to pull stuff out of the current security context.
-     * 
+     *
      * @param securityContextAccessor the securityContextAccessor to set
      */
     public void setSecurityContextAccessor(SecurityContextAccessor securityContextAccessor) {
@@ -100,7 +117,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
     /**
      * A map from scope name to resource id, for cases (like openid) that cannot
      * be extracted from the scope name.
-     * 
+     *
      * @param scopeToResource the map to use
      */
     public void setScopesToResources(Map<String, String> scopeToResource) {
@@ -110,7 +127,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
     /**
      * The string used to separate resource ids from feature names in requestedScopes
      * (e.g. "cloud_controller.read").
-     * 
+     *
      * @param scopeSeparator the scope separator to set. Default is period "."
      */
     public void setScopeSeparator(String scopeSeparator) {
@@ -133,13 +150,13 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
      * <li>Some requestedScopes can be hard-wired to resource ids (like the open id
      * connect values), in which case the separator is ignored</li>
      * </ul>
-     * 
+     *
      */
     @Override
     public AuthorizationRequest createAuthorizationRequest(Map<String, String> authorizationParameters) {
 
         String clientId = authorizationParameters.get("client_id");
-        BaseClientDetails clientDetails = new BaseClientDetails(clientDetailsService.loadClientByClientId(clientId));
+        BaseClientDetails clientDetails = (BaseClientDetails)clientDetailsService.loadClientByClientId(clientId);
         validateParameters(authorizationParameters, clientDetails);
         Set<String> scopes = OAuth2Utils.parseParameterList(authorizationParameters.get(OAuth2Utils.SCOPE));
         Set<String> responseTypes = OAuth2Utils.parseParameterList(authorizationParameters.get(OAuth2Utils.RESPONSE_TYPE));
@@ -161,10 +178,12 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
         Set<String> scopesFromExternalAuthorities = null;
         if (!"client_credentials".equals(grantType) && securityContextAccessor.isUser()) {
             String userId = securityContextAccessor.getUserId();
-            Collection<? extends GrantedAuthority> authorities = uaaUserDatabase != null ?
-                uaaUserDatabase.retrieveUserById(userId).getAuthorities() :
-                securityContextAccessor.getAuthorities();
+            UaaUser uaaUser = uaaUserDatabase.retrieveUserById(userId);
+            Collection<? extends GrantedAuthority> authorities = uaaUser.getAuthorities();
+            //validate scopes
             scopes = checkUserScopes(scopes, authorities, clientDetails);
+            //check client IDP relationship - allowed providers
+            checkClientIdpAuthorization(clientDetails, uaaUser);
 
             // TODO: will the grantType ever contain client_credentials or
             // authorization_code
@@ -217,7 +236,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
      * Apply UAA rules to validate the requestedScopes scope. For client credentials
      * grants the valid requestedScopes are actually in
      * the authorities of the client.
-     * 
+     *
      */
     public void validateParameters(Map<String, String> parameters, ClientDetails clientDetails) {
         if (parameters.containsKey("scope")) {
@@ -237,10 +256,34 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
         }
     }
 
+    private void checkClientIdpAuthorization(BaseClientDetails client, UaaUser user) {
+        List<String> allowedProviders = (List<String>)client.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS);
+
+
+        if (allowedProviders==null || allowedProviders.isEmpty()) {
+            if (IdentityZoneHolder.isUaa()) {
+                //in the UAA zone - no allowed providers means that we always allow it (backwards compatible)
+                return;
+            } else {
+                throw new UnauthorizedClientException ("Client is not authorized for any identity providers.");
+            }
+        }
+
+        try {
+            IdentityProvider provider = providerProvisioning.retrieveByOrigin(user.getOrigin(), user.getZoneId());
+            if (! allowedProviders.contains(provider.getId())) {
+                throw new UnauthorizedClientException ("Client is not authorized for specified user's identity provider.");
+            }
+        } catch (EmptyResultDataAccessException x) {
+            //this should not happen...but if it does
+            throw new UnauthorizedClientException ("User does not belong to a valid identity provider.");
+        }
+    }
+
     /**
      * Add or remove requestedScopes derived from the current authenticated user's
      * authorities (if any)
-     * 
+     *
      * @param requestedScopes the initial set of requestedScopes from the client registration
      * @param clientDetails
      * @param authorities the users authorities
