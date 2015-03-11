@@ -12,7 +12,7 @@ rm -rf ${BUILD_DIR}/uaa/scim
 rm -rf ${BUILD_DIR}/uaa/scripts
 rm -rf ${BUILD_DIR}/uaa/uaa
 
-rm -f ${BUILD_DIR}/uaa/.git
+rm -rf ${BUILD_DIR}/uaa/.git
 rm -f ${BUILD_DIR}/uaa/.gitignore
 rm -f ${BUILD_DIR}/uaa/.gitreview
 rm -f ${BUILD_DIR}/uaa/.travis.yml
