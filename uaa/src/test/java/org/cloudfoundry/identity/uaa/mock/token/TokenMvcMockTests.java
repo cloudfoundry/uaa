@@ -268,7 +268,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
         IdentityProvider provider = setupIdentityProvider(Origin.UAA);
 
         String clientId2 = "testclient"+new RandomValueStringGenerator().generate();
-        setUpClients(clientId2, scopes, scopes, "authorization_code,password", true, TEST_REDIRECT_URI, Arrays.asList(provider.getId()));
+        setUpClients(clientId2, scopes, scopes, "authorization_code,password", true, TEST_REDIRECT_URI, Arrays.asList(provider.getOriginKey()));
 
         String clientId = "testclient"+new RandomValueStringGenerator().generate();
         setUpClients(clientId, scopes, scopes, "authorization_code,password", true, TEST_REDIRECT_URI, null);
@@ -317,7 +317,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
         setUpClients(clientId, scopes, scopes, "authorization_code,password", true, TEST_REDIRECT_URI, null);
 
         String clientId2 = "testclient"+new RandomValueStringGenerator().generate();
-        setUpClients(clientId2, scopes, scopes, "authorization_code,password", true, TEST_REDIRECT_URI, Arrays.asList(provider.getId()));
+        setUpClients(clientId2, scopes, scopes, "authorization_code,password", true, TEST_REDIRECT_URI, Arrays.asList(provider.getOriginKey()));
 
         String username = "testuser"+new RandomValueStringGenerator().generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
@@ -376,7 +376,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
         String idpOrigin = "origin-"+new RandomValueStringGenerator().generate();
         IdentityProvider provider = setupIdentityProvider(idpOrigin);
 
-        setUpClients(clientId, scopes, scopes, "authorization_code,password", true, TEST_REDIRECT_URI, Arrays.asList(provider.getId()));
+        setUpClients(clientId, scopes, scopes, "authorization_code,password", true, TEST_REDIRECT_URI, Arrays.asList(provider.getOriginKey()));
         setUpClients(clientId2, scopes, scopes, "authorization_code,password", true, TEST_REDIRECT_URI, null);
 
         //create a user in the UAA identity provider
@@ -1490,7 +1490,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
         IdentityProvider provider = setupIdentityProvider();
         String clientId = "testclient" + new RandomValueStringGenerator().generate();
         String scopes = "cloud_controller.read";
-        setUpClients(clientId, scopes, scopes, "password,client_credentials", true, TEST_REDIRECT_URI, Arrays.asList(provider.getId()));
+        setUpClients(clientId, scopes, scopes, "password,client_credentials", true, TEST_REDIRECT_URI, Arrays.asList(provider.getOriginKey()));
 
         setUpUser();
 

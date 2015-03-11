@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
+import org.apache.commons.io.FileUtils;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
@@ -31,6 +32,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.openqa.selenium.By;
+import org.openqa.selenium.OutputType;
+import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -45,6 +48,8 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.File;
+import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.UnknownHostException;
 import java.util.Arrays;
@@ -85,7 +90,6 @@ public class SamlLoginIT {
     ServerRunning serverRunning = ServerRunning.isRunning();
 
     @Before
-    @After
     public void clearWebDriverOfCookies() throws Exception {
         webDriver.get(baseUrl + "/logout.do");
         webDriver.manage().deleteAllCookies();
@@ -159,6 +163,7 @@ public class SamlLoginIT {
         webDriver.get(baseUrl + firstUrl);
         Assert.assertEquals("Cloud Foundry", webDriver.getTitle());
         webDriver.findElement(By.xpath("//a[text()='"+provider.getConfigValue(IdentityProviderDefinition.class).getLinkText()+"']")).click();
+        //takeScreenShot();
         webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
         webDriver.findElement(By.name("username")).clear();
         webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
@@ -172,7 +177,7 @@ public class SamlLoginIT {
             IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "identity", "identitysecret")
         );
         RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTempate(
-            IntegrationTestUtils.getClientCredentialsResource(baseUrl,new String[0] , "admin", "adminsecret")
+            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );
         String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl, email, "firstname", "lastname", email, true);
@@ -304,7 +309,7 @@ public class SamlLoginIT {
         String clientId = UUID.randomUUID().toString();
         BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "openid", "authorization_code", "uaa.none", "http://localhost:8080/login");
         clientDetails.setClientSecret("secret");
-        List<String> idps = Arrays.asList("okta-local");
+        List<String> idps = Arrays.asList("okta-local"); //not authorized for the current IDP
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, idps);
 
         testClient.createClient(adminAccessToken, clientDetails);
@@ -375,5 +380,10 @@ public class SamlLoginIT {
         def.setIdpEntityAlias("simplesamlphp");
         def.setLinkText("Login with Simple SAML PHP");
         return def;
+    }
+
+    public void takeScreenShot() throws IOException {
+        File scrFile = ((TakesScreenshot)webDriver).getScreenshotAs(OutputType.FILE);
+        FileUtils.copyFile(scrFile, new File("testscreenshot-"+System.currentTimeMillis()+".png"));
     }
 }
