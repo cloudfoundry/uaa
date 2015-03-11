@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 
 import com.dumbster.smtp.SimpleSmtpServer;
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -59,6 +60,7 @@ public class LoginIT {
     SimpleSmtpServer simpleSmtpServer;
 
     @Before
+    @After
     public void setUp() throws Exception {
         webDriver.get(baseUrl + "/logout.do");
     }
@@ -73,6 +75,18 @@ public class LoginIT {
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
 
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+    }
+
+    @Test
+    public void testPasscodeRedirect() throws Exception {
+        webDriver.get(baseUrl + "/passcode");
+        assertEquals("Cloud Foundry", webDriver.getTitle());
+
+        webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
+        webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
+        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Temporary Authentication Code"));
     }
 
     @Test

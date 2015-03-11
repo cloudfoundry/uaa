@@ -14,6 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.integration.util;
 
+import junit.framework.Assert;
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.cloudfoundry.identity.uaa.ServerRunning;
@@ -35,14 +36,16 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
-import org.springframework.security.jwt.Jwt;
-import org.springframework.security.jwt.JwtHelper;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
 import org.springframework.security.oauth2.client.http.OAuth2ErrorHandler;
 import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
 import org.springframework.security.oauth2.client.token.grant.code.AuthorizationCodeResourceDetails;
-import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordResourceDetails;
 import org.springframework.security.oauth2.common.AuthenticationScheme;
+import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
+import org.springframework.security.oauth2.common.OAuth2AccessToken;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
@@ -204,6 +207,27 @@ public class IntegrationTestUtils {
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
     }
 
+    public static BaseClientDetails getClient(RestTemplate template,
+                                              String url,
+                                              String clientId) throws Exception {
+        ResponseEntity<BaseClientDetails> response = template.getForEntity(url+"/oauth/clients/{clientId}", BaseClientDetails.class, clientId);
+        return response.getBody();
+    }
+
+    public static BaseClientDetails updateClient(RestTemplate template,
+                                                 String url,
+                                                 BaseClientDetails client) throws Exception {
+
+        ResponseEntity<BaseClientDetails> response = template.exchange(
+            url + "/oauth/clients/{clientId}",
+            HttpMethod.PUT,
+            new HttpEntity<>(client),
+            BaseClientDetails.class,
+            client.getClientId());
+
+        return response.getBody();
+    }
+
     public static IdentityProvider createOrUpdateProvider(String accessToken,
                                                           String url,
                                                           IdentityProvider provider) {
@@ -263,6 +287,25 @@ public class IntegrationTestUtils {
         return identityZone;
     }
 
+    public static String getClientCredentialsToken(ServerRunning serverRunning,
+                                                   String clientId,
+                                                   String clientSecret) throws Exception {
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+        formData.add("grant_type", "client_credentials");
+        formData.add("client_id", clientId);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.set("Authorization",
+            "Basic " + new String(Base64.encode(String.format("%s:%s", clientId, clientSecret).getBytes())));
+
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, headers);
+        Assert.assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        @SuppressWarnings("unchecked")
+        OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(response.getBody());
+        return accessToken.getValue();
+    }
 
     public static String getAuthorizationCodeToken(ServerRunning serverRunning,
                                                    UaaTestAccounts testAccounts,
@@ -342,6 +385,15 @@ public class IntegrationTestUtils {
         @SuppressWarnings("unchecked")
         Map<String, String> body = tokenResponse.getBody();
         return body.get("access_token");
+    }
+
+    public static boolean hasAuthority(String authority, Collection<GrantedAuthority> authorities) {
+        for (GrantedAuthority a : authorities) {
+            if (authority.equals(a.getAuthority())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static class StatelessRequestFactory extends HttpComponentsClientHttpRequestFactory {
