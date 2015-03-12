@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.event.IdentityProviderModifiedEvent;
+import org.opensaml.saml2.metadata.provider.MetadataProvider;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.springframework.context.ApplicationListener;
 import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
@@ -50,7 +51,13 @@ public class ProviderChangedListener implements ApplicationListener<IdentityProv
                 configurator.addIdentityProviderDefinition(JsonUtils.readValue(provider.getConfig(), IdentityProviderDefinition.class));
             IdentityZone zone = zoneProvisioning.retrieve(provider.getIdentityZoneId());
             try {
-                metadataManager.getManager(zone).addMetadataProvider(delegate);
+                ZoneAwareMetadataManager.ExtensionMetadataManager manager = metadataManager.getManager(zone);
+                manager.addMetadataProvider(delegate);
+                for (MetadataProvider idp : manager.getProviders()) {
+                    idp.getMetadata();
+                }
+                manager.refreshMetadata();
+                metadataManager.getManager(zone).refreshMetadata();
             } catch (MetadataProviderException e) {
                 logger.error("Unable to add new IDP provider:",e);
             }

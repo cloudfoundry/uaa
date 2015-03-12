@@ -13,12 +13,16 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 import javax.validation.constraints.NotNull;
+import java.lang.reflect.Type;
 import java.util.Date;
 import java.util.UUID;
 
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.map.annotate.JsonDeserialize;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
+import org.codehaus.jackson.type.TypeReference;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 public class IdentityProvider {
@@ -27,18 +31,18 @@ public class IdentityProvider {
      * @param jdbcTemplate
      * @param originKey
      */
-    
+
     private String id;
-    
+
     @NotNull
     private String originKey;
 
     @NotNull
     private String name;
-    
+
     @NotNull
     private String type;
-    
+
     private String config;
 
     private int version = 0;
@@ -92,6 +96,10 @@ public class IdentityProvider {
         this.id = id;
     }
 
+    @JsonIgnore
+    public <T> T getConfigValue(Class<T> clazz) {
+        return JsonUtils.readValue(getConfig(), clazz);
+    }
     public String getConfig() {
         return config;
     }

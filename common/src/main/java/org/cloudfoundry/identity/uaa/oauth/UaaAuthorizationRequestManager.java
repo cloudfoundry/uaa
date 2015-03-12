@@ -256,7 +256,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
         }
     }
 
-    private void checkClientIdpAuthorization(BaseClientDetails client, UaaUser user) {
+    protected void checkClientIdpAuthorization(BaseClientDetails client, UaaUser user) {
         List<String> allowedProviders = (List<String>)client.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS);
 
 
@@ -271,7 +271,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
 
         try {
             IdentityProvider provider = providerProvisioning.retrieveByOrigin(user.getOrigin(), user.getZoneId());
-            if (! allowedProviders.contains(provider.getId())) {
+            if (provider==null || !allowedProviders.contains(provider.getOriginKey())) {
                 throw new UnauthorizedClientException ("Client is not authorized for specified user's identity provider.");
             }
         } catch (EmptyResultDataAccessException x) {

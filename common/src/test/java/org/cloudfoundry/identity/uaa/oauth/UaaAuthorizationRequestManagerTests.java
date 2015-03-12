@@ -14,17 +14,23 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.StubSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
+import org.springframework.security.oauth2.common.exceptions.UnauthorizedClientException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
@@ -71,6 +77,50 @@ public class UaaAuthorizationRequestManagerTests {
         when(clientDetailsService.loadClientByClientId("foo")).thenReturn(client);
         user = new UaaUser("testid", "testuser","","test@test.org",AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz,space.1.developer,space.2.developer,space.1.admin"),"givenname", "familyname", null, null, Origin.UAA, null, true, IdentityZone.getUaa().getId());
         when(uaaUserDatabase.retrieveUserById(anyString())).thenReturn(user);
+    }
+
+    @After
+    public void clearZoneContext() {
+        IdentityZoneHolder.clear();
+    }
+
+    @Test
+    public void testClientIDPAuthorizationInUAAzoneNoList() {
+        factory.checkClientIdpAuthorization(client, user);
+    }
+
+    @Test(expected = UnauthorizedClientException.class)
+    public void testClientIDPAuthorizationInNonUAAzoneNoList() {
+        IdentityZoneHolder.set(MultitenancyFixture.identityZone("test", "test"));
+        factory.checkClientIdpAuthorization(client, user);
+    }
+
+    @Test
+    public void testClientIDPAuthorizationInUAAzoneListSucceeds() {
+        when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(MultitenancyFixture.identityProvider("random", "random"));
+        client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("random"));
+        factory.checkClientIdpAuthorization(client, user);
+    }
+
+    @Test(expected = UnauthorizedClientException.class)
+    public void testClientIDPAuthorizationInUAAzoneListFails() {
+        when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(MultitenancyFixture.identityProvider("random", "random"));
+        client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("random2"));
+        factory.checkClientIdpAuthorization(client, user);
+    }
+
+    @Test(expected = UnauthorizedClientException.class)
+    public void testClientIDPAuthorizationInUAAzoneNullProvider() {
+        when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(null);
+        client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("random2"));
+        factory.checkClientIdpAuthorization(client, user);
+    }
+
+    @Test(expected = UnauthorizedClientException.class)
+    public void testClientIDPAuthorizationInUAAzoneEmptyResultSetException() {
+        when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenThrow(new EmptyResultDataAccessException(1));
+        client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("random2"));
+        factory.checkClientIdpAuthorization(client, user);
     }
 
     @Test
