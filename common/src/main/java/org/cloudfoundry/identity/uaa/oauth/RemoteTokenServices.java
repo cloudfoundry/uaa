@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -48,13 +49,13 @@ import org.springframework.web.client.RestTemplate;
 
 /**
  * Queries the /check_token endpoint to obtain the contents of an access token.
- * 
+ *
  * If the endpoint returns a 400 response, this indicates that the token is
  * invalid.
- * 
+ *
  * @author Dave Syer
  * @author Luke Taylor
- * 
+ *
  */
 public class RemoteTokenServices implements ResourceServerTokenServices {
 
@@ -70,6 +71,8 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
 
     private ObjectMapper mapper = new ObjectMapper();
 
+    private boolean storeClaims = false;
+
     public RemoteTokenServices() {
         restTemplate = new RestTemplate();
         ((RestTemplate) restTemplate).setErrorHandler(new DefaultResponseErrorHandler() {
@@ -81,6 +84,19 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
                 }
             }
         });
+    }
+
+    public boolean isStoreClaims() {
+        return storeClaims;
+    }
+
+    /**
+     * Set to true to include all claims received from the UAA /check_token endpoint as string request parameters
+     * accessible through OAuth2Authentication.getOAuth2Request().getRequestParameters()
+     * @param storeClaims
+     */
+    public void setStoreClaims(boolean storeClaims) {
+        this.storeClaims = storeClaims;
     }
 
     public void setRestTemplate(RestOperations restTemplate) {
@@ -143,19 +159,23 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
             clientDetails.setAuthorities(clientAuthorities);
             clientAuthentication.setResourceIdsAndAuthoritiesFromClientDetails(clientDetails);
         }
+        Map<String, String> requestParameters = new HashMap<>();
+        if (isStoreClaims()) {
+            for (Map.Entry<String, Object> entry : map.entrySet()) {
+                if (entry.getValue()!=null && entry.getValue() instanceof String) {
+                    requestParameters.put(entry.getKey(), (String)entry.getValue());
+                }
+            }
+        }
 
         if (map.containsKey(Claims.ADDITIONAL_AZ_ATTR)) {
             try {
-                clientAuthentication.setRequestParameters(
-                    Collections.singletonMap(
-                        Claims.ADDITIONAL_AZ_ATTR,
-                        mapper.writeValueAsString(map.get(Claims.ADDITIONAL_AZ_ATTR))
-                    )
-                );
+                requestParameters.put(Claims.ADDITIONAL_AZ_ATTR, mapper.writeValueAsString(map.get(Claims.ADDITIONAL_AZ_ATTR)));
             } catch (IOException e) {
                 throw new IllegalStateException("Cannot convert access token to JSON", e);
             }
         }
+        clientAuthentication.setRequestParameters(Collections.unmodifiableMap(requestParameters));
 
         Authentication userAuthentication = getUserAuthentication(map, scope);
 
