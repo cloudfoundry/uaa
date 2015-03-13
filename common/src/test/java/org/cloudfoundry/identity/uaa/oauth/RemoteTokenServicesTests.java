@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -32,7 +33,7 @@ import org.springframework.web.client.RestTemplate;
 
 /**
  * @author Dave Syer
- * 
+ *
  */
 public class RemoteTokenServicesTests {
 
@@ -50,6 +51,7 @@ public class RemoteTokenServicesTests {
         body.put(Claims.CLIENT_ID, "remote");
         body.put(Claims.USER_NAME, "olds");
         body.put(Claims.EMAIL, "olds@vmware.com");
+        body.put(Claims.ISS, "http://some.issuer.com");
         body.put(Claims.USER_ID, "HDGFJSHGDF");
         services.setRestTemplate(new RestTemplate() {
             @SuppressWarnings("unchecked")
@@ -68,6 +70,20 @@ public class RemoteTokenServicesTests {
         assertEquals("remote", result.getOAuth2Request().getClientId());
         assertEquals("olds", result.getUserAuthentication().getName());
         assertEquals("HDGFJSHGDF", ((RemoteUserAuthentication) result.getUserAuthentication()).getId());
+        assertNotNull(result.getOAuth2Request().getRequestParameters());
+        assertNull(result.getOAuth2Request().getRequestParameters().get(Claims.ISS));
+    }
+
+    @Test
+    public void testTokenRetrievalWithClaims() throws Exception {
+        services.setStoreClaims(true);
+        OAuth2Authentication result = services.loadAuthentication("FOO");
+        assertNotNull(result);
+        assertEquals("remote", result.getOAuth2Request().getClientId());
+        assertEquals("olds", result.getUserAuthentication().getName());
+        assertEquals("HDGFJSHGDF", ((RemoteUserAuthentication) result.getUserAuthentication()).getId());
+        assertNotNull(result.getOAuth2Request().getRequestParameters());
+        assertNotNull(result.getOAuth2Request().getRequestParameters().get(Claims.ISS));
     }
 
     @Test

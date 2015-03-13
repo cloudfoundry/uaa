@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -36,6 +36,9 @@ import org.cloudfoundry.identity.uaa.oauth.token.SignerProvider;
 import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.user.MockUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -52,7 +55,7 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
 /**
  * @author Dave Syer
  * @author Joel D'sa
- * 
+ *
  */
 @RunWith(Parameterized.class)
 public class CheckTokenEndpointTests {
@@ -259,6 +262,32 @@ public class CheckTokenEndpointTests {
         Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
         assertEquals("olds", result.get("user_name"));
         assertEquals("12345", result.get("user_id"));
+    }
+
+    @Test
+    public void testIssuerInResults() throws Exception {
+        tokenServices.setIssuer("http://some.other.issuer");
+        tokenServices.afterPropertiesSet();
+        accessToken = tokenServices.createAccessToken(authentication);
+        Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
+        assertNotNull("iss field is not present", result.get("iss"));
+        assertEquals("http://some.other.issuer/oauth/token",result.get("iss"));
+    }
+
+    @Test
+    public void testIssuerInResultsInNonDefaultZone() throws Exception {
+        try {
+            IdentityZoneHolder.set(MultitenancyFixture.identityZone("id", "subdomain"));
+            tokenServices.setIssuer("http://some.other.issuer");
+            tokenServices.afterPropertiesSet();
+            accessToken = tokenServices.createAccessToken(authentication);
+            Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
+            assertNotNull("iss field is not present", result.get("iss"));
+            assertEquals("http://subdomain.some.other.issuer/oauth/token", result.get("iss"));
+        } finally {
+            IdentityZoneHolder.clear();
+        }
+
     }
 
     @Test
