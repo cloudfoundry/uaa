@@ -23,14 +23,13 @@ Rather than trigger arguments about how RESTful these APIs are we'll just refer 
 .. _SCIM: http://simplecloud.info
 
 Scopes authorized by the UAA
-=======================
+============================
 The UAA itself is also performing authorization based on the ``scope`` claim in the JWT token for it's operation.
 Here is a summary of the different scopes that are known to the UAA.
 
   * oauth.approval - ``/approvals`` endpoint. Scope required to be able to approve/disapprove clients to act on a user's behalf. This is a default scope defined in uaa.yml.
-  * approvals.me - not currently used
-  * clients.secret - ``/oauth/clients/*/secret`` endpoint. Scope required to change the password of a client. Considered an admin scope.
   * oauth.login - Scope used to indicate a login application, such as external login servers, to perform trusted operations, such as create users not authenticated in the UAA.
+  * approvals.me - not currently used
   * openid - Required to access the /userinfo endpoint. Intended for OpenID clients.
   * scim.write - Admin write access to all SCIM endpoints, ``/Users``, ``/Groups/``.
   * scim.read - Admin read access to all SCIM endpoints, ``/Users``, ``/Groups/``.
@@ -39,14 +38,18 @@ Here is a summary of the different scopes that are known to the UAA.
   * groups.update -
   * password.write - ``/User*/*/password`` endpoint. Admin scope to change a user's password.
   * uaa.user - scope to indicate this is a user
-  * uaa.resource - scope to indicate this is a resource server
+  * uaa.resource - scope to indicate this is a resource server, used for the /check_token endpoint
   * uaa.admin - scope to indicate this is the super user
   * uaa.none - scope to indicate that this client will not be performing actions on behalf of a user
   * clients.admin - super user scope to create, modify and delete clients
   * clients.write - scope required to create and modify clients. The scopes/authorities are limited to be prefixed with the scope holder's client id. For example, id:testclient authorities:client.write may create a client that has scopes/authorities that have the 'testclient.' prefix.
   * clients.read - scope to read information about clients
-  * clients.secret - scope to change client secrets
-  * scim.zones - limited scope that only allows adding/removing a user to/from a group with name zones.{id}.admin under the path /Groups/zones
+  * clients.secret - ``/oauth/clients/*/secret`` endpoint. Scope required to change the password of a client. Considered an admin scope.
+  * zones.create - scope required to invoke the /identity-zones endpoint to create and update identity zones
+  * zones.<zone id>.admin - user scope that permits operations in a designated zone, such as create identity providers or clients in another zone (used together with the X-Identity-Zone-Id header)
+  * scim.zones - limited scope that only allows adding/removing a user to/from a group with name zones.<zone id>.admin under the path /Groups/zones
+  * idps.read - read only scopes to retrieve identity providers under /identity-providers
+  * idps.write- read only scopes to retrieve identity providers under /identity-providers
 
 A Note on Filtering
 =======================
@@ -130,7 +133,7 @@ Authentication and Delegated Authorization APIs
 
 This section deals with machine interactions, not with browsers, although some of them may have browsable content for authenticated users.  All machine requests have accept headers indicating JSON (or a derived media type perhaps).
 
-The ``/userinfo``, ``/check_id``, and ``/token`` endpoints are specified in the `OpenID Connect`_ and `OAuth2`_ standards and should be used by web applications on a cloud foundry instance such as micro, www, support, but will not be used by flows from cf.
+The ``/userinfo`` and ``/oauth/token`` endpoints are specified in the `OpenID Connect`_ and `OAuth2`_ standards and should be used by web applications on a cloud foundry instance.
 
 A Note on OAuth Scope
 -----------------------
@@ -229,6 +232,7 @@ See `oauth2 token endpoint`_ below for a more detailed description.
 
 =============== =================================================
 Request         ``POST /oauth/token``
+Authorization   Basic client ID and client secret
 Request Body    the authorization code (form encoded), e.g.::
 
                   code=F45jH
@@ -249,7 +253,7 @@ Implicit Grant with Credentials: ``POST /oauth/authorize``
 
 An `OAuth2`_ defined endpoint to provide various tokens and authorization codes.
 
-For the ``cf`` flows, we use the OAuth2 Implicit grant type (to avoid a second round trip to ``/token`` and so cf does not need to securely store a client secret or user refresh tokens). The authentication method for the user is undefined by OAuth2 but a POST to this endpoint is acceptable, although a GET must also be supported (see `OAuth2 section 3.1`_).
+For the ``cf`` flows, we use the OAuth2 Implicit grant type (to avoid a second round trip to ``/oauth/token`` and so cf does not need to securely store a client secret or user refresh tokens). The authentication method for the user is undefined by OAuth2 but a POST to this endpoint is acceptable, although a GET must also be supported (see `OAuth2 section 3.1`_).
 
 .. _OAuth2 section 3.1: http://tools.ietf.org/html/draft-ietf-oauth-v2-26#section-3.1
 
@@ -308,7 +312,7 @@ Using this trusted channel a Login Server can obtain create a user or perform an
 An authorization code grant has two steps (as normal), but instead of a UI response the UAA sends JSON:
 
 Create a user using trusted authenticate channel: /authenticate Request
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This endpoint lets the login client to retrieve a user_id during an external authentication sequence.
 So that the Authentication object in memory can always have a user_id available in the principal.
@@ -350,7 +354,7 @@ This endpoint is used
 
 
 Authorization Step 1: Initial Authorization Request
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 * Request: ``POST /oauth/authorize``
 * Request query component: some parameters specified by the spec, appended to the query component using the "application/x-www-form-urlencoded" format,
@@ -408,7 +412,7 @@ Authorization Step 1: Initial Authorization Request
         302 - FOUND (if the grant is already approved)
 
 Authorization Step 2: User Approves Grant
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Just a normal POST with approval parameters to ``/oauth/authorize``, including the cookie requested in Step 1 (just like a browser would do).  For example::
 
@@ -515,20 +519,10 @@ A sample password grant request is as follows::
         "grant_type=password&username=marissa&password=koala&authorities=%7B%22additionalAuthorizationAttributes%22%3A%7B%22external_group%22%3A%22domain%5C%5Cgroup1%22%2C%20%22external_id%22%3A%22abcd1234%22%7D%7D%0A"
 
 The access token will contain an az_attr claim like::
-        
+
         "az_attr":{"external_group":"domain\\group1","external_id":"abcd1234"}}
 
 These attributes can be requested in an authorization code flow as well.
-
-OpenID Check ID Endpoint: ``POST /check_id``
----------------------------------------------
-
-An OpenID Connect defined endpoint. It accepts an id_token, which contains claims about the authentication event. It validates the token and returns information contained in the token in JSON format. Basically makes it so that clients do not need to have full token handling implementations.
-
-==============  ======================================
-Request         ``POST /check_id``
-Request Body    ``id_token=LKFJHDSG567TDFHG``
-==============  ======================================
 
 OpenID User Info Endpoint: ``GET /userinfo``
 ----------------------------------------------
@@ -550,7 +544,7 @@ An endpoint which returns login information, e.g prompts for authorization codes
 This call will be unauthenticated.
 
 ================  ===============================================
-Request           ``GET /login_info`` or ``GET /login``
+Request           ``GET /login`` or ``GET /info``
 Request body      *empty*
 Response body     *example* ::
 
@@ -564,6 +558,142 @@ Response body     *example* ::
                     }
 
 ================  ===============================================
+
+Identity Zone Management APIs
+=============================
+
+The UAA supports multi tenancy. This is referred to as identity zones. An identity zones is accessed through a unique subdomain. If the standard UAA responds to https://uaa.10.244.0.34.xip.io a zone on this UAA would be accessed through https://zonesubdomain.uaa.10.244.0.34.xip.io
+
+As zone contains a unique identifier as well as a unique subdomain::
+
+                    {
+                        "id":"testzone1",
+                        "subdomain":"testzone1",
+                        "name":"The Twiglet Zone[testzone1]",
+                        "version":0,
+                        "description":"Like the Twilight Zone but tastier[testzone1].",
+                        "created":1426258488910,
+                        "last_modified":1426258488910
+                    }
+
+The UAA by default creates a ``default zone``. This zone will always be present, the ID will always be
+'uaa', and the subdomain is blank::
+
+                    {
+                        "id": "uaa",
+                        "subdomain": "",
+                        "name": "uaa",
+                        "version": 0,
+                        "description": "The system zone for backwards compatibility",
+                        "created": 946710000000,
+                        "last_modified": 946710000000
+                    }
+
+
+Create Identity Zone API: ``/identity-zones``
+--------------------------------------------------
+
+An identity zone is created using an IdentityZoneCreationRequest object. This allows the the zone to be bootstrapped with a set of pre defined clients. Once a zone has been created, the UAA will start accepting requests on the subdomain defined in the subdomain field of the identity zone.
+The client_details field is a List<BaseClientDetails> objects for clients that will be boot strapped in this zone.
+
+This call requires the ``zones.create`` scope
+
+================  ========================================================================================
+Request           ``POST /identity-zones`` or ``PUT /identity-zones/{id}`` or ``GET /identity-zones/{id}``
+Request body      *example* ::
+
+                    {
+                        "identity_zone": {
+                            "id":"testzone1",
+                            "subdomain":"testzone1",
+                            "name":"The Twiglet Zone[testzone1]",
+                            "version":0,
+                            "description":"Like the Twilight Zone but tastier[testzone1].",
+                            "created":1426260090992,
+                            "last_modified":1426260090992
+                        },
+                        "client_details":null
+                    }
+
+
+Response body     *example* ::
+
+                    HTTP/1.1 200 OK
+                    Content-Type: application/json
+
+                    {
+                        "id":"testzone1",
+                        "subdomain":"testzone1",
+                        "name":"The Twiglet Zone[testzone1]",
+                        "version":0,
+                        "description":"Like the Twilight Zone but tastier[testzone1].",
+                        "created":1426260091139,
+                        "last_modified":1426260091139
+                    }
+
+* Response        *Codes* ::
+
+                    201 - Created - and returns the body of the created identity zone
+                    200 - Ok - for PUT request to update the zone
+                    400 - Bad Request
+                    401 - Unauthorized
+                    403 - Forbidden - insufficient scope
+                    404 - Not Found - Update to non existent zone
+
+================  ========================================================================================
+
+Create Identity Provider API: ``/identity-providers``
+-----------------------------------------------------
+
+Within an identity zone you can have one or more identity providers. Identity providers are authentication sources for a user. Each identity zone will have a default identity provider named ``internal``, with a type ``internal`` and originKey='uaa'. This is the internal user database for each zone and is represented by the SCIM schema for users. In order
+
+
+================  ===============================================================================================================================
+Request           ``POST /identity-providers`` or ``PUT /identity-providers/{id}`` or ``GET /identity-providers`` (returns an array of providers)
+Header            ``X-Identity-Zone-Id`` (if using zones.<id>.admin scope against default UAA zone)
+Scopes Required   ``zones.<zone id>.admin`` or ``idps.read`` and ``idps.write``
+Request body      *example* ::
+
+                    {
+                        "originKey":"uaa",
+                        "name":"internal",
+                        "type":"internal",
+                        "config":null,
+                        "version":0,
+                        "created":1426260091149,
+                        "active":true,
+                        "identityZoneId":
+                        "testzone1"
+                    }
+
+Response body     *example* ::
+
+                    HTTP/1.1 200 OK
+                    Content-Type: application/json
+
+                    {
+                        "id":"50cf6125-4372-475e-94e8-c43f84111e75",
+                        "originKey":"uaa",
+                        "name":"internal",
+                        "type":"internal",
+                        "config":null,
+                        "version":0,
+                        "created":1426260091149,
+                        "active":true,
+                        "identityZoneId":
+                        "testzone1",
+                        "last_modified":1426260091149
+                    }
+
+* Response        *Codes* ::
+
+                    201 - Created - and returns the body of the created identity provider
+                    200 - Ok - for PUT request to update the zone
+                    400 - Bad Request
+                    401 - Unauthorized
+                    403 - Forbidden - insufficient scope
+
+================  ===============================================================================================================================
 
 User Account Management APIs
 ================================
@@ -791,10 +921,10 @@ Filters: note that, per the specification, attribute values are comma separated 
 Query for the existence of a specific username.
 
 * Response Body (for ``GET /Users?attributes=userName&filter=userName eq 'bjensen'``)::
-	
+
 	HTTP/1.1 200 OK
         Content-Type: application/json
-        
+
         {
     	  "resources": [
             {
@@ -820,7 +950,7 @@ Delete a User: ``DELETE /Users/{id}``
 See `SCIM - Deleting Resources <http://www.simplecloud.info/specs/draft-scim-rest-api-01.html#delete-resource>`_.
 
 * Request: ``DELETE /Users/{id}``
-* Request Headers: 
+* Request Headers:
 
   + Authorization header containing an `OAuth2`_ bearer token with::
 
@@ -964,7 +1094,7 @@ Update a Group: ``PUT /Groups/{id}``
 See `SCIM - Modifying with PUT <http://www.simplecloud.info/specs/draft-scim-rest-api-01.html#edit-resource-with-put>`_
 
 * Request: ``PUT /Groups/{id}``
-* Request Headers: 
+* Request Headers:
 
   + Authorization header containing an `OAuth2`_ bearer token with::
 
@@ -974,7 +1104,7 @@ See `SCIM - Modifying with PUT <http://www.simplecloud.info/specs/draft-scim-res
     OR ::
 
         user_id = <id of a user who is an admin member of the group being updated>
-  + (optional) ``If-Match`` the ``ETag`` (version id) for the value to update 
+  + (optional) ``If-Match`` the ``ETag`` (version id) for the value to update
 * Request Body::
 
         Host: example.com
@@ -994,7 +1124,7 @@ See `SCIM - Modifying with PUT <http://www.simplecloud.info/specs/draft-scim-res
           "members":[
              {"type":"USER","authorities":["READ"],"value":"3ebe4bda-74a2-40c4-8b70-f771d9bc8b9f"},
              {"type":"USER","authorities":["READ", "WRITE"],"value":"40c44bda-8b70-f771-74a2-3ebe4bda40c4"}
-          ]	     
+          ]
         }
 
 * Response Body:
@@ -1057,7 +1187,7 @@ Delete a Group: ``DELETE /Groups/{id}``
 See `SCIM - Deleting Resources <http://www.simplecloud.info/specs/draft-scim-rest-api-01.html#delete-resource>`_.
 
 * Request: ``DELETE /Groups/{id}``
-* Request Headers: 
+* Request Headers:
 
   + Authorization header containing an `OAuth2`_ bearer token with::
 
@@ -1074,7 +1204,7 @@ See `SCIM - Deleting Resources <http://www.simplecloud.info/specs/draft-scim-res
         401 - Unauthorized
         404 - Not found
 
-Deleting a group also removes the group from the 'groups' sub-attribute on users who were members of the group. 
+Deleting a group also removes the group from the 'groups' sub-attribute on users who were members of the group.
 
 Create a Zone Administrator (add zones.{id}.admin to a user}: ``POST /Groups/zones``
 ----------------------------------
@@ -1185,7 +1315,7 @@ The API ``GET /Groups/External/list`` is deprecated
 
 * Response Body::
 
-        HTTP/1.1 200 Ok
+HTTP/1.1 200 Ok
         Content-Type: application/json
 
         {"resources":
