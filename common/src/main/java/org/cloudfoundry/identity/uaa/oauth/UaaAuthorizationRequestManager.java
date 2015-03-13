@@ -55,7 +55,7 @@ import org.springframework.web.servlet.ModelAndViewDefiningException;
 /**
  * An {@link OAuth2RequestFactory} that applies various UAA-specific
  * rules to an authorization request,
- * validating it and setting the default values for requestedScopes and resource ids.
+ * validating it and setting the default values for requested scopes and resource ids.
  *
  * @author Dave Syer
  *
@@ -96,7 +96,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
     }
 
     /**
-     * Default requestedScopes that are always added to a user token (and then removed if
+     * Default requested scopes that are always added to a user token (and then removed if
      * the client doesn't have permission).
      *
      * @param defaultScopes the defaultScopes to set
@@ -125,7 +125,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
     }
 
     /**
-     * The string used to separate resource ids from feature names in requestedScopes
+     * The string used to separate resource ids from feature names in requested scopes
      * (e.g. "cloud_controller.read").
      *
      * @param scopeSeparator the scope separator to set. Default is period "."
@@ -139,15 +139,15 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
      * authorizationParameters and the registered
      * client details.
      * <ul>
-     * <li>For client_credentials grants, the default requestedScopes are the client's
+     * <li>For client_credentials grants, the default requested scopes are the client's
      * granted authorities</li>
-     * <li>For other grant types the default requestedScopes are the registered requestedScopes in
+     * <li>For other grant types the default requested scopes are the registered requested scopes in
      * the client details</li>
-     * <li>Only requestedScopes in those lists are valid, otherwise there is an exception
+     * <li>Only requested scopes in those lists are valid, otherwise there is an exception
      * </li>
-     * <li>If the requestedScopes contain separators then resource ids are extracted as
+     * <li>If the requested scopes contain separators then resource ids are extracted as
      * the scope value up to the last index of the separator</li>
-     * <li>Some requestedScopes can be hard-wired to resource ids (like the open id
+     * <li>Some requested scopes can be hard-wired to resource ids (like the open id
      * connect values), in which case the separator is ignored</li>
      * </ul>
      *
@@ -233,8 +233,8 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
     }
 
     /**
-     * Apply UAA rules to validate the requestedScopes scope. For client credentials
-     * grants the valid requestedScopes are actually in
+     * Apply UAA rules to validate the requested scopes scope. For client credentials
+     * grants the valid requested scopes are actually in
      * the authorities of the client.
      *
      */
@@ -249,7 +249,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
             for (String scope : scopes) {
                 if (!matches(validWildcards, scope)) {
                     throw new InvalidScopeException("Invalid scope: " + scope
-                                    + ". Did you know that you can get default requestedScopes by simply sending no value?",
+                                    + ". Did you know that you can get default requested scopes by simply sending no value?",
                                     validScope);
                 }
             }
@@ -281,13 +281,13 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
     }
 
     /**
-     * Add or remove requestedScopes derived from the current authenticated user's
+     * Add or remove requested scopes derived from the current authenticated user's
      * authorities (if any)
      *
-     * @param requestedScopes the initial set of requestedScopes from the client registration
+     * @param requestedScopes the initial set of requested scopes from the client registration
      * @param clientDetails
      * @param authorities the users authorities
-     * @return modified requestedScopes adapted according to the rules specified
+     * @return modified requested scopes adapted according to the rules specified
      */
     private Set<String> checkUserScopes(Set<String> requestedScopes, Collection<? extends GrantedAuthority> authorities,
                     ClientDetails clientDetails) {
