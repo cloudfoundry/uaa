@@ -181,15 +181,16 @@ public class IntegrationTestUtils {
                                                            String subdomain) {
 
         ResponseEntity<String> zoneGet = client.getForEntity(url + "/identity-zones/{id}", String.class, id);
-
+        IdentityZoneCreationRequest creationRequest = new IdentityZoneCreationRequest();
         if (zoneGet.getStatusCode()==HttpStatus.OK) {
             IdentityZone existing = JsonUtils.readValue(zoneGet.getBody(), IdentityZone.class);
             existing.setSubdomain(subdomain);
-            client.put(url + "/identity-zones/{id}", existing, id);
+            creationRequest.setIdentityZone(existing);
+            client.put(url + "/identity-zones/{id}", creationRequest, id);
             return existing;
         }
         IdentityZone identityZone = fixtureIdentityZone(id, subdomain);
-        IdentityZoneCreationRequest creationRequest = new IdentityZoneCreationRequest();
+
         creationRequest.setIdentityZone(identityZone);
         ResponseEntity<IdentityZone> zone = client.postForEntity(url + "/identity-zones", creationRequest, IdentityZone.class);
         return zone.getBody();
