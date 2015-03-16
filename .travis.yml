@@ -19,7 +19,6 @@ services:
 - postgresql
 before_install:
 - cp $TRAVIS_BUILD_DIR/scripts/travis/init.gradle $HOME/.gradle
-- git pull --unshallow
 - psql -c 'drop database if exists uaa;' -U postgres
 - psql -c 'create database uaa;' -U postgres
 - psql -c "drop user if exists root;" --dbname=uaa -U postgres
