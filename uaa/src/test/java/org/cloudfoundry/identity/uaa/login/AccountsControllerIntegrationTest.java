@@ -3,15 +3,16 @@ package org.cloudfoundry.identity.uaa.login;
 import com.dumbster.smtp.SimpleSmtpServer;
 import com.dumbster.smtp.SmtpMessage;
 import com.googlecode.flyway.core.Flyway;
+
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.login.test.MockMvcTestClient;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneCreationRequest;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -59,6 +60,7 @@ public class AccountsControllerIntegrationTest extends TestClassNullifier {
     private static SimpleSmtpServer mailServer;
     private String userEmail;
     private MockMvcTestClient mockMvcTestClient;
+    private MockMvcUtils mockMvcUtils;
 
     @BeforeClass
     public static void startMailServer() throws Exception {
@@ -90,6 +92,7 @@ public class AccountsControllerIntegrationTest extends TestClassNullifier {
             i.next();
             i.remove();
         }
+        mockMvcUtils = MockMvcUtils.utils();
     }
 
     @After
@@ -246,14 +249,11 @@ public class AccountsControllerIntegrationTest extends TestClassNullifier {
         identityZone.setName("myzonename");
         identityZone.setId(new RandomValueStringGenerator().generate());
 
-        IdentityZoneCreationRequest zoneCreationRequest = new IdentityZoneCreationRequest();
-        zoneCreationRequest.setIdentityZone(identityZone);
-
         String zonesCreateToken = mockMvcTestClient.getOAuthAccessToken("identity", "identitysecret", "client_credentials", "zones.create");
         mockMvc.perform(post("/identity-zones")
                 .header("Authorization", "Bearer " + zonesCreateToken)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(new ObjectMapper().writeValueAsString(zoneCreationRequest)))
+                .content(new ObjectMapper().writeValueAsString(identityZone)))
                 .andExpect(status().isCreated());
 
         mockMvc.perform(post("/create_account.do")
@@ -300,6 +300,7 @@ public class AccountsControllerIntegrationTest extends TestClassNullifier {
         identityZone.setSubdomain("mysubdomain");
         identityZone.setName("myzonename");
         identityZone.setId(new RandomValueStringGenerator().generate());
+        
 
         BaseClientDetails clientDetails = new BaseClientDetails();
         clientDetails.setClientId("myzoneclient");
@@ -307,16 +308,8 @@ public class AccountsControllerIntegrationTest extends TestClassNullifier {
         clientDetails.setAuthorizedGrantTypes(Arrays.asList("client_credentials"));
         clientDetails.addAdditionalInformation("signup_redirect_url", "http://myzoneclient.example.com");
 
-        IdentityZoneCreationRequest zoneCreationRequest = new IdentityZoneCreationRequest();
-        zoneCreationRequest.setIdentityZone(identityZone);
-        zoneCreationRequest.setClientDetails(Arrays.asList(clientDetails));
+        mockMvcUtils.createOtherIdentityZone("mysubdomain", mockMvc, webApplicationContext, clientDetails);
 
-        String zonesCreateToken = mockMvcTestClient.getOAuthAccessToken("identity", "identitysecret", "client_credentials", "zones.create");
-        mockMvc.perform(post("/identity-zones")
-                    .header("Authorization", "Bearer " + zonesCreateToken)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(new ObjectMapper().writeValueAsString(zoneCreationRequest)))
-                .andExpect(status().isCreated());
 
         mockMvc.perform(post("/create_account.do")
                     .with(new SetServerNameRequestPostProcessor("mysubdomain.localhost"))

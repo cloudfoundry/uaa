@@ -620,7 +620,7 @@ public class ClientAdminEndpoints implements InitializingBean {
         return details;
     }
 
-    public void setClientDetailsValidator(ClientDetailsValidator clientDetailsValidator) {
+    public void setClientDetailsValidator(ClientAdminEndpointsValidator clientDetailsValidator) {
         this.clientDetailsValidator = clientDetailsValidator;
     }
 
