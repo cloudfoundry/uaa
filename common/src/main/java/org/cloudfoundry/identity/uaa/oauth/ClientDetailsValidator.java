@@ -23,6 +23,10 @@ public interface ClientDetailsValidator {
      * @param create true if this is a creation request, false if this is a modification request
      * @return A validated and possibly modified client
      */
-    ClientDetails validate(ClientDetails clientDetails, boolean create) throws InvalidClientDetailsException;
+    ClientDetails validate(ClientDetails clientDetails, Mode mode) throws InvalidClientDetailsException;
+    
+    public static enum Mode {
+        CREATE, MODIFY, DELETE
+    }
 
 }

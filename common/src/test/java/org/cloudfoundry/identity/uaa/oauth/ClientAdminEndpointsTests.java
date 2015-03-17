@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.error.UaaException;
+import org.cloudfoundry.identity.uaa.oauth.ClientDetailsValidator.Mode;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.rest.ResourceMonitor;
@@ -161,7 +162,7 @@ public class ClientAdminEndpointsTests {
     public void testValidateClientsTransferAutoApproveScopeSet() throws Exception {
         List<String> scopes = Arrays.asList("scope1", "scope2");
         input.setAutoApproveScopes(new HashSet<String>(scopes));
-        ClientDetails test = endpoints.getClientDetailsValidator().validate(input,true);
+        ClientDetails test = endpoints.getClientDetailsValidator().validate(input, Mode.CREATE);
         for (String scope:scopes) {
             assertTrue("Client should have "+scope+" autoapprove.", test.isAutoApprove(scope));
         }

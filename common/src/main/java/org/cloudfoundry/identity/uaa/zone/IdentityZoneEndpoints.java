@@ -14,9 +14,9 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.CREATED;
-import static org.springframework.http.HttpStatus.GONE;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.OK;
+import static org.springframework.web.bind.annotation.RequestMethod.DELETE;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
@@ -26,7 +26,6 @@ import java.util.UUID;
 import javax.validation.Valid;
 
 import org.cloudfoundry.identity.uaa.authentication.Origin;
-import org.cloudfoundry.identity.uaa.oauth.ClientDetailsValidator;
 import org.cloudfoundry.identity.uaa.oauth.InvalidClientDetailsException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +34,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientRegistrationService;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.StringUtils;
@@ -53,16 +51,15 @@ public class IdentityZoneEndpoints {
     private static final Logger log = LoggerFactory.getLogger(IdentityZoneEndpoints.class);
     private final IdentityZoneProvisioning zoneDao;
     private final IdentityProviderProvisioning idpDao;
-    private final ClientRegistrationService clientRegistrationService;
-    private final ClientDetailsValidator clientDetailsValidator;
+    private final IdentityZoneEndpointClientRegistrationService clientRegistrationService;
+    
 
     public IdentityZoneEndpoints(IdentityZoneProvisioning zoneDao, IdentityProviderProvisioning idpDao,
-            ClientRegistrationService clientRegistrationService, ClientDetailsValidator clientDetailsValidator) {
+            IdentityZoneEndpointClientRegistrationService clientRegistrationService) {
         super();
         this.zoneDao = zoneDao;
         this.idpDao = idpDao;
         this.clientRegistrationService = clientRegistrationService;
-        this.clientDetailsValidator = clientDetailsValidator;
     }
 
     @RequestMapping(value = "{id}", method = GET)
@@ -118,17 +115,36 @@ public class IdentityZoneEndpoints {
         IdentityZone previous = IdentityZoneHolder.get();
         try {
             IdentityZone identityZone = zoneDao.retrieve(identityZoneId);
-            ClientDetails validClient = clientDetailsValidator.validate(clientDetails, true);
             IdentityZoneHolder.set(identityZone);
-            clientRegistrationService.addClientDetails(validClient);
-            BaseClientDetails response = new BaseClientDetails(validClient);
-            response.setClientSecret(null);
-            return new ResponseEntity<>(response, CREATED);
+            ClientDetails createdClient = clientRegistrationService.createClient(clientDetails);
+            return new ResponseEntity<>(removeSecret(createdClient), CREATED);
         } finally {
             IdentityZoneHolder.set(previous);
         }
     }
 
+    private ClientDetails removeSecret(ClientDetails createdClient) {
+        BaseClientDetails response = new BaseClientDetails(createdClient);
+        response.setClientSecret(null);
+        return response;
+    }
+    
+    @RequestMapping(method = DELETE, value = "{identityZoneId}/clients/{clientId}")
+    public ResponseEntity<? extends ClientDetails> deleteClient(
+            @PathVariable String identityZoneId, @PathVariable String clientId) {
+        
+        IdentityZone previous = IdentityZoneHolder.get();
+        try {
+            IdentityZone identityZone = zoneDao.retrieve(identityZoneId);
+            IdentityZoneHolder.set(identityZone);
+            ClientDetails deleted = clientRegistrationService.deleteClient(clientId);
+            
+            return new ResponseEntity<>(removeSecret(deleted), OK);
+        } finally {
+            IdentityZoneHolder.set(previous);
+        }
+    }
+    
     @ExceptionHandler(ZoneAlreadyExistsException.class)
     public ResponseEntity<ZoneAlreadyExistsException> handleZoneAlreadyExistsException(ZoneAlreadyExistsException e) {
         return new ResponseEntity<>(e, CONFLICT);
@@ -141,7 +157,7 @@ public class IdentityZoneEndpoints {
 
     @ExceptionHandler(NoSuchClientException.class)
     public ResponseEntity<NoSuchClientException> handleException(NoSuchClientException e) {
-        return new ResponseEntity<>(e, GONE);
+        return new ResponseEntity<>(e, NOT_FOUND);
     }
 
     @ExceptionHandler(ZoneDoesNotExistsException.class)

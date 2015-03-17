@@ -28,6 +28,7 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.message.SimpleMessage;
+import org.cloudfoundry.identity.uaa.oauth.ClientDetailsValidator.Mode;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.rest.AttributeNameMapper;
@@ -200,7 +201,7 @@ public class ClientAdminEndpoints implements InitializingBean {
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     public ClientDetails createClientDetails(@RequestBody BaseClientDetails client) throws Exception {
-        ClientDetails details = clientDetailsValidator.validate(client, true);
+        ClientDetails details = clientDetailsValidator.validate(client, Mode.CREATE);
         clientRegistrationService.addClientDetails(details);
         return removeSecret(client);
     }
@@ -215,7 +216,7 @@ public class ClientAdminEndpoints implements InitializingBean {
         }
         ClientDetails[] results = new ClientDetails[clients.length];
         for (int i=0; i<clients.length; i++) {
-            results[i] = clientDetailsValidator.validate(clients[i], true);
+            results[i] = clientDetailsValidator.validate(clients[i], Mode.CREATE);
         }
         return doInsertClientDetails(results);
     }
@@ -245,7 +246,7 @@ public class ClientAdminEndpoints implements InitializingBean {
             } else {
                 details[i] = syncWithExisting(existing, client);
             }
-            details[i] = clientDetailsValidator.validate(details[i], false);
+            details[i] = clientDetailsValidator.validate(details[i], Mode.MODIFY);
         }        
         return doProcessUpdates(details);
     }
@@ -282,7 +283,7 @@ public class ClientAdminEndpoints implements InitializingBean {
         } catch (Exception e) {
             logger.warn("Couldn't fetch client config for client_id: " + clientId, e);
         }
-        details = clientDetailsValidator.validate(details, false);
+        details = clientDetailsValidator.validate(details, Mode.MODIFY);
         clientRegistrationService.updateClientDetails(details);
         clientUpdates.incrementAndGet();
         return removeSecret(client);
@@ -317,7 +318,7 @@ public class ClientAdminEndpoints implements InitializingBean {
         ClientDetailsModification[] result = new ClientDetailsModification[details.length];
         for (int i=0; i<result.length; i++) {
             if (ClientDetailsModification.ADD.equals(details[i].getAction())) {
-                ClientDetails client = clientDetailsValidator.validate(details[i], true);
+                ClientDetails client = clientDetailsValidator.validate(details[i], Mode.CREATE);
                 clientRegistrationService.addClientDetails(client);
                 clientUpdates.incrementAndGet();
                 result[i] = new ClientDetailsModification(clientDetailsService.retrieve(details[i].getClientId()));
@@ -346,7 +347,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 
     private ClientDetailsModification updateClientNotSecret(ClientDetailsModification c) {
         ClientDetailsModification result = new ClientDetailsModification(clientDetailsService.retrieve(c.getClientId()));
-        ClientDetails client = clientDetailsValidator.validate(c, false);
+        ClientDetails client = clientDetailsValidator.validate(c, Mode.MODIFY);
         clientRegistrationService.updateClientDetails(client);
         clientUpdates.incrementAndGet();
         return result;

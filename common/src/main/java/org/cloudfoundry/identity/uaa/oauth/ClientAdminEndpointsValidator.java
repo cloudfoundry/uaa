@@ -71,8 +71,8 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
      * @see org.cloudfoundry.identity.uaa.oauth.ClientDetailsValidatorInterface#validate(org.springframework.security.oauth2.provider.ClientDetails, boolean)
      */
     @Override
-    public ClientDetails validate(ClientDetails prototype, boolean create) {
-    	return validate(prototype, create, true);
+    public ClientDetails validate(ClientDetails prototype, Mode mode) {
+    	return validate(prototype, mode == Mode.CREATE, true);
     }
 
     public ClientDetails validate(ClientDetails prototype, boolean create, boolean checkAdmin) throws InvalidClientDetailsException {

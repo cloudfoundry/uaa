@@ -3,10 +3,13 @@ package org.cloudfoundry.identity.uaa.integration;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 
 import org.cloudfoundry.identity.uaa.ServerRunning;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -90,6 +93,7 @@ public class IdentityZoneEndpointsIntegrationTests {
         
         BaseClientDetails clientDetails = new BaseClientDetails("test123", null,"openid", "authorization_code", "uaa.resource");
         clientDetails.setClientSecret("testSecret");
+        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singleton(Origin.UAA));
         
         ResponseEntity<Void> clientCreateResponse = client.exchange(
                 serverRunning.getUrl("/identity-zones/"+id+"/clients"),
@@ -99,6 +103,15 @@ public class IdentityZoneEndpointsIntegrationTests {
                 id);
         
         assertEquals(HttpStatus.CREATED, clientCreateResponse.getStatusCode());
+        
+        ResponseEntity<Void> clientDeleteResponse = client.exchange(
+                serverRunning.getUrl("/identity-zones/"+id+"/clients/"+clientDetails.getClientId()),
+                HttpMethod.DELETE,
+                null,
+                new ParameterizedTypeReference<Void>() {}, 
+                id);
+        
+        assertEquals(HttpStatus.OK, clientDeleteResponse.getStatusCode());
     }
     
 

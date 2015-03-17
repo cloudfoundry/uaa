@@ -6,17 +6,14 @@ import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
-import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.event.ClientCreateEvent;
-import org.cloudfoundry.identity.uaa.scim.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
+import org.cloudfoundry.identity.uaa.oauth.event.ClientDeleteEvent;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
-import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
@@ -72,6 +69,7 @@ public class IdentityZoneEndpointsMockMvcTests extends TestClassNullifier {
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
     private static TestApplicationEventListener<IdentityZoneModifiedEvent> eventListener;
     private static TestApplicationEventListener<ClientCreateEvent> clientCreateEventListener;
+    private static TestApplicationEventListener<ClientDeleteEvent> clientDeleteEventListener;
     
     @BeforeClass
     public static void setUp() throws Exception {
@@ -88,8 +86,10 @@ public class IdentityZoneEndpointsMockMvcTests extends TestClassNullifier {
 
         eventListener = TestApplicationEventListener.forEventClass(IdentityZoneModifiedEvent.class);
         clientCreateEventListener = TestApplicationEventListener.forEventClass(ClientCreateEvent.class);
+        clientDeleteEventListener = TestApplicationEventListener.forEventClass(ClientDeleteEvent.class);
         webApplicationContext.addApplicationListener(eventListener);
         webApplicationContext.addApplicationListener(clientCreateEventListener);
+        webApplicationContext.addApplicationListener(clientDeleteEventListener);
 
         identityClientToken = testClient.getClientCredentialsOAuthAccessToken(
                 "identity",
@@ -113,6 +113,7 @@ public class IdentityZoneEndpointsMockMvcTests extends TestClassNullifier {
         IdentityZoneHolder.clear();
         eventListener.clearEvents();
         clientCreateEventListener.clearEvents();
+        clientDeleteEventListener.clearEvents();
     }
 
     @After
@@ -321,13 +322,13 @@ public class IdentityZoneEndpointsMockMvcTests extends TestClassNullifier {
     }
     
     @Test
-    public void testCreateLimitedClientInNewZoneUsingZoneEndpoint() throws Exception {
+    public void testCreateAndDeleteLimitedClientInNewZoneUsingZoneEndpoint() throws Exception {
         String id = generator.generate();
         IdentityZone zone = createZone(id, HttpStatus.CREATED, identityClientToken);
         BaseClientDetails client = new BaseClientDetails("limited-client", null, "openid", "authorization_code",
                 "uaa.resource");
         client.setClientSecret("secret");
-        client.getAdditionalInformation().put(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList(Origin.UAA));
+        client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList(Origin.UAA));
         MvcResult result = mockMvc.perform(post("/identity-zones/"+zone.getId()+"/clients")
                 .header("Authorization", "Bearer " + identityClientToken)
                 .contentType(APPLICATION_JSON)
@@ -337,7 +338,15 @@ public class IdentityZoneEndpointsMockMvcTests extends TestClassNullifier {
         BaseClientDetails created = new ObjectMapper().readValue(result.getResponse().getContentAsString(), BaseClientDetails.class);
         assertNull(created.getClientSecret());
         checkAuditEventListener(1, AuditEventType.ClientCreateSuccess, clientCreateEventListener);
+        
+        mockMvc.perform(delete("/identity-zones/"+zone.getId()+"/clients/"+created.getClientId())
+                .header("Authorization", "Bearer " + identityClientToken)
+                .accept(APPLICATION_JSON))
+                .andExpect(status().isOk());
+        
+        checkAuditEventListener(1, AuditEventType.ClientDeleteSuccess, clientDeleteEventListener);
     }
+    
     
     @Test
     public void testCreateAdminClientInNewZoneUsingZoneEndpointReturns400() throws Exception {
