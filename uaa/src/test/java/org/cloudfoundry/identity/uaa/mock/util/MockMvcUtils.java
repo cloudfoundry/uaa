@@ -30,6 +30,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.TestClient.OAuthToken;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
@@ -43,6 +44,8 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationEvent;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -69,7 +72,7 @@ public class MockMvcUtils {
     public static MockMvcUtils utils() {
         return new MockMvcUtils();
     }
-
+    
     public IdentityZone createZoneUsingWebRequest(MockMvc mockMvc, String accessToken) throws Exception {
         final String zoneId = UUID.randomUUID().toString();
         IdentityZone identityZone = MultitenancyFixture.identityZone(zoneId, zoneId);
@@ -286,6 +289,12 @@ public class MockMvcUtils {
                 .andReturn();
         OAuthToken oauthToken = objectMapper.readValue(result.getResponse().getContentAsByteArray(), OAuthToken.class);
         return oauthToken.accessToken;
+    }
+    
+    public <T extends ApplicationEvent>  TestApplicationEventListener<T> addEventListener(ConfigurableApplicationContext applicationContext, Class<T> clazz) {
+        TestApplicationEventListener<T> listener = TestApplicationEventListener.forEventClass(clazz);
+        applicationContext.addApplicationListener(listener);
+        return listener;
     }
 
     public static class MockSecurityContext implements SecurityContext {

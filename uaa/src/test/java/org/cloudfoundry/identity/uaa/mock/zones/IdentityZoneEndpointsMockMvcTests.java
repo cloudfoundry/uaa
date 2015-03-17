@@ -84,12 +84,9 @@ public class IdentityZoneEndpointsMockMvcTests extends TestClassNullifier {
             .build();
         testClient = new TestClient(mockMvc);
 
-        eventListener = TestApplicationEventListener.forEventClass(IdentityZoneModifiedEvent.class);
-        clientCreateEventListener = TestApplicationEventListener.forEventClass(ClientCreateEvent.class);
-        clientDeleteEventListener = TestApplicationEventListener.forEventClass(ClientDeleteEvent.class);
-        webApplicationContext.addApplicationListener(eventListener);
-        webApplicationContext.addApplicationListener(clientCreateEventListener);
-        webApplicationContext.addApplicationListener(clientDeleteEventListener);
+        eventListener = mockMvcUtils.addEventListener(webApplicationContext, IdentityZoneModifiedEvent.class);
+        clientCreateEventListener = mockMvcUtils.addEventListener(webApplicationContext, ClientCreateEvent.class);
+        clientDeleteEventListener = mockMvcUtils.addEventListener(webApplicationContext, ClientDeleteEvent.class);
 
         identityClientToken = testClient.getClientCredentialsOAuthAccessToken(
                 "identity",

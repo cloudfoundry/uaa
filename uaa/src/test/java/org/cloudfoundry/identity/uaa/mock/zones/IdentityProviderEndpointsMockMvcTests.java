@@ -81,8 +81,8 @@ public class IdentityProviderEndpointsMockMvcTests extends TestClassNullifier {
             .build();
         testClient = new TestClient(mockMvc);
 
-        eventListener = TestApplicationEventListener.forEventClass(IdentityProviderModifiedEvent.class);
-        webApplicationContext.addApplicationListener(eventListener);
+        mockMvcUtils = MockMvcUtils.utils();
+        eventListener = mockMvcUtils.addEventListener(webApplicationContext, IdentityProviderModifiedEvent.class);
 
         adminToken = testClient.getClientCredentialsOAuthAccessToken(
             "admin",
@@ -92,7 +92,6 @@ public class IdentityProviderEndpointsMockMvcTests extends TestClassNullifier {
             "identity",
             "identitysecret",
             "zones.create");
-        mockMvcUtils = MockMvcUtils.utils();
         identityProviderProvisioning = webApplicationContext.getBean(IdentityProviderProvisioning.class);
     }
 
