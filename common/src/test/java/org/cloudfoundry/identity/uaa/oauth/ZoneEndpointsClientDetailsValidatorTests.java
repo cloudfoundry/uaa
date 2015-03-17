@@ -4,6 +4,8 @@ import static org.junit.Assert.*;
 
 import java.util.Collections;
 
+import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -22,6 +24,7 @@ public class ZoneEndpointsClientDetailsValidatorTests {
     public void testCreateLimitedClient() {
         BaseClientDetails clientDetails = new BaseClientDetails("valid-client", null, "openid", "authorization_code", "uaa.resource");
         clientDetails.setClientSecret("secret");
+        clientDetails.getAdditionalInformation().put(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList(Origin.UAA));
         ClientDetails validatedClientDetails = zoneEndpointsClientDetailsValidator.validate(clientDetails, true);
         assertEquals(clientDetails.getClientId(), validatedClientDetails.getClientId());
         assertEquals(clientDetails.getScope(), validatedClientDetails.getScope());

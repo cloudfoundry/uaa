@@ -7,6 +7,7 @@ import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.event.ClientCreateEvent;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -326,6 +327,7 @@ public class IdentityZoneEndpointsMockMvcTests extends TestClassNullifier {
         BaseClientDetails client = new BaseClientDetails("limited-client", null, "openid", "authorization_code",
                 "uaa.resource");
         client.setClientSecret("secret");
+        client.getAdditionalInformation().put(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList(Origin.UAA));
         MvcResult result = mockMvc.perform(post("/identity-zones/"+zone.getId()+"/clients")
                 .header("Authorization", "Bearer " + identityClientToken)
                 .contentType(APPLICATION_JSON)
