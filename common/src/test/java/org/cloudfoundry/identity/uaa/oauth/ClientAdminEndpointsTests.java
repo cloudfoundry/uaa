@@ -20,7 +20,6 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -31,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.error.UaaException;
-import org.cloudfoundry.identity.uaa.ldap.extension.ExtendedLdapUserImpl;
+import org.cloudfoundry.identity.uaa.oauth.ClientDetailsValidator.Mode;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.rest.ResourceMonitor;
@@ -49,7 +48,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.common.exceptions.BadClientCredentialsException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -85,7 +83,7 @@ public class ClientAdminEndpointsTests {
 
     private ApprovalStore approvalStore = null;
 
-    private ClientDetailsValidator clientDetailsValidator = null;
+    private ClientAdminEndpointsValidator clientDetailsValidator = null;
     
     @Rule
     public ExpectedException expected = ExpectedException.none();
@@ -102,7 +100,7 @@ public class ClientAdminEndpointsTests {
         clientRegistrationService = Mockito.mock(ClientRegistrationService.class);
         authenticationManager = Mockito.mock(AuthenticationManager.class);
         approvalStore = mock(ApprovalStore.class);
-        clientDetailsValidator = new ClientDetailsValidator();
+        clientDetailsValidator = new ClientAdminEndpointsValidator();
         clientDetailsValidator.setClientDetailsService(clientDetailsService);
         clientDetailsValidator.setSecurityContextAccessor(securityContextAccessor);
         
@@ -164,7 +162,7 @@ public class ClientAdminEndpointsTests {
     public void testValidateClientsTransferAutoApproveScopeSet() throws Exception {
         List<String> scopes = Arrays.asList("scope1", "scope2");
         input.setAutoApproveScopes(new HashSet<String>(scopes));
-        ClientDetails test = endpoints.getClientDetailsValidator().validate(input,true, false);
+        ClientDetails test = endpoints.getClientDetailsValidator().validate(input, Mode.CREATE);
         for (String scope:scopes) {
             assertTrue("Client should have "+scope+" autoapprove.", test.isAutoApprove(scope));
         }

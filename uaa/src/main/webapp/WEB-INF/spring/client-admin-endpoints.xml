@@ -76,7 +76,7 @@
         <property name="clientDetailsValidator" ref="clientDetailsValidator"/>
     </bean>
     
-    <bean id="clientDetailsValidator" class="org.cloudfoundry.identity.uaa.oauth.ClientDetailsValidator">
+    <bean id="clientDetailsValidator" class="org.cloudfoundry.identity.uaa.oauth.ClientAdminEndpointsValidator">
         <property name="clientDetailsService" ref="clientDetailsService" />
     </bean>
 

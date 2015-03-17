@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
@@ -20,7 +21,6 @@ import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneCreationRequest;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.After;
@@ -54,6 +54,7 @@ public class ScimUserEndpointsMockMvcTests extends TestClassNullifier {
     private String scimCreateToken;
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
     private TestClient testClient;
+    private MockMvcUtils mockMvcUtils = MockMvcUtils.utils();
 
     @Before
     public void setUp() throws Exception {
@@ -152,7 +153,7 @@ public class ScimUserEndpointsMockMvcTests extends TestClassNullifier {
     @Test
     public void testCreateUserInZone() throws Exception {
         String subdomain = generator.generate();
-        createOtherIdentityZone(subdomain);
+        mockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext);
 
         String zoneAdminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "admin-secret", "scim.write", subdomain);
 
@@ -162,10 +163,10 @@ public class ScimUserEndpointsMockMvcTests extends TestClassNullifier {
     @Test
     public void testCreateUserInOtherZoneIsUnauthorized() throws Exception {
         String subdomain = generator.generate();
-        createOtherIdentityZone(subdomain);
+        mockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext);
 
         String otherSubdomain = generator.generate();
-        createOtherIdentityZone(otherSubdomain);
+        mockMvcUtils.createOtherIdentityZone(otherSubdomain, mockMvc, webApplicationContext);
 
         String zoneAdminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "admin-secret", "scim.write", subdomain);
 
@@ -181,29 +182,6 @@ public class ScimUserEndpointsMockMvcTests extends TestClassNullifier {
         mockMvc.perform(post).andExpect(status().isUnauthorized());
     }
 
-    private IdentityZone createOtherIdentityZone(String subdomain) throws Exception {
-
-        String identityToken = testClient.getClientCredentialsOAuthAccessToken("identity", "identitysecret", "zones.create");
-
-        IdentityZone identityZone = MultitenancyFixture.identityZone(subdomain, subdomain);
-        IdentityZoneCreationRequest creationRequest = new IdentityZoneCreationRequest();
-        creationRequest.setIdentityZone(identityZone);
-
-        List<BaseClientDetails> clientDetails = new ArrayList<>();
-        BaseClientDetails client = new BaseClientDetails("admin", null,null, "client_credentials", "clients.admin,scim.read,scim.write");
-        client.setClientSecret("admin-secret");
-        clientDetails.add(client);
-        creationRequest.setClientDetails(clientDetails);
-
-        mockMvc.perform(post("/identity-zones")
-                .header("Authorization", "Bearer " + identityToken)
-                .contentType(APPLICATION_JSON)
-                .accept(APPLICATION_JSON)
-                .content(new ObjectMapper().writeValueAsString(creationRequest)))
-                .andExpect(status().isCreated());
-
-        return identityZone;
-    }
 
     private void verifyUser(String token) throws Exception {
         ScimUserProvisioning usersRepository = webApplicationContext.getBean(ScimUserProvisioning.class);

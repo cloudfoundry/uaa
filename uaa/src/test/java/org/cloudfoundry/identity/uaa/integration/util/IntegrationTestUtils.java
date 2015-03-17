@@ -14,7 +14,6 @@
 
 package org.cloudfoundry.identity.uaa.integration.util;
 
-import junit.framework.Assert;
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.cloudfoundry.identity.uaa.ServerRunning;
@@ -25,9 +24,9 @@ import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneCreationRequest;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.codehaus.jackson.type.TypeReference;
+import org.junit.Assert;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -181,18 +180,15 @@ public class IntegrationTestUtils {
                                                            String subdomain) {
 
         ResponseEntity<String> zoneGet = client.getForEntity(url + "/identity-zones/{id}", String.class, id);
-        IdentityZoneCreationRequest creationRequest = new IdentityZoneCreationRequest();
         if (zoneGet.getStatusCode()==HttpStatus.OK) {
             IdentityZone existing = JsonUtils.readValue(zoneGet.getBody(), IdentityZone.class);
             existing.setSubdomain(subdomain);
-            creationRequest.setIdentityZone(existing);
-            client.put(url + "/identity-zones/{id}", creationRequest, id);
+            client.put(url + "/identity-zones/{id}", existing, id);
             return existing;
         }
         IdentityZone identityZone = fixtureIdentityZone(id, subdomain);
 
-        creationRequest.setIdentityZone(identityZone);
-        ResponseEntity<IdentityZone> zone = client.postForEntity(url + "/identity-zones", creationRequest, IdentityZone.class);
+        ResponseEntity<IdentityZone> zone = client.postForEntity(url + "/identity-zones", identityZone, IdentityZone.class);
         return zone.getBody();
     }
 
