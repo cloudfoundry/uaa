@@ -712,7 +712,7 @@ Response body     *example* ::
 
 ================  ========================================================================================
 
-To create an arbitrary client in an Identity Zone, you must have the scope of zones.<zone-id>.admin. See `create-a-zone-administrator-add-zones-id-admin-to-a-user-post-groups-zones`_ to assign that scope to a user, then as that user, use the /oauth/clients endpoints, being sure to include the X-Identity-Zone-Id: <zone-id> header.
+To create an arbitrary client in an Identity Zone, you must have the scope of zones.<zone-id>.admin. See create_zone_administrator_ to assign that scope to a user, then as that user, use the /oauth/clients endpoints, being sure to include the X-Identity-Zone-Id: <zone-id> header.
 
 Create Identity Provider API: ``/identity-providers``
 -----------------------------------------------------
@@ -1278,13 +1278,14 @@ See `SCIM - Deleting Resources <http://www.simplecloud.info/specs/draft-scim-res
 
 Deleting a group also removes the group from the 'groups' sub-attribute on users who were members of the group.
 
-.. _create_zone_administrator:
 Create a Zone Administrator (add zones.{id}.admin to a user}: ``POST /Groups/zones``
 ----------------------------------
 
 See `SCIM - Creating Resources`__
 
 __ http://www.simplecloud.info/specs/draft-scim-rest-api-01.html#create-resource
+
+.. _create_zone_administrator:
 
 * Request: ``POST /Groups/zones``
 * Request Headers: Authorization header containing an OAuth2_ bearer token with::
