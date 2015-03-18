@@ -345,6 +345,28 @@ public class IdentityZoneEndpointsMockMvcTests extends TestClassNullifier {
         checkAuditEventListener(1, AuditEventType.ClientDeleteSuccess, clientDeleteEventListener);
     }
     
+    @Test
+    public void testCreateAndDeleteLimitedClientInUAAZoneReturns403() throws Exception {
+        BaseClientDetails client = new BaseClientDetails("limited-client", null, "openid", "authorization_code",
+                "uaa.resource");
+        client.setClientSecret("secret");
+        client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList(Origin.UAA));
+        mockMvc.perform(post("/identity-zones/uaa/clients")
+                .header("Authorization", "Bearer " + identityClientToken)
+                .contentType(APPLICATION_JSON)
+                .accept(APPLICATION_JSON)
+                .content(new ObjectMapper().writeValueAsString(client)))
+                .andExpect(status().isForbidden());
+        checkAuditEventListener(0, AuditEventType.ClientCreateSuccess, clientCreateEventListener);
+        
+        mockMvc.perform(delete("/identity-zones/uaa/clients/admin")
+                .header("Authorization", "Bearer " + identityClientToken)
+                .accept(APPLICATION_JSON))
+                .andExpect(status().isForbidden());
+        
+        checkAuditEventListener(0, AuditEventType.ClientDeleteSuccess, clientDeleteEventListener);
+    }
+    
     
     @Test
     public void testCreateAdminClientInNewZoneUsingZoneEndpointReturns400() throws Exception {

@@ -150,24 +150,25 @@ public class IdentityZoneEndpoints {
         return new ResponseEntity<>(e, CONFLICT);
     }
 
-    @ExceptionHandler(ClientAlreadyExistsException.class)
-    public ResponseEntity<ClientAlreadyExistsException> handleException(ClientAlreadyExistsException e) {
-        return new ResponseEntity<>(e, CONFLICT);
+    @ExceptionHandler(InvalidClientDetailsException.class)
+    public ResponseEntity<InvalidClientDetailsException> handleInvalidClientDetails(InvalidClientDetailsException e) {
+        return new ResponseEntity<InvalidClientDetailsException>(e, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(NoSuchClientException.class)
-    public ResponseEntity<NoSuchClientException> handleException(NoSuchClientException e) {
-        return new ResponseEntity<>(e, NOT_FOUND);
+    public ResponseEntity<Void> handleNoSuchClient(NoSuchClientException e) {
+        return new ResponseEntity<Void>(HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(ClientAlreadyExistsException.class)
+    public ResponseEntity<InvalidClientDetailsException> handleClientAlreadyExists(ClientAlreadyExistsException e) {
+        return new ResponseEntity<InvalidClientDetailsException>(new InvalidClientDetailsException(e.getMessage()),
+                        HttpStatus.CONFLICT);
     }
 
     @ExceptionHandler(ZoneDoesNotExistsException.class)
     public ResponseEntity<ZoneDoesNotExistsException> handleZoneDoesNotExistsException(ZoneDoesNotExistsException e) {
-        return new ResponseEntity<>(e, NOT_FOUND);
-    }
-
-    @ExceptionHandler(InvalidClientDetailsException.class)
-    public ResponseEntity<InvalidClientDetailsException> handleInvalidClientDetails(InvalidClientDetailsException e) {
-        return new ResponseEntity<>(e, HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(NOT_FOUND);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

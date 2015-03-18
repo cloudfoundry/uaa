@@ -638,7 +638,7 @@ Response body     *example* ::
 Identity Zone clients API: ``/identity-zones/clients``
 --------------------------------------------------
 
-With the ``zones.create` scope, clients can be created in an identity zone through this endpoint. However, the only client that can be created through this endpoint is one with limited powers; this client can only be used to support web SSO using the authorization code flow, and using the zone's internal Identity Provider.
+With the ``zones.write` scope, clients can be created in an identity zone through this endpoint. However, the only client that can be created through this endpoint is one with limited powers; this client can only be used to support web SSO using the authorization code flow, and using the zone's internal Identity Provider.
 
 ================  ========================================================================================
 Request           ``POST /identity-zones/{identityZoneId}/clients``
@@ -666,7 +666,7 @@ Response body     *example* ::
                         "authorities" : ["uaa.resource"],
                         "resource_ids" : ["none"],
                         "allowedproviders" : ["uaa"],
-                        "createdwith" : "zones.create"
+                        "createdwith" : "zones.write"
                     }
 
 * Response        *Codes* ::
@@ -679,7 +679,7 @@ Response body     *example* ::
 ================  ========================================================================================
 
 
-A client created through this endpoint can be deleted through this endpoint as well using the ``zones.create`` scope. The deleted client is returned in the response.
+A client created through this endpoint can be deleted through this endpoint as well using the ``zones.write`` scope. The deleted client is returned in the response.
 
 ================  ========================================================================================
 Request           ``DELETE /identity-zones/{identityZoneId}/clients/{clientId}``
@@ -699,7 +699,7 @@ Response body     *example* ::
                         "authorities" : ["uaa.resource"],
                         "resource_ids" : ["none"],
                         "allowedproviders" : ["uaa"],
-                        "createdwith" : "zones.create"
+                        "createdwith" : "zones.write"
                     }
 
 * Response        *Codes* ::
