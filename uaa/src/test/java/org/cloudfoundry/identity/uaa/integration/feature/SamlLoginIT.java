@@ -211,7 +211,7 @@ public class SamlLoginIT {
         String zoneId = "testzone1";
 
         RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTempate(
-            IntegrationTestUtils.getClientCredentialsResource(baseUrl,new String[] {"zones.create", "scim.zones"}, "identity", "identitysecret")
+            IntegrationTestUtils.getClientCredentialsResource(baseUrl,new String[] {"zones.write", "scim.zones"}, "identity", "identitysecret")
         );
         RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTempate(
             IntegrationTestUtils.getClientCredentialsResource(baseUrl,new String[0] , "admin", "adminsecret")

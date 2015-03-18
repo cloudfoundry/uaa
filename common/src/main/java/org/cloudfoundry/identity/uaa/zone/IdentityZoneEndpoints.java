@@ -124,7 +124,7 @@ public class IdentityZoneEndpoints {
     }
 
     private ClientDetails removeSecret(ClientDetails createdClient) {
-        BaseClientDetails response = new BaseClientDetails(createdClient);
+        BaseClientDetails response = (BaseClientDetails) createdClient;
         response.setClientSecret(null);
         return response;
     }

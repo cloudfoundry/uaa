@@ -302,7 +302,7 @@
             like
             defaultUserAuthorities -->
         <constructor-arg
-            value="scim.read,scim.write,uaa.resource,uaa.admin,clients.read,clients.write,clients.secret,cloud_controller.admin,clients.admin,zones.create" />
+            value="scim.read,scim.write,uaa.resource,uaa.admin,clients.read,clients.write,clients.secret,cloud_controller.admin,clients.admin,zones.write" />
     </bean>
 
     <bean id="groups" class="java.lang.String">

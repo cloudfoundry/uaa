@@ -89,7 +89,7 @@ public class MockMvcUtils {
             ApplicationContext webApplicationContext, ClientDetails bootstrapClient) throws Exception {
 
         String identityToken = getClientCredentialsOAuthAccessToken(mockMvc, "identity", "identitysecret",
-                "zones.create,scim.zones", null);
+                "zones.write,scim.zones", null);
 
         IdentityZone identityZone = MultitenancyFixture.identityZone(subdomain, subdomain);
 

@@ -7,7 +7,7 @@ An Identity Zone represents the boundary behind which OAuth Clients, Users, and 
 ### Identiy Zone API
 
 #### PUT /identity-zones/{id}
-* Requires scope `zones.create`
+* Requires scope `zones.write`
 * Creates / updates an identity zone with the given {id}
 * Sample request
 

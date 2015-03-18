@@ -249,7 +249,7 @@ public class AccountsControllerIntegrationTest extends TestClassNullifier {
         identityZone.setName("myzonename");
         identityZone.setId(new RandomValueStringGenerator().generate());
 
-        String zonesCreateToken = mockMvcTestClient.getOAuthAccessToken("identity", "identitysecret", "client_credentials", "zones.create");
+        String zonesCreateToken = mockMvcTestClient.getOAuthAccessToken("identity", "identitysecret", "client_credentials", "zones.write");
         mockMvc.perform(post("/identity-zones")
                 .header("Authorization", "Bearer " + zonesCreateToken)
                 .contentType(MediaType.APPLICATION_JSON)

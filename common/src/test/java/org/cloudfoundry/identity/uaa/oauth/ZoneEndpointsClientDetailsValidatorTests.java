@@ -18,7 +18,7 @@ public class ZoneEndpointsClientDetailsValidatorTests {
 
     @Before
     public void setUp() throws Exception {
-        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator("zones.create");
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator("zones.write");
     }
 
     @Test

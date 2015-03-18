@@ -70,7 +70,7 @@ public class IdentityZoneEndpointsMockMvcTests extends TestClassNullifier {
     private static TestApplicationEventListener<IdentityZoneModifiedEvent> eventListener;
     private static TestApplicationEventListener<ClientCreateEvent> clientCreateEventListener;
     private static TestApplicationEventListener<ClientDeleteEvent> clientDeleteEventListener;
-    
+
     @BeforeClass
     public static void setUp() throws Exception {
         webApplicationContext = new XmlWebApplicationContext();
@@ -89,9 +89,9 @@ public class IdentityZoneEndpointsMockMvcTests extends TestClassNullifier {
         clientDeleteEventListener = mockMvcUtils.addEventListener(webApplicationContext, ClientDeleteEvent.class);
 
         identityClientToken = testClient.getClientCredentialsOAuthAccessToken(
-                "identity",
-                "identitysecret",
-                "zones.create");
+            "identity",
+            "identitysecret",
+            "zones.write");
         adminToken = testClient.getClientCredentialsOAuthAccessToken(
             "admin",
             "adminsecret",
@@ -334,6 +334,7 @@ public class IdentityZoneEndpointsMockMvcTests extends TestClassNullifier {
                 .andExpect(status().isCreated()).andReturn();
         BaseClientDetails created = new ObjectMapper().readValue(result.getResponse().getContentAsString(), BaseClientDetails.class);
         assertNull(created.getClientSecret());
+        assertEquals("zones.write", created.getAdditionalInformation().get(ClientConstants.CREATED_WITH));
         checkAuditEventListener(1, AuditEventType.ClientCreateSuccess, clientCreateEventListener);
         
         mockMvc.perform(delete("/identity-zones/"+zone.getId()+"/clients/"+created.getClientId())

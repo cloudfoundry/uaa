@@ -149,7 +149,7 @@ public class IdentityZoneEndpointsIntegrationTests {
         public IdentityClient(Object target) {
             IdentityZoneEndpointsIntegrationTests test = (IdentityZoneEndpointsIntegrationTests) target;
             ClientCredentialsResourceDetails resource = test.testAccounts.getClientCredentialsResource(
-                            new String[] {"zones.create"}, "identity", "identitysecret");
+                            new String[] {"zones.write"}, "identity", "identitysecret");
             setClientId(resource.getClientId());
             setClientSecret(resource.getClientSecret());
             setId(getClientId());

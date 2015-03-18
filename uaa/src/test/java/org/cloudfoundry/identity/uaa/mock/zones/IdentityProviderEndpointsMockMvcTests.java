@@ -91,7 +91,7 @@ public class IdentityProviderEndpointsMockMvcTests extends TestClassNullifier {
         identityToken = testClient.getClientCredentialsOAuthAccessToken(
             "identity",
             "identitysecret",
-            "zones.create");
+            "zones.write");
         identityProviderProvisioning = webApplicationContext.getBean(IdentityProviderProvisioning.class);
     }
 

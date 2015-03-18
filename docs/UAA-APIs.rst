@@ -45,7 +45,7 @@ Here is a summary of the different scopes that are known to the UAA.
   * clients.write - scope required to create and modify clients. The scopes/authorities are limited to be prefixed with the scope holder's client id. For example, id:testclient authorities:client.write may create a client that has scopes/authorities that have the 'testclient.' prefix.
   * clients.read - scope to read information about clients
   * clients.secret - ``/oauth/clients/*/secret`` endpoint. Scope required to change the password of a client. Considered an admin scope.
-  * zones.create - scope required to invoke the /identity-zones endpoint to create and update identity zones
+  * zones.write - scope required to invoke the /identity-zones endpoint to create and update identity zones
   * zones.<zone id>.admin - user scope that permits operations in a designated zone, such as create identity providers or clients in another zone (used together with the X-Identity-Zone-Id header)
   * scim.zones - limited scope that only allows adding/removing a user to/from a group with name zones.<zone id>.admin under the path /Groups/zones
   * idps.read - read only scopes to retrieve identity providers under /identity-providers
@@ -595,7 +595,7 @@ Identity Zone API: ``/identity-zones``
 
 An identity zone is created using a POST with an IdentityZone object. If the object contains an id, this id will be used as the identifier, otherwise an identifier will be generated. Once a zone has been created, the UAA will start accepting requests on the subdomain defined in the subdomain field of the identity zone.
 
-POST and PUT requires the ``zones.create`` scope.
+POST and PUT requires the ``zones.write`` scope.
 
 ================  ========================================================================================
 Request           ``POST /identity-zones`` or ``PUT /identity-zones/{id}`` or ``GET /identity-zones/{id}``
