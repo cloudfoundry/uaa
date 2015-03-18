@@ -14,6 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.mock.util;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
 
@@ -63,8 +64,6 @@ import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
-
-import scala.actors.threadpool.Arrays;
 
 public class MockMvcUtils {
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -229,7 +228,7 @@ public class MockMvcUtils {
         user.setPassword("secret");
         user = MockMvcUtils.utils().createUser(mockMvc, adminToken, user);
         ScimGroup group = new ScimGroup("zones." + zoneId + ".admin");
-        group.setMembers(Arrays.asList(new ScimGroupMember[] { new ScimGroupMember(user.getId()) }));
+        group.setMembers(Arrays.asList(new ScimGroupMember(user.getId())));
         MockMvcUtils.utils().createGroup(mockMvc, adminToken, group);
         return getUserOAuthAccessTokenAuthCode(mockMvc, "identity", "identitysecret", user.getId(), user.getUserName(),
                 "secret", group.getDisplayName());
