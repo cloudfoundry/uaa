@@ -84,10 +84,34 @@ public class MockMvcUtils {
                 .andExpect(status().isCreated()).andReturn();
         return new ObjectMapper().readValue(result.getResponse().getContentAsByteArray(), IdentityZone.class);
     }
+    
+    public static class IdentityZoneCreationResult {
+        private final IdentityZone identityZone;
+        private final UaaPrincipal zoneAdmin;
+        private final String zoneAdminToken;
+        
+        public IdentityZoneCreationResult(IdentityZone identityZone, UaaPrincipal zoneAdmin, String zoneAdminToken) {
+            super();
+            this.identityZone = identityZone;
+            this.zoneAdmin = zoneAdmin;
+            this.zoneAdminToken = zoneAdminToken;
+        }
+        
+        public IdentityZone getIdentityZone() {
+            return identityZone;
+        }
 
-    public IdentityZone createOtherIdentityZone(String subdomain, MockMvc mockMvc,
+        public UaaPrincipal getZoneAdminUser() {
+            return zoneAdmin;
+        }
+
+        public String getZoneAdminToken() {
+            return zoneAdminToken;
+        }
+    }
+    
+    public IdentityZoneCreationResult createOtherIdentityZoneAndReturnResult(String subdomain, MockMvc mockMvc,
             ApplicationContext webApplicationContext, ClientDetails bootstrapClient) throws Exception {
-
         String identityToken = getClientCredentialsOAuthAccessToken(mockMvc, "identity", "identitysecret",
                 "zones.write,scim.zones", null);
 
@@ -124,8 +148,14 @@ public class MockMvcUtils {
                 .accept(APPLICATION_JSON)
                 .content(new ObjectMapper().writeValueAsString(bootstrapClient)))
                 .andExpect(status().isCreated());
+        
+        return new IdentityZoneCreationResult(identityZone, marissa, zoneAdminAuthcodeToken);
+    }
 
-        return identityZone;
+    public IdentityZone createOtherIdentityZone(String subdomain, MockMvc mockMvc,
+            ApplicationContext webApplicationContext, ClientDetails bootstrapClient) throws Exception {
+        return createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, bootstrapClient).getIdentityZone();
+        
     }
 
     public IdentityZone createOtherIdentityZone(String subdomain, MockMvc mockMvc,

@@ -20,15 +20,21 @@ import java.util.Map;
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
+import org.cloudfoundry.identity.uaa.oauth.Claims;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion;
+import org.codehaus.jackson.type.TypeReference;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.jwt.Jwt;
+import org.springframework.security.jwt.JwtHelper;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationDetails;
 
 /**
  * Base class for UAA events that want to publish audit records.
@@ -94,8 +100,9 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
                 }
             }
             else {
-                builder.append("caller=").append(caller.getName()).append(", ");
+                builder.append("caller=").append(caller.getName());
             }
+            
 
             if (caller.getDetails() != null) {
                 builder.append(", details=(");
@@ -109,6 +116,18 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
                 } catch (Exception e) {
                     // ignore
                     builder.append(caller.getDetails());
+                }
+                if (caller.getDetails() instanceof OAuth2AuthenticationDetails) {
+                    try {
+                        String tokenString = ((OAuth2AuthenticationDetails)authentication.getDetails()).getTokenValue();
+                        Jwt token = JwtHelper.decode(tokenString);
+                        Map<String, Object> claims = JsonUtils.readValue(token.getClaims(), new TypeReference<Map<String, Object>>() {});
+                        String issuer = claims.get(Claims.ISS).toString();
+                        String subject = claims.get(Claims.SUB).toString();
+                        builder.append(", sub=").append(subject).append(", ").append("iss=").append(issuer);
+                    } catch (Exception e) {
+                        builder.append(", <token extraction failed>");
+                    }
                 }
                 builder.append(")");
             }
