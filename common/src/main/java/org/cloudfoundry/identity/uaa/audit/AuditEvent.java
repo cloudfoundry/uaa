@@ -22,13 +22,15 @@ public class AuditEvent {
     private final String origin;
     private final long time;
     private final String data;
+    private final String identityZoneId;
 
-    public AuditEvent(AuditEventType type, String principalId, String origin, String data, long time) {
+    public AuditEvent(AuditEventType type, String principalId, String origin, String data, long time, String identityZoneId) {
         this.type = type;
         this.data = data;
         this.origin = origin;
         this.time = time;
         this.principalId = principalId;
+        this.identityZoneId = identityZoneId;
     }
 
     public AuditEventType getType() {
@@ -50,4 +52,9 @@ public class AuditEvent {
     public String getData() {
         return data;
     }
+
+    public String getIdentityZoneId() {
+        return identityZoneId;
+    }
+
 }

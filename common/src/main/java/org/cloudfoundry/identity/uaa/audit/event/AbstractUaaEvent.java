@@ -20,6 +20,8 @@ import java.util.Map;
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion;
 import org.springframework.context.ApplicationEvent;
@@ -39,6 +41,7 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
     
     private static final long serialVersionUID = -7639844193401892160L;
     private static ObjectMapper mapper = new ObjectMapper();
+    private transient final IdentityZone identityZone = IdentityZoneHolder.get();
 
     {
         mapper.setSerializationConfig(mapper.getSerializationConfig().withSerializationInclusion(Inclusion.NON_NULL));
@@ -63,11 +66,11 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
     }
 
     protected AuditEvent createAuditRecord(String principalId, AuditEventType type, String origin) {
-        return new AuditEvent(type, principalId, origin, null, System.currentTimeMillis());
+        return new AuditEvent(type, principalId, origin, null, System.currentTimeMillis(), identityZone.getId());
     }
 
     protected AuditEvent createAuditRecord(String principalId, AuditEventType type, String origin, String data) {
-        return new AuditEvent(type, principalId, origin, data, System.currentTimeMillis());
+        return new AuditEvent(type, principalId, origin, data, System.currentTimeMillis(), identityZone.getId());
     }
 
     public Authentication getAuthentication() {
@@ -162,6 +165,10 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
             };
         }
         return a;
+    }
+
+    public IdentityZone getIdentityZone() {
+        return identityZone;
     }
 
 }
