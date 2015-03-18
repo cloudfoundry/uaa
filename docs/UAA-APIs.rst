@@ -650,7 +650,7 @@ Request body      *example* ::
                         "authorized_grant_types" : ["authorization_code"],
                         "scope" : ["openid"],
                         "authorities" : ["uaa.resource"],
-                        "allowedidps" : ["uaa"]
+                        "allowedproviders" : ["uaa"]
                     }
 
 Response body     *example* ::
@@ -662,10 +662,10 @@ Response body     *example* ::
                         "client_id" : "limited-client",
                         "client_secret" : "limited-client-secret",
                         "authorized_grant_types" : ["authorization_code"],
-                        "scopes" : ["openid"],
+                        "scope" : ["openid"],
                         "authorities" : ["uaa.resource"],
                         "resource_ids" : ["none"],
-                        "allowedidps" : ["uaa"],
+                        "allowedproviders" : ["uaa"],
                         "createdwith" : "zones.create"
                     }
 
@@ -695,10 +695,10 @@ Response body     *example* ::
                         "client_id" : "limited-client",
                         "client_secret" : "limited-client-secret",
                         "authorized_grant_types" : ["authorization_code"],
-                        "scopes" : ["openid"],
+                        "scope" : ["openid"],
                         "authorities" : ["uaa.resource"],
                         "resource_ids" : ["none"],
-                        "allowedidps" : ["uaa"],
+                        "allowedproviders" : ["uaa"],
                         "createdwith" : "zones.create"
                     }
 
