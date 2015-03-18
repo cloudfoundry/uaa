@@ -564,7 +564,7 @@ Identity Zone Management APIs
 
 The UAA supports multi tenancy. This is referred to as identity zones. An identity zones is accessed through a unique subdomain. If the standard UAA responds to https://uaa.10.244.0.34.xip.io a zone on this UAA would be accessed through https://zonesubdomain.uaa.10.244.0.34.xip.io
 
-As zone contains a unique identifier as well as a unique subdomain::
+A zone contains a unique identifier as well as a unique subdomain::
 
                     {
                         "id":"testzone1",
@@ -590,29 +590,22 @@ The UAA by default creates a ``default zone``. This zone will always be present,
                     }
 
 
-Create Identity Zone API: ``/identity-zones``
+Identity Zone API: ``/identity-zones``
 --------------------------------------------------
 
-An identity zone is created using an IdentityZoneCreationRequest object. This allows the the zone to be bootstrapped with a set of pre defined clients. Once a zone has been created, the UAA will start accepting requests on the subdomain defined in the subdomain field of the identity zone.
-The client_details field is a List<BaseClientDetails> objects for clients that will be boot strapped in this zone.
+An identity zone is created using a POST with an IdentityZone object. If the object contains an id, this id will be used as the identifier, otherwise an identifier will be generated. Once a zone has been created, the UAA will start accepting requests on the subdomain defined in the subdomain field of the identity zone.
 
-This call requires the ``zones.create`` scope
+POST and PUT requires the ``zones.create`` scope.
 
 ================  ========================================================================================
 Request           ``POST /identity-zones`` or ``PUT /identity-zones/{id}`` or ``GET /identity-zones/{id}``
 Request body      *example* ::
 
                     {
-                        "identity_zone": {
-                            "id":"testzone1",
-                            "subdomain":"testzone1",
-                            "name":"The Twiglet Zone[testzone1]",
-                            "version":0,
-                            "description":"Like the Twilight Zone but tastier[testzone1].",
-                            "created":1426260090992,
-                            "last_modified":1426260090992
-                        },
-                        "client_details":null
+                        "id":"testzone1",
+                        "subdomain":"testzone1",
+                        "name":"The Twiglet Zone[testzone1]",
+                        "description":"Like the Twilight Zone but tastier[testzone1].",
                     }
 
 
@@ -633,14 +626,93 @@ Response body     *example* ::
 
 * Response        *Codes* ::
 
-                    201 - Created - and returns the body of the created identity zone
-                    200 - Ok - for PUT request to update the zone
+                    201 - Created - and returns the created identity zone
+                    200 - OK - for PUT and GET
                     400 - Bad Request
                     401 - Unauthorized
                     403 - Forbidden - insufficient scope
                     404 - Not Found - Update to non existent zone
 
 ================  ========================================================================================
+
+Identity Zone clients API: ``/identity-zones/clients``
+--------------------------------------------------
+
+With the ``zones.create` scope, clients can be created in an identity zone through this endpoint. However, the only client that can be created through this endpoint is one with limited powers; this client can only be used to support web SSO using the authorization code flow, and using the zone's internal Identity Provider.
+
+================  ========================================================================================
+Request           ``POST /identity-zones/{identityZoneId}/clients``
+Request body      *example* ::
+
+                    {
+                        "client_id" : "limited-client",
+                        "client_secret" : "limited-client-secret",
+                        "authorized_grant_types" : ["authorization_code"],
+                        "scope" : ["openid"],
+                        "authorities" : ["uaa.resource"],
+                        "allowedidps" : ["uaa"]
+                    }
+
+Response body     *example* ::
+
+                    HTTP/1.1 201 Created
+                    Content-Type: application/json
+
+                    {
+                        "client_id" : "limited-client",
+                        "client_secret" : "limited-client-secret",
+                        "authorized_grant_types" : ["authorization_code"],
+                        "scopes" : ["openid"],
+                        "authorities" : ["uaa.resource"],
+                        "resource_ids" : ["none"],
+                        "allowedidps" : ["uaa"],
+                        "createdwith" : "zones.create"
+                    }
+
+* Response        *Codes* ::
+
+                    201 - Created - and returns the created client
+                    400 - Bad Request - the client was rejected due to validation 
+                    401 - Unauthorized
+                    403 - Forbidden - insufficient scope
+
+================  ========================================================================================
+
+
+A client created through this endpoint can be deleted through this endpoint as well using the ``zones.create`` scope. The deleted client is returned in the response.
+
+================  ========================================================================================
+Request           ``DELETE /identity-zones/{identityZoneId}/clients/{clientId}``
+Request body      None
+
+
+Response body     *example* ::
+
+                    HTTP/1.1 200 OK
+                    Content-Type: application/json
+
+                    {
+                        "client_id" : "limited-client",
+                        "client_secret" : "limited-client-secret",
+                        "authorized_grant_types" : ["authorization_code"],
+                        "scopes" : ["openid"],
+                        "authorities" : ["uaa.resource"],
+                        "resource_ids" : ["none"],
+                        "allowedidps" : ["uaa"],
+                        "createdwith" : "zones.create"
+                    }
+
+* Response        *Codes* ::
+
+                    200 - OK - the client was deleted
+                    400 - Bad Request - the client was not deleted because it was not created using this endpoint 
+                    401 - Unauthorized
+                    403 - Forbidden - insufficient scope
+                    404 - Not Found - Client does not exist 
+
+================  ========================================================================================
+
+To create an arbitrary client in an Identity Zone, you must have the scope of zones.<zone-id>.admin. See `create_zone_administrator`_ to assign that scope to a user, then as that user, use the /oauth/clients endpoints, being sure to include the X-Identity-Zone-Id: <zone-id> header.
 
 Create Identity Provider API: ``/identity-providers``
 -----------------------------------------------------
@@ -1206,6 +1278,7 @@ See `SCIM - Deleting Resources <http://www.simplecloud.info/specs/draft-scim-res
 
 Deleting a group also removes the group from the 'groups' sub-attribute on users who were members of the group.
 
+.. _create_zone_administrator:
 Create a Zone Administrator (add zones.{id}.admin to a user}: ``POST /Groups/zones``
 ----------------------------------
 
