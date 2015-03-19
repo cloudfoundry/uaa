@@ -13,17 +13,11 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 import javax.validation.constraints.NotNull;
-import java.lang.reflect.Type;
 import java.util.Date;
-import java.util.UUID;
 
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
-import org.codehaus.jackson.map.annotate.JsonDeserialize;
-import org.codehaus.jackson.map.annotate.JsonSerialize;
-import org.codehaus.jackson.type.TypeReference;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 public class IdentityProvider {
     /**
