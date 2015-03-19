@@ -40,8 +40,8 @@ and the actual value that we are interested is
 
     eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiJiYzNlNzQ1Ni05MWY1LTQ5NjEtYjg4ZC1kYjcwNTYyNmJhNzciLCJzdWIiOiI3Zjc5MWVhOS05OWI5LTQyM2QtOTg4Yi05MzFmMDIyMmE3OWYiLCJzY29wZSI6WyJjbG91ZF9jb250cm9sbGVyLnJlYWQiLCJjbG91ZF9jb250cm9sbGVyLndyaXRlIiwib3BlbmlkIiwicGFzc3dvcmQud3JpdGUiLCJzY2ltLnVzZXJpZHMiXSwiY2xpZW50X2lkIjoiYXBwIiwiY2lkIjoiYXBwIiwiZ3JhbnRfdHlwZSI6InBhc3N3b3JkIiwidXNlcl9pZCI6IjdmNzkxZWE5LTk5YjktNDIzZC05ODhiLTkzMWYwMjIyYTc5ZiIsInVzZXJfbmFtZSI6Im1hcmlzc2EiLCJlbWFpbCI6Im1hcmlzc2FAdGVzdC5vcmciLCJpYXQiOjE0MDY1Njg5MzUsImV4cCI6MTQwNjYxMjEzNSwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo4MDgwL3VhYS9vYXV0aC90b2tlbiIsImF1ZCI6WyJzY2ltIiwib3BlbmlkIiwiY2xvdWRfY29udHJvbGxlciIsInBhc3N3b3JkIl19.ZOhp7HmYF0ufvxXrkut40eHZbHFzAb5EETT2NL7n2Cs
 
-If you run it through a [decoder](https://developers.google.com/wallet/digital/docs/jwtdecoder) you can quickly see the body
-of the access token.
+You can look at the body of the access token using a [decoder](http://jwt.calebb.net/)
+More on decoding can be found [here](https://developers.google.com/accounts/docs/OpenIDConnect#validatinganidtoken) 
 
     {
         "exp": 1406612135, 
