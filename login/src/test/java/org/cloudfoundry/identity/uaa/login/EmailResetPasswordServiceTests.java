@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 
@@ -24,6 +25,7 @@ import static org.mockito.Matchers.contains;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.error.UaaException;
@@ -52,7 +54,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.thymeleaf.spring4.SpringTemplateEngine;
-import scala.actors.threadpool.Arrays;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = ThymeleafConfig.class)
@@ -91,7 +92,7 @@ public class EmailResetPasswordServiceTests {
     public void testForgotPasswordWhenAResetCodeIsReturnedByTheUaa() throws Exception {
         ScimUser user = new ScimUser("user-id-001","user@example.com","firstName","lastName");
         user.setPrimaryEmail("user@example.com");
-        when(scimUserProvisioning.query(contains("origin"))).thenReturn(Arrays.asList(new ScimUser[]{user}));
+        when(scimUserProvisioning.query(contains("origin"))).thenReturn(Arrays.asList(user));
         when(codeStore.generateCode(anyString(), any(Timestamp.class))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()),"user-id-001"));
         emailResetPasswordService.forgotPassword("user@example.com");
 

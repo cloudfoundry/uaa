@@ -14,6 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.mock.util;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
 
@@ -64,8 +65,6 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import scala.actors.threadpool.Arrays;
-
 public class MockMvcUtils {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -84,10 +83,34 @@ public class MockMvcUtils {
                 .andExpect(status().isCreated()).andReturn();
         return new ObjectMapper().readValue(result.getResponse().getContentAsByteArray(), IdentityZone.class);
     }
+    
+    public static class IdentityZoneCreationResult {
+        private final IdentityZone identityZone;
+        private final UaaPrincipal zoneAdmin;
+        private final String zoneAdminToken;
+        
+        public IdentityZoneCreationResult(IdentityZone identityZone, UaaPrincipal zoneAdmin, String zoneAdminToken) {
+            super();
+            this.identityZone = identityZone;
+            this.zoneAdmin = zoneAdmin;
+            this.zoneAdminToken = zoneAdminToken;
+        }
+        
+        public IdentityZone getIdentityZone() {
+            return identityZone;
+        }
 
-    public IdentityZone createOtherIdentityZone(String subdomain, MockMvc mockMvc,
+        public UaaPrincipal getZoneAdminUser() {
+            return zoneAdmin;
+        }
+
+        public String getZoneAdminToken() {
+            return zoneAdminToken;
+        }
+    }
+    
+    public IdentityZoneCreationResult createOtherIdentityZoneAndReturnResult(String subdomain, MockMvc mockMvc,
             ApplicationContext webApplicationContext, ClientDetails bootstrapClient) throws Exception {
-
         String identityToken = getClientCredentialsOAuthAccessToken(mockMvc, "identity", "identitysecret",
                 "zones.write,scim.zones", null);
 
@@ -124,8 +147,14 @@ public class MockMvcUtils {
                 .accept(APPLICATION_JSON)
                 .content(new ObjectMapper().writeValueAsString(bootstrapClient)))
                 .andExpect(status().isCreated());
+        
+        return new IdentityZoneCreationResult(identityZone, marissa, zoneAdminAuthcodeToken);
+    }
 
-        return identityZone;
+    public IdentityZone createOtherIdentityZone(String subdomain, MockMvc mockMvc,
+            ApplicationContext webApplicationContext, ClientDetails bootstrapClient) throws Exception {
+        return createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, bootstrapClient).getIdentityZone();
+        
     }
 
     public IdentityZone createOtherIdentityZone(String subdomain, MockMvc mockMvc,
@@ -199,7 +228,7 @@ public class MockMvcUtils {
         user.setPassword("secret");
         user = MockMvcUtils.utils().createUser(mockMvc, adminToken, user);
         ScimGroup group = new ScimGroup("zones." + zoneId + ".admin");
-        group.setMembers(Arrays.asList(new ScimGroupMember[] { new ScimGroupMember(user.getId()) }));
+        group.setMembers(Arrays.asList(new ScimGroupMember(user.getId())));
         MockMvcUtils.utils().createGroup(mockMvc, adminToken, group);
         return getUserOAuthAccessTokenAuthCode(mockMvc, "identity", "identitysecret", user.getId(), user.getUserName(),
                 "secret", group.getDisplayName());

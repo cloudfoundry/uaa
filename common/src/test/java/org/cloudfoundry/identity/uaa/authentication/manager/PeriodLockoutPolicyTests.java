@@ -26,6 +26,7 @@ import java.util.Arrays;
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.core.Authentication;
@@ -55,8 +56,8 @@ public class PeriodLockoutPolicyTests {
     @Test
     public void loginIsDeniedIfAllowedFailuresIsExceeded() {
         when(as.find(eq("1"), anyLong())).thenReturn(Arrays.asList(
-                        new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 1),
-                        new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 2)
+                        new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 1, IdentityZone.getUaa().getId()),
+                        new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 2, IdentityZone.getUaa().getId())
                         ));
 
         policy.setLockoutAfterFailures(2);
@@ -66,9 +67,9 @@ public class PeriodLockoutPolicyTests {
     @Test
     public void loginIsAllowedIfSuccessfulLoginIntercedesExcessiveFailures() {
         when(as.find(eq("1"), anyLong())).thenReturn(Arrays.asList(
-                        new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 1),
-                        new AuditEvent(UserAuthenticationSuccess, "joe", "", "", now - 2),
-                        new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 3)
+                        new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 1, IdentityZone.getUaa().getId()),
+                        new AuditEvent(UserAuthenticationSuccess, "joe", "", "", now - 2, IdentityZone.getUaa().getId()),
+                        new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 3, IdentityZone.getUaa().getId())
                         ));
 
         policy.setLockoutAfterFailures(2);
@@ -78,9 +79,9 @@ public class PeriodLockoutPolicyTests {
     @Test
     public void loginIsAllowedWithExcessiveFailuresIfLockoutPeriodHasElapsed() {
         when(as.find(eq("1"), anyLong())).thenReturn(Arrays.asList(
-                        new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 5001),
-                        new AuditEvent(UserAuthenticationSuccess, "joe", "", "", now - 5002),
-                        new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 5003)
+                        new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 5001, IdentityZone.getUaa().getId()),
+                        new AuditEvent(UserAuthenticationSuccess, "joe", "", "", now - 5002, IdentityZone.getUaa().getId()),
+                        new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 5003, IdentityZone.getUaa().getId())
                         ));
 
         policy.setLockoutAfterFailures(2);
@@ -92,8 +93,8 @@ public class PeriodLockoutPolicyTests {
     @Test
     public void loginIsAllowedIfAllowedFailuresIsNotExceeded() {
         when(as.find(eq("1"), anyLong())).thenReturn(Arrays.asList(
-                        new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 1),
-                        new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 2)
+                        new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 1, IdentityZone.getUaa().getId()),
+                        new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 2, IdentityZone.getUaa().getId())
                         ));
 
         policy.setLockoutAfterFailures(3);
