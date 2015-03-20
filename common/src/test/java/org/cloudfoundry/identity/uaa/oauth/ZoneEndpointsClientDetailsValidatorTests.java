@@ -32,6 +32,7 @@ public class ZoneEndpointsClientDetailsValidatorTests {
         assertEquals(clientDetails.getAuthorizedGrantTypes(), validatedClientDetails.getAuthorizedGrantTypes());
         assertEquals(clientDetails.getAuthorities(), validatedClientDetails.getAuthorities());
         assertEquals(Collections.singleton("none"), validatedClientDetails.getResourceIds());
+        assertEquals(Collections.singletonList(Origin.UAA), validatedClientDetails.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS));
     }
     
     @Test(expected = InvalidClientDetailsException.class)

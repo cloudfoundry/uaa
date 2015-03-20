@@ -41,7 +41,7 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
             }
         
             BaseClientDetails validatedClientDetails = new BaseClientDetails(clientDetails);
-            
+            validatedClientDetails.setAdditionalInformation(clientDetails.getAdditionalInformation());
             validatedClientDetails.setResourceIds(Collections.singleton("none"));
             validatedClientDetails.addAdditionalInformation(ClientConstants.CREATED_WITH, requiredScope);
             return validatedClientDetails; 
