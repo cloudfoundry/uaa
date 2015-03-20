@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -13,6 +13,31 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.security.StubSecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
+import org.springframework.security.oauth2.common.exceptions.UnauthorizedClientException;
+import org.springframework.security.oauth2.common.util.OAuth2Utils;
+import org.springframework.security.oauth2.provider.AuthorizationRequest;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.OAuth2Request;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.util.StringUtils;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -24,37 +49,78 @@ import java.util.TreeSet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
-import org.cloudfoundry.identity.uaa.security.StubSecurityContextAccessor;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
-import org.springframework.security.oauth2.common.util.OAuth2Utils;
-import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
-import org.springframework.security.oauth2.provider.OAuth2Request;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.util.StringUtils;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class UaaAuthorizationRequestManagerTests {
 
     private UaaAuthorizationRequestManager factory;
 
-    private ClientDetailsService clientDetailsService = Mockito.mock(ClientDetailsService.class);
+    private ClientDetailsService clientDetailsService = mock(ClientDetailsService.class);
+
+    private UaaUserDatabase uaaUserDatabase = mock(UaaUserDatabase.class);
+
+    private IdentityProviderProvisioning providerProvisioning = mock(IdentityProviderProvisioning.class);
 
     private Map<String, String> parameters = new HashMap<String, String>();
 
     private BaseClientDetails client = new BaseClientDetails();
 
+    private UaaUser user = null;
+
     @Before
     public void initUaaAuthorizationRequestManagerTests() {
         parameters.put("client_id", "foo");
-        factory = new UaaAuthorizationRequestManager(clientDetailsService);
+        factory = new UaaAuthorizationRequestManager(clientDetailsService, uaaUserDatabase, providerProvisioning);
         factory.setSecurityContextAccessor(new StubSecurityContextAccessor());
-        Mockito.when(clientDetailsService.loadClientByClientId("foo")).thenReturn(client);
+        when(clientDetailsService.loadClientByClientId("foo")).thenReturn(client);
+        user = new UaaUser("testid", "testuser","","test@test.org",AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz,space.1.developer,space.2.developer,space.1.admin"),"givenname", "familyname", null, null, Origin.UAA, null, true, IdentityZone.getUaa().getId());
+        when(uaaUserDatabase.retrieveUserById(anyString())).thenReturn(user);
+    }
+
+    @After
+    public void clearZoneContext() {
+        IdentityZoneHolder.clear();
+    }
+
+    @Test
+    public void testClientIDPAuthorizationInUAAzoneNoList() {
+        factory.checkClientIdpAuthorization(client, user);
+    }
+
+    @Test(expected = UnauthorizedClientException.class)
+    public void testClientIDPAuthorizationInNonUAAzoneNoList() {
+        IdentityZoneHolder.set(MultitenancyFixture.identityZone("test", "test"));
+        factory.checkClientIdpAuthorization(client, user);
+    }
+
+    @Test
+    public void testClientIDPAuthorizationInUAAzoneListSucceeds() {
+        when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(MultitenancyFixture.identityProvider("random", "random"));
+        client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("random"));
+        factory.checkClientIdpAuthorization(client, user);
+    }
+
+    @Test(expected = UnauthorizedClientException.class)
+    public void testClientIDPAuthorizationInUAAzoneListFails() {
+        when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(MultitenancyFixture.identityProvider("random", "random"));
+        client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("random2"));
+        factory.checkClientIdpAuthorization(client, user);
+    }
+
+    @Test(expected = UnauthorizedClientException.class)
+    public void testClientIDPAuthorizationInUAAzoneNullProvider() {
+        when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(null);
+        client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("random2"));
+        factory.checkClientIdpAuthorization(client, user);
+    }
+
+    @Test(expected = UnauthorizedClientException.class)
+    public void testClientIDPAuthorizationInUAAzoneEmptyResultSetException() {
+        when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenThrow(new EmptyResultDataAccessException(1));
+        client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("random2"));
+        factory.checkClientIdpAuthorization(client, user);
     }
 
     @Test
@@ -170,6 +236,7 @@ public class UaaAuthorizationRequestManagerTests {
             public Collection<? extends GrantedAuthority> getAuthorities() {
                 return AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz");
             }
+
         };
         factory.setSecurityContextAccessor(securityContextAccessor);
         client.setScope(StringUtils.commaDelimitedListToSet("")); // empty
@@ -177,7 +244,7 @@ public class UaaAuthorizationRequestManagerTests {
         assertEquals(StringUtils.commaDelimitedListToSet(""), new TreeSet<String>(request.getScope()));
     }
 
-    @Test(expected = InvalidScopeException.class)
+    @Test
     public void testEmptyScopeFailsClientWithScopes() {
         SecurityContextAccessor securityContextAccessor = new StubSecurityContextAccessor() {
             @Override
@@ -193,8 +260,13 @@ public class UaaAuthorizationRequestManagerTests {
         factory.setSecurityContextAccessor(securityContextAccessor);
         client.setScope(StringUtils.commaDelimitedListToSet("one,two")); // not
                                                                          // empty
-        AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
-        assertEquals(StringUtils.commaDelimitedListToSet(""), new TreeSet<String>(request.getScope()));
+        try {
+          factory.createAuthorizationRequest(parameters);
+          throw new AssertionError();
+        }
+        catch (InvalidScopeException ex) {
+          assertEquals("Invalid scope (empty) - this user is not allowed any of the requested scopes: [one, two] (either you requested a scope that was not allowed or client 'null' is not allowed to act on behalf of this user)", ex.getMessage());
+        }
     }
 
     @Test

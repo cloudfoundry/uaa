@@ -15,7 +15,7 @@
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
     xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
 
-    <bean id="jdbcClientDetailsService" class="org.springframework.security.oauth2.provider.client.JdbcClientDetailsService">
+    <bean id="jdbcClientDetailsService" class="org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService">
         <constructor-arg ref="dataSource" />
         <property name="passwordEncoder" ref="cachingPasswordEncoder" />
     </bean>
@@ -26,19 +26,14 @@
         <constructor-arg name="pagingListFactory" ref="jdbcPagingListFactory" />
     </bean>
 
-    <bean id="clientRegistrationService" class="org.springframework.security.oauth2.provider.client.JdbcClientDetailsService">
-        <constructor-arg ref="dataSource" />
-        <property name="passwordEncoder" ref="cachingPasswordEncoder" />
-    </bean>
-
     <bean id="clientAdminBootstrap" class="org.cloudfoundry.identity.uaa.oauth.ClientAdminBootstrap">
-        <property name="clientRegistrationService" ref="clientRegistrationService" />
+        <property name="clientRegistrationService" ref="jdbcClientDetailsService" />
         <property name="defaultOverride" value="${oauth.client.override:true}" />
         <property name="clients" value="#{@config['oauth']==null ? null : @config['oauth']['clients']}" />
         <property name="autoApproveClients"
             value="#{@applicationProperties.containsKey('oauth.client.autoapprove')?@config['oauth']['client']['autoapprove']:'cf'}" />
     </bean>
-
+    
     <beans profile="cloud">
         <bean id="clientDetailsService" class="org.cloudfoundry.identity.uaa.oauth.JitClientDetailsService">
             <constructor-arg name="delegate" ref="jdbcClientDetailsService" />
@@ -50,7 +45,7 @@
 
     <beans profile="default">
         <bean class="org.cloudfoundry.identity.uaa.oauth.ClientAdminBootstrap">
-            <property name="clientRegistrationService" ref="clientRegistrationService" />
+            <property name="clientRegistrationService" ref="jdbcClientDetailsService" />
             <property name="clients">
                 <map>
                     <entry key="admin">
@@ -117,6 +112,53 @@
                             <entry key="authorities" value="cloud_controller.admin,scim.read" />
                         </map>
                     </entry>
+                    <entry key="identity">
+                        <map>
+                            <entry key="id" value="identity" />
+                            <entry key="secret" value="identitysecret" />
+                            <entry key="authorized-grant-types" value="authorization_code,client_credentials" />
+                            <entry key="scope" value="zones.*.admin,openid" />
+                            <entry key="authorities" value="zones.write,scim.zones,uaa.resource" />
+                            <entry key="autoapprove" value="true" />
+                        </map>
+                    </entry>
+                    <entry key="oauth_showcase_authorization_code">
+                        <map>
+                            <entry key="id" value="oauth_showcase_authorization_code" />
+                            <entry key="secret" value="secret" />
+                            <entry key="authorized-grant-types" value="authorization_code" />
+                            <entry key="scope" value="openid" />
+                            <entry key="authorities" value="uaa.resource" />
+                        </map>
+                    </entry>
+                    <entry key="oauth_showcase_client_credentials">
+                        <map>
+                            <entry key="id" value="oauth_showcase_client_credentials" />
+                            <entry key="secret" value="secret" />
+                            <entry key="authorized-grant-types" value="client_credentials" />
+                            <entry key="scope" value="uaa.none" />
+                            <entry key="authorities" value="uaa.resource,clients.read" />
+                        </map>
+                    </entry>
+                    <entry key="oauth_showcase_password_grant">
+                        <map>
+                            <entry key="id" value="oauth_showcase_password_grant" />
+                            <entry key="secret" value="secret" />
+                            <entry key="authorized-grant-types" value="password" />
+                            <entry key="scope" value="openid" />
+                            <entry key="authorities" value="uaa.resource" />
+                        </map>
+                    </entry>
+                    <entry key="oauth_showcase_implicit_grant">
+                        <map>
+                            <entry key="id" value="oauth_showcase_implicit_grant" />
+                            <entry key="secret" value="secret" />
+                            <entry key="authorized-grant-types" value="implicit" />
+                            <entry key="scope" value="openid" />
+                            <entry key="authorities" value="uaa.resource" />
+                        </map>
+                    </entry>
+                    
                 </map>
             </property>
         </bean>

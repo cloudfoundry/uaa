@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -37,10 +38,10 @@ import org.springframework.util.StringUtils;
  */
 public class JdbcUaaUserDatabase implements UaaUserDatabase {
 
-    public static final String USER_FIELDS = "id,username,password,email,givenName,familyName,created,lastModified,authorities,origin,external_id,verified ";
+    public static final String USER_FIELDS = "id,username,password,email,givenName,familyName,created,lastModified,authorities,origin,external_id,verified,identity_zone_id ";
 
     public static final String DEFAULT_USER_BY_USERNAME_QUERY = "select " + USER_FIELDS + "from users "
-                    + "where lower(username) = ? and active=? and origin=?";
+                    + "where lower(username) = ? and active=? and origin=? and identity_zone_id=?";
 
     public static final String DEFAULT_USER_BY_ID_QUERY = "select " + USER_FIELDS + "from users "
         + "where id = ? and active=?";
@@ -75,7 +76,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     @Override
     public UaaUser retrieveUserByName(String username, String origin) throws UsernameNotFoundException {
         try {
-            return jdbcTemplate.queryForObject(userByUserNameQuery, mapper, username.toLowerCase(Locale.US), true, origin);
+            return jdbcTemplate.queryForObject(userByUserNameQuery, mapper, username.toLowerCase(Locale.US), true, origin, IdentityZoneHolder.get().getId());
         } catch (EmptyResultDataAccessException e) {
             throw new UsernameNotFoundException(username);
         }
@@ -97,13 +98,13 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
             if (userAuthoritiesQuery == null) {
                 return new UaaUser(id, rs.getString(2), rs.getString(3), rs.getString(4),
                                 getDefaultAuthorities(rs.getString(9)), rs.getString(5), rs.getString(6),
-                                rs.getTimestamp(7), rs.getTimestamp(8), rs.getString(10), rs.getString(11), rs.getBoolean(12));
+                                rs.getTimestamp(7), rs.getTimestamp(8), rs.getString(10), rs.getString(11), rs.getBoolean(12), rs.getString(13));
             } else {
                 List<GrantedAuthority> authorities = AuthorityUtils
                                 .commaSeparatedStringToAuthorityList(getAuthorities(id));
                 return new UaaUser(id, rs.getString(2), rs.getString(3), rs.getString(4),
                                 authorities, rs.getString(5), rs.getString(6),
-                                rs.getTimestamp(7), rs.getTimestamp(8), rs.getString(10), rs.getString(11), rs.getBoolean(12));
+                                rs.getTimestamp(7), rs.getTimestamp(8), rs.getString(10), rs.getString(11), rs.getBoolean(12), rs.getString(13));
             }
         }
 

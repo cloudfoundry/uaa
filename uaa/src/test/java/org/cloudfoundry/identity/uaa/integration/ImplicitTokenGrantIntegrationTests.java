@@ -19,6 +19,7 @@ import static org.junit.Assert.assertTrue;
 import java.net.URI;
 import java.util.Arrays;
 
+import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Rule;

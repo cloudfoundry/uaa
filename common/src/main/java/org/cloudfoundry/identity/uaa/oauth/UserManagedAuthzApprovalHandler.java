@@ -28,10 +28,12 @@ import java.util.regex.Pattern;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
@@ -82,15 +84,21 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
         Set<String> autoApprovedScopes = new HashSet<>();
         ClientDetails client = clientDetailsService.retrieve(authorizationRequest.getClientId());
         if (null != client) {
+            if (null != requestedScopes) {
+                for (String requestedScope : requestedScopes) {
+                    if (client.isAutoApprove(requestedScope)) {
+                        autoApprovedScopes.add(requestedScope);
+                    }
+                }
+            }
             Map<String, Object> additionalInfo = client.getAdditionalInformation();
             if (null != additionalInfo) {
-                Object autoApproved = additionalInfo.get("autoapprove");
-                if (autoApproved instanceof Collection<?>) {
+                Object autoApproved = additionalInfo.get(ClientConstants.AUTO_APPROVE);
+                if (null != autoApproved && autoApproved instanceof Collection<?>) {
                     @SuppressWarnings("unchecked")
                     Collection<? extends String> scopes = (Collection<? extends String>) autoApproved;
                     autoApprovedScopes.addAll(scopes);
-                }
-                else if (autoApproved instanceof Boolean && (Boolean) autoApproved || "true".equals(autoApproved)) {
+                } else if (null != autoApproved && autoApproved instanceof Boolean && (Boolean) autoApproved || "true".equals(autoApproved)) {
                     autoApprovedScopes.addAll(client.getScope());
                 }
             }
@@ -183,15 +191,7 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
     }
 
     protected Set<String> retainAutoApprovedScopes(Collection<String> requestedScopes, Set<String> autoApprovedScopes) {
-        HashSet<String> result = new HashSet<>();
-        Set<Pattern> autoApprovedScopePatterns = UaaStringUtils.constructWildcards(autoApprovedScopes);
-        // Don't want to approve more than what's requested
-        for (String scope : requestedScopes) {
-            if (UaaStringUtils.matches(autoApprovedScopePatterns, scope)) {
-                result.add(scope);
-            }
-        }
-        return result;
+        return UaaTokenUtils.instance().retainAutoApprovedScopes(requestedScopes, autoApprovedScopes);
     }
 
     protected String getUserId(Authentication authentication) {

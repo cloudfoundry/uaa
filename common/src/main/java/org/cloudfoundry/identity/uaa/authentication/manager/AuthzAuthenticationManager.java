@@ -190,7 +190,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
         this.origin = origin;
     }
 
-    public void setAllowUnverifiedUsers(Boolean allowUnverifiedUsers) {
+    public void setAllowUnverifiedUsers(boolean allowUnverifiedUsers) {
         this.allowUnverifiedUsers = allowUnverifiedUsers;
     }
 }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,6 +12,15 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -21,19 +30,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.PhoneNumber;
+import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimUserBootstrapTests;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
@@ -41,9 +44,16 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundExceptio
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.JdbcIdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -53,6 +63,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 public class JdbcScimUserProvisioningTests extends JdbcTestBase {
 
     private JdbcScimUserProvisioning db;
+    private JdbcIdentityProviderProvisioning providerDb;
+    private JdbcIdentityZoneProvisioning zoneDb;
 
     private static final String JOE_ID = "550e8400-e29b-41d4-a716-446655440000";
 
@@ -60,17 +72,23 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
 
     private static final String SQL_INJECTION_FIELDS = "password,version,created,lastModified,username,email,givenName,familyName";
 
-    private static final String addUserSqlFormat = "insert into users (id, username, password, email, givenName, familyName, phoneNumber) values ('%s','%s','%s','%s','%s','%s', '%s')";
+    private static final String ADD_USER_SQL_FORMAT = "insert into users (id, username, password, email, givenName, familyName, phoneNumber, identity_zone_id) values ('%s','%s','%s','%s','%s', '%s', '%s', '%s')";
 
-    private static final String deleteUserSqlFormat = "delete from users where id='%s'";
+    private static final String OLD_ADD_USER_SQL_FORMAT = "insert into users (id, username, password, email, givenName, familyName, phoneNumber) values ('%s','%s','%s','%s','%s', '%s', '%s')";
 
-    private static final String verifyUserSqlFormat = "select verified from users where id=?";
+    private static final String DELETE_USER_SQL_FORMAT = "delete from users where id='%s'";
+
+    private static final String VERIFY_USER_SQL_FORMAT = "select verified from users where id=?";
 
     private int existingUserCount = 0;
+
+    private String defaultIdentityProviderId;
 
     @Before
     public void initJdbcScimUserProvisioningTests() throws Exception {
         db = new JdbcScimUserProvisioning(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter));
+        zoneDb = new JdbcIdentityZoneProvisioning(jdbcTemplate);
+        providerDb = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         ScimSearchQueryConverter filterConverter = new ScimSearchQueryConverter();
         Map<String, String> replaceWith = new HashMap<String, String>();
         replaceWith.put("emails\\.value", "email");
@@ -82,25 +100,27 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
 
         existingUserCount = jdbcTemplate.queryForInt("select count(id) from users");
 
-        addUser(JOE_ID, "joe", pe.encode("joespassword"), "joe@joe.com", "Joe", "User", "+1-222-1234567");
-        addUser(MABEL_ID, "mabel", pe.encode("mabelspassword"), "mabel@mabel.com", "Mabel", "User", "");
+        defaultIdentityProviderId = jdbcTemplate.queryForObject("select id from identity_provider where origin_key = ? and identity_zone_id = ?", String.class, Origin.UAA, "uaa");
+
+        addUser(JOE_ID, "joe", pe.encode("joespassword"), "joe@joe.com", "Joe", "User", "+1-222-1234567", defaultIdentityProviderId, "uaa");
+        addUser(MABEL_ID, "mabel", pe.encode("mabelspassword"), "mabel@mabel.com", "Mabel", "User", "", defaultIdentityProviderId, "uaa");
     }
 
     private String createUserForDelete() {
         String tmpUserId = UUID.randomUUID().toString();
-        addUser(tmpUserId, tmpUserId, "password", tmpUserId + "@delete.com", "ToDelete", "User", "+1-234-5678910");
+        addUser(tmpUserId, tmpUserId, "password", tmpUserId + "@delete.com", "ToDelete", "User", "+1-234-5678910", defaultIdentityProviderId, "uaa");
         return tmpUserId;
     }
 
     private void addUser(String id, String username, String password, String email, String givenName,
-                    String familyName, String phoneNumber) {
+                         String familyName, String phoneNumber, String identityProviderId, String identityZoneId) {
         TestUtils.assertNoSuchUser(jdbcTemplate, "id", id);
-        jdbcTemplate.execute(String.format(addUserSqlFormat, id, username, password, email, givenName, familyName,
-                        phoneNumber));
+        jdbcTemplate.execute(String.format(ADD_USER_SQL_FORMAT, id, username, password, email, givenName, familyName,
+                phoneNumber, identityZoneId));
     }
 
     private void removeUser(String id) {
-        jdbcTemplate.execute(String.format(deleteUserSqlFormat, id));
+        jdbcTemplate.execute(String.format(DELETE_USER_SQL_FORMAT, id));
     }
 
     @After
@@ -111,10 +131,22 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         jdbcTemplate.execute("delete from users where upper(userName) = 'JONAH@FOO.COM'");
         jdbcTemplate.execute("delete from users where upper(userName) = 'RO''GALLAGHER@EXAMPLE.COM'");
         jdbcTemplate.execute("delete from users where upper(userName) = 'USER@EXAMPLE.COM'");
+        jdbcTemplate.execute("delete from identity_provider where identity_zone_id = 'my-zone-id'");
+        jdbcTemplate.execute("delete from identity_zone where id = 'my-zone-id'");
+        IdentityZoneHolder.clear();
     }
 
     @Test
-    public void canCreateUser() {
+    public void canCreateUserWithExclamationMarkInUsername() {
+        String userName = "jo!!@foo.com";
+        ScimUser user = new ScimUser(null, userName, "Jo", "User");
+        user.addEmail(userName);
+        ScimUser created = db.createUser(user, "j7hyqpassX");
+        assertEquals(userName, created.getUserName());
+    }
+
+    @Test
+    public void canCreateUserInDefaultIdentityZone() {
         ScimUser user = new ScimUser(null, "jo@foo.com", "Jo", "User");
         user.addEmail("jo@blah.com");
         ScimUser created = db.createUser(user, "j7hyqpassX");
@@ -126,11 +158,56 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertEquals(user.getUserType(), map.get(UaaAuthority.UAA_USER.getUserType()));
         assertNull(created.getGroups());
         assertEquals(Origin.UAA, created.getOrigin());
+        assertEquals("uaa", map.get("identity_zone_id"));
+    }
+
+    @Test
+    public void canCreateUserInOtherIdentityZone() {
+        String otherZoneId = "my-zone-id";
+        createOtherIdentityZone(otherZoneId);
+        String idpId = createOtherIdentityProvider(Origin.UAA, otherZoneId);
+        ScimUser user = new ScimUser(null, "jo@foo.com", "Jo", "User");
+        user.addEmail("jo@blah.com");
+        ScimUser created = db.createUser(user, "j7hyqpassX");
+        assertEquals("jo@foo.com", created.getUserName());
+        assertNotNull(created.getId());
+        assertNotSame(user.getId(), created.getId());
+        Map<String, Object> map = jdbcTemplate.queryForMap("select * from users where id=?", created.getId());
+        assertEquals(user.getUserName(), map.get("userName"));
+        assertEquals(user.getUserType(), map.get(UaaAuthority.UAA_USER.getUserType()));
+        assertNull(created.getGroups());
+        assertEquals(Origin.UAA, created.getOrigin());
+        assertEquals("my-zone-id", map.get("identity_zone_id"));
+    }
+
+    @Test
+    public void countUsersAcrossAllZones() {
+    	IdentityZoneHolder.clear();
+    	int beginningCount = db.getTotalCount();
+    	canCreateUserInDefaultIdentityZone();
+    	IdentityZoneHolder.clear();
+    	assertEquals(beginningCount+1, db.getTotalCount());
+    	canCreateUserInOtherIdentityZone();
+    	IdentityZoneHolder.clear();
+    	assertEquals(beginningCount+2, db.getTotalCount());
+
+    }
+
+    private void createOtherIdentityZone(String zoneId) {
+        IdentityZone identityZone = MultitenancyFixture.identityZone(zoneId, "myzone");
+        zoneDb.create(identityZone);
+        IdentityZoneHolder.set(identityZone);
+    }
+
+    private String createOtherIdentityProvider(String origin, String zoneId) {
+        IdentityProvider identityProvider = MultitenancyFixture.identityProvider(origin, zoneId);
+        return providerDb.create(identityProvider).getId();
     }
 
     @Test
     public void validateOriginAndExternalIDDuringCreateAndUpdate() {
         String origin = "test";
+        ScimUserBootstrapTests.addIdentityProvider(jdbcTemplate, origin);
         String externalId = "testId";
         ScimUser user = new ScimUser(null, "jo@foo.com", "Jo", "User");
         user.setOrigin(origin);
@@ -147,6 +224,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertEquals(origin, created.getOrigin());
         assertEquals(externalId, created.getExternalId());
         String origin2 = "test2";
+        ScimUserBootstrapTests.addIdentityProvider(jdbcTemplate,origin2);
         String externalId2 = "testId2";
         created.setOrigin(origin2);
         created.setExternalId(externalId2);
@@ -375,7 +453,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     @Test
     public void testCreatedUserNotVerified() {
         String tmpUserIdString = createUserForDelete();
-        boolean verified = jdbcTemplate.queryForObject(verifyUserSqlFormat, Boolean.class, tmpUserIdString);
+        boolean verified = jdbcTemplate.queryForObject(VERIFY_USER_SQL_FORMAT, Boolean.class, tmpUserIdString);
         assertFalse(verified);
         ScimUser user = db.retrieve(tmpUserIdString);
         assertFalse(user.isVerified());
@@ -384,7 +462,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
 
     @Test
     public void testCreateUserWithDuplicateUsername() throws Exception {
-        addUser("cba09242-aa43-4247-9aa0-b5c75c281f94", "user@example.com", "password", "user@example.com", "first", "user", "90438");
+        addUser("cba09242-aa43-4247-9aa0-b5c75c281f94", "user@example.com", "password", "user@example.com", "first", "user", "90438", defaultIdentityProviderId, "uaa");
         ScimUser scimUser = new ScimUser("user-id-2", "user@example.com", "User", "Example");
         ScimUser.Email email = new ScimUser.Email();
         email.setValue("user@example.com");
@@ -405,18 +483,49 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         }
     }
 
+    @Test
+    public void testCreateUserWithDuplicateUsernameInOtherIdp() throws Exception {
+        addUser("cba09242-aa43-4247-9aa0-b5c75c281f94", "user@example.com", "password", "user@example.com", "first", "user", "90438", defaultIdentityProviderId, "uaa");
+
+        String origin = "test-origin";
+        createOtherIdentityProvider(origin, IdentityZone.getUaa().getId());
+
+        ScimUser scimUser = new ScimUser(null, "user@example.com", "User", "Example");
+        ScimUser.Email email = new ScimUser.Email();
+        email.setValue("user@example.com");
+        scimUser.setEmails(Arrays.asList(email));
+        scimUser.setPassword("password");
+        scimUser.setOrigin(origin);
+        String userId2 = db.create(scimUser).getId();
+        assertNotNull(userId2);
+        assertNotEquals("cba09242-aa43-4247-9aa0-b5c75c281f94", userId2);
+    }
 
     @Test
     public void testUpdatedUserVerified() {
         String tmpUserIdString = createUserForDelete();
-        boolean verified = jdbcTemplate.queryForObject(verifyUserSqlFormat, Boolean.class, tmpUserIdString);
+        boolean verified = jdbcTemplate.queryForObject(VERIFY_USER_SQL_FORMAT, Boolean.class, tmpUserIdString);
         assertFalse(verified);
         db.verifyUser(tmpUserIdString, -1);
-        verified = jdbcTemplate.queryForObject(verifyUserSqlFormat, Boolean.class, tmpUserIdString);
+        verified = jdbcTemplate.queryForObject(VERIFY_USER_SQL_FORMAT, Boolean.class, tmpUserIdString);
         assertTrue(verified);
         removeUser(tmpUserIdString);
     }
 
+    @Test
+    public void createUserWithNoZoneDefaultsToUAAZone() {
+        String id = UUID.randomUUID().toString();
+        jdbcTemplate.execute(String.format(OLD_ADD_USER_SQL_FORMAT, id, "test-username", "password", "test@email.com", "givenName", "familyName","1234567890"));
+        ScimUser user = db.retrieve(id);
+        assertEquals("uaa", user.getZoneId());
+    }
+    
+    @Test(expected=DuplicateKeyException.class)
+    public void createUserWithNoZoneFailsIfUserAlreadyExistsInUaaZone() {
+        addUser(UUID.randomUUID().toString(), "test-username", "password", "test@email.com", "givenName", "familyName","1234567890",defaultIdentityProviderId,"uaa");
+        jdbcTemplate.execute(String.format(OLD_ADD_USER_SQL_FORMAT, UUID.randomUUID().toString(), "test-username", "password", "test@email.com", "givenName", "familyName","1234567890"));
+    }
+    
     @Test
     public void testUpdatedVersionedUserVerified() {
         String tmpUserIdString = createUserForDelete();
@@ -624,7 +733,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         String password = jdbcTemplate.queryForObject("select password from users where username='joe'", String.class);
         assertNotNull(password);
         Collection<ScimUser> users = db.query("username=\"joe\"; select " + SQL_INJECTION_FIELDS
-                        + " from users where username='joe'");
+                + " from users where username='joe'");
         assertEquals(password, users.iterator().next().getId());
     }
 
@@ -633,7 +742,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         String password = jdbcTemplate.queryForObject("select password from users where username='joe'", String.class);
         assertNotNull(password);
         Collection<ScimUser> users = db.query("username gt \"h\"; select " + SQL_INJECTION_FIELDS
-                        + " from users where username='joe'");
+                + " from users where username='joe'");
         assertEquals(password, users.iterator().next().getId());
     }
 
@@ -642,7 +751,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         String password = jdbcTemplate.queryForObject("select password from users where username='joe'", String.class);
         assertNotNull(password);
         Collection<ScimUser> users = db.query("username eq \"joe\"; select " + SQL_INJECTION_FIELDS
-                        + " from users where username='joe'");
+                + " from users where username='joe'");
         assertEquals(password, users.iterator().next().getId());
     }
 
@@ -651,7 +760,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         String password = jdbcTemplate.queryForObject("select password from users where username='joe'", String.class);
         assertNotNull(password);
         Collection<ScimUser> users = db.query("username eq \"joe\"\"; select id from users where id='''; select "
-                        + SQL_INJECTION_FIELDS + " from users where username='joe'");
+                + SQL_INJECTION_FIELDS + " from users where username='joe'");
         assertEquals(password, users.iterator().next().getId());
     }
 
@@ -660,7 +769,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         String password = jdbcTemplate.queryForObject("select password from users where username='joe'", String.class);
         assertNotNull(password);
         Collection<ScimUser> users = db.query("username eq \"joe\"'; select " + SQL_INJECTION_FIELDS
-                        + " from users where username='joe''");
+                + " from users where username='joe''");
         assertEquals(password, users.iterator().next().getId());
     }
 

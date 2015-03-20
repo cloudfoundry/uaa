@@ -49,24 +49,30 @@ public class UaaUser {
 
     private final String externalId;
 
+    public String getZoneId() {
+        return zoneId;
+    }
+
+    private final String zoneId;
+
     private final List<? extends GrantedAuthority> authorities;
 
     private boolean verified = false;
 
     public UaaUser(String username, String password, String email, String givenName, String familyName) {
         this("NaN", username, password, email, UaaAuthority.USER_AUTHORITIES, givenName, familyName, new Date(),
-                        new Date(), null, null, false);
+                        new Date(), null, null, false,null);
     }
 
-    public UaaUser(String username, String password, String email, String givenName, String familyName, String origin) {
+    public UaaUser(String username, String password, String email, String givenName, String familyName, String origin, String zoneId) {
         this("NaN", username, password, email, UaaAuthority.USER_AUTHORITIES, givenName, familyName, new Date(),
-            new Date(), origin, null, false);
+            new Date(), origin, null, false, zoneId);
     }
 
     public UaaUser(String id, String username, String password, String email,
                    List<? extends GrantedAuthority> authorities,
                    String givenName, String familyName, Date created, Date modified,
-                   String origin, String externalId, boolean verified) {
+                   String origin, String externalId, boolean verified, String zoneId) {
         Assert.hasText(username, "Username cannot be empty");
         Assert.hasText(id, "Id cannot be null");
         Assert.hasText(email, "Email is required");
@@ -83,6 +89,7 @@ public class UaaUser {
         this.origin = origin;
         this.externalId = externalId;
         this.verified = verified;
+        this.zoneId = zoneId;
     }
 
     public String getId() {
@@ -121,7 +128,7 @@ public class UaaUser {
         if (!"NaN".equals(this.id)) {
             throw new IllegalStateException("Id already set");
         }
-        return new UaaUser(id, username, password, email, authorities, givenName, familyName, created, modified, origin, externalId, verified);
+        return new UaaUser(id, username, password, email, authorities, givenName, familyName, created, modified, origin, externalId, verified, zoneId);
     }
 
     public UaaUser authorities(Collection<? extends GrantedAuthority> authorities) {
@@ -133,7 +140,7 @@ public class UaaUser {
         if (!values.contains(UaaAuthority.UAA_USER)) {
             values.add(UaaAuthority.UAA_USER);
         }
-        UaaUser user = new UaaUser(id, username, password, email, values, givenName, familyName, created, modified, origin, externalId, verified);
+        UaaUser user = new UaaUser(id, username, password, email, values, givenName, familyName, created, modified, origin, externalId, verified, zoneId);
         return user;
     }
 
@@ -152,11 +159,11 @@ public class UaaUser {
     }
 
     public UaaUser modifySource(String origin, String externalId) {
-        return new UaaUser(id, username, password, email, authorities, givenName, familyName, created, modified, origin, externalId, verified);
+        return new UaaUser(id, username, password, email, authorities, givenName, familyName, created, modified, origin, externalId, verified, zoneId);
     }
 
     public UaaUser modifyEmail(String email) {
-        return new UaaUser(id, username, password, email, authorities, givenName, familyName, created, modified, origin, externalId, verified);
+        return new UaaUser(id, username, password, email, authorities, givenName, familyName, created, modified, origin, externalId, verified, zoneId);
     }
 
     public boolean isVerified() {

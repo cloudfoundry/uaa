@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -22,9 +22,14 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.web.util.HtmlUtils;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MockMvcTestClient {
 
+    //TODO - nullify?
     private MockMvc mockMvc;
     private final ObjectMapper objectMapper;
 
@@ -54,5 +59,13 @@ public class MockMvcTestClient {
 
         public OAuthToken() {
         }
+    }
+
+    public String extractLink(String messageBody) {
+        Pattern linkPattern = Pattern.compile("<a href=\"(.*?)\">.*?</a>");
+        Matcher matcher = linkPattern.matcher(messageBody);
+        matcher.find();
+        String encodedLink = matcher.group(1);
+        return HtmlUtils.htmlUnescape(encodedLink);
     }
 }

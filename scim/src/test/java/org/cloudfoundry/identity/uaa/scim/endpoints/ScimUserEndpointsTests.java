@@ -57,6 +57,8 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.ScimSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -110,7 +112,7 @@ public class ScimUserEndpointsTests {
     private static EmbeddedDatabase database;
 
     @BeforeClass
-    public static void setUpDatabase() {
+    public static void setUpDatabase() throws Exception {
         EmbeddedDatabaseBuilder builder = new EmbeddedDatabaseBuilder();
         database = builder.build();
         Flyway flyway = new Flyway();
@@ -122,6 +124,7 @@ public class ScimUserEndpointsTests {
 
     @Before
     public void setUp() {
+        IdentityZoneHolder.clear();
         JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, new DefaultLimitSqlAdapter());
         dao = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory);
@@ -143,6 +146,7 @@ public class ScimUserEndpointsTests {
         mm.setDefaultUserGroups(Collections.singleton("uaa.user"));
         endpoints.setScimGroupMembershipManager(mm);
         groupEndpoints = new ScimGroupEndpoints(gdao, mm);
+        
         joel = new ScimUser(null, "jdsa", "Joel", "D'sa");
         joel.addEmail(JDSA_VMWARE_COM);
         dale = new ScimUser(null, "olds", "Dale", "Olds");
@@ -173,6 +177,7 @@ public class ScimUserEndpointsTests {
     @After
     public void cleanUp() throws Exception {
         TestUtils.deleteFrom(database, "group_membership", "users", "groups", "authz_approvals");
+        IdentityZoneHolder.clear();
     }
 
     private void validateUserGroups(ScimUser user, String... gnm) {
@@ -679,6 +684,19 @@ public class ScimUserEndpointsTests {
                 .contains(joel.getId()));
     }
 
+    @Test
+    public void zeroUsersInADifferentIdentityZone() {
+        IdentityZone zone = new IdentityZone();
+        zone.setId("not-uaa");
+        zone.setSubdomain("not-uaa");
+        zone.setName("not-uaa");
+        zone.setDescription("not-uaa");
+        IdentityZoneHolder.set(zone);
+        SearchResults<?> results = endpoints.findUsers("id",
+                "id pr", null, "ascending", 1, 100);
+        assertEquals(0, results.getTotalResults());
+    }
+    
     @SuppressWarnings("unchecked")
     private Collection<Object> getSetFromMaps(Collection<?> resources, String key) {
         Collection<Object> result = new ArrayList<Object>();

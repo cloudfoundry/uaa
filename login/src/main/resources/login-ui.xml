@@ -36,10 +36,6 @@
 
     <context:annotation-config />
 
-    <bean id="uaaUrl" class="java.lang.String">
-        <constructor-arg value="${uaa.url:http://localhost:8080/uaa}"/>
-    </bean>
-
     <bean id="notificationsUrl" class="java.lang.String">
         <constructor-arg value="${notifications.url:}"/>
     </bean>
@@ -167,7 +163,7 @@
 
   <bean id="homeController" class="org.cloudfoundry.identity.uaa.login.HomeController">
     <constructor-arg ref="environment" />
-    <property name="uaaBaseUrl" value="${uaa.url:http://localhost:8080/uaa}" />
+    <property name="uaaBaseUrl" ref="uaaUrl" />
     <property name="links" ref="links" />
   </bean>
 
@@ -179,8 +175,6 @@
   <!--define an oauth 2 resource for api access -->
   <oauth:resource id="userApprovals" type="authorization_code" client-id="login" client-secret="${LOGIN_SECRET:loginsecret}"
                   access-token-uri="${uaa.token.url:http://localhost:8080/uaa/oauth/token}" user-authorization-uri="${login.authorize.url:http://localhost:8080/uaa/oauth/authorize}" />
-
-  <oauth:web-expression-handler id="oauthWebExpressionHandler" />
 
   <bean id="approvalsService" class="org.cloudfoundry.identity.uaa.login.LoginUaaApprovalsService"/>
 
@@ -354,9 +348,8 @@
         <constructor-arg ref="codeStore"/>
         <constructor-arg ref="scimUserProvisioning"/>
         <constructor-arg ref="jdbcClientDetailsService"/>
-        <constructor-arg ref="uaaUrl"/>
+        <constructor-arg ref="uaaUrlUtils" />
         <constructor-arg value="${login.brand:oss}"/>
-        <constructor-arg value="${login.url:http://localhost:8080/uaa}"/>
     </bean>
 
     <bean id="invitationsService" class="org.cloudfoundry.identity.uaa.login.EmailInvitationsService">
@@ -377,14 +370,19 @@
         <constructor-arg ref="mailTemplateEngine"/>
         <constructor-arg ref="messageService"/>
         <constructor-arg ref="passwordResetEndpoints"/>
-        <constructor-arg ref="uaaUrl"/>
+        <constructor-arg ref="uaaUrlUtils"/>
         <constructor-arg value="${login.brand:oss}"/>
+    </bean>
+
+    <bean id="uaaUrlUtils" class="org.cloudfoundry.identity.uaa.util.UaaUrlUtils">
+        <constructor-arg ref="uaaUrl" />
     </bean>
 
     <bean id="changeEmailService" class="org.cloudfoundry.identity.uaa.login.EmailChangeEmailService">
         <constructor-arg ref="mailTemplateEngine"/>
         <constructor-arg ref="messageService"/>
         <constructor-arg ref="changeEmailEndpoints"/>
+        <constructor-arg ref="uaaUrlUtils"/>
         <constructor-arg value="${login.brand:oss}"/>
     </bean>
 

@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,7 +12,9 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.experimental.theories.DataPoint;
 import org.junit.experimental.theories.Theories;
@@ -31,7 +33,7 @@ import static org.springframework.security.web.header.writers.frameoptions.XFram
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 @RunWith(Theories.class)
-public class XFrameOptionsTheories {
+public class XFrameOptionsTheories extends TestClassNullifier {
 
     @DataPoint
     public static RequestBuilder loginHtmlRequest = MockMvcRequestBuilders.get("/login").accept(MediaType.TEXT_HTML);
@@ -49,12 +51,15 @@ public class XFrameOptionsTheories {
         webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         webApplicationContext.refresh();
         FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
-        XFrameOptionsFilter xFrameOptionsFilter = webApplicationContext.getBean(XFrameOptionsFilter.class);
 
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
             .addFilter(springSecurityFilterChain)
-            .addFilter(xFrameOptionsFilter)
             .build();
+    }
+
+    @After
+    public void tearDown() {
+        webApplicationContext.destroy();
     }
 
     @Theory

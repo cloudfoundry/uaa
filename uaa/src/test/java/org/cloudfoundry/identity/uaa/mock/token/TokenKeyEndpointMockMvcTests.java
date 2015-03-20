@@ -12,16 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock.token;
 
-import java.util.Map;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import org.apache.commons.codec.binary.Base64;
-import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
+import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.oauth.token.SignerProvider;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
@@ -38,7 +30,16 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
-public class TokenKeyEndpointMockMvcTests {
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+public class TokenKeyEndpointMockMvcTests extends TestClassNullifier {
 
     XmlWebApplicationContext webApplicationContext;
     private MockMvc mockMvc;
@@ -108,6 +109,7 @@ public class TokenKeyEndpointMockMvcTests {
     public void tearDown() throws Exception {
 //        System.clearProperty("jwt.token.signing-key");
 //        System.clearProperty("jwt.token.verification-key");
+        webApplicationContext.destroy();
     }
 
     @Test

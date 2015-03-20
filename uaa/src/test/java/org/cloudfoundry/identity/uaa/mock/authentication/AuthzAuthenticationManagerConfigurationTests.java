@@ -23,8 +23,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager;
+import org.cloudfoundry.identity.uaa.authentication.manager.CheckIdpEnabledAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.mock.env.MockEnvironment;
@@ -43,6 +45,13 @@ public class AuthzAuthenticationManagerConfigurationTests {
         new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "uaa.yml,login.yml");
         webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
     }
+
+    @After
+    public void tearDown() throws Exception {
+        webApplicationContext.destroy();
+        webApplicationContext = null;
+        environment = null;
+    }
     /**
      * We have a condition in the AutzhAuthenticationManager that automatically
      * fails a password validation for zero length password.
@@ -58,7 +67,7 @@ public class AuthzAuthenticationManagerConfigurationTests {
         if (plist.contains("ldap") || plist.contains("keystone")) {
             assertEquals(ChainedAuthenticationManager.class, webApplicationContext.getBean("authzAuthenticationMgr").getClass());
         } else {
-            assertEquals(AuthzAuthenticationManager.class, webApplicationContext.getBean("authzAuthenticationMgr").getClass());
+            assertEquals(CheckIdpEnabledAuthenticationManager.class, webApplicationContext.getBean("authzAuthenticationMgr").getClass());
         }
     }
 

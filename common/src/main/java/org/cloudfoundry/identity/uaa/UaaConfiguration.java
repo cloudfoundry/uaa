@@ -28,6 +28,7 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 
 import org.cloudfoundry.identity.uaa.UaaConfiguration.OAuth.Client;
+import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.config.CustomPropertyConstructor;
 import org.hibernate.validator.constraints.URL;
 import org.yaml.snakeyaml.TypeDescription;
@@ -38,7 +39,7 @@ import org.yaml.snakeyaml.nodes.Node;
 
 /**
  * Java representation of the UAA YAML configuration for validation purposes.
- * 
+ *
  * @author Luke Taylor
  */
 public class UaaConfiguration {
@@ -85,6 +86,8 @@ public class UaaConfiguration {
     public String assetBaseUrl;
     @Valid
     public String LOGIN_SECRET;
+    @Valid
+    public OAuth multitenant;
 
     public static class CloudController {
         @Valid
@@ -184,10 +187,10 @@ public class UaaConfiguration {
             oauthDesc.putMapPropertyType("clients", String.class, OAuthClient.class);
             addTypeDescription(oauthDesc);
             TypeDescription clientDesc = new TypeDescription(Client.class);
-            clientDesc.putListPropertyType("autoapprove", String.class);
+            clientDesc.putListPropertyType(ClientConstants.AUTO_APPROVE, String.class);
             addTypeDescription(clientDesc);
             TypeDescription oauthClientDesc = new TypeDescription(OAuthClient.class);
-            oauthClientDesc.putListPropertyType("autoapprove", String.class);
+            oauthClientDesc.putListPropertyType(ClientConstants.AUTO_APPROVE, String.class);
             addTypeDescription(oauthClientDesc);
             addPropertyAlias("issuer.uri", UaaConfiguration.class, "issuerUri");
             // login.addnew is ignored - it is not needed anymore.

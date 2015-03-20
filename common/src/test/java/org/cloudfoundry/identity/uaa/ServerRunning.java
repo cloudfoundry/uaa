@@ -10,7 +10,7 @@
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-package org.cloudfoundry.identity.uaa.integration;
+package org.cloudfoundry.identity.uaa;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -127,6 +127,10 @@ public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper 
      */
     public void setHostName(String hostName) {
         this.hostName = hostName;
+    }
+    
+    public String getHostName() {
+    	return hostName;
     }
 
     /**

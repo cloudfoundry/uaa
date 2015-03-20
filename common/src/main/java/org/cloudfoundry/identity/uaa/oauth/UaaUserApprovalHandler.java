@@ -19,6 +19,7 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
@@ -111,8 +112,8 @@ public class UaaUserApprovalHandler implements UserApprovalHandler {
 
     private boolean isAutoApprove(ClientDetails client, Collection<String> scopes) {
         Map<String, Object> info = client.getAdditionalInformation();
-        if (info.containsKey("autoapprove")) {
-            Object object = info.get("autoapprove");
+        if (info.containsKey(ClientConstants.AUTO_APPROVE)) {
+            Object object = info.get(ClientConstants.AUTO_APPROVE);
             if (object instanceof Boolean && (Boolean) object || "true".equals(object)) {
                 return true;
             }

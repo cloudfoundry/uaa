@@ -16,6 +16,7 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.hibernate.validator.constraints.Email;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -93,7 +94,7 @@ public class AccountsController {
             return "accounts/new_activation_email";
         }
 
-        UaaPrincipal uaaPrincipal = new UaaPrincipal(accountCreation.getUserId(), accountCreation.getUsername(), accountCreation.getEmail(), Origin.UAA, null);
+        UaaPrincipal uaaPrincipal = new UaaPrincipal(accountCreation.getUserId(), accountCreation.getUsername(), accountCreation.getEmail(), Origin.UAA, null, IdentityZoneHolder.get().getId());
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, UaaAuthority.USER_AUTHORITIES);
         SecurityContextHolder.getContext().setAuthentication(token);
 

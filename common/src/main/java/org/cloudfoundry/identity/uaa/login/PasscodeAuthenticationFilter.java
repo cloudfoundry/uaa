@@ -39,6 +39,7 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
 import org.springframework.http.HttpMethod;
@@ -206,7 +207,8 @@ public class PasscodeAuthenticationFilter extends BackwardsCompatibleTokenEndpoi
                 if (null != pi.getAuthorizationParameters()) {
                     externalAuthorities = (Collection<GrantedAuthority>) pi.getAuthorizationParameters().get("authorities");
                 }
-                UaaPrincipal principal = new UaaPrincipal(pi.getUserId(), pi.getUsername(), null, pi.getOrigin(), null);
+                UaaPrincipal principal = new UaaPrincipal(pi.getUserId(), pi.getUsername(), null, pi.getOrigin(), null,
+                    IdentityZoneHolder.get().getId());
                 List<? extends GrantedAuthority> authorities;
                 try {
                     UaaUser user = uaaUserDatabase.retrieveUserById(pi.getUserId());

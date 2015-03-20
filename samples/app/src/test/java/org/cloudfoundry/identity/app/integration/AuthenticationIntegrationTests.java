@@ -78,8 +78,6 @@ public class AuthenticationIntegrationTests {
         uaaHeaders.set("Cookie", cookie);
 
         assertTrue("Wrong location: " + location, location.contains("/login"));
-        // TODO: Fix location when running integrated with login-server, then
-        // login.do is not against /uaa
         location = serverRunning.getAuthServerUrl("/login.do");
 
         MultiValueMap<String, String> formData;

@@ -14,26 +14,22 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpoints;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.core.env.Environment;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 
 public class EmailResetPasswordService implements ResetPasswordService {
@@ -43,14 +39,14 @@ public class EmailResetPasswordService implements ResetPasswordService {
     private final TemplateEngine templateEngine;
     private final MessageService messageService;
     private final PasswordResetEndpoints passwordResetEndpoints;
-    private final String uaaBaseUrl;
+    private final UaaUrlUtils uaaUrlUtils;
     private final String brand;
 
-    public EmailResetPasswordService(TemplateEngine templateEngine, MessageService messageService, PasswordResetEndpoints passwordResetEndpoints, String uaaBaseUrl, String brand) {
+    public EmailResetPasswordService(TemplateEngine templateEngine, MessageService messageService, PasswordResetEndpoints passwordResetEndpoints, UaaUrlUtils uaaUrlUtils, String brand) {
         this.templateEngine = templateEngine;
         this.messageService = messageService;
         this.passwordResetEndpoints = passwordResetEndpoints;
-        this.uaaBaseUrl = uaaBaseUrl;
+        this.uaaUrlUtils = uaaUrlUtils;
         this.brand = brand;
     }
 
@@ -95,7 +91,11 @@ public class EmailResetPasswordService implements ResetPasswordService {
     }
 
     private String getSubjectText() {
-        return brand.equals("pivotal") ? "Pivotal account password reset request" : "Account password reset request";
+        String serviceName = getServiceName();
+        if (StringUtils.isEmpty(serviceName)) {
+            return "Account password reset request";
+        }
+        return serviceName + " account password reset request";
     }
 
     @Override
@@ -117,10 +117,10 @@ public class EmailResetPasswordService implements ResetPasswordService {
 
 
     private String getCodeSentEmailHtml(String code, String email) {
-        String resetUrl = ServletUriComponentsBuilder.fromCurrentContextPath().path("/reset_password").build().toUriString();
+        String resetUrl = uaaUrlUtils.getUaaUrl("/reset_password");
 
         final Context ctx = new Context();
-        ctx.setVariable("serviceName", brand.equals("pivotal") ? "Pivotal " : "");
+        ctx.setVariable("serviceName", getServiceName());
         ctx.setVariable("code", code);
         ctx.setVariable("email", email);
         ctx.setVariable("resetUrl", resetUrl);
@@ -128,12 +128,21 @@ public class EmailResetPasswordService implements ResetPasswordService {
     }
 
     private String getResetUnavailableEmailHtml(String email) {
-        String hostname = ServletUriComponentsBuilder.fromCurrentContextPath().build().getHost();
+        String hostname = uaaUrlUtils.getUaaHost();
 
         final Context ctx = new Context();
-        ctx.setVariable("serviceName", brand.equals("pivotal") ? "Pivotal " : "");
+        ctx.setVariable("serviceName", getServiceName());
         ctx.setVariable("email", email);
         ctx.setVariable("hostname", hostname);
         return templateEngine.process("reset_password_unavailable", ctx);
+    }
+
+    private String getServiceName() {
+        if (IdentityZoneHolder.get().equals(IdentityZone.getUaa())) {
+            return brand.equals("pivotal") ? "Pivotal" : "";
+        }
+        else {
+            return IdentityZoneHolder.get().getName();
+        }
     }
 }

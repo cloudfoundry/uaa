@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -20,6 +20,7 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.Map;
 
+import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Rule;
@@ -131,7 +132,8 @@ public class CheckTokenEndpointIntegrationTests {
 
         tokenResponse = serverRunning.postForMap("/check_token", formData, headers);
         assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
-        System.err.println(tokenResponse.getBody());
+        //System.err.println(tokenResponse.getBody());
+        assertNotNull(tokenResponse.getBody().get("iss"));
 
         @SuppressWarnings("unchecked")
         Map<String, String> map = tokenResponse.getBody();

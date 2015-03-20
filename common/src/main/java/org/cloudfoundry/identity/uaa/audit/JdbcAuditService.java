@@ -40,7 +40,7 @@ public class JdbcAuditService implements UaaAuditService {
 
     @Override
     public List<AuditEvent> find(String principal, long after) {
-        return template.query("select event_type, principal_id, origin, event_data, created from sec_audit where " +
+        return template.query("select event_type, principal_id, origin, event_data, created, identity_zone_id from sec_audit where " +
                         "principal_id=? and created > ? order by created desc", new AuditEventRowMapper(), principal,
                         new Timestamp(after));
     }
@@ -53,22 +53,26 @@ public class JdbcAuditService implements UaaAuditService {
         origin = origin.length() > 255 ? origin.substring(0, 255) : origin;
         data = data == null ? "" : data;
         data = data.length() > 255 ? data.substring(0, 255) : data;
-        template.update("insert into sec_audit (principal_id, event_type, origin, event_data) values (?,?,?,?)",
+        template.update("insert into sec_audit (principal_id, event_type, origin, event_data, identity_zone_id) values (?,?,?,?,?)",
                         auditEvent.getPrincipalId(), auditEvent.getType().getCode(), auditEvent.getOrigin(),
-                        auditEvent.getData());
+                        auditEvent.getData(), auditEvent.getIdentityZoneId());
     }
 
     private class AuditEventRowMapper implements RowMapper<AuditEvent> {
         @Override
         public AuditEvent mapRow(ResultSet rs, int rowNum) throws SQLException {
-            String principalId = rs.getString(2);
-            principalId = principalId == null ? null : principalId.trim();
-            String origin = rs.getString(3);
-            origin = origin == null ? null : origin.trim();
-            String data = rs.getString(4);
-            data = data == null ? null : data.trim();
-            return new AuditEvent(AuditEventType.fromCode(rs.getInt(1)), principalId, origin,
-                            data, rs.getTimestamp(5).getTime());
+            AuditEventType eventType = AuditEventType.fromCode(rs.getInt(1));
+            String principalId = nullSafeTrim(rs.getString(2));
+            String origin = nullSafeTrim(rs.getString(3));
+            String data = nullSafeTrim(rs.getString(4));
+            long time = rs.getTimestamp(5).getTime();
+            String identityZoneId = nullSafeTrim(rs.getString(6));
+            return new AuditEvent(eventType, principalId, origin,
+                            data, time, identityZoneId);
         }
+    }
+    
+    private static String nullSafeTrim(String s) {
+        return s == null ? null : s.trim();
     }
 }

@@ -56,6 +56,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -104,16 +105,20 @@ public class ScimGroupEndpoints {
         this.membershipManager = membershipManager;
     }
 
-    private boolean isReaderMember(ScimGroup group, String userId) {
+    private boolean isMember(ScimGroup group, String userId, ScimGroupMember.Role role) {
         if (null == userId) {
             return true;
         }
         for (ScimGroupMember member : group.getMembers()) {
-            if (member.getMemberId().equals(userId) && member.getRoles().contains(ScimGroupMember.Role.READER)) {
+            if (member.getMemberId().equals(userId) && member.getRoles().contains(role)) {
                 return true;
             }
         }
         return false;
+    }
+
+    private boolean isReaderMember(ScimGroup group, String userId) {
+        return isMember(group, userId, ScimGroupMember.Role.READER);
     }
 
     private List<ScimGroup> filterForCurrentUser(List<ScimGroup> input, int startIndex, int count, String userId) {
@@ -387,6 +392,63 @@ public class ScimGroupEndpoints {
         }
         return group;
     }
+
+    @RequestMapping(value = { "/Groups/zones" }, method = RequestMethod.POST)
+    @ResponseStatus(HttpStatus.CREATED)
+    @ResponseBody
+    public ScimGroup setZoneAdmin(@RequestBody ScimGroup group, HttpServletResponse httpServletResponse) {
+        String regex = "^zones\\..*\\.admin$";
+        if (!group.getDisplayName().matches(regex)) {
+            throw new ScimException("Invalid group name, only zones.{zone.id}.admin is allowed.", HttpStatus.BAD_REQUEST);
+        }
+        if (group.getMembers()==null || group.getMembers().size()==0) {
+            throw new ScimException("Invalid group members, you have to add at least one member as zone administrator.", HttpStatus.BAD_REQUEST);
+        }
+        try {
+            ScimGroup existing = getGroup(getGroupId(group.getDisplayName()),httpServletResponse);
+            List<ScimGroupMember> newMembers = new LinkedList<>(existing.getMembers());
+            //we have an existing group - add new memberships
+            for (ScimGroupMember member : group.getMembers()) {
+                if (isMember(existing, member.getMemberId(), ScimGroupMember.Role.MEMBER)) {
+                    throw new ScimException("User is already member of the group.", HttpStatus.CONFLICT);
+                } else {
+                    newMembers.add(member);
+                }
+            }
+            existing.setMembers(newMembers);
+            return updateGroup(existing, existing.getId(), String.valueOf(existing.getVersion()), httpServletResponse);
+        }catch (ScimException ex) {
+            if (ex.getStatus().equals(HttpStatus.NOT_FOUND)) {
+                return createGroup(group, httpServletResponse);
+            } else {
+                throw ex;
+            }
+        }
+    }
+
+    @RequestMapping(value = { "/Groups/zones/{userId}/{zoneId}" }, method = RequestMethod.DELETE)
+    @ResponseStatus(HttpStatus.OK)
+    @ResponseBody
+    public ScimGroup deleteZoneAdmin(@PathVariable String userId, @PathVariable String zoneId, HttpServletResponse httpServletResponse) {
+        String groupName = "zones."+zoneId+".admin";
+        String groupId = getGroupId(groupName);
+        ScimGroup group = getGroup(groupId, httpServletResponse);
+        if (!StringUtils.hasText(userId) || !StringUtils.hasText(zoneId)) {
+            throw new ScimException("User ID and Zone ID are required.", HttpStatus.BAD_REQUEST);
+        }
+        if (!isMember(group, userId, ScimGroupMember.Role.MEMBER)) {
+            throw new ScimException("User is not a zone admin.", HttpStatus.NOT_FOUND);
+        }
+        List<ScimGroupMember> newZoneAdmins = new LinkedList<>();
+        for (ScimGroupMember member : group.getMembers()) {
+            if (!member.getMemberId().equals(userId)) {
+                newZoneAdmins.add(member);
+            }
+        }
+        group.setMembers(newZoneAdmins);
+        return updateGroup(group, group.getId(), String.valueOf(group.getVersion()), httpServletResponse);
+    }
+
 
     @ExceptionHandler
     public View handleException(Exception t, HttpServletRequest request) throws ScimException {

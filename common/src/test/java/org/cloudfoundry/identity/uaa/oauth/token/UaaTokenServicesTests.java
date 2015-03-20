@@ -17,6 +17,7 @@ import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.Claims;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
@@ -27,8 +28,11 @@ import org.cloudfoundry.identity.uaa.test.TestApplicationEventPublisher;
 import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -80,7 +84,7 @@ public class UaaTokenServicesTests {
     public static final String CLIENT_CREDENTIALS = "client_credentials";
     public static final String AUTHORIZATION_CODE = "authorization_code";
     public static final String REFRESH_TOKEN = "refresh_token";
-    public static final String AUTOAPPROVE = "autoapprove";
+    public static final String AUTOAPPROVE = ClientConstants.AUTO_APPROVE;
     public static final String IMPLICIT = "implicit";
     public static final String UPDATE = "update";
     public static final String CANNOT_READ_TOKEN_CLAIMS = "Cannot read token claims";
@@ -121,7 +125,8 @@ public class UaaTokenServicesTests {
             new Date(System.currentTimeMillis() - 15000), 
             Origin.UAA, 
             externalId,
-            false);
+            false,
+            IdentityZoneHolder.get().getId());
     
     // Need to create a user with a modified time slightly in the past because
     // the token IAT is in seconds and the token
@@ -155,7 +160,7 @@ public class UaaTokenServicesTests {
 
     @Before
     public void setUp() throws Exception {
-
+        IdentityZoneHolder.clear();
         mockAuthentication = new MockAuthentication();
         SecurityContextHolder.getContext().setAuthentication(mockAuthentication);
         requestedAuthScopes = Arrays.asList(READ, WRITE);
@@ -187,6 +192,12 @@ public class UaaTokenServicesTests {
         tokenServices.setUserDatabase(userDatabase);
         tokenServices.setApprovalStore(approvalStore);
         tokenServices.setApplicationEventPublisher(publisher);
+        tokenServices.afterPropertiesSet();
+    }
+    
+    @After
+    public void teardown() {
+        IdentityZoneHolder.clear();
     }
 
     @Test(expected = InvalidTokenException.class)
@@ -243,6 +254,7 @@ public class UaaTokenServicesTests {
         assertTrue(((Integer) claims.get(Claims.EXP)) > 0);
         assertTrue(((Integer) claims.get(Claims.EXP)) - ((Integer) claims.get(Claims.IAT)) == 60 * 60 * 12);
         assertNull(accessToken.getRefreshToken());
+        assertEquals(IdentityZoneHolder.get().getId(), claims.get(Claims.ZONE_ID));
 
         Assert.assertEquals(1, publisher.getEventCount());
 
@@ -253,6 +265,61 @@ public class UaaTokenServicesTests {
         Assert.assertEquals(CLIENT_ID, auditEvent.getPrincipalId());
         Assert.assertEquals(expectedJson, auditEvent.getData());
         Assert.assertEquals(AuditEventType.TokenIssuedEvent, auditEvent.getType());
+    }
+    
+    @Test
+    public void testCreateAccessTokenForAClientInAnotherIdentityZone() {
+        String subdomain = "test-zone-subdomain";
+        IdentityZoneHolder.set(getIdentityZone(subdomain));
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,clientScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
+        azParameters.put(GRANT_TYPE, CLIENT_CREDENTIALS);
+        authorizationRequest.setRequestParameters(azParameters);
+
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), null);
+
+        OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
+        Jwt tokenJwt = JwtHelper.decodeAndVerify(accessToken.getValue(), signerProvider.getVerifier());
+        assertNotNull(tokenJwt);
+        Map<String, Object> claims;
+        try {
+            claims = mapper.readValue(tokenJwt.getClaims(),new TypeReference<Map<String, Object>>() {});
+        } catch (Exception e) {
+            throw new IllegalStateException(CANNOT_READ_TOKEN_CLAIMS, e);
+        }
+
+        assertEquals(claims.get(Claims.ISS), "http://"+subdomain+".localhost:8080/uaa/oauth/token");
+        assertEquals(claims.get(Claims.CLIENT_ID), CLIENT_ID);
+        assertNull("user_id should be null for a client token", claims.get(Claims.USER_ID));
+        assertEquals(claims.get(Claims.SUB), CLIENT_ID);
+        assertNull("user_name should be null for a client token", claims.get(Claims.USER_NAME));
+        assertEquals(claims.get(Claims.CID), CLIENT_ID);
+        assertEquals(claims.get(Claims.SCOPE), clientScopes);
+        assertEquals(claims.get(Claims.AUD), resourceIds);
+        assertTrue(((String) claims.get(Claims.JTI)).length() > 0);
+        assertTrue(((Integer) claims.get(Claims.IAT)) > 0);
+        assertTrue(((Integer) claims.get(Claims.EXP)) > 0);
+        assertTrue(((Integer) claims.get(Claims.EXP)) - ((Integer) claims.get(Claims.IAT)) == 60 * 60 * 12);
+        assertNull(accessToken.getRefreshToken());
+
+        Assert.assertEquals(1, publisher.getEventCount());
+
+        TokenIssuedEvent event = publisher.getLatestEvent();
+        Assert.assertEquals(accessToken, event.getSource());
+        Assert.assertEquals(mockAuthentication, event.getAuthentication());
+        AuditEvent auditEvent = event.getAuditEvent();
+        Assert.assertEquals(CLIENT_ID, auditEvent.getPrincipalId());
+        Assert.assertEquals(expectedJson, auditEvent.getData());
+        Assert.assertEquals(AuditEventType.TokenIssuedEvent, auditEvent.getType());
+    }
+    
+    private IdentityZone getIdentityZone(String subdomain) {
+        IdentityZone identityZone = new IdentityZone();
+        identityZone.setSubdomain(subdomain);
+        identityZone.setName("The Twiglet Zone");
+        identityZone.setDescription("Like the Twilight Zone but tastier.");
+        return identityZone;
     }
 
     @Test

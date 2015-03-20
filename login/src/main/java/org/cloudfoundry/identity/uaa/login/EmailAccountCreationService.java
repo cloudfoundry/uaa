@@ -9,6 +9,9 @@ import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
 import org.springframework.http.HttpStatus;
@@ -34,13 +37,12 @@ public class EmailAccountCreationService implements AccountCreationService {
 
     private final SpringTemplateEngine templateEngine;
     private final MessageService messageService;
-    private final String uaaBaseUrl;
-    private final String brand;
-    private final ObjectMapper objectMapper;
-    private final String baseUrl;
     private final ExpiringCodeStore codeStore;
     private final ScimUserProvisioning scimUserProvisioning;
     private final ClientDetailsService clientDetailsService;
+    private final String brand;
+    private final UaaUrlUtils uaaUrlUtils;
+    private final ObjectMapper objectMapper;
 
     public EmailAccountCreationService(
         ObjectMapper objectMapper,
@@ -49,9 +51,8 @@ public class EmailAccountCreationService implements AccountCreationService {
         ExpiringCodeStore codeStore,
         ScimUserProvisioning scimUserProvisioning,
         ClientDetailsService clientDetailsService,
-        String uaaBaseUrl,
-        String brand,
-        String baseUrl) {
+        UaaUrlUtils uaaUrlUtils,
+        String brand) {
 
         this.objectMapper = objectMapper;
         this.templateEngine = templateEngine;
@@ -59,9 +60,8 @@ public class EmailAccountCreationService implements AccountCreationService {
         this.codeStore= codeStore;
         this.scimUserProvisioning = scimUserProvisioning;
         this.clientDetailsService = clientDetailsService;
-        this.uaaBaseUrl = uaaBaseUrl;
+        this.uaaUrlUtils = uaaUrlUtils;
         this.brand = brand;
-        this.baseUrl = baseUrl;
     }
 
     @Override
@@ -178,10 +178,14 @@ public class EmailAccountCreationService implements AccountCreationService {
     }
 
     private String getEmailHtml(String code, String email) {
-        String accountsUrl = baseUrl + "/verify_user";
+        String accountsUrl = uaaUrlUtils.getUaaUrl("/verify_user");
 
         final Context ctx = new Context();
-        ctx.setVariable("serviceName", brand.equals("pivotal") ? "Pivotal" : "Cloud Foundry");
+        if (IdentityZoneHolder.get().equals(IdentityZone.getUaa())) {
+            ctx.setVariable("serviceName", brand.equals("pivotal") ? "Pivotal" : "Cloud Foundry");
+        } else {
+            ctx.setVariable("serviceName", IdentityZoneHolder.get().getName());
+        }
         ctx.setVariable("servicePhrase", brand.equals("pivotal") ? "a Pivotal ID" : "an account");
         ctx.setVariable("code", code);
         ctx.setVariable("email", email);

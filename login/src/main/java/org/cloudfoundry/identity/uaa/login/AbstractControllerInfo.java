@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.http.HttpHeaders;
@@ -34,8 +35,7 @@ import javax.servlet.http.HttpServletRequest;
 
 /**
  * Contains basic information used by the
- * login-server controllers.
- * 
+ * login controllers
  * @author fhanik
  * 
  */
@@ -107,8 +107,8 @@ public abstract class AbstractControllerInfo {
 
     protected Map<String, ?> getLinksInfo() {
         Map<String, Object> model = new HashMap<String, Object>();
-        model.put("uaa", getUaaBaseUrl());
-        model.put("login", getUaaBaseUrl().replaceAll("uaa", "login"));
+        model.put(Origin.UAA, getUaaBaseUrl());
+        model.put("login", getUaaBaseUrl().replaceAll(Origin.UAA, "login"));
         model.putAll(getLinks());
         return model;
     }

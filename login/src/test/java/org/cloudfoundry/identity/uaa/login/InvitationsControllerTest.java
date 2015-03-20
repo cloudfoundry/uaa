@@ -1,29 +1,12 @@
 package org.cloudfoundry.identity.uaa.login;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
-
-import java.util.HashMap;
-import java.util.Map;
-
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.login.ExpiringCodeService.CodeNotFoundException;
 import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -52,6 +35,24 @@ import org.springframework.web.servlet.config.annotation.DefaultServletHandlerCo
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
+
 @RunWith(SpringJUnit4ClassRunner.class)
 @WebAppConfiguration
 @ContextConfiguration(classes = InvitationsControllerTest.ContextConfiguration.class)
@@ -65,7 +66,7 @@ public class InvitationsControllerTest {
 
     @Autowired
     InvitationsService invitationsService;
-    
+
     @Autowired
     ExpiringCodeService expiringCodeService;
 
@@ -75,7 +76,7 @@ public class InvitationsControllerTest {
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
             .build();
     }
-    
+
     @After
     public void tearDown() {
     	SecurityContextHolder.clearContext();
@@ -92,7 +93,7 @@ public class InvitationsControllerTest {
 
     @Test
     public void testSendInvitationEmail() throws Exception {
-        UaaPrincipal p = new UaaPrincipal("123","marissa","marissa@test.org", Origin.UAA,"");
+        UaaPrincipal p = new UaaPrincipal("123","marissa","marissa@test.org", Origin.UAA,"", IdentityZoneHolder.get().getId());
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(p, "", UaaAuthority.USER_AUTHORITIES);
         assertTrue(auth.isAuthenticated());
         MockSecurityContext mockSecurityContext = new MockSecurityContext(auth);
@@ -111,10 +112,10 @@ public class InvitationsControllerTest {
             .andExpect(redirectedUrl("sent"));
         verify(invitationsService).inviteUser("user1@example.com", "marissa");
     }
-    
+
     @Test
     public void testSendInvitationEmailToExistingVerifiedUser() throws Exception {
-        UaaPrincipal p = new UaaPrincipal("123","marissa","marissa@test.org", Origin.UAA,"");
+        UaaPrincipal p = new UaaPrincipal("123","marissa","marissa@test.org", Origin.UAA,"", IdentityZoneHolder.get().getId());
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(p, "", UaaAuthority.USER_AUTHORITIES);
         assertTrue(auth.isAuthenticated());
         MockSecurityContext mockSecurityContext = new MockSecurityContext(auth);
@@ -137,7 +138,7 @@ public class InvitationsControllerTest {
 
     @Test
     public void testSendInvitationWithInvalidEmail() throws Exception {
-        UaaPrincipal p = new UaaPrincipal("123","marissa","marissa@test.org", Origin.UAA,"");
+        UaaPrincipal p = new UaaPrincipal("123","marissa","marissa@test.org", Origin.UAA,"", IdentityZoneHolder.get().getId());
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(p, "", UaaAuthority.USER_AUTHORITIES);
         assertTrue(auth.isAuthenticated());
         MockSecurityContext mockSecurityContext = new MockSecurityContext(auth);
@@ -178,8 +179,8 @@ public class InvitationsControllerTest {
         assertEquals("user@example.com", principal.getName());
         assertEquals("user@example.com", principal.getEmail());
     }
-    
-    
+
+
     @Test
     public void testAcceptInvitePageWithExpiredCode() throws Exception {
     	doThrow(new CodeNotFoundException("code expired")).when(expiringCodeService).verifyCode("the_secret_code");
@@ -196,10 +197,10 @@ public class InvitationsControllerTest {
 
     @Test
     public void testAcceptInvite() throws Exception {
-        UaaPrincipal uaaPrincipal = new UaaPrincipal("user-id-001", "user@example.com", "user@example.com", Origin.UAA, null);
+        UaaPrincipal uaaPrincipal = new UaaPrincipal("user-id-001", "user@example.com", "user@example.com", Origin.UAA, null,IdentityZoneHolder.get().getId());
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, UaaAuthority.USER_AUTHORITIES);
         SecurityContextHolder.getContext().setAuthentication(token);
-        
+
         MockHttpServletRequestBuilder post = post("/invitations/accept.do")
             .param("password", "password")
             .param("password_confirmation", "password")
@@ -208,13 +209,13 @@ public class InvitationsControllerTest {
         mockMvc.perform(post)
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("/home"));
-        
+
         verify(invitationsService).acceptInvitation("user-id-001","user@example.com", "password", "");
     }
 
     @Test
     public void testAcceptInviteWithClientRedirect() throws Exception {
-        UaaPrincipal uaaPrincipal = new UaaPrincipal("user-id-001", "user@example.com", "user@example.com", Origin.UAA, null);
+        UaaPrincipal uaaPrincipal = new UaaPrincipal("user-id-001", "user@example.com", "user@example.com", Origin.UAA, null,IdentityZoneHolder.get().getId());
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, UaaAuthority.USER_AUTHORITIES);
         SecurityContextHolder.getContext().setAuthentication(token);
 
@@ -232,10 +233,10 @@ public class InvitationsControllerTest {
 
     @Test
     public void testAcceptInviteWithoutMatchingPasswords() throws Exception {
-    	UaaPrincipal uaaPrincipal = new UaaPrincipal("user-id-001", "user@example.com", "user@example.com", Origin.UAA, null);
+    	UaaPrincipal uaaPrincipal = new UaaPrincipal("user-id-001", "user@example.com", "user@example.com", Origin.UAA, null,IdentityZoneHolder.get().getId());
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, UaaAuthority.USER_AUTHORITIES);
         SecurityContextHolder.getContext().setAuthentication(token);
-        
+
         MockHttpServletRequestBuilder post = post("/invitations/accept.do")
             .param("password", "password")
             .param("password_confirmation", "does not match")
@@ -303,8 +304,8 @@ public class InvitationsControllerTest {
         InvitationsController invitationsController(InvitationsService invitationsService) {
             return new InvitationsController(invitationsService);
         }
-        
-        @Bean 
+
+        @Bean
         ExpiringCodeService expiringCodeService() {
         	return Mockito.mock(ExpiringCodeService.class);
         }

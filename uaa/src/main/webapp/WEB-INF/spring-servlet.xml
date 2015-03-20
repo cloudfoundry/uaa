@@ -19,10 +19,10 @@
        xmlns:mvc="http://www.springframework.org/schema/mvc"
        xmlns:context="http://www.springframework.org/schema/context"
        xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-2.0.xsd
-		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.2.xsd
-		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
-		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
-		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.0.xsd">
+        http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.2.xsd
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+        http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.0.xsd">
 
     <bean class="org.cloudfoundry.identity.uaa.config.YamlConfigurationValidator">
         <constructor-arg>
@@ -41,7 +41,7 @@
     <sec:http pattern="/favicon.ico" security="none" />
     <sec:http pattern="/info" security="none" />
     <sec:http pattern="/password/**" security="none" />
-    <sec:http pattern="/healthz/**" security="none" />
+    <sec:http pattern="/healthz/**" security="none" name="healthz"/>
     <sec:http pattern="/saml/web/**" security="none" />
     <sec:http pattern="/vendor/**" security="none" />
     <!--<sec:http pattern="/login" security="none" />-->
@@ -53,6 +53,10 @@
     <sec:http pattern="/accounts/email_sent" security="none" />
 
     <bean id="xFrameOptionsFilter" class="org.cloudfoundry.identity.uaa.login.XFrameOptionsFilter" />
+    <bean id="oauth2TokenParseFilter" class="java.lang.Class" factory-method="forName">
+        <constructor-arg value="org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationProcessingFilter"/>
+    </bean>
+    <bean id="corsFilter" class="org.cloudfoundry.identity.uaa.web.CorsFilter"/>
 
     <bean class="org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor">
         <property name="requireHttps" value="${require_https:false}" />
@@ -60,6 +64,11 @@
         <property name="redirectToHttps">
             <list>
                 <value>uiSecurity</value>
+            </list>
+        </property>
+        <property name="ignore">
+            <list>
+                <value>healthz</value>
             </list>
         </property>
         <property name="errorMap">
@@ -72,14 +81,48 @@
               </entry>
             </map>
         </property>
+        <property name="additionalFilters">
+            <map>
+                <!-- Zone resolver goes after UaaLoggingFilter : position 1-->
+                <entry value-ref="corsFilter"
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(0)}" />
+                <entry value-ref="identityZoneResolvingFilter"
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(1)}"/>
+                <!-- Zone switcher goes *after* class OAuth2AuthenticationProcessingFilter as it requires a token to be present to work -->
+                <entry value-ref="identityZoneSwitchingFilter"
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(@oauth2TokenParseFilter)}"/>
+                <entry value-ref="xFrameOptionsFilter" key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(101)}"/>
+        	</map>
+        </property>
     </bean>
 
+    <bean id="identityZoneResolvingFilter" class="org.cloudfoundry.identity.uaa.zone.IdentityZoneResolvingFilter">
+        <property name="identityZoneProvisioning" ref="identityZoneProvisioning"/>
+        <property name="internalHostnames">
+            <set>
+                <value>#{T(org.cloudfoundry.identity.uaa.util.UaaUrlUtils).getHostForURI(@uaaUrl)}</value>
+                <value>#{T(org.cloudfoundry.identity.uaa.util.UaaUrlUtils).getHostForURI(@loginUrl)}</value>
+                <value>localhost</value>
+            </set>
+
+        </property>
+    </bean>
+    <bean id="identityZoneSwitchingFilter" class="org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter"/>
+
+    <bean id="uaaUrl" class="java.lang.String">
+        <constructor-arg value="${uaa.url:http://localhost:8080/uaa}"/>
+    </bean>
+
+    <bean id="loginUrl" class="java.lang.String">
+        <constructor-arg value="${login.url:http://localhost:8080/uaa}"/>
+    </bean>
 
     <import resource="spring/oauth-clients.xml" />
     <!-- The order of these imports is important because of Spring Security filter chain rules -->
     <import resource="spring/login-server-security.xml" />
     <import resource="spring/oauth-endpoints.xml" />
     <import resource="spring/scim-endpoints.xml" />
+    <import resource="spring/multitenant-endpoints.xml" />
     <import resource="spring/approvals-endpoints.xml" />
     <import resource="spring/client-admin-endpoints.xml" />
     <import resource="spring/resource-endpoints.xml" />
@@ -173,8 +216,12 @@
         <property name="enabled" value="${oauth.client.encoder_cache:true}"/>
     </bean>
 
-    <oauth:web-expression-handler id="oauthWebExpressionHandler" />
-
+    <!--<oauth:web-expression-handler id="oauthWebExpressionHandler" />-->
+    <bean id="uaaIdentityZone" class="org.cloudfoundry.identity.uaa.zone.IdentityZone" factory-method="getUaa"/>
+    <bean id="oauthWebExpressionHandler"
+      class="org.cloudfoundry.identity.uaa.oauth.expression.ContextSensitiveOAuth2WebSecurityExpressionHandler">
+        <property name="identityZone" ref="uaaIdentityZone"/>
+    </bean>
     <!--<mvc:resources location="/" mapping="/**" />-->
 
     <mvc:annotation-driven />
@@ -184,11 +231,11 @@
     <!--Basic application beans. -->
     <bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.authentication.login.LoginInfoEndpoint">
         <property name="authenticationManager" ref="authzAuthenticationMgr"/>
-        <property name="uaaBaseUrl" value="${uaa.url:http://localhost:8080/uaa}" />
+        <property name="uaaBaseUrl" ref="uaaUrl" />
         <property name="links" ref="links" />
-        <property name="idpDefinitions">
-            <bean factory-bean="metaDataProviders" factory-method="getIdentityProviderDefinitions"/>
-        </property>
+        <property name="entityID" ref="samlEntityID"/>
+        <property name="idpDefinitions" ref="metaDataProviders"/>
+        <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
         <property name="prompts">
             <util:list>
                 <bean class="org.cloudfoundry.identity.uaa.authentication.login.Prompt">
@@ -218,8 +265,19 @@
     <context:annotation-config />
     <bean class="org.cloudfoundry.identity.uaa.coverage.CoverageConfig" />
 
+    <bean id="idpBootstrap" class="org.cloudfoundry.identity.uaa.config.IdentityProviderBootstrap">
+        <constructor-arg ref="identityProviderProvisioning"/>
+        <property name="ldapConfig" value="#{@config['ldap']}"/>
+        <property name="samlProviders" ref="metaDataProviders"/>
+    </bean>
+
     <beans profile="ldap">
         <import resource="spring/ldap-integration.xml"/>
+        <bean id="checkIdpEnabledManager" class="org.cloudfoundry.identity.uaa.authentication.manager.CheckIdpEnabledAuthenticationManager">
+            <constructor-arg name="origin" value="ldap"/>
+            <constructor-arg name="identityProviderProvisioning" ref="identityProviderProvisioning"/>
+            <constructor-arg name="delegate" ref="ldapAuthenticationManager"/>
+        </bean>
 
         <bean id="authzAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager">
             <property name="delegates">
@@ -235,7 +293,12 @@
                     </bean>
                     <bean class="org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager$AuthenticationManagerConfiguration">
                         <property name="required" value="ifPreviousFalse"/>
-                        <property name="authenticationManager" ref="ldapAuthenticationManager"/>
+                        <property name="authenticationManager" ref="checkIdpEnabledManager"/>
+                        <property name="stopIf">
+                            <list value-type="java.lang.Class">
+                                <value>org.springframework.security.authentication.ProviderNotFoundException</value>
+                            </list>
+                        </property>
                     </bean>
                     <bean class="org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager$AuthenticationManagerConfiguration">
                         <property name="required" value="ifPreviousTrue"/>
@@ -248,6 +311,11 @@
 
     <beans profile="keystone">
         <import resource="spring/keystone-integration.xml"/>
+        <bean id="checkIdpEnabledManager" class="org.cloudfoundry.identity.uaa.authentication.manager.CheckIdpEnabledAuthenticationManager">
+            <constructor-arg name="origin" value="keystone"/>
+            <constructor-arg name="identityProviderProvisioning" ref="identityProviderProvisioning"/>
+            <constructor-arg name="delegate" ref="keystoneAuthenticationManager"/>
+        </bean>
 
         <bean id="authzAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager">
             <property name="delegates">
@@ -263,7 +331,12 @@
                     </bean>
                     <bean class="org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager$AuthenticationManagerConfiguration">
                         <property name="required" value="ifPreviousFalse"/>
-                        <property name="authenticationManager" ref="keystoneAuthenticationManager"/>
+                        <property name="authenticationManager" ref="checkIdpEnabledManager"/>
+                        <property name="stopIf">
+                            <list value-type="java.lang.Class">
+                                <value>org.springframework.security.authentication.ProviderNotFoundException</value>
+                            </list>
+                        </property>
                     </bean>
                     <bean class="org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager$AuthenticationManagerConfiguration">
                         <property name="required" value="ifPreviousTrue"/>

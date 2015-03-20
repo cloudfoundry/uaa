@@ -26,7 +26,7 @@
 <body id="micro">
 	<div class="content">
 		<article class="container">
-			<p>Sign in with your CloudFoundry credentials.</p>
+			<p>Sign in to zone "${zone_name}" with your CloudFoundry credentials.</p>
 			<form id="loginForm" name="loginForm"
 				action="<c:url value="/login.do"/>" method="POST" novalidate>
 				<div>

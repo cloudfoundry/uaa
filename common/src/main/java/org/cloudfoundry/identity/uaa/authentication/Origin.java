@@ -17,12 +17,15 @@ public class Origin {
     public static final String LOGIN_SERVER = "login-server";
     public static final String LDAP = "ldap";
     public static final String KEYSTONE = "keystone";
+    public static final String SAML = "saml";
     public static final String NotANumber = "NaN";
 
 
     public static String getUserId(Authentication authentication) {
-        String id=null;
-        if (authentication instanceof RemoteUserAuthentication) {
+        String id;
+        if (authentication.getPrincipal() instanceof UaaPrincipal) {
+            return ((UaaPrincipal)authentication.getPrincipal()).getId();
+        } else if (authentication instanceof RemoteUserAuthentication) {
             RemoteUserAuthentication remoteUserAuthentication = (RemoteUserAuthentication)authentication;
             return remoteUserAuthentication.getId();
         } else if (authentication instanceof UaaAuthentication) {

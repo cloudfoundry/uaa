@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.authentication.login;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -24,9 +25,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -36,35 +35,35 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
-
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.client.SocialClientUserDetails;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.login.AutologinRequest;
 import org.cloudfoundry.identity.uaa.login.AutologinResponse;
 import org.cloudfoundry.identity.uaa.login.PasscodeInformation;
-import org.cloudfoundry.identity.uaa.login.SamlUserDetails;
+import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
-import org.codehaus.jackson.map.JsonMappingException;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.codehaus.jackson.map.ObjectMapper;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.codec.Base64;
-import org.springframework.security.providers.ExpiringUsernameAuthenticationToken;
+import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
@@ -73,7 +72,7 @@ import org.springframework.web.bind.annotation.*;
 /**
  * Controller that sends login info (e.g. prompts) to clients wishing to
  * authenticate.
- * 
+ *
  * @author Dave Syer
  */
 @Controller
@@ -93,13 +92,14 @@ public class LoginInfoEndpoint {
 
     protected Environment environment;
 
-    private List<IdentityProviderDefinition> idpDefinitions;
+    private IdentityProviderConfigurator idpDefinitions;
 
     private long codeExpirationMillis = 5 * 60 * 1000;
 
     private AuthenticationManager authenticationManager;
 
     private ExpiringCodeStore expiringCodeStore;
+    private ClientDetailsService clientDetailsService;
 
     public void setExpiringCodeStore(ExpiringCodeStore expiringCodeStore) {
         this.expiringCodeStore = expiringCodeStore;
@@ -113,7 +113,7 @@ public class LoginInfoEndpoint {
         this.codeExpirationMillis = codeExpirationMillis;
     }
 
-    public void setIdpDefinitions(List<IdentityProviderDefinition> idpDefinitions) {
+    public void setIdpDefinitions(IdentityProviderConfigurator idpDefinitions) {
         this.idpDefinitions = idpDefinitions;
     }
 
@@ -129,8 +129,12 @@ public class LoginInfoEndpoint {
         this.environment = environment;
     }
 
-    @Value("${login.entityID}")
-    public String entityID = "";
+
+    private String entityID = "";
+
+    public void setEntityID(String entityID) {
+        this.entityID = entityID;
+    }
 
     public LoginInfoEndpoint() {
         try {
@@ -152,6 +156,10 @@ public class LoginInfoEndpoint {
         this.prompts = prompts;
     }
 
+    public List<Prompt> getPrompts() {
+        return prompts;
+    }
+
     @RequestMapping(value = {"/login" }, headers = "Accept=application/json")
     public String loginForJson(Model model, Principal principal) {
         return login(model, principal, Collections.<String>emptyList(), false);
@@ -168,19 +176,26 @@ public class LoginInfoEndpoint {
     }
 
     @RequestMapping(value = {"/login" }, headers = "Accept=text/html, */*")
-    public String loginForHtml(Model model, Principal principal) {
-        return login(model, principal, Arrays.asList("passcode"), false);
+    public String loginForHtml(Model model, Principal principal, HttpServletRequest request) {
+        return login(model, principal, Arrays.asList("passcode"), false, request);
     }
 
-    public String login(Model model, Principal principal, List<String> excludedPrompts, boolean nonHtml) {
+    private String login(Model model, Principal principal, List<String> excludedPrompts, boolean nonHtml) {
+        return login(model, principal, excludedPrompts, nonHtml, null);
+    }
+
+    private String login(Model model, Principal principal, List<String> excludedPrompts, boolean nonHtml, HttpServletRequest request) {
         populatePrompts(model, excludedPrompts, nonHtml);
         setCommitInfo(model);
+        model.addAttribute("zone_name", IdentityZoneHolder.get().getName());
         model.addAttribute("links", getLinksInfo());
 
         // Entity ID to start the discovery
-        model.addAttribute("entityID", entityID);
-        model.addAttribute("idpDefinitions", idpDefinitions);
-        for (IdentityProviderDefinition idp : idpDefinitions) {
+        model.addAttribute("entityID", UaaUrlUtils.getSubdomain() + entityID);
+
+        List<IdentityProviderDefinition> idps = getIdentityProviderDefinitions(request != null ? request.getSession(false) : null);
+        model.addAttribute("idpDefinitions", idps);
+        for (IdentityProviderDefinition idp : idps) {
             if(idp.isShowSamlLink()) {
                 model.addAttribute("showSamlLoginLinks", true);
                 break;
@@ -206,6 +221,21 @@ public class LoginInfoEndpoint {
             return "login";
         }
         return "home";
+    }
+
+    private List<IdentityProviderDefinition> getIdentityProviderDefinitions(HttpSession session) {
+        List<IdentityProviderDefinition> idps = idpDefinitions.getIdentityProviderDefinitionsForZone(IdentityZoneHolder.get());
+        SavedRequest savedRequest;
+        if (session != null && (savedRequest = (SavedRequest) session.getAttribute("SPRING_SECURITY_SAVED_REQUEST")) != null) {
+            String redirectUrl = savedRequest.getRedirectUrl();
+            String[] client_ids = savedRequest.getParameterValues("client_id");
+            if (redirectUrl != null && redirectUrl.contains("/oauth/authorize") && client_ids != null && client_ids.length != 0) {
+                ClientDetails clientDetails = clientDetailsService.loadClientByClientId(client_ids[0]);
+                List<String> allowedIdps = (List<String>) clientDetails.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS);
+                idps = idpDefinitions.getIdentityProviderDefinitions(allowedIdps, IdentityZoneHolder.get(), !IdentityZoneHolder.isUaa());
+            }
+        }
+        return idps;
     }
 
     private void setCommitInfo(Model model) {
@@ -289,28 +319,32 @@ public class LoginInfoEndpoint {
     }
 
     @RequestMapping(value = { "/passcode" }, method = RequestMethod.GET)
-    public String generatePasscode(@RequestHeader HttpHeaders headers, Map<String, Object> model, Principal principal)
-        throws NoSuchAlgorithmException, IOException, JsonMappingException {
-        String username = null, origin = null, userId = NotANumber;
+    public String generatePasscode(Map<String, Object> model, Principal principal)
+        throws NoSuchAlgorithmException, IOException {
+        String username, origin, userId = NotANumber;
         Map<String, Object> authorizationParameters = null;
 
-        if (principal instanceof LoginSamlAuthenticationToken) {
+        if (principal instanceof UaaPrincipal) {
+            UaaPrincipal uaaPrincipal = (UaaPrincipal)principal;
+            username = uaaPrincipal.getName();
+            origin = uaaPrincipal.getOrigin();
+            userId = uaaPrincipal.getId();
+        } else if (principal instanceof UaaAuthentication) {
+            UaaPrincipal uaaPrincipal = ((UaaAuthentication)principal).getPrincipal();
+            username = uaaPrincipal.getName();
+            origin = uaaPrincipal.getOrigin();
+            userId = uaaPrincipal.getId();
+        } else if (principal instanceof LoginSamlAuthenticationToken) {
             username = principal.getName();
-            origin = ((LoginSamlAuthenticationToken)principal).getUaaPrincipal().getOrigin();
-            userId = ((LoginSamlAuthenticationToken)principal).getUaaPrincipal().getId();
-            //TODO collect authorities here?
-        } else if (principal instanceof ExpiringUsernameAuthenticationToken) {
-            username = ((SamlUserDetails) ((ExpiringUsernameAuthenticationToken) principal).getPrincipal()).getUsername();
-            origin = "login-saml";
-            Collection<GrantedAuthority> authorities = ((SamlUserDetails) (((ExpiringUsernameAuthenticationToken) principal)
-                .getPrincipal())).getAuthorities();
-            if (authorities != null) {
-                authorizationParameters = new LinkedHashMap<>();
-                authorizationParameters.put("authorities", authorities);
-            }
+            origin = ((LoginSamlAuthenticationToken) principal).getUaaPrincipal().getOrigin();
+            userId = ((LoginSamlAuthenticationToken) principal).getUaaPrincipal().getId();
+        } else if (principal instanceof Authentication && ((Authentication)principal).getPrincipal() instanceof UaaPrincipal) {
+            UaaPrincipal uaaPrincipal = (UaaPrincipal)((Authentication)principal).getPrincipal();
+            username = uaaPrincipal.getName();
+            origin = uaaPrincipal.getOrigin();
+            userId = uaaPrincipal.getId();
         } else {
-            username = principal.getName();
-            origin = "passcode";
+            throw new UnknownPrincipalException();
         }
 
         PasscodeInformation pi = new PasscodeInformation(userId, username, null, origin, authorizationParameters);
@@ -330,8 +364,8 @@ public class LoginInfoEndpoint {
 
     protected Map<String, ?> getLinksInfo() {
         Map<String, Object> model = new HashMap<>();
-        model.put("uaa", getUaaBaseUrl());
-        model.put("login", getUaaBaseUrl().replaceAll("uaa", "login"));
+        model.put(Origin.UAA, getUaaBaseUrl());
+        model.put("login", getUaaBaseUrl().replaceAll(Origin.UAA, "login"));
         model.putAll(getLinks());
         return model;
     }
@@ -394,5 +428,12 @@ public class LoginInfoEndpoint {
         }
         return path;
     }
+
+    public void setClientDetailsService(ClientDetailsService clientDetailsService) {
+        this.clientDetailsService = clientDetailsService;
+    }
+
+    @ResponseStatus(value = HttpStatus.FORBIDDEN, reason = "Unknown authentication token type, unable to derive user ID.")
+    public static final class UnknownPrincipalException extends RuntimeException {}
 
 }

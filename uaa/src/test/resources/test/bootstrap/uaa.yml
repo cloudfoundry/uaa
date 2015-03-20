@@ -1,0 +1,9 @@
+ldap:
+  profile:
+    file: ldap/ldap-search-and-bind.xml
+  base:
+    url: 'ldap://localhost:10389/'
+    userDn: 'cn=admin,dc=test,dc=com'
+    password: 'password'
+    searchBase: ''
+    searchFilter: 'cn={0}'

@@ -1,5 +1,28 @@
 package org.cloudfoundry.identity.uaa.login;
 
+import org.cloudfoundry.identity.uaa.TestClassNullifier;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.error.UaaException;
+import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mockito;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.servlet.view.InternalResourceViewResolver;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -17,29 +40,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
-import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.error.UaaException;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.user.UaaAuthority;
-import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.servlet.view.InternalResourceViewResolver;
 
-public class ChangeEmailControllerTest {
+public class ChangeEmailControllerTest extends TestClassNullifier {
 
     private MockMvc mockMvc;
     private ChangeEmailService changeEmailService;
@@ -118,7 +120,7 @@ public class ChangeEmailControllerTest {
     @Test
     public void testNonUAAOriginUser() throws Exception {
         Authentication authentication = new UaaAuthentication(
-            new UaaPrincipal("user-id-001", "bob", "user@example.com", "NON-UAA-origin ", null),
+            new UaaPrincipal("user-id-001", "bob", "user@example.com", "NON-UAA-origin ", null, IdentityZoneHolder.get().getId()),
             Arrays.asList(UaaAuthority.UAA_USER),
             null
         );
@@ -156,7 +158,7 @@ public class ChangeEmailControllerTest {
     @Test
     public void testVerifyEmail() throws Exception {
         UaaUserDatabase userDatabase = mock(UaaUserDatabase.class);
-        UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, Origin.UAA, null, true);
+        UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, Origin.UAA, null, true, IdentityZoneHolder.get().getId());
         when(userDatabase.retrieveUserById(anyString())).thenReturn(user);
 
         controller.setUaaUserDatabase(userDatabase);
@@ -185,7 +187,7 @@ public class ChangeEmailControllerTest {
     @Test
     public void testVerifyEmailWithRedirectUrl() throws Exception {
         UaaUserDatabase userDatabase = mock(UaaUserDatabase.class);
-        UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, Origin.UAA, null, true);
+        UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, Origin.UAA, null, true, IdentityZoneHolder.get().getId());
         when(userDatabase.retrieveUserById(anyString())).thenReturn(user);
 
         controller.setUaaUserDatabase(userDatabase);
@@ -240,7 +242,7 @@ public class ChangeEmailControllerTest {
 
     private void setupSecurityContext() {
         Authentication authentication = new UaaAuthentication(
-            new UaaPrincipal("user-id-001", "bob", "user@example.com", Origin.UAA, null),
+            new UaaPrincipal("user-id-001", "bob", "user@example.com", Origin.UAA, null,IdentityZoneHolder.get().getId()),
             Arrays.asList(UaaAuthority.UAA_USER),
             null
         );

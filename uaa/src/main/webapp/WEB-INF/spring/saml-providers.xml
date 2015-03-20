@@ -73,6 +73,10 @@
         <!-- IDP Discovery Service -->
         <bean id="samlIDPDiscovery" class="org.cloudfoundry.identity.uaa.login.saml.LoginSamlDiscovery"/>
 
+        <bean id="samlEntityID" class="java.lang.String">
+            <constructor-arg value="${login.entityID:unit-test-sp}"/>
+        </bean>
+
         <bean id="samlSPAlias" class="java.lang.String">
             <constructor-arg value="${login.saml.entityIDAlias:${login.entityID:unit-test-sp}}"/>
         </bean>
@@ -85,12 +89,12 @@
         <!-- Filter automatically generates default SP metadata -->
         <bean id="metadataGeneratorFilter" class="org.springframework.security.saml.metadata.MetadataGeneratorFilter">
             <constructor-arg>
-                <bean class="org.springframework.security.saml.metadata.MetadataGenerator">
+                <bean class="org.cloudfoundry.identity.uaa.login.saml.ZoneAwareMetadataGenerator">
                     <property name="extendedMetadata" ref="extendedMetaData"/>
                     <property name="requestSigned" value="${login.saml.signRequest:true}" />
                     <property name="wantAssertionSigned" value="${login.saml.wantAssertionSigned:false}" />
                     <property name="entityBaseURL" value="${login.entityBaseURL:http://localhost:8080/uaa}" />
-                    <property name="entityId" value="${login.entityID:unit-test-sp}" />
+                    <property name="entityId" ref="samlEntityID" />
                 </bean>
             </constructor-arg>
         </bean>
@@ -99,10 +103,20 @@
             and presents SP metadata there -->
         <bean id="metadataDisplayFilter" class="org.springframework.security.saml.metadata.MetadataDisplayFilter" />
 
-        <bean id="metadata" class="org.springframework.security.saml.metadata.CachingMetadataManager">
-            <constructor-arg>
-                <bean factory-bean="metaDataProviders" factory-method="getIdentityProviders"/>
-            </constructor-arg>
+        <!--<bean id="metadata" class="org.springframework.security.saml.metadata.CachingMetadataManager">-->
+            <!--<constructor-arg>-->
+                <!--<bean factory-bean="metaDataProviders" factory-method="getIdentityProviders"/>-->
+            <!--</constructor-arg>-->
+        <!--</bean>-->
+        <bean id="metadata" class="org.cloudfoundry.identity.uaa.login.saml.ZoneAwareMetadataManager"
+              depends-on="idpBootstrap, metaDataProviders"
+              destroy-method="destroy">
+            <constructor-arg name="providerDao" ref="identityProviderProvisioning"/>
+            <constructor-arg name="zoneDao" ref="identityZoneProvisioning"/>
+            <constructor-arg name="configurator" ref="metaDataProviders"/>
+            <constructor-arg name="keyManager" ref="keyManager"/>
+            <constructor-arg name="listener" ref="providerChangeListener"/>
+            <property name="refreshCheckInterval" value="${login.saml.metadataRefreshInterval:120000}"/>
         </bean>
 
         <bean name="metadataFetchingHttpClientTimer" class="java.util.Timer">
@@ -123,6 +137,7 @@
         <bean id="samlAuthenticationProvider" class="org.cloudfoundry.identity.uaa.login.saml.LoginSamlAuthenticationProvider">
             <property name="userDetails" ref="samlUserDetails" />
             <property name="userDatabase" ref="userDatabase"/>
+            <property name="identityProviderProvisioning" ref="identityProviderProvisioning"/>
         </bean>
 
         <bean id="samlUserDetails" class="org.cloudfoundry.identity.uaa.login.LoginServerSamlUserDetailsService" />
@@ -170,17 +185,27 @@
             </constructor-arg>
         </bean>
 
+        <bean id="samlMaxAuthenticationAge" class="java.lang.Integer">
+            <constructor-arg value="${login.saml.maxAuthenticationAge:864000}"/>
+        </bean>
+
         <!-- SAML 2.0 WebSSO Assertion Consumer -->
-        <bean id="webSSOprofileConsumer" class="org.springframework.security.saml.websso.WebSSOProfileConsumerImpl" />
+        <bean id="webSSOprofileConsumer" class="org.springframework.security.saml.websso.WebSSOProfileConsumerImpl">
+            <property name="maxAuthenticationAge" ref="samlMaxAuthenticationAge" />
+        </bean>
 
         <!-- SAML 2.0 Holder-of-Key WebSSO Assertion Consumer -->
-        <bean id="hokWebSSOprofileConsumer" class="org.springframework.security.saml.websso.WebSSOProfileConsumerHoKImpl" />
+        <bean id="hokWebSSOprofileConsumer" class="org.springframework.security.saml.websso.WebSSOProfileConsumerHoKImpl" >
+            <property name="maxAuthenticationAge" ref="samlMaxAuthenticationAge" />
+        </bean>
 
         <!-- SAML 2.0 Web SSO profile -->
         <bean id="webSSOprofile" class="org.springframework.security.saml.websso.WebSSOProfileImpl" />
 
         <!-- SAML 2.0 Holder-of-Key Web SSO profile -->
-        <bean id="hokWebSSOProfile" class="org.springframework.security.saml.websso.WebSSOProfileConsumerHoKImpl" />
+        <bean id="hokWebSSOProfile" class="org.springframework.security.saml.websso.WebSSOProfileConsumerHoKImpl" >
+            <property name="maxAuthenticationAge" ref="samlMaxAuthenticationAge" />
+        </bean>
 
         <!-- SAML 2.0 Logout Profile -->
         <bean id="logoutprofile" class="org.springframework.security.saml.websso.SingleLogoutProfileImpl" />
@@ -229,41 +254,6 @@
         <!-- XML parser pool needed for OpenSAML parsing -->
         <bean id="parserPool" class="org.opensaml.xml.parse.BasicParserPool" scope="singleton" />
 
-        <!--<bean id="abstractRemoteUaaController" abstract="true">-->
-          <!--<constructor-arg ref="environment" />-->
-          <!--<constructor-arg>-->
-            <!--<bean class="org.springframework.web.client.RestTemplate" />-->
-          <!--</constructor-arg>-->
-          <!--<property name="links" ref="links" />-->
-          <!--<property name="codeExpirationMillis" value="300000" />-->
-        <!--</bean>-->
-
-        <!--<bean id="uaaController" class="org.cloudfoundry.identity.uaa.login.SamlRemoteUaaController" parent="abstractRemoteUaaController">-->
-            <!--<property name="prompts">-->
-                <!--<util:list>-->
-                    <!--<bean class="org.cloudfoundry.identity.uaa.authentication.login.Prompt">-->
-                        <!--<constructor-arg name="name" value="username" />-->
-                        <!--<constructor-arg name="text" value="Email" />-->
-                        <!--<constructor-arg name="type" value="text" />-->
-                    <!--</bean>-->
-                    <!--<bean class="org.cloudfoundry.identity.uaa.authentication.login.Prompt">-->
-                        <!--<constructor-arg name="name" value="password" />-->
-                        <!--<constructor-arg name="text" value="Password" />-->
-                        <!--<constructor-arg name="type" value="password" />-->
-                    <!--</bean>-->
-                    <!--<bean class="org.cloudfoundry.identity.uaa.authentication.login.Prompt">-->
-                        <!--<constructor-arg name="name" value="passcode" />-->
-                        <!--<constructor-arg name="text"-->
-                                         <!--value="One Time Code (Get one at ${login.url:http://localhost:8080/uaa}/passcode)" />-->
-                        <!--<constructor-arg name="type" value="password" />-->
-                    <!--</bean>-->
-                <!--</util:list>-->
-            <!--</property>-->
-            <!--<property name="idpDefinitions">-->
-                <!--<bean factory-bean="metaDataProviders" factory-method="getIdentityProviderDefinitions"/>-->
-            <!--</property>-->
-        <!--</bean>-->
-
         <bean id="metaDataUrl" class="java.lang.String">
             <constructor-arg value="${login.idpMetadataURL:null}"/>
         </bean>
@@ -279,7 +269,11 @@
             <property name="metadataFetchingHttpClientTimer" ref="metadataFetchingHttpClientTimer" />
             <property name="httpClient" ref="metadataFetchingHttpClient" />
             <property name="parserPool" ref="parserPool"/>
+        </bean>
 
+        <bean id="providerChangeListener" class="org.cloudfoundry.identity.uaa.login.saml.ProviderChangedListener">
+            <constructor-arg name="configurator" ref="metaDataProviders"/>
+            <constructor-arg name="zoneProvisioning" ref="identityZoneProvisioning"/>
         </bean>
 
         <beans profile="fileMetadata">

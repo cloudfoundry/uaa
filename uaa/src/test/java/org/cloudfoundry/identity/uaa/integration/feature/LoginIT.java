@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,19 +12,9 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
-import java.net.URI;
-import java.security.SecureRandom;
-import java.util.Iterator;
-
-import static org.apache.commons.lang3.StringUtils.isEmpty;
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.springframework.http.HttpStatus.FOUND;
 import com.dumbster.smtp.SimpleSmtpServer;
-import com.dumbster.smtp.SmtpMessage;
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -44,6 +34,9 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
 public class LoginIT {
@@ -56,7 +49,7 @@ public class LoginIT {
 
     @Value("${integration.test.base_url}")
     String baseUrl;
-    
+
     @Autowired
     TestAccounts testAccounts;
 
@@ -67,6 +60,7 @@ public class LoginIT {
     SimpleSmtpServer simpleSmtpServer;
 
     @Before
+    @After
     public void setUp() throws Exception {
         webDriver.get(baseUrl + "/logout.do");
     }
@@ -81,6 +75,18 @@ public class LoginIT {
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
 
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+    }
+
+    @Test
+    public void testPasscodeRedirect() throws Exception {
+        webDriver.get(baseUrl + "/passcode");
+        assertEquals("Cloud Foundry", webDriver.getTitle());
+
+        webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
+        webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
+        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Temporary Authentication Code"));
     }
 
     @Test

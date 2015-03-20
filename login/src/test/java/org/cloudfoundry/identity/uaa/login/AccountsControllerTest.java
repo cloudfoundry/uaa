@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
@@ -52,7 +53,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebAppConfiguration
 @ContextConfiguration(classes = AccountsControllerTest.ContextConfiguration.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-public class AccountsControllerTest {
+public class AccountsControllerTest extends TestClassNullifier {
 
     @Autowired
     WebApplicationContext webApplicationContext;
@@ -178,26 +179,6 @@ public class AccountsControllerTest {
         assertEquals("username", principal.getName());
         assertEquals("user@example.com", principal.getEmail());
     }
-//
-//
-//    @Test
-//    public void testCreateAccountWithExpiredActivationCode() throws Exception {
-//        Mockito.when(accountCreationService.completeActivation("expired_code", "secret"))
-//                .thenThrow(new HttpClientErrorException(BAD_REQUEST));
-//
-//        MockHttpServletRequestBuilder post = post("/accounts")
-//                .param("email", "user@example.com")
-//                .param("code", "expired_code")
-//                .param("password", "secret")
-//                .param("password_confirmation", "secret");
-//
-//        mockMvc.perform(post)
-//                .andExpect(status().isUnprocessableEntity())
-//                .andExpect(model().attribute("message_code", "code_expired"))
-//                .andExpect(view().name("accounts/new"))
-//                .andExpect(xpath("//*[@class='error-message']").string("Your activation code has expired. Please request another."));
-//    }
-
 
     @Configuration
     @EnableWebMvc

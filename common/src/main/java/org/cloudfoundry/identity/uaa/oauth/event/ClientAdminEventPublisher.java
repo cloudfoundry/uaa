@@ -13,8 +13,6 @@
 
 package org.cloudfoundry.identity.uaa.oauth.event;
 
-import java.security.Principal;
-
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
@@ -78,7 +76,7 @@ public class ClientAdminEventPublisher implements ApplicationEventPublisherAware
         publish(new ClientDeleteEvent(client, getPrincipal()));
         return client;
     }
-
+    
     public void deleteTx(ClientDetails[] clients) {
         for (ClientDetails client:clients) {
             publish(new ClientDeleteEvent(client, getPrincipal()));

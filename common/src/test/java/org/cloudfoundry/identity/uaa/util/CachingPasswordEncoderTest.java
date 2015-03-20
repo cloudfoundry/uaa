@@ -68,7 +68,7 @@ public class CachingPasswordEncoderTest  {
         String password = new RandomValueStringGenerator().generate();
         cachingPasswordEncoder.encode(password);
         String encoded = cachingPasswordEncoder.encode(password);
-        int iterations = 20;
+        int iterations = 5;
         for (int i=0; i<iterations; i++) {
             assertTrue(cachingPasswordEncoder.getPasswordEncoder().matches(password, encoded));
             assertTrue(cachingPasswordEncoder.matches(password, encoded));
@@ -81,7 +81,7 @@ public class CachingPasswordEncoderTest  {
         cachingPasswordEncoder.encode(password);
         String encoded = cachingPasswordEncoder.encode(password);
         password = new RandomValueStringGenerator().generate();
-        int iterations = 20;
+        int iterations = 5;
         for (int i=0; i<iterations; i++) {
             assertFalse(cachingPasswordEncoder.getPasswordEncoder().matches(password, encoded));
             assertFalse(cachingPasswordEncoder.matches(password, encoded));
@@ -90,7 +90,7 @@ public class CachingPasswordEncoderTest  {
 
     @Test
     public void testMatchesSpeedTest() throws Exception {
-        int iterations = 100;
+        int iterations = 15;
 
         String password = new RandomValueStringGenerator().generate();
         String encodedBcrypt = cachingPasswordEncoder.encode(password);
@@ -156,7 +156,7 @@ public class CachingPasswordEncoderTest  {
 
     @Test
     public void testDisabledMatchesSpeedTest() throws Exception {
-        int iterations = 100;
+        int iterations = 15;
         cachingPasswordEncoder.setEnabled(false);
         assertFalse(cachingPasswordEncoder.isEnabled());
 

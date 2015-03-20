@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.core.authority.AuthorityUtils;
 
 public class UaaUserEditor extends PropertyEditorSupport {
@@ -64,7 +65,7 @@ public class UaaUserEditor extends PropertyEditorSupport {
             }
         }
 
-        UaaUser user = new UaaUser(username, password, email, firstName, lastName, origin);
+        UaaUser user = new UaaUser(username, password, email, firstName, lastName, origin, IdentityZoneHolder.get().getId());
         if (authorities != null) {
             user = user.authorities(AuthorityUtils.commaSeparatedStringToAuthorityList(authorities));
         }

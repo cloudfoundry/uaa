@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.user;
 import java.util.Date;
 
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 /**
@@ -25,13 +26,13 @@ public class MockUaaUserDatabase implements UaaUserDatabase {
 
     public MockUaaUserDatabase(String id, String name, String email, String givenName, String familyName) {
         user = new UaaUser(id, name, "", email, UaaAuthority.USER_AUTHORITIES, givenName, familyName,
-                        new Date(), new Date(), Origin.UAA, "externalId", false);
+                        new Date(), new Date(), Origin.UAA, "externalId", false, IdentityZoneHolder.get().getId());
     }
 
     public MockUaaUserDatabase(String id, String name, String email, String givenName, String familyName,
                     Date createdAt, Date updatedAt) {
         user = new UaaUser(id, name, "", email, UaaAuthority.USER_AUTHORITIES, givenName, familyName,
-                        createdAt, updatedAt, Origin.UAA, "externalId", false);
+                        createdAt, updatedAt, Origin.UAA, "externalId", false, IdentityZoneHolder.get().getId());
     }
 
     @Override

@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
+import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.audit.event.UserModifiedEvent;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
@@ -26,13 +27,17 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class ChangeEmailEndpointsTest {
+public class ChangeEmailEndpointsTest extends TestClassNullifier {
 
     private ScimUserProvisioning scimUserProvisioning;
     private MockMvc mockMvc;

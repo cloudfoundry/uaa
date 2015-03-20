@@ -64,6 +64,11 @@ public class UaaException extends RuntimeException {
         this.status = status;
     }
 
+    public UaaException(Throwable cause, String error, String description, int status) {
+        super(description, cause);
+        this.error = error;
+        this.status = status;
+    }
     /**
      * The error code.
      * 

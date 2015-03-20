@@ -19,15 +19,12 @@ import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
 
 public class UserModifiedEvent extends AbstractUaaEvent {
 
+    private static final long serialVersionUID = 8139998613071093676L;
     private String userId;
     private String username;
     private String email;
@@ -116,46 +113,4 @@ public class UserModifiedEvent extends AbstractUaaEvent {
         return email;
     }
 
-    protected static Authentication getContextAuthentication() {
-        Authentication a = SecurityContextHolder.getContext().getAuthentication();
-        if (a==null) {
-            a = new Authentication() {
-                ArrayList<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
-                @Override
-                public Collection<? extends GrantedAuthority> getAuthorities() {
-                    return authorities;
-                }
-
-                @Override
-                public Object getCredentials() {
-                    return null;
-                }
-
-                @Override
-                public Object getDetails() {
-                    return null;
-                }
-
-                @Override
-                public Object getPrincipal() {
-                    return "null";
-                }
-
-                @Override
-                public boolean isAuthenticated() {
-                    return false;
-                }
-
-                @Override
-                public void setAuthenticated(boolean isAuthenticated) throws IllegalArgumentException {
-                }
-
-                @Override
-                public String getName() {
-                    return "null";
-                }
-            };
-        }
-        return a;
-    }
 }

@@ -23,6 +23,7 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.core.env.Environment;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.client.resource.OAuth2ProtectedResourceDetails;
@@ -105,7 +106,8 @@ public class UaaTestAccounts implements TestAccounts {
 
     public UaaUser getUserWithRandomID() {
         UaaUser user = new UaaUser(UUID.randomUUID().toString(), getUserName(), "<N/A>", getEmail(),
-                        UaaAuthority.USER_AUTHORITIES, "Test", "User", new Date(), new Date(), Origin.UAA, "externalId", true);
+                        UaaAuthority.USER_AUTHORITIES, "Test", "User", new Date(), new Date(), Origin.UAA, "externalId", true,
+            IdentityZoneHolder.get().getId());
         ReflectionTestUtils.setField(user, "password", getPassword());
         return user;
     }

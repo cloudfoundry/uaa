@@ -44,7 +44,7 @@ public class RemoteAuthenticationEndpointTests {
 
     @Before
     public void setUp() throws Exception {
-        UaaPrincipal principal = new UaaPrincipal("user-id-001", "joe", "joe@example.com", Origin.UAA, null);
+        UaaPrincipal principal = new UaaPrincipal("user-id-001", "joe", "joe@example.com", Origin.UAA, null, null);
         success = new UsernamePasswordAuthenticationToken(principal, null);
 
         loginAuthMgr = mock(AuthenticationManager.class);

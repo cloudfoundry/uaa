@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!--
-    Cloud Foundry 
+    Cloud Foundry
     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
 
     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -26,8 +26,14 @@
         <property name="validationInterval" value="5000" />
         <property name="validationQuery" value="#{@validationQuery}" />
         <property name="testOnBorrow" value="true" />
+        <property name="maxActive" value="${database.maxactive:100}"/>
+        <property name="maxIdle" value="${database.maxidle:10}"/>
+        <property name="removeAbandoned" value="true"/>
+        <property name="logAbandoned" value="true"/>
+        <property name="removeAbandonedTimeout" value="30"/>
+        <property name="timeBetweenEvictionRunsMillis" value="15000"/>
     </bean>
-    
+
     <bean id="dataSourceAccessor" class="org.cloudfoundry.identity.uaa.db.DataSourceAccessor" depends-on="dataSource">
         <property name="dataSource" ref="dataSource"/>
     </bean>

@@ -19,7 +19,9 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
@@ -54,6 +56,22 @@ import static org.junit.Assert.assertTrue;
 public class BootstrapTests {
 
     private ConfigurableApplicationContext context;
+
+    private static String activeProfiles;
+
+    @BeforeClass
+    public static void saveProfiles() {
+        activeProfiles = System.getProperty("spring.profiles.active");
+    }
+
+    @AfterClass
+    public static void restoreProfiles() {
+        if (activeProfiles != null) {
+            System.setProperty("spring.profiles.active", activeProfiles);
+        } else {
+            System.clearProperty("spring.profiles.active");
+        }
+    }
 
     @Before
     public void setup() throws Exception {

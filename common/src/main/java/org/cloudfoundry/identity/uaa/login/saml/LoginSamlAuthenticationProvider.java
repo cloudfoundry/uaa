@@ -23,10 +23,16 @@ import org.cloudfoundry.identity.uaa.authentication.manager.NewUserAuthenticated
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
+import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.ProviderNotFoundException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -39,6 +45,11 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
 
     private UaaUserDatabase userDatabase;
     private ApplicationEventPublisher eventPublisher;
+    private IdentityProviderProvisioning identityProviderProvisioning;
+
+    public void setIdentityProviderProvisioning(IdentityProviderProvisioning identityProviderProvisioning) {
+        this.identityProviderProvisioning = identityProviderProvisioning;
+    }
 
     public void setUserDatabase(UaaUserDatabase userDatabase) {
         this.userDatabase = userDatabase;
@@ -54,11 +65,22 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         if (!supports(authentication.getClass())) {
             throw new IllegalArgumentException("Only SAMLAuthenticationToken is supported, " + authentication.getClass() + " was attempted");
         }
+
+        IdentityZone zone = IdentityZoneHolder.get();
+
         SAMLAuthenticationToken token = (SAMLAuthenticationToken) authentication;
         SAMLMessageContext context = token.getCredentials();
         String alias = context.getPeerExtendedMetadata().getAlias();
+        try {
+            IdentityProvider idp = identityProviderProvisioning.retrieveByOrigin(alias, IdentityZoneHolder.get().getId());
+            if (!idp.isActive()) {
+                throw new ProviderNotFoundException("Identity Provider has been disabled by administrator.");
+            }
+        } catch (EmptyResultDataAccessException x) {
+            throw new ProviderNotFoundException("Not identity provider found in zone.");
+        }
         ExpiringUsernameAuthenticationToken result = (ExpiringUsernameAuthenticationToken)super.authenticate(authentication);
-        UaaPrincipal principal = createIfMissing(new UaaPrincipal(Origin.NotANumber, result.getName(), null, alias, result.getName()));
+        UaaPrincipal principal = createIfMissing(new UaaPrincipal(Origin.NotANumber, result.getName(), null, alias, result.getName(), zone.getId()));
         return new LoginSamlAuthenticationToken(principal, result);
     }
 
@@ -92,7 +114,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         String email = null;
         String userId = Origin.NotANumber;
         String origin = principal.getOrigin()!=null?principal.getOrigin():Origin.LOGIN_SERVER;
-
+        String zoneId = principal.getZoneId();
         if (name == null && email != null) {
             name = email;
         }
@@ -134,7 +156,8 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
             new Date(),
             origin,
             name,
-            false);
+            false,
+            zoneId);
 
     }
 }

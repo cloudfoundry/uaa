@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -13,24 +13,11 @@
 
 package org.cloudfoundry.identity.uaa.login;
 
-import static org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus.APPROVED;
-import static org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus.DENIED;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasKey;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.hasValue;
-import static org.hamcrest.Matchers.not;
-import static org.springframework.http.MediaType.TEXT_HTML;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
+import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -60,14 +47,29 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus.APPROVED;
+import static org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus.DENIED;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.hasValue;
+import static org.hamcrest.Matchers.not;
+import static org.springframework.http.MediaType.TEXT_HTML;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 /**
  * @author Dave Syer
- * 
+ *
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @WebAppConfiguration
 @ContextConfiguration(classes = ProfileControllerTests.ContextConfiguration.class)
-public class ProfileControllerTests {
+public class ProfileControllerTests extends TestClassNullifier {
 
     @Autowired
     WebApplicationContext webApplicationContext;
@@ -110,7 +112,7 @@ public class ProfileControllerTests {
 
     @Test
     public void testGetProfile() throws Exception {
-        UaaPrincipal uaaPrincipal = new UaaPrincipal("fake-user-id", "username", "email@example.com", Origin.UAA, null);
+        UaaPrincipal uaaPrincipal = new UaaPrincipal("fake-user-id", "username", "email@example.com", Origin.UAA, null, IdentityZoneHolder.get().getId());
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(uaaPrincipal, null);
 
         mockMvc.perform(get("/profile").principal(authentication))
@@ -128,7 +130,7 @@ public class ProfileControllerTests {
         Map<String, List<DescribedApproval>> approvalsByClientId = new HashMap<String, List<DescribedApproval>>();
         Mockito.when(approvalsService.getCurrentApprovalsByClientId()).thenReturn(approvalsByClientId);
 
-        UaaPrincipal uaaPrincipal = new UaaPrincipal("fake-user-id", "username", "email@example.com", Origin.UAA, null);
+        UaaPrincipal uaaPrincipal = new UaaPrincipal("fake-user-id", "username", "email@example.com", Origin.UAA, null, IdentityZoneHolder.get().getId());
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(uaaPrincipal, null);
 
         mockMvc.perform(get("/profile").principal(authentication))
@@ -140,7 +142,7 @@ public class ProfileControllerTests {
 
     @Test
     public void testPasswordLinkHiddenWhenUsersOriginIsNotUaa() throws Exception {
-        UaaPrincipal uaaPrincipal = new UaaPrincipal("fake-user-id", "username", "email@example.com", Origin.LDAP, "dnEntryForLdapUser");
+        UaaPrincipal uaaPrincipal = new UaaPrincipal("fake-user-id", "username", "email@example.com", Origin.LDAP, "dnEntryForLdapUser", IdentityZoneHolder.get().getId());
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(uaaPrincipal, null);
 
         mockMvc.perform(get("/profile").principal(authentication))

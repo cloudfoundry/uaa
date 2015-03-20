@@ -19,7 +19,9 @@ import static org.cloudfoundry.identity.uaa.audit.AuditEventType.PasswordChangeS
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserAuthenticationFailure;
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserAuthenticationSuccess;
 import static org.junit.Assert.assertEquals;
+
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -89,7 +91,7 @@ public class JdbcFailedLoginCountingAuditServiceTests extends JdbcTestBase {
     }
 
     private AuditEvent getAuditEvent(AuditEventType type, String principal, String data) {
-        return new AuditEvent(type, principal, authDetails, data, System.currentTimeMillis());
+        return new AuditEvent(type, principal, authDetails, data, System.currentTimeMillis(), IdentityZone.getUaa().getId());
     }
 
 }

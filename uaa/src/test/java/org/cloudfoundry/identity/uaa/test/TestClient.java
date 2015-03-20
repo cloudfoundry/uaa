@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -17,6 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.apache.commons.codec.binary.Base64;
+import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -26,6 +27,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 
 public class TestClient {
 
+    //TODO nullify fields?
     private MockMvc mockMvc;
     private final ObjectMapper objectMapper;
 
@@ -34,7 +36,11 @@ public class TestClient {
         objectMapper = new ObjectMapper();
     }
 
-    public String getClientCredentialsOAuthAccessToken(String username, String password, String scope)
+    public String getClientCredentialsOAuthAccessToken(String username, String password, String scope) throws Exception {
+        return getClientCredentialsOAuthAccessToken(username, password, scope, null);
+    }
+
+    public String getClientCredentialsOAuthAccessToken(String username, String password, String scope, String subdomain)
                     throws Exception {
         String basicDigestHeaderValue = "Basic "
                         + new String(Base64.encodeBase64((username + ":" + password).getBytes()));
@@ -43,14 +49,14 @@ public class TestClient {
                         .param("grant_type", "client_credentials")
                         .param("client_id", username)
                         .param("scope", scope);
+        if (subdomain != null && !subdomain.equals("")) oauthTokenPost.with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"));
         MvcResult result = mockMvc.perform(oauthTokenPost)
-            //.andDo(print())
             .andExpect(status().isOk())
             .andReturn();
         OAuthToken oauthToken = objectMapper.readValue(result.getResponse().getContentAsByteArray(), OAuthToken.class);
         return oauthToken.accessToken;
     }
-    
+
     public String getUserOAuthAccessToken(String clientId, String clientSecret, String username, String password, String scope)
                     throws Exception {
         String basicDigestHeaderValue = "Basic "

@@ -19,6 +19,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -90,6 +91,7 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
     private boolean dumpRequests = false;
 
     private Map<Class<? extends Exception>, ReasonPhrase> errorMap = new HashMap<>();
+    private Map<FilterPosition,Filter> additionalFilters;
 
     public void setErrorMap(Map<Class<? extends Exception>, ReasonPhrase> errorMap) {
         this.errorMap = errorMap;
@@ -114,6 +116,16 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
                 uaaFilter = new UaaLoggingFilter(beanName);
             }
             fc.getFilters().add(0, uaaFilter);
+            if (additionalFilters != null) {
+                for (Entry<FilterPosition, Filter> entry : additionalFilters.entrySet()) {
+                    int position = entry.getKey().getPosition(fc);
+                    if (position > fc.getFilters().size()) {
+                        fc.getFilters().add(entry.getValue());
+                    } else {
+                        fc.getFilters().add(position,entry.getValue());
+                    }
+                }
+            }
         }
 
         return bean;
@@ -150,6 +162,16 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
     public void setIgnore(List<String> ignore) {
         Assert.notNull(ignore);
         this.ignore = ignore;
+    }
+
+    /**
+     * Additional filters to add to the chain after either HttpsEnforcementFilter or UaaLoggingFilter
+     * has been added to the head of the chain. Filters will be inserted in Map iteration order,
+     * at the position given by the entry key (or the end of the chain if the key > size).
+     * @param additionalFilters
+     */
+    public void setAdditionalFilters(Map<FilterPosition,Filter> additionalFilters) {
+        this.additionalFilters = additionalFilters;
     }
 
     final class HttpsEnforcementFilter extends UaaLoggingFilter {
@@ -272,6 +294,70 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
 
         @Override
         public void destroy() {
+        }
+    }
+    public static class FilterPosition {
+        enum PLACEMENT {
+            POSITION,
+            BEFORE,
+            AFTER
+        }
+        private int position = Integer.MAX_VALUE;
+        private PLACEMENT placement = PLACEMENT.POSITION;
+        private Class<?> clazz;
+
+        public void setPosition(int position) {
+            this.position = position;
+            this.placement = PLACEMENT.POSITION;
+        }
+
+        public void setBefore(Class<?> clazz) {
+            this.clazz = clazz;
+            this.placement = PLACEMENT.BEFORE;
+        }
+
+        public void setAfter(Class<?> clazz) {
+            this.clazz = clazz;
+            this.placement = PLACEMENT.AFTER;
+        }
+
+        public int getPosition(SecurityFilterChain chain) {
+            int index = chain.getFilters().size();
+            if (clazz!=null) {
+                int pos = 0;
+                for (Filter f : chain.getFilters()) {
+                    if (clazz.equals(f.getClass())) {
+                        index = pos;
+                        break;
+                    } else {
+                        pos++;
+                    }
+                }
+            }
+            switch (placement) {
+                case POSITION: return position;
+                case BEFORE: return index;
+                case AFTER: return Math.min(chain.getFilters().size(), index+1);
+            }
+            return index;
+        }
+
+        public static FilterPosition position(int pos) {
+            FilterPosition filterPosition = new FilterPosition();
+            filterPosition.setPosition(pos);
+            return filterPosition;
+        }
+
+        public static FilterPosition after(Class<?> clazz) {
+            FilterPosition filterPosition = new FilterPosition();
+            filterPosition.setAfter(clazz);
+            return filterPosition;
+        }
+
+        public static FilterPosition before(Class<?> clazz) {
+            FilterPosition filterPosition = new FilterPosition();
+            filterPosition.setBefore(clazz);
+            return filterPosition;
         }
     }
 }

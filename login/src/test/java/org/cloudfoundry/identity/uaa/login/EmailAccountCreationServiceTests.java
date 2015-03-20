@@ -26,6 +26,9 @@ import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -42,7 +45,6 @@ import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.thymeleaf.spring4.SpringTemplateEngine;
@@ -54,7 +56,6 @@ public class EmailAccountCreationServiceTests {
 
     private EmailAccountCreationService emailAccountCreationService;
     private MessageService messageService;
-    private RestTemplate uaaTemplate;
     private ExpiringCodeStore codeStore;
     private ScimUserProvisioning scimUserProvisioning;
     private ClientDetailsService clientDetailsService;
@@ -62,14 +63,13 @@ public class EmailAccountCreationServiceTests {
     private ExpiringCode code = null;
     private ClientDetails details = null;
 
-        @Autowired
+    @Autowired
     @Qualifier("mailTemplateEngine")
     SpringTemplateEngine templateEngine;
 
     @Before
     public void setUp() throws Exception {
         SecurityContextHolder.clearContext();
-        uaaTemplate = new RestTemplate();
         messageService = mock(MessageService.class);
         codeStore = mock(ExpiringCodeStore.class);
         scimUserProvisioning = mock(ScimUserProvisioning.class);
@@ -82,15 +82,15 @@ public class EmailAccountCreationServiceTests {
             codeStore,
             scimUserProvisioning,
             clientDetailsService,
-            "http://uaa.example.com",
-            "pivotal",
-            "http://login.example.com"
+            new UaaUrlUtils("http://uaa.example.com"),
+            "pivotal"
         );
     }
 
     @After
     public void tearDown() {
         SecurityContextHolder.clearContext();
+        IdentityZoneHolder.clear();
     }
 
     @Test
@@ -112,7 +112,32 @@ public class EmailAccountCreationServiceTests {
         );
         String emailBody = emailBodyArgument.getValue();
         assertThat(emailBody, containsString("a Pivotal ID"));
-        assertThat(emailBody, containsString("<a href=\"http://login.example.com/verify_user?code=the_secret_code&amp;email=user%40example.com\">Activate your account</a>"));
+        assertThat(emailBody, containsString("<a href=\"http://uaa.example.com/verify_user?code=the_secret_code&amp;email=user%40example.com\">Activate your account</a>"));
+        assertThat(emailBody, not(containsString("Cloud Foundry")));
+    }
+
+    @Test
+    public void testBeginActivationInOtherZone() throws Exception {
+        setUpForSuccess();
+
+        IdentityZoneHolder.set(MultitenancyFixture.identityZone("test-zone-id", "test"));
+
+        when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
+        when(codeStore.generateCode(anyString(), any(Timestamp.class))).thenReturn(code);
+        when(codeStore.retrieveCode(anyString())).thenReturn(code);
+        emailAccountCreationService.beginActivation("user@example.com", "password", "login");
+
+        ArgumentCaptor<String> emailBodyArgument = ArgumentCaptor.forClass(String.class);
+        verify(messageService).sendMessage(
+                eq("newly-created-user-id"),
+                eq("user@example.com"),
+                eq(MessageType.CREATE_ACCOUNT_CONFIRMATION),
+                eq("Activate your Pivotal ID"),
+                emailBodyArgument.capture()
+        );
+        String emailBody = emailBodyArgument.getValue();
+        assertThat(emailBody, containsString("a Pivotal ID"));
+        assertThat(emailBody, containsString("<a href=\"http://test.uaa.example.com/verify_user?code=the_secret_code&amp;email=user%40example.com\">Activate your account</a>"));
         assertThat(emailBody, not(containsString("Cloud Foundry")));
     }
 
@@ -125,9 +150,8 @@ public class EmailAccountCreationServiceTests {
             codeStore,
             scimUserProvisioning,
             clientDetailsService,
-            "http://uaa.example.com",
-            "oss",
-            "http://login.example.com");
+            new UaaUrlUtils("http://uaa.example.com"),
+            "oss");
 
         setUpForSuccess();
 
@@ -148,7 +172,7 @@ public class EmailAccountCreationServiceTests {
         );
         String emailBody = emailBodyArgument.getValue();
         assertThat(emailBody, containsString("an account"));
-        assertThat(emailBody, containsString("<a href=\"http://login.example.com/verify_user?code=the_secret_code&amp;email=user%40example.com\">Activate your account</a>"));
+        assertThat(emailBody, containsString("<a href=\"http://uaa.example.com/verify_user?code=the_secret_code&amp;email=user%40example.com\">Activate your account</a>"));
         assertThat(emailBody, not(containsString("Pivotal")));
     }
 
@@ -156,7 +180,7 @@ public class EmailAccountCreationServiceTests {
     public void testBeginActivationWithExistingUser() throws Exception {
         setUpForSuccess();
         user.setVerified(true);
-        when(scimUserProvisioning.query(anyString())).thenReturn(Arrays.asList(new ScimUser[] {user}));
+        when(scimUserProvisioning.query(anyString())).thenReturn(Arrays.asList(new ScimUser[]{user}));
         when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenThrow(new ScimResourceAlreadyExistsException("duplicate"));
         emailAccountCreationService.beginActivation("user@example.com", "password", "login");
     }
@@ -166,7 +190,7 @@ public class EmailAccountCreationServiceTests {
         setUpForSuccess();
         user.setId("existing-user-id");
         user.setVerified(false);
-        when(scimUserProvisioning.query(anyString())).thenReturn(Arrays.asList(new ScimUser[] {user}));
+        when(scimUserProvisioning.query(anyString())).thenReturn(Arrays.asList(new ScimUser[]{user}));
         when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenThrow(new ScimResourceAlreadyExistsException("duplicate"));
         when(codeStore.generateCode(anyString(), any(Timestamp.class))).thenReturn(code);
         when(codeStore.retrieveCode(anyString())).thenReturn(code);
@@ -179,11 +203,11 @@ public class EmailAccountCreationServiceTests {
         emailAccountCreationService.beginActivation("user@example.com", "password", "login");
 
         verify(messageService).sendMessage(
-            eq("existing-user-id"),
-            eq("user@example.com"),
-            eq(MessageType.CREATE_ACCOUNT_CONFIRMATION),
-            anyString(),
-            anyString()
+                eq("existing-user-id"),
+                eq("user@example.com"),
+                eq(MessageType.CREATE_ACCOUNT_CONFIRMATION),
+                anyString(),
+                anyString()
         );
     }
 
@@ -193,10 +217,31 @@ public class EmailAccountCreationServiceTests {
         when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
         when(codeStore.generateCode(anyString(), any(Timestamp.class))).thenReturn(code);
         when(codeStore.retrieveCode("the_secret_code")).thenReturn(code);
+        when(scimUserProvisioning.verifyUser(anyString(), anyInt())).thenReturn(user);
+        when(scimUserProvisioning.retrieve(anyString())).thenReturn(user);
+
+        ClientDetails client = mock(ClientDetails.class);
+        when(details.getClientId()).thenReturn("login");
+        when(details.getAdditionalInformation()).thenReturn(new HashMap<String, Object>());
+        when(clientDetailsService.loadClientByClientId(anyString())).thenReturn(client);
+
+        AccountCreationService.AccountCreationResponse accountCreation = emailAccountCreationService.completeActivation("the_secret_code");
+
+        assertEquals("user@example.com", accountCreation.getUsername());
+        assertEquals("newly-created-user-id", accountCreation.getUserId());
+        assertEquals(null, accountCreation.getRedirectLocation());
+        assertNotNull(accountCreation.getUserId());
+    }
+
+    @Test
+    public void testCompleteActivationWithClientRedirect() throws Exception {
+        setUpForSuccess();
+        when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
+        when(codeStore.generateCode(anyString(), any(Timestamp.class))).thenReturn(code);
+        when(codeStore.retrieveCode("the_secret_code")).thenReturn(code);
         when(scimUserProvisioning.verifyUser(anyString(),anyInt())).thenReturn(user);
         when(scimUserProvisioning.retrieve(anyString())).thenReturn(user);
         when(clientDetailsService.loadClientByClientId(anyString())).thenReturn(details);
-
 
         AccountCreationService.AccountCreationResponse accountCreation = emailAccountCreationService.completeActivation("the_secret_code");
 
@@ -239,7 +284,7 @@ public class EmailAccountCreationServiceTests {
         );
         String emailBody = emailBodyArgument.getValue();
         assertThat(emailBody, containsString("a Pivotal ID"));
-        assertThat(emailBody, containsString("<a href=\"http://login.example.com/verify_user?code=the_secret_code&amp;email=user%40example.com\">Activate your account</a>"));
+        assertThat(emailBody, containsString("<a href=\"http://uaa.example.com/verify_user?code=the_secret_code&amp;email=user%40example.com\">Activate your account</a>"));
         assertThat(emailBody, not(containsString("Cloud Foundry")));
     }
 
@@ -258,17 +303,12 @@ public class EmailAccountCreationServiceTests {
         Timestamp ts = new Timestamp(System.currentTimeMillis() + (60 * 60 * 1000)); // 1 hour
         Map<String,Object> data = new HashMap<>();
         data.put("user_id","newly-created-user-id");
-        data.put("client_id","login");
+        data.put("client_id", "login");
         code = new ExpiringCode("the_secret_code", ts, new ObjectMapper().writeValueAsString(data));
 
         Map<String, Object> additionalInfo = new HashMap<>();
         additionalInfo.put(EmailAccountCreationService.SIGNUP_REDIRECT_URL, "http://example.com/redirect");
         when(details.getClientId()).thenReturn("login");
         when(details.getAdditionalInformation()).thenReturn(additionalInfo);
-
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setProtocol("http");
-        request.setContextPath("/login");
-        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
     }
 }

@@ -18,12 +18,15 @@ import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
 import org.springframework.beans.factory.InitializingBean;
@@ -55,11 +58,15 @@ import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.TokenRequest;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -89,6 +96,7 @@ import static org.cloudfoundry.identity.uaa.oauth.Claims.SCOPE;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.SUB;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.USER_ID;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.USER_NAME;
+import static org.cloudfoundry.identity.uaa.oauth.Claims.ZONE_ID;
 
 /**
  * This class provides token services for the UAA. It handles the production and
@@ -122,6 +130,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private ApprovalStore approvalStore = null;
 
     private ApplicationEventPublisher applicationEventPublisher;
+    private String host;
 
     @Override
     public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
@@ -235,8 +244,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     private void checkForApproval(String userid, String clientId, Collection<String> requestedScopes,
                     Collection<String> autoApprovedScopes, Date updateCutOff) {
-        Set<String> approvedScopes = new HashSet<String>();
-        approvedScopes.addAll(autoApprovedScopes);
+        Set<String> approvedScopes = new HashSet<>(autoApprovedScopes);
 
         // Search through the users approvals for scopes that are requested, not
         // auto approved, not expired,
@@ -356,8 +364,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             response.put(EXP, token.getExpiration().getTime() / 1000);
         }
 
-        if (tokenEndpoint != null) {
-            response.put(ISS, tokenEndpoint);
+        if (getTokenEndpoint() != null) {
+            response.put(ISS, getTokenEndpoint());
+            response.put(ZONE_ID,IdentityZoneHolder.get().getId());
         }
 
         // TODO: different values for audience in the AT and RT. Need to sync
@@ -536,8 +545,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
 
         response.put(CID, clientId);
-        if (tokenEndpoint != null) {
-            response.put(ISS, tokenEndpoint);
+        if (getTokenEndpoint() != null) {
+            response.put(ISS, getTokenEndpoint());
+            response.put(ZONE_ID,IdentityZoneHolder.get().getId());
         }
 
         if (null != grantType) {
@@ -585,6 +595,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         Assert.notNull(clientDetailsService, "clientDetailsService must be set");
         Assert.notNull(issuer, "issuer must be set");
         Assert.notNull(approvalStore, "approvalStore must be set");
+        URI uri = new URI(issuer);
+        host = uri.getHost();
     }
 
     public void setUserDatabase(UaaUserDatabase userDatabase) {
@@ -652,7 +664,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // Is this a user token?
         if (claims.containsKey(EMAIL)) {
             UaaUser user = new UaaUser((String) claims.get(USER_ID), (String) claims.get(USER_NAME), null,
-                            (String) claims.get(EMAIL), UaaAuthority.USER_AUTHORITIES, null, null, null, null, null, null, false);
+                            (String) claims.get(EMAIL), UaaAuthority.USER_AUTHORITIES, null, null, null, null, null, null, false, IdentityZoneHolder.get().getId());
 
             UaaPrincipal principal = new UaaPrincipal(user);
             userAuthentication = new UaaAuthentication(principal, UaaAuthority.USER_AUTHORITIES, null);
@@ -731,8 +743,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
 
         // start with scopes listed as autoapprove in client config
-        Object autoApproved = client.getAdditionalInformation().get("autoapprove");
-        Set<String> autoApprovedScopes = new HashSet<String>();
+        Object autoApproved = client.getAdditionalInformation().get(ClientConstants.AUTO_APPROVE);
+        Set<String> autoApprovedScopes = new HashSet<>();
         if (autoApproved instanceof Collection<?>) {
             @SuppressWarnings("unchecked")
             Collection<? extends String> approvedScopes = (Collection<? extends String>) autoApproved;
@@ -740,10 +752,12 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         } else if (autoApproved instanceof Boolean && (Boolean) autoApproved || "true".equals(autoApproved)) {
             autoApprovedScopes.addAll(client.getScope());
         }
+        if (client instanceof BaseClientDetails && ((BaseClientDetails)client).getAutoApproveScopes()!=null) {
+            autoApprovedScopes.addAll(((BaseClientDetails)client).getAutoApproveScopes());
+        }
 
         // retain only the requested scopes
-        autoApprovedScopes.retainAll(tokenScopes);
-        return autoApprovedScopes;
+        return UaaTokenUtils.instance().retainAutoApprovedScopes(tokenScopes, autoApprovedScopes);
     }
 
     private Map<String, Object> getClaimsForToken(String token) {
@@ -763,7 +777,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             throw new IllegalStateException("Cannot read token claims", e);
         }
 
-        if (tokenEndpoint!=null && !tokenEndpoint.equals(claims.get(ISS))) {
+        if (getTokenEndpoint()!=null && !getTokenEndpoint().equals(claims.get(ISS))) {
             throw new InvalidTokenException("Invalid issuer for token:"+claims.get(ISS));
         }
 
@@ -781,15 +795,18 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     public void setIssuer(String issuer) {
         this.issuer = issuer;
-        if (issuer==null) {
-            tokenEndpoint = null;
-        } else {
-            tokenEndpoint = issuer + "/oauth/token";
-        }
     }
 
     public String getTokenEndpoint() {
-        return tokenEndpoint;
+        if (issuer==null) {
+            return null;
+        } else {
+            String hostToUse = host;
+            if (StringUtils.hasText(IdentityZoneHolder.get().getSubdomain())) {
+                hostToUse = IdentityZoneHolder.get().getSubdomain() + "." + host;
+            }
+            return UriComponentsBuilder.fromUriString(issuer).host(hostToUse).pathSegment("oauth/token").build().toUriString();
+        }
     }
 
     public void setClientDetailsService(ClientDetailsService clientDetailsService) {

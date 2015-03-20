@@ -22,12 +22,14 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.rest.jdbc.AbstractQueryable;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.JdbcClientDetailsService;
+import org.springframework.util.StringUtils;
 
 public class JdbcQueryableClientDetailsService extends AbstractQueryable<ClientDetails> implements
                 QueryableResourceManager<ClientDetails> {
@@ -44,7 +46,7 @@ public class JdbcQueryableClientDetailsService extends AbstractQueryable<ClientD
 
     public static final String CLIENT_DETAILS_TABLE = "oauth_client_details";
     private static final String BASE_FIND_STATEMENT = "select client_id, " + CLIENT_FIELDS
-        + " from " + CLIENT_DETAILS_TABLE;
+        + ",autoapprove from " + CLIENT_DETAILS_TABLE;
 
     public JdbcQueryableClientDetailsService(JdbcClientDetailsService delegate, JdbcTemplate jdbcTemplate,
                     JdbcPagingListFactory pagingListFactory) {
@@ -62,8 +64,12 @@ public class JdbcQueryableClientDetailsService extends AbstractQueryable<ClientD
     }
 
     @Override
-    public List<ClientDetails> query(String filter) {
-        return super.query(filter);
+    public List<ClientDetails> query(String filter, String sortBy, boolean ascending) {
+    	if (StringUtils.hasText(filter)) {
+            filter += " and";
+        }
+        filter += " identity_zone_id eq \""+IdentityZoneHolder.get().getId()+"\"";
+    	return super.query(filter, sortBy, ascending);
     }
 
     @Override
@@ -118,6 +124,10 @@ public class JdbcQueryableClientDetailsService extends AbstractQueryable<ClientD
                 } catch (Exception e) {
                     logger.warn("Could not decode JSON for additional information: " + details, e);
                 }
+            }
+            String scopes = rs.getString(11);
+            if (scopes != null) {
+                details.setAutoApproveScopes(StringUtils.commaDelimitedListToSet(scopes));
             }
             return details;
         }
