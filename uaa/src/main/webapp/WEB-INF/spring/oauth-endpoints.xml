@@ -53,7 +53,7 @@
 
     <bean id="passcodeAuthenticationFilter" class="org.cloudfoundry.identity.uaa.login.PasscodeAuthenticationFilter">
         <constructor-arg ref="userDatabase" />
-        <constructor-arg ref="authzAuthenticationMgr" />
+        <constructor-arg ref="zoneAwareAuthzAuthenticationManager" />
         <constructor-arg ref="authorizationRequestManager"/>
         <constructor-arg ref="codeStore"/>
         <property name="authenticationDetailsSource" ref="authenticationDetailsSource" />
@@ -110,7 +110,7 @@
          /oauth/authorize response_type=token&source=credentials
     -->
     <http name="statelessAuthzEndpointSecurity" request-matcher-ref="oauthAuthorizeRequestMatcher" create-session="stateless"
-        entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="authzAuthenticationMgr"
+        entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="zoneAwareAuthzAuthenticationManager"
         xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
         <custom-filter ref="backwardsCompatibleScopeParameter" position="FIRST"/>
@@ -128,7 +128,7 @@
     <bean id="compositeAuthenticationManager" class="org.cloudfoundry.identity.uaa.authentication.manager.CompositeAuthenticationManager" />
 
     <bean id="tokenEndpointAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.BackwardsCompatibleTokenEndpointAuthenticationFilter">
-        <constructor-arg ref="authzAuthenticationMgr" />
+        <constructor-arg ref="zoneAwareAuthzAuthenticationManager" />
         <constructor-arg ref="authorizationRequestManager"/>
         <property name="authenticationDetailsSource" ref="authenticationDetailsSource" />
         <property name="authenticationEntryPoint" ref="basicAuthenticationEntryPoint" />
@@ -176,7 +176,7 @@
     </bean>
 
     <bean id="authzAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationFilter">
-        <constructor-arg ref="authzAuthenticationMgr" />
+        <constructor-arg ref="zoneAwareAuthzAuthenticationManager" />
         <property name="parameterNames">
             <list>
                 <value>username</value>
@@ -191,7 +191,7 @@
          /oauth/authorize response_type=token&credentials={
     -->
     <http name="oldAuthzEndpointSecurity" request-matcher-ref="oauthAuthorizeRequestMatcherOld" create-session="stateless"
-        entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="authzAuthenticationMgr"
+        entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="zoneAwareAuthzAuthenticationManager"
         xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
         <custom-filter ref="backwardsCompatibleScopeParameter" position="FIRST"/>
@@ -317,7 +317,7 @@
                   value="${authentication.policy.lockoutPeriodSeconds:300}"/>
     </bean>
 
-    <bean id="internalUaaIdpAuthenticationManager"
+    <bean id="uaaUserDatabaseAuthenticationManager"
           class="org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager">
         <constructor-arg ref="userDatabase"/>
         <property name="accountLoginPolicy" ref="periodLockoutPolicy"/>
@@ -326,15 +326,25 @@
     </bean>
 
     <bean id="uaaAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.CheckIdpEnabledAuthenticationManager">
-        <constructor-arg name="delegate" ref="internalUaaIdpAuthenticationManager"/>
+        <constructor-arg name="delegate" ref="uaaUserDatabaseAuthenticationManager"/>
         <constructor-arg name="origin" value="uaa"/>
         <constructor-arg name="identityProviderProvisioning" ref="identityProviderProvisioning"/>
     </bean>
 
     <bean id="authzAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.CheckIdpEnabledAuthenticationManager">
-        <constructor-arg name="delegate" ref="internalUaaIdpAuthenticationManager"/>
+        <constructor-arg name="delegate" ref="uaaUserDatabaseAuthenticationManager"/>
         <constructor-arg name="origin" value="uaa"/>
         <constructor-arg name="identityProviderProvisioning" ref="identityProviderProvisioning"/>
+    </bean>
+
+    <bean id="zoneAwareAuthzAuthenticationManager" class="org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager"
+        destroy-method="destroy">
+        <constructor-arg name="authzAuthenticationMgr" ref="authzAuthenticationMgr"/>
+        <constructor-arg name="internalUaaAuthenticationManager" ref="uaaAuthenticationMgr"/>
+        <constructor-arg name="provisioning" ref="identityProviderProvisioning"/>
+        <constructor-arg name="scimGroupExternalMembershipManager" ref="externalGroupMembershipManager"/>
+        <constructor-arg name="scimGroupProvisioning" ref="scimGroupProvisioning"/>
+        <constructor-arg name="ldapLoginAuthenticationManager" ref="ldapLoginAuthenticationMgr"/>
     </bean>
 
 </beans>

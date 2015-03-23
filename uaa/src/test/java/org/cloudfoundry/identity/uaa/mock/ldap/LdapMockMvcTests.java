@@ -18,6 +18,8 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager;
 import org.cloudfoundry.identity.uaa.ldap.ExtendedLdapUserMapper;
+import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -25,9 +27,15 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.hamcrest.core.StringContains;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assume;
@@ -125,6 +133,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
     JdbcTemplate jdbcTemplate;
     JdbcScimGroupProvisioning gDB;
     JdbcScimUserProvisioning uDB;
+    UaaUserDatabase userDatabase;
 
     private String ldapProfile;
     private String ldapGroup;
@@ -137,6 +146,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
     @Before
     public void createMockEnvironment() {
         mockEnvironment = new MockEnvironment();
+        IdentityZoneHolder.clear();
     }
 
     public void setUp() throws Exception {
@@ -170,6 +180,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter);
         gDB = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
         uDB = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory);
+        userDatabase = webApplicationContext.getBean(UaaUserDatabase.class);
     }
 
     @After
@@ -186,6 +197,116 @@ public class LdapMockMvcTests extends TestClassNullifier {
     private void deleteLdapUsers() {
         jdbcTemplate.update("delete from users where origin='" + Origin.LDAP + "'");
     }
+
+    @Test
+    public void testLoginInNonDefaultZone() throws Exception {
+        Assume.assumeThat("ldap-search-and-bind.xml", StringContains.containsString(ldapProfile));
+        Assume.assumeThat("ldap-groups-map-to-scopes.xml", StringContains.containsString(ldapGroup));
+
+        setUp();
+        String identityAccessToken = MockMvcUtils.utils().getClientOAuthAccessToken(mockMvc, "identity", "identitysecret", "");
+        String adminAccessToken = MockMvcUtils.utils().getClientOAuthAccessToken(mockMvc, "admin", "adminsecret", "");
+        IdentityZone zone = MockMvcUtils.utils().createZoneUsingWebRequest(mockMvc, identityAccessToken);
+        String zoneAdminToken = MockMvcUtils.utils().getZoneAdminToken(mockMvc, adminAccessToken, zone.getId());
+
+        mockMvc.perform(get("/login")
+                .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+                .andExpect(status().isOk())
+                .andExpect(view().name("login"))
+                .andExpect(model().attributeDoesNotExist("saml"));
+
+        //IDP not yet created
+        mockMvc.perform(post("/login.do").accept(TEXT_HTML_VALUE)
+            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain()+".localhost"))
+            .param("username", "marissa2")
+            .param("password", "ldap"))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/login?error=login_failure"));
+
+        LdapIdentityProviderDefinition definition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
+            "ldap://localhost:33389",
+            "cn=admin,ou=Users,dc=test,dc=com",
+            "adminsecret",
+            "dc=test,dc=com",
+            "cn={0}",
+            "ou=scopes,dc=test,dc=com",
+            "member={0}",
+            "mail",
+            null,
+            false,
+            true,
+            true,
+            10
+        );
+
+        IdentityProvider provider = new IdentityProvider();
+        provider.setOriginKey(Origin.LDAP);
+        provider.setName("Test ldap provider");
+        provider.setType(Origin.LDAP);
+        provider.setConfig(JsonUtils.writeValueAsString(definition));
+        provider.setActive(true);
+        provider.setIdentityZoneId(zone.getId());
+        provider = MockMvcUtils.utils().createIdpUsingWebRequest(mockMvc, zone.getId(), zoneAdminToken, provider, status().isCreated());
+
+        mockMvc.perform(post("/login.do").accept(TEXT_HTML_VALUE)
+            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain()+".localhost"))
+            .param("username", "marissa2")
+            .param("password", "ldap"))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/"));
+
+        IdentityZoneHolder.set(zone);
+        UaaUser user = userDatabase.retrieveUserByName("marissa2",Origin.LDAP);
+        IdentityZoneHolder.clear();
+        assertNotNull(user);
+        assertEquals(Origin.LDAP, user.getOrigin());
+        assertEquals(zone.getId(), user.getZoneId());
+
+        provider.setActive(false);
+        MockMvcUtils.utils().createIdpUsingWebRequest(mockMvc, zone.getId(), zoneAdminToken, provider, status().isOk(), true);
+        mockMvc.perform(post("/login.do").accept(TEXT_HTML_VALUE)
+            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain()+".localhost"))
+            .param("username", "marissa2")
+            .param("password", "ldap"))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/login?error=login_failure"));
+
+
+        provider.setActive(true);
+        definition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
+            "ldap://localhost:33389",
+            "cn=admin,ou=Users,dc=test,dc=com",
+            "adminsecret",
+            "dc=test,dc=com",
+            "cn={0}",
+            "ou=scopes,dc=test,dc=com",
+            "member={0}",
+            "mail",
+            "{0}@ldaptest.com",
+            true,
+            true,
+            true,
+            10
+        );
+        provider.setConfig(JsonUtils.writeValueAsString(definition));
+        MockMvcUtils.utils().createIdpUsingWebRequest(mockMvc, zone.getId(), zoneAdminToken, provider, status().isOk(), true);
+
+        mockMvc.perform(post("/login.do").accept(TEXT_HTML_VALUE)
+            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain()+".localhost"))
+            .param("username", "marissa2")
+            .param("password", "ldap"))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/"));
+
+        IdentityZoneHolder.set(zone);
+        user = userDatabase.retrieveUserByName("marissa2",Origin.LDAP);
+        IdentityZoneHolder.clear();
+        assertNotNull(user);
+        assertEquals(Origin.LDAP, user.getOrigin());
+        assertEquals(zone.getId(), user.getZoneId());
+        assertEquals("marissa2@ldaptest.com", user.getEmail());
+    }
+
 
     @Test
     public void runLdapTestblock() throws Exception {

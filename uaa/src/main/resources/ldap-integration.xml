@@ -22,6 +22,7 @@
               http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
 
 
+
     <bean id="ldapPooled" class="java.lang.Boolean">
         <constructor-arg value="false"/>
     </bean>
@@ -46,15 +47,5 @@
     <security:authentication-manager id="ldapAuthenticationManager">
         <sec:authentication-provider ref="ldapAuthProvider"/>
     </security:authentication-manager>
-
-    <bean id="autoAddAuthorities" class="java.lang.Boolean">
-        <constructor-arg value="${ldap.groups.autoAdd:true}"/>
-    </bean>
-
-    <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">
-        <property name="userDatabase" ref="userDatabase" />
-        <property name="origin" value="ldap"/>
-        <property name="autoAddAuthorities" ref="autoAddAuthorities"/>
-    </bean>
 
 </beans>

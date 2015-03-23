@@ -20,11 +20,6 @@ import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
 
 public class IdentityProvider {
-    /**
-     * Used for testing until we actually write the domain model
-     * @param jdbcTemplate
-     * @param originKey
-     */
 
     private String id;
 
