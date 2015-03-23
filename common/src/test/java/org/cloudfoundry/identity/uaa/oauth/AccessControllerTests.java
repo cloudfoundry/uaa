@@ -18,6 +18,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
+import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -68,4 +69,23 @@ public class AccessControllerTests {
         assertEquals("/oauth/authorize", options.get("path"));
     }
 
+    @Test
+    public void testClientDisplayName() throws Exception {
+        InMemoryClientDetailsService clientDetailsService = new InMemoryClientDetailsService();
+        BaseClientDetails client = new BaseClientDetails();
+        client.addAdditionalInformation(ClientConstants.CLIENT_NAME, "The Client Name");
+        clientDetailsService.setClientDetailsStore(Collections.singletonMap("client-id", client));
+        controller.setClientDetailsService(clientDetailsService);
+
+        controller.setApprovalStore(Mockito.mock(ApprovalStore.class));
+
+        Authentication auth = UaaAuthenticationTestFactory.getAuthentication("foo@bar.com", "Foo Bar", "foo@bar.com");
+
+        ModelMap model = new ModelMap();
+        model.put("authorizationRequest", new AuthorizationRequest("client-id", null));
+
+        controller.confirm(model, new MockHttpServletRequest(), auth, new SimpleSessionStatus());
+
+        assertEquals("The Client Name", model.get("client_display_name"));
+    }
 }
