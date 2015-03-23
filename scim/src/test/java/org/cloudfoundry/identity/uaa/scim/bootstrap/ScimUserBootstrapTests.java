@@ -333,13 +333,21 @@ public class ScimUserBootstrapTests {
         assertEquals(1, users.size());
         userId = users.get(0).getId();
         user = getUaaUser(userAuthorities, origin, newEmail, firstName, lastName, password, externalId, userId, username);
-        bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, getAuthorities(externalAuthorities),true));
 
+        bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, getAuthorities(externalAuthorities),true));
         users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"");
         assertEquals(1, users.size());
         ScimUser created = users.get(0);
         validateAuthoritiesCreated(externalAuthorities, userAuthorities, origin, created);
+        assertEquals(newEmail, created.getPrimaryEmail());
 
+        user = user.modifyEmail("test123@test.org");
+        bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, getAuthorities(externalAuthorities),true));
+        users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"");
+        assertEquals(1, users.size());
+        created = users.get(0);
+        validateAuthoritiesCreated(externalAuthorities, userAuthorities, origin, created);
+        assertEquals("test123@test.org", created.getPrimaryEmail());
     }
 
 
