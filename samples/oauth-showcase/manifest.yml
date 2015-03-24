@@ -1,5 +1,5 @@
 applications:
-  - name: oauth-sample
-    path: build/libs/cloudfoundry-identity-oauth-showcase-1.12-SNAPSHOT.jar
+  - name: derik-oauth-sample
+    path: build/libs/cloudfoundry-identity-oauth-showcase-2.1.0-SNAPSHOT.jar
     env:
       UAA_LOCATION: http://localhost:8080/uaa

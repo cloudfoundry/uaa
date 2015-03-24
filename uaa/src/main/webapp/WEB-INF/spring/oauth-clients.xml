@@ -129,6 +129,11 @@
                             <entry key="authorized-grant-types" value="authorization_code" />
                             <entry key="scope" value="openid" />
                             <entry key="authorities" value="uaa.resource" />
+                            <entry key="allowedproviders">
+                                <array>
+                                    <value>uaa</value>
+                                </array>
+                            </entry>
                         </map>
                     </entry>
                     <entry key="oauth_showcase_client_credentials">

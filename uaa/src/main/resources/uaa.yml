@@ -2,7 +2,7 @@
 # if any of these exist: 
 # [$UAA_CONFIG_URL, $UAA_CONFIG_PATH/uaa.yml, $CLOUDFOUNDRY_CONFIG_PATH/uaa.yml]
 
-#spring_profiles: mysql,default
+spring_profiles: mysql,default
 #spring_profiles: postgresql,default
 #spring_profiles: ldap,default,hsqldb
 #spring_profiles: saml
@@ -11,8 +11,8 @@
 #database:
 #  driverClassName: org.postgresql.Driver
 #  url: jdbc:postgresql:uaa
-#  username: root
-#  password: changeme
+#  username: pivotal
+#  password:
 
 #note - this is not the place to set these properties
 # - they are just here for documentation purposes
