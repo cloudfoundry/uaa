@@ -23,6 +23,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -42,6 +43,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -694,4 +696,85 @@ public class ClientAdminEndpointsTests {
         assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
         assertEquals(1, endpoints.getErrorCounts().size());
     }
+    
+    @Test
+    public void testCreateClientWithAutoapproveScopesList() throws Exception {
+        List<String> scopes = Arrays.asList("foo.read","foo.write");
+        List<String> autoApproveScopes = Arrays.asList("foo.read");
+        input.setScope(scopes);
+        input.setAutoApproveScopes(autoApproveScopes);
+        ClientDetails result = endpoints.createClientDetails(input);
+        assertNull(result.getClientSecret());
+        ArgumentCaptor<BaseClientDetails> clientCaptor = ArgumentCaptor.forClass(BaseClientDetails.class);
+        Mockito.verify(clientRegistrationService).addClientDetails(clientCaptor.capture());
+        BaseClientDetails created = clientCaptor.getValue();
+        assertSetEquals(autoApproveScopes, created.getAutoApproveScopes());
+        assertTrue(created.isAutoApprove("foo.read"));
+        assertFalse(created.isAutoApprove("foo.write"));
+    }
+    
+    private static void assertSetEquals(Collection<?> a, Collection<?> b) {
+        assertTrue("expected "+a+" but was "+b, a == null && b == null || a != null && b != null && a.containsAll(b) && b.containsAll(a));
+    }
+    
+    @Test
+    public void testCreateClientWithAutoapproveScopesTrue() throws Exception {
+        
+        List<String> scopes = Arrays.asList("foo.read","foo.write");
+        List<String> autoApproveScopes = Arrays.asList("true");
+        input.setScope(scopes);
+        input.setAutoApproveScopes(autoApproveScopes);
+        ClientDetails result = endpoints.createClientDetails(input);
+        assertNull(result.getClientSecret());
+        ArgumentCaptor<BaseClientDetails> clientCaptor = ArgumentCaptor.forClass(BaseClientDetails.class);
+        Mockito.verify(clientRegistrationService).addClientDetails(clientCaptor.capture());
+        BaseClientDetails created = clientCaptor.getValue();
+        assertSetEquals(autoApproveScopes, created.getAutoApproveScopes());
+        assertTrue(created.isAutoApprove("foo.read"));
+        assertTrue(created.isAutoApprove("foo.write"));
+    }
+    
+    
+    @Test
+    public void testUpdateClientWithAutoapproveScopesList() throws Exception {
+        List<String> scopes = Arrays.asList("foo.read","foo.write");
+        List<String> autoApproveScopes = Arrays.asList("foo.read");
+        
+        input.setScope(scopes);
+        detail.setScope(scopes);
+        detail.setAutoApproveScopes(autoApproveScopes);
+        
+        Mockito.when(clientDetailsService.retrieve(input.getClientId())).thenReturn(
+                input);
+        ClientDetails result = endpoints.updateClientDetails(detail, input.getClientId());
+        assertNull(result.getClientSecret());
+        ArgumentCaptor<BaseClientDetails> clientCaptor = ArgumentCaptor.forClass(BaseClientDetails.class);
+        Mockito.verify(clientRegistrationService).updateClientDetails(clientCaptor.capture());
+        BaseClientDetails updated = clientCaptor.getValue();
+        assertSetEquals(autoApproveScopes, updated.getAutoApproveScopes());
+        assertTrue(updated.isAutoApprove("foo.read"));
+        assertFalse(updated.isAutoApprove("foo.write"));
+    }
+    
+    @Test
+    public void testUpdateClientWithAutoapproveScopesTrue() throws Exception {
+        List<String> scopes = Arrays.asList("foo.read","foo.write");
+        List<String> autoApproveScopes = Arrays.asList("true");
+        
+        input.setScope(scopes);
+        detail.setScope(scopes);
+        detail.setAutoApproveScopes(autoApproveScopes);
+        
+        Mockito.when(clientDetailsService.retrieve(input.getClientId())).thenReturn(
+                input);
+        ClientDetails result = endpoints.updateClientDetails(detail, input.getClientId());
+        assertNull(result.getClientSecret());
+        ArgumentCaptor<BaseClientDetails> clientCaptor = ArgumentCaptor.forClass(BaseClientDetails.class);
+        Mockito.verify(clientRegistrationService).updateClientDetails(clientCaptor.capture());
+        BaseClientDetails updated = clientCaptor.getValue();
+        assertSetEquals(autoApproveScopes, updated.getAutoApproveScopes());
+        assertTrue(updated.isAutoApprove("foo.read"));
+        assertTrue(updated.isAutoApprove("foo.write"));
+    }
+
 }
