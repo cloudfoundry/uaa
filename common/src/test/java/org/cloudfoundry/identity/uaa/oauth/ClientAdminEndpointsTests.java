@@ -702,10 +702,7 @@ public class ClientAdminEndpointsTests {
         List<String> scopes = Arrays.asList("foo.read","foo.write");
         List<String> autoApproveScopes = Arrays.asList("foo.read");
         input.setScope(scopes);
-        detail.setScope(scopes);
         input.setAutoApproveScopes(autoApproveScopes);
-        detail.setAutoApproveScopes(autoApproveScopes);
-        detail.setAuthorizedGrantTypes(input.getAuthorizedGrantTypes());
         ClientDetails result = endpoints.createClientDetails(input);
         assertNull(result.getClientSecret());
         ArgumentCaptor<BaseClientDetails> clientCaptor = ArgumentCaptor.forClass(BaseClientDetails.class);
@@ -726,10 +723,7 @@ public class ClientAdminEndpointsTests {
         List<String> scopes = Arrays.asList("foo.read","foo.write");
         List<String> autoApproveScopes = Arrays.asList("true");
         input.setScope(scopes);
-        detail.setScope(scopes);
         input.setAutoApproveScopes(autoApproveScopes);
-        detail.setAutoApproveScopes(autoApproveScopes);
-        detail.setAuthorizedGrantTypes(input.getAuthorizedGrantTypes());
         ClientDetails result = endpoints.createClientDetails(input);
         assertNull(result.getClientSecret());
         ArgumentCaptor<BaseClientDetails> clientCaptor = ArgumentCaptor.forClass(BaseClientDetails.class);
@@ -751,7 +745,7 @@ public class ClientAdminEndpointsTests {
         detail.setAutoApproveScopes(autoApproveScopes);
         
         Mockito.when(clientDetailsService.retrieve(input.getClientId())).thenReturn(
-                new BaseClientDetails(input));
+                input);
         ClientDetails result = endpoints.updateClientDetails(detail, input.getClientId());
         assertNull(result.getClientSecret());
         ArgumentCaptor<BaseClientDetails> clientCaptor = ArgumentCaptor.forClass(BaseClientDetails.class);
@@ -772,7 +766,7 @@ public class ClientAdminEndpointsTests {
         detail.setAutoApproveScopes(autoApproveScopes);
         
         Mockito.when(clientDetailsService.retrieve(input.getClientId())).thenReturn(
-                new BaseClientDetails(input));
+                input);
         ClientDetails result = endpoints.updateClientDetails(detail, input.getClientId());
         assertNull(result.getClientSecret());
         ArgumentCaptor<BaseClientDetails> clientCaptor = ArgumentCaptor.forClass(BaseClientDetails.class);
