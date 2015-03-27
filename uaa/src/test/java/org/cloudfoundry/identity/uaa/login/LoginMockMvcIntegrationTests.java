@@ -29,6 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
 
+import com.googlecode.flyway.core.Flyway;
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -99,6 +100,8 @@ public class LoginMockMvcIntegrationTests extends TestClassNullifier {
     @AfterClass
     public static void tearDown() throws Exception {
         SecurityContextHolder.clearContext();
+        IdentityZoneHolder.clear();
+        webApplicationContext.getBean(Flyway.class).clean();
         webApplicationContext.destroy();
     }
 

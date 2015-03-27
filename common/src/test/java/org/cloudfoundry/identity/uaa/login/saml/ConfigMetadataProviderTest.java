@@ -1,5 +1,6 @@
-package org.cloudfoundry.identity.uaa.login;
+package org.cloudfoundry.identity.uaa.login.saml;
 
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.Test;
 import org.opensaml.DefaultBootstrap;
 import org.opensaml.saml2.metadata.impl.EntityDescriptorImpl;
@@ -14,12 +15,14 @@ import static org.junit.Assert.*;
 public class ConfigMetadataProviderTest {
     @Test
     public void testDoGetMetadata() throws Exception {
-        String metadataString = new Scanner(new File("./src/main/resources/idp.xml")).useDelimiter("\\Z").next();
-        ConfigMetadataProvider provider = new ConfigMetadataProvider(metadataString);
+        String metadataString = new Scanner(new File("../uaa/src/main/resources/idp.xml")).useDelimiter("\\Z").next();
+        ConfigMetadataProvider provider = new ConfigMetadataProvider(IdentityZone.getUaa().getId(), "testalias", metadataString);
+        ConfigMetadataProvider provider2 = new ConfigMetadataProvider(IdentityZone.getUaa().getId(), "testalias", metadataString);
         DefaultBootstrap.bootstrap();
         provider.setParserPool(new BasicParserPool());
         XMLObject xmlObject = provider.doGetMetadata();
         assertNotNull(xmlObject);
         assertEquals("http://openam.example.com:8181/openam", ((EntityDescriptorImpl) xmlObject).getEntityID());
+        assertEquals(provider, provider2);
     }
 }
