@@ -52,7 +52,7 @@ public class IdentityProviderEndpoints {
 
     @RequestMapping(method = GET)
     public ResponseEntity<List<IdentityProvider>> retrieveIdentityProviders() {
-        List<IdentityProvider> identityProviderList = identityProviderProvisioning.retrieveAll(IdentityZoneHolder.get().getId());
+        List<IdentityProvider> identityProviderList = identityProviderProvisioning.retrieveAll(false,IdentityZoneHolder.get().getId());
         return new ResponseEntity<>(identityProviderList, HttpStatus.OK);
     }
 }

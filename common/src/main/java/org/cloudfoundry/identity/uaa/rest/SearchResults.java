@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -17,16 +17,17 @@ import java.util.Collection;
 
 /**
  * @author Dave Syer
- * 
+ *
  */
 public class SearchResults<T> {
 
-    private final Collection<T> resources;
-    private final int startIndex;
-    private final int itemsPerPage;
-    private final int totalResults;
-    private final Collection<String> schemas;
+    private Collection<T> resources;
+    private int startIndex;
+    private int itemsPerPage;
+    private int totalResults;
+    private Collection<String> schemas;
 
+    public SearchResults() {}
     public SearchResults(Collection<String> schemas, Collection<T> resources, int startIndex, int itemsPerPage,
                     int totalResults) {
         this.schemas = new ArrayList<String>(schemas);
