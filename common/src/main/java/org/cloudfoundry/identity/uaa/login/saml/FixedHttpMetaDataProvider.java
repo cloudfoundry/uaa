@@ -11,7 +11,7 @@
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
 
-package org.cloudfoundry.identity.uaa.login.ssl;
+package org.cloudfoundry.identity.uaa.login.saml;
 
 import java.net.URISyntaxException;
 import java.util.Timer;
@@ -33,16 +33,21 @@ import org.opensaml.saml2.metadata.provider.MetadataProviderException;
  * @author Filip Hanik
  * 
  */
-public class FixedHttpMetaDataProvider extends HTTPMetadataProvider {
+public class FixedHttpMetaDataProvider extends HTTPMetadataProvider implements ComparableProvider {
 
     /**
      * Track if we have a custom socket factory
      */
     private boolean socketFactorySet = false;
+    private final String zoneId;
+    private final String alias;
 
-    public FixedHttpMetaDataProvider(Timer backgroundTaskTimer, HttpClient client,
+
+    public FixedHttpMetaDataProvider(String zoneId, String alias, Timer backgroundTaskTimer, HttpClient client,
                     String metadataURL) throws MetadataProviderException {
         super(backgroundTaskTimer, client, metadataURL);
+        this.alias = alias;
+        this.zoneId = zoneId;
     }
 
     /**
@@ -89,4 +94,33 @@ public class FixedHttpMetaDataProvider extends HTTPMetadataProvider {
         return socketFactorySet;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || !(o instanceof ComparableProvider)) return false;
+
+        ComparableProvider that = (ComparableProvider) o;
+
+        if (!alias.equals(that.getAlias())) return false;
+        if (!zoneId.equals(that.getZoneId())) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = zoneId.hashCode();
+        result = 31 * result + alias.hashCode();
+        return result;
+    }
+
+    @Override
+    public String getAlias() {
+        return alias;
+    }
+
+    @Override
+    public String getZoneId() {
+        return zoneId;
+    }
 }

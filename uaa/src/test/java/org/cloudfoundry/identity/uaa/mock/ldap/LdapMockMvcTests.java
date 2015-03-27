@@ -80,6 +80,7 @@ import static org.junit.Assert.fail;
 import static org.springframework.http.MediaType.TEXT_HTML_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -368,7 +369,8 @@ public class LdapMockMvcTests extends TestClassNullifier {
         mockMvc.perform(post("/login.do").accept(TEXT_HTML_VALUE)
                         .param("username", "marissa2")
                         .param("password", "ldap"))
-            .andExpect(status().isFound())
+            .andDo(print())
+                .andExpect(status().isFound())
                 .andExpect(redirectedUrl("/"));
     }
 

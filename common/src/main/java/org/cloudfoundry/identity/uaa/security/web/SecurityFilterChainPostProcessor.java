@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -45,7 +45,7 @@ import org.springframework.util.Assert;
 /**
  * Post processor which injects an additional filter at the head
  * of each security filter chain.
- * 
+ *
  * If the requireHttps property is set, and a non HTTP request is received (as
  * determined by the absence of the <tt>httpsHeader</tt>) the filter will either
  * redirect with a 301 or send an error code to the client.
@@ -54,14 +54,14 @@ import org.springframework.util.Assert;
  * those serving browser clients). Clients in this list will also receive an
  * HSTS response header, as defined in
  * http://tools.ietf.org/html/draft-ietf-websec-strict-transport-sec-14.
- * 
+ *
  * HTTP requests from any other clients will receive a JSON error message.
- * 
+ *
  * The filter also wraps calls to the <tt>getRemoteAddr</tt> to give a more
  * accurate value for the remote client IP,
  * making use of the <tt>clientAddrHeader</tt> if available in the request.
- * 
- * 
+ *
+ *
  * @author Luke Taylor
  */
 @ManagedResource
@@ -255,6 +255,9 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
                 chain.doFilter(request, response);
             }catch (Exception x) {
                 logger.error("Uncaught Exception:", x);
+                if (req.getAttribute("javax.servlet.error.exception") == null) {
+                    req.setAttribute("javax.servlet.error.exception", x);
+                }
                 ReasonPhrase reasonPhrase = getErrorMap().get(x.getClass());
                 if (null==reasonPhrase) {
                     for (Class<? extends Exception> clazz : getErrorMap().keySet()) {

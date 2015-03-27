@@ -18,6 +18,7 @@ import java.util.Date;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
+import org.codehaus.jackson.type.TypeReference;
 
 public class IdentityProvider {
 
@@ -89,6 +90,12 @@ public class IdentityProvider {
     public <T> T getConfigValue(Class<T> clazz) {
         return JsonUtils.readValue(getConfig(), clazz);
     }
+
+    @JsonIgnore
+    public <T> T getConfigValue(TypeReference<T> type) {
+        return JsonUtils.readValue(getConfig(), type);
+    }
+
     public String getConfig() {
         return config;
     }

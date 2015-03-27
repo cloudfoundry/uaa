@@ -92,7 +92,7 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
         @Override
         public void run() {
             try {
-                refreshAllProviders();
+                refreshAllProviders(false);
             }catch (Exception x) {
                 log.error("Unable to run refresh task:", x);
             }
@@ -116,14 +116,24 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
     }
 
     protected void refreshAllProviders() throws MetadataProviderException {
+        refreshAllProviders(true);
+    }
+
+    protected void refreshAllProviders(boolean ignoreTimestamp) throws MetadataProviderException {
         for (IdentityZone zone : zoneDao.retrieveAll()) {
             ExtensionMetadataManager manager = getManager(zone);
             boolean hasChanges = false;
-            for (IdentityProvider provider : providerDao.retrieveAll(zone.getId())) {
-                if (Origin.SAML.equals(provider.getType()) && lastRefresh < provider.getLastModified().getTime()) {
+            for (IdentityProvider provider : providerDao.retrieveAll(false,zone.getId())) {
+                if (Origin.SAML.equals(provider.getType()) && (ignoreTimestamp || lastRefresh < provider.getLastModified().getTime())) {
                     try {
                         IdentityProviderDefinition definition = JsonUtils.readValue(provider.getConfig(), IdentityProviderDefinition.class);
-                        manager.addMetadataProvider(configurator.addIdentityProviderDefinition(definition));
+                        ExtendedMetadataDelegate delegate = configurator.getExtendedMetadataDelegate(definition);
+                        if (provider.isActive()) {
+                            manager.addMetadataProvider(configurator.addIdentityProviderDefinition(definition));
+                        } else {
+                            configurator.removeIdentityProviderDefinition(definition);
+                            manager.removeMetadataProvider(delegate);
+                        }
                         hasChanges = true;
                     } catch (JsonUtils.JsonUtilException x) {
                         logger.error("Unable to load provider:"+provider, x);
@@ -437,6 +447,11 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
 
         @Override
         public void addMetadataProvider(MetadataProvider newProvider) throws MetadataProviderException {
+            for (MetadataProvider provider : getAvailableProviders()) {
+                if (newProvider.equals(provider)) {
+                    removeMetadataProvider(provider);
+                }
+            }
             super.addMetadataProvider(newProvider);
         }
 

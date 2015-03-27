@@ -25,6 +25,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import org.cloudfoundry.identity.uaa.rest.SearchResults;
+import org.codehaus.jackson.type.TypeReference;
 import org.junit.Assert;
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
@@ -72,7 +74,7 @@ public class MockMvcUtils {
     public static MockMvcUtils utils() {
         return new MockMvcUtils();
     }
-    
+
     public IdentityZone createZoneUsingWebRequest(MockMvc mockMvc, String accessToken) throws Exception {
         final String zoneId = UUID.randomUUID().toString();
         IdentityZone identityZone = MultitenancyFixture.identityZone(zoneId, zoneId);
@@ -84,19 +86,19 @@ public class MockMvcUtils {
                 .andExpect(status().isCreated()).andReturn();
         return new ObjectMapper().readValue(result.getResponse().getContentAsByteArray(), IdentityZone.class);
     }
-    
+
     public static class IdentityZoneCreationResult {
         private final IdentityZone identityZone;
         private final UaaPrincipal zoneAdmin;
         private final String zoneAdminToken;
-        
+
         public IdentityZoneCreationResult(IdentityZone identityZone, UaaPrincipal zoneAdmin, String zoneAdminToken) {
             super();
             this.identityZone = identityZone;
             this.zoneAdmin = zoneAdmin;
             this.zoneAdminToken = zoneAdminToken;
         }
-        
+
         public IdentityZone getIdentityZone() {
             return identityZone;
         }
@@ -109,7 +111,7 @@ public class MockMvcUtils {
             return zoneAdminToken;
         }
     }
-    
+
     public IdentityZoneCreationResult createOtherIdentityZoneAndReturnResult(String subdomain, MockMvc mockMvc,
             ApplicationContext webApplicationContext, ClientDetails bootstrapClient) throws Exception {
         String identityToken = getClientCredentialsOAuthAccessToken(mockMvc, "identity", "identitysecret",
@@ -148,14 +150,14 @@ public class MockMvcUtils {
                 .accept(APPLICATION_JSON)
                 .content(new ObjectMapper().writeValueAsString(bootstrapClient)))
                 .andExpect(status().isCreated());
-        
+
         return new IdentityZoneCreationResult(identityZone, marissa, zoneAdminAuthcodeToken);
     }
 
     public IdentityZone createOtherIdentityZone(String subdomain, MockMvc mockMvc,
             ApplicationContext webApplicationContext, ClientDetails bootstrapClient) throws Exception {
         return createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, bootstrapClient).getIdentityZone();
-        
+
     }
 
     public IdentityZone createOtherIdentityZone(String subdomain, MockMvc mockMvc,
@@ -210,6 +212,22 @@ public class MockMvcUtils {
         return new ObjectMapper().readValue(userResult.getResponse().getContentAsString(), ScimUser.class);
     }
 
+    public ScimGroup getGroup(MockMvc mockMvc, String accessToken, String displayName) throws Exception {
+        String filter = "displayName eq \""+displayName+"\"";
+        SearchResults<ScimGroup> results = JsonUtils.readValue(
+            mockMvc.perform(get("/Groups")
+                .header("Authorization", "Bearer " + accessToken)
+                .contentType(APPLICATION_JSON)
+                .param("filter", filter))
+                .andReturn().getResponse().getContentAsString(),
+            new TypeReference<SearchResults<ScimGroup>>() {});
+        if (results==null || results.getResources()==null || results.getResources().isEmpty()) {
+            return null;
+        } else {
+            return results.getResources().iterator().next();
+        }
+    }
+
     public ScimGroup createGroup(MockMvc mockMvc, String accessToken, ScimGroup group) throws Exception {
         return new ObjectMapper().readValue(
                 mockMvc.perform(post("/Groups")
@@ -219,6 +237,18 @@ public class MockMvcUtils {
                         .andExpect(status().isCreated())
                         .andReturn().getResponse().getContentAsByteArray(),
                 ScimGroup.class);
+    }
+
+    public ScimGroup updateGroup(MockMvc mockMvc, String accessToken, ScimGroup group) throws Exception {
+        return new ObjectMapper().readValue(
+            mockMvc.perform(put("/Groups/" + group.getId())
+                .header("If-Match", group.getVersion())
+                .header("Authorization", "Bearer " + accessToken)
+                .contentType(APPLICATION_JSON)
+                .content(new ObjectMapper().writeValueAsBytes(group)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsByteArray(),
+            ScimGroup.class);
     }
 
     public BaseClientDetails createClient(MockMvc mockMvc, String accessToken, BaseClientDetails clientDetails)
@@ -345,7 +375,7 @@ public class MockMvcUtils {
         OAuthToken oauthToken = objectMapper.readValue(result.getResponse().getContentAsByteArray(), OAuthToken.class);
         return oauthToken.accessToken;
     }
-    
+
     public <T extends ApplicationEvent>  TestApplicationEventListener<T> addEventListener(ConfigurableApplicationContext applicationContext, Class<T> clazz) {
         TestApplicationEventListener<T> listener = TestApplicationEventListener.forEventClass(clazz);
         applicationContext.addApplicationListener(listener);

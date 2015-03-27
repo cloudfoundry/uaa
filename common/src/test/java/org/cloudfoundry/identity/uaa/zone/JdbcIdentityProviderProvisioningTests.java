@@ -182,13 +182,13 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
     @Test
     public void testRetrieveAll() throws Exception {
         String uaaZoneId = IdentityZone.getUaa().getId();
-        List<IdentityProvider> identityProviders = db.retrieveAll(uaaZoneId);
+        List<IdentityProvider> identityProviders = db.retrieveActive(uaaZoneId);
         int numberOfIdps =  identityProviders.size();
         String origin = RandomStringUtils.randomAlphabetic(6);
 
         IdentityProvider defaultZoneIdp = MultitenancyFixture.identityProvider(origin, uaaZoneId);
         db.create(defaultZoneIdp);
-        identityProviders = db.retrieveAll(uaaZoneId);
+        identityProviders = db.retrieveActive(uaaZoneId);
         assertEquals(numberOfIdps + 1, identityProviders.size());
 
         IdentityZone otherZone = MultitenancyFixture.identityZone(UUID.randomUUID().toString(), "myzone");
@@ -196,7 +196,7 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
         IdentityProvider otherZoneIdp = MultitenancyFixture.identityProvider(originKey, otherZone.getId());
         db.create(otherZoneIdp);
 
-        identityProviders = db.retrieveAll(otherZone.getId());
+        identityProviders = db.retrieveActive(otherZone.getId());
         assertEquals(1, identityProviders.size());
     }
 

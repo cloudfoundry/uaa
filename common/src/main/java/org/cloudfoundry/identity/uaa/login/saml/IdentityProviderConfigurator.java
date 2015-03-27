@@ -15,11 +15,8 @@ package org.cloudfoundry.identity.uaa.login.saml;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.protocol.ProtocolSocketFactory;
 import org.apache.http.client.utils.URIBuilder;
-import org.cloudfoundry.identity.uaa.login.ConfigMetadataProvider;
-import org.cloudfoundry.identity.uaa.login.ssl.FixedHttpMetaDataProvider;
 import org.cloudfoundry.identity.uaa.login.util.FileLocator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.opensaml.saml2.metadata.provider.FilesystemMetadataProvider;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.opensaml.xml.parse.BasicParserPool;
 import org.springframework.beans.factory.InitializingBean;
@@ -150,6 +147,15 @@ public class IdentityProviderConfigurator implements InitializingBean {
         return getIdentityProviderDefinitions();
     }
 
+    public synchronized void removeIdentityProviderDefinition(IdentityProviderDefinition providerDefinition) {
+        for (IdentityProviderDefinition def : getIdentityProviderDefinitions()) {
+            if (getUniqueAlias(providerDefinition).equals(getUniqueAlias(def))) {
+                identityProviders.remove(def);
+                break;
+            }
+        }
+    }
+
     public List<ExtendedMetadataDelegate> getIdentityProviders() {
         return getIdentityProviders(null);
     }
@@ -188,7 +194,7 @@ public class IdentityProviderConfigurator implements InitializingBean {
     }
 
     protected ExtendedMetadataDelegate configureXMLMetadata(IdentityProviderDefinition def) {
-        ConfigMetadataProvider configMetadataProvider = new ConfigMetadataProvider(def.getMetaDataLocation());
+        ConfigMetadataProvider configMetadataProvider = new ConfigMetadataProvider(def.getZoneId(), def.getIdpEntityAlias(), def.getMetaDataLocation());
         configMetadataProvider.setParserPool(getParserPool());
         ExtendedMetadata extendedMetadata = new ExtendedMetadata();
         extendedMetadata.setLocal(false);
@@ -202,7 +208,7 @@ public class IdentityProviderConfigurator implements InitializingBean {
     protected ExtendedMetadataDelegate configureFileMetadata(IdentityProviderDefinition def) {
         try {
             File metadataFile = FileLocator.locate(def.getMetaDataLocation());
-            FilesystemMetadataProvider filesystemMetadataProvider = new FilesystemMetadataProvider(metadataFile);
+            FilesystemMetadataProvider filesystemMetadataProvider = new FilesystemMetadataProvider(def.getZoneId(), def.getIdpEntityAlias(), getMetadataFetchingHttpClientTimer(), metadataFile);
             filesystemMetadataProvider.setParserPool(getParserPool());
             ExtendedMetadata extendedMetadata = new ExtendedMetadata();
             extendedMetadata.setAlias(def.getIdpEntityAlias());
@@ -224,7 +230,7 @@ public class IdentityProviderConfigurator implements InitializingBean {
             socketFactory = (Class<ProtocolSocketFactory>) Class.forName(def.getSocketFactoryClassName());
             ExtendedMetadata extendedMetadata = new ExtendedMetadata();
             extendedMetadata.setAlias(def.getIdpEntityAlias());
-            FixedHttpMetaDataProvider fixedHttpMetaDataProvider = new FixedHttpMetaDataProvider(getMetadataFetchingHttpClientTimer(), getHttpClient(), adjustURIForPort(def.getMetaDataLocation()));
+            FixedHttpMetaDataProvider fixedHttpMetaDataProvider = new FixedHttpMetaDataProvider(def.getZoneId(), def.getIdpEntityAlias(), getMetadataFetchingHttpClientTimer(), getHttpClient(), adjustURIForPort(def.getMetaDataLocation()));
             fixedHttpMetaDataProvider.setParserPool(getParserPool());
             //TODO - we have no way of actually instantiating this object unless it has a zero arg constructor
             fixedHttpMetaDataProvider.setSocketFactory(socketFactory.newInstance());
