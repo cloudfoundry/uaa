@@ -115,7 +115,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
         String zoneId = IdentityZone.getUaa().getId();
 
         //deactivate all providers that are no longer present
-        for (IdentityProvider provider: provisioning.retrieveAll(zoneId)) {
+        for (IdentityProvider provider: provisioning.retrieveAll(false, zoneId)) {
             if (Origin.SAML.equals(provider.getType()) ||
                 Origin.LDAP.equals(provider.getType()) ||
                 Origin.KEYSTONE.equals(provider.getType())) {
@@ -132,6 +132,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
             }catch (EmptyResultDataAccessException x){
             }
             provider.setIdentityZoneId(zoneId);
+            provider.setActive(true);
             if (existing==null) {
                 provisioning.create(provider);
             } else {

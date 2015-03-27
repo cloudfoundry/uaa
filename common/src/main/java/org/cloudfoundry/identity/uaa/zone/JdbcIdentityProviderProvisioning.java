@@ -62,14 +62,14 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
     }
 
     @Override
-    public List<IdentityProvider> retrieveAll(String zoneId) {
+    public List<IdentityProvider> retrieveActive(String zoneId) {
         return jdbcTemplate.query(IDENTITY_ACTIVE_PROVIDERS_QUERY, mapper, zoneId);
     }
 
     @Override
     public List<IdentityProvider> retrieveAll(boolean activeOnly, String zoneId) {
         if (activeOnly) {
-            return retrieveAll(zoneId);
+            return retrieveActive(zoneId);
         } else {
             return jdbcTemplate.query(IDENTITY_PROVIDERS_QUERY, mapper, zoneId);
         }
