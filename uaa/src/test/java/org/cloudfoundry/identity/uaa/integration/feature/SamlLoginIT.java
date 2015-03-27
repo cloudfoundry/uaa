@@ -35,6 +35,7 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -246,15 +247,30 @@ public class SamlLoginIT {
         webDriver.get(testZone1Url + "/logout.do");
         webDriver.get(testZone1Url + "/login");
         Assert.assertEquals("Cloud Foundry", webDriver.getTitle());
-        webDriver.findElement(By.xpath("//a[text()='"+identityProviderDefinition.getLinkText()+"']")).click();
+        WebElement element = webDriver.findElement(By.xpath("//a[text()='" + identityProviderDefinition.getLinkText() + "']"));
+        String loginUrl = element.getAttribute("href");
+        element.click();
         webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
         webDriver.findElement(By.name("username")).clear();
         webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
         webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
         webDriver.findElement(By.xpath("//input[@value='Login']")).click();
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+
         webDriver.get(baseUrl + "/logout.do");
         webDriver.get(testZone1Url + "/logout.do");
+
+        //disable the provider
+        webDriver.get("http://simplesamlphp.cfapps.io/module.php/core/authenticate.php?as=example-userpass&logout");
+        provider.setActive(false);
+        provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken,baseUrl,provider);
+        assertNotNull(provider.getId());
+        webDriver.get(testZone1Url + "/login");
+        Assert.assertEquals("Cloud Foundry", webDriver.getTitle());
+        List<WebElement> elements = webDriver.findElements(By.xpath("//a[text()='"+identityProviderDefinition.getLinkText()+"']"));
+        assertNotNull(elements);
+        assertEquals(0, elements.size());
+
     }
 
     @Test

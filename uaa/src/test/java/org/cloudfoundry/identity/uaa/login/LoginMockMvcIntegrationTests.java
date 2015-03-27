@@ -23,7 +23,6 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.TEXT_HTML;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -31,20 +30,25 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
 
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.login.LoginInfoEndpoint;
 import org.cloudfoundry.identity.uaa.authentication.login.Prompt;
+import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
+import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Assume;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.mock.env.MockEnvironment;
@@ -53,6 +57,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextImpl;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -72,6 +78,8 @@ public class LoginMockMvcIntegrationTests extends TestClassNullifier {
     private static MockMvc mockMvc;
 
     private static UaaTestAccounts testAccounts;
+
+    private static MockMvcUtils mockMvcUtils = MockMvcUtils.utils();
 
     @BeforeClass
     public static void setUpContext() throws Exception {
@@ -102,15 +110,6 @@ public class LoginMockMvcIntegrationTests extends TestClassNullifier {
                         .andExpect(model().attribute("links", hasEntry("passwd", "/forgot_password")))
                         .andExpect(model().attribute("links", hasEntry("register", "/create_account")))
                         .andExpect(model().attributeExists("prompts"));
-    }
-
-    @Test
-    public void testLoginNoSaml() throws Exception {
-        Assume.assumeFalse("Functionality is disabled by the saml profile", Arrays.asList(webApplicationContext.getEnvironment().getActiveProfiles()).contains("saml"));
-
-        mockMvc.perform(get("/login"))
-                .andExpect(status().isOk())
-                .andExpect(model().attributeDoesNotExist("showSamlLoginLink"));
     }
 
     @Test
@@ -160,18 +159,6 @@ public class LoginMockMvcIntegrationTests extends TestClassNullifier {
         mockMvc.perform(get)
                 .andExpect(status().isOk())
                 .andExpect(forwardedUrl("/oauth/confirm_access"));
-
-//                .andExpect(model().attributeExists("client_id"))
-//                .andExpect(model().attribute("undecided_scopes", hasSize(2)))
-//                .andExpect(model().attribute("approved_scopes", hasSize(1)))
-//                .andExpect(model().attribute("denied_scopes", hasSize(1)))
-//                .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
-//                .andExpect(xpath("//h1[text()='Application Authorization']").exists())
-//                .andExpect(xpath("//input[@type='checkbox' and @name='scope.0' and @value='scope.cloud_controller.write' and @checked='checked']").exists())
-//                .andExpect(xpath("//input[@type='checkbox' and @name='scope.1' and @value='scope.scim.userids' and @checked='checked']").exists())
-//                .andExpect(xpath("//input[@type='checkbox' and @name='scope.2' and @value='scope.password.write' and @checked='checked']").exists())
-//                .andExpect(xpath("//input[@type='checkbox' and @name='scope.3' and @value='scope.cloud_controller.read']").exists())
-//                .andExpect(xpath("//input[@type='checkbox' and @name='scope.3' and @value='scope.cloud_controller.read' and @checked='checked']").doesNotExist());
     }
 
     @Test
@@ -330,4 +317,67 @@ public class LoginMockMvcIntegrationTests extends TestClassNullifier {
                 .andExpect(model().attribute("createAccountLink", nullValue()));
     }
 
+    @Test
+    public void testSamlLoginLinksShowActiveProviders() throws Exception {
+        BaseClientDetails zoneAdminClient = new BaseClientDetails("admin", null, null, "client_credentials", "clients.admin,scim.read,scim.write");
+        zoneAdminClient.setClientSecret("admin-secret");
+
+        IdentityZoneCreationResult identityZoneCreationResult = mockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient);
+        IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
+        String zoneAdminToken = identityZoneCreationResult.getZoneAdminToken();
+
+        IdentityProviderDefinition activeIdentityProviderDefinition = new IdentityProviderDefinition("http://example.com/saml/metadata", "active-saml", null, 0, false, true, "Active SAML Provider", null, identityZone.getId());
+        IdentityProvider activeIdentityProvider = new IdentityProvider();
+        activeIdentityProvider.setType(Origin.SAML);
+        activeIdentityProvider.setName("Active SAML Provider");
+        activeIdentityProvider.setActive(true);
+        activeIdentityProvider.setConfig(JsonUtils.writeValueAsString(activeIdentityProviderDefinition));
+        activeIdentityProvider.setOriginKey("active-saml");
+        mockMvcUtils.createIdpUsingWebRequest(mockMvc, identityZone.getId(), zoneAdminToken, activeIdentityProvider, status().isCreated());
+
+        IdentityProviderDefinition inactiveIdentityProviderDefinition = new IdentityProviderDefinition("http://example.com/saml/metadata", "inactive-saml", null, 0, false, true, "You should not see me", null, identityZone.getId());
+        IdentityProvider inactiveIdentityProvider = new IdentityProvider();
+        inactiveIdentityProvider.setType(Origin.SAML);
+        inactiveIdentityProvider.setName("Inactive SAML Provider");
+        inactiveIdentityProvider.setActive(false);
+        inactiveIdentityProvider.setConfig(JsonUtils.writeValueAsString(inactiveIdentityProviderDefinition));
+        inactiveIdentityProvider.setOriginKey("inactive-saml");
+        mockMvcUtils.createIdpUsingWebRequest(mockMvc, identityZone.getId(), zoneAdminToken, inactiveIdentityProvider, status().isCreated());
+
+        mockMvc.perform(get("/login").accept(TEXT_HTML).with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
+            .andExpect(status().isOk())
+            .andExpect(xpath("//a[text()='" + activeIdentityProviderDefinition.getLinkText() + "']").exists())
+            .andExpect(xpath("//a[text()='" + inactiveIdentityProviderDefinition.getLinkText() + "']").doesNotExist());
+    }
+
+    @Test
+    public void testDeactivatedProviderIsRemovedFromSamlLoginLinks() throws Exception {
+        BaseClientDetails zoneAdminClient = new BaseClientDetails("admin", null, null, "client_credentials", "clients.admin,scim.read,scim.write");
+        zoneAdminClient.setClientSecret("admin-secret");
+
+        IdentityZoneCreationResult identityZoneCreationResult = mockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient);
+        IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
+        String zoneAdminToken = identityZoneCreationResult.getZoneAdminToken();
+
+        IdentityProviderDefinition identityProviderDefinition = new IdentityProviderDefinition("http://example.com/saml/metadata", "saml", null, 0, false, true, "SAML Provider", null, identityZone.getId());
+        IdentityProvider identityProvider = new IdentityProvider();
+        identityProvider.setType(Origin.SAML);
+        identityProvider.setName("SAML Provider");
+        identityProvider.setActive(true);
+        identityProvider.setConfig(JsonUtils.writeValueAsString(identityProviderDefinition));
+        identityProvider.setOriginKey("saml");
+
+        identityProvider = mockMvcUtils.createIdpUsingWebRequest(mockMvc, identityZone.getId(), zoneAdminToken, identityProvider, status().isCreated());
+
+        mockMvc.perform(get("/login").accept(TEXT_HTML).with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
+            .andExpect(status().isOk())
+            .andExpect(xpath("//a[text()='" + identityProviderDefinition.getLinkText() + "']").exists());
+
+        identityProvider.setActive(false);
+        mockMvcUtils.createIdpUsingWebRequest(mockMvc, identityZone.getId(), zoneAdminToken, identityProvider, status().isOk(), true);
+
+        mockMvc.perform(get("/login").accept(TEXT_HTML).with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
+            .andExpect(status().isOk())
+            .andExpect(xpath("//a[text()='" + identityProviderDefinition.getLinkText() + "']").doesNotExist());
+    }
 }

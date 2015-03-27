@@ -150,6 +150,15 @@ public class IdentityProviderConfigurator implements InitializingBean {
         return getIdentityProviderDefinitions();
     }
 
+    public synchronized void removeIdentityProviderDefinition(IdentityProviderDefinition providerDefinition) {
+        for (IdentityProviderDefinition def : getIdentityProviderDefinitions()) {
+            if (getUniqueAlias(providerDefinition).equals(getUniqueAlias(def))) {
+                identityProviders.remove(def);
+                break;
+            }
+        }
+    }
+
     public List<ExtendedMetadataDelegate> getIdentityProviders() {
         return getIdentityProviders(null);
     }
