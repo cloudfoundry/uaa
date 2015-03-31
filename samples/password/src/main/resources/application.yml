@@ -5,10 +5,7 @@ security:
 idServiceUrl: ${ID_SERVICE_URL}
 spring.oauth2:
     client:
-      password_grant:
-        authorizationUri: ${ID_SERVICE_URL}/oauth/authorize
-        accessTokenUri: ${ID_SERVICE_URL}/oauth/token
-        clientId: ${CLIENT_ID}
-        clientSecret: ${CLIENT_SECRET}
-    resource:
-      jwt.keyUri: ${ID_SERVICE_URL}/token_key
+      authorizationUri: ${ID_SERVICE_URL}/oauth/authorize
+      accessTokenUri: ${ID_SERVICE_URL}/oauth/token
+      clientId: ${CLIENT_ID}
+      clientSecret: ${CLIENT_SECRET}
