@@ -33,8 +33,11 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.zone.IdentityProviderValidationRequest;
+import org.cloudfoundry.identity.uaa.zone.IdentityProviderValidationRequest.UsernamePasswordAuthentication;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.hamcrest.core.StringContains;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -77,6 +80,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.http.MediaType.TEXT_HTML_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -197,6 +202,185 @@ public class LdapMockMvcTests extends TestClassNullifier {
 
     private void deleteLdapUsers() {
         jdbcTemplate.update("delete from users where origin='" + Origin.LDAP + "'");
+    }
+
+    @Test
+    public void testLdapConfigurationBeforeSave() throws Exception {
+        Assume.assumeThat("ldap-search-and-bind.xml", StringContains.containsString(ldapProfile));
+        Assume.assumeThat("ldap-groups-map-to-scopes.xml", StringContains.containsString(ldapGroup));
+
+        setUp();
+        String identityAccessToken = MockMvcUtils.utils().getClientOAuthAccessToken(mockMvc, "identity", "identitysecret", "");
+        String adminAccessToken = MockMvcUtils.utils().getClientOAuthAccessToken(mockMvc, "admin", "adminsecret", "");
+        IdentityZone zone = MockMvcUtils.utils().createZoneUsingWebRequest(mockMvc, identityAccessToken);
+        String zoneAdminToken = MockMvcUtils.utils().getZoneAdminToken(mockMvc, adminAccessToken, zone.getId());
+
+        LdapIdentityProviderDefinition definition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
+            "ldap://localhost:33389",
+            "cn=admin,ou=Users,dc=test,dc=com",
+            "adminsecret",
+            "dc=test,dc=com",
+            "cn={0}",
+            "ou=scopes,dc=test,dc=com",
+            "member={0}",
+            "mail",
+            null,
+            false,
+            true,
+            true,
+            10
+        );
+
+        IdentityProvider provider = new IdentityProvider();
+        provider.setOriginKey(Origin.LDAP);
+        provider.setName("Test ldap provider");
+        provider.setType(Origin.LDAP);
+        provider.setConfig(JsonUtils.writeValueAsString(definition));
+        provider.setActive(true);
+        provider.setIdentityZoneId(zone.getId());
+
+        UsernamePasswordAuthentication token = new UsernamePasswordAuthentication("marissa2", "ldap");
+
+        IdentityProviderValidationRequest request = new IdentityProviderValidationRequest(provider, token);
+        System.out.println("request = \n" + JsonUtils.writeValueAsString(request));
+        //Happy Day Scenario
+        MockHttpServletRequestBuilder post = post("/identity-providers/test")
+            .header("Accept", APPLICATION_JSON_VALUE)
+            .header("Content-Type", APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + zoneAdminToken)
+            .contentType(APPLICATION_JSON)
+            .content(JsonUtils.writeValueAsString(request))
+            .header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
+
+        MvcResult result = mockMvc.perform(post)
+            .andDo(print())
+            .andExpect(status().isOk())
+            .andReturn();
+
+        assertEquals("\"ok\"", result.getResponse().getContentAsString());
+
+        //Correct configuration, invalid credentials
+        token = new UsernamePasswordAuthentication("marissa2", "koala");
+        request = new IdentityProviderValidationRequest(provider, token);
+        post = post("/identity-providers/test")
+            .header("Accept", APPLICATION_JSON_VALUE)
+            .header("Content-Type", APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + zoneAdminToken)
+            .contentType(APPLICATION_JSON)
+            .content(JsonUtils.writeValueAsString(request))
+            .header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
+
+        result = mockMvc.perform(post)
+            .andExpect(status().isExpectationFailed())
+            .andReturn();
+        assertEquals("\"bad credentials\"", result.getResponse().getContentAsString());
+
+        //Insufficent scope
+        post = post("/identity-providers/test")
+            .header("Accept", APPLICATION_JSON_VALUE)
+            .header("Content-Type", APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + identityAccessToken)
+            .contentType(APPLICATION_JSON)
+            .content(JsonUtils.writeValueAsString(request))
+            .header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
+
+        result = mockMvc.perform(post)
+            .andExpect(status().isForbidden())
+            .andReturn();
+
+
+        //Invalid LDAP configuration - change the password of search user
+        definition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
+            "ldap://localhost:33389",
+            "cn=admin,ou=Users,dc=test,dc=com",
+            "adminsecret23",
+            "dc=test,dc=com",
+            "cn={0}",
+            "ou=scopes,dc=test,dc=com",
+            "member={0}",
+            "mail",
+            null,
+            false,
+            true,
+            true,
+            10
+        );
+        provider.setConfig(JsonUtils.writeValueAsString(definition));
+        request = new IdentityProviderValidationRequest(provider, token);
+        post = post("/identity-providers/test")
+            .header("Accept", APPLICATION_JSON_VALUE)
+            .header("Content-Type", APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + zoneAdminToken)
+            .contentType(APPLICATION_JSON)
+            .content(JsonUtils.writeValueAsString(request))
+            .header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
+
+        result = mockMvc.perform(post)
+            .andExpect(status().isBadRequest())
+            .andReturn();
+        assertThat(result.getResponse().getContentAsString(), containsString("Caused by:"));
+
+        //Invalid LDAP configuration - no ldap server
+        definition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
+            "ldap://localhost:33388",
+            "cn=admin,ou=Users,dc=test,dc=com",
+            "adminsecret",
+            "dc=test,dc=com",
+            "cn={0}",
+            "ou=scopes,dc=test,dc=com",
+            "member={0}",
+            "mail",
+            null,
+            false,
+            true,
+            true,
+            10
+        );
+        provider.setConfig(JsonUtils.writeValueAsString(definition));
+        request = new IdentityProviderValidationRequest(provider, token);
+        post = post("/identity-providers/test")
+            .header("Accept", APPLICATION_JSON_VALUE)
+            .header("Content-Type", APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + zoneAdminToken)
+            .contentType(APPLICATION_JSON)
+            .content(JsonUtils.writeValueAsString(request))
+            .header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
+
+        result = mockMvc.perform(post)
+            .andExpect(status().isBadRequest())
+            .andReturn();
+        assertThat(result.getResponse().getContentAsString(), containsString("Caused by:"));
+
+        //Invalid LDAP configuration - invalid search base
+        definition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
+            "ldap://localhost:33389",
+            "cn=admin,ou=Users,dc=test,dc=com",
+            "adminsecret",
+            ",,,,,dc=test,dc=com",
+            "cn={0}",
+            "ou=scopes,dc=test,dc=com",
+            "member={0}",
+            "mail",
+            null,
+            false,
+            true,
+            true,
+            10
+        );
+        provider.setConfig(JsonUtils.writeValueAsString(definition));
+        request = new IdentityProviderValidationRequest(provider, token);
+        post = post("/identity-providers/test")
+            .header("Accept", APPLICATION_JSON_VALUE)
+            .header("Content-Type", APPLICATION_JSON_VALUE)
+            .header("Authorization", "Bearer " + zoneAdminToken)
+            .contentType(APPLICATION_JSON)
+            .content(JsonUtils.writeValueAsString(request))
+            .header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
+
+        result = mockMvc.perform(post)
+            .andExpect(status().isBadRequest())
+            .andReturn();
+        assertThat(result.getResponse().getContentAsString(), containsString("Caused by:"));
     }
 
     @Test

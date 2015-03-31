@@ -38,6 +38,8 @@
 
     <bean id="identityProviderEndpoints"  class="org.cloudfoundry.identity.uaa.zone.IdentityProviderEndpoints">
         <constructor-arg ref="identityProviderProvisioning" />
+        <constructor-arg name="scimGroupExternalMembershipManager" ref="externalGroupMembershipManager"/>
+        <constructor-arg name="scimGroupProvisioning" ref="scimGroupProvisioning"/>
     </bean>
     
     <http name="identityZoneSecurity" pattern="/identity-zones/**" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"
