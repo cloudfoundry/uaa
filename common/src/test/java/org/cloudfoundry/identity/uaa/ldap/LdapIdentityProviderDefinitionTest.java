@@ -21,6 +21,7 @@ import org.springframework.core.env.ConfigurableEnvironment;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class LdapIdentityProviderDefinitionTest {
 
@@ -46,7 +47,8 @@ public class LdapIdentityProviderDefinitionTest {
             false,
             true,
             true,
-            100);
+            100,
+            true);
 
         String config = JsonUtils.writeValueAsString(ldapIdentityProviderDefinition);
         LdapIdentityProviderDefinition deserialized = JsonUtils.readValue(config, LdapIdentityProviderDefinition.class);
@@ -79,6 +81,10 @@ public class LdapIdentityProviderDefinitionTest {
         assertNotNull(environment.getProperty("ldap.groups.maxSearchDepth"));
         assertEquals("100", environment.getProperty("ldap.groups.maxSearchDepth"));
 
+        //skip ssl verification
+        assertNotNull(environment.getProperty("ldap.ssl.skipverification"));
+        assertEquals("true", environment.getProperty("ldap.ssl.skipverification"));
+
         ldapIdentityProviderDefinition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
             "ldap://localhost:389/",
             "cn=admin,ou=Users,dc=test,dc=com",
@@ -92,7 +98,8 @@ public class LdapIdentityProviderDefinitionTest {
             true,
             true,
             true,
-            100);
+            100,
+            true);
 
         config = JsonUtils.writeValueAsString(ldapIdentityProviderDefinition);
         LdapIdentityProviderDefinition deserialized2 = JsonUtils.readValue(config, LdapIdentityProviderDefinition.class);

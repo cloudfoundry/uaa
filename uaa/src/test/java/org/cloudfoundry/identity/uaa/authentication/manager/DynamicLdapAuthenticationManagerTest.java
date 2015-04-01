@@ -28,7 +28,8 @@ public class DynamicLdapAuthenticationManagerTest {
         false,
         true,
         true,
-        100);
+        100,
+        true);
 
     @Test
     public void testGetLdapAuthenticationManager() throws Exception {

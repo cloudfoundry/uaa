@@ -1,5 +1,5 @@
 # Configuration in this file is overridden by an external file
-# if any of these exist: 
+# if any of these exist:
 # [$UAA_CONFIG_URL, $UAA_CONFIG_PATH/uaa.yml, $CLOUDFOUNDRY_CONFIG_PATH/uaa.yml]
 
 #spring_profiles: mysql,default
@@ -58,6 +58,7 @@
 #    url: 'ldaps://192.168.3.39:10636/'
 #    userDnPattern: 'cn={0},ou=Users,dc=test,dc=com;cn={0},ou=OtherUsers,dc=example,dc=com'
 #  ssl:
+#    skipverification: false
 #    sslCertificate: ! '-----BEGIN CERTIFICATE-----
 #    MIIBfTCCAScCBgFDfaC2yzANBgkqhkiG9w0BAQUFADBCMQswCQYDVQQGEwJVUzEMMAoGA1UEChMD
 #    QVNGMRIwEAYDVQQLEwlEaXJlY3RvcnkxETAPBgNVBAMTCEFwYWNoZURTMB4XDTE0MDExMDE5Mjg0
@@ -86,7 +87,7 @@
 #    url: 'ldap://localhost:10389/'
 #    userDn: 'cn=admin,dc=test,dc=com'
 #    password: 'password'
-#    searchBase: '' 
+#    searchBase: ''
 #    searchFilter: 'cn={0}'
 #    passwordAttributeName: userPassword
 #    passwordEncoder: org.cloudfoundry.identity.uaa.login.ldap.DynamicPasswordComparator
