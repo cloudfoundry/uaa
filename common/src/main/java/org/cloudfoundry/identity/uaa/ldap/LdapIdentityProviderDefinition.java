@@ -37,6 +37,7 @@ public class LdapIdentityProviderDefinition {
     private boolean autoAddGroups;
     private boolean groupSearchSubTree;
     private int maxGroupSearchDepth;
+    private boolean skipSSLVerification;
 
     public static LdapIdentityProviderDefinition searchAndBindMapGroupToScopes(
         String baseUrl,
@@ -51,7 +52,8 @@ public class LdapIdentityProviderDefinition {
         boolean mailSubstituteOverridesLdap,
         boolean autoAddGroups,
         boolean groupSearchSubTree,
-        int groupMaxSearchDepth) {
+        int groupMaxSearchDepth,
+        boolean skipSSLVerification) {
 
         LdapIdentityProviderDefinition definition = new LdapIdentityProviderDefinition();
         definition.baseUrl = baseUrl;
@@ -69,12 +71,16 @@ public class LdapIdentityProviderDefinition {
         definition.autoAddGroups = autoAddGroups;
         definition.groupSearchSubTree = groupSearchSubTree;
         definition.maxGroupSearchDepth = groupMaxSearchDepth;
+        definition.skipSSLVerification = skipSSLVerification;
         return definition;
     }
 
     @JsonIgnore
     public ConfigurableEnvironment getLdapConfigurationEnvironment() {
         Map<String,Object> properties = new HashMap<>();
+
+        properties.put("ldap.ssl.skipverification", isSkipSSLVerification());
+
         if ("ldap/ldap-search-and-bind.xml".equals(ldapProfileFile)) {
             properties.put("ldap.profile.file", getLdapProfileFile());
             properties.put("ldap.base.url", getBaseUrl());
@@ -219,6 +225,14 @@ public class LdapIdentityProviderDefinition {
         this.maxGroupSearchDepth = maxGroupSearchDepth;
     }
 
+    public boolean isSkipSSLVerification() {
+        return skipSSLVerification;
+    }
+
+    public void setSkipSSLVerification(boolean skipSSLVerification) {
+        this.skipSSLVerification = skipSSLVerification;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -248,6 +262,8 @@ public class LdapIdentityProviderDefinition {
             return false;
         if (maxGroupSearchDepth!=that.maxGroupSearchDepth)
             return false;
+        if (skipSSLVerification!=that.skipSSLVerification)
+            return false;
 
         return true;
     }
@@ -268,6 +284,7 @@ public class LdapIdentityProviderDefinition {
         result = 31 * result + (mailSubstituteOverridesLdap ? 1 : 0);
         result = 31 * result + (autoAddGroups ? 1 : 0);
         result = 31 * result + (groupSearchSubTree ? 1 : 0);
+        result = 31 * result + (skipSSLVerification ? 1 : 0);
         result = 31 * result + maxGroupSearchDepth;
         return result;
     }

@@ -26,9 +26,19 @@
     <bean id="ldapPooled" class="java.lang.Boolean">
         <constructor-arg value="false"/>
     </bean>
-    <util:map id="ldapProperties">
+
+    <util:map id="initialLdapProperties">
         <entry key="com.sun.jndi.ldap.connect.pool" value-ref="ldapPooled" />
     </util:map>
+
+    <bean id="ldapPropertyProcessor" class="org.cloudfoundry.identity.uaa.ldap.ProcessLdapProperties">
+        <constructor-arg name="disableSslVerification" value="${ldap.ssl.skipverification:false}"/>
+        <constructor-arg name="baseUrl" value="${ldap.base.url:ldap://localhost:389/dc=test,dc=com}"/>
+    </bean>
+
+    <bean id="ldapProperties" factory-bean="ldapPropertyProcessor" factory-method="process">
+        <constructor-arg ref="initialLdapProperties"/>
+    </bean>
 
     <bean id="ldapGroupMappingAuthorizationManager" class="org.cloudfoundry.identity.uaa.authorization.external.LdapGroupMappingAuthorizationManager">
         <property name="externalMembershipManager" ref="externalGroupMembershipManager" />

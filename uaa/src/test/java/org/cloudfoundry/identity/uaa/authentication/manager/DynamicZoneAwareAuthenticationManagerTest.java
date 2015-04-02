@@ -40,7 +40,8 @@ public class DynamicZoneAwareAuthenticationManagerTest {
         false,
         true,
         true,
-        100);
+        100,
+        true);
 
 
     AuthenticationManager authzAuthenticationMgr = mock(AuthenticationManager.class);

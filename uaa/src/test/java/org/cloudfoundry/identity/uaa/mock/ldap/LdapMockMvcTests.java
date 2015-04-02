@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationM
 import org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager;
 import org.cloudfoundry.identity.uaa.ldap.ExtendedLdapUserMapper;
 import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.ldap.ProcessLdapProperties;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
@@ -58,6 +59,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.ldap.server.ApacheDSContainer;
+import org.springframework.security.ldap.server.ApacheDsSSLContainer;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.web.servlet.MockMvc;
@@ -96,22 +98,25 @@ public class LdapMockMvcTests extends TestClassNullifier {
 
     private MockEnvironment mockEnvironment;
 
-    @Parameters(name = "{index}: auth[{0}]; group[{1}]")
+    @Parameters(name = "{index}: auth[{0}]; group[{1}]; url[{2}]")
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
-            {"ldap-simple-bind.xml", "ldap-groups-null.xml"},
-            {"ldap-simple-bind.xml", "ldap-groups-as-scopes.xml"},
-            {"ldap-simple-bind.xml", "ldap-groups-map-to-scopes.xml"},
-            {"ldap-search-and-bind.xml", "ldap-groups-null.xml"},
-            {"ldap-search-and-bind.xml", "ldap-groups-as-scopes.xml"},
-            {"ldap-search-and-bind.xml", "ldap-groups-map-to-scopes.xml"},
-            {"ldap-search-and-compare.xml", "ldap-groups-null.xml"},
-            {"ldap-search-and-compare.xml", "ldap-groups-as-scopes.xml"},
-            {"ldap-search-and-compare.xml", "ldap-groups-map-to-scopes.xml"}
+            {"ldap-simple-bind.xml", "ldap-groups-null.xml", "ldap://localhost:33389"},
+            {"ldap-simple-bind.xml", "ldap-groups-as-scopes.xml", "ldap://localhost:33389"},
+            {"ldap-simple-bind.xml", "ldap-groups-map-to-scopes.xml", "ldap://localhost:33389"},
+            {"ldap-simple-bind.xml", "ldap-groups-map-to-scopes.xml", "ldaps://localhost:33636"},
+            {"ldap-search-and-bind.xml", "ldap-groups-null.xml", "ldap://localhost:33389"},
+            {"ldap-search-and-bind.xml", "ldap-groups-as-scopes.xml", "ldap://localhost:33389"},
+            {"ldap-search-and-bind.xml", "ldap-groups-map-to-scopes.xml", "ldap://localhost:33389"},
+            {"ldap-search-and-bind.xml", "ldap-groups-map-to-scopes.xml", "ldaps://localhost:33636"},
+            {"ldap-search-and-compare.xml", "ldap-groups-null.xml", "ldap://localhost:33389"},
+            {"ldap-search-and-compare.xml", "ldap-groups-as-scopes.xml", "ldap://localhost:33389"},
+            {"ldap-search-and-compare.xml", "ldap-groups-map-to-scopes.xml", "ldap://localhost:33389"},
+            {"ldap-search-and-compare.xml", "ldap-groups-map-to-scopes.xml", "ldaps://localhost:33636"}
         });
     }
 
-    private static ApacheDSContainer apacheDS;
+    private static ApacheDsSSLContainer apacheDS;
     private static File tmpDir;
 
     @AfterClass
@@ -125,9 +130,10 @@ public class LdapMockMvcTests extends TestClassNullifier {
         tmpDir.deleteOnExit();
         System.out.println(tmpDir);
         //configure properties for running against ApacheDS
-        apacheDS = new ApacheDSContainer("dc=test,dc=com","classpath:ldap_init.ldif");
+        apacheDS = new ApacheDsSSLContainer("dc=test,dc=com","classpath:ldap_init.ldif");
         apacheDS.setWorkingDirectory(tmpDir);
         apacheDS.setPort(33389);
+        apacheDS.setSslPort(33636);
         apacheDS.afterPropertiesSet();
         apacheDS.start();
     }
@@ -143,10 +149,12 @@ public class LdapMockMvcTests extends TestClassNullifier {
 
     private String ldapProfile;
     private String ldapGroup;
+    private String ldapBaseUrl;
 
-    public LdapMockMvcTests(String ldapProfile, String ldapGroup) {
+    public LdapMockMvcTests(String ldapProfile, String ldapGroup, String baseUrl) {
         this.ldapGroup = ldapGroup;
         this.ldapProfile = ldapProfile;
+        this.ldapBaseUrl = baseUrl;
     }
 
     @Before
@@ -160,9 +168,10 @@ public class LdapMockMvcTests extends TestClassNullifier {
         mockEnvironment.setProperty("ldap.profile.file", "ldap/" + ldapProfile);
         mockEnvironment.setProperty("ldap.groups.file", "ldap/" + ldapGroup);
         mockEnvironment.setProperty("ldap.group.maxSearchDepth", "10");
-        mockEnvironment.setProperty("ldap.base.url","ldap://localhost:33389");
+        mockEnvironment.setProperty("ldap.base.url",ldapBaseUrl);
         mockEnvironment.setProperty("ldap.base.userDn","cn=admin,ou=Users,dc=test,dc=com");
         mockEnvironment.setProperty("ldap.base.password","adminsecret");
+        mockEnvironment.setProperty("ldap.ssl.skipverification","true");
 
         webApplicationContext = new XmlWebApplicationContext();
         webApplicationContext.setEnvironment(mockEnvironment);
@@ -228,7 +237,8 @@ public class LdapMockMvcTests extends TestClassNullifier {
             false,
             true,
             true,
-            10
+            10,
+            true
         );
 
         IdentityProvider provider = new IdentityProvider();
@@ -303,7 +313,8 @@ public class LdapMockMvcTests extends TestClassNullifier {
             false,
             true,
             true,
-            10
+            10,
+            true
         );
         provider.setConfig(JsonUtils.writeValueAsString(definition));
         request = new IdentityProviderValidationRequest(provider, token);
@@ -334,7 +345,8 @@ public class LdapMockMvcTests extends TestClassNullifier {
             false,
             true,
             true,
-            10
+            10,
+            true
         );
         provider.setConfig(JsonUtils.writeValueAsString(definition));
         request = new IdentityProviderValidationRequest(provider, token);
@@ -365,7 +377,8 @@ public class LdapMockMvcTests extends TestClassNullifier {
             false,
             true,
             true,
-            10
+            10,
+            true
         );
         provider.setConfig(JsonUtils.writeValueAsString(definition));
         request = new IdentityProviderValidationRequest(provider, token);
@@ -381,6 +394,57 @@ public class LdapMockMvcTests extends TestClassNullifier {
             .andExpect(status().isBadRequest())
             .andReturn();
         assertThat(result.getResponse().getContentAsString(), containsString("Caused by:"));
+
+        ProcessLdapProperties processLdapProperties = webApplicationContext.getBean(ProcessLdapProperties.class);
+        if (processLdapProperties.isLdapsUrl()) {
+            token = new UsernamePasswordAuthentication("marissa2", "ldap");
+
+            //SSL self signed cert problems
+            definition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
+                "ldaps://localhost:33636",
+                "cn=admin,ou=Users,dc=test,dc=com",
+                "adminsecret",
+                "dc=test,dc=com",
+                "cn={0}",
+                "ou=scopes,dc=test,dc=com",
+                "member={0}",
+                "mail",
+                null,
+                false,
+                true,
+                true,
+                10,
+                false
+            );
+            provider.setConfig(JsonUtils.writeValueAsString(definition));
+            request = new IdentityProviderValidationRequest(provider, token);
+            post = post("/identity-providers/test")
+                .header("Accept", APPLICATION_JSON_VALUE)
+                .header("Content-Type", APPLICATION_JSON_VALUE)
+                .header("Authorization", "Bearer " + zoneAdminToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(request))
+                .header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
+            result = mockMvc.perform(post)
+                .andExpect(status().isBadRequest())
+                .andReturn();
+            assertThat(result.getResponse().getContentAsString(), containsString("Caused by:"));
+            definition.setSkipSSLVerification(true);
+            provider.setConfig(JsonUtils.writeValueAsString(definition));
+            request = new IdentityProviderValidationRequest(provider, token);
+            post = post("/identity-providers/test")
+                .header("Accept", APPLICATION_JSON_VALUE)
+                .header("Content-Type", APPLICATION_JSON_VALUE)
+                .header("Authorization", "Bearer " + zoneAdminToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(request))
+                .header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
+
+            result = mockMvc.perform(post)
+                .andExpect(status().isOk())
+                .andReturn();
+            assertThat(result.getResponse().getContentAsString(), containsString("\"ok\""));
+        }
     }
 
     @Test
@@ -421,7 +485,8 @@ public class LdapMockMvcTests extends TestClassNullifier {
             false,
             true,
             true,
-            10
+            10,
+            true
         );
 
         IdentityProvider provider = new IdentityProvider();
@@ -471,7 +536,8 @@ public class LdapMockMvcTests extends TestClassNullifier {
             true,
             true,
             true,
-            10
+            10,
+            true
         );
         provider.setConfig(JsonUtils.writeValueAsString(definition));
         MockMvcUtils.utils().createIdpUsingWebRequest(mockMvc, zone.getId(), zoneAdminToken, provider, status().isOk(), true);
