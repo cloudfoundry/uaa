@@ -20,7 +20,7 @@ import java.util.Map;
 public class ProcessLdapProperties {
 
     public static final String LDAP_SOCKET_FACTORY = "java.naming.ldap.factory.socket";
-    public static final String SKIP_SSL_VERIFICATION_SOCKET_FACTORY = "org.apache.directory.shared.ldap.util.DummySSLSocketFactory";
+    public static final String SKIP_SSL_VERIFICATION_SOCKET_FACTORY = "org.apache.directory.api.util.DummySSLSocketFactory";
 
     private boolean disableSslVerification;
     private String baseUrl;
