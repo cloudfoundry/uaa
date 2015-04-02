@@ -68,7 +68,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
-public class LoginMockMvcIntegrationTests extends TestClassNullifier {
+public class LoginMockMvcTests extends TestClassNullifier {
 
     private static MockEnvironment mockEnvironment = new MockEnvironment();
 

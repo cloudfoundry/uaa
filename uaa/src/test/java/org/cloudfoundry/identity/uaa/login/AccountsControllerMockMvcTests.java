@@ -52,7 +52,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
 import static org.springframework.util.StringUtils.isEmpty;
 
-public class AccountsControllerIntegrationTest extends TestClassNullifier {
+public class AccountsControllerMockMvcTests extends TestClassNullifier {
 
     XmlWebApplicationContext webApplicationContext;
 
@@ -300,7 +300,7 @@ public class AccountsControllerIntegrationTest extends TestClassNullifier {
         identityZone.setSubdomain("mysubdomain");
         identityZone.setName("myzonename");
         identityZone.setId(new RandomValueStringGenerator().generate());
-        
+
 
         BaseClientDetails clientDetails = new BaseClientDetails();
         clientDetails.setClientId("myzoneclient");

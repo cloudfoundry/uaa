@@ -271,6 +271,15 @@ public class SamlLoginIT {
         assertNotNull(elements);
         assertEquals(0, elements.size());
 
+        provider.setActive(true);
+        provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken,baseUrl,provider);
+        assertNotNull(provider.getId());
+        webDriver.get(testZone1Url + "/login");
+        Assert.assertEquals("Cloud Foundry", webDriver.getTitle());
+        elements = webDriver.findElements(By.xpath("//a[text()='"+identityProviderDefinition.getLinkText()+"']"));
+        assertNotNull(elements);
+        assertEquals(1, elements.size());
+
     }
 
     @Test

@@ -14,23 +14,10 @@
 
 package org.cloudfoundry.identity.uaa.mock.util;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.UUID;
-
-import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-import org.cloudfoundry.identity.uaa.rest.SearchResults;
-import org.codehaus.jackson.type.TypeReference;
-import org.junit.Assert;
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.rest.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -47,6 +34,8 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.type.TypeReference;
+import org.junit.Assert;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -67,6 +56,17 @@ import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.UUID;
+
+import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class MockMvcUtils {
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -143,6 +143,7 @@ public class MockMvcUtils {
         // use that user to create an admin client in the new zone
         String zoneAdminAuthcodeToken = getUserOAuthAccessTokenAuthCode(mockMvc, "identity", "identitysecret",
                 marissa.getId(), "marissa", "koala", zoneAdminScope);
+
         mockMvc.perform(post("/oauth/clients")
                 .header("Authorization", "Bearer " + zoneAdminAuthcodeToken)
                 .header("X-Identity-Zone-Id", identityZone.getId())
@@ -250,18 +251,42 @@ public class MockMvcUtils {
                 .andReturn().getResponse().getContentAsByteArray(),
             ScimGroup.class);
     }
+    public BaseClientDetails createClient(MockMvc mockMvc, String accessToken, BaseClientDetails clientDetails) throws Exception {
+        return createClient(mockMvc, accessToken, clientDetails, IdentityZone.getUaa());
+    }
 
-    public BaseClientDetails createClient(MockMvc mockMvc, String accessToken, BaseClientDetails clientDetails)
+    public BaseClientDetails createClient(MockMvc mockMvc, String accessToken, BaseClientDetails clientDetails, IdentityZone zone)
             throws Exception {
         MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
                 .header("Authorization", "Bearer " + accessToken)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
                 .content(new ObjectMapper().writeValueAsString(clientDetails));
+        if (! zone.equals(IdentityZone.getUaa())) {
+            createClientPost = createClientPost.header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
+        }
         return new ObjectMapper().readValue(
                 mockMvc.perform(createClientPost)
                         .andExpect(status().isCreated())
                         .andReturn().getResponse().getContentAsByteArray(), BaseClientDetails.class);
+    }
+
+    public BaseClientDetails updateClient(MockMvc mockMvc, String accessToken, BaseClientDetails clientDetails, IdentityZone zone)
+        throws Exception {
+        MockHttpServletRequestBuilder updateClientPut =
+            put("/oauth/clients/" + clientDetails.getClientId())
+                .header("Authorization", "Bearer " + accessToken)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(new ObjectMapper().writeValueAsString(clientDetails));
+        if (! zone.equals(IdentityZone.getUaa())) {
+            updateClientPut = updateClientPut.header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
+        }
+
+        return new ObjectMapper().readValue(
+            mockMvc.perform(updateClientPut)
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsByteArray(), BaseClientDetails.class);
     }
 
     public String getZoneAdminToken(MockMvc mockMvc, String adminToken, String zoneId) throws Exception {
