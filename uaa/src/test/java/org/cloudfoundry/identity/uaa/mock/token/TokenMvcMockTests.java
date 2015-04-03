@@ -180,8 +180,8 @@ public class TokenMvcMockTests extends TestClassNullifier {
     }
     private IdentityProvider setupIdentityProvider(String origin) {
         IdentityProvider defaultIdp = new IdentityProvider();
-        defaultIdp.setName("internal");
-        defaultIdp.setType("internal");
+        defaultIdp.setName(origin);
+        defaultIdp.setType(origin);
         defaultIdp.setOriginKey(origin);
         defaultIdp.setIdentityZoneId(IdentityZoneHolder.get().getId());
         return identityProviderProvisioning.create(defaultIdp);
