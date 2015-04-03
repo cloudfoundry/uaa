@@ -52,7 +52,7 @@ public class IdentityZoneEndpoints {
     private final IdentityZoneProvisioning zoneDao;
     private final IdentityProviderProvisioning idpDao;
     private final IdentityZoneEndpointClientRegistrationService clientRegistrationService;
-    
+
 
     public IdentityZoneEndpoints(IdentityZoneProvisioning zoneDao, IdentityProviderProvisioning idpDao,
             IdentityZoneEndpointClientRegistrationService clientRegistrationService) {
@@ -69,7 +69,7 @@ public class IdentityZoneEndpoints {
 
     @RequestMapping(method = POST)
     public ResponseEntity<IdentityZone> createIdentityZone(@RequestBody @Valid IdentityZone body) {
-        
+
         if (!StringUtils.hasText(body.getId())) {
             body.setId(UUID.randomUUID().toString());
         }
@@ -78,8 +78,8 @@ public class IdentityZoneEndpoints {
             IdentityZone created = zoneDao.create(body);
             IdentityZoneHolder.set(created);
             IdentityProvider defaultIdp = new IdentityProvider();
-            defaultIdp.setName("internal");
-            defaultIdp.setType("internal");
+            defaultIdp.setName(Origin.UAA);
+            defaultIdp.setType(Origin.UAA);
             defaultIdp.setOriginKey(Origin.UAA);
             defaultIdp.setIdentityZoneId(created.getId());
             idpDao.create(defaultIdp);
@@ -93,7 +93,7 @@ public class IdentityZoneEndpoints {
     @RequestMapping(value = "{id}", method = PUT)
     public ResponseEntity<IdentityZone> updateIdentityZone(
             @RequestBody @Valid IdentityZone body, @PathVariable String id) {
-        
+
         IdentityZone previous = IdentityZoneHolder.get();
         try {
             // make sure it exists
@@ -111,7 +111,7 @@ public class IdentityZoneEndpoints {
     @RequestMapping(method = POST, value = "{identityZoneId}/clients")
     public ResponseEntity<? extends ClientDetails> createClient(
             @PathVariable String identityZoneId, @RequestBody BaseClientDetails clientDetails) {
-        
+
         IdentityZone previous = IdentityZoneHolder.get();
         try {
             IdentityZone identityZone = zoneDao.retrieve(identityZoneId);
@@ -128,23 +128,23 @@ public class IdentityZoneEndpoints {
         response.setClientSecret(null);
         return response;
     }
-    
+
     @RequestMapping(method = DELETE, value = "{identityZoneId}/clients/{clientId}")
     public ResponseEntity<? extends ClientDetails> deleteClient(
             @PathVariable String identityZoneId, @PathVariable String clientId) {
-        
+
         IdentityZone previous = IdentityZoneHolder.get();
         try {
             IdentityZone identityZone = zoneDao.retrieve(identityZoneId);
             IdentityZoneHolder.set(identityZone);
             ClientDetails deleted = clientRegistrationService.deleteClient(clientId);
-            
+
             return new ResponseEntity<>(removeSecret(deleted), OK);
         } finally {
             IdentityZoneHolder.set(previous);
         }
     }
-    
+
     @ExceptionHandler(ZoneAlreadyExistsException.class)
     public ResponseEntity<ZoneAlreadyExistsException> handleZoneAlreadyExistsException(ZoneAlreadyExistsException e) {
         return new ResponseEntity<>(e, CONFLICT);
