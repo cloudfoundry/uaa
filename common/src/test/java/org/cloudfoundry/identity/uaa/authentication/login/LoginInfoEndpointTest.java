@@ -187,7 +187,7 @@ public class LoginInfoEndpointTest  {
         clientIDPs.add(createIdentityProviderDefinition("my-client-awesome-idp1", "uaa"));
         clientIDPs.add(createIdentityProviderDefinition("my-client-awesome-idp2", "uaa"));
         IdentityProviderConfigurator mockIDPConfigurator = mock(IdentityProviderConfigurator.class);
-        when(mockIDPConfigurator.getIdentityProviderDefinitions(allowedProviders, IdentityZoneHolder.get(), false)).thenReturn(clientIDPs);
+        when(mockIDPConfigurator.getIdentityProviderDefinitions(eq(allowedProviders), eq(IdentityZone.getUaa()), eq(false))).thenReturn(clientIDPs);
 
         LoginInfoEndpoint endpoint = getEndpoint();
         endpoint.setClientDetailsService(clientDetailsService);
