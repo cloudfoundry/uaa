@@ -63,9 +63,9 @@ public class IdentityProviderConfigurator implements InitializingBean {
         return result;
     }
 
-    public List<IdentityProviderDefinition> getIdentityProviderDefinitions(List<String> allowedIdps, IdentityZone zone, boolean allowEmptyDefaultIdpList) {
+    public List<IdentityProviderDefinition> getIdentityProviderDefinitions(List<String> allowedIdps, IdentityZone zone) {
         List<IdentityProviderDefinition> idpsInTheZone = getIdentityProviderDefinitionsForZone(zone);
-        if (allowedIdps != null && !allowedIdps.isEmpty()) {
+        if (allowedIdps != null) {
             List<IdentityProviderDefinition> result = new LinkedList<>();
             for (IdentityProviderDefinition def : idpsInTheZone) {
                 if (allowedIdps.contains(def.getIdpEntityAlias())) {
@@ -74,7 +74,7 @@ public class IdentityProviderConfigurator implements InitializingBean {
             }
             return result;
         }
-        return allowEmptyDefaultIdpList ? Collections.<IdentityProviderDefinition>emptyList() : idpsInTheZone;
+        return idpsInTheZone;
     }
 
     protected List<IdentityProviderDefinition> parseIdentityProviderDefinitions() {

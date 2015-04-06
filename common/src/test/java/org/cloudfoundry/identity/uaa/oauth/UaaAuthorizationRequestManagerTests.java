@@ -89,7 +89,7 @@ public class UaaAuthorizationRequestManagerTests {
         factory.checkClientIdpAuthorization(client, user);
     }
 
-    @Test(expected = UnauthorizedClientException.class)
+    @Test
     public void testClientIDPAuthorizationInNonUAAzoneNoList() {
         IdentityZoneHolder.set(MultitenancyFixture.identityZone("test", "test"));
         factory.checkClientIdpAuthorization(client, user);

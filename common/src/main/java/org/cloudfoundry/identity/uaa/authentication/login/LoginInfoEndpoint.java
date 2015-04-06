@@ -193,14 +193,8 @@ public class LoginInfoEndpoint {
     private String login(Model model, Principal principal, List<String> excludedPrompts, boolean nonHtml, HttpServletRequest request) {
         HttpSession session = request != null ? request.getSession(false) : null;
         List<String> allowedIdps = getAllowedIdps(session);
-        boolean allowEmptyIdpList;
-        if (hasSavedOauthAuthorizeRequest(session)) {
-            allowEmptyIdpList = !IdentityZoneHolder.isUaa();
-        } else {
-            allowEmptyIdpList = false;
-        }
 
-        List<IdentityProviderDefinition> idps = getIdentityProviderDefinitions(allowedIdps, allowEmptyIdpList);
+        List<IdentityProviderDefinition> idps = getIdentityProviderDefinitions(allowedIdps);
 
         if (allowedIdps==null ||
             allowedIdps.contains(Origin.LDAP) ||
@@ -253,8 +247,8 @@ public class LoginInfoEndpoint {
         return "home";
     }
 
-    protected List<IdentityProviderDefinition> getIdentityProviderDefinitions(List<String> allowedIdps, boolean allowEmptyList) {
-        return idpDefinitions.getIdentityProviderDefinitions(allowedIdps, IdentityZoneHolder.get(), allowEmptyList);
+    protected List<IdentityProviderDefinition> getIdentityProviderDefinitions(List<String> allowedIdps) {
+        return idpDefinitions.getIdentityProviderDefinitions(allowedIdps, IdentityZoneHolder.get());
     }
 
     protected boolean hasSavedOauthAuthorizeRequest(HttpSession session) {

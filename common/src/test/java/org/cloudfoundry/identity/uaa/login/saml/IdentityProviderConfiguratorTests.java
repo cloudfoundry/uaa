@@ -195,7 +195,7 @@ public class IdentityProviderConfiguratorTests {
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, clientIdpAliases);
 
         conf.setIdentityProviders(data);
-        List<IdentityProviderDefinition> clientIdps = conf.getIdentityProviderDefinitions(clientIdpAliases, IdentityZoneHolder.get(), false);
+        List<IdentityProviderDefinition> clientIdps = conf.getIdentityProviderDefinitions(clientIdpAliases, IdentityZoneHolder.get());
         assertEquals(2, clientIdps.size());
         assertTrue(clientIdpAliases.contains(clientIdps.get(0).getIdpEntityAlias()));
         assertTrue(clientIdpAliases.contains(clientIdps.get(1).getIdpEntityAlias()));
@@ -207,7 +207,7 @@ public class IdentityProviderConfiguratorTests {
         IdentityProviderDefinition identityProviderDefinitionInOtherZone = new IdentityProviderDefinition(xml, "zoneIdpAlias","sample-nameID",1,true,true,"sample-link-test","sample-icon-url","other-zone-id");
         conf.addIdentityProviderDefinition(identityProviderDefinitionInOtherZone);
 
-        List<IdentityProviderDefinition> clientIdps = conf.getIdentityProviderDefinitions(null, IdentityZoneHolder.get(), false);
+        List<IdentityProviderDefinition> clientIdps = conf.getIdentityProviderDefinitions(null, IdentityZoneHolder.get());
         assertEquals(5, clientIdps.size());
     }
 
@@ -217,8 +217,8 @@ public class IdentityProviderConfiguratorTests {
         IdentityProviderDefinition identityProviderDefinitionInOtherZone = new IdentityProviderDefinition(xml, "zoneIdpAlias","sample-nameID",1,true,true,"sample-link-test","sample-icon-url","other-zone-id");
         conf.addIdentityProviderDefinition(identityProviderDefinitionInOtherZone);
 
-        List<IdentityProviderDefinition> clientIdps = conf.getIdentityProviderDefinitions(null, IdentityZoneHolder.get(), true);
-        assertTrue(clientIdps.isEmpty());
+        List<IdentityProviderDefinition> clientIdps = conf.getIdentityProviderDefinitions(null, IdentityZoneHolder.get());
+        assertFalse(clientIdps.isEmpty());
     }
 
     @Test

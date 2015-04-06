@@ -258,7 +258,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
     }
 
     @Test
-    public void testClientIdentityProviderRestrictionInEffectInAnotherZoneForClientWithoutAllowedProvidersForPasswordGrant() throws Exception {
+    public void testClientIdentityProviderWithoutAllowedProvidersForPasswordGrantWorksInOtherZone() throws Exception {
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,openid";
 
         //a client without allowed providers in non default zone should always be rejected
@@ -286,7 +286,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .param(OAuth2Utils.GRANT_TYPE, "password")
             .param(OAuth2Utils.CLIENT_ID, clientId))
             .andDo(print())
-            .andExpect(status().isUnauthorized());
+            .andExpect(status().isOk());
 
         mockMvc.perform(post("/oauth/token")
             .with(new SetServerNameRequestPostProcessor(subdomain+".localhost"))
@@ -304,7 +304,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
 
 
     @Test
-    public void testClientIdentityProviderRestrictionInEffectInAnotherZoneForClientWithoutAllowedProvidersForAuthCodeAlreadyLoggedIn() throws Exception {
+    public void testClientIdentityProviderClientWithoutAllowedProvidersForAuthCodeAlreadyLoggedInWorksInAnotherZone() throws Exception {
         //a client without allowed providers in non default zone should always be rejected
         String subdomain = "testzone"+new RandomValueStringGenerator().generate();
         IdentityZone testZone = setupIdentityZone(subdomain);
@@ -318,6 +318,9 @@ public class TokenMvcMockTests extends TestClassNullifier {
 
         String clientId2 = "testclient"+new RandomValueStringGenerator().generate();
         setUpClients(clientId2, scopes, scopes, "authorization_code,password", true, TEST_REDIRECT_URI, Arrays.asList(provider.getOriginKey()));
+
+        String clientId3 = "testclient"+new RandomValueStringGenerator().generate();
+        setUpClients(clientId3, scopes, scopes, "authorization_code,password", true, TEST_REDIRECT_URI, Arrays.asList(Origin.LOGIN_SERVER));
 
         String username = "testuser"+new RandomValueStringGenerator().generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
@@ -336,6 +339,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
         String state = new RandomValueStringGenerator().generate();
         IdentityZoneHolder.clear();
 
+        //no providers is ok
         mockMvc.perform(get("/oauth/authorize")
             .session(session)
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
@@ -343,10 +347,9 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .param(OAuth2Utils.STATE, state)
             .param(OAuth2Utils.CLIENT_ID, clientId)
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI))
-            .andDo(print()).andExpect(status().isUnauthorized())
-            .andExpect(model().attributeExists("error"))
-            .andExpect(model().attribute("error_message_code","login.invalid_idp"));
+            .andDo(print()).andExpect(status().isFound());
 
+        //correct provider is ok
         MvcResult result = mockMvc.perform(get("/oauth/authorize")
             .session(session)
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
@@ -356,6 +359,18 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI))
             .andDo(print()).andExpect(status().isFound())
             .andReturn();
+
+        //other provider, not ok
+        mockMvc.perform(get("/oauth/authorize")
+            .session(session)
+            .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
+            .param(OAuth2Utils.RESPONSE_TYPE, "code")
+            .param(OAuth2Utils.STATE, state)
+            .param(OAuth2Utils.CLIENT_ID, clientId3)
+            .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI))
+            .andDo(print()).andExpect(status().isUnauthorized())
+            .andExpect(model().attributeExists("error"))
+            .andExpect(model().attribute("error_message_code","login.invalid_idp"));
 
 
         URL url = new URL(result.getResponse().getHeader("Location").replace("redirect#","redirect?"));
