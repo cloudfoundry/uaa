@@ -947,6 +947,7 @@ Fields            *Available Fields* ::
                     autoAddGroups               boolean          Required Currently not used
                     groupSearchSubTree          boolean          Required Should the sub tree be searched for user groups
                     groupMaxSearchDepth         int              Required When searching for nested groups (groups within groups)
+                    skipSSLVerification         boolean          Optional Set to true if you wish to skip SSL certificate verification (
 
 Curl Example      POST (Creating a SAML provider)::
 
