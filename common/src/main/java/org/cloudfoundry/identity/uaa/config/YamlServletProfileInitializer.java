@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -16,6 +16,8 @@ import org.apache.log4j.MDC;
 import org.cloudfoundry.identity.uaa.config.YamlProcessor.ResolutionMethod;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.core.env.PropertySource;
+import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.util.Log4jConfigurer;
@@ -39,15 +41,15 @@ import java.util.Set;
  * logging configuration. A YAML config file is loaded if present and inserted
  * into the environment. In addition if the
  * YAML contains some special properties, some initialization is carried out:
- * 
+ *
  * <ul>
  * <li><code>spring_profiles</code> - then the active profiles are set</li>
  * <li><code>logging.config</code> - then log4j is initialized from that
  * location (if it exists)</li>
  * </ul>
- * 
+ *
  * @author Dave Syer
- * 
+ *
  */
 public class YamlServletProfileInitializer implements ApplicationContextInitializer<ConfigurableWebApplicationContext> {
 
@@ -138,16 +140,24 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
             String location = environment.getProperty("logging.file");
             servletContext.log("Setting LOG_FILE: " + location);
             System.setProperty("LOG_FILE", location);
-        }
-
-        else if (environment.containsProperty("logging.path")) {
+        } else if (environment.containsProperty("logging.path")) {
             String location = environment.getProperty("logging.path");
             servletContext.log("Setting LOG_PATH: " + location);
             System.setProperty("LOG_PATH", location);
-        }
-
-        else if (environment.containsProperty("logging.config")) {
-            log4jConfigLocation = environment.getProperty("logging.config");
+        } else if (environment.containsProperty("logging.config")) {
+            //tomcat sets the LOGGING_CONFIG environment variable,
+            //we do not want that variable
+            //this variable starts with -D, so we can ignore it.
+            String location = environment.getProperty("logging.config");
+            if (location!=null && location.trim().length()>0) {
+                PropertySource<?> environmentPropertySource = environment.getPropertySources().get(StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME);
+                if ((location.startsWith("-D") && environmentPropertySource!=null && location.equals(environmentPropertySource.getProperty("LOGGING_CONFIG")))) {
+                    servletContext.log("Ignoring Log Config Location: " + location + ". Location is suspect to be a Tomcat startup script environment variable");
+                } else {
+                    servletContext.log("Setting Log Config Location: " + location + " based on logging.config setting.");
+                    log4jConfigLocation = environment.getProperty("logging.config");
+                }
+            }
         }
 
         try {

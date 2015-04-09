@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -13,8 +13,12 @@
 package org.cloudfoundry.identity.uaa.config;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.times;
 
 import java.util.Enumeration;
+import java.util.List;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
@@ -24,10 +28,13 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Matchers;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.springframework.core.env.PropertySource;
+import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.util.Log4jConfigurer;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
@@ -35,7 +42,7 @@ import org.springframework.web.context.support.StandardServletEnvironment;
 
 /**
  * @author Dave Syer
- * 
+ *
  */
 public class YamlServletProfileInitializerTests {
 
@@ -95,7 +102,7 @@ public class YamlServletProfileInitializerTests {
     public void testLoadDefaultResource() throws Exception {
 
         Mockito.when(context.getResource(Matchers.contains("${APPLICATION_CONFIG_URL}"))).thenReturn(
-                        new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
+            new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
 
         initializer.initialize(context);
 
@@ -110,7 +117,7 @@ public class YamlServletProfileInitializerTests {
         System.setProperty("spring.profiles.active", "foo");
 
         Mockito.when(context.getResource(Matchers.anyString())).thenReturn(
-                        new ByteArrayResource("spring_profiles: bar".getBytes()));
+            new ByteArrayResource("spring_profiles: bar".getBytes()));
 
         initializer.initialize(context);
 
@@ -147,7 +154,7 @@ public class YamlServletProfileInitializerTests {
     @Test
     public void testLog4jConfigurationFromYaml() throws Exception {
         Mockito.when(context.getResource(Matchers.anyString())).thenReturn(
-                        new ByteArrayResource("logging:\n  config: bar".getBytes()));
+            new ByteArrayResource("logging:\n  config: bar".getBytes()));
         initializer.initialize(context);
     }
 
@@ -216,6 +223,54 @@ public class YamlServletProfileInitializerTests {
 
         assertEquals("bar", environment.getProperty("foo"));
         assertEquals("baz", environment.getProperty("spam.foo"));
+    }
+
+    @Test
+    public void testLoggingConfigVariableWorks() throws Exception {
+        System.setProperty("APPLICATION_CONFIG_FILE", "foo/uaa.yml");
+        Mockito.when(context.getResource(Matchers.eq("file:foo/uaa.yml"))).thenReturn(
+            new ByteArrayResource("logging:\n  config: /some/path".getBytes()));
+        initializer.initialize(context);
+        assertEquals("/some/path", environment.getProperty("logging.config"));
+    }
+
+    @Test
+    public void testIgnoreDashDTomcatLoggingConfigVariable() throws Exception {
+        final String tomcatLogConfig = "-Djava.util.logging.config=/some/path/logging.properties";;
+        System.setProperty("APPLICATION_CONFIG_FILE", "foo/uaa.yml");
+        ArgumentCaptor<String> servletLogCaptor = ArgumentCaptor.forClass(String.class);
+        Mockito.when(context.getResource(Matchers.eq("file:foo/uaa.yml"))).thenReturn(
+            new ByteArrayResource(("logging:\n  config: "+tomcatLogConfig).getBytes()));
+        environment.getPropertySources().addFirst(new PropertySource<Object>(StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME) {
+            @Override
+            public boolean containsProperty(String name) {
+                if ("LOGGING_CONFIG".equals(name)) {
+                    return true;
+                } else {
+                    return super.containsProperty(name);
+                }
+            }
+
+            @Override
+            public Object getProperty(String name) {
+                if ("LOGGING_CONFIG".equals(name)) {
+                    return tomcatLogConfig;
+                } else {
+                    return System.getenv(name);
+                }
+
+            }
+        });
+        initializer.initialize(context);
+        assertEquals("-Djava.util.logging.config=/some/path/logging.properties", environment.getProperty("logging.config"));
+        Mockito.verify(servletContext,atLeastOnce()).log(servletLogCaptor.capture());
+        boolean logEntryFound = false;
+        for (String s : servletLogCaptor.getAllValues()) {
+            if (s.startsWith("Ignoring Log Config Location") && s.contains("Tomcat startup script environment variable")) {
+                logEntryFound = true;
+            }
+        }
+        assertTrue("Expected to find a log entry indicating that the LOGGING_CONFIG variable was found.", logEntryFound);
     }
 
     private static class EmptyEnumerationOfString implements Enumeration<String> {
