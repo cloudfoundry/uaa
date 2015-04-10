@@ -48,7 +48,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/identity-zones")
 public class IdentityZoneEndpoints {
 
-    private static final Logger log = LoggerFactory.getLogger(IdentityZoneEndpoints.class);
+    private static final Logger logger = LoggerFactory.getLogger(IdentityZoneEndpoints.class);
     private final IdentityZoneProvisioning zoneDao;
     private final IdentityProviderProvisioning idpDao;
     private final IdentityZoneEndpointClientRegistrationService clientRegistrationService;
@@ -75,6 +75,7 @@ public class IdentityZoneEndpoints {
         }
         IdentityZone previous = IdentityZoneHolder.get();
         try {
+            logger.debug("Zone - creating id["+body.getId()+"] subdomain["+body.getSubdomain()+"]");
             IdentityZone created = zoneDao.create(body);
             IdentityZoneHolder.set(created);
             IdentityProvider defaultIdp = new IdentityProvider();
@@ -83,7 +84,7 @@ public class IdentityZoneEndpoints {
             defaultIdp.setOriginKey(Origin.UAA);
             defaultIdp.setIdentityZoneId(created.getId());
             idpDao.create(defaultIdp);
-
+            logger.debug("Zone - created id[" + created.getId() + "] subdomain[" + created.getSubdomain() + "]");
             return new ResponseEntity<>(created, CREATED);
         } finally {
             IdentityZoneHolder.set(previous);
@@ -93,15 +94,16 @@ public class IdentityZoneEndpoints {
     @RequestMapping(value = "{id}", method = PUT)
     public ResponseEntity<IdentityZone> updateIdentityZone(
             @RequestBody @Valid IdentityZone body, @PathVariable String id) {
-
         IdentityZone previous = IdentityZoneHolder.get();
         try {
+            logger.debug("Zone - updating id["+id+"] subdomain["+body.getSubdomain()+"]");
             // make sure it exists
             zoneDao.retrieve(id);
             // ignore the id in the body, the id in the path is the only one that matters
             body.setId(id);
             IdentityZone updated = zoneDao.update(body);
-            IdentityZoneHolder.set(updated);
+            IdentityZoneHolder.set(updated); //what???
+            logger.debug("Zone - updated id[" + updated.getId() + "] subdomain[" + updated.getSubdomain() + "]");
             return new ResponseEntity<>(updated, OK);
         } finally {
             IdentityZoneHolder.set(previous);
@@ -114,9 +116,11 @@ public class IdentityZoneEndpoints {
 
         IdentityZone previous = IdentityZoneHolder.get();
         try {
+            logger.debug("Zone creating client zone["+identityZoneId+"] client["+clientDetails.getClientId()+"]");
             IdentityZone identityZone = zoneDao.retrieve(identityZoneId);
             IdentityZoneHolder.set(identityZone);
             ClientDetails createdClient = clientRegistrationService.createClient(clientDetails);
+            logger.debug("Zone client created zone["+identityZoneId+"] client["+clientDetails.getClientId()+"]");
             return new ResponseEntity<>(removeSecret(createdClient), CREATED);
         } finally {
             IdentityZoneHolder.set(previous);
@@ -135,10 +139,11 @@ public class IdentityZoneEndpoints {
 
         IdentityZone previous = IdentityZoneHolder.get();
         try {
+            logger.debug("Zone deleting client zone["+identityZoneId+ "] client[" + clientId+"]");
             IdentityZone identityZone = zoneDao.retrieve(identityZoneId);
             IdentityZoneHolder.set(identityZone);
             ClientDetails deleted = clientRegistrationService.deleteClient(clientId);
-
+            logger.debug("Zone client deleted zone["+identityZoneId+"] client["+clientId+"]");
             return new ResponseEntity<>(removeSecret(deleted), OK);
         } finally {
             IdentityZoneHolder.set(previous);
@@ -183,7 +188,7 @@ public class IdentityZoneEndpoints {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Void> handleException(Exception e) {
-        log.error(e.getClass() + ": " + e.getMessage(), e);
+        logger.error(e.getClass() + ": " + e.getMessage(), e);
         return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
     }
 

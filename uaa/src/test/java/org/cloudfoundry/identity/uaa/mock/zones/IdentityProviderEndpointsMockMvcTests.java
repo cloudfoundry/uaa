@@ -16,6 +16,8 @@ import com.googlecode.flyway.core.Flyway;
 import org.apache.commons.lang.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
@@ -120,6 +122,32 @@ public class IdentityProviderEndpointsMockMvcTests extends TestClassNullifier {
         String accessToken = mockMvcUtils.getUserOAuthAccessToken(mockMvc, client.getClientId(), client.getClientSecret(), user.getUserName(), "password", "idps.write");
 
         createAndUpdateIdentityProvider(accessToken, null);
+    }
+
+    @Test
+    public void testCreateSamlProvider() throws Exception {
+        String clientId = RandomStringUtils.randomAlphabetic(6);
+        BaseClientDetails client = new BaseClientDetails(clientId,null,"idps.write","password",null);
+        client.setClientSecret("test-client-secret");
+        mockMvcUtils.createClient(mockMvc, adminToken, client);
+        ScimUser user = createAdminForZone("idps.write");
+        String accessToken = mockMvcUtils.getUserOAuthAccessToken(mockMvc, client.getClientId(), client.getClientSecret(), user.getUserName(), "password", "idps.write");
+
+        String origin = "my-saml-provider-"+new RandomValueStringGenerator().generate();
+        IdentityProvider provider = new IdentityProvider();
+        provider.setActive(true);
+        provider.setName(origin);
+        provider.setIdentityZoneId(IdentityZone.getUaa().getId());
+        provider.setType(Origin.SAML);
+        provider.setOriginKey(origin);
+        IdentityProviderDefinition samlDefinition = new IdentityProviderDefinition("http://localhost:9999/metadata", null, null, 0, false, true, "Test SAML Provider", null, null);
+        provider.setConfig(JsonUtils.writeValueAsString(samlDefinition));
+
+        IdentityProvider created = createIdentityProvider(null, provider, accessToken, status().isCreated());
+        assertNotNull(created.getConfig());
+        IdentityProviderDefinition samlCreated = created.getConfigValue(IdentityProviderDefinition.class);
+        assertEquals(IdentityZone.getUaa().getId(), samlCreated.getZoneId());
+        assertEquals(provider.getOriginKey(), samlCreated.getIdpEntityAlias());
     }
 
     @Test

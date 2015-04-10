@@ -87,10 +87,6 @@ public class IdentityProviderDefinition {
     }
 
     public void setIdpEntityAlias(String idpEntityAlias) {
-        if (idpEntityAlias==null) {
-            throw new NullPointerException("Alias can not be null");
-        }
-
         this.idpEntityAlias = idpEntityAlias;
     }
 

@@ -14,12 +14,15 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicLdapAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager;
 import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.JsonUtils.JsonUtilException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -66,7 +69,8 @@ public class IdentityProviderEndpoints {
 
     @RequestMapping(method = POST)
     public ResponseEntity<IdentityProvider> createIdentityProvider(@RequestBody IdentityProvider body) {
-        body.setIdentityZoneId(IdentityZoneHolder.get().getId());
+        String zoneId = IdentityZoneHolder.get().getId();
+        body.setIdentityZoneId(zoneId);
         IdentityProvider createdIdp = identityProviderProvisioning.create(body);
         return new ResponseEntity<>(createdIdp, HttpStatus.CREATED);
     }
@@ -74,7 +78,8 @@ public class IdentityProviderEndpoints {
     @RequestMapping(value = "{id}", method = PUT)
     public ResponseEntity<IdentityProvider> updateIdentityProvider(@PathVariable String id, @RequestBody IdentityProvider body) {
         body.setId(id);
-        body.setIdentityZoneId(IdentityZoneHolder.get().getId());
+        String zoneId = IdentityZoneHolder.get().getId();
+        body.setIdentityZoneId(zoneId);
         IdentityProvider updatedIdp = identityProviderProvisioning.update(body);
         return new ResponseEntity<>(updatedIdp, OK);
     }
