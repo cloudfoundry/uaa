@@ -90,6 +90,12 @@ public class IdentityProviderEndpoints {
         return new ResponseEntity<>(identityProviderList, OK);
     }
 
+    @RequestMapping(value = "{id}", method = GET)
+    public ResponseEntity<IdentityProvider> retrieveIdentityProvider(@PathVariable String id) {
+        IdentityProvider identityProvider = identityProviderProvisioning.retrieve(id);
+        return new ResponseEntity<>(identityProvider, OK);
+    }
+
     @RequestMapping(value = "test", method = POST)
     public ResponseEntity<String> testIdentityProvider(@RequestBody IdentityProviderValidationRequest body) {
         String exception = "ok";
