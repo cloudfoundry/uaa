@@ -32,11 +32,11 @@ configurations {
     providedRuntime
 }
 
-artifactoryPublish {
-    publish {
-        skip = true
-    }
-}
+//artifactoryPublish {
+//    publish {
+//        skip = true
+//    }
+//}
 
 dependencies {
     compile("org.springframework.boot:spring-boot-starter-security")
