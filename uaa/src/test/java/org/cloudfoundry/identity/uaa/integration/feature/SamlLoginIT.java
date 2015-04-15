@@ -196,6 +196,76 @@ public class SamlLoginIT {
     }
 
     @Test
+    public void testSamlLoginClientIDPAuthorizationAutomaticRedirectInZone1() throws Exception {
+        //ensure we are able to resolve DNS for hostname testzone1.localhost
+        assumeTrue("Expected testzone1/2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+        String zoneId = "testzone1";
+
+        //identity client token
+        RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTempate(
+            IntegrationTestUtils.getClientCredentialsResource(baseUrl,new String[] {"zones.write", "scim.zones"}, "identity", "identitysecret")
+        );
+        //admin client token - to create users
+        RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTempate(
+            IntegrationTestUtils.getClientCredentialsResource(baseUrl,new String[0] , "admin", "adminsecret")
+        );
+        //create the zone
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId);
+
+        //create a zone admin user
+        String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
+        ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl,email ,"firstname", "lastname", email, true);
+        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), zoneId);
+
+        //get the zone admin token
+        String zoneAdminToken =
+            IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
+                UaaTestAccounts.standard(serverRunning),
+                "identity",
+                "identitysecret",
+                email,
+                "secret");
+
+        IdentityProviderDefinition identityProviderDefinition = createTestZone1IDP("simplesamlphp");
+        IdentityProvider provider = new IdentityProvider();
+        provider.setIdentityZoneId(zoneId);
+        provider.setType(Origin.SAML);
+        provider.setActive(true);
+        provider.setConfig(JsonUtils.writeValueAsString(identityProviderDefinition));
+        provider.setOriginKey(identityProviderDefinition.getIdpEntityAlias());
+        provider.setName("simplesamlphp for testzone1");
+
+        provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken,baseUrl,provider);
+        assertEquals(provider.getOriginKey(), provider.getConfigValue(IdentityProviderDefinition.class).getIdpEntityAlias());
+
+        List<String> idps = Arrays.asList(provider.getOriginKey());
+        String clientId = UUID.randomUUID().toString();
+        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "openid", "authorization_code", "uaa.none", baseUrl);
+        clientDetails.setClientSecret("secret");
+        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, idps);
+        clientDetails.addAdditionalInformation(ClientConstants.AUTO_APPROVE, true);
+        clientDetails = IntegrationTestUtils.createClientAsZoneAdmin(zoneAdminToken, baseUrl, zoneId, clientDetails);
+
+        String zoneUrl = baseUrl.replace("localhost", "testzone1.localhost");
+
+        webDriver.get(zoneUrl + "/logout.do");
+
+        String authUrl = zoneUrl + "/oauth/authorize?client_id=" + clientId + "&redirect_uri=" + URLEncoder.encode(zoneUrl) + "&response_type=code&state=8tp0tR";
+        webDriver.get(authUrl);
+        //we should now be in the Simple SAML PHP site
+        webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
+        webDriver.findElement(By.name("username")).clear();
+        webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
+        webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
+        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
+
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+        webDriver.get(baseUrl + "/logout.do");
+        webDriver.get(zoneUrl + "/logout.do");
+    }
+
+
+    @Test
     public void testSimpleSamlPhpLoginInTestZone1Works() throws Exception {
         assumeTrue("Expected testzone1/2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         String zoneId = "testzone1";

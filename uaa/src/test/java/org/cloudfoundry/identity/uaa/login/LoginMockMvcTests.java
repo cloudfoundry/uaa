@@ -413,9 +413,8 @@ public class LoginMockMvcTests extends TestClassNullifier {
         mockMvc.perform(get("/login").accept(TEXT_HTML).with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
             .session(session)
             .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
-            .andDo(print())
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("saml/discovery?returnIDParam=idp&entityID=cloudfoundry-saml-login&idp=active-saml&isPassive=true"));
+            .andExpect(redirectedUrl("saml/discovery?returnIDParam=idp&entityID="+identityZone.getSubdomain()+".cloudfoundry-saml-login&idp=active-saml&isPassive=true"));
     }
 
     @Test

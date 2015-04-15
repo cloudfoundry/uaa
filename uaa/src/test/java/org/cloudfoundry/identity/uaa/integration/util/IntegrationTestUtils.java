@@ -165,7 +165,7 @@ public class IntegrationTestUtils {
             client.put(url + "/Groups/{id}", scimGroup, scimGroup.getId());
             return scimGroup;
         } else {
-            ResponseEntity<String> group = client.postForEntity(url+"/Groups", scimGroup, String.class);
+            ResponseEntity<String> group = client.postForEntity(url + "/Groups", scimGroup, String.class);
             if (group.getStatusCode()==HttpStatus.CREATED) {
                 return JsonUtils.readValue(group.getBody(), ScimGroup.class);
             } else {
@@ -209,6 +209,30 @@ public class IntegrationTestUtils {
                                               String clientId) throws Exception {
         ResponseEntity<BaseClientDetails> response = template.getForEntity(url+"/oauth/clients/{clientId}", BaseClientDetails.class, clientId);
         return response.getBody();
+    }
+
+    public static BaseClientDetails createClientAsZoneAdmin(String zoneAdminToken,
+                                                            String url,
+                                                            String zoneId,
+                                                            BaseClientDetails client) throws Exception {
+
+        RestTemplate template = new RestTemplate();
+        MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
+        headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
+        headers.add("Authorization", "bearer "+zoneAdminToken);
+        headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
+        headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
+        HttpEntity getHeaders = new HttpEntity(JsonUtils.writeValueAsBytes(client), headers);
+        ResponseEntity<String> clientCreate = template.exchange(
+            url + "/oauth/clients",
+            HttpMethod.POST,
+            getHeaders,
+            String.class
+        );
+        if (clientCreate.getStatusCode() == HttpStatus.CREATED) {
+            return JsonUtils.readValue(clientCreate.getBody(), BaseClientDetails.class);
+        }
+        throw new RuntimeException("Invalid return code:"+clientCreate.getStatusCode());
     }
 
     public static BaseClientDetails updateClient(RestTemplate template,

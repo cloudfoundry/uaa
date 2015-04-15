@@ -186,6 +186,14 @@ public class LoginInfoEndpoint {
         return login(model, principal, Arrays.asList("passcode"), false, request);
     }
 
+    protected String getZonifiedEntityId() {
+        if (UaaUrlUtils.isUrl(entityID)) {
+            return UaaUrlUtils.addSubdomainToUrl(entityID);
+        } else {
+            return UaaUrlUtils.getSubdomain()+entityID;
+        }
+    }
+
     private String login(Model model, Principal principal, List<String> excludedPrompts, boolean nonHtml) {
         return login(model, principal, excludedPrompts, nonHtml, null);
     }
@@ -204,7 +212,7 @@ public class LoginInfoEndpoint {
         } else if (idps!=null && idps.size()==1) {
             UriComponentsBuilder builder = UriComponentsBuilder.fromPath("saml/discovery");
             builder.queryParam("returnIDParam", "idp");
-            builder.queryParam("entityID", entityID);
+            builder.queryParam("entityID", getZonifiedEntityId());
             builder.queryParam("idp", idps.get(0).getIdpEntityAlias());
             builder.queryParam("isPassive", "true");
             return "redirect:" + builder.build().toUriString();
@@ -217,7 +225,7 @@ public class LoginInfoEndpoint {
         model.addAttribute("links", getLinksInfo());
 
         // Entity ID to start the discovery
-        model.addAttribute("entityID", UaaUrlUtils.getSubdomain() + entityID);
+        model.addAttribute("entityID", getZonifiedEntityId());
         model.addAttribute("idpDefinitions", idps);
         for (IdentityProviderDefinition idp : idps) {
             if(idp.isShowSamlLink()) {
