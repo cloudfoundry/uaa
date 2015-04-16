@@ -27,6 +27,7 @@ Scopes authorized by the UAA
 The UAA itself is also performing authorization based on the ``scope`` claim in the JWT token for it's operation.
 Here is a summary of the different scopes that are known to the UAA.
 
+* **zones.read** - scope required to invoke the /identity-zones endpoint to read identity zones
 * **zones.write** - scope required to invoke the /identity-zones endpoint to create and update identity zones
 * **zones.<zone id>.admin** - user scope that permits operations in a designated zone, such as create identity providers or clients in another zone (used together with the X-Identity-Zone-Id header)
 * **idps.read** - read only scopes to retrieve identity providers under /identity-providers
@@ -610,9 +611,7 @@ The UAA by default creates a ``default zone``. This zone will always be present,
                     }
 
 
-Example of creating an Identity Zone
-
-Identity Zone API Documentation
+Create or Update Identity Zones: ``POST or PUT /identity-zones``
 -------------------------------
 An identity zone is created using a POST with an IdentityZone object. If the object contains an id, this id will be used as the identifier, otherwise an identifier will be generated. Once a zone has been created, the UAA will start accepting requests on the subdomain defined in the subdomain field of the identity zone.
 
@@ -685,6 +684,40 @@ Curl Example      POST (Token contains ``zones.write`` scope) ::
                       -XPUT http://localhost:8080/uaa/identity-zones/testzone1
 
 ================  ========================================================================================
+
+List Identity Zones: ``GET /identity-zones``
+------------------------------------
+
+==============  ===========================================================================
+Request         ``GET /identity-zones``
+Request Header  Authorization: Bearer Token containing ``zones.read``
+Response code   ``200 OK`` 
+Response body   *example* ::
+
+	              HTTP/1.1 200 OK
+	              Content-Type: application/json
+	              [
+	                  {
+	                      "id": "uaa",
+	                      "subdomain": "",
+	                      "name": "uaa",
+	                      "version": 0,
+	                      "description": "The system zone for backwards compatibility",
+	                      "created": 946710000000,
+	                      "last_modified": 946710000000
+	                  },
+		              {
+		                  "id":"testzone1",
+		                  "subdomain":"testzone1",
+		                  "name":"The Twiglet Zone[testzone1]",
+		                  "version":0,
+		                  "description":"Like the Twilight Zone but tastier[testzone1].",
+		                  "created":1426260091139,
+		                  "last_modified":1426260091139
+		              }
+	              ]
+
+==============  ===========================================================================
 
 Identity Zone clients API: ``/identity-zones/clients``
 ------------------------------------------------------

@@ -21,6 +21,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
+import java.util.List;
 import java.util.UUID;
 
 import javax.validation.Valid;
@@ -65,6 +66,11 @@ public class IdentityZoneEndpoints {
     @RequestMapping(value = "{id}", method = GET)
     public IdentityZone getIdentityZone(@PathVariable String id) {
         return zoneDao.retrieve(id);
+    }
+    
+    @RequestMapping(method = GET)
+    public List<IdentityZone> getIdentityZones() {
+        return zoneDao.retrieveAll();
     }
 
     @RequestMapping(method = POST)

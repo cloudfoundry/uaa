@@ -118,7 +118,7 @@
                             <entry key="secret" value="identitysecret" />
                             <entry key="authorized-grant-types" value="authorization_code,client_credentials" />
                             <entry key="scope" value="zones.*.admin,openid" />
-                            <entry key="authorities" value="zones.write,scim.zones,uaa.resource" />
+                            <entry key="authorities" value="zones.read,zones.write,scim.zones,uaa.resource" />
                             <entry key="autoapprove" value="true" />
                         </map>
                     </entry>

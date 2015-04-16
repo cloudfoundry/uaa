@@ -97,9 +97,9 @@ public class IdentityZoneEndpointsMockMvcTests extends TestClassNullifier {
         
 
         identityClientToken = testClient.getClientCredentialsOAuthAccessToken(
-                "identity",
-                "identitysecret",
-                "zones.write");
+            "identity",
+            "identitysecret",
+            "zones.read,zones.write");
         adminToken = testClient.getClientCredentialsOAuthAccessToken(
             "admin",
             "adminsecret",
@@ -164,6 +164,30 @@ public class IdentityZoneEndpointsMockMvcTests extends TestClassNullifier {
         String id = generator.generate();
         IdentityZone created = createZone(id, HttpStatus.CREATED, identityClientToken);
         IdentityZone retrieved = getIdentityZone(id, HttpStatus.OK, identityClientToken);
+        assertEquals(created.getId(), retrieved.getId());
+        assertEquals(created.getName(), retrieved.getName());
+        assertEquals(created.getSubdomain(), retrieved.getSubdomain());
+        assertEquals(created.getDescription(), retrieved.getDescription());
+    }
+    
+    @Test
+    public void testGetZonesAsIdentityClient() throws Exception  {
+        String id = generator.generate();
+        IdentityZone created = createZone(id, HttpStatus.CREATED, identityClientToken);
+        MvcResult result = mockMvc.perform(get("/identity-zones/")
+                .header("Authorization", "Bearer " + identityClientToken))
+                .andExpect(status().isOk())
+                .andReturn();
+        
+        
+        List<IdentityZone> zones = JsonUtils.readValue(result.getResponse().getContentAsString(), new TypeReference<List<IdentityZone>>() {});
+        IdentityZone retrieved = null;
+        for (IdentityZone identityZone : zones) {
+            if (identityZone.getId().equals(id)) {
+                retrieved = identityZone;
+            }
+        }
+        
         assertEquals(created.getId(), retrieved.getId());
         assertEquals(created.getName(), retrieved.getName());
         assertEquals(created.getSubdomain(), retrieved.getSubdomain());
