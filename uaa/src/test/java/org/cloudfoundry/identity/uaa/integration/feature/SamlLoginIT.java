@@ -203,7 +203,7 @@ public class SamlLoginIT {
 
         //identity client token
         RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTempate(
-            IntegrationTestUtils.getClientCredentialsResource(baseUrl,new String[] {"zones.write", "scim.zones"}, "identity", "identitysecret")
+            IntegrationTestUtils.getClientCredentialsResource(baseUrl,new String[] {"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
         );
         //admin client token - to create users
         RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTempate(
@@ -271,7 +271,7 @@ public class SamlLoginIT {
         String zoneId = "testzone1";
 
         RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTempate(
-            IntegrationTestUtils.getClientCredentialsResource(baseUrl,new String[] {"zones.write", "scim.zones"}, "identity", "identitysecret")
+            IntegrationTestUtils.getClientCredentialsResource(baseUrl,new String[] {"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
         );
         RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTempate(
             IntegrationTestUtils.getClientCredentialsResource(baseUrl,new String[0] , "admin", "adminsecret")
@@ -305,6 +305,7 @@ public class SamlLoginIT {
         //we have to create two providers to avoid automatic redirect
         IdentityProviderDefinition identityProviderDefinition1 = identityProviderDefinition.clone();
         identityProviderDefinition1.setIdpEntityAlias(identityProviderDefinition.getIdpEntityAlias()+"-1");
+        identityProviderDefinition1.setMetaDataLocation("http://some.metadata.location/thatdoesntwork");
         IdentityProvider provider1 = new IdentityProvider();
         provider1.setIdentityZoneId(zoneId);
         provider1.setType(Origin.SAML);
