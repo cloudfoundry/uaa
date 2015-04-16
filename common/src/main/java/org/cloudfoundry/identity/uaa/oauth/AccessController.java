@@ -103,18 +103,21 @@ public class AccessController {
             // response.sendError(HttpServletResponse.SC_BAD_REQUEST);
         }
         else {
-            ClientDetails client = clientDetailsService.loadClientByClientId(clientAuthRequest.getClientId());
+            String clientId = clientAuthRequest.getClientId();
+            ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
             // TODO: Need to fix the copy constructor to copy additionalInfo
             BaseClientDetails modifiableClient = new BaseClientDetails(client);
             modifiableClient.setClientSecret(null);
             model.put("auth_request", clientAuthRequest);
             model.put("client", modifiableClient); // TODO: remove this once it
                                                    // has gone from jsp pages
-            model.put("client_id", clientAuthRequest.getClientId());
             model.put("redirect_uri", getRedirectUri(modifiableClient, clientAuthRequest));
 
-            // Find the auto approved scopes for this clients
             Map<String, Object> additionalInfo = client.getAdditionalInformation();
+            String clientDisplayName = (String) additionalInfo.get(ClientConstants.CLIENT_NAME);
+            model.put("client_display_name", (clientDisplayName != null)? clientDisplayName : clientId);
+
+            // Find the auto approved scopes for this clients
             Object autoApproved = additionalInfo.get(ClientConstants.AUTO_APPROVE);
             Set<String> autoApprovedScopes = new HashSet<String>();
             if (autoApproved instanceof Collection<?>) {
@@ -128,7 +131,7 @@ public class AccessController {
 
             List<Approval> filteredApprovals = new ArrayList<Approval>();
             // Remove auto approved scopes
-            List<Approval> approvals = approvalStore.getApprovals(Origin.getUserId((Authentication)principal), clientAuthRequest.getClientId());
+            List<Approval> approvals = approvalStore.getApprovals(Origin.getUserId((Authentication)principal), clientId);
             for (Approval approval : approvals) {
                 if (!(autoApprovedScopes.contains(approval.getScope()))) {
                     filteredApprovals.add(approval);

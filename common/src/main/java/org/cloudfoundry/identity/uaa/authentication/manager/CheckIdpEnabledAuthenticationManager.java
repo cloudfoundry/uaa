@@ -18,6 +18,7 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderNotFoundException;
 import org.springframework.security.core.Authentication;
@@ -28,7 +29,6 @@ public class CheckIdpEnabledAuthenticationManager implements AuthenticationManag
     private final String origin;
     private final IdentityProviderProvisioning identityProviderProvisioning;
     private final AuthenticationManager delegate;
-
     public CheckIdpEnabledAuthenticationManager(AuthenticationManager delegate, String origin, IdentityProviderProvisioning identityProviderProvisioning) {
         this.origin = origin;
         this.identityProviderProvisioning = identityProviderProvisioning;
@@ -41,9 +41,13 @@ public class CheckIdpEnabledAuthenticationManager implements AuthenticationManag
 
     @Override
     public Authentication authenticate(final Authentication authentication) throws AuthenticationException {
-        IdentityProvider idp = identityProviderProvisioning.retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
-        if (!idp.isActive()) {
-            throw new ProviderNotFoundException("Identity Provider has been disabled by administrator.");
+        try {
+            IdentityProvider idp = identityProviderProvisioning.retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
+            if (!idp.isActive()) {
+                throw new ProviderNotFoundException("Identity Provider has been disabled by administrator.");
+            }
+        }catch (EmptyResultDataAccessException x) {
+            throw new ProviderNotFoundException("Unable to find identity provider for origin:"+getOrigin());
         }
         return delegate.authenticate(authentication);
     }

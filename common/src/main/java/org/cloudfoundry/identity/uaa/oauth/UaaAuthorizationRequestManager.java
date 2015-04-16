@@ -260,13 +260,11 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
         List<String> allowedProviders = (List<String>)client.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS);
 
 
-        if (allowedProviders==null || allowedProviders.isEmpty()) {
-            if (IdentityZoneHolder.isUaa()) {
-                //in the UAA zone - no allowed providers means that we always allow it (backwards compatible)
-                return;
-            } else {
-                throw new UnauthorizedClientException ("Client is not authorized for any identity providers.");
-            }
+        if (allowedProviders==null) {
+            //null means any providers - no allowed providers means that we always allow it (backwards compatible)
+            return;
+        } else if (allowedProviders.isEmpty()){
+            throw new UnauthorizedClientException ("Client is not authorized for any identity providers.");
         }
 
         try {

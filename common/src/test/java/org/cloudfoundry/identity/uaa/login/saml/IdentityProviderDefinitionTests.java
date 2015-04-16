@@ -40,12 +40,6 @@ public class IdentityProviderDefinitionTests {
     }
 
 
-    @Test(expected = NullPointerException.class)
-    public void testSetNullIdpEntityAlias() throws Exception {
-        IdentityProviderDefinition def = new IdentityProviderDefinition();
-        def.setIdpEntityAlias(null);
-    }
-
     @Test
     public void testGetSocketFactoryClassName() throws Exception {
         IdentityProviderDefinition def = new IdentityProviderDefinition();

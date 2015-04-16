@@ -51,7 +51,7 @@ public class LoginSamlEntryPoint extends SAMLEntryPoint {
         return options;
     }
 
-    private IdentityProviderDefinition getIDPDefinition(String alias) {
+    private IdentityProviderDefinition getIDPDefinition(String alias) throws MetadataProviderException {
         if (alias!=null) {
             for (IdentityProviderDefinition def : providerDefinitionList) {
                 if (alias.equals(def.getIdpEntityAlias())) {
@@ -59,6 +59,6 @@ public class LoginSamlEntryPoint extends SAMLEntryPoint {
                 }
             }
         }
-        return null;
+        throw new MetadataProviderNotFoundException("Unable to find SAML provider for alias:"+alias);
     }
 }

@@ -22,12 +22,23 @@
               http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
 
 
+
     <bean id="ldapPooled" class="java.lang.Boolean">
         <constructor-arg value="false"/>
     </bean>
-    <util:map id="ldapProperties">
+
+    <util:map id="initialLdapProperties">
         <entry key="com.sun.jndi.ldap.connect.pool" value-ref="ldapPooled" />
     </util:map>
+
+    <bean id="ldapPropertyProcessor" class="org.cloudfoundry.identity.uaa.ldap.ProcessLdapProperties">
+        <constructor-arg name="disableSslVerification" value="${ldap.ssl.skipverification:false}"/>
+        <constructor-arg name="baseUrl" value="${ldap.base.url:ldap://localhost:389/dc=test,dc=com}"/>
+    </bean>
+
+    <bean id="ldapProperties" factory-bean="ldapPropertyProcessor" factory-method="process">
+        <constructor-arg ref="initialLdapProperties"/>
+    </bean>
 
     <bean id="ldapGroupMappingAuthorizationManager" class="org.cloudfoundry.identity.uaa.authorization.external.LdapGroupMappingAuthorizationManager">
         <property name="externalMembershipManager" ref="externalGroupMembershipManager" />
@@ -46,15 +57,5 @@
     <security:authentication-manager id="ldapAuthenticationManager">
         <sec:authentication-provider ref="ldapAuthProvider"/>
     </security:authentication-manager>
-
-    <bean id="autoAddAuthorities" class="java.lang.Boolean">
-        <constructor-arg value="${ldap.groups.autoAdd:true}"/>
-    </bean>
-
-    <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">
-        <property name="userDatabase" ref="userDatabase" />
-        <property name="origin" value="ldap"/>
-        <property name="autoAddAuthorities" ref="autoAddAuthorities"/>
-    </bean>
 
 </beans>

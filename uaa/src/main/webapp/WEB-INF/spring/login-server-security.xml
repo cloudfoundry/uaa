@@ -178,7 +178,7 @@
     </bean>
 
     <bean class="org.cloudfoundry.identity.uaa.authentication.login.RemoteAuthenticationEndpoint">
-        <constructor-arg ref="authzAuthenticationMgr" />
+        <constructor-arg ref="zoneAwareAuthzAuthenticationManager" />
         <property name="loginAuthenticationManager" ref="loginAuthenticationMgr"/>
     </bean>
 

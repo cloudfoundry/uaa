@@ -32,11 +32,11 @@ configurations {
     providedRuntime
 }
 
-artifactoryPublish {
-    publish {
-        skip = true
-    }
-}
+//artifactoryPublish {
+//    publish {
+//        skip = true
+//    }
+//}
 
 dependencies {
     compile("org.springframework.boot:spring-boot-starter-security")
@@ -49,6 +49,18 @@ dependencies {
     testCompile("org.springframework.boot:spring-boot-starter-test")
     testCompile("com.jayway.jsonpath:json-path")
     provided "org.projectlombok:lombok:1.14.8"
+}
+
+install {
+    repositories.mavenInstaller {
+        pom.project {
+            parent {
+                groupId 'org.springframework.boot'
+                artifactId 'spring-boot-starter-parent'
+                version "1.2.3.RELEASE"
+            }
+        }
+    }
 }
 
 task wrapper(type: Wrapper) {

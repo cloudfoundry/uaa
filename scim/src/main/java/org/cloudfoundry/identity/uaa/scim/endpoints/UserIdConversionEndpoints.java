@@ -13,13 +13,6 @@
 
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import java.util.HashSet;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.servlet.http.HttpServletRequest;
-
 import com.unboundid.scim.sdk.SCIMException;
 import com.unboundid.scim.sdk.SCIMFilter;
 import org.apache.commons.logging.Log;
@@ -35,11 +28,12 @@ import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.servlet.View;
+
+import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Dave Syer

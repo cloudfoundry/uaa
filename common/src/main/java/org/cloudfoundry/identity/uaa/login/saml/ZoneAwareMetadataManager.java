@@ -92,9 +92,9 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
         @Override
         public void run() {
             try {
-                refreshAllProviders();
+                refreshAllProviders(false);
             }catch (Exception x) {
-                log.error("Unable to run refresh task:", x);
+                log.error("Unable to run SAML provider refresh task:", x);
             }
         }
     }
@@ -116,14 +116,31 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
     }
 
     protected void refreshAllProviders() throws MetadataProviderException {
+        refreshAllProviders(true);
+    }
+
+    protected String getThreadNameAndId() {
+        return Thread.currentThread().getName()+"-"+System.identityHashCode(Thread.currentThread());
+    }
+
+    protected void refreshAllProviders(boolean ignoreTimestamp) throws MetadataProviderException {
+        logger.debug("Running SAML IDP refresh["+getThreadNameAndId()+"] - ignoreTimestamp="+ignoreTimestamp);
         for (IdentityZone zone : zoneDao.retrieveAll()) {
             ExtensionMetadataManager manager = getManager(zone);
             boolean hasChanges = false;
-            for (IdentityProvider provider : providerDao.retrieveAll(zone.getId())) {
-                if (Origin.SAML.equals(provider.getType()) && lastRefresh < provider.getLastModified().getTime()) {
+            for (IdentityProvider provider : providerDao.retrieveAll(false,zone.getId())) {
+                if (Origin.SAML.equals(provider.getType()) && (ignoreTimestamp || lastRefresh < provider.getLastModified().getTime())) {
                     try {
                         IdentityProviderDefinition definition = JsonUtils.readValue(provider.getConfig(), IdentityProviderDefinition.class);
-                        manager.addMetadataProvider(configurator.addIdentityProviderDefinition(definition));
+                        ExtendedMetadataDelegate delegate = configurator.getExtendedMetadataDelegate(definition);
+                        if (provider.isActive()) {
+                            log.info("Adding SAML IDP zone[" + zone.getId() + "] alias[" + definition.getIdpEntityAlias() + "]");
+                            manager.addMetadataProvider(configurator.addIdentityProviderDefinition(definition));
+                        } else {
+                            log.info("Removing SAML IDP zone[" + zone.getId() + "] alias[" + definition.getIdpEntityAlias() + "]");
+                            configurator.removeIdentityProviderDefinition(definition);
+                            manager.removeMetadataProvider(delegate);
+                        }
                         hasChanges = true;
                     } catch (JsonUtils.JsonUtilException x) {
                         logger.error("Unable to load provider:"+provider, x);
@@ -437,7 +454,26 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
 
         @Override
         public void addMetadataProvider(MetadataProvider newProvider) throws MetadataProviderException {
+            ComparableProvider cp = null;
+            if (newProvider instanceof ExtendedMetadataDelegate && ((ExtendedMetadataDelegate)newProvider).getDelegate() instanceof ComparableProvider) {
+                cp = (ComparableProvider) ((ExtendedMetadataDelegate)newProvider).getDelegate();
+            } else {
+                logger.warn("Adding Unknown SAML Provider type:"+(newProvider!=null?newProvider.getClass():null)+":"+newProvider);
+            }
+
+            for (MetadataProvider provider : getAvailableProviders()) {
+                if (newProvider.equals(provider)) {
+                    removeMetadataProvider(provider);
+                    if (cp!=null) {
+                        logger.debug("Found duplicate SAML provider, removing before readding zone["+cp.getZoneId()+"] alias["+cp.getAlias()+"]");
+                    }
+                }
+            }
             super.addMetadataProvider(newProvider);
+            if (cp!=null) {
+                logger.debug("Added Metadata for SAML provider zone[" + cp.getZoneId() + "] alias[" + cp.getAlias() + "]");
+            }
+
         }
 
         @Override
@@ -527,7 +563,16 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
 
         @Override
         public void removeMetadataProvider(MetadataProvider provider) {
+            ComparableProvider cp = null;
+            if (provider instanceof ExtendedMetadataDelegate && ((ExtendedMetadataDelegate)provider).getDelegate() instanceof ComparableProvider) {
+                cp = (ComparableProvider) ((ExtendedMetadataDelegate)provider).getDelegate();
+            } else {
+                logger.warn("Removing Unknown SAML Provider type:"+(provider!=null?provider.getClass():null)+":"+provider);
+            }
             super.removeMetadataProvider(provider);
+            if (cp!=null) {
+                logger.debug("Removed Metadata for SAML provider zone[" + cp.getZoneId() + "] alias[" + cp.getAlias() + "]");
+            }
         }
 
         @Override

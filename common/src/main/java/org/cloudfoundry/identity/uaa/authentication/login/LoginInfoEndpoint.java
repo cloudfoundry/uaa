@@ -12,9 +12,49 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication.login;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
+import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.client.SocialClientUserDetails;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.login.AutologinRequest;
+import org.cloudfoundry.identity.uaa.login.AutologinResponse;
+import org.cloudfoundry.identity.uaa.login.PasscodeInformation;
+import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfigurator;
+import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.login.saml.LoginSamlAuthenticationToken;
+import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.springframework.core.env.Environment;
+import org.springframework.core.io.support.PropertiesLoaderUtils;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.codec.Base64;
+import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.web.savedrequest.SavedRequest;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequestWrapper;
+import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
@@ -34,40 +74,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-
-import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
-import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.client.SocialClientUserDetails;
-import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
-import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
-import org.cloudfoundry.identity.uaa.login.AutologinRequest;
-import org.cloudfoundry.identity.uaa.login.AutologinResponse;
-import org.cloudfoundry.identity.uaa.login.PasscodeInformation;
-import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfigurator;
-import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.login.saml.LoginSamlAuthenticationToken;
-import org.cloudfoundry.identity.uaa.user.UaaAuthority;
-import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
-import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.springframework.core.env.Environment;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.springframework.core.io.support.PropertiesLoaderUtils;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.codec.Base64;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
-import org.springframework.security.web.savedrequest.SavedRequest;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.*;
 
 /**
  * Controller that sends login info (e.g. prompts) to clients wishing to
@@ -180,20 +186,46 @@ public class LoginInfoEndpoint {
         return login(model, principal, Arrays.asList("passcode"), false, request);
     }
 
+    protected String getZonifiedEntityId() {
+        if (UaaUrlUtils.isUrl(entityID)) {
+            return UaaUrlUtils.addSubdomainToUrl(entityID);
+        } else {
+            return UaaUrlUtils.getSubdomain()+entityID;
+        }
+    }
+
     private String login(Model model, Principal principal, List<String> excludedPrompts, boolean nonHtml) {
         return login(model, principal, excludedPrompts, nonHtml, null);
     }
 
     private String login(Model model, Principal principal, List<String> excludedPrompts, boolean nonHtml, HttpServletRequest request) {
+        HttpSession session = request != null ? request.getSession(false) : null;
+        List<String> allowedIdps = getAllowedIdps(session);
+
+        List<IdentityProviderDefinition> idps = getIdentityProviderDefinitions(allowedIdps);
+
+        if (allowedIdps==null ||
+            allowedIdps.contains(Origin.LDAP) ||
+            allowedIdps.contains(Origin.UAA) ||
+            allowedIdps.contains(Origin.KEYSTONE)) {
+            model.addAttribute("fieldUsernameShow", true);
+        } else if (idps!=null && idps.size()==1) {
+            UriComponentsBuilder builder = UriComponentsBuilder.fromPath("saml/discovery");
+            builder.queryParam("returnIDParam", "idp");
+            builder.queryParam("entityID", getZonifiedEntityId());
+            builder.queryParam("idp", idps.get(0).getIdpEntityAlias());
+            builder.queryParam("isPassive", "true");
+            return "redirect:" + builder.build().toUriString();
+        } else {
+            model.addAttribute("fieldUsernameShow", false);
+        }
         populatePrompts(model, excludedPrompts, nonHtml);
         setCommitInfo(model);
         model.addAttribute("zone_name", IdentityZoneHolder.get().getName());
         model.addAttribute("links", getLinksInfo());
 
         // Entity ID to start the discovery
-        model.addAttribute("entityID", UaaUrlUtils.getSubdomain() + entityID);
-
-        List<IdentityProviderDefinition> idps = getIdentityProviderDefinitions(request != null ? request.getSession(false) : null);
+        model.addAttribute("entityID", getZonifiedEntityId());
         model.addAttribute("idpDefinitions", idps);
         for (IdentityProviderDefinition idp : idps) {
             if(idp.isShowSamlLink()) {
@@ -223,19 +255,31 @@ public class LoginInfoEndpoint {
         return "home";
     }
 
-    private List<IdentityProviderDefinition> getIdentityProviderDefinitions(HttpSession session) {
-        List<IdentityProviderDefinition> idps = idpDefinitions.getIdentityProviderDefinitionsForZone(IdentityZoneHolder.get());
-        SavedRequest savedRequest;
-        if (session != null && (savedRequest = (SavedRequest) session.getAttribute("SPRING_SECURITY_SAVED_REQUEST")) != null) {
-            String redirectUrl = savedRequest.getRedirectUrl();
-            String[] client_ids = savedRequest.getParameterValues("client_id");
-            if (redirectUrl != null && redirectUrl.contains("/oauth/authorize") && client_ids != null && client_ids.length != 0) {
-                ClientDetails clientDetails = clientDetailsService.loadClientByClientId(client_ids[0]);
-                List<String> allowedIdps = (List<String>) clientDetails.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS);
-                idps = idpDefinitions.getIdentityProviderDefinitions(allowedIdps, IdentityZoneHolder.get(), !IdentityZoneHolder.isUaa());
-            }
+    protected List<IdentityProviderDefinition> getIdentityProviderDefinitions(List<String> allowedIdps) {
+        return idpDefinitions.getIdentityProviderDefinitions(allowedIdps, IdentityZoneHolder.get());
+    }
+
+    protected boolean hasSavedOauthAuthorizeRequest(HttpSession session) {
+        if (session==null || session.getAttribute("SPRING_SECURITY_SAVED_REQUEST")==null) {
+            return false;
         }
-        return idps;
+        SavedRequest savedRequest = (SavedRequest) session.getAttribute("SPRING_SECURITY_SAVED_REQUEST");
+        String redirectUrl = savedRequest.getRedirectUrl();
+        String[] client_ids = savedRequest.getParameterValues("client_id");
+        if (redirectUrl != null && redirectUrl.contains("/oauth/authorize") && client_ids != null && client_ids.length != 0) {
+            return true;
+        }
+        return false;
+    }
+
+    public List<String> getAllowedIdps(HttpSession session) {
+        if (!hasSavedOauthAuthorizeRequest(session)) {
+            return null;
+        }
+        SavedRequest savedRequest = (SavedRequest) session.getAttribute("SPRING_SECURITY_SAVED_REQUEST");
+        String[] client_ids = savedRequest.getParameterValues("client_id");
+        ClientDetails clientDetails = clientDetailsService.loadClientByClientId(client_ids[0]);
+        return (List<String>) clientDetails.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS);
     }
 
     private void setCommitInfo(Model model) {

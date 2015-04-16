@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.login;
 
+import com.googlecode.flyway.core.Flyway;
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
@@ -70,6 +71,7 @@ public class PasscodeMockMvcTests extends TestClassNullifier {
 
     @After
     public void tearDown() throws Exception {
+        webApplicationContext.getBean(Flyway.class).clean();
         webApplicationContext.destroy();
     }
 

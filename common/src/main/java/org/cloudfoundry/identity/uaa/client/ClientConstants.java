@@ -16,4 +16,5 @@ public class ClientConstants {
     public static final String ALLOWED_PROVIDERS = "allowedproviders";
     public static final String AUTO_APPROVE = "autoapprove";
     public static final String CREATED_WITH = "createdwith";
+    public static final String CLIENT_NAME = "name";
 }

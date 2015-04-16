@@ -95,19 +95,19 @@ subprojects {
     maven { url "http://repo.maven.apache.org/maven2" }
   }
 
-  apply plugin: 'artifactory'
-
-  artifactoryPublish {
-    publish {
-      contextUrl = "http://repo.spring.io"
-      repository {
-        repoKey = version.endsWith('-SNAPSHOT') ? 'libs-snapshot-local' : 'libs-release-local'
-        username = project.hasProperty('artifactory_user') ? "${artifactory_user}" : ""
-        password = project.hasProperty('artifactory_password') ? "${artifactory_password}" : ""
-        maven = true
-      }
-    }
-  }
+//  apply plugin: 'artifactory'
+//
+//  artifactoryPublish {
+//    publish {
+//      contextUrl = "http://repo.spring.io"
+//      repository {
+//        repoKey = version.endsWith('-SNAPSHOT') ? 'libs-snapshot-local' : 'libs-release-local'
+//        username = project.hasProperty('artifactory_user') ? "${artifactory_user}" : ""
+//        password = project.hasProperty('artifactory_password') ? "${artifactory_password}" : ""
+//        maven = true
+//      }
+//    }
+//  }
 
   sourceSets {
     instrumented

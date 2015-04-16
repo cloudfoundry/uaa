@@ -118,7 +118,7 @@
                             <entry key="secret" value="identitysecret" />
                             <entry key="authorized-grant-types" value="authorization_code,client_credentials" />
                             <entry key="scope" value="zones.*.admin,openid" />
-                            <entry key="authorities" value="zones.write,scim.zones,uaa.resource" />
+                            <entry key="authorities" value="zones.read,zones.write,scim.zones,uaa.resource" />
                             <entry key="autoapprove" value="true" />
                         </map>
                     </entry>
@@ -129,6 +129,11 @@
                             <entry key="authorized-grant-types" value="authorization_code" />
                             <entry key="scope" value="openid" />
                             <entry key="authorities" value="uaa.resource" />
+                            <entry key="allowedproviders">
+                                <array>
+                                    <value>uaa</value>
+                                </array>
+                            </entry>
                         </map>
                     </entry>
                     <entry key="oauth_showcase_client_credentials">

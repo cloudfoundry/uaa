@@ -47,12 +47,19 @@ public class ProviderChangedListener implements ApplicationListener<IdentityProv
         }
         IdentityProvider provider = (IdentityProvider)event.getSource();
         if (Origin.SAML.equals(provider.getType())) {
-            ExtendedMetadataDelegate delegate =
-                configurator.addIdentityProviderDefinition(JsonUtils.readValue(provider.getConfig(), IdentityProviderDefinition.class));
             IdentityZone zone = zoneProvisioning.retrieve(provider.getIdentityZoneId());
+            ZoneAwareMetadataManager.ExtensionMetadataManager manager = metadataManager.getManager(zone);
             try {
-                ZoneAwareMetadataManager.ExtensionMetadataManager manager = metadataManager.getManager(zone);
-                manager.addMetadataProvider(delegate);
+                if (provider.isActive()) {
+                    ExtendedMetadataDelegate delegate =
+                        configurator.addIdentityProviderDefinition(JsonUtils.readValue(provider.getConfig(), IdentityProviderDefinition.class));
+                    manager.addMetadataProvider(delegate);
+                } else {
+                    IdentityProviderDefinition definition = JsonUtils.readValue(provider.getConfig(), IdentityProviderDefinition.class);
+                    configurator.removeIdentityProviderDefinition(definition);
+                    ExtendedMetadataDelegate delegate = configurator.getExtendedMetadataDelegate(definition);
+                    manager.removeMetadataProvider(delegate);
+                }
                 for (MetadataProvider idp : manager.getProviders()) {
                     idp.getMetadata();
                 }

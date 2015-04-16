@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -77,7 +78,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 /**
  * Controller for listing and manipulating OAuth2 clients.
- * 
+ *
  * @author Dave Syer
  */
 @Controller
@@ -91,7 +92,7 @@ public class ClientAdminEndpoints implements InitializingBean {
     private ClientRegistrationService clientRegistrationService;
 
     private QueryableResourceManager<ClientDetails> clientDetailsService;
-    
+
     private ResourceMonitor<ClientDetails> clientDetailsResourceMonitor;
 
     private AttributeNameMapper attributeNameMapper = new SimpleAttributeNameMapper(
@@ -228,7 +229,7 @@ public class ClientAdminEndpoints implements InitializingBean {
         }
         return details;
     }
-    
+
     @RequestMapping(value = "/oauth/clients/tx", method = RequestMethod.PUT)
     @ResponseStatus(HttpStatus.OK)
     @Transactional
@@ -247,7 +248,7 @@ public class ClientAdminEndpoints implements InitializingBean {
                 details[i] = syncWithExisting(existing, client);
             }
             details[i] = clientDetailsValidator.validate(details[i], Mode.MODIFY);
-        }        
+        }
         return doProcessUpdates(details);
     }
 
@@ -262,8 +263,8 @@ public class ClientAdminEndpoints implements InitializingBean {
 
     }
 
-    
-    
+
+
     @RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.PUT)
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
@@ -587,6 +588,24 @@ public class ClientAdminEndpoints implements InitializingBean {
 
     private ClientDetails syncWithExisting(ClientDetails existing, ClientDetails input) {
         BaseClientDetails details = new BaseClientDetails(input);
+        if (input instanceof BaseClientDetails) {
+            BaseClientDetails baseInput = (BaseClientDetails)input;
+            if (baseInput.getAutoApproveScopes()!=null) {
+                details.setAutoApproveScopes(baseInput.getAutoApproveScopes());
+            } else {
+                details.setAutoApproveScopes(new HashSet<String>());
+                if (existing instanceof BaseClientDetails) {
+                    BaseClientDetails existingDetails = (BaseClientDetails)existing;
+                    if (existingDetails.getAutoApproveScopes()!=null) {
+                        for (String scope : existingDetails.getAutoApproveScopes()) {
+                            details.getAutoApproveScopes().add(scope);
+                        }
+                    }
+                }
+            }
+
+        }
+
         if (details.getAccessTokenValiditySeconds() == null) {
             details.setAccessTokenValiditySeconds(existing.getAccessTokenValiditySeconds());
         }
