@@ -106,6 +106,7 @@ subprojects {
   install {
     repositories.mavenInstaller {
       pom.project {
+        name 'UAA'
         description 'Cloud Foundry User Account and Authentication'
         url 'http://github.com//cloudfoundry/uaa'
         inceptionYear '2011'
