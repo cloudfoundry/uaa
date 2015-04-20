@@ -21,8 +21,8 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -46,15 +46,15 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class ResetPasswordControllerIntegrationTests extends TestClassNullifier {
+public class ResetPasswordControllerMockMvcTests extends TestClassNullifier {
 
-    XmlWebApplicationContext webApplicationContext;
+    static XmlWebApplicationContext webApplicationContext;
 
-    private MockMvc mockMvc;
-    private ExpiringCodeStore codeStore;
+    private static MockMvc mockMvc;
+    private static ExpiringCodeStore codeStore;
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeClass
+    public static void initResetPasswordTest() throws Exception {
         webApplicationContext = new XmlWebApplicationContext();
         new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "login.yml,uaa.yml");
         webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
@@ -67,8 +67,8 @@ public class ResetPasswordControllerIntegrationTests extends TestClassNullifier 
         codeStore = webApplicationContext.getBean(ExpiringCodeStore.class);
     }
 
-    @After
-    public void cleanUpAfterPasswordReset() throws Exception {
+    @AfterClass
+    public static void cleanUpAfterPasswordReset() throws Exception {
         Flyway flyway = webApplicationContext.getBean(Flyway.class);
         flyway.clean();
         webApplicationContext.destroy();
