@@ -14,15 +14,12 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicLdapAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager;
 import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.util.JsonUtils.JsonUtilException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -32,6 +29,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.PrintWriter;
@@ -85,8 +83,9 @@ public class IdentityProviderEndpoints {
     }
 
     @RequestMapping(method = GET)
-    public ResponseEntity<List<IdentityProvider>> retrieveIdentityProviders() {
-        List<IdentityProvider> identityProviderList = identityProviderProvisioning.retrieveAll(false,IdentityZoneHolder.get().getId());
+    public ResponseEntity<List<IdentityProvider>> retrieveIdentityProviders(@RequestParam(required = false) String retrieveActive) {
+        Boolean retrieveActiveIdps = Boolean.valueOf(retrieveActive);
+        List<IdentityProvider> identityProviderList = identityProviderProvisioning.retrieveAll(retrieveActiveIdps, IdentityZoneHolder.get().getId());
         return new ResponseEntity<>(identityProviderList, OK);
     }
 
