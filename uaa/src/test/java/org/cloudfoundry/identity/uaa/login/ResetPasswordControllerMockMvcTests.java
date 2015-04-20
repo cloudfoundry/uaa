@@ -20,7 +20,9 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpoints;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -35,8 +37,10 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.List;
 
+import static org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpoints.PASSWORD_RESET_LIFETIME;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertEquals;
@@ -74,12 +78,18 @@ public class ResetPasswordControllerMockMvcTests extends TestClassNullifier {
         webApplicationContext.destroy();
     }
 
+
     @Test
-    public void testResettingAPassword() throws Exception {
+    public void testResettingAPasswordUsingUsernameToEnsureNoModification() throws Exception {
+
         List<ScimUser> users = webApplicationContext.getBean(ScimUserProvisioning.class).query("username eq \"marissa\"");
         assertNotNull(users);
         assertEquals(1, users.size());
-        ExpiringCode code = codeStore.generateCode(users.get(0).getId(), new Timestamp(System.currentTimeMillis()+50000));
+        PasswordResetEndpoints.PasswordChange change = new PasswordResetEndpoints.PasswordChange();
+        change.setUserId(users.get(0).getId());
+        change.setUsername(users.get(0).getUserName());
+
+        ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis()+ PASSWORD_RESET_LIFETIME));
 
         MockHttpServletRequestBuilder post = post("/reset_password.do")
             .param("code", code.getCode())
@@ -100,5 +110,94 @@ public class ResetPasswordControllerMockMvcTests extends TestClassNullifier {
         assertThat(principal.getName(), equalTo(users.get(0).getUserName()));
         assertThat(principal.getEmail(), equalTo(users.get(0).getPrimaryEmail()));
         assertThat(principal.getOrigin(), equalTo(Origin.UAA));
+    }
+
+    @Test
+    public void testResettingAPasswordFailsWhenUsernameChanged() throws Exception {
+
+        ScimUserProvisioning userProvisioning = webApplicationContext.getBean(ScimUserProvisioning.class);
+        List<ScimUser> users = userProvisioning.query("username eq \"marissa\"");
+        assertNotNull(users);
+        assertEquals(1, users.size());
+        ScimUser user = users.get(0);
+        PasswordResetEndpoints.PasswordChange change = new PasswordResetEndpoints.PasswordChange();
+        change.setUserId(user.getId());
+        change.setUsername(user.getUserName());
+
+        ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis()+50000));
+
+        String formerUsername = user.getUserName();
+        user.setUserName("newusername");
+        user = userProvisioning.update(user.getId(), user);
+        try {
+            MockHttpServletRequestBuilder post = post("/reset_password.do")
+                .param("code", code.getCode())
+                .param("email", user.getPrimaryEmail())
+                .param("password", "newpassword")
+                .param("password_confirmation", "newpassword");
+
+            mockMvc.perform(post)
+                .andExpect(status().isUnprocessableEntity());
+        } finally {
+            user.setUserName(formerUsername);
+            userProvisioning.update(user.getId(), user);
+        }
+    }
+
+    @Test
+    public void testResettingAPasswordUsingTimestampForUserModification() throws Exception {
+        List<ScimUser> users = webApplicationContext.getBean(ScimUserProvisioning.class).query("username eq \"marissa\"");
+        assertNotNull(users);
+        assertEquals(1, users.size());
+        ExpiringCode code = codeStore.generateCode(users.get(0).getId(), new Timestamp(System.currentTimeMillis()+ PASSWORD_RESET_LIFETIME));
+
+        MockHttpServletRequestBuilder post = post("/reset_password.do")
+            .param("code", code.getCode())
+            .param("email", users.get(0).getPrimaryEmail())
+            .param("password", "newpassword")
+            .param("password_confirmation", "newpassword");
+
+        MvcResult mvcResult = mockMvc.perform(post)
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("home"))
+            .andReturn();
+
+        SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        Authentication authentication = securityContext.getAuthentication();
+        assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
+        UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
+        assertThat(principal.getId(), equalTo(users.get(0).getId()));
+        assertThat(principal.getName(), equalTo(users.get(0).getUserName()));
+        assertThat(principal.getEmail(), equalTo(users.get(0).getPrimaryEmail()));
+        assertThat(principal.getOrigin(), equalTo(Origin.UAA));
+    }
+
+    @Test
+    public void testResettingAPasswordUsingTimestampUserModified() throws Exception {
+        ScimUserProvisioning userProvisioning = webApplicationContext.getBean(ScimUserProvisioning.class);
+        List<ScimUser> users = userProvisioning.query("username eq \"marissa\"");
+        assertNotNull(users);
+        assertEquals(1, users.size());
+        ScimUser user = users.get(0);
+        ExpiringCode code = codeStore.generateCode(user.getId(), new Timestamp(System.currentTimeMillis() + PASSWORD_RESET_LIFETIME));
+
+        MockHttpServletRequestBuilder post = post("/reset_password.do")
+            .param("code", code.getCode())
+            .param("email", user.getPrimaryEmail())
+            .param("password", "newpassword")
+            .param("password_confirmation", "newpassword");
+
+        if (Arrays.asList(webApplicationContext.getEnvironment().getActiveProfiles()).contains("mysql")) {
+            Thread.sleep(1050);
+        } else {
+            Thread.sleep(50);
+        }
+
+        userProvisioning.update(user.getId(), user);
+
+        mockMvc.perform(post)
+            .andExpect(status().isUnprocessableEntity());
+
+
     }
 }
