@@ -6,8 +6,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
@@ -35,9 +38,9 @@ public class MultitenantJdbcClientDetailsServiceTests {
 
     private EmbeddedDatabase db;
 
-    private static final String SELECT_SQL = "select client_id, client_secret, resource_ids, scope, authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, refresh_token_validity from oauth_client_details where client_id=?";
+    private static final String SELECT_SQL = "select client_id, client_secret, resource_ids, scope, authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, refresh_token_validity, lastmodified from oauth_client_details where client_id=?";
 
-    private static final String INSERT_SQL = "insert into oauth_client_details (client_id, client_secret, resource_ids, scope, authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, refresh_token_validity, autoapprove, identity_zone_id) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    private static final String INSERT_SQL = "insert into oauth_client_details (client_id, client_secret, resource_ids, scope, authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, refresh_token_validity, autoapprove, identity_zone_id, lastmodified) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     private IdentityZone otherIdentityZone;
     
@@ -75,7 +78,7 @@ public class MultitenantJdbcClientDetailsServiceTests {
     @Test
     public void testLoadingClientIdWithNoDetails() {
         int rowsInserted = jdbcTemplate.update(INSERT_SQL, "clientIdWithNoDetails", null, null,
-                null, null, null, null, null, null, null, IdentityZoneHolder.get().getId());
+                null, null, null, null, null, null, null, IdentityZoneHolder.get().getId(), new Timestamp(System.currentTimeMillis()));
 
         assertEquals(1, rowsInserted);
 
@@ -96,8 +99,11 @@ public class MultitenantJdbcClientDetailsServiceTests {
 
     @Test
     public void testLoadingClientIdWithAdditionalInformation() {
+
+        Timestamp lastModifiedDate = new Timestamp(System.currentTimeMillis());
+
         jdbcTemplate.update(INSERT_SQL, "clientIdWithAddInfo", null, null,
-                null, null, null, null, null, null, null, IdentityZoneHolder.get().getId());
+                null, null, null, null, null, null, null, IdentityZoneHolder.get().getId(), lastModifiedDate);
         jdbcTemplate
                 .update("update oauth_client_details set additional_information=? where client_id=?",
                         "{\"foo\":\"bar\"}", "clientIdWithAddInfo");
@@ -106,15 +112,20 @@ public class MultitenantJdbcClientDetailsServiceTests {
                 .loadClientByClientId("clientIdWithAddInfo");
 
         assertEquals("clientIdWithAddInfo", clientDetails.getClientId());
-        assertEquals(Collections.singletonMap("foo", "bar"),
-                clientDetails.getAdditionalInformation());
+
+        Map<String, Object> additionalInfoMap = new HashMap<>();
+        additionalInfoMap.put("foo", "bar");
+        additionalInfoMap.put("lastModified", lastModifiedDate);
+
+        assertEquals(additionalInfoMap, clientDetails.getAdditionalInformation());
+        assertEquals(lastModifiedDate, clientDetails.getAdditionalInformation().get("lastModified"));
     }
 
     @Test
     public void testLoadingClientIdWithSingleDetails() {
         jdbcTemplate.update(INSERT_SQL, "clientIdWithSingleDetails",
                 "mySecret", "myResource", "myScope", "myAuthorizedGrantType",
-                "myRedirectUri", "myAuthority", 100, 200, "true", IdentityZoneHolder.get().getId());
+                "myRedirectUri", "myAuthority", 100, 200, "true", IdentityZoneHolder.get().getId(), new Timestamp(System.currentTimeMillis()));
 
         ClientDetails clientDetails = service
                 .loadClientByClientId("clientIdWithSingleDetails");
@@ -148,7 +159,7 @@ public class MultitenantJdbcClientDetailsServiceTests {
                 "mySecret", "myResource1,myResource2", "myScope1,myScope2",
                 "myAuthorizedGrantType1,myAuthorizedGrantType2",
                 "myRedirectUri1,myRedirectUri2", "myAuthority1,myAuthority2",
-                100, 200, "read,write", IdentityZoneHolder.get().getId());
+                100, 200, "read,write", IdentityZoneHolder.get().getId(), new Timestamp(System.currentTimeMillis()));
 
         ClientDetails clientDetails = service
                 .loadClientByClientId("clientIdWithMultipleDetails");

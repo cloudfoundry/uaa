@@ -28,9 +28,9 @@ import java.util.List;
 
 public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning {
 
-    public static final String ID_ZONE_FIELDS = "id,version,created,lastModified,name,subdomain,description";
+    public static final String ID_ZONE_FIELDS = "id,version,created,lastmodified,name,subdomain,description";
 
-    public static final String ID_ZONE_UPDATE_FIELDS = "version,lastModified,name,subdomain,description".replace(",","=?,")+"=?";
+    public static final String ID_ZONE_UPDATE_FIELDS = "version,lastmodified,name,subdomain,description".replace(",","=?,")+"=?";
 
     public static final String CREATE_IDENTITY_ZONE_SQL = "insert into identity_zone(" + ID_ZONE_FIELDS + ") values (?,?,?,?,?,?,?)";
 
