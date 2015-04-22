@@ -896,7 +896,7 @@ Identity Provider API Documentation
 Request             ``GET /identity-providers/{id}`` (returns a single provider) or ``GET /identity-providers`` (returns an array of providers)
 Header              ``X-Identity-Zone-Id`` (if using zones.<id>.admin scope against default UAA zone)
 Scopes Required     ``zones.<zone id>.admin`` or ``idps.read``
-Request Parameters  retrieveActive (optional parameter for /identity-providers). Set to true to retrieve only active Identity Providers
+Request Parameters  active_only (optional parameter for /identity-providers). Set to true to retrieve only active Identity Providers
 Response body       *example* ::
 
                      HTTP/1.1 200 OK

@@ -173,7 +173,7 @@ public class IdentityProviderEndpointsMockMvcTests extends TestClassNullifier {
         IdentityProvider identityProvider = MultitenancyFixture.identityProvider(randomOriginKey, IdentityZone.getUaa().getId());
         IdentityProvider createdIDP = createIdentityProvider(null, identityProvider, accessToken, status().isCreated());
 
-        String retrieveActiveParam = retrieveActive ? "?retrieveActive=true" : "";
+        String retrieveActiveParam = retrieveActive ? "?active_only=true" : "";
         MockHttpServletRequestBuilder requestBuilder = get("/identity-providers" + retrieveActiveParam)
                 .header("Authorization", "Bearer" + accessToken)
                 .contentType(APPLICATION_JSON);

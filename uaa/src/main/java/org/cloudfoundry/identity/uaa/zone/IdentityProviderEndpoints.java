@@ -83,9 +83,9 @@ public class IdentityProviderEndpoints {
     }
 
     @RequestMapping(method = GET)
-    public ResponseEntity<List<IdentityProvider>> retrieveIdentityProviders(@RequestParam(required = false) String retrieveActive) {
-        Boolean retrieveActiveIdps = Boolean.valueOf(retrieveActive);
-        List<IdentityProvider> identityProviderList = identityProviderProvisioning.retrieveAll(retrieveActiveIdps, IdentityZoneHolder.get().getId());
+    public ResponseEntity<List<IdentityProvider>> retrieveIdentityProviders(@RequestParam(value = "active_only", required = false) String activeOnly) {
+        Boolean retrieveActiveOnly = Boolean.valueOf(activeOnly);
+        List<IdentityProvider> identityProviderList = identityProviderProvisioning.retrieveAll(retrieveActiveOnly, IdentityZoneHolder.get().getId());
         return new ResponseEntity<>(identityProviderList, OK);
     }
 
