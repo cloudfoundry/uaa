@@ -38,15 +38,13 @@ public class JdbcQueryableClientDetailsService extends AbstractQueryable<ClientD
 
     private JdbcClientDetailsService delegate;
 
-    private static final String CLIENT_FIELDS_FOR_UPDATE = "resource_ids, scope, "
+    private static final String CLIENT_FIELDS = "client_id, client_secret, resource_ids, scope, "
                     + "authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, "
-                    + "refresh_token_validity, additional_information";
-
-    private static final String CLIENT_FIELDS = "client_secret, " + CLIENT_FIELDS_FOR_UPDATE;
+                    + "refresh_token_validity, additional_information, autoapprove, lastmodified";
 
     public static final String CLIENT_DETAILS_TABLE = "oauth_client_details";
-    private static final String BASE_FIND_STATEMENT = "select client_id, " + CLIENT_FIELDS
-        + ",autoapprove from " + CLIENT_DETAILS_TABLE;
+    private static final String BASE_FIND_STATEMENT = "select " + CLIENT_FIELDS
+        + " from " + CLIENT_DETAILS_TABLE;
 
     public JdbcQueryableClientDetailsService(JdbcClientDetailsService delegate, JdbcTemplate jdbcTemplate,
                     JdbcPagingListFactory pagingListFactory) {
@@ -128,6 +126,9 @@ public class JdbcQueryableClientDetailsService extends AbstractQueryable<ClientD
             String scopes = rs.getString(11);
             if (scopes != null) {
                 details.setAutoApproveScopes(StringUtils.commaDelimitedListToSet(scopes));
+            }
+            if (rs.getTimestamp(12) != null) {
+                details.addAdditionalInformation("lastModified", rs.getTimestamp(12));
             }
             return details;
         }

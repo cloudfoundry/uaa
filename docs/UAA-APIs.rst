@@ -2091,14 +2091,16 @@ Response body   *example* ::
                     "scope" : ["uaa.none"],
                     "resource_ids" : ["none"],
                     "authorities" : ["cloud_controller.read","cloud_controller.write","scim.read"],
-                    "authorized_grant_types" : ["client_credentials"]
+                    "authorized_grant_types" : ["client_credentials"],
+                    "lastModified" : 1426260091149
                   },
                   "bar": {
                     "client_id" : "bar",
                     "scope" : ["cloud_controller.read","cloud_controller.write","openid"],
                     "resource_ids" : ["none"],
                     "authorities" : ["uaa.none"],
-                    "authorized_grant_types" : ["authorization_code"]
+                    "authorized_grant_types" : ["authorization_code"],
+                    "lastModified" : 1426260091145
                   }}
 
 ==============  ===========================================================================
@@ -2119,7 +2121,8 @@ Response body   *example*::
                     "scope" : ["uaa.none"],
                     "resource_ids" : ["none"],
                     "authorities" : ["cloud_controller.read","cloud_controller.write","scim.read"],
-                    "authorized_grant_types" : ["client_credentials"]
+                    "authorized_grant_types" : ["client_credentials"],
+                    "lastModified" : 1426260091145
                   }
 
 =============== ===============================================================

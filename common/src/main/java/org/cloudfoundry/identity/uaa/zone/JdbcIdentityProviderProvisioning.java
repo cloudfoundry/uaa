@@ -34,11 +34,11 @@ import java.util.UUID;
 
 public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisioning {
 
-    public static final String ID_PROVIDER_FIELDS = "id,version,created,lastModified,name,origin_key,type,config,identity_zone_id,active";
+    public static final String ID_PROVIDER_FIELDS = "id,version,created,lastmodified,name,origin_key,type,config,identity_zone_id,active";
 
     public static final String CREATE_IDENTITY_PROVIDER_SQL = "insert into identity_provider(" + ID_PROVIDER_FIELDS + ") values (?,?,?,?,?,?,?,?,?,?)";
 
-    public static final String ID_PROVIDER_UPDATE_FIELDS = "version,lastModified,name,type,config,active".replace(",","=?,")+"=?";
+    public static final String ID_PROVIDER_UPDATE_FIELDS = "version,lastmodified,name,type,config,active".replace(",","=?,")+"=?";
 
     public static final String IDENTITY_PROVIDERS_QUERY = "select " + ID_PROVIDER_FIELDS + " from identity_provider where identity_zone_id=?";
 
