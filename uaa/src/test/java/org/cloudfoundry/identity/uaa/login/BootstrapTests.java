@@ -44,6 +44,8 @@ import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.saml.log.SAMLDefaultLogger;
 import org.springframework.security.saml.websso.WebSSOProfileConsumer;
 import org.springframework.security.saml.websso.WebSSOProfileConsumerImpl;
+import org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler;
+import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.AbstractRefreshableWebApplicationContext;
 import org.springframework.web.servlet.ViewResolver;
@@ -51,6 +53,8 @@ import org.springframework.web.servlet.ViewResolver;
 import javax.servlet.RequestDispatcher;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -128,8 +132,8 @@ public class BootstrapTests {
     public void testInternalHostnames() throws Exception {
         String uaa = "uaa.some.test.domain.com";
         String login = uaa.replace("uaa", "login");
-        System.setProperty("uaa.url", "https://"+uaa+":555/uaa");
-        System.setProperty("login.url", "https://"+login+":555/uaa");
+        System.setProperty("uaa.url", "https://" + uaa + ":555/uaa");
+        System.setProperty("login.url", "https://" + login + ":555/uaa");
         context = getServletContext(null, "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
         Set<String> defaultHostnames = new HashSet<>(Arrays.asList(uaa,login, "localhost"));
@@ -168,11 +172,37 @@ public class BootstrapTests {
         System.setProperty("login.saml.metadataTrustCheck", "false");
         context = getServletContext("default", "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         assertEquals(3600, context.getBean("webSSOprofileConsumer", WebSSOProfileConsumerImpl.class).getMaxAuthenticationAge());
-        Assume.assumeTrue(context.getEnvironment().getProperty("login.idpMetadataURL")==null);
+        Assume.assumeTrue(context.getEnvironment().getProperty("login.idpMetadataURL") == null);
         assertNotNull(context.getBean("viewResolver", ViewResolver.class));
         assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
         assertFalse(context.getBean(IdentityProviderConfigurator.class).isLegacyMetadataTrustCheck());
         assertEquals(0, context.getBean(IdentityProviderConfigurator.class).getIdentityProviderDefinitions().size());
+        SimpleUrlLogoutSuccessHandler handler = context.getBean(SimpleUrlLogoutSuccessHandler.class);
+        Method getDefaultTargetUrl = ReflectionUtils.findMethod(SimpleUrlLogoutSuccessHandler.class, "getDefaultTargetUrl");
+        getDefaultTargetUrl.setAccessible(true);
+        Method isAlwaysUseDefaultTargetUrl = ReflectionUtils.findMethod(SimpleUrlLogoutSuccessHandler.class, "isAlwaysUseDefaultTargetUrl");
+        isAlwaysUseDefaultTargetUrl.setAccessible(true);
+        assertEquals(true, ReflectionUtils.invokeMethod(isAlwaysUseDefaultTargetUrl, handler));
+        assertEquals("/login", ReflectionUtils.invokeMethod(getDefaultTargetUrl, handler));
+    }
+
+    @Test
+    public void testLogoutRedirectConfiguration() throws Exception {
+        System.setProperty("logout.redirect.parameter.disable", "false");
+        System.setProperty("logout.redirect.url", "/login?parameter=true");
+        try {
+            context = getServletContext("default", "login.yml", "uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+            SimpleUrlLogoutSuccessHandler handler = context.getBean(SimpleUrlLogoutSuccessHandler.class);
+            Method getDefaultTargetUrl = ReflectionUtils.findMethod(SimpleUrlLogoutSuccessHandler.class, "getDefaultTargetUrl");
+            getDefaultTargetUrl.setAccessible(true);
+            Method isAlwaysUseDefaultTargetUrl = ReflectionUtils.findMethod(SimpleUrlLogoutSuccessHandler.class, "isAlwaysUseDefaultTargetUrl");
+            isAlwaysUseDefaultTargetUrl.setAccessible(true);
+            assertEquals(false, ReflectionUtils.invokeMethod(isAlwaysUseDefaultTargetUrl, handler));
+            assertEquals("/login?parameter=true", ReflectionUtils.invokeMethod(getDefaultTargetUrl, handler));
+        } finally {
+            System.clearProperty("logout.redirect.parameter.disable");
+            System.clearProperty("logout.redirect.url");
+        }
     }
 
     @Test
