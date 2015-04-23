@@ -48,6 +48,7 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.PortResolverImpl;
+import org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.test.web.servlet.MockMvc;
@@ -72,7 +73,6 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.TEXT_HTML;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
@@ -125,6 +125,46 @@ public class LoginMockMvcTests extends TestClassNullifier {
                         .andExpect(model().attribute("links", hasEntry("passwd", "/forgot_password")))
                         .andExpect(model().attribute("links", hasEntry("register", "/create_account")))
                         .andExpect(model().attributeExists("prompts"));
+    }
+
+    @Test
+    public void testLogOut() throws Exception {
+        mockMvc.perform(get("/logout.do"))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/login"));
+    }
+
+    @Test
+    public void testLogOutIgnoreRedirectParameter() throws Exception {
+        mockMvc.perform(get("/logout.do").param("redirect", "https://www.google.com"))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/login"));
+    }
+
+    @Test
+    public void testLogOutEnableRedirectParameter() throws Exception {
+        SimpleUrlLogoutSuccessHandler logoutSuccessHandler = webApplicationContext.getBean(SimpleUrlLogoutSuccessHandler.class);
+        logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(false);
+        try {
+            mockMvc.perform(get("/logout.do").param("redirect", "https://www.google.com"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("https://www.google.com"));
+        } finally {
+            logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(true);
+        }
+    }
+
+    @Test
+    public void testLogOutChangeUrlValue() throws Exception {
+        SimpleUrlLogoutSuccessHandler logoutSuccessHandler = webApplicationContext.getBean(SimpleUrlLogoutSuccessHandler.class);
+        logoutSuccessHandler.setDefaultTargetUrl("https://www.google.com");
+        try {
+            mockMvc.perform(get("/logout.do"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("https://www.google.com"));
+        } finally {
+            logoutSuccessHandler.setDefaultTargetUrl("/login");
+        }
     }
 
     @Test

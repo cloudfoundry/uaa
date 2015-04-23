@@ -37,6 +37,11 @@ links:
 
 #notifications:
 #  url: http://localhost:3001
+#logout:
+#  redirect:
+#    url: /login
+#    parameter:
+#      disable: true
 
 login:
   # Enable create account and forgot password links on the Login Server (enabled by default)

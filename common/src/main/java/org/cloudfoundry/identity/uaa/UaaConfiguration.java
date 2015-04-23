@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -72,6 +72,8 @@ public class UaaConfiguration {
 
     @Valid
     public Map<String,Object> login;
+    @Valid
+    public Map<String,Object> logout;
     @Valid
     public Map<String,Object> links;
     @Valid

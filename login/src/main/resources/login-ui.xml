@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!--
-    Cloud Foundry 
+    Cloud Foundry
     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
 
     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -149,7 +149,8 @@
 
   <bean id="logoutHandler" class="org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler">
     <property name="targetUrlParameter" value="redirect" />
-    <property name="defaultTargetUrl" value="/login" />
+    <property name="defaultTargetUrl" value="${logout.redirect.url:/login}" />
+    <property name="alwaysUseDefaultTargetUrl" value="${logout.redirect.parameter.disable:true}"/>
   </bean>
 
   <!--<mvc:resources location="/" mapping="/**" />-->
@@ -394,7 +395,7 @@
         <constructor-arg ref="changeEmailService"/>
         <property name="uaaUserDatabase" ref="userDatabase"/>
     </bean>
-    
+
     <bean class="org.cloudfoundry.identity.uaa.login.UaaExpiringCodeService">
         <constructor-arg ref="codeStore"/>
     </bean>

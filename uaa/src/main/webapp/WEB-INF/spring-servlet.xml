@@ -180,11 +180,6 @@
 
     <bean id="http403EntryPoint" class="org.springframework.security.web.authentication.Http403ForbiddenEntryPoint" />
 
-    <bean id="logoutHandler" class="org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler">
-        <property name="targetUrlParameter" value="redirect" />
-        <property name="defaultTargetUrl" value="/" />
-    </bean>
-
     <bean id="uiRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.DelegatingRequestMatcher">
         <constructor-arg>
             <list>
