@@ -188,7 +188,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
     }
 
     protected void setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove) {
-        setUpClients(id,authorities,scopes,grantTypes,autoapprove,null);
+        setUpClients(id, authorities, scopes, grantTypes, autoapprove, null);
     }
     protected void setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri) {
         setUpClients(id, authorities, scopes, grantTypes, autoapprove, redirectUri, null);
@@ -438,8 +438,8 @@ public class TokenMvcMockTests extends TestClassNullifier {
         SecurityContextHolder.getContext().setAuthentication(auth);
         MockHttpSession session = new MockHttpSession();
         session.setAttribute(
-                HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
-                new MockSecurityContext(auth)
+            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+            new MockSecurityContext(auth)
         );
 
         String state = new RandomValueStringGenerator().generate();
@@ -620,6 +620,54 @@ public class TokenMvcMockTests extends TestClassNullifier {
         location = location.substring(0,location.indexOf("&code="));
         assertEquals(redirectUri, location);
     }
+
+    @Test
+    public void testImplicitGrantWithFragmentInRedirectURL() throws Exception {
+        String redirectUri = "https://example.com/dashboard/?appGuid=app-guid#test";
+        testImplicitGrantRedirectUri(redirectUri, "&");
+    }
+
+    @Test
+    public void testImplicitGrantWithNoFragmentInRedirectURL() throws Exception {
+        String redirectUri = "https://example.com/dashboard/?appGuid=app-guid";
+        testImplicitGrantRedirectUri(redirectUri, "#");
+    }
+
+    protected void testImplicitGrantRedirectUri(String redirectUri, String delim) throws Exception {
+        String clientId = "authclient-"+new RandomValueStringGenerator().generate();
+        String scopes = "openid";
+        setUpClients(clientId, scopes, scopes, GRANT_TYPES, true, redirectUri);
+        String username = "authuser"+new RandomValueStringGenerator().generate();
+        String userScopes = "openid";
+        ScimUser developer = setUpUser(username, userScopes);
+        String basicDigestHeaderValue = "Basic "
+            + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes()));
+        UaaPrincipal p = new UaaPrincipal(developer.getId(),developer.getUserName(),developer.getPrimaryEmail(), Origin.UAA,"", IdentityZoneHolder.get().getId());
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(p, "", UaaAuthority.USER_AUTHORITIES);
+        Assert.assertTrue(auth.isAuthenticated());
+
+        SecurityContextHolder.getContext().setAuthentication(auth);
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute(
+            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+            new MockSecurityContext(auth)
+        );
+
+        String state = new RandomValueStringGenerator().generate();
+        MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
+            .header("Authorization", basicDigestHeaderValue)
+            .session(session)
+            .param(OAuth2Utils.RESPONSE_TYPE, "token")
+            .param(OAuth2Utils.SCOPE, "openid")
+            .param(OAuth2Utils.STATE, state)
+            .param(OAuth2Utils.CLIENT_ID, clientId)
+            .param(OAuth2Utils.REDIRECT_URI, redirectUri);
+
+        MvcResult result = mockMvc.perform(authRequest).andExpect(status().is3xxRedirection()).andReturn();
+        String location = result.getResponse().getHeader("Location");
+        assertTrue(location.startsWith(redirectUri + delim + "token_type=bearer&access_token"));
+    }
+
 
     @Test
     public void testOpenIdToken() throws Exception {
