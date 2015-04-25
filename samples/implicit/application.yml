@@ -7,7 +7,6 @@ spring:
   oauth2:
     client:
       clientId: oauth_showcase_implicit_grant
-      clientSecret: secret
       accessTokenUri: ${idServiceUrl}/oauth/token
       userAuthorizationUri: ${idServiceUrl}/oauth/authorize
     resource:
