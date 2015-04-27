@@ -99,14 +99,14 @@
     <bean id="identityZoneResolvingFilter" class="org.cloudfoundry.identity.uaa.zone.IdentityZoneResolvingFilter">
         <property name="identityZoneProvisioning" ref="identityZoneProvisioning"/>
         <property name="internalHostnames">
-            <set>
+           <set>
                 <value>#{T(org.cloudfoundry.identity.uaa.util.UaaUrlUtils).getHostForURI(@uaaUrl)}</value>
                 <value>#{T(org.cloudfoundry.identity.uaa.util.UaaUrlUtils).getHostForURI(@loginUrl)}</value>
                 <value>localhost</value>
-            </set>
-
+           </set>
         </property>
     </bean>
+
     <bean id="identityZoneSwitchingFilter" class="org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter"/>
 
     <bean id="uaaUrl" class="java.lang.String">
