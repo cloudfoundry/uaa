@@ -274,7 +274,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
             if (accessToken == null) {
                 throw new UnsupportedResponseTypeException("Unsupported response type: token");
             }
-            return new ModelAndView(new RedirectView(appendAccessToken(authorizationRequest, accessToken, authentication), false, true,
+            return new ModelAndView(new RedirectView(appendAccessToken(authorizationRequest, accessToken, authentication, true), false, true,
                 false));
         } catch (OAuth2Exception e) {
             if (authorizationRequest.getResponseTypes().contains("token") || fallbackToAuthcode == false) {
@@ -307,17 +307,14 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
 
     private String appendAccessToken(AuthorizationRequest authorizationRequest,
                                      OAuth2AccessToken accessToken,
-                                     Authentication authUser) {
+                                     Authentication authUser,
+                                     boolean fragment) {
 
         String requestedRedirect = authorizationRequest.getRedirectUri();
         if (accessToken == null) {
             throw new InvalidRequestException("An implicit grant could not be made");
         }
 
-        boolean fragment = true;
-        if (requestedRedirect.contains("#")) {
-            fragment = false;
-        }
         StringBuilder url = new StringBuilder();
         url.append("token_type=").append(encode(accessToken.getTokenType()));
 
@@ -359,7 +356,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
             }
         }
 
-        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(requestedRedirect);
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(requestedRedirect);
         if (fragment) {
             String existingFragment = builder.build(true).getFragment();
             if (StringUtils.hasText(existingFragment)) {
