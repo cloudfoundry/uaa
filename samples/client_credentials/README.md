@@ -33,4 +33,4 @@ Start the authcode sample application
     >> 2015-04-24 15:39:15.947  INFO 88632 --- [main] s.b.c.e.t.TomcatEmbeddedServletContainer : Tomcat started on port(s): 8888 (http)
     >> 2015-04-24 15:39:15.948  INFO 88632 --- [main] o.c.i.samples.clientcredentials.Application       : Started Application in 4.937 seconds (JVM running for 5.408)
 
-You can start the client credentials grant flow by going to http://localhost:8889
+You can start the client credentials grant flow by going to http://localhost:8888
