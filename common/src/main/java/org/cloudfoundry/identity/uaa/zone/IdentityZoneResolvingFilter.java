@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -20,6 +21,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -36,7 +38,6 @@ import java.util.Set;
 public class IdentityZoneResolvingFilter extends OncePerRequestFilter {
 
     private IdentityZoneProvisioning dao;
-
     private Set<String> internalHostnames = new HashSet<>();
 
     @Override
@@ -81,11 +82,12 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter {
         this.dao = dao;
     }
 
-    public void setInternalHostnames(Set<String> hostnames) {
-        internalHostnames = Collections.unmodifiableSet(hostnames);
+    @Value("${internalHostnames:localhost}")
+    public void setInternalHostnames(String hostnames) {
+        this.internalHostnames.addAll(Arrays.asList(hostnames.split("[ ,]+")));
     }
 
-    public Set<String> getInternalHostnames() {
-        return internalHostnames;
+    public void setInternalHostnames(Set<String> hostnames) {
+        this.internalHostnames.addAll(Collections.unmodifiableSet(hostnames));
     }
 }

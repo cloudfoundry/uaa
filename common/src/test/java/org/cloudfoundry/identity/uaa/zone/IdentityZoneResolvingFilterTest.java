@@ -52,8 +52,8 @@ public class IdentityZoneResolvingFilterTest {
         IdentityZoneResolvingFilter filter = new IdentityZoneResolvingFilter();
         IdentityZoneProvisioning dao = Mockito.mock(IdentityZoneProvisioning.class);
         filter.setIdentityZoneProvisioning(dao);
-        filter.setInternalHostnames(new HashSet<>(Arrays.asList(StringUtils.commaDelimitedListToStringArray(internalHostnames))));
-        
+        filter.setInternalHostnames(internalHostnames);
+
         IdentityZone identityZone = new IdentityZone();
         identityZone.setSubdomain(expectedSubdomain);
         Mockito.when(dao.retrieveBySubdomain(Mockito.eq(expectedSubdomain))).thenReturn(identityZone);
@@ -86,7 +86,7 @@ public class IdentityZoneResolvingFilterTest {
         IdentityZoneProvisioning dao = Mockito.mock(IdentityZoneProvisioning.class);
         FilterChain chain = Mockito.mock(FilterChain.class);
         filter.setIdentityZoneProvisioning(dao);
-        filter.setInternalHostnames(new HashSet<>(new LinkedList<>(Arrays.asList(uaaHostname))));
+        filter.setInternalHostnames(uaaHostname);
         
         IdentityZone identityZone = new IdentityZone();
         identityZone.setSubdomain(incomingSubdomain);
