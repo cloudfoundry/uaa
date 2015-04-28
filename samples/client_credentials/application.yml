@@ -6,12 +6,9 @@ spring:
     cache: false
   oauth2:
     client:
-      clientId: oauth_showcase_authorization_code
-      clientSecret: secret
+      authorizationUri: ${idServiceUrl}/oauth/authorize
       accessTokenUri: ${idServiceUrl}/oauth/token
-      userAuthorizationUri: ${idServiceUrl}/oauth/authorize
-    resource:
-      jwt.keyUri: ${idServiceUrl}/token_key
-      
+      clientId: oauth_showcase_client_credentials
+      clientSecret: secret
 logging.level:
   org.springframework.security: DEBUG
