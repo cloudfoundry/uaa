@@ -28,10 +28,10 @@
         <property name="testOnBorrow" value="true" />
         <property name="maxActive" value="${database.maxactive:100}"/>
         <property name="maxIdle" value="${database.maxidle:10}"/>
-        <property name="removeAbandoned" value="true"/>
-        <property name="logAbandoned" value="true"/>
-        <property name="removeAbandonedTimeout" value="30"/>
-        <property name="timeBetweenEvictionRunsMillis" value="15000"/>
+        <property name="removeAbandoned" value="${database.removeabandoned:false}"/>
+        <property name="logAbandoned" value="${database.logabandoned:true}"/>
+        <property name="removeAbandonedTimeout" value="${database.abandonedtimeout:300}"/>
+        <property name="timeBetweenEvictionRunsMillis" value="${database.evictionintervalms:15000}"/>
     </bean>
 
     <bean id="dataSourceAccessor" class="org.cloudfoundry.identity.uaa.db.DataSourceAccessor" depends-on="dataSource">
