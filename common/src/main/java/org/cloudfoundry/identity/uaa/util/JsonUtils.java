@@ -44,10 +44,18 @@ public class JsonUtils {
         }
     }
 
-    public static <T> T readValue(String s, TypeReference<T> typeReference) {
+    public static <T> T readValue(String s, TypeReference typeReference) {
         try {
             return objectMapper.readValue(s, typeReference);
         } catch (IOException e) {
+            throw new JsonUtilException(e);
+        }
+    }
+
+    public static <T> T convertValue(Object object, Class<T> toClazz) throws JsonUtilException {
+        try {
+            return objectMapper.convertValue(object, toClazz);
+        } catch (IllegalArgumentException e) {
             throw new JsonUtilException(e);
         }
     }

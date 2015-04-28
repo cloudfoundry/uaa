@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -47,6 +47,7 @@ public class UaaConfiguration {
     @Pattern(regexp = "(default|postgresql|hsqldb|mysql|oracle)")
     public String platform;
     public String spring_profiles;
+    public String internalHostnames;
     @URL(message = "issuer.uri must be a valid URL")
     public String issuerUri;
     public boolean dump_requests;
@@ -72,6 +73,8 @@ public class UaaConfiguration {
 
     @Valid
     public Map<String,Object> login;
+    @Valid
+    public Map<String,Object> logout;
     @Valid
     public Map<String,Object> links;
     @Valid

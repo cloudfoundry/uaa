@@ -55,6 +55,7 @@ import java.util.List;
 
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -152,6 +153,15 @@ public class IdentityProviderEndpointsMockMvcTests extends TestClassNullifier {
 
     @Test
     public void testEnsureWeRetrieveInactiveIDPsToo() throws Exception {
+       testRetrieveIdps(false);
+    }
+
+    @Test
+    public void testRetrieveOnlyActiveIdps() throws Exception {
+        testRetrieveIdps(true);
+    }
+
+    private void testRetrieveIdps(boolean retrieveActive) throws Exception {
         String clientId = RandomStringUtils.randomAlphabetic(6);
         BaseClientDetails client = new BaseClientDetails(clientId,null,"idps.write,idps.read","password",null);
         client.setClientSecret("test-client-secret");
@@ -163,11 +173,12 @@ public class IdentityProviderEndpointsMockMvcTests extends TestClassNullifier {
         IdentityProvider identityProvider = MultitenancyFixture.identityProvider(randomOriginKey, IdentityZone.getUaa().getId());
         IdentityProvider createdIDP = createIdentityProvider(null, identityProvider, accessToken, status().isCreated());
 
-        MockHttpServletRequestBuilder requestBuilder = get("/identity-providers")
-            .header("Authorization", "Bearer" + accessToken)
-            .contentType(APPLICATION_JSON);
+        String retrieveActiveParam = retrieveActive ? "?active_only=true" : "";
+        MockHttpServletRequestBuilder requestBuilder = get("/identity-providers" + retrieveActiveParam)
+                .header("Authorization", "Bearer" + accessToken)
+                .contentType(APPLICATION_JSON);
 
-        int numberOfIdps = identityProviderProvisioning.retrieveAll(false, IdentityZone.getUaa().getId()).size();
+        int numberOfIdps = identityProviderProvisioning.retrieveAll(retrieveActive, IdentityZone.getUaa().getId()).size();
 
         MvcResult result = mockMvc.perform(requestBuilder).andExpect(status().isOk()).andReturn();
         List<IdentityProvider> identityProviderList = JsonUtils.readValue(result.getResponse().getContentAsString(), new TypeReference<List<IdentityProvider>>() {});
@@ -180,8 +191,13 @@ public class IdentityProviderEndpointsMockMvcTests extends TestClassNullifier {
         result = mockMvc.perform(requestBuilder).andExpect(status().isOk()).andReturn();
         identityProviderList = JsonUtils.readValue(result.getResponse().getContentAsString(), new TypeReference<List<IdentityProvider>>() {
         });
-        assertEquals(numberOfIdps, identityProviderList.size());
-        assertTrue(identityProviderList.contains(createdIDP));
+        if (!retrieveActive) {
+            assertEquals(numberOfIdps, identityProviderList.size());
+            assertTrue(identityProviderList.contains(createdIDP));
+        } else {
+            assertEquals(numberOfIdps - 1, identityProviderList.size());
+            assertFalse(identityProviderList.contains(createdIDP));
+        }
     }
 
     private void createAndUpdateIdentityProvider(String accessToken, String zoneId) throws Exception {

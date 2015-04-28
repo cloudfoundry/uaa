@@ -25,7 +25,9 @@ import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.type.TypeReference;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -48,6 +50,7 @@ import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import javax.servlet.http.HttpServletResponse;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Map;
@@ -1004,6 +1007,46 @@ public class ClientAdminEndpointsMockMvcTests extends TestClassNullifier {
                 .content(toString(clients[0]));
         ResultActions result = mockMvc.perform(modifyClientsPost);
         result.andExpect(status().isCreated());
+    }
+
+    @Test
+    public void testGetClientDetailsSortedByLastModified() throws Exception{
+
+        ClientDetails adminsClient = createReadWriteClient(adminToken);
+
+        String token = testClient.getClientCredentialsOAuthAccessToken(
+
+        adminsClient.getClientId(),
+                "secret",
+                "clients.read");
+
+        MockHttpServletRequestBuilder get = get("/oauth/clients")
+                .header("Authorization", "Bearer " + token)
+                .param("sortBy", "lastModified")
+                .param("sortOrder", "descending")
+                .accept(APPLICATION_JSON);
+
+        MvcResult result = mockMvc.perform(get).andExpect(status().isOk()).andReturn();
+        String body = result.getResponse().getContentAsString();
+
+        Collection<ClientDetails> clientDetails = JsonUtils.<SearchResults<ClientDetails>> readValue(body, new TypeReference<SearchResults<BaseClientDetails>>() {
+        }).getResources();
+
+        assertNotNull(clientDetails);
+
+        Date lastDate = null;
+
+        for(ClientDetails clientDetail : clientDetails){
+            assertTrue(clientDetail.getAdditionalInformation().containsKey("lastModified"));
+
+            Date currentDate = JsonUtils.convertValue(clientDetail.getAdditionalInformation().get("lastModified"), Date.class);
+
+            if(lastDate != null){
+                assertTrue(currentDate.getTime() <= lastDate.getTime());
+            }
+
+            lastDate = currentDate;
+        }
     }
 
 

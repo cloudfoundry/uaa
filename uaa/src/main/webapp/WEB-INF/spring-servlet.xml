@@ -99,14 +99,14 @@
     <bean id="identityZoneResolvingFilter" class="org.cloudfoundry.identity.uaa.zone.IdentityZoneResolvingFilter">
         <property name="identityZoneProvisioning" ref="identityZoneProvisioning"/>
         <property name="internalHostnames">
-            <set>
+           <set>
                 <value>#{T(org.cloudfoundry.identity.uaa.util.UaaUrlUtils).getHostForURI(@uaaUrl)}</value>
                 <value>#{T(org.cloudfoundry.identity.uaa.util.UaaUrlUtils).getHostForURI(@loginUrl)}</value>
                 <value>localhost</value>
-            </set>
-
+           </set>
         </property>
     </bean>
+
     <bean id="identityZoneSwitchingFilter" class="org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter"/>
 
     <bean id="uaaUrl" class="java.lang.String">
@@ -179,11 +179,6 @@
     <!--</sec:http>-->
 
     <bean id="http403EntryPoint" class="org.springframework.security.web.authentication.Http403ForbiddenEntryPoint" />
-
-    <bean id="logoutHandler" class="org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler">
-        <property name="targetUrlParameter" value="redirect" />
-        <property name="defaultTargetUrl" value="/" />
-    </bean>
 
     <bean id="uiRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.DelegatingRequestMatcher">
         <constructor-arg>

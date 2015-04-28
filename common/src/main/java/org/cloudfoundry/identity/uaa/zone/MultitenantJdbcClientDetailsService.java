@@ -14,7 +14,10 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -58,7 +61,7 @@ public class MultitenantJdbcClientDetailsService extends JdbcClientDetailsServic
 
     private static final String CLIENT_FIELDS_FOR_UPDATE = "resource_ids, scope, "
             + "authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, "
-            + "refresh_token_validity, additional_information, autoapprove";
+            + "refresh_token_validity, additional_information, autoapprove, lastmodified";
 
     private static final String CLIENT_FIELDS = "client_secret, " + CLIENT_FIELDS_FOR_UPDATE;
 
@@ -70,7 +73,7 @@ public class MultitenantJdbcClientDetailsService extends JdbcClientDetailsServic
     private static final String DEFAULT_SELECT_STATEMENT = BASE_FIND_STATEMENT + " where client_id = ? and identity_zone_id = ?";
 
     private static final String DEFAULT_INSERT_STATEMENT = "insert into oauth_client_details (" + CLIENT_FIELDS
-            + ", client_id, identity_zone_id) values (?,?,?,?,?,?,?,?,?,?,?,?)";
+            + ", client_id, identity_zone_id) values (?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
     private static final String DEFAULT_UPDATE_STATEMENT = "update oauth_client_details " + "set "
             + CLIENT_FIELDS_FOR_UPDATE.replaceAll(", ", "=?, ") + "=? where client_id = ? and identity_zone_id = ?";
@@ -187,7 +190,8 @@ public class MultitenantJdbcClientDetailsService extends JdbcClientDetailsServic
                 clientDetails.getAuthorities() != null ? StringUtils.collectionToCommaDelimitedString(clientDetails
                         .getAuthorities()) : null, clientDetails.getAccessTokenValiditySeconds(),
                 clientDetails.getRefreshTokenValiditySeconds(), json, getAutoApproveScopes(clientDetails),
-                clientDetails.getClientId(), IdentityZoneHolder.get().getId() };
+                new Timestamp(System.currentTimeMillis()),
+                clientDetails.getClientId(), IdentityZoneHolder.get().getId()};
     }
 
     private String getAutoApproveScopes(ClientDetails clientDetails) {
@@ -262,6 +266,8 @@ public class MultitenantJdbcClientDetailsService extends JdbcClientDetailsServic
             if (rs.getObject(9) != null) {
                 details.setRefreshTokenValiditySeconds(rs.getInt(9));
             }
+
+
             String json = rs.getString(10);
             if (json != null) {
                 try {
@@ -276,6 +282,12 @@ public class MultitenantJdbcClientDetailsService extends JdbcClientDetailsServic
             if (scopes != null) {
                 details.setAutoApproveScopes(StringUtils.commaDelimitedListToSet(scopes));
             }
+
+            // lastModified
+            if (rs.getObject(12) != null) {
+                details.addAdditionalInformation("lastModified", rs.getTimestamp(12));
+            }
+
             return details;
         }
     }
