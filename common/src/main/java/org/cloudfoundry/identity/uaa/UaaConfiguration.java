@@ -47,7 +47,10 @@ public class UaaConfiguration {
     @Pattern(regexp = "(default|postgresql|hsqldb|mysql|oracle)")
     public String platform;
     public String spring_profiles;
-    public String internalHostnames;
+
+    @Valid
+    public Zones zones;
+
     @URL(message = "issuer.uri must be a valid URL")
     public String issuerUri;
     public boolean dump_requests;
@@ -91,6 +94,15 @@ public class UaaConfiguration {
     public String LOGIN_SECRET;
     @Valid
     public OAuth multitenant;
+
+    public static class Zones {
+        @Valid
+        public InternalZone internal;
+
+        public static class InternalZone {
+            public Set<String> hostnames;
+        }
+    }
 
     public static class CloudController {
         @Valid

@@ -33,7 +33,7 @@ import java.util.Set;
 public class IdentityZoneResolvingFilter extends OncePerRequestFilter {
 
     private IdentityZoneProvisioning dao;
-    private Set<String> internalHostnames = new HashSet<>();
+    private Set<String> defaultZoneHostnames = new HashSet<>();
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -62,10 +62,10 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter {
     }
 
     private String getSubdomain(String hostname) {
-        if (internalHostnames.contains(hostname)) {
+        if (defaultZoneHostnames.contains(hostname)) {
             return "";
         }
-        for (String internalHostname : internalHostnames) {
+        for (String internalHostname : defaultZoneHostnames) {
             if (hostname.endsWith("." + internalHostname)) {
                 return hostname.substring(0, hostname.length() - internalHostname.length() - 1);
             }
@@ -77,11 +77,17 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter {
         this.dao = dao;
     }
 
-    public void setInternalHostnames(String hostnames) {
-        this.internalHostnames.addAll(Arrays.asList(hostnames.split("[ ,]+")));
+    public void setAdditionalInternalHostnames(Set<String> hostnames) {
+        if (hostnames!=null) {
+            this.defaultZoneHostnames.addAll(hostnames);
+        }
     }
 
     public void setDefaultInternalHostnames(Set<String> hostnames) {
-        this.internalHostnames.addAll(hostnames);
+        this.defaultZoneHostnames.addAll(hostnames);
+    }
+
+    public Set<String> getDefaultZoneHostnames() {
+        return defaultZoneHostnames;
     }
 }

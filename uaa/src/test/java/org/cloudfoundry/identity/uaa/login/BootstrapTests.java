@@ -102,7 +102,6 @@ public class BootstrapTests {
         System.clearProperty("spring.profiles.active");
         System.clearProperty("uaa.url");
         System.clearProperty("login.url");
-        System.clearProperty("internalHostnames");
         if (context != null) {
             context.close();
         }
@@ -130,29 +129,31 @@ public class BootstrapTests {
         assertEquals(864000, context.getBean("webSSOprofileConsumer", WebSSOProfileConsumerImpl.class).getMaxAuthenticationAge());
         IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
         Set<String> defaultHostnames = new HashSet<>(Arrays.asList(uaa, login, "localhost"));
-
-        Field internalHostnames = filter.getClass().getDeclaredField("internalHostnames");
-        internalHostnames.setAccessible(true);
-
-        assertEquals(internalHostnames.get(filter), defaultHostnames);
-
+        assertEquals(filter.getDefaultZoneHostnames(), defaultHostnames);
     }
 
     @Test
     public void testInternalHostnames() throws Exception {
         String uaa = "uaa.some.test.domain.com";
         String login = uaa.replace("uaa", "login");
+        System.setProperty("uaa.url", "https://" + uaa + ":555/uaa");
+        System.setProperty("login.url", "https://" + login + ":555/uaa");
+        context = getServletContext(null, "login.yml","test/hostnames/uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
+        Set<String> defaultHostnames = new HashSet<>(Arrays.asList(uaa, login, "localhost", "host1.domain.com", "host2", "test3.localhost", "test4.localhost"));
+        assertEquals(filter.getDefaultZoneHostnames(), defaultHostnames);
+    }
+
+    @Test
+    public void testDefaultInternalHostnames() throws Exception {
+        String uaa = "uaa.some.test.domain.com";
+        String login = uaa.replace("uaa", "login");
         System.setProperty("uaa.url", "https://"+uaa+":555/uaa");
         System.setProperty("login.url", "https://"+login+":555/uaa");
-        System.setProperty("internalHostnames", "some-other-hostname.com");
         context = getServletContext(null, "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
-        Set<String> defaultHostnames = new HashSet<>(Arrays.asList(uaa, login, "localhost", "some-other-hostname.com"));
-
-        Field internalHostnames = filter.getClass().getDeclaredField("internalHostnames");
-        internalHostnames.setAccessible(true);
-
-        assertEquals(internalHostnames.get(filter), defaultHostnames);
+        Set<String> defaultHostnames = new HashSet<>(Arrays.asList(uaa, login, "localhost"));
+        assertEquals(filter.getDefaultZoneHostnames(), defaultHostnames);
     }
 
     @Test
