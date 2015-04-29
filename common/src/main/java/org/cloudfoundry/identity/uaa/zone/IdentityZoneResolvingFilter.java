@@ -12,7 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -22,7 +21,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -30,9 +28,6 @@ import java.util.Set;
  * This filter ensures that all requests are targeting a specific identity zone
  * by hostname. If the hostname doesn't match an identity zone, a 404 error is
  * sent.
- * 
- * @author wtran@pivotal.io
- * @author rszumlakowski@pivotal.io
  *
  */
 public class IdentityZoneResolvingFilter extends OncePerRequestFilter {
@@ -82,12 +77,11 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter {
         this.dao = dao;
     }
 
-    @Value("${internalHostnames:localhost}")
     public void setInternalHostnames(String hostnames) {
         this.internalHostnames.addAll(Arrays.asList(hostnames.split("[ ,]+")));
     }
 
-    public void setInternalHostnames(Set<String> hostnames) {
-        this.internalHostnames.addAll(Collections.unmodifiableSet(hostnames));
+    public void setDefaultInternalHostnames(Set<String> hostnames) {
+        this.internalHostnames.addAll(hostnames);
     }
 }
