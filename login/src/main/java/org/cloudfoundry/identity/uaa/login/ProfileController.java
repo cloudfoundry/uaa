@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -14,9 +14,12 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,20 +28,21 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * @author Vidya Valmikinathan
- */
 @Controller
 public class ProfileController {
 
     private final ApprovalsService approvalsService;
+    private final ClientDetailsService clientDetailsService;
 
     @Autowired
-    public ProfileController(ApprovalsService approvalsService) {
+    public ProfileController(ApprovalsService approvalsService,
+                             ClientDetailsService clientDetailsService) {
         this.approvalsService = approvalsService;
+        this.clientDetailsService = clientDetailsService;
     }
 
     /**
@@ -47,9 +51,24 @@ public class ProfileController {
     @RequestMapping(value = "/profile", method = RequestMethod.GET)
     public String get(Authentication authentication, Model model) {
         Map<String, List<DescribedApproval>> approvals = approvalsService.getCurrentApprovalsByClientId();
+        Map<String, String> clientNames = getClientNames(approvals);
+        model.addAttribute("clientnames", clientNames);
         model.addAttribute("approvals", approvals);
         model.addAttribute("isUaaManagedUser", isUaaManagedUser(authentication));
         return "approvals";
+    }
+
+    protected Map<String, String> getClientNames(Map<String, List<DescribedApproval>> approvals) {
+        Map<String, String> clientNames = new LinkedHashMap<>();
+        for (String clientId : approvals.keySet()) {
+            ClientDetails details = clientDetailsService.loadClientByClientId(clientId);
+            String name = details.getClientId();
+            if (details.getAdditionalInformation()!=null && details.getAdditionalInformation().get(ClientConstants.CLIENT_NAME)!=null) {
+                name = (String)details.getAdditionalInformation().get(ClientConstants.CLIENT_NAME);
+            }
+            clientNames.put(clientId, name);
+        }
+        return clientNames;
     }
 
     /**

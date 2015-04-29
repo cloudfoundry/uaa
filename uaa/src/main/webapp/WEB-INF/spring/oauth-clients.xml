@@ -33,7 +33,7 @@
         <property name="autoApproveClients"
             value="#{@applicationProperties.containsKey('oauth.client.autoapprove')?@config['oauth']['client']['autoapprove']:'cf'}" />
     </bean>
-    
+
     <beans profile="cloud">
         <bean id="clientDetailsService" class="org.cloudfoundry.identity.uaa.oauth.JitClientDetailsService">
             <constructor-arg name="delegate" ref="jdbcClientDetailsService" />
@@ -83,6 +83,7 @@
                             <entry key="signup_redirect_url" value="http://localhost:8080/app/" />
                             <entry key="change_email_redirect_url" value="http://localhost:8080/app/" />
                             <entry key="invitation_redirect_url" value="http://localhost:8080/app/" />
+                            <entry key="name" value="The Ultimate Oauth App" />
                         </map>
                     </entry>
                     <entry key="login">
@@ -162,7 +163,7 @@
                             <entry key="authorities" value="uaa.resource" />
                         </map>
                     </entry>
-                    
+
                 </map>
             </property>
         </bean>
