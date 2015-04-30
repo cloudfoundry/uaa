@@ -117,6 +117,14 @@ public class UaaConfiguration {
         public String username;
         @NotNull(message = "Database password is required")
         public String password;
+
+        public int maxactive;
+        public int maxidle;
+        public boolean removeabandoned;
+        public boolean logabandoned;
+        public int abandonedtimeout;
+        public long evictionintervalms;
+
     }
 
     public static class Logging {
