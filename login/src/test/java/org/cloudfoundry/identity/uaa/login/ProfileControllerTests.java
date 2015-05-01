@@ -16,6 +16,7 @@ package org.cloudfoundry.identity.uaa.login;
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
@@ -31,6 +32,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
@@ -53,6 +56,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.hasValue;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.http.MediaType.TEXT_HTML;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -62,20 +66,21 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * @author Dave Syer
- *
- */
 @RunWith(SpringJUnit4ClassRunner.class)
 @WebAppConfiguration
 @ContextConfiguration(classes = ProfileControllerTests.ContextConfiguration.class)
 public class ProfileControllerTests extends TestClassNullifier {
+
+    public static final String THE_ULTIMATE_APP = "The Ultimate App";
 
     @Autowired
     WebApplicationContext webApplicationContext;
 
     @Autowired
     ApprovalsService approvalsService;
+
+    @Autowired
+    ClientDetailsService clientDetailsService;
 
     private MockMvc mockMvc;
 
@@ -103,6 +108,10 @@ public class ProfileControllerTests extends TestClassNullifier {
         approvalsByClientId.put("app", Arrays.asList(readApproval, writeApproval));
 
         Mockito.when(approvalsService.getCurrentApprovalsByClientId()).thenReturn(approvalsByClientId);
+
+        BaseClientDetails appClient = new BaseClientDetails("app","thing","thing.read,thing.write","authorization_code", "");
+        appClient.addAdditionalInformation(ClientConstants.CLIENT_NAME, THE_ULTIMATE_APP);
+        Mockito.when(clientDetailsService.loadClientByClientId("app")).thenReturn(appClient);
     }
 
     @After
@@ -112,18 +121,36 @@ public class ProfileControllerTests extends TestClassNullifier {
 
     @Test
     public void testGetProfile() throws Exception {
+        testGetProfile(THE_ULTIMATE_APP);
+    }
+
+    @Test
+    public void testGetProfileNoAppName() throws Exception {
+        BaseClientDetails appClient = new BaseClientDetails("app","thing","thing.read,thing.write","authorization_code", "");
+        Mockito.when(clientDetailsService.loadClientByClientId("app")).thenReturn(appClient);
+        testGetProfile("app");
+    }
+
+
+    public void testGetProfile(String name) throws Exception {
         UaaPrincipal uaaPrincipal = new UaaPrincipal("fake-user-id", "username", "email@example.com", Origin.UAA, null, IdentityZoneHolder.get().getId());
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(uaaPrincipal, null);
 
         mockMvc.perform(get("/profile").principal(authentication))
-                .andExpect(status().isOk())
-                .andExpect(model().attribute("isUaaManagedUser", true))
-                .andExpect(model().attribute("approvals", hasKey("app")))
-                .andExpect(model().attribute("approvals", hasValue(hasSize(2))))
-                .andExpect(content().contentTypeCompatibleWith(TEXT_HTML))
-                .andExpect(content().string(containsString("These applications have been granted access to your account.")))
-                .andExpect(content().string(containsString("Change Password")));
+            .andExpect(status().isOk())
+            .andExpect(model().attributeExists("clientnames"))
+            .andExpect(model().attribute("clientnames", hasKey("app")))
+            .andExpect(model().attribute("clientnames", hasValue(is(name))))
+            .andExpect(model().attribute("isUaaManagedUser", true))
+            .andExpect(model().attribute("approvals", hasKey("app")))
+            .andExpect(model().attribute("approvals", hasValue(hasSize(2))))
+            .andExpect(content().contentTypeCompatibleWith(TEXT_HTML))
+            .andExpect(content().string(containsString("These applications have been granted access to your account.")))
+            .andExpect(content().string(containsString("Change Password")))
+            .andExpect(content().string(containsString("<h3>"+name)))
+            .andExpect(content().string(containsString("Are you sure you want to revoke access to " + name)));
     }
+
 
     @Test
     public void testSpecialMessageWhenNoAppsAreAuthorized() throws Exception {
@@ -213,8 +240,13 @@ public class ProfileControllerTests extends TestClassNullifier {
         }
 
         @Bean
-        ProfileController profileController(ApprovalsService approvalsService) {
-            return new ProfileController(approvalsService);
+        ClientDetailsService clientService() {
+            return Mockito.mock(ClientDetailsService.class);
+        }
+
+        @Bean
+        ProfileController profileController(ApprovalsService approvalsService, ClientDetailsService clientDetailsService) {
+            return new ProfileController(approvalsService, clientDetailsService);
         }
     }
 }

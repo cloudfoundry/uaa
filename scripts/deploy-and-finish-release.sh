@@ -24,6 +24,7 @@ set -x
 
 git checkout releases/$1
 #./gradlew clean artifactoryPublish
+./gradlew clean
 git checkout $branch_to_push_to
 git merge releases/$1 --no-ff -m "Merge branch 'releases/$1'"
 git tag -a $1 -m "$1 release of the UAA"
@@ -39,8 +40,8 @@ git push origin $branch_to_release_from
 
 set +x
 
-echo Artifacts published to Artifactory from releases/$1
-echo
+#echo Artifacts published to Artifactory from releases/$1
+#echo
 echo releases/$1 has been merged into $branch_to_push_to, tagged and pushed
 echo
 echo releases/$1 has been merged into $branch_to_release_from

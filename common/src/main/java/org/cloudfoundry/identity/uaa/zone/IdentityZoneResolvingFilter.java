@@ -12,7 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -22,7 +21,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -30,15 +28,12 @@ import java.util.Set;
  * This filter ensures that all requests are targeting a specific identity zone
  * by hostname. If the hostname doesn't match an identity zone, a 404 error is
  * sent.
- * 
- * @author wtran@pivotal.io
- * @author rszumlakowski@pivotal.io
  *
  */
 public class IdentityZoneResolvingFilter extends OncePerRequestFilter {
 
     private IdentityZoneProvisioning dao;
-    private Set<String> internalHostnames = new HashSet<>();
+    private Set<String> defaultZoneHostnames = new HashSet<>();
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -67,10 +62,10 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter {
     }
 
     private String getSubdomain(String hostname) {
-        if (internalHostnames.contains(hostname)) {
+        if (defaultZoneHostnames.contains(hostname)) {
             return "";
         }
-        for (String internalHostname : internalHostnames) {
+        for (String internalHostname : defaultZoneHostnames) {
             if (hostname.endsWith("." + internalHostname)) {
                 return hostname.substring(0, hostname.length() - internalHostname.length() - 1);
             }
@@ -82,12 +77,17 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter {
         this.dao = dao;
     }
 
-    @Value("${internalHostnames:localhost}")
-    public void setInternalHostnames(String hostnames) {
-        this.internalHostnames.addAll(Arrays.asList(hostnames.split("[ ,]+")));
+    public void setAdditionalInternalHostnames(Set<String> hostnames) {
+        if (hostnames!=null) {
+            this.defaultZoneHostnames.addAll(hostnames);
+        }
     }
 
-    public void setInternalHostnames(Set<String> hostnames) {
-        this.internalHostnames.addAll(Collections.unmodifiableSet(hostnames));
+    public void setDefaultInternalHostnames(Set<String> hostnames) {
+        this.defaultZoneHostnames.addAll(hostnames);
+    }
+
+    public Set<String> getDefaultZoneHostnames() {
+        return defaultZoneHostnames;
     }
 }

@@ -26,6 +26,7 @@
         <property name="validationInterval" value="5000" />
         <property name="validationQuery" value="#{@validationQuery}" />
         <property name="testOnBorrow" value="true" />
+        <property name="minIdle" value="0"/>
         <property name="maxActive" value="${database.maxactive:100}"/>
         <property name="maxIdle" value="${database.maxidle:10}"/>
         <property name="removeAbandoned" value="${database.removeabandoned:false}"/>

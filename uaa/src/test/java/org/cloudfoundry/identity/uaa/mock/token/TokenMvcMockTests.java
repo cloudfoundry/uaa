@@ -1674,10 +1674,10 @@ public class TokenMvcMockTests extends TestClassNullifier {
 
         OAuth2Authentication a1 = tokenServices.loadAuthentication(oauthToken.accessToken);
 
-        assertEquals(2, a1.getOAuth2Request().getScope().size());
+        assertEquals(4, a1.getOAuth2Request().getScope().size());
         assertThat(
             a1.getOAuth2Request().getScope(),
-            containsInAnyOrder(new String[] {zoneadmingroup, "openid"})
+            containsInAnyOrder(new String[] {zoneadmingroup, "openid", "cloud_controller.read", "cloud_controller.write"})
         );
 
     }

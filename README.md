@@ -384,7 +384,7 @@ Here are some ways for you to get involved in the community:
   vote on the ones that you are interested in.
 * Github is for social coding: if you want to write code, we encourage
   contributions through pull requests from
-  [forks of this repository](http://help.github.com/forking/).  If you
+  [forks of this repository](https://github.com/cloudfoundry/uaa). If you
   want to contribute code this way, please reference an existing issue
   if there is one as well covering the specific issue you are
   addressing.  Always submit pull requests to the "develop" branch.

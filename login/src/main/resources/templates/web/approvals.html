@@ -50,7 +50,7 @@
                     <input type="hidden" name="clientId" th:value="${client.key}"/>
                     <div class="application-scopes">
                         <div class="application-label">
-                            <h3 th:text="${client.key}">
+                            <h3 th:text="${clientnames[client.key]}">
                                 Cloudbees
                             </h3><a href="#" th:href="|revoke?client=${client.key}|" th:attr="data-client-id=${client.key}" class="revoke-link">
                                 Revoke Access
@@ -78,7 +78,7 @@
                                     <h3>Revoke Access</h3><div class="close-icon revocation-cancel">&#x2716;</div>
                                 </div>
                                 <p>
-                                    Are you sure you want to revoke access to <th:block th:text="${client.key}">Cloudbees</th:block>?
+                                    Are you sure you want to revoke access to <th:block th:text="${clientnames[client.key]}">Cloudbees</th:block>?
                                 </p>
                                 <div class="revocation-actions">
                                     <button type="button" class="revocation-cancel btn btn-lowlight">Go Back</button>
