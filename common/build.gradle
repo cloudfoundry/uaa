@@ -50,7 +50,7 @@ dependencies {
   compile group: 'com.googlecode.flyway', name: 'flyway-core', version:'2.3.1'
   compile group: 'org.hsqldb', name: 'hsqldb', version:'2.3.1'
 
-  compile(group: 'org.springframework.security.extensions', name: 'spring-security-saml2-core', version:'1.0.0.RELEASE') {
+  compile(group: 'org.springframework.security.extensions', name: 'spring-security-saml2-core', version:parent.springSecuritySamlVersion) {
     exclude(module: 'bcprov-jdk15')
   }
 

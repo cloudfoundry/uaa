@@ -12,7 +12,7 @@ public class XFrameOptionsFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        response.addHeader("X-Frame-Options", "DENY");
+        response.setHeader("X-Frame-Options", "DENY");
         filterChain.doFilter(request, response);
     }
 }

@@ -22,7 +22,7 @@
   xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
   xmlns:util="http://www.springframework.org/schema/util"
   xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
-    http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.2.xsd
+    http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.0.xsd
     http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
     http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.0.xsd
     http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.0.xsd
@@ -41,31 +41,35 @@
     </bean>
 
     <!-- Pattern: /oauth/authorize parameters:{response_type=code,code=?} -->
-    <http request-matcher-ref="autologinAuthorizeRequestMatcher" entry-point-ref="loginEntryPoint"
+    <http name="secFilterAutologinAuthorize" request-matcher-ref="autologinAuthorizeRequestMatcher" entry-point-ref="loginEntryPoint"
           xmlns="http://www.springframework.org/schema/security">
         <!-- TODO: add entry point that can redirect back to client app? -->
         <anonymous enabled="false" />
         <custom-filter ref="autologinAuthenticationFilter" position="FORM_LOGIN_FILTER" />
+        <csrf disabled="true"/>
     </http>
 
 
   <!-- Pattern:/autologin -->
-    <http name="autologinSecurity" pattern="/autologin" create-session="stateless" entry-point-ref="basicAuthenticationEntryPoint"
-        xmlns="http://www.springframework.org/schema/security" authentication-manager-ref="emptyAuthenticationManager">
+    <http name="secFilterAutologin" pattern="/autologin" create-session="stateless" entry-point-ref="basicAuthenticationEntryPoint"
+        xmlns="http://www.springframework.org/schema/security" authentication-manager-ref="emptyAuthenticationManager" use-expressions="false">
         <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
         <anonymous enabled="false" />
         <custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
+        <csrf disabled="true"/>
     </http>
 
     <bean id="backwardsCompatibleScopeParameter" class="org.cloudfoundry.identity.uaa.oauth.BackwardsCompatibleScopeParsingFilter"/>
 
-    <http name="uiSecurity" request-matcher-ref="uiRequestMatcher" access-denied-page="/"
+    <http name="uiSecurity" request-matcher-ref="uiRequestMatcher" use-expressions="false"
           authentication-manager-ref="zoneAwareAuthzAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
+      <access-denied-handler error-page="/"/>
       <intercept-url pattern="/login**" access="IS_AUTHENTICATED_ANONYMOUSLY" />
       <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
       <form-login login-page="/login" username-parameter="username" password-parameter="password"
                            login-processing-url="/login.do" authentication-failure-handler-ref="loginAuthenticationFailureHandler" authentication-details-source-ref="authenticationDetailsSource"/>
       <logout logout-url="/logout.do" success-handler-ref="logoutHandler" />
+      <csrf disabled="true"/>
     </http>
 
 
@@ -81,30 +85,34 @@
     </bean>
 
     <security:http name="resetPasswordSecurity" pattern="/reset_password.do" disable-url-rewriting="true"
-                   entry-point-ref="loginEntryPoint">
+                   entry-point-ref="loginEntryPoint" use-expressions="false">
         <security:intercept-url pattern="/reset_password.do" access="IS_AUTHENTICATED_ANONYMOUSLY" />
         <security:anonymous enabled="true" />
+        <security:csrf disabled="true"/>
     </security:http>
 
     <security:http name="verifyEmailSecurity" pattern="/verify_email" disable-url-rewriting="true"
-                   entry-point-ref="loginEntryPoint">
+                   entry-point-ref="loginEntryPoint" use-expressions="false">
         <security:intercept-url pattern="/verify_email" access="IS_AUTHENTICATED_ANONYMOUSLY" />
         <security:anonymous enabled="true" />
+        <security:csrf disabled="true"/>
     </security:http>
 
     <security:http name="verifyUserSecurity" pattern="/verify_user" disable-url-rewriting="true"
-                   entry-point-ref="loginEntryPoint">
+                   entry-point-ref="loginEntryPoint" use-expressions="false">
         <security:intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY" />
         <security:anonymous enabled="true" />
+        <security:csrf disabled="true"/>
     </security:http>
 
     <security:http name="acceptInvitationSecurity" pattern="/invitations/accept" disable-url-rewriting="true"
-                   entry-point-ref="loginEntryPoint">
+                   entry-point-ref="loginEntryPoint" use-expressions="false">
         <security:intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY" />
         <security:anonymous enabled="true" />
+        <security:csrf disabled="true"/>
     </security:http>
 
-    <security:http name="openIdSecurity">
+    <security:http name="openIdSecurity" use-expressions="false">
         <security:intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
         <security:custom-filter before="FIRST" ref="metadataGeneratorFilter" />
         <security:custom-filter after="FIRST" ref="httpsHeaderFilter" />
@@ -131,6 +139,7 @@
             </security:attribute-exchange>
         </security:openid-login>
         <security:anonymous enabled="false" />
+        <security:csrf disabled="true"/>
     </security:http>
 
 
