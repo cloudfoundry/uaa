@@ -309,7 +309,7 @@
             </list>
         </property>
         <property name="defaultViews">
-            <bean class="org.springframework.web.servlet.view.json.MappingJacksonJsonView">
+            <bean class="org.springframework.web.servlet.view.json.MappingJackson2JsonView">
                 <property name="extractValueFromSingleKeyModel" value="true" />
             </bean>
         </property>
@@ -341,9 +341,6 @@
     </bean>
 
     <bean id="accountCreationService" class="org.cloudfoundry.identity.uaa.login.EmailAccountCreationService">
-        <constructor-arg>
-            <bean class="org.codehaus.jackson.map.ObjectMapper"/>
-        </constructor-arg>
         <constructor-arg ref="mailTemplateEngine"/>
         <constructor-arg ref="messageService"/>
         <constructor-arg ref="codeStore"/>

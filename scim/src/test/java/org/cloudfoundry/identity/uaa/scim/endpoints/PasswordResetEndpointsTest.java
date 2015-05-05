@@ -22,7 +22,6 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpoints.PasswordChange;
 import org.cloudfoundry.identity.uaa.test.MockAuthentication;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -55,7 +54,7 @@ public class PasswordResetEndpointsTest extends TestClassNullifier {
     public void setUp() throws Exception {
         scimUserProvisioning = Mockito.mock(ScimUserProvisioning.class);
         expiringCodeStore = Mockito.mock(ExpiringCodeStore.class);
-        PasswordResetEndpoints controller = new PasswordResetEndpoints(new ObjectMapper(), scimUserProvisioning, expiringCodeStore);
+        PasswordResetEndpoints controller = new PasswordResetEndpoints(scimUserProvisioning, expiringCodeStore);
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
 
         Mockito.when(expiringCodeStore.generateCode(eq("id001"), any(Timestamp.class)))

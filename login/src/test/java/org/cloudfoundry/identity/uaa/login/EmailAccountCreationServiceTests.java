@@ -26,10 +26,10 @@ import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -76,7 +76,6 @@ public class EmailAccountCreationServiceTests {
         clientDetailsService = mock(ClientDetailsService.class);
         details = mock(ClientDetails.class);
         emailAccountCreationService = new EmailAccountCreationService(
-            new ObjectMapper(),
             templateEngine,
             messageService,
             codeStore,
@@ -144,7 +143,6 @@ public class EmailAccountCreationServiceTests {
     @Test
     public void testBeginActivationWithOssBrand() throws Exception {
         emailAccountCreationService = new EmailAccountCreationService(
-            new ObjectMapper(),
             templateEngine,
             messageService,
             codeStore,
@@ -304,7 +302,7 @@ public class EmailAccountCreationServiceTests {
         Map<String,Object> data = new HashMap<>();
         data.put("user_id","newly-created-user-id");
         data.put("client_id", "login");
-        code = new ExpiringCode("the_secret_code", ts, new ObjectMapper().writeValueAsString(data));
+        code = new ExpiringCode("the_secret_code", ts, JsonUtils.writeValueAsString(data));
 
         Map<String, Object> additionalInfo = new HashMap<>();
         additionalInfo.put(EmailAccountCreationService.SIGNUP_REDIRECT_URL, "http://example.com/redirect");

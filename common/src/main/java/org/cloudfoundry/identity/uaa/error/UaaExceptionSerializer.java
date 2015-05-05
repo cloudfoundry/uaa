@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,23 +12,23 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.error;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
+
 import java.io.IOException;
 import java.util.Map.Entry;
 
-import org.codehaus.jackson.JsonGenerator;
-import org.codehaus.jackson.JsonProcessingException;
-import org.codehaus.jackson.map.JsonSerializer;
-import org.codehaus.jackson.map.SerializerProvider;
-
 /**
  * @author Dave Syer
- * 
+ *
  */
 public class UaaExceptionSerializer extends JsonSerializer<UaaException> {
 
     @Override
     public void serialize(UaaException value, JsonGenerator jgen, SerializerProvider provider) throws IOException,
-                    JsonProcessingException {
+        JsonProcessingException {
         jgen.writeStartObject();
         jgen.writeStringField("error", value.getErrorCode());
         jgen.writeStringField("error_description", value.getMessage());

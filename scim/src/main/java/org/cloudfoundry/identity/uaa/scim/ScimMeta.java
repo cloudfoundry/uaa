@@ -14,12 +14,13 @@ package org.cloudfoundry.identity.uaa.scim;
 
 import java.util.Date;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.cloudfoundry.identity.uaa.util.json.JsonDateDeserializer;
 import org.cloudfoundry.identity.uaa.util.json.JsonDateSerializer;
-import org.codehaus.jackson.map.annotate.JsonDeserialize;
-import org.codehaus.jackson.map.annotate.JsonSerialize;
 
-@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ScimMeta {
     private int version = 0;
 

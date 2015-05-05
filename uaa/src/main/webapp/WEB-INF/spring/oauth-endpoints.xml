@@ -29,6 +29,8 @@
     <!--</bean>-->
     <bean id="oauth2RequestValidator" class="org.cloudfoundry.identity.uaa.oauth.token.UaaOauth2RequestValidator"/>
 
+    <bean id="tokenEndpointPostProcessor" class="org.cloudfoundry.identity.uaa.security.web.TokenEndpointPostProcessor"/>
+
     <oauth:authorization-server client-details-service-ref="jdbcClientDetailsService"
         token-services-ref="tokenServices" user-approval-handler-ref="userManagedApprovalHandler"
         authorization-request-manager-ref="authorizationRequestManager" request-validator-ref="oauth2RequestValidator">

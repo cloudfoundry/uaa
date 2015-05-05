@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.audit.event.UserModifiedEvent;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
@@ -8,9 +10,7 @@ import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
-import org.codehaus.jackson.annotate.JsonProperty;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.type.TypeReference;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.http.ResponseEntity;
@@ -34,17 +34,15 @@ import static org.springframework.http.HttpStatus.OK;
 public class ChangeEmailEndpoints implements ApplicationEventPublisherAware {
     private final ScimUserProvisioning scimUserProvisioning;
     private final ExpiringCodeStore expiringCodeStore;
-    private final ObjectMapper objectMapper;
     private ApplicationEventPublisher publisher;
     private final QueryableResourceManager<ClientDetails> clientDetailsService;
     private static final int EMAIL_CHANGE_LIFETIME = 30 * 60 * 1000;
 
     public static final String CHANGE_EMAIL_REDIRECT_URL = "change_email_redirect_url";
 
-    public ChangeEmailEndpoints(ScimUserProvisioning scimUserProvisioning, ExpiringCodeStore expiringCodeStore, ObjectMapper objectMapper, QueryableResourceManager<ClientDetails> clientDetailsService) {
+    public ChangeEmailEndpoints(ScimUserProvisioning scimUserProvisioning, ExpiringCodeStore expiringCodeStore, QueryableResourceManager<ClientDetails> clientDetailsService) {
         this.scimUserProvisioning = scimUserProvisioning;
         this.expiringCodeStore = expiringCodeStore;
-        this.objectMapper = objectMapper;
         this.clientDetailsService = clientDetailsService;
     }
 
@@ -63,8 +61,8 @@ public class ChangeEmailEndpoints implements ApplicationEventPublisherAware {
 
         String code;
         try {
-            code = expiringCodeStore.generateCode(objectMapper.writeValueAsString(emailChange), new Timestamp(System.currentTimeMillis() + EMAIL_CHANGE_LIFETIME)).getCode();
-        } catch (IOException e) {
+            code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(emailChange), new Timestamp(System.currentTimeMillis() + EMAIL_CHANGE_LIFETIME)).getCode();
+        } catch (JsonUtils.JsonUtilException e) {
             throw new UaaException("Error while generating change email code", e);
         }
 
@@ -75,7 +73,7 @@ public class ChangeEmailEndpoints implements ApplicationEventPublisherAware {
     public ResponseEntity<EmailChangeResponse> changeEmail(@RequestBody String code) throws IOException {
         ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code);
         if (expiringCode != null) {
-            Map<String, String> data = objectMapper.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
+            Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
             String userId = data.get("userId");
             String email = data.get("email");
             ScimUser user = scimUserProvisioning.retrieve(userId);

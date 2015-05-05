@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock.zones;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.googlecode.flyway.core.Flyway;
 import org.apache.commons.lang.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
@@ -32,7 +33,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.cloudfoundry.identity.uaa.zone.event.IdentityProviderModifiedEvent;
-import org.codehaus.jackson.type.TypeReference;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;

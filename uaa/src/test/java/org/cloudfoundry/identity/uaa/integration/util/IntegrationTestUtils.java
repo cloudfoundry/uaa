@@ -14,6 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.integration.util;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.cloudfoundry.identity.uaa.ServerRunning;
@@ -25,7 +26,6 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
-import org.codehaus.jackson.type.TypeReference;
 import org.junit.Assert;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;

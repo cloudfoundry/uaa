@@ -18,7 +18,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.SignerProvider;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
-import org.codehaus.jackson.map.ObjectMapper;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -124,7 +124,7 @@ public class TokenKeyEndpointMockMvcTests extends TestClassNullifier {
             .andExpect(status().isOk())
             .andReturn();
 
-        Map<String,Object> key = new ObjectMapper().readValue(result.getResponse().getContentAsString(), Map.class);
+        Map<String,Object> key = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
 
         Object kty = key.get("kty");
         assertNotNull(kty);

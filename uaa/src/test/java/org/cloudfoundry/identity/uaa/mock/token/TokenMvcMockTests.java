@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock.token;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.googlecode.flyway.core.Flyway;
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
@@ -33,14 +34,13 @@ import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextIn
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.type.TypeReference;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
@@ -692,7 +692,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .param("password", SECRET)
             .param(OAuth2Utils.SCOPE, "openid");
         MvcResult result = mockMvc.perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
-        Map token = new ObjectMapper().readValue(result.getResponse().getContentAsByteArray(), Map.class);
+        Map token = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
         assertNotNull(token.get("access_token"));
         assertNotNull(token.get("refresh_token"));
         assertNotNull(token.get("id_token"));
@@ -761,7 +761,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .param(OAuth2Utils.CLIENT_ID, clientId)
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
         result = mockMvc.perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
-        token = new ObjectMapper().readValue(result.getResponse().getContentAsByteArray(), Map.class);
+        token = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
         assertNotNull(token.get("access_token"));
         assertNotNull(token.get("refresh_token"));
         assertNotNull(token.get("id_token"));
@@ -889,7 +889,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
 
         Map<String, Object> claims = null;
         try {
-            claims = new ObjectMapper().readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
+            claims = JsonUtils.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
             });
         } catch (Exception e) {
             throw new IllegalStateException("Cannot read token claims", e);
@@ -1520,7 +1520,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
         IdentityZoneHolder.clear();
         mockMvc.perform(post("http://localhost/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
-            .header("Host", subdomain + ".localhost")
+            //.header("Host", subdomain + ".localhost") - with updated Spring, this now works for request.getServerName
             .header("Authorization", "Basic "+new String(Base64.encode((clientId  + ":" + SECRET).getBytes())))
             .param("grant_type", "client_credentials")
             .param("client_id", clientId)
@@ -1670,7 +1670,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .param(OAuth2Utils.CLIENT_ID, "identity")
             .param(OAuth2Utils.REDIRECT_URI, "http://localhost/test");
         result = mockMvc.perform(authRequest).andDo(print()).andExpect(status().is2xxSuccessful()).andReturn();
-        TestClient.OAuthToken oauthToken = new ObjectMapper().readValue(result.getResponse().getContentAsByteArray(), TestClient.OAuthToken.class);
+        TestClient.OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), TestClient.OAuthToken.class);
 
         OAuth2Authentication a1 = tokenServices.loadAuthentication(oauthToken.accessToken);
 

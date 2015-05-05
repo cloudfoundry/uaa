@@ -12,7 +12,7 @@ import org.cloudfoundry.identity.uaa.login.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.oauth.RemoteUserAuthentication;
 import org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.codehaus.jackson.map.ObjectMapper;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -132,11 +132,11 @@ public class PasscodeMockMvcTests extends TestClassNullifier {
             .accept(APPLICATION_JSON)
             .session(session);
 
-        String passcode = new ObjectMapper().readValue(
+        String passcode = JsonUtils.readValue(
             mockMvc.perform(get)
-            .andExpect(status().isOk())
-            .andDo(print())
-            .andReturn().getResponse().getContentAsString(),
+                .andExpect(status().isOk())
+                .andDo(print())
+                .andReturn().getResponse().getContentAsString(),
             String.class);
 
         mockSecurityContext.setAuthentication(null);
@@ -158,7 +158,7 @@ public class PasscodeMockMvcTests extends TestClassNullifier {
 
 
         Map accessToken =
-            new ObjectMapper().readValue(
+            JsonUtils.readValue(
                 mockMvc.perform(post)
                     .andDo(print())
                     .andExpect(status().isOk())
@@ -199,7 +199,7 @@ public class PasscodeMockMvcTests extends TestClassNullifier {
             .accept(APPLICATION_JSON)
             .session(session);
 
-        String passcode = new ObjectMapper().readValue(
+        String passcode = JsonUtils.readValue(
             mockMvc.perform(get)
                 .andExpect(status().isOk())
                 .andDo(print())
@@ -225,7 +225,7 @@ public class PasscodeMockMvcTests extends TestClassNullifier {
 
 
         Map accessToken =
-            new ObjectMapper().readValue(
+            JsonUtils.readValue(
                 mockMvc.perform(post)
                     .andDo(print())
                     .andExpect(status().isOk())

@@ -12,8 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login.saml;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.cloudfoundry.identity.uaa.login.util.FileLocator;
-import org.codehaus.jackson.annotate.JsonIgnore;
 
 import java.io.File;
 import java.io.IOException;

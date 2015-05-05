@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -39,7 +39,7 @@ import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.StringHttpMessageConverter;
-import org.springframework.http.converter.json.MappingJacksonHttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.client.DefaultOAuth2ClientContext;
@@ -56,7 +56,7 @@ import org.springframework.web.client.RestOperations;
 
 /**
  * @author Dave Syer
- * 
+ *
  */
 public class TestAccountSetup extends TestWatchman {
 
@@ -278,7 +278,7 @@ public class TestAccountSetup extends TestWatchman {
         });
         List<HttpMessageConverter<?>> list = new ArrayList<HttpMessageConverter<?>>();
         list.add(new StringHttpMessageConverter());
-        list.add(new MappingJacksonHttpMessageConverter());
+        list.add(new MappingJackson2HttpMessageConverter());
         client.setMessageConverters(list);
         return client;
     }

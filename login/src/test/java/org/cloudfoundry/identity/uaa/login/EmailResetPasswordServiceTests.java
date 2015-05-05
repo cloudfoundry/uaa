@@ -38,7 +38,6 @@ import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpoints;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
@@ -79,7 +78,7 @@ public class EmailResetPasswordServiceTests {
         messageService = mock(EmailService.class);
         scimUserProvisioning = mock(ScimUserProvisioning.class);
         codeStore = mock(ExpiringCodeStore.class);
-        passwordResetEndpoints = new PasswordResetEndpoints(new ObjectMapper(), scimUserProvisioning, codeStore);
+        passwordResetEndpoints = new PasswordResetEndpoints(scimUserProvisioning, codeStore);
         uaaUrlUtils = new UaaUrlUtils("http://uaa.example.com/uaa");
         emailResetPasswordService = new EmailResetPasswordService(templateEngine, messageService, passwordResetEndpoints, uaaUrlUtils, "pivotal");
     }

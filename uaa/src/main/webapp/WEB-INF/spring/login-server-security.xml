@@ -186,10 +186,7 @@
         <constructor-arg ref="dataSource" />
     </bean>
 
-    <bean id="objectMapper" class="org.codehaus.jackson.map.ObjectMapper"/>
-
     <bean id="passwordResetEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpoints">
-        <constructor-arg ref="objectMapper"/>
         <constructor-arg ref="scimUserProvisioning"/>
         <constructor-arg ref="codeStore"/>
     </bean>
@@ -197,7 +194,6 @@
     <bean id="changeEmailEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ChangeEmailEndpoints">
         <constructor-arg ref="scimUserProvisioning"/>
         <constructor-arg ref="codeStore"/>
-        <constructor-arg ref="objectMapper"/>
         <constructor-arg ref="clientDetailsService"/>
     </bean>
 

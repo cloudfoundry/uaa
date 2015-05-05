@@ -11,9 +11,9 @@ import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.login.test.MockMvcTestClient;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -253,7 +253,7 @@ public class AccountsControllerMockMvcTests extends TestClassNullifier {
         mockMvc.perform(post("/identity-zones")
                 .header("Authorization", "Bearer " + zonesCreateToken)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(new ObjectMapper().writeValueAsString(identityZone)))
+                .content(JsonUtils.writeValueAsString(identityZone)))
                 .andExpect(status().isCreated());
 
         mockMvc.perform(post("/create_account.do")

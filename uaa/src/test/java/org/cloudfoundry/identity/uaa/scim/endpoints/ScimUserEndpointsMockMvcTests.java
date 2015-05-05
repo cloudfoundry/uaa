@@ -19,16 +19,13 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -36,9 +33,6 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.support.XmlWebApplicationContext;
-
-import java.util.ArrayList;
-import java.util.List;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -93,7 +87,7 @@ public class ScimUserEndpointsMockMvcTests extends TestClassNullifier {
     }
 
     private ScimUser createUser(ScimUser user, String token, String subdomain) throws Exception {
-        byte[] requestBody = new ObjectMapper().writeValueAsBytes(user);
+        byte[] requestBody = JsonUtils.writeValueAsBytes(user);
         MockHttpServletRequestBuilder post = post("/Users")
             .header("Authorization", "Bearer " + token)
             .contentType(APPLICATION_JSON)
@@ -109,7 +103,7 @@ public class ScimUserEndpointsMockMvcTests extends TestClassNullifier {
                 .andExpect(jsonPath("$.name.givenName").value(user.getGivenName()))
             .andReturn();
 
-        return new ObjectMapper().readValue(result.getResponse().getContentAsString(), ScimUser.class);
+        return JsonUtils.readValue(result.getResponse().getContentAsString(), ScimUser.class);
     }
 
     private ScimUser getScimUser() {
@@ -172,7 +166,7 @@ public class ScimUserEndpointsMockMvcTests extends TestClassNullifier {
 
         ScimUser user = getScimUser();
 
-        byte[] requestBody = new ObjectMapper().writeValueAsBytes(user);
+        byte[] requestBody = JsonUtils.writeValueAsBytes(user);
         MockHttpServletRequestBuilder post = post("/Users")
                 .with(new SetServerNameRequestPostProcessor(otherSubdomain + ".localhost"))
                 .header("Authorization", "Bearer " + zoneAdminToken)
@@ -255,7 +249,7 @@ public class ScimUserEndpointsMockMvcTests extends TestClassNullifier {
             .header("If-Match", "\"" + user.getVersion() + "\"")
             .accept(APPLICATION_JSON)
             .contentType(APPLICATION_JSON)
-            .content(new ObjectMapper().writeValueAsBytes(user));
+            .content(JsonUtils.writeValueAsBytes(user));
 
         if (status==HttpStatus.OK.value()) {
             mockMvc.perform(put)
@@ -289,7 +283,7 @@ public class ScimUserEndpointsMockMvcTests extends TestClassNullifier {
                 .header("Authorization", "Bearer " + adminAccessToken)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
-                .content(new ObjectMapper().writeValueAsBytes(client));
+                .content(JsonUtils.writeValueAsBytes(client));
         mockMvc.perform(createClientPost).andExpect(status().isCreated());
     }
 }

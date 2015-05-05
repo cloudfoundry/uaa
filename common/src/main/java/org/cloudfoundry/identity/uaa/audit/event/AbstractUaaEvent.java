@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,11 +12,9 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.audit.event;
 
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Map;
-
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
@@ -24,9 +22,6 @@ import org.cloudfoundry.identity.uaa.oauth.Claims;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion;
-import org.codehaus.jackson.type.TypeReference;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -36,21 +31,26 @@ import org.springframework.security.jwt.JwtHelper;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationDetails;
 
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Map;
+
 /**
  * Base class for UAA events that want to publish audit records.
- * 
+ *
  * @author Luke Taylor
  * @author Dave Syer
- * 
+ *
  */
 public abstract class AbstractUaaEvent extends ApplicationEvent {
-    
+
     private static final long serialVersionUID = -7639844193401892160L;
     private static ObjectMapper mapper = new ObjectMapper();
     private transient final IdentityZone identityZone = IdentityZoneHolder.get();
 
     {
-        mapper.setSerializationConfig(mapper.getSerializationConfig().withSerializationInclusion(Inclusion.NON_NULL));
+        mapper.setConfig(mapper.getSerializationConfig().withSerializationInclusion(JsonInclude.Include.NON_NULL));
     }
 
     private Authentication authentication;
@@ -102,7 +102,7 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
             else {
                 builder.append("caller=").append(caller.getName());
             }
-            
+
 
             if (caller.getDetails() != null) {
                 builder.append(", details=(");
@@ -140,13 +140,13 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
     }
 
     public abstract AuditEvent getAuditEvent();
-    
+
     protected static Authentication getContextAuthentication() {
         Authentication a = SecurityContextHolder.getContext().getAuthentication();
         if (a==null) {
             a = new Authentication() {
                 private static final long serialVersionUID = 1748694836774597624L;
-                
+
                 ArrayList<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
                 @Override
                 public Collection<? extends GrantedAuthority> getAuthorities() {

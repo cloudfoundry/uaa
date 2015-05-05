@@ -8,15 +8,13 @@ import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.oauth.ClientAdminEndpoints;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
-import org.codehaus.jackson.map.ObjectMapper;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring4.SpringTemplateEngine;
@@ -97,7 +95,7 @@ public class EmailInvitationsService implements InvitationsService {
         } catch (HttpClientErrorException e) {
             String uaaResponse = e.getResponseBodyAsString();
             try {
-                ExistingUserResponse existingUserResponse = new ObjectMapper().readValue(uaaResponse, ExistingUserResponse.class);
+                ExistingUserResponse existingUserResponse = JsonUtils.readValue(uaaResponse, ExistingUserResponse.class);
                 if (existingUserResponse.getVerified()) {
                     throw new UaaException(e.getStatusText(), e.getStatusCode().value());
                 }
@@ -106,6 +104,8 @@ public class EmailInvitationsService implements InvitationsService {
                 data.put("email", email);
                 String code = expiringCodeService.generateCode(data, INVITATION_EXPIRY_DAYS, TimeUnit.DAYS);
                 sendInvitationEmail(email, existingUserResponse.getUserId(), currentUser, code);
+            } catch (JsonUtils.JsonUtilException ioe) {
+                logger.warn("couldn't invite user",ioe);
             } catch (IOException ioe) {
             	logger.warn("couldn't invite user",ioe);
             }

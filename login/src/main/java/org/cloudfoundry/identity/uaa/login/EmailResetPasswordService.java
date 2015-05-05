@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,15 +12,15 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpoints;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.type.TypeReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
@@ -71,10 +71,10 @@ public class EmailResetPasswordService implements ResetPasswordService {
             if (e.getStatusCode() == HttpStatus.CONFLICT) {
                 htmlContent = getResetUnavailableEmailHtml(email);
                 try {
-                    Map<String, String> body = new ObjectMapper().readValue(e.getResponseBodyAsString(), new TypeReference<Map<String, String>>() {
+                    Map<String, String> body = JsonUtils.readValue(e.getResponseBodyAsString(), new TypeReference<Map<String, String>>() {
                     });
                     userId = body.get("user_id");
-                } catch (IOException ioe) {
+                } catch (JsonUtils.JsonUtilException ioe) {
                     logger.error("Bad response from UAA", ioe);
                 }
 

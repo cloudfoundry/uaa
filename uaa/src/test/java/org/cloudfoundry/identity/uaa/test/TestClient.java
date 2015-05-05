@@ -12,28 +12,25 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.test;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.commons.codec.binary.Base64;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
-import org.codehaus.jackson.annotate.JsonIgnoreProperties;
-import org.codehaus.jackson.annotate.JsonProperty;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class TestClient {
 
     //TODO nullify fields?
     private MockMvc mockMvc;
-    private final ObjectMapper objectMapper;
 
     public TestClient(MockMvc mockMvc) {
         this.mockMvc = mockMvc;
-        objectMapper = new ObjectMapper();
     }
 
     public String getClientCredentialsOAuthAccessToken(String username, String password, String scope) throws Exception {
@@ -53,7 +50,7 @@ public class TestClient {
         MvcResult result = mockMvc.perform(oauthTokenPost)
             .andExpect(status().isOk())
             .andReturn();
-        OAuthToken oauthToken = objectMapper.readValue(result.getResponse().getContentAsByteArray(), OAuthToken.class);
+        OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class);
         return oauthToken.accessToken;
     }
 
@@ -69,7 +66,7 @@ public class TestClient {
                         .param("password", password)
                         .param("scope", scope);
         MvcResult result = mockMvc.perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
-        OAuthToken oauthToken = objectMapper.readValue(result.getResponse().getContentAsByteArray(), OAuthToken.class);
+        OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class);
         return oauthToken.accessToken;
     }
 

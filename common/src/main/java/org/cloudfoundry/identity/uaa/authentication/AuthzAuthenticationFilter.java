@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -31,10 +31,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.type.TypeReference;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -69,8 +69,6 @@ public class AuthzAuthenticationFilter implements Filter {
     private final Log logger = LogFactory.getLog(getClass());
 
     private AuthenticationManager authenticationManager;
-
-    private ObjectMapper mapper = new ObjectMapper();
 
     private List<String> parameterNames = Collections.emptyList();
 
@@ -190,11 +188,11 @@ public class AuthzAuthenticationFilter implements Filter {
             if (value != null) {
                 if (value.startsWith("{")) {
                     try {
-                        Map<String, String> jsonCredentials = mapper.readValue(value,
+                        Map<String, String> jsonCredentials = JsonUtils.readValue(value,
                             new TypeReference<Map<String, String>>() {
                             });
                         credentials.putAll(jsonCredentials);
-                    } catch (IOException e) {
+                    } catch (JsonUtils.JsonUtilException e) {
                         logger.warn("Unknown format of value for request param: " + paramName + ". Ignoring.");
                     }
                 }

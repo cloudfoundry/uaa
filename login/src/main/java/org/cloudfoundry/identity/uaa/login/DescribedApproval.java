@@ -13,8 +13,8 @@
 package org.cloudfoundry.identity.uaa.login;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
-import org.codehaus.jackson.annotate.JsonIgnore;
 
 public class DescribedApproval extends Approval {
     private String description;

@@ -14,16 +14,17 @@ package org.cloudfoundry.identity.uaa.scim;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
-import org.codehaus.jackson.JsonParser;
-import org.codehaus.jackson.JsonProcessingException;
-import org.codehaus.jackson.JsonToken;
-import org.codehaus.jackson.map.DeserializationContext;
-import org.codehaus.jackson.map.JsonDeserializer;
-import org.codehaus.jackson.map.exc.UnrecognizedPropertyException;
 
 public class ScimUserJsonDeserializer extends JsonDeserializer<ScimUser> {
     @Override
@@ -81,10 +82,10 @@ public class ScimUserJsonDeserializer extends JsonDeserializer<ScimUser> {
                 } else if ("zoneId".equalsIgnoreCase(fieldName)) {
                     user.setZoneId(jp.readValueAs(String.class));
                 } else if ("approvals".equalsIgnoreCase(fieldName)) {
-                    user.setApprovals(new HashSet<Approval>(Arrays.asList(jp.readValueAs(Approval[].class))));
+                    user.setApprovals(new HashSet<>(Arrays.asList(jp.readValueAs(Approval[].class))));
                 } else {
                     throw new UnrecognizedPropertyException("unrecognized field", jp.getCurrentLocation(),
-                                    ScimUser.class, fieldName);
+                                    ScimUser.class, fieldName, Collections.emptySet());
                 }
             }
         }
