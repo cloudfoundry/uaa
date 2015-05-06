@@ -55,6 +55,7 @@ import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
@@ -62,6 +63,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpSession;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -69,6 +71,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import static org.hamcrest.Matchers.any;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasKey;
@@ -77,12 +80,15 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertNotNull;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.TEXT_HTML;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.securityContext;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
@@ -504,49 +510,33 @@ public class LoginMockMvcTests extends TestClassNullifier {
 
     @Test
     public void testChangeEmailPageHasCsrf() throws Exception {
-        ScimUserProvisioning userProvisioning = webApplicationContext.getBean(JdbcScimUserProvisioning.class);
-        ScimUser marissa = userProvisioning.query("username eq \"marissa\" and origin eq \"uaa\"").get(0);
-        UaaPrincipal uaaPrincipal = new UaaPrincipal(marissa.getId(), marissa.getUserName(), marissa.getPrimaryEmail(), marissa.getOrigin(), marissa.getExternalId(), IdentityZoneHolder.get().getId());
-        UsernamePasswordAuthenticationToken principal = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, Arrays.asList(UaaAuthority.fromAuthorities("uaa.user")));
-        MockHttpSession session = new MockHttpSession();
-        SecurityContext securityContext = new SecurityContextImpl();
-        securityContext.setAuthentication(principal);
-        session.putValue("SPRING_SECURITY_CONTEXT", securityContext);
+        SecurityContext marissaContext = MockMvcUtils.utils().getMarissaSecurityContext(webApplicationContext);
 
         MockHttpServletRequestBuilder get = get("/change_email")
             .accept(TEXT_HTML)
-            .session(session)
-            .principal(principal);
+            .with(securityContext(marissaContext));
         mockMvc.perform(get)
             .andExpect(status().isOk())
             .andExpect(content().string(containsString("_csrf")));
-        assertNotNull(session.getAttribute(HttpSessionCsrfTokenRepository.class.getName().concat(".CSRF_TOKEN")));
     }
 
     @Test
     public void testChangeEmailSubmitWithMissingCsrf() throws Exception {
-        ScimUserProvisioning userProvisioning = webApplicationContext.getBean(JdbcScimUserProvisioning.class);
-        ScimUser marissa = userProvisioning.query("username eq \"marissa\" and origin eq \"uaa\"").get(0);
-        UaaPrincipal uaaPrincipal = new UaaPrincipal(marissa.getId(), marissa.getUserName(), marissa.getPrimaryEmail(), marissa.getOrigin(), marissa.getExternalId(), IdentityZoneHolder.get().getId());
-        UsernamePasswordAuthenticationToken principal = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, Arrays.asList(UaaAuthority.fromAuthorities("uaa.user")));
-        MockHttpSession session = new MockHttpSession();
-        SecurityContext securityContext = new SecurityContextImpl();
-        securityContext.setAuthentication(principal);
-        session.putValue("SPRING_SECURITY_CONTEXT", securityContext);
+        SecurityContext marissaContext = MockMvcUtils.utils().getMarissaSecurityContext(webApplicationContext);
 
         MockHttpServletRequestBuilder get = get("/change_email")
             .accept(TEXT_HTML)
-            .session(session)
-            .principal(principal);
-        mockMvc.perform(get)
+            .with(securityContext(marissaContext));
+        MockHttpSession session = (MockHttpSession)mockMvc.perform(get)
             .andExpect(status().isOk())
-            .andExpect(content().string(containsString("_csrf")));
+            .andExpect(content().string(containsString("_csrf")))
+            .andReturn().getRequest().getSession();
         assertNotNull(session.getAttribute(HttpSessionCsrfTokenRepository.class.getName().concat(".CSRF_TOKEN")));
 
         MockHttpServletRequestBuilder changeEmail = post("/change_email.do")
             .accept(TEXT_HTML)
             .session(session)
-            .principal(principal)
+            .with(securityContext(marissaContext))
             .param("newEmail", "test@test.org")
             .param("client_id", "");
         mockMvc.perform(changeEmail)
@@ -555,28 +545,21 @@ public class LoginMockMvcTests extends TestClassNullifier {
 
     @Test
     public void testChangeEmailSubmitWithInvalidCsrf() throws Exception {
-        ScimUserProvisioning userProvisioning = webApplicationContext.getBean(JdbcScimUserProvisioning.class);
-        ScimUser marissa = userProvisioning.query("username eq \"marissa\" and origin eq \"uaa\"").get(0);
-        UaaPrincipal uaaPrincipal = new UaaPrincipal(marissa.getId(), marissa.getUserName(), marissa.getPrimaryEmail(), marissa.getOrigin(), marissa.getExternalId(), IdentityZoneHolder.get().getId());
-        UsernamePasswordAuthenticationToken principal = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, Arrays.asList(UaaAuthority.fromAuthorities("uaa.user")));
-        MockHttpSession session = new MockHttpSession();
-        SecurityContext securityContext = new SecurityContextImpl();
-        securityContext.setAuthentication(principal);
-        session.putValue("SPRING_SECURITY_CONTEXT", securityContext);
+        SecurityContext marissaContext = MockMvcUtils.utils().getMarissaSecurityContext(webApplicationContext);
 
         MockHttpServletRequestBuilder get = get("/change_email")
             .accept(TEXT_HTML)
-            .session(session)
-            .principal(principal);
-        mockMvc.perform(get)
+            .with(securityContext(marissaContext));
+        MockHttpSession session = (MockHttpSession)mockMvc.perform(get)
             .andExpect(status().isOk())
-            .andExpect(content().string(containsString("_csrf")));
+            .andExpect(content().string(containsString("_csrf")))
+            .andReturn().getRequest().getSession();
         assertNotNull(session.getAttribute(HttpSessionCsrfTokenRepository.class.getName().concat(".CSRF_TOKEN")));
 
         MockHttpServletRequestBuilder changeEmail = post("/change_email.do")
             .accept(TEXT_HTML)
             .session(session)
-            .principal(principal)
+            .with(securityContext(marissaContext))
             .param("newEmail", "test@test.org")
             .param("client_id", "")
             .param("_csrf", "invalid csrf token");
@@ -585,30 +568,41 @@ public class LoginMockMvcTests extends TestClassNullifier {
     }
 
     @Test
+    public void testChangeEmailSubmitWithSpringSecurityForcedCsrf() throws Exception {
+        SecurityContext marissaContext = MockMvcUtils.utils().getMarissaSecurityContext(webApplicationContext);
+        //example shows to to test a request that is secured by csrf and you wish to bypass it
+        MockHttpServletRequestBuilder changeEmail = post("/change_email.do")
+            .accept(TEXT_HTML)
+            .with(securityContext(marissaContext))
+            .with(csrf())
+            .param("newEmail", "test@test.org")
+            .param("client_id", "");
+
+        mockMvc.perform(changeEmail)
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("email_sent?code=email_change"));
+    }
+
+    @Test
     public void testChangeEmailSubmitWithCorrectCsrf() throws Exception {
-        ScimUserProvisioning userProvisioning = webApplicationContext.getBean(JdbcScimUserProvisioning.class);
-        ScimUser marissa = userProvisioning.query("username eq \"marissa\" and origin eq \"uaa\"").get(0);
-        UaaPrincipal uaaPrincipal = new UaaPrincipal(marissa.getId(), marissa.getUserName(), marissa.getPrimaryEmail(), marissa.getOrigin(), marissa.getExternalId(), IdentityZoneHolder.get().getId());
-        UsernamePasswordAuthenticationToken principal = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, Arrays.asList(UaaAuthority.fromAuthorities("uaa.user")));
-        MockHttpSession session = new MockHttpSession();
-        SecurityContext securityContext = new SecurityContextImpl();
-        securityContext.setAuthentication(principal);
-        session.putValue("SPRING_SECURITY_CONTEXT", securityContext);
+        SecurityContext marissaContext = MockMvcUtils.utils().getMarissaSecurityContext(webApplicationContext);
 
         MockHttpServletRequestBuilder get = get("/change_email")
             .accept(TEXT_HTML)
-            .session(session)
-            .principal(principal);
-        mockMvc.perform(get)
+            .with(securityContext(marissaContext));
+
+        MvcResult result = mockMvc.perform(get)
             .andExpect(status().isOk())
-            .andExpect(content().string(containsString("_csrf")));
-        assertNotNull(session.getAttribute(HttpSessionCsrfTokenRepository.class.getName().concat(".CSRF_TOKEN")));
+            .andExpect(content().string(containsString("_csrf")))
+            .andReturn();
+
+        MockHttpSession session = (MockHttpSession)result.getRequest().getSession();
         CsrfToken csrfToken = (CsrfToken)session.getAttribute(HttpSessionCsrfTokenRepository.class.getName().concat(".CSRF_TOKEN"));
 
         MockHttpServletRequestBuilder changeEmail = post("/change_email.do")
             .accept(TEXT_HTML)
+            .with(securityContext(marissaContext))
             .session(session)
-            .principal(principal)
             .param("newEmail", "test@test.org")
             .param("client_id", "")
             .param("_csrf", csrfToken.getToken());

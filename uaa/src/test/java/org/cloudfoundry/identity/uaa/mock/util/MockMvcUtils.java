@@ -22,6 +22,8 @@ import org.cloudfoundry.identity.uaa.rest.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.TestClient.OAuthToken;
@@ -44,6 +46,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -297,7 +300,7 @@ public class MockMvcUtils {
         group.setMembers(Arrays.asList(new ScimGroupMember(user.getId())));
         MockMvcUtils.utils().createGroup(mockMvc, adminToken, group);
         return getUserOAuthAccessTokenAuthCode(mockMvc, "identity", "identitysecret", user.getId(), user.getUserName(),
-                "secret", group.getDisplayName());
+            "secret", group.getDisplayName());
     }
 
     public String getUserOAuthAccessToken(MockMvc mockMvc, String clientId, String clientSecret, String username,
@@ -397,6 +400,16 @@ public class MockMvcUtils {
                 .andReturn();
         OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class);
         return oauthToken.accessToken;
+    }
+
+    public SecurityContext getMarissaSecurityContext(ApplicationContext context) {
+        ScimUserProvisioning userProvisioning = context.getBean(JdbcScimUserProvisioning.class);
+        ScimUser marissa = userProvisioning.query("username eq \"marissa\" and origin eq \"uaa\"").get(0);
+        UaaPrincipal uaaPrincipal = new UaaPrincipal(marissa.getId(), marissa.getUserName(), marissa.getPrimaryEmail(), marissa.getOrigin(), marissa.getExternalId(), IdentityZoneHolder.get().getId());
+        UsernamePasswordAuthenticationToken principal = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, Arrays.asList(UaaAuthority.fromAuthorities("uaa.user")));
+        SecurityContext securityContext = new SecurityContextImpl();
+        securityContext.setAuthentication(principal);
+        return securityContext;
     }
 
     public <T extends ApplicationEvent>  TestApplicationEventListener<T> addEventListener(ConfigurableApplicationContext applicationContext, Class<T> clazz) {

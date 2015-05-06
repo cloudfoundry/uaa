@@ -65,6 +65,7 @@ dependencies {
   testCompile group: 'postgresql', name: 'postgresql', version:parent.postgresqlVersion
   testCompile group: 'org.mockito', name: 'mockito-all', version:'1.8.5'
   testCompile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatVersion
+  testCompile group: 'org.springframework.security', name: 'spring-security-test', version:parent.springSecurityVersion
 }
 
 apply from: file('build_properties.gradle')
