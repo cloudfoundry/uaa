@@ -135,7 +135,6 @@ public class PasscodeMockMvcTests extends TestClassNullifier {
         String passcode = JsonUtils.readValue(
             mockMvc.perform(get)
                 .andExpect(status().isOk())
-                .andDo(print())
                 .andReturn().getResponse().getContentAsString(),
             String.class);
 
@@ -160,7 +159,6 @@ public class PasscodeMockMvcTests extends TestClassNullifier {
         Map accessToken =
             JsonUtils.readValue(
                 mockMvc.perform(post)
-                    .andDo(print())
                     .andExpect(status().isOk())
                     .andReturn().getResponse().getContentAsString(),
                 Map.class);
@@ -202,7 +200,6 @@ public class PasscodeMockMvcTests extends TestClassNullifier {
         String passcode = JsonUtils.readValue(
             mockMvc.perform(get)
                 .andExpect(status().isOk())
-                .andDo(print())
                 .andReturn().getResponse().getContentAsString(),
             String.class);
 
@@ -227,7 +224,6 @@ public class PasscodeMockMvcTests extends TestClassNullifier {
         Map accessToken =
             JsonUtils.readValue(
                 mockMvc.perform(post)
-                    .andDo(print())
                     .andExpect(status().isOk())
                     .andReturn().getResponse().getContentAsString(),
                 Map.class);
@@ -270,9 +266,7 @@ public class PasscodeMockMvcTests extends TestClassNullifier {
             .session(session);
 
         mockMvc.perform(get)
-            .andExpect(status().isForbidden())
-            .andDo(print());
-
+            .andExpect(status().isForbidden());
     }
 
     public static class MockSecurityContext implements SecurityContext {

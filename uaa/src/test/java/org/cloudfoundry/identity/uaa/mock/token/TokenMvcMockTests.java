@@ -285,7 +285,6 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .param(OAuth2Utils.RESPONSE_TYPE,"token")
             .param(OAuth2Utils.GRANT_TYPE, "password")
             .param(OAuth2Utils.CLIENT_ID, clientId))
-            .andDo(print())
             .andExpect(status().isOk());
 
         mockMvc.perform(post("/oauth/token")
@@ -296,7 +295,6 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .param(OAuth2Utils.RESPONSE_TYPE,"token")
             .param(OAuth2Utils.GRANT_TYPE, "password")
             .param(OAuth2Utils.CLIENT_ID, clientId2))
-            .andDo(print())
             .andExpect(status().isOk());
 
 
@@ -347,7 +345,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .param(OAuth2Utils.STATE, state)
             .param(OAuth2Utils.CLIENT_ID, clientId)
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI))
-            .andDo(print()).andExpect(status().isFound());
+            .andExpect(status().isFound());
 
         //correct provider is ok
         MvcResult result = mockMvc.perform(get("/oauth/authorize")
@@ -357,7 +355,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .param(OAuth2Utils.STATE, state)
             .param(OAuth2Utils.CLIENT_ID, clientId2)
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI))
-            .andDo(print()).andExpect(status().isFound())
+            .andExpect(status().isFound())
             .andReturn();
 
         //other provider, not ok
@@ -368,7 +366,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .param(OAuth2Utils.STATE, state)
             .param(OAuth2Utils.CLIENT_ID, clientId3)
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI))
-            .andDo(print()).andExpect(status().isUnauthorized())
+            .andExpect(status().isUnauthorized())
             .andExpect(model().attributeExists("error"))
             .andExpect(model().attribute("error_message_code","login.invalid_idp"));
 
@@ -407,7 +405,6 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .param(OAuth2Utils.RESPONSE_TYPE,"token")
             .param(OAuth2Utils.GRANT_TYPE, "password")
             .param(OAuth2Utils.CLIENT_ID, clientId))
-            .andDo(print())
             .andExpect(status().isUnauthorized());
 
         mockMvc.perform(post("/oauth/token")
@@ -417,7 +414,6 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .param(OAuth2Utils.RESPONSE_TYPE, "token")
             .param(OAuth2Utils.GRANT_TYPE, "password")
             .param(OAuth2Utils.CLIENT_ID, clientId2))
-            .andDo(print())
             .andExpect(status().isOk());
     }
 
@@ -1669,7 +1665,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .param("code", code)
             .param(OAuth2Utils.CLIENT_ID, "identity")
             .param(OAuth2Utils.REDIRECT_URI, "http://localhost/test");
-        result = mockMvc.perform(authRequest).andDo(print()).andExpect(status().is2xxSuccessful()).andReturn();
+        result = mockMvc.perform(authRequest).andExpect(status().is2xxSuccessful()).andReturn();
         TestClient.OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), TestClient.OAuthToken.class);
 
         OAuth2Authentication a1 = tokenServices.loadAuthentication(oauthToken.accessToken);

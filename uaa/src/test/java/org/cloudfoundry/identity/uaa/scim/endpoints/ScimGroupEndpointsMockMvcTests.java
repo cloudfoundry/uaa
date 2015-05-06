@@ -152,7 +152,6 @@ public class ScimGroupEndpointsMockMvcTests extends TestClassNullifier {
             .content(JsonUtils.writeValueAsBytes(group));
         //create the zones.{id}.admin
         mockMvc.perform(post)
-            .andDo(print())
             .andExpect(status().isCreated());
         //it is already created
         mockMvc.perform(post)

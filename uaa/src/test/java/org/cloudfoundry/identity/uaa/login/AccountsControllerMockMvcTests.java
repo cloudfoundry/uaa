@@ -162,7 +162,6 @@ public class AccountsControllerMockMvcTests extends TestClassNullifier {
 
         MvcResult mvcResult = mockMvc.perform(get("/verify_user")
                 .param("code", "test"+generator.counter.get()))
-                .andDo(print())
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("home"))
                 .andReturn();
@@ -191,7 +190,6 @@ public class AccountsControllerMockMvcTests extends TestClassNullifier {
 
         MvcResult mvcResult = mockMvc.perform(get("/verify_user")
                 .param("code", "test"+generator.counter.get()))
-                .andDo(print())
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("home"))
                 .andReturn();
@@ -225,7 +223,6 @@ public class AccountsControllerMockMvcTests extends TestClassNullifier {
 
         MvcResult mvcResult = mockMvc.perform(get("/verify_user")
                 .param("code", "test"+generator.counter.get()))
-            .andDo(print())
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("http://localhost:8080/app/"))
             .andReturn();
@@ -329,7 +326,6 @@ public class AccountsControllerMockMvcTests extends TestClassNullifier {
         MvcResult mvcResult = mockMvc.perform(get("/verify_user")
                     .param("code", "test" + generator.counter.get())
                     .with(new SetServerNameRequestPostProcessor("mysubdomain.localhost")))
-                .andDo(print())
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("http://myzoneclient.example.com"))
                 .andReturn();

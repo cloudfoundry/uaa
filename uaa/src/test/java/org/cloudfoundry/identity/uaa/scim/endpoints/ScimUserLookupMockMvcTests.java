@@ -116,7 +116,6 @@ public class ScimUserLookupMockMvcTests extends TestClassNullifier {
             .param("count", String.valueOf(50));
 
         mockMvc.perform(post)
-            .andDo(print())
             .andExpect(status().isBadRequest());
 
     }

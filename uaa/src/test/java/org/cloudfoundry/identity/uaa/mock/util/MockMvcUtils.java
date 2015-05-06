@@ -373,7 +373,7 @@ public class MockMvcUtils {
                 .param("code", code)
                 .param(OAuth2Utils.CLIENT_ID, clientId)
                 .param(OAuth2Utils.REDIRECT_URI, "http://localhost/test");
-        result = mockMvc.perform(authRequest).andDo(print()).andExpect(status().is2xxSuccessful()).andReturn();
+        result = mockMvc.perform(authRequest).andExpect(status().is2xxSuccessful()).andReturn();
         TestClient.OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(),
             TestClient.OAuthToken.class);
         return oauthToken.accessToken;
