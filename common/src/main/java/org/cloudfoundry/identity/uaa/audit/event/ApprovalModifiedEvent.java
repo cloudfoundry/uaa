@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -17,7 +17,7 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
-import org.codehaus.jackson.map.ObjectMapper;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.security.core.Authentication;
 
 import java.io.IOException;
@@ -46,8 +46,8 @@ public class ApprovalModifiedEvent extends AbstractUaaEvent {
 
     private String getData(Approval source) {
         try {
-            return new ObjectMapper().writeValueAsString(new ApprovalModifiedEventData(source));
-        } catch (IOException e) {
+            return JsonUtils.writeValueAsString(new ApprovalModifiedEventData(source));
+        } catch (JsonUtils.JsonUtilException e) {
             logger.error("error writing approval event data", e);
         }
         return null;

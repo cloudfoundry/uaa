@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -75,7 +75,7 @@ public class NativeApplicationIntegrationTests {
         headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
         ResponseEntity<String> response = serverRunning.postForString("/oauth/token", formData, headers);
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("no-store", response.getHeaders().getFirst("Cache-Control"));
+        assertEquals("no-cache, no-store, max-age=0, must-revalidate", response.getHeaders().getFirst("Cache-Control"));
     }
 
     /**
@@ -101,11 +101,14 @@ public class NativeApplicationIntegrationTests {
         if (newCookies != null && !newCookies.isEmpty()) {
             fail("No cookies should be set. Found: " + newCookies.get(0) + ".");
         }
-        assertEquals("no-store", response.getHeaders().getFirst("Cache-Control"));
+        assertEquals("no-cache, no-store, max-age=0, must-revalidate", response.getHeaders().getFirst("Cache-Control"));
+
+        assertEquals(401, response.getStatusCode().value());
 
         @SuppressWarnings("unchecked")
         OAuth2Exception error = OAuth2Exception.valueOf(response.getBody());
-        assertEquals("invalid_client", error.getOAuth2ErrorCode());
+        assertEquals("Bad credentials", error.getMessage());
+        assertEquals("invalid_request", error.getOAuth2ErrorCode());
     }
 
     /**

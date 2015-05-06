@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.mock.clients;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.googlecode.flyway.core.Flyway;
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
@@ -26,8 +27,6 @@ import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.type.TypeReference;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -1188,11 +1187,11 @@ public class ClientAdminEndpointsMockMvcTests extends TestClassNullifier {
     }
 
     private String toString(Object client) throws Exception {
-        return new ObjectMapper().writeValueAsString(client);
+        return JsonUtils.writeValueAsString(client);
     }
 
     private String toString(Object[] clients) throws Exception {
-        return new ObjectMapper().writeValueAsString(clients);
+        return JsonUtils.writeValueAsString(clients);
     }
 
     private ClientDetails clientFromString(String client) throws Exception {
@@ -1200,8 +1199,7 @@ public class ClientAdminEndpointsMockMvcTests extends TestClassNullifier {
     }
 
     private Object fromString(String body, Class<?> clazz) throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        return mapper.readValue(body, clazz);
+        return JsonUtils.readValue(body, clazz);
     }
 
     private ClientDetails[] clientArrayFromString(String clients) throws Exception {
@@ -1209,8 +1207,7 @@ public class ClientAdminEndpointsMockMvcTests extends TestClassNullifier {
     }
 
     private Object[] arrayFromString(String body, Class<?> clazz) throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        return (Object[])mapper.readValue(body, clazz);
+        return (Object[])JsonUtils.readValue(body, clazz);
     }
 
 

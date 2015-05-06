@@ -1,13 +1,14 @@
 package org.cloudfoundry.identity.uaa.oauth.client;
 
-import org.codehaus.jackson.annotate.JsonIgnore;
-import org.codehaus.jackson.annotate.JsonIgnoreProperties;
-import org.codehaus.jackson.annotate.JsonProperty;
-import org.codehaus.jackson.map.annotate.JsonSerialize;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
-@JsonSerialize(include = JsonSerialize.Inclusion.NON_DEFAULT)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ClientDetailsModification extends BaseClientDetails {
 
@@ -20,8 +21,6 @@ public class ClientDetailsModification extends BaseClientDetails {
 
     @JsonProperty("action")
     private String action = NONE;
-    @JsonProperty("approvals_deleted")
-    private boolean approvalsDeleted = false;
 
     public ClientDetailsModification() {
     }
@@ -65,12 +64,15 @@ public class ClientDetailsModification extends BaseClientDetails {
 
     @JsonIgnore
     public boolean isApprovalsDeleted() {
-        return approvalsDeleted;
+        if (getAdditionalInformation().get(ClientConstants.APPROVALS_DELETED)!=null) {
+            return Boolean.TRUE.equals(getAdditionalInformation().get(ClientConstants.APPROVALS_DELETED));
+        }
+        return false;
     }
 
     @JsonIgnore
     public void setApprovalsDeleted(boolean approvalsDeleted) {
-        this.approvalsDeleted = approvalsDeleted;
+        addAdditionalInformation(ClientConstants.APPROVALS_DELETED, approvalsDeleted);
     }
 
     @JsonIgnore

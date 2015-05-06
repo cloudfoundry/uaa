@@ -12,14 +12,14 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.util.json;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
+
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-
-import org.codehaus.jackson.JsonGenerator;
-import org.codehaus.jackson.JsonProcessingException;
-import org.codehaus.jackson.map.JsonSerializer;
-import org.codehaus.jackson.map.SerializerProvider;
 
 /**
  * JSON serializer for Jackson to handle regular date instances as timestamps in
@@ -34,7 +34,7 @@ public class JsonDateSerializer extends JsonSerializer<Date> {
 
     @Override
     public void serialize(Date date, JsonGenerator generator, SerializerProvider provider) throws IOException,
-                    JsonProcessingException {
+        JsonProcessingException {
         String formatted = dateFormat.format(date);
         generator.writeString(formatted);
     }

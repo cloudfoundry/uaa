@@ -14,6 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.mock.util;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -33,8 +34,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.type.TypeReference;
 import org.junit.Assert;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEvent;
@@ -69,7 +68,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class MockMvcUtils {
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public static MockMvcUtils utils() {
         return new MockMvcUtils();
@@ -82,9 +80,9 @@ public class MockMvcUtils {
         MvcResult result = mockMvc.perform(post("/identity-zones")
                 .header("Authorization", "Bearer " + accessToken)
                 .contentType(APPLICATION_JSON)
-                .content(new ObjectMapper().writeValueAsString(identityZone)))
+                .content(JsonUtils.writeValueAsString(identityZone)))
                 .andExpect(status().isCreated()).andReturn();
-        return new ObjectMapper().readValue(result.getResponse().getContentAsByteArray(), IdentityZone.class);
+        return JsonUtils.readValue(result.getResponse().getContentAsString(), IdentityZone.class);
     }
 
     public static class IdentityZoneCreationResult {
@@ -123,7 +121,7 @@ public class MockMvcUtils {
                 .header("Authorization", "Bearer " + identityToken)
                 .contentType(APPLICATION_JSON)
                 .accept(APPLICATION_JSON)
-                .content(new ObjectMapper().writeValueAsString(identityZone)))
+                .content(JsonUtils.writeValueAsString(identityZone)))
                 .andExpect(status().isCreated());
 
         // use the identity client to grant the zones.<id>.admin scope to a user
@@ -137,7 +135,7 @@ public class MockMvcUtils {
                 .header("Authorization", "Bearer " + identityToken)
                 .contentType(APPLICATION_JSON)
                 .accept(APPLICATION_JSON)
-                .content(new ObjectMapper().writeValueAsString(group)))
+                .content(JsonUtils.writeValueAsString(group)))
                 .andExpect(status().isCreated());
 
         // use that user to create an admin client in the new zone
@@ -149,7 +147,7 @@ public class MockMvcUtils {
                 .header("X-Identity-Zone-Id", identityZone.getId())
                 .contentType(APPLICATION_JSON)
                 .accept(APPLICATION_JSON)
-                .content(new ObjectMapper().writeValueAsString(bootstrapClient)))
+                .content(JsonUtils.writeValueAsString(bootstrapClient)))
                 .andExpect(status().isCreated());
 
         return new IdentityZoneCreationResult(identityZone, marissa, zoneAdminAuthcodeToken);
@@ -208,9 +206,9 @@ public class MockMvcUtils {
         MvcResult userResult = mockMvc.perform(post("/Users")
                 .header("Authorization", "Bearer " + accessToken)
                 .contentType(APPLICATION_JSON)
-                .content(new ObjectMapper().writeValueAsBytes(user)))
+                .content(JsonUtils.writeValueAsBytes(user)))
                 .andExpect(status().isCreated()).andReturn();
-        return new ObjectMapper().readValue(userResult.getResponse().getContentAsString(), ScimUser.class);
+        return JsonUtils.readValue(userResult.getResponse().getContentAsString(), ScimUser.class);
     }
 
     public ScimGroup getGroup(MockMvc mockMvc, String accessToken, String displayName) throws Exception {
@@ -230,25 +228,25 @@ public class MockMvcUtils {
     }
 
     public ScimGroup createGroup(MockMvc mockMvc, String accessToken, ScimGroup group) throws Exception {
-        return new ObjectMapper().readValue(
-                mockMvc.perform(post("/Groups")
-                        .header("Authorization", "Bearer " + accessToken)
-                        .contentType(APPLICATION_JSON)
-                        .content(new ObjectMapper().writeValueAsBytes(group)))
-                        .andExpect(status().isCreated())
-                        .andReturn().getResponse().getContentAsByteArray(),
-                ScimGroup.class);
+        return JsonUtils.readValue(
+            mockMvc.perform(post("/Groups")
+                .header("Authorization", "Bearer " + accessToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(group)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString(),
+            ScimGroup.class);
     }
 
     public ScimGroup updateGroup(MockMvc mockMvc, String accessToken, ScimGroup group) throws Exception {
-        return new ObjectMapper().readValue(
+        return JsonUtils.readValue(
             mockMvc.perform(put("/Groups/" + group.getId())
                 .header("If-Match", group.getVersion())
                 .header("Authorization", "Bearer " + accessToken)
                 .contentType(APPLICATION_JSON)
-                .content(new ObjectMapper().writeValueAsBytes(group)))
+                .content(JsonUtils.writeValueAsString(group)))
                 .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsByteArray(),
+                .andReturn().getResponse().getContentAsString(),
             ScimGroup.class);
     }
     public BaseClientDetails createClient(MockMvc mockMvc, String accessToken, BaseClientDetails clientDetails) throws Exception {
@@ -261,14 +259,14 @@ public class MockMvcUtils {
                 .header("Authorization", "Bearer " + accessToken)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
-                .content(new ObjectMapper().writeValueAsString(clientDetails));
+                .content(JsonUtils.writeValueAsString(clientDetails));
         if (! zone.equals(IdentityZone.getUaa())) {
             createClientPost = createClientPost.header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
         }
-        return new ObjectMapper().readValue(
-                mockMvc.perform(createClientPost)
-                        .andExpect(status().isCreated())
-                        .andReturn().getResponse().getContentAsByteArray(), BaseClientDetails.class);
+        return JsonUtils.readValue(
+            mockMvc.perform(createClientPost)
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString(), BaseClientDetails.class);
     }
 
     public BaseClientDetails updateClient(MockMvc mockMvc, String accessToken, BaseClientDetails clientDetails, IdentityZone zone)
@@ -278,15 +276,15 @@ public class MockMvcUtils {
                 .header("Authorization", "Bearer " + accessToken)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
-                .content(new ObjectMapper().writeValueAsString(clientDetails));
+                .content(JsonUtils.writeValueAsString(clientDetails));
         if (! zone.equals(IdentityZone.getUaa())) {
             updateClientPut = updateClientPut.header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
         }
 
-        return new ObjectMapper().readValue(
+        return JsonUtils.readValue(
             mockMvc.perform(updateClientPut)
                 .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsByteArray(), BaseClientDetails.class);
+                .andReturn().getResponse().getContentAsString(), BaseClientDetails.class);
     }
 
     public String getZoneAdminToken(MockMvc mockMvc, String adminToken, String zoneId) throws Exception {
@@ -315,8 +313,8 @@ public class MockMvcUtils {
                 .param("password", password)
                 .param("scope", scope);
         MvcResult result = mockMvc.perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
-        TestClient.OAuthToken oauthToken = new ObjectMapper().readValue(result.getResponse().getContentAsByteArray(),
-                TestClient.OAuthToken.class);
+        TestClient.OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(),
+            TestClient.OAuthToken.class);
         return oauthToken.accessToken;
     }
 
@@ -330,7 +328,7 @@ public class MockMvcUtils {
             .param("client_id", clientId)
             .param("scope", scope);
         MvcResult result = mockMvc.perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
-        TestClient.OAuthToken oauthToken = new ObjectMapper().readValue(result.getResponse().getContentAsByteArray(), TestClient.OAuthToken.class);
+        TestClient.OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), TestClient.OAuthToken.class);
         return oauthToken.accessToken;
     }
 
@@ -375,9 +373,9 @@ public class MockMvcUtils {
                 .param("code", code)
                 .param(OAuth2Utils.CLIENT_ID, clientId)
                 .param(OAuth2Utils.REDIRECT_URI, "http://localhost/test");
-        result = mockMvc.perform(authRequest).andDo(print()).andExpect(status().is2xxSuccessful()).andReturn();
-        TestClient.OAuthToken oauthToken = new ObjectMapper().readValue(result.getResponse().getContentAsByteArray(),
-                TestClient.OAuthToken.class);
+        result = mockMvc.perform(authRequest).andExpect(status().is2xxSuccessful()).andReturn();
+        TestClient.OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(),
+            TestClient.OAuthToken.class);
         return oauthToken.accessToken;
 
     }
@@ -397,7 +395,7 @@ public class MockMvcUtils {
         MvcResult result = mockMvc.perform(oauthTokenPost)
                 .andExpect(status().isOk())
                 .andReturn();
-        OAuthToken oauthToken = objectMapper.readValue(result.getResponse().getContentAsByteArray(), OAuthToken.class);
+        OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class);
         return oauthToken.accessToken;
     }
 

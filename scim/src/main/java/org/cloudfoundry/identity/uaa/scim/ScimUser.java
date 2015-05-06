@@ -18,11 +18,11 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
-import org.codehaus.jackson.annotate.JsonIgnore;
-import org.codehaus.jackson.annotate.JsonProperty;
-import org.codehaus.jackson.map.annotate.JsonDeserialize;
-import org.codehaus.jackson.map.annotate.JsonSerialize;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
@@ -35,11 +35,11 @@ import org.springframework.util.StringUtils;
  * 
  * @author Luke Taylor
  */
-@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonDeserialize(using = ScimUserJsonDeserializer.class)
 public final class ScimUser extends ScimCore {
 
-    @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static final class Group {
         String value;
 
@@ -129,7 +129,7 @@ public final class ScimUser extends ScimCore {
         }
     }
 
-    @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static final class Name {
         String formatted;
 
@@ -202,7 +202,7 @@ public final class ScimUser extends ScimCore {
 
     }
 
-    @JsonSerialize(include = JsonSerialize.Inclusion.NON_DEFAULT)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static final class Email {
         private String value;
 
@@ -258,7 +258,7 @@ public final class ScimUser extends ScimCore {
         }
     }
 
-    @JsonSerialize(include = JsonSerialize.Inclusion.NON_DEFAULT)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static final class PhoneNumber {
         private String value;
 

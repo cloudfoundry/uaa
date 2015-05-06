@@ -29,7 +29,7 @@ import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.codehaus.jackson.map.ObjectMapper;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
@@ -293,9 +293,8 @@ public class ScimUserEndpointsIntegrationTests {
         ScimUser joe = created.getBody();
         HttpHeaders headers = new HttpHeaders();
         headers.add("If-Match", "\"" + joe.getVersion() + "\"");
-        ObjectMapper mapper = new ObjectMapper();
-        Map<String, Object> map = new HashMap<String, Object>(mapper.readValue(mapper.writeValueAsString(joe),
-                        Map.class));
+        Map<String, Object> map = new HashMap<String, Object>(JsonUtils.readValue(JsonUtils.writeValueAsString(joe),
+            Map.class));
         map.put("nottheusername", JOE + "0");
         ResponseEntity<Map> response = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}", HttpMethod.PUT,
             new HttpEntity<Map>(map, headers), Map.class, joe.getId());
@@ -313,8 +312,7 @@ public class ScimUserEndpointsIntegrationTests {
         ScimUser joe = created.getBody();
         HttpHeaders headers = new HttpHeaders();
         headers.add("If-Match", "\"" + joe.getVersion() + "\"");
-        ObjectMapper mapper = new ObjectMapper();
-        Map<String, Object> map = new HashMap<String, Object>(mapper.readValue(mapper.writeValueAsString(joe),
+        Map<String, Object> map = new HashMap<String, Object>(JsonUtils.readValue(JsonUtils.writeValueAsString(joe),
                         Map.class));
         map.put("username", JOE + "0");
         map.remove("userName");

@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,16 +12,16 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.error;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
-import org.codehaus.jackson.map.annotate.JsonDeserialize;
-import org.codehaus.jackson.map.annotate.JsonSerialize;
-
 /**
  * Base exception for UAA exceptions.
- * 
+ *
  * @author Dave Syer
  */
 @JsonSerialize(using = UaaExceptionSerializer.class)
@@ -71,7 +71,7 @@ public class UaaException extends RuntimeException {
     }
     /**
      * The error code.
-     * 
+     *
      * @return The error code.
      */
     public String getErrorCode() {
@@ -80,7 +80,7 @@ public class UaaException extends RuntimeException {
 
     /**
      * The HTTP status associated with this error.
-     * 
+     *
      * @return The HTTP status associated with this error.
      */
     public int getHttpStatus() {
@@ -89,7 +89,7 @@ public class UaaException extends RuntimeException {
 
     /**
      * Get any additional information associated with this error.
-     * 
+     *
      * @return Additional information, or null if none.
      */
     public Map<String, String> getAdditionalInformation() {
@@ -98,7 +98,7 @@ public class UaaException extends RuntimeException {
 
     /**
      * Add some additional information with this OAuth error.
-     * 
+     *
      * @param key The key.
      * @param value The value.
      */
@@ -113,7 +113,7 @@ public class UaaException extends RuntimeException {
 
     /**
      * Creates an {@link UaaException} from a Map<String,String>.
-     * 
+     *
      * @param errorParams
      * @return
      */

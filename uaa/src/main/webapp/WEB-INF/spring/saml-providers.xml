@@ -13,16 +13,11 @@
 
 -->
 
-<beans xmlns="http://www.springframework.org/schema/beans" xmlns:security="http://www.springframework.org/schema/security"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
-       xmlns:mvc="http://www.springframework.org/schema/mvc" xmlns:util="http://www.springframework.org/schema/util"
-       xmlns:cache="http://www.springframework.org/schema/cache"
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:security="http://www.springframework.org/schema/security"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
-              http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.2.xsd
-              http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
-              http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.0.xsd
-              http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.0.xsd
-              http://www.springframework.org/schema/cache http://www.springframework.org/schema/cache/spring-cache-4.0.xsd">
+              http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.0.xsd">
 
 
         <!-- Register authentication manager with SAML provider -->
@@ -31,7 +26,7 @@
         </security:authentication-manager>
 
         <bean id="samlFilter" class="org.springframework.security.web.FilterChainProxy">
-            <security:filter-chain-map path-type="ant">
+            <security:filter-chain-map request-matcher="ant">
                 <security:filter-chain pattern="/saml/login/**" filters="samlEntryPoint" />
                 <security:filter-chain pattern="/saml/logout/**" filters="samlLogoutFilter" />
                 <security:filter-chain pattern="/saml/metadata/**" filters="metadataDisplayFilter" />

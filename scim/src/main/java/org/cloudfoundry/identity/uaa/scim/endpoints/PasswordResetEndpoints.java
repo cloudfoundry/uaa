@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
@@ -24,8 +25,6 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundExceptio
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.JsonUtils.JsonUtilException;
-import org.codehaus.jackson.annotate.JsonProperty;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -51,7 +50,6 @@ import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
-import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
 
 @Controller
 public class PasswordResetEndpoints implements ApplicationEventPublisherAware {
@@ -59,11 +57,9 @@ public class PasswordResetEndpoints implements ApplicationEventPublisherAware {
     public static final int PASSWORD_RESET_LIFETIME = 30 * 60 * 1000;
     private final ScimUserProvisioning scimUserProvisioning;
     private final ExpiringCodeStore expiringCodeStore;
-    private final ObjectMapper objectMapper;
     private ApplicationEventPublisher publisher;
 
-    public PasswordResetEndpoints(ObjectMapper objectMapper, ScimUserProvisioning scimUserProvisioning, ExpiringCodeStore expiringCodeStore) {
-        this.objectMapper = objectMapper;
+    public PasswordResetEndpoints(ScimUserProvisioning scimUserProvisioning, ExpiringCodeStore expiringCodeStore) {
         this.scimUserProvisioning = scimUserProvisioning;
         this.expiringCodeStore = expiringCodeStore;
     }
@@ -75,7 +71,7 @@ public class PasswordResetEndpoints implements ApplicationEventPublisherAware {
 
     @RequestMapping(value = "/password_resets", method = RequestMethod.POST)
     public ResponseEntity<Map<String,String>> resetPassword(@RequestBody String email) throws IOException {
-        String jsonEmail = objectMapper.writeValueAsString(email);
+        String jsonEmail = JsonUtils.writeValueAsString(email);
         Map<String,String> response = new HashMap<>();
         List<ScimUser> results = scimUserProvisioning.query("userName eq " + jsonEmail + " and origin eq \"" + Origin.UAA + "\"");
         if (results.isEmpty()) {

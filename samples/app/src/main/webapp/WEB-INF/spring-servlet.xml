@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!-- Cloud Foundry 2012.02.03 Beta Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved. This product is licensed to 
-	you under the Apache License, Version 2.0 (the "License"). You may not use this product except in compliance with the License. 
-	This product includes a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents 
+<!-- Cloud Foundry 2012.02.03 Beta Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved. This product is licensed to
+	you under the Apache License, Version 2.0 (the "License"). You may not use this product except in compliance with the License.
+	This product includes a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents
 	is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file. -->
 
 <beans xmlns="http://www.springframework.org/schema/beans"
@@ -11,23 +11,24 @@
 	   xmlns:sec="http://www.springframework.org/schema/security"
 	xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-2.0.xsd
 		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.0.xsd
-		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.2.xsd
+		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.0.xsd
 		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
 
-	<sec:http pattern="/logout" security="none" />
-	<sec:http pattern="/login_error.jsp" security="none" />
-	<sec:http pattern="/resources/**" security="none" />
-	<sec:http pattern="/favicon.ico" security="none" />
+	<sec:http name="appFilterLogout" pattern="/logout" security="none" />
+	<sec:http name="appFilterLoginError" pattern="/login_error.jsp" security="none" />
+	<sec:http name="appFilterResources" pattern="/resources/**" security="none" />
+	<sec:http name="appFilterFavIcon" pattern="/favicon.ico" security="none" />
 
-	<http pattern="/apps.*" request-matcher="regex" xmlns="http://www.springframework.org/schema/security"
+	<http name="appFilterApps" pattern="/apps.*" request-matcher="regex" xmlns="http://www.springframework.org/schema/security"
 		entry-point-ref="loginEntryPoint" disable-url-rewriting="true" use-expressions="true" authentication-manager-ref="authenticationManager">
 		<intercept-url pattern="/apps.*" access="hasRole('cloud_controller.read')" />
 		<anonymous enabled="false" />
 		<custom-filter ref="oauth2ClientFilter" before="PRE_AUTH_FILTER" />
 		<custom-filter ref="accessTokenFilter" position="PRE_AUTH_FILTER" />
+		<csrf disabled="true"/>
 	</http>
 
-	<http xmlns="http://www.springframework.org/schema/security" entry-point-ref="loginEntryPoint"
+	<http name="appFilterDefault" xmlns="http://www.springframework.org/schema/security" entry-point-ref="loginEntryPoint"
 		disable-url-rewriting="true" use-expressions="true" authentication-manager-ref="authenticationManager"
 		security-context-repository-ref="securityContextRepository">
 		<intercept-url pattern="/**" access="isFullyAuthenticated()" />
@@ -35,6 +36,7 @@
 		<anonymous enabled="false" />
 		<custom-filter ref="oauth2ClientFilter" before="PRE_AUTH_FILTER" />
 		<custom-filter ref="socialClientFilter" position="PRE_AUTH_FILTER" />
+		<csrf disabled="true"/>
 	</http>
 
 	<bean id="securityContextRepository" class="org.springframework.security.web.context.HttpSessionSecurityContextRepository">
@@ -93,7 +95,7 @@
 			</map>
 		</property>
 		<property name="defaultViews">
-			<bean class="org.springframework.web.servlet.view.json.MappingJacksonJsonView" />
+			<bean class="org.springframework.web.servlet.view.json.MappingJackson2JsonView" />
 		</property>
 	</bean>
 

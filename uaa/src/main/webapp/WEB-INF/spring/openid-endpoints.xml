@@ -15,15 +15,16 @@
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
     xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
     xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-2.0.xsd
-		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.2.xsd
-		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
+        http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.0.xsd
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
 
     <http name="userInfoSecurity" pattern="/userinfo" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
-        entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
+        entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"  use-expressions="false"
         xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="scope=openid" />
         <custom-filter ref="openidResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
+        <csrf disabled="true"/>
     </http>
 
     <oauth:resource-server id="openidResourceAuthenticationFilter" token-services-ref="tokenServices"

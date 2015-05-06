@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.login;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
@@ -9,11 +10,10 @@ import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.type.TypeReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
@@ -42,10 +42,8 @@ public class EmailAccountCreationService implements AccountCreationService {
     private final ClientDetailsService clientDetailsService;
     private final String brand;
     private final UaaUrlUtils uaaUrlUtils;
-    private final ObjectMapper objectMapper;
 
     public EmailAccountCreationService(
-        ObjectMapper objectMapper,
         SpringTemplateEngine templateEngine,
         MessageService messageService,
         ExpiringCodeStore codeStore,
@@ -54,7 +52,6 @@ public class EmailAccountCreationService implements AccountCreationService {
         UaaUrlUtils uaaUrlUtils,
         String brand) {
 
-        this.objectMapper = objectMapper;
         this.templateEngine = templateEngine;
         this.messageService = messageService;
         this.codeStore= codeStore;
@@ -103,7 +100,7 @@ public class EmailAccountCreationService implements AccountCreationService {
         Map<String, String> codeData = new HashMap<>();
         codeData.put("user_id", userId);
         codeData.put("client_id", clientId);
-        String codeDataString = objectMapper.writeValueAsString(codeData);
+        String codeDataString = JsonUtils.writeValueAsString(codeData);
         return new ExpiringCode(null, expiresAt, codeDataString);
     }
 
@@ -116,7 +113,7 @@ public class EmailAccountCreationService implements AccountCreationService {
             throw new HttpClientErrorException(HttpStatus.BAD_REQUEST);
         }
 
-        Map<String, String> data = objectMapper.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
+        Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
         ScimUser user = scimUserProvisioning.retrieve(data.get("user_id"));
         user = scimUserProvisioning.verifyUser(user.getId(), user.getVersion());
 

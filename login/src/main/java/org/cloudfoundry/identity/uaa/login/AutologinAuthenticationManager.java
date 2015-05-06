@@ -13,9 +13,6 @@
 
 package org.cloudfoundry.identity.uaa.login;
 
-import java.io.IOException;
-import java.util.Map;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
@@ -25,20 +22,16 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.client.SocialClientUserDetails;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.web.client.RestTemplate;
+
+import java.io.IOException;
+import java.util.Map;
 
 /**
  * @author Dave Syer
@@ -77,9 +70,9 @@ public class AutologinAuthenticationManager implements AuthenticationManager {
         SocialClientUserDetails user = null;
         try {
             if (ec != null) {
-                user = new ObjectMapper().readValue(ec.getData(), SocialClientUserDetails.class);
+                user = JsonUtils.readValue(ec.getData(), SocialClientUserDetails.class);
             }
-        } catch (IOException x) {
+        } catch (JsonUtils.JsonUtilException x) {
             throw new BadCredentialsException("JsonConversion error", x);
         }
 

@@ -12,9 +12,10 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim;
 
-import org.codehaus.jackson.map.annotate.JsonSerialize;
 
-@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ScimGroupExternalMember extends ScimCore {
 
     private String groupId;

@@ -18,14 +18,16 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.codehaus.jackson.JsonGenerator;
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.JsonParser;
-import org.codehaus.jackson.JsonToken;
-import org.codehaus.jackson.map.DeserializationContext;
-import org.codehaus.jackson.map.SerializerProvider;
-import org.codehaus.jackson.map.deser.StdDeserializer;
-import org.codehaus.jackson.map.ser.SerializerBase;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.DefaultOAuth2RefreshToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
@@ -33,8 +35,8 @@ import org.springframework.security.oauth2.common.OAuth2RefreshToken;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.util.Assert;
 
-@org.codehaus.jackson.map.annotate.JsonSerialize(using = OpenIdToken.OpenIdTokenJackson1Serializer.class)
-@org.codehaus.jackson.map.annotate.JsonDeserialize(using = OpenIdToken.OpenIdTokenJackson1Deserializer.class)
+@JsonSerialize(using = OpenIdToken.OpenIdTokenJackson1Serializer.class)
+@JsonDeserialize(using = OpenIdToken.OpenIdTokenJackson1Deserializer.class)
 public class OpenIdToken extends DefaultOAuth2AccessToken {
 
     public static String ID_TOKEN = "id_token";
@@ -57,7 +59,7 @@ public class OpenIdToken extends DefaultOAuth2AccessToken {
         super(accessToken);
     }
 
-    public static final class OpenIdTokenJackson1Serializer extends SerializerBase<OAuth2AccessToken> {
+    public static final class OpenIdTokenJackson1Serializer extends StdSerializer<OAuth2AccessToken> {
 
         public OpenIdTokenJackson1Serializer() {
             super(OAuth2AccessToken.class);

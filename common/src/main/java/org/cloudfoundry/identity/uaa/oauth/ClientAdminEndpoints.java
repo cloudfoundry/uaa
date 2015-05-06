@@ -211,7 +211,7 @@ public class ClientAdminEndpoints implements InitializingBean {
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     @Transactional
-    public ClientDetails[] createClientDetailsTx(@RequestBody BaseClientDetails[] clients) throws Exception {
+    public ClientDetails[] createClientDetailsTx(@RequestBody ClientDetailsModification[] clients) throws Exception {
         if (clients==null || clients.length==0) {
             throw new NoSuchClientException("Message body does not contain any clients.");
         }
@@ -234,7 +234,7 @@ public class ClientAdminEndpoints implements InitializingBean {
     @ResponseStatus(HttpStatus.OK)
     @Transactional
     @ResponseBody
-    public ClientDetails[] updateClientDetailsTx(@RequestBody BaseClientDetails[] clients) throws Exception {
+    public ClientDetails[] updateClientDetailsTx(@RequestBody ClientDetailsModification[] clients) throws Exception {
         if (clients==null || clients.length==0) {
             throw new InvalidClientDetailsException("No clients specified for update.");
         }
@@ -295,7 +295,7 @@ public class ClientAdminEndpoints implements InitializingBean {
     @ResponseBody
     public ClientDetails removeClientDetails(@PathVariable String client) throws Exception {
         ClientDetails details = clientDetailsService.retrieve(client);
-        doProcessDeletes(new ClientDetails[] {details});
+        doProcessDeletes(new ClientDetails[]{details});
         return removeSecret(details);
     }
 
@@ -303,7 +303,7 @@ public class ClientAdminEndpoints implements InitializingBean {
     @ResponseStatus(HttpStatus.OK)
     @Transactional
     @ResponseBody
-    public ClientDetails[] removeClientDetailsTx(@RequestBody BaseClientDetails[] details) throws Exception {
+    public ClientDetails[] removeClientDetailsTx(@RequestBody ClientDetailsModification[] details) throws Exception {
         ClientDetails[] result = new ClientDetails[details.length];
         for (int i=0; i<result.length; i++) {
             result[i] = clientDetailsService.retrieve(details[i].getClientId());

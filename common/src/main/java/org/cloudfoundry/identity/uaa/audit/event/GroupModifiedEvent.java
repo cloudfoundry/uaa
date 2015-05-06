@@ -15,12 +15,12 @@
 
 package org.cloudfoundry.identity.uaa.audit.event;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
-import org.codehaus.jackson.annotate.JsonCreator;
-import org.codehaus.jackson.annotate.JsonIgnore;
-import org.codehaus.jackson.annotate.JsonProperty;
-import org.codehaus.jackson.map.ObjectMapper;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -74,10 +74,7 @@ public class GroupModifiedEvent extends AbstractUaaEvent {
 
     @Override
     public AuditEvent getAuditEvent() {
-        String data = null;
-        try {
-            data = new ObjectMapper().writeValueAsString(new GroupInfo(groupName, members));
-        } catch (IOException e) { }
+        String data = JsonUtils.writeValueAsString(new GroupInfo(groupName, members));
         return createAuditRecord(
             groupId,
             eventType,

@@ -13,9 +13,9 @@
 
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import org.codehaus.jackson.map.annotate.JsonSerialize;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
-@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class PasswordScore {
     private int score;
     private int requiredScore;

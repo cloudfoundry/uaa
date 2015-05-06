@@ -12,6 +12,11 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -19,15 +24,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.codehaus.jackson.JsonGenerator;
-import org.codehaus.jackson.JsonProcessingException;
-import org.codehaus.jackson.map.JsonSerializer;
-import org.codehaus.jackson.map.SerializerProvider;
 
 public class ScimGroupJsonSerializer extends JsonSerializer<ScimGroup> {
     @Override
     public void serialize(ScimGroup group, JsonGenerator jgen, SerializerProvider provider) throws IOException,
-                    JsonProcessingException {
+        JsonProcessingException {
         Map<String, List<ScimGroupMember>> roles = new HashMap<String, List<ScimGroupMember>>();
         for (ScimGroupMember.Role authority : ScimGroupMember.Role.values()) {
             String role = authority.toString().toLowerCase() + "s";

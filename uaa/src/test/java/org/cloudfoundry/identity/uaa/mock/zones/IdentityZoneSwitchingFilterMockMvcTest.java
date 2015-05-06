@@ -21,10 +21,10 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -96,7 +96,7 @@ public class IdentityZoneSwitchingFilterMockMvcTest extends TestClassNullifier {
                 .header("Authorization", "Bearer " + zoneAdminToken)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
-                .content(new ObjectMapper().writeValueAsString(client)))
+                .content(JsonUtils.writeValueAsString(client)))
             .andExpect(status().isCreated());
 
         // Authenticate with new Client in new Zone
@@ -156,7 +156,7 @@ public class IdentityZoneSwitchingFilterMockMvcTest extends TestClassNullifier {
             .header("Authorization", "Bearer " + accessToken)
             .accept(APPLICATION_JSON)
             .contentType(APPLICATION_JSON)
-            .content(new ObjectMapper().writeValueAsString(client)))
+            .content(JsonUtils.writeValueAsString(client)))
             .andExpect(statusMatcher);
     }
 }

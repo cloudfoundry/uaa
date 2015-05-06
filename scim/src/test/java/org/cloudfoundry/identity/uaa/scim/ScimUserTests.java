@@ -30,7 +30,7 @@ import java.util.Set;
 
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
-import org.codehaus.jackson.map.ObjectMapper;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Assert;
 import org.junit.Test;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
@@ -40,7 +40,6 @@ import org.springframework.expression.spel.support.StandardEvaluationContext;
  * @author Luke Taylor
  */
 public class ScimUserTests {
-    ObjectMapper mapper = new ObjectMapper();
 
     private static final String SCHEMAS = "\"schemas\": [\"urn:scim:schemas:core:1.0\"],";
 
@@ -50,7 +49,7 @@ public class ScimUserTests {
                         "  \"userName\": \"bjensen@example.com\"\n" +
                         "}";
 
-        ScimUser user = mapper.readValue(minimal, ScimUser.class);
+        ScimUser user = JsonUtils.readValue(minimal, ScimUser.class);
         assertEquals("bjensen@example.com", user.getUserName());
         assertEquals(null, user.getPassword());
     }
@@ -62,7 +61,7 @@ public class ScimUserTests {
                         "  \"password\": \"foo\"\n" +
                         "}";
 
-        ScimUser user = mapper.readValue(minimal, ScimUser.class);
+        ScimUser user = JsonUtils.readValue(minimal, ScimUser.class);
         assertEquals("foo", user.getPassword());
     }
 
@@ -73,7 +72,7 @@ public class ScimUserTests {
         user.setUserName("joe");
         user.getMeta().setCreated(new SimpleDateFormat("yyyy-MM-dd").parse("2011-11-30"));
 
-        String json = mapper.writeValueAsString(user);
+        String json = JsonUtils.writeValueAsString(user);
         // System.err.println(json);
         assertTrue(json.contains("\"userName\":\"joe\""));
         assertTrue(json.contains("\"id\":\"123\""));
@@ -93,7 +92,7 @@ public class ScimUserTests {
         user.addEmail("joe@test.org");
         user.addPhoneNumber("+1-222-1234567");
 
-        String json = mapper.writeValueAsString(user);
+        String json = JsonUtils.writeValueAsString(user);
         // System.err.println(json);
         assertTrue(json.contains("\"emails\":"));
         assertTrue(json.contains("\"phoneNumbers\":"));
@@ -107,7 +106,7 @@ public class ScimUserTests {
         user.setUserName("joe");
         user.setGroups(Collections.singleton(new Group(null, "foo")));
 
-        String json = mapper.writeValueAsString(user);
+        String json = JsonUtils.writeValueAsString(user);
         // System.err.println(json);
         assertTrue(json.contains("\"groups\":"));
     }
@@ -121,7 +120,7 @@ public class ScimUserTests {
                         "{\"value\": \"babs@jensen.org\",\"type\": \"home\"}" +
                         "],\n" +
                         "\"schemas\":[\"urn:scim:schemas:core:1.0\"]}";
-        ScimUser user = mapper.readValue(json, ScimUser.class);
+        ScimUser user = JsonUtils.readValue(json, ScimUser.class);
         assertEquals(3, user.getEmails().size());
         assertEquals("bjensen@example.com", user.getEmails().get(1).getValue());
         assertEquals("babs@jensen.org", user.getEmails().get(2).getValue());
@@ -138,7 +137,7 @@ public class ScimUserTests {
                         "{\"value\": \"123456\",\"display\": \"dash.admin\"}" +
                         "],\n" +
                         "\"schemas\":[\"urn:scim:schemas:core:1.0\"]}";
-        ScimUser user = mapper.readValue(json, ScimUser.class);
+        ScimUser user = JsonUtils.readValue(json, ScimUser.class);
         assertEquals(2, user.getGroups().size());
         // System.out.println(mapper.writeValueAsString(user));
     }
@@ -147,7 +146,7 @@ public class ScimUserTests {
     public void datesAreMappedCorrectly() throws Exception {
         String json = "{ \"userName\":\"bjensen\"," +
                         "\"meta\":{\"version\":10,\"created\":\"2011-11-30T10:46:16.475Z\"}}";
-        ScimUser user = mapper.readValue(json, ScimUser.class);
+        ScimUser user = JsonUtils.readValue(json, ScimUser.class);
         assertEquals(10, user.getVersion());
         assertEquals("2011-11-30", new SimpleDateFormat("yyyy-MM-dd").format(user.getMeta().getCreated()));
         // System.out.println(mapper.writeValueAsString(user));

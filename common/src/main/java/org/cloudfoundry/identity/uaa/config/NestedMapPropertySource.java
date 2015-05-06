@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -29,9 +29,9 @@ import org.springframework.util.StringUtils;
  * A property source based on a map that might contain nested maps and
  * collections. Property keys can be nested using
  * period separators.
- * 
+ *
  * @author Dave Syer
- * 
+ *
  */
 public class NestedMapPropertySource extends MapPropertySource {
 
@@ -60,9 +60,14 @@ public class NestedMapPropertySource extends MapPropertySource {
     }
 
     @Override
+    public boolean containsProperty(String name) {
+        return null != getProperty(name);
+    }
+
+    @Override
     public String[] getPropertyNames() {
         populateCache();
-        return this.cache.keySet().toArray(EMPTY_NAMES_ARRAY);
+        return this.cache.keySet().toArray(new String[0]);
     }
 
     private void populateCache() {
