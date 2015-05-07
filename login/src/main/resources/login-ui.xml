@@ -169,8 +169,12 @@
     <constructor-arg value="/login" />
   </bean>
 
-  <bean id="logoutHandler" class="org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler">
-    <property name="targetUrlParameter" value="redirect" />
+  <bean id="logoutHandler" class="org.cloudfoundry.identity.uaa.authentication.WhitelistLogoutHandler">
+      <constructor-arg value="#{@config['logout']==null ? null :
+                                @config['logout']['redirect']==null ? null :
+                                @config['logout']['redirect']['parameter']==null ? null :
+                                @config['logout']['redirect']['parameter']['whitelist']}"/>
+      <property name="targetUrlParameter" value="redirect" />
     <property name="defaultTargetUrl" value="${logout.redirect.url:/login}" />
     <property name="alwaysUseDefaultTargetUrl" value="${logout.redirect.parameter.disable:true}"/>
   </bean>
