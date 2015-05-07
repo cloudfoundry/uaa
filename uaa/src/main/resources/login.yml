@@ -41,7 +41,10 @@ links:
 #  redirect:
 #    url: /login
 #    parameter:
-#      disable: true
+#      disable: false
+#      whitelist:
+#        - https://url1.domain1.com/logout-success
+#        - https://url2.domain2.com/logout-success
 
 login:
   # Enable create account and forgot password links on the Login Server (enabled by default)

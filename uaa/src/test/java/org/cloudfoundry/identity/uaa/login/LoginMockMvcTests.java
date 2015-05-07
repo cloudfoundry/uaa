@@ -17,6 +17,7 @@ import com.googlecode.flyway.core.Flyway;
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.authentication.WhitelistLogoutHandler;
 import org.cloudfoundry.identity.uaa.authentication.login.LoginInfoEndpoint;
 import org.cloudfoundry.identity.uaa.authentication.login.Prompt;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
@@ -162,6 +163,62 @@ public class LoginMockMvcTests extends TestClassNullifier {
             mockMvc.perform(get("/logout.do").param("redirect", "https://www.google.com"))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("https://www.google.com"));
+        } finally {
+            logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(true);
+        }
+    }
+
+    @Test
+    public void testLogOutWhitelistedRedirectParameter() throws Exception {
+        WhitelistLogoutHandler logoutSuccessHandler = webApplicationContext.getBean(WhitelistLogoutHandler.class);
+        logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(false);
+        logoutSuccessHandler.setWhitelist(Arrays.asList("https://www.google.com"));
+        try {
+            mockMvc.perform(get("/logout.do").param("redirect", "https://www.google.com"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("https://www.google.com"));
+        } finally {
+            logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(true);
+        }
+    }
+
+    @Test
+    public void testLogOutNotWhitelistedRedirectParameter() throws Exception {
+        WhitelistLogoutHandler logoutSuccessHandler = webApplicationContext.getBean(WhitelistLogoutHandler.class);
+        logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(false);
+        logoutSuccessHandler.setWhitelist(Arrays.asList("https://www.yahoo.com"));
+        try {
+            mockMvc.perform(get("/logout.do").param("redirect", "https://www.google.com"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/login"));
+        } finally {
+            logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(true);
+        }
+    }
+
+    @Test
+    public void testLogOutNullWhitelistedRedirectParameter() throws Exception {
+        WhitelistLogoutHandler logoutSuccessHandler = webApplicationContext.getBean(WhitelistLogoutHandler.class);
+        logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(false);
+        logoutSuccessHandler.setWhitelist(null);
+        try {
+            mockMvc.perform(get("/logout.do").param("redirect", "https://www.google.com"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("https://www.google.com"));
+        } finally {
+            logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(true);
+        }
+    }
+
+    @Test
+    public void testLogOutEmptyWhitelistedRedirectParameter() throws Exception {
+        WhitelistLogoutHandler logoutSuccessHandler = webApplicationContext.getBean(WhitelistLogoutHandler.class);
+        logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(false);
+        logoutSuccessHandler.setWhitelist(Collections.<String>emptyList());
+        try {
+            mockMvc.perform(get("/logout.do").param("redirect", "https://www.google.com"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/login"));
         } finally {
             logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(true);
         }
