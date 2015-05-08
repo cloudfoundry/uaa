@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -13,6 +13,8 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpoints;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
@@ -32,6 +34,10 @@ public class UaaChangePasswordService implements ChangePasswordService {
         change.setUsername(username);
         change.setCurrentPassword(currentPassword);
         change.setNewPassword(newPassword);
-        passwordResetEndpoints.changePassword(change);
+        ResponseEntity<Map<String,String>> response = passwordResetEndpoints.changePassword(change);
+        if (! response.getStatusCode().is2xxSuccessful()) {
+            //throw an error
+            throw new BadCredentialsException(username);
+        }
     }
 }

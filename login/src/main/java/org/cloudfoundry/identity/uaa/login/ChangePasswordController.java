@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -16,6 +16,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
@@ -61,7 +62,9 @@ public class ChangePasswordController {
         try {
             changePasswordService.changePassword(username, currentPassword, newPassword);
             return "redirect:profile";
-        } catch (RestClientException e) {
+        } catch (BadCredentialsException e) {
+            model.addAttribute("message_code", "unauthorized");
+        } catch (RestClientException e) { //left over from login-server days
             model.addAttribute("message_code", "unauthorized");
         }
         response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
